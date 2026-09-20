@@ -1,5 +1,5 @@
-import { SplineAgentPage } from './pages/SplineAgentPage';
+import { LiveMapPage } from './pages/LiveMapPage';
 
 export function App() {
-  return <SplineAgentPage />;
+  return <LiveMapPage />;
 }
