@@ -97,10 +97,26 @@ SAFETY:
 
   try {
     Write-Host "Executing through Codex + Spline MCP..."
-    $output = & $codexCommand exec --skip-git-repo-check --ephemeral --sandbox workspace-write $prompt 2>&1 | Out-String
+    $previousErrorActionPreference = $ErrorActionPreference
+    $rawOutput = $null
+    $codexExitCode = $null
 
-    if ($LASTEXITCODE -ne 0) {
-      throw "Codex exited with code $LASTEXITCODE. $output"
+    try {
+      # Windows PowerShell can promote native stderr into a terminating
+      # NativeCommandError when ErrorActionPreference is Stop. Codex writes
+      # normal diagnostic/version output to stderr, so capture it without
+      # treating stderr itself as process failure.
+      $ErrorActionPreference = "Continue"
+      $rawOutput = & $codexCommand exec --skip-git-repo-check --ephemeral --sandbox workspace-write $prompt 2>&1
+      $codexExitCode = $LASTEXITCODE
+    } finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    $output = ($rawOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+
+    if ($codexExitCode -ne 0) {
+      throw "Codex exited with code $codexExitCode. $output"
     }
 
     Write-Host $output
