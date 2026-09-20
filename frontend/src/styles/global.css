@@ -77,3 +77,62 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
   .preview-card { height:260px; }
   .sticky-actions { grid-template-columns: .9fr 1.1fr; }
 }
+
+
+/* Live Map */
+.live-map-shell { max-width: 1480px; margin: 0 auto; display: grid; grid-template-columns: 280px minmax(0, 1fr) 320px; min-height: calc(100dvh - 72px); }
+.live-map-sidebar, .live-map-events { padding: 26px 20px; background: rgba(255,255,255,.012); }
+.live-map-sidebar { border-right: 1px solid var(--line); }
+.live-map-events { border-left: 1px solid var(--line); }
+.live-map-main { padding: 30px; }
+.project-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:20px 0; }
+.project-summary div { padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+.project-summary span { display:block; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+.project-summary strong { display:block; margin-top:5px; font-size:14px; }
+.job-list { display:flex; flex-direction:column; gap:8px; }
+.job-card { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:13px; text-align:left; color:#e9efff; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+.job-card.selected { border-color:rgba(85,217,255,.28); background:rgba(85,217,255,.06); }
+.job-card strong, .job-card span { display:block; }
+.job-card span { color:var(--muted); font-size:10px; margin-top:4px; letter-spacing:.06em; }
+.job-progress { color:var(--cyan); font-size:12px; font-weight:800; }
+.live-map-heading { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; margin-bottom:28px; }
+.progress-ring { min-width:76px; height:76px; border-radius:50%; display:grid; place-items:center; border:1px solid rgba(85,217,255,.28); background:radial-gradient(circle,rgba(85,217,255,.08),rgba(74,130,255,.03)); color:var(--cyan); font-weight:800; }
+.flow-stack { display:flex; flex-direction:column; }
+.flow-task { display:grid; grid-template-columns:28px 24px 1fr; gap:10px; min-height:120px; }
+.flow-index { color:#67758d; font-size:11px; padding-top:18px; text-align:center; }
+.flow-rail { position:relative; display:flex; justify-content:center; }
+.flow-dot { width:12px; height:12px; margin-top:18px; border-radius:50%; border:2px solid #59667a; background:#101722; z-index:2; }
+.flow-dot.completed { border-color:var(--green); background:rgba(86,220,155,.2); }
+.flow-dot.running, .flow-dot.in_progress { border-color:var(--cyan); background:rgba(85,217,255,.2); box-shadow:0 0 18px rgba(85,217,255,.5); }
+.flow-line-vertical { position:absolute; top:30px; bottom:-8px; width:1px; background:linear-gradient(var(--line),rgba(85,217,255,.2),var(--line)); }
+.flow-task-card { margin-bottom:14px; padding:16px; border:1px solid var(--line); border-radius:16px; background:linear-gradient(180deg,rgba(17,25,40,.96),rgba(11,17,28,.96)); }
+.flow-task-title { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+.flow-task-title strong, .flow-task-title span { display:block; }
+.flow-task-title span { color:var(--muted); margin-top:4px; font-size:10px; letter-spacing:.08em; }
+.flow-task-card p { margin:10px 0 0; color:var(--muted); font-size:12px; }
+.task-status { display:flex; align-items:center; gap:6px; font-size:10px; font-weight:800; letter-spacing:.05em; color:#94a3ba; }
+.task-status.completed { color:var(--green); }
+.task-status.running, .task-status.in_progress { color:var(--cyan); }
+.execution-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+.execution-grid div { display:grid; grid-template-columns:auto 1fr auto; gap:7px; align-items:center; padding:9px; border-radius:10px; background:#0a101a; border:1px solid var(--line); }
+.execution-grid span { color:var(--muted); font-size:10px; }
+.execution-grid strong { font-size:11px; }
+.event-list { display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+.event-card { display:grid; grid-template-columns:auto 1fr; gap:9px; padding:12px; border:1px solid var(--line); border-radius:13px; background:var(--panel); }
+.event-card svg { color:var(--blue); margin-top:2px; }
+.event-card strong { font-size:10px; letter-spacing:.06em; }
+.event-card p { margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.45; }
+.empty-map { min-height:50vh; display:grid; place-items:center; color:var(--muted); }
+@media (max-width: 1100px) {
+  .live-map-shell { grid-template-columns:240px 1fr; }
+  .live-map-events { grid-column:1 / -1; border-left:0; border-top:1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  .live-map-shell { display:block; }
+  .live-map-sidebar, .live-map-main, .live-map-events { padding:20px 16px; border-left:0; border-right:0; }
+  .live-map-sidebar { border-bottom:1px solid var(--line); }
+  .live-map-heading { align-items:center; }
+  .progress-ring { min-width:62px; height:62px; }
+  .execution-grid { grid-template-columns:1fr; }
+  .flow-task { grid-template-columns:20px 18px 1fr; gap:7px; }
+}
