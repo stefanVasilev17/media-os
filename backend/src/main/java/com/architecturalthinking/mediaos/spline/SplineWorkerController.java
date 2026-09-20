@@ -23,7 +23,7 @@ public class SplineWorkerController {
     public SplineWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
-            @Value("\${SPLINE_WORKER_KEY:}") String workerKey
+            @Value("${SPLINE_WORKER_KEY:}") String workerKey
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
