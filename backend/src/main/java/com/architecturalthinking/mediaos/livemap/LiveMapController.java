@@ -121,11 +121,13 @@ public class LiveMapController {
                 order by started_at nulls last
                 """)
                 .param("taskId", taskId)
-                .query((rs, rowNum) -> Map.of(
-                        "id", rs.getObject("id", UUID.class),
-                        "agentKey", rs.getString("agent_key"),
-                        "status", rs.getString("status")
-                ))
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", rs.getObject("id", UUID.class));
+                    item.put("agentKey", rs.getString("agent_key"));
+                    item.put("status", rs.getString("status"));
+                    return item;
+                })
                 .list();
     }
 
@@ -137,11 +139,13 @@ public class LiveMapController {
                 order by created_at
                 """)
                 .param("taskId", taskId)
-                .query((rs, rowNum) -> Map.of(
-                        "id", rs.getObject("id", UUID.class),
-                        "status", rs.getString("status"),
-                        "comment", rs.getString("comment")
-                ))
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", rs.getObject("id", UUID.class));
+                    item.put("status", rs.getString("status"));
+                    item.put("comment", rs.getString("comment"));
+                    return item;
+                })
                 .list();
     }
 
@@ -153,13 +157,15 @@ public class LiveMapController {
                 order by created_at
                 """)
                 .param("taskId", taskId)
-                .query((rs, rowNum) -> Map.of(
-                        "id", rs.getObject("id", UUID.class),
-                        "type", rs.getString("artifact_type"),
-                        "name", rs.getString("name"),
-                        "uri", rs.getString("uri"),
-                        "status", rs.getString("status")
-                ))
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", rs.getObject("id", UUID.class));
+                    item.put("type", rs.getString("artifact_type"));
+                    item.put("name", rs.getString("name"));
+                    item.put("uri", rs.getString("uri"));
+                    item.put("status", rs.getString("status"));
+                    return item;
+                })
                 .list();
     }
 }
