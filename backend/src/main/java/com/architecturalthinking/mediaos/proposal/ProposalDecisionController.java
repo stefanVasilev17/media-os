@@ -33,7 +33,7 @@ public class ProposalDecisionController {
         if (request.decision() == Decision.REQUEST_CHANGES && request.comment() != null && !request.comment().isBlank()) {
             jdbc.sql("""
                     insert into correction(id, proposal_id, context_type, original_proposal, creator_correction, status)
-                    values (:id,:proposalId,'SPLINE_PROPOSAL','Restore Session Flow',:comment,'RAW')
+                    values (:id,:proposalId,'PROPOSAL','Agent proposal',:comment,'RAW')
                     """)
                     .param("id", UUID.randomUUID()).param("proposalId", proposalId).param("comment", request.comment()).update();
         }
