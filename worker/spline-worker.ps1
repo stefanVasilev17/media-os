@@ -29,8 +29,76 @@ $headers = @{
 }
 
 function Invoke-WorkerPost {
-  param([string]$Path, [object]$Body)
+  param(
+    [string]$Path,
+    [object]$Body
+  )
+
   Invoke-RestMethod -Method Post -Uri "$baseUrl$Path" -Headers $headers -ContentType "application/json" -Body ($Body | ConvertTo-Json -Depth 10)
+}
+
+function Invoke-CodexSplineJob {
+  param(
+    [string]$Prompt,
+    [string]$Command
+  )
+
+  $resolved = Get-Command $Command -ErrorAction Stop
+  $codexPath = $resolved.Source
+
+  if ([string]::IsNullOrWhiteSpace($codexPath)) {
+    $codexPath = $resolved.Path
+  }
+  if ([string]::IsNullOrWhiteSpace($codexPath)) {
+    $codexPath = $Command
+  }
+
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.UseShellExecute = $false
+  $startInfo.RedirectStandardInput = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.CreateNoWindow = $true
+
+  if ($codexPath -match '\.(cmd|bat)$') {
+    $startInfo.FileName = $env:ComSpec
+    $innerCommand = '"{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -' -f $codexPath
+    $startInfo.Arguments = '/d /s /c "{0}"' -f $innerCommand.Replace('"', '\"')
+  } else {
+    $startInfo.FileName = $codexPath
+    $startInfo.Arguments = 'exec --skip-git-repo-check --ephemeral --sandbox workspace-write -'
+  }
+
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+
+  if (-not $process.Start()) {
+    throw "Could not start Codex process."
+  }
+
+  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+  $stderrTask = $process.StandardError.ReadToEndAsync()
+
+  $process.StandardInput.Write($Prompt)
+  $process.StandardInput.Close()
+
+  $process.WaitForExit()
+
+  $stdout = $stdoutTask.Result
+  $stderr = $stderrTask.Result
+  $outputParts = @()
+
+  if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+    $outputParts += $stdout.TrimEnd()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+    $outputParts += $stderr.TrimEnd()
+  }
+
+  return @{
+    ExitCode = $process.ExitCode
+    Output = ($outputParts -join [Environment]::NewLine)
+  }
 }
 
 Write-Host "Media OS Spline Worker"
@@ -45,7 +113,12 @@ while ($true) {
   try {
     $job = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/v1/worker/spline/jobs/next" -Headers $headers
   } catch {
-    if ($_.Exception.Response.StatusCode.value__ -ne 204) {
+    $statusCode = $null
+    if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+      $statusCode = [int]$_.Exception.Response.StatusCode
+    }
+
+    if ($statusCode -ne 204) {
       Write-Warning "Could not poll Media OS: $($_.Exception.Message)"
     }
   }
@@ -55,6 +128,7 @@ while ($true) {
       Write-Host "No queued Spline job."
       exit 0
     }
+
     Start-Sleep -Seconds $PollSeconds
     continue
   }
@@ -98,56 +172,11 @@ SAFETY:
   try {
     Write-Host "Executing through Codex + Spline MCP..."
 
-    $runId = [Guid]::NewGuid().ToString("N")
-    $promptFile = Join-Path $env:TEMP "media-os-codex-$runId.prompt.txt"
-    $stdoutFile = Join-Path $env:TEMP "media-os-codex-$runId.stdout.txt"
-    $stderrFile = Join-Path $env:TEMP "media-os-codex-$runId.stderr.txt"
+    $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand
+    $output = [string]$codexResult.Output
 
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($promptFile, $prompt, $utf8NoBom)
-
-    $resolved = Get-Command $codexCommand -ErrorAction Stop
-    $codexPath = $resolved.Source
-    if ([string]::IsNullOrWhiteSpace($codexPath)) {
-      $codexPath = $resolved.Path
-    }
-    if ([string]::IsNullOrWhiteSpace($codexPath)) {
-      $codexPath = $codexCommand
-    }
-
-    if ($codexPath -match '\.(cmd|bat)    Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/complete" -Body @{ output = $output; error = $null }
-    Write-Host "Job completed and reported to Media OS."
-  } catch {
-    $message = $_.Exception.Message
-    Write-Error $message -ErrorAction Continue
-
-    try {
-      Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/fail" -Body @{ output = $null; error = $message }
-    } catch {
-      Write-Warning "Could not report failure to Media OS: $($_.Exception.Message)"
-    }
-  }
-
-  if ($Once) {
-    exit 0
-  }
-}
-) {
-      $cmdLine = '"' + $codexPath + '" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -'
-      $process = Start-Process -FilePath $env:ComSpec -ArgumentList @("/d", "/s", "/c", $cmdLine) -RedirectStandardInput $promptFile -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile -NoNewWindow -Wait -PassThru
-    } else {
-      $process = Start-Process -FilePath $codexPath -ArgumentList @("exec", "--skip-git-repo-check", "--ephemeral", "--sandbox", "workspace-write", "-") -RedirectStandardInput $promptFile -RedirectStandardOutput $stdoutFile -RedirectStandardError $stderrFile -NoNewWindow -Wait -PassThru
-    }
-
-    $stdout = if (Test-Path $stdoutFile) { Get-Content -Raw $stdoutFile } else { "" }
-    $stderr = if (Test-Path $stderrFile) { Get-Content -Raw $stderrFile } else { "" }
-    $output = @($stdout, $stderr) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { $_.TrimEnd() }
-    $output = $output -join [Environment]::NewLine
-
-    Remove-Item $promptFile, $stdoutFile, $stderrFile -Force -ErrorAction SilentlyContinue
-
-    if ($process.ExitCode -ne 0) {
-      throw "Codex exited with code $($process.ExitCode). $output"
+    if ([int]$codexResult.ExitCode -ne 0) {
+      throw "Codex exited with code $($codexResult.ExitCode). $output"
     }
 
     Write-Host $output
