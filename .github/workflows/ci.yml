@@ -47,3 +47,7 @@ jobs:
             exit 1
           }
           Write-Host "spline-worker.ps1 syntax OK"
+      - name: Smoke-test PowerShell Codex shim launcher
+        shell: powershell
+        run: |
+          powershell -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\worker\spline-worker.ps1" -LauncherSelfTest

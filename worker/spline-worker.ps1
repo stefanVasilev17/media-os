@@ -1,9 +1,121 @@
 param(
   [switch]$Once,
-  [int]$PollSeconds = 5
+  [int]$PollSeconds = 5,
+  [switch]$LauncherSelfTest
 )
 
 $ErrorActionPreference = "Stop"
+
+function Resolve-CodexStartInfo {
+  param(
+    [string]$Command
+  )
+
+  $resolved = Get-Command $Command -ErrorAction Stop
+  $codexPath = $resolved.Source
+
+  if ([string]::IsNullOrWhiteSpace($codexPath)) {
+    $codexPath = $resolved.Path
+  }
+  if ([string]::IsNullOrWhiteSpace($codexPath)) {
+    $codexPath = $Command
+  }
+
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.UseShellExecute = $false
+  $startInfo.RedirectStandardInput = $true
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.CreateNoWindow = $true
+
+  if ($codexPath -match '\.ps1$') {
+    $powershellExe = Join-Path $PSHOME "powershell.exe"
+    if (-not (Test-Path $powershellExe)) {
+      $powershellExe = (Get-Command powershell.exe -ErrorAction Stop).Source
+    }
+
+    $startInfo.FileName = $powershellExe
+    $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -' -f $codexPath
+  } elseif ($codexPath -match '\.(cmd|bat)$') {
+    $startInfo.FileName = $env:ComSpec
+    $startInfo.Arguments = '/d /s /c ""{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -"' -f $codexPath
+  } else {
+    $startInfo.FileName = $codexPath
+    $startInfo.Arguments = 'exec --skip-git-repo-check --ephemeral --sandbox workspace-write -'
+  }
+
+  return $startInfo
+}
+
+function Invoke-CodexSplineJob {
+  param(
+    [string]$Prompt,
+    [string]$Command
+  )
+
+  $startInfo = Resolve-CodexStartInfo -Command $Command
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+
+  if (-not $process.Start()) {
+    throw "Could not start Codex process."
+  }
+
+  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+  $stderrTask = $process.StandardError.ReadToEndAsync()
+
+  $process.StandardInput.Write($Prompt)
+  $process.StandardInput.Close()
+
+  $process.WaitForExit()
+
+  $stdout = $stdoutTask.Result
+  $stderr = $stderrTask.Result
+  $outputParts = @()
+
+  if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+    $outputParts += $stdout.TrimEnd()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+    $outputParts += $stderr.TrimEnd()
+  }
+
+  return @{
+    ExitCode = $process.ExitCode
+    Output = ($outputParts -join [Environment]::NewLine)
+  }
+}
+
+if ($LauncherSelfTest) {
+  $fakeCodex = Join-Path $env:TEMP "media-os-fake-codex.ps1"
+  @'
+param(
+  [Parameter(ValueFromRemainingArguments = $true)]
+  [string[]]$RemainingArgs
+)
+
+$stdin = [Console]::In.ReadToEnd()
+Write-Output "FAKE_CODEX_OK:$stdin"
+exit 0
+'@ | Set-Content -Path $fakeCodex -Encoding UTF8
+
+  try {
+    $result = Invoke-CodexSplineJob -Prompt "PING" -Command $fakeCodex
+
+    if ([int]$result.ExitCode -ne 0) {
+      throw "Launcher self-test returned exit code $($result.ExitCode)."
+    }
+
+    if ([string]$result.Output -notmatch 'FAKE_CODEX_OK:PING') {
+      throw "Launcher self-test did not receive redirected stdin/stdout correctly. Output: $($result.Output)"
+    }
+
+    Write-Host "Codex launcher self-test OK"
+    exit 0
+  } finally {
+    Remove-Item $fakeCodex -Force -ErrorAction SilentlyContinue
+  }
+}
 
 $baseUrl = $env:MEDIA_OS_BASE_URL
 $workerKey = $env:MEDIA_OS_WORKER_KEY
@@ -35,70 +147,6 @@ function Invoke-WorkerPost {
   )
 
   Invoke-RestMethod -Method Post -Uri "$baseUrl$Path" -Headers $headers -ContentType "application/json" -Body ($Body | ConvertTo-Json -Depth 10)
-}
-
-function Invoke-CodexSplineJob {
-  param(
-    [string]$Prompt,
-    [string]$Command
-  )
-
-  $resolved = Get-Command $Command -ErrorAction Stop
-  $codexPath = $resolved.Source
-
-  if ([string]::IsNullOrWhiteSpace($codexPath)) {
-    $codexPath = $resolved.Path
-  }
-  if ([string]::IsNullOrWhiteSpace($codexPath)) {
-    $codexPath = $Command
-  }
-
-  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
-  $startInfo.UseShellExecute = $false
-  $startInfo.RedirectStandardInput = $true
-  $startInfo.RedirectStandardOutput = $true
-  $startInfo.RedirectStandardError = $true
-  $startInfo.CreateNoWindow = $true
-
-  if ($codexPath -match '\.(cmd|bat)$') {
-    $startInfo.FileName = $env:ComSpec
-    $innerCommand = '"{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -' -f $codexPath
-    $startInfo.Arguments = '/d /s /c "{0}"' -f $innerCommand.Replace('"', '\"')
-  } else {
-    $startInfo.FileName = $codexPath
-    $startInfo.Arguments = 'exec --skip-git-repo-check --ephemeral --sandbox workspace-write -'
-  }
-
-  $process = New-Object System.Diagnostics.Process
-  $process.StartInfo = $startInfo
-
-  if (-not $process.Start()) {
-    throw "Could not start Codex process."
-  }
-
-  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-  $stderrTask = $process.StandardError.ReadToEndAsync()
-
-  $process.StandardInput.Write($Prompt)
-  $process.StandardInput.Close()
-
-  $process.WaitForExit()
-
-  $stdout = $stdoutTask.Result
-  $stderr = $stderrTask.Result
-  $outputParts = @()
-
-  if (-not [string]::IsNullOrWhiteSpace($stdout)) {
-    $outputParts += $stdout.TrimEnd()
-  }
-  if (-not [string]::IsNullOrWhiteSpace($stderr)) {
-    $outputParts += $stderr.TrimEnd()
-  }
-
-  return @{
-    ExitCode = $process.ExitCode
-    Output = ($outputParts -join [Environment]::NewLine)
-  }
 }
 
 Write-Host "Media OS Spline Worker"
