@@ -1,65 +1,47 @@
-export type Proposal = {
+export type LiveMapTask = {
   id: string;
-  title: string;
-  summary: string;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-  confidence: number;
-  affectedObjects: string[];
-  proposedOperations: string[];
+  parentTaskId: string | null;
+  name: string;
+  type: string;
   status: string;
+  sequence: number;
+  agentRuns: Array<{ id: string; agentKey: string; status: string }>;
+  approvals: Array<{ id: string; status: string; comment: string }>;
+  artifacts: Array<{ id: string; type: string; name: string; uri: string; status: string }>;
 };
 
-export type ThreadView = {
-  episodeNumber: string;
-  episodeTitle: string;
-  agentName: string;
-  agentStatus: string;
-  messages: Array<{ id: string; sender: 'CREATOR' | 'AGENT' | 'SYSTEM'; content: string }>;
-  proposal: Proposal;
+export type LiveMapJob = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  progress: number;
+  createdAt: string;
+  updatedAt: string;
+  tasks: LiveMapTask[];
 };
 
-const fallback: ThreadView = {
-  episodeNumber: 'EP001',
-  episodeTitle: 'What Really Happens When You Click Login?',
-  agentName: 'Spline Agent',
-  agentStatus: 'READY FOR REVIEW',
-  messages: [
-    { id: 'm1', sender: 'AGENT', content: 'I reviewed the approved Session Restore flow. I can reproduce the next animation using existing components only.' },
-    { id: 'm2', sender: 'SYSTEM', content: 'Master scene is protected. Execution will target a sandbox copy.' }
-  ],
-  proposal: {
-    id: 'proposal-demo',
-    title: 'Restore Session Flow',
-    summary: 'Reuse the approved restore path and camera grammar without introducing new hero components.',
-    riskLevel: 'LOW',
-    confidence: 0.92,
-    affectedObjects: ['SessionRestore_ICON', 'RestoreToAuthState_PATH', 'AuthState'],
-    proposedOperations: [
-      'Keep image assets static',
-      'Animate the restore flow only',
-      'Reuse the approved camera behavior',
-      'Generate a review preview before any master change'
-    ],
-    status: 'READY_FOR_REVIEW'
+export type LiveMapView = {
+  project: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+  };
+  jobs: LiveMapJob[];
+  events: Array<{
+    id: string;
+    type: string;
+    message: string;
+    createdAt: string;
+  }>;
+};
+
+export async function loadLiveMap(): Promise<LiveMapView> {
+  const response = await fetch('/api/v1/live-map');
+  if (!response.ok) {
+    throw new Error('Live Map is not available');
   }
-};
 
-export async function loadSplineThread(): Promise<ThreadView> {
-  try {
-    const response = await fetch('/api/v1/episodes/EP001/agents/spline');
-    if (!response.ok) throw new Error('Backend not available');
-    return await response.json();
-  } catch {
-    return fallback;
-  }
-}
-
-export async function decideProposal(proposalId: string, decision: 'APPROVE' | 'REQUEST_CHANGES', comment?: string) {
-  const response = await fetch(`/api/v1/proposals/${proposalId}/decisions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ decision, comment: comment ?? null })
-  });
-  if (!response.ok) throw new Error('Decision could not be saved');
   return response.json();
 }
