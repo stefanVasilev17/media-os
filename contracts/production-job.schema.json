@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProductionJob",
+  "type": "object",
+  "required": ["jobId", "episode", "agent", "taskType", "target", "permissions"],
+  "properties": {
+    "jobId": { "type": "string", "format": "uuid" },
+    "episode": { "type": "string" },
+    "agent": { "type": "string" },
+    "taskType": { "type": "string" },
+    "target": { "type": "string" },
+    "instructions": { "type": "string" },
+    "permissions": { "type": "array", "items": { "type": "string" } },
+    "protectedObjects": { "type": "array", "items": { "type": "string" } }
+  }
+}

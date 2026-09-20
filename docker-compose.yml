@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: media_os
+      POSTGRES_USER: media_os
+      POSTGRES_PASSWORD: media_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - media_os_pg:/var/lib/postgresql/data
+
+volumes:
+  media_os_pg:
