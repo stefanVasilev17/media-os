@@ -25,4 +25,5 @@ values (
   'SPLINE_JOB_REQUEUED',
   'Spline MCP connectivity proof was requeued after enabling Codex auto-review and semantic result handling.',
   '{"productionJobId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1","reason":"codex-auto-review-semantic-result"}'::jsonb
-);
+)
+on conflict (id) do nothing;
