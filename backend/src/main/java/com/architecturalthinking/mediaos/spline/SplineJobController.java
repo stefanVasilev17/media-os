@@ -254,7 +254,7 @@ public class SplineJobController {
                     .param("taskId", context.taskId())
                     .update();
 
-            jdbc.sql("update job set status='RUNNING', progress=20, updated_at=now() where id=:jobId")
+            jdbc.sql("update job set status='QUEUED', progress=20, updated_at=now() where id=:jobId")
                     .param("jobId", context.orchestrationJobId())
                     .update();
 

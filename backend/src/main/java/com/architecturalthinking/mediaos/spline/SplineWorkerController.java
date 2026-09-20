@@ -16,6 +16,8 @@ import java.util.UUID;
 @RequestMapping("/api/v1/worker/spline")
 public class SplineWorkerController {
 
+    private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final String workerKey;
@@ -31,6 +33,8 @@ public class SplineWorkerController {
     }
 
     public record WorkerResult(String output, String error) {}
+
+    private record ExecutionContext(UUID taskId, UUID orchestrationJobId) {}
 
     @GetMapping("/jobs/next")
     @Transactional
@@ -80,25 +84,23 @@ public class SplineWorkerController {
 
         UUID productionJobId = (UUID) job.get().get("id");
         UUID taskId = (UUID) job.get().get("taskId");
+        UUID orchestrationJobId = findOrchestrationJobId(taskId);
 
         jdbc.sql("update task set status='IN_PROGRESS', updated_at=now() where id=:taskId")
                 .param("taskId", taskId)
                 .update();
 
-        jdbc.sql("""
-                insert into event(id, project_id, job_id, task_id, event_type, message, payload)
-                values (:id,
-                        '11111111-1111-1111-1111-111111111111',
-                        '77777777-7777-7777-7777-777777777777',
-                        :taskId,
-                        'SPLINE_WORKER_CLAIMED',
-                        'Spline production worker claimed the queued MCP job.',
-                        cast(:payload as jsonb))
-                """)
-                .param("id", UUID.randomUUID())
-                .param("taskId", taskId)
-                .param("payload", "{\"productionJobId\":\"" + productionJobId + "\",\"workerId\":\"" + workerId + "\"}")
+        jdbc.sql("update job set status='RUNNING', progress=40, updated_at=now() where id=:jobId")
+                .param("jobId", orchestrationJobId)
                 .update();
+
+        writeEvent(
+                orchestrationJobId,
+                taskId,
+                "SPLINE_WORKER_CLAIMED",
+                "Spline production worker claimed the queued MCP job.",
+                Map.of("productionJobId", productionJobId, "workerId", workerId)
+        );
 
         return ResponseEntity.ok(job.get());
     }
@@ -136,7 +138,7 @@ public class SplineWorkerController {
     ) {
         verifyKey(key);
 
-        UUID taskId = findTask(jobId, workerId);
+        ExecutionContext context = findContext(jobId, workerId);
         String resultJson = writeJson(Map.of(
                 "output", result.output() == null ? "" : result.output(),
                 "workerId", workerId
@@ -157,26 +159,20 @@ public class SplineWorkerController {
                 .update();
 
         jdbc.sql("update task set status='COMPLETED', updated_at=now() where id=:taskId")
-                .param("taskId", taskId)
+                .param("taskId", context.taskId())
                 .update();
 
-        jdbc.sql("update job set progress=90, updated_at=now() where id='77777777-7777-7777-7777-777777777777'")
+        jdbc.sql("update job set status='COMPLETED', progress=100, updated_at=now() where id=:jobId")
+                .param("jobId", context.orchestrationJobId())
                 .update();
 
-        jdbc.sql("""
-                insert into event(id, project_id, job_id, task_id, event_type, message, payload)
-                values (:id,
-                        '11111111-1111-1111-1111-111111111111',
-                        '77777777-7777-7777-7777-777777777777',
-                        :taskId,
-                        'SPLINE_MCP_PROOF_SUCCEEDED',
-                        'Media OS dispatched a job through the production worker and Spline MCP reported success.',
-                        cast(:payload as jsonb))
-                """)
-                .param("id", UUID.randomUUID())
-                .param("taskId", taskId)
-                .param("payload", resultJson)
-                .update();
+        writeEvent(
+                context.orchestrationJobId(),
+                context.taskId(),
+                "SPLINE_JOB_SUCCEEDED",
+                "Spline Agent execution completed and verified successfully.",
+                readJsonMap(resultJson)
+        );
 
         return Map.of("jobId", jobId, "status", "SUCCEEDED");
     }
@@ -191,7 +187,7 @@ public class SplineWorkerController {
     ) {
         verifyKey(key);
 
-        UUID taskId = findTask(jobId, workerId);
+        ExecutionContext context = findContext(jobId, workerId);
         String error = result.error() == null ? "Spline worker failed without an error message." : result.error();
 
         jdbc.sql("""
@@ -208,37 +204,68 @@ public class SplineWorkerController {
                 .update();
 
         jdbc.sql("update task set status='FAILED', updated_at=now() where id=:taskId")
-                .param("taskId", taskId)
+                .param("taskId", context.taskId())
                 .update();
 
-        jdbc.sql("""
-                insert into event(id, project_id, job_id, task_id, event_type, message)
-                values (:id,
-                        '11111111-1111-1111-1111-111111111111',
-                        '77777777-7777-7777-7777-777777777777',
-                        :taskId,
-                        'SPLINE_MCP_PROOF_FAILED',
-                        :message)
-                """)
-                .param("id", UUID.randomUUID())
-                .param("taskId", taskId)
-                .param("message", error)
+        jdbc.sql("update job set status='FAILED', updated_at=now() where id=:jobId")
+                .param("jobId", context.orchestrationJobId())
                 .update();
+
+        writeEvent(
+                context.orchestrationJobId(),
+                context.taskId(),
+                "SPLINE_JOB_FAILED",
+                error,
+                Map.of("productionJobId", jobId)
+        );
 
         return Map.of("jobId", jobId, "status", "FAILED");
     }
 
-    private UUID findTask(UUID jobId, String workerId) {
+    private ExecutionContext findContext(UUID productionJobId, String workerId) {
         return jdbc.sql("""
-                select task_id
-                from production_job
-                where id=:jobId and worker_id=:workerId
+                select p.task_id, t.job_id
+                from production_job p
+                join task t on t.id = p.task_id
+                where p.id=:productionJobId and p.worker_id=:workerId
                 """)
-                .param("jobId", jobId)
+                .param("productionJobId", productionJobId)
                 .param("workerId", workerId)
-                .query(UUID.class)
+                .query((rs, rowNum) -> new ExecutionContext(
+                        rs.getObject("task_id", UUID.class),
+                        rs.getObject("job_id", UUID.class)
+                ))
                 .optional()
                 .orElseThrow(() -> new WorkerStateException("Job does not belong to this worker."));
+    }
+
+    private UUID findOrchestrationJobId(UUID taskId) {
+        return jdbc.sql("select job_id from task where id=:taskId")
+                .param("taskId", taskId)
+                .query(UUID.class)
+                .optional()
+                .orElseThrow(() -> new WorkerStateException("Task does not belong to an orchestration job."));
+    }
+
+    private void writeEvent(
+            UUID orchestrationJobId,
+            UUID taskId,
+            String type,
+            String message,
+            Map<String, Object> payload
+    ) {
+        jdbc.sql("""
+                insert into event(id, project_id, job_id, task_id, event_type, message, payload)
+                values (:id, :projectId, :jobId, :taskId, :type, :message, cast(:payload as jsonb))
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("jobId", orchestrationJobId)
+                .param("taskId", taskId)
+                .param("type", type)
+                .param("message", message)
+                .param("payload", writeJson(payload))
+                .update();
     }
 
     private Object readJson(String json) {
@@ -246,6 +273,15 @@ public class SplineWorkerController {
             return objectMapper.readValue(json, Object.class);
         } catch (Exception e) {
             throw new IllegalStateException("Invalid stored production job JSON.", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readJsonMap(String json) {
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not parse production job result.", e);
         }
     }
 
