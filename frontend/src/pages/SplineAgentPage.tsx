@@ -13,6 +13,8 @@ export function SplineAgentPage() {
   if (!view) return <main className="loading">Loading Media OS…</main>;
 
   async function decide(decision: 'APPROVE' | 'REQUEST_CHANGES') {
+    if (!view) return;
+
     setSaving(true);
     try {
       await decideProposal(view.proposal.id, decision, note);
