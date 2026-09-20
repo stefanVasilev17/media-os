@@ -37,6 +37,19 @@ export type LiveMapView = {
   }>;
 };
 
+export type PendingSplineApproval = {
+  productionJobId: string;
+  approvalId: string;
+  name: string;
+  taskType: string;
+  target: string;
+  instructions: string;
+  permissions: string[];
+  protectedObjects: string[];
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
 export async function loadLiveMap(): Promise<LiveMapView> {
   const response = await fetch('/api/v1/live-map');
   if (!response.ok) {
@@ -44,4 +57,55 @@ export async function loadLiveMap(): Promise<LiveMapView> {
   }
 
   return response.json();
+}
+
+export async function loadPendingSplineApprovals(): Promise<PendingSplineApproval[]> {
+  const response = await fetch('/api/v1/spline/jobs/pending-approvals');
+  if (!response.ok) {
+    throw new Error('Spline approvals are not available');
+  }
+
+  return response.json();
+}
+
+export async function createSplineEditProof(): Promise<void> {
+  const response = await fetch('/api/v1/spline/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: 'Spline Agent edit proof',
+      taskType: 'EDIT_EXISTING_TEST_OBJECT',
+      target: 'FOCUSED_SPLINE_3D_TAB',
+      instructions:
+        'Find the existing object named MEDIA_OS_CONNECTION_TEST. Do not create a replacement if it is missing. Edit only this object: set its position to (4800, 0, 0), set its size to 50 x 50 x 50, and keep it clearly cyan. Do not modify any other object. Verify the final object name, position, size, and visible cyan material through Spline MCP before reporting success.',
+      permissions: ['READ_SCENE', 'EDIT_TEST_OBJECT'],
+      protectedObjects: ['ALL_OBJECTS_EXCEPT_MEDIA_OS_CONNECTION_TEST'],
+      payload: {
+        expectedObject: 'MEDIA_OS_CONNECTION_TEST',
+        expectedPosition: [4800, 0, 0],
+        expectedSize: [50, 50, 50],
+        safeSandboxRequired: true
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not create Spline edit proof');
+  }
+}
+
+export async function decideSplineJob(
+  productionJobId: string,
+  decision: 'APPROVE' | 'REQUEST_CHANGES',
+  comment?: string
+): Promise<void> {
+  const response = await fetch(`/api/v1/spline/jobs/${productionJobId}/decision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision, comment: comment ?? null })
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not save Spline approval decision');
+  }
 }
