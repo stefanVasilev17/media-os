@@ -9,10 +9,17 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
 server:
+  port: ${PORT:8080}
   forward-headers-strategy: framework
