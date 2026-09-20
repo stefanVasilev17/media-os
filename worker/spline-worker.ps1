@@ -97,7 +97,7 @@ SAFETY:
 
   try {
     Write-Host "Executing through Codex + Spline MCP..."
-    $output = & $codexCommand exec --ephemeral --sandbox workspace-write $prompt 2>&1 | Out-String
+    $output = & $codexCommand exec --skip-git-repo-check --ephemeral --sandbox workspace-write $prompt 2>&1 | Out-String
 
     if ($LASTEXITCODE -ne 0) {
       throw "Codex exited with code $LASTEXITCODE. $output"
