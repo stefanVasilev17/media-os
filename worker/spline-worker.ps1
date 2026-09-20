@@ -51,16 +51,16 @@ function Resolve-CodexStartInfo {
     }
 
     $startInfo.FileName = $powershellExe
-    $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -' -f $codexPath
+    $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" --approve-for-me exec --skip-git-repo-check --ephemeral -' -f $codexPath
   } elseif (
     $codexPath.EndsWith(".cmd", [System.StringComparison]::OrdinalIgnoreCase) -or
     $codexPath.EndsWith(".bat", [System.StringComparison]::OrdinalIgnoreCase)
   ) {
     $startInfo.FileName = $env:ComSpec
-    $startInfo.Arguments = '/d /s /c ""{0}" exec --skip-git-repo-check --ephemeral --sandbox workspace-write -"' -f $codexPath
+    $startInfo.Arguments = '/d /s /c ""{0}" --approve-for-me exec --skip-git-repo-check --ephemeral -"' -f $codexPath
   } else {
     $startInfo.FileName = $codexPath
-    $startInfo.Arguments = 'exec --skip-git-repo-check --ephemeral --sandbox workspace-write -'
+    $startInfo.Arguments = '--approve-for-me exec --skip-git-repo-check --ephemeral -'
   }
 
   return $startInfo
@@ -106,6 +106,27 @@ function Invoke-CodexSplineJob {
   }
 }
 
+function Get-MediaOsSplineResult {
+  param(
+    [string]$Output
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Output)) {
+    return $null
+  }
+
+  $matches = [regex]::Matches(
+    $Output,
+    '(?im)^MEDIA_OS_SPLINE_RESULT:\s*(SUCCEEDED|FAILED)\b[^\r\n]*'
+  )
+
+  if ($matches.Count -eq 0) {
+    return $null
+  }
+
+  return $matches[$matches.Count - 1].Value.Trim()
+}
+
 if ($LauncherSelfTest) {
   $fakeDir = Join-Path $env:TEMP ("media-os-codex-selftest-" + [Guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Path $fakeDir -Force | Out-Null
@@ -120,6 +141,7 @@ throw "PowerShell shim was selected instead of the sibling native Windows shim."
   @'
 @echo off
 echo FAKE_CODEX_CMD_OK
+echo ARGS:%*
 more
 exit /b 0
 '@ | Set-Content -Path $fakeCodexCmd -Encoding ASCII
@@ -135,11 +157,28 @@ exit /b 0
       throw "Launcher self-test did not prefer the sibling native Windows shim. Output: $($result.Output)"
     }
 
+    if ([string]$result.Output -notmatch "--approve-for-me exec") {
+      throw "Launcher self-test did not enable Codex auto-review. Output: $($result.Output)"
+    }
+
     if ([string]$result.Output -notmatch "PING") {
       throw "Launcher self-test did not preserve redirected stdin. Output: $($result.Output)"
     }
 
-    Write-Host "Codex launcher self-test OK"
+    $successSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: SUCCEEDED - test"
+    $failureSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: FAILED - test"
+    $successMarker = Get-MediaOsSplineResult -Output $successSample
+    $failureMarker = Get-MediaOsSplineResult -Output $failureSample
+
+    if ($successMarker -notmatch "^MEDIA_OS_SPLINE_RESULT: SUCCEEDED") {
+      throw "Semantic success marker self-test failed."
+    }
+
+    if ($failureMarker -notmatch "^MEDIA_OS_SPLINE_RESULT: FAILED") {
+      throw "Semantic failure marker self-test failed."
+    }
+
+    Write-Host "Codex launcher and semantic result self-test OK"
     exit 0
   } finally {
     Remove-Item $fakeDir -Recurse -Force -ErrorAction SilentlyContinue
@@ -178,7 +217,10 @@ function Invoke-WorkerPost {
     [object]$Body
   )
 
-  Invoke-RestMethod -Method Post -Uri "$baseUrl$Path" -Headers $headers -ContentType "application/json" -Body ($Body | ConvertTo-Json -Depth 10)
+  $json = $Body | ConvertTo-Json -Depth 10 -Compress
+  $utf8 = [System.Text.Encoding]::UTF8.GetBytes($json)
+
+  Invoke-RestMethod -Method Post -Uri "$baseUrl$Path" -Headers $headers -ContentType "application/json; charset=utf-8" -Body $utf8
 }
 
 Write-Host "Media OS Spline Worker"
@@ -245,9 +287,10 @@ $protectedObjects
 SAFETY:
 - Treat every existing object as protected unless the job explicitly permits editing it.
 - Do not delete or redesign existing architecture.
-- If Spline MCP is unavailable, stop and report that clearly.
 - Execute only the requested change.
-- End with a concise report beginning with MEDIA_OS_SPLINE_RESULT.
+- If Spline MCP is unavailable or any required tool call is denied, end with exactly one concise line beginning: MEDIA_OS_SPLINE_RESULT: FAILED
+- If the requested Spline change is actually completed, end with exactly one concise line beginning: MEDIA_OS_SPLINE_RESULT: SUCCEEDED
+- Never report SUCCEEDED unless the scene change was performed through Spline MCP.
 "@
 
   try {
@@ -256,14 +299,28 @@ SAFETY:
     $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand
     $output = [string]$codexResult.Output
 
-    if ([int]$codexResult.ExitCode -ne 0) {
-      throw "Codex exited with code $($codexResult.ExitCode). $output"
-    }
-
     Write-Host $output
 
+    if ([int]$codexResult.ExitCode -ne 0) {
+      throw "Codex exited with code $($codexResult.ExitCode)."
+    }
+
+    $resultLine = Get-MediaOsSplineResult -Output $output
+
+    if ([string]::IsNullOrWhiteSpace($resultLine)) {
+      throw "Codex finished without a MEDIA_OS_SPLINE_RESULT status line."
+    }
+
+    if ($resultLine -match "^MEDIA_OS_SPLINE_RESULT: FAILED") {
+      throw $resultLine
+    }
+
+    if ($resultLine -notmatch "^MEDIA_OS_SPLINE_RESULT: SUCCEEDED") {
+      throw "Codex returned an unrecognized Spline result: $resultLine"
+    }
+
     Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/complete" -Body @{
-      output = $output
+      output = $resultLine
       error = $null
     }
 
