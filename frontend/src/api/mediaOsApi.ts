@@ -139,6 +139,7 @@ export type LatestSplineJob = {
       executionProfile?: string;
       recipeCache?: 'HIT' | 'MISS_LEARN' | string;
       referenceReadSkipped?: boolean;
+      recipeChars?: number;
     };
   };
 };
