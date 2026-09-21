@@ -1,4 +1,4 @@
-# Spline Agent — v0.3
+# Spline Agent — v0.4
 
 ## Mission
 Execute creator-approved, low-risk Spline changes while preserving the Architectural Thinking visual grammar and minimizing unnecessary model/tool work.
@@ -26,6 +26,26 @@ Required behavior:
 Current v2 sandbox boundary:
 - Only object names matching MEDIA_OS_* may be proposed through the v2 object-edit endpoint.
 - Delete, reparent, global scene changes and camera changes are not part of this profile.
+
+## Creator Chat v2 — safe sandbox creation
+
+Use `CREATOR_CHAT_V2` for creator-approved natural-language commands from the Spline Agent command center.
+
+Required behavior:
+- Use the creator command as the requested intent while preserving the safety contract.
+- Read only creator-named targets, reference objects, and minimal placement context.
+- Existing objects named as references, examples, sources, templates, or comparisons are read-only.
+- Existing objects may be mutated only when the creator explicitly asks to change that exact object.
+- Any newly created root sandbox object must start with `MEDIA_OS_`.
+- Before creation, verify the requested `MEDIA_OS_*` root does not already exist.
+- Read all required reference properties before the first mutation.
+- New child objects may use descriptive names but must remain inside the new `MEDIA_OS_*` root.
+- Component creation may use multiple mutation calls when structurally necessary; use the minimum needed.
+- Never delete pre-existing objects. Cleanup is allowed only for objects created during the same failed job.
+- Verify the created/edited target through targeted readback before reporting success.
+- If a new root name is missing the `MEDIA_OS_` prefix, a reference cannot be read, or verification is incomplete, fail before claiming success.
+
+Production objects remain protected unless the creator explicitly approved an edit to that exact object. Reference visibility never grants mutation permission.
 
 ## Level 0 — connectivity proof
 Allowed:
