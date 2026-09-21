@@ -262,7 +262,13 @@ while ($true) {
     }
   }
 
-  if ($null -eq $job) {
+  $jobId = $null
+
+  if ($null -ne $job -and $null -ne $job.PSObject.Properties["id"]) {
+    $jobId = [string]$job.id
+  }
+
+  if ([string]::IsNullOrWhiteSpace($jobId)) {
     if ($Once) {
       Write-Host "No queued Spline job."
       exit 0
@@ -272,7 +278,7 @@ while ($true) {
     continue
   }
 
-  Write-Host "Claimed job $($job.id): $($job.taskType)"
+  Write-Host "Claimed job ${jobId}: $($job.taskType)"
   Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/started" -Body @{}
 
   $permissions = ($job.permissions | ConvertTo-Json -Compress -Depth 10)
