@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,9 +33,14 @@ public class SplineWorkerController {
         this.workerKey = workerKey;
     }
 
-    public record WorkerResult(String output, String error, Map<String, Object> metrics) {}
+    public record WorkerResult(
+            String output,
+            String error,
+            Map<String, Object> metrics,
+            Map<String, Object> catalog
+    ) {}
 
-    private record ExecutionContext(UUID taskId, UUID orchestrationJobId) {}
+    private record ExecutionContext(UUID taskId, UUID orchestrationJobId, String taskType) {}
 
     @GetMapping("/jobs/next")
     @Transactional
@@ -139,6 +145,11 @@ public class SplineWorkerController {
         verifyKey(key);
 
         ExecutionContext context = findContext(jobId, workerId);
+
+        if ("SYNC_SCENE_CATALOG_V1".equals(context.taskType())) {
+            saveCatalogSnapshot(result.catalog(), workerId);
+        }
+
         Map<String, Object> resultPayload = new LinkedHashMap<>();
         resultPayload.put("output", result.output() == null ? "" : result.output());
         resultPayload.put("workerId", workerId);
@@ -231,7 +242,7 @@ public class SplineWorkerController {
 
     private ExecutionContext findContext(UUID productionJobId, String workerId) {
         return jdbc.sql("""
-                select p.task_id, t.job_id
+                select p.task_id, t.job_id, p.task_type
                 from production_job p
                 join task t on t.id = p.task_id
                 where p.id=:productionJobId and p.worker_id=:workerId
@@ -240,10 +251,65 @@ public class SplineWorkerController {
                 .param("workerId", workerId)
                 .query((rs, rowNum) -> new ExecutionContext(
                         rs.getObject("task_id", UUID.class),
-                        rs.getObject("job_id", UUID.class)
+                        rs.getObject("job_id", UUID.class),
+                        rs.getString("task_type")
                 ))
                 .optional()
                 .orElseThrow(() -> new WorkerStateException("Job does not belong to this worker."));
+    }
+
+    private void saveCatalogSnapshot(Map<String, Object> catalog, String workerId) {
+        if (catalog == null || catalog.isEmpty()) {
+            throw new WorkerStateException("Catalog sync completed without a scene catalog payload.");
+        }
+
+        Object sceneNameValue = catalog.get("sceneName");
+        Object sectionsValue = catalog.get("sections");
+
+        if (!(sceneNameValue instanceof String sceneName) || sceneName.isBlank()) {
+            throw new WorkerStateException("Scene catalog is missing sceneName.");
+        }
+        if (!(sectionsValue instanceof List<?> sections)) {
+            throw new WorkerStateException("Scene catalog is missing sections.");
+        }
+
+        int objectCount = sections.stream().mapToInt(this::countCatalogNode).sum();
+        int rootSectionCount = sections.size();
+
+        jdbc.sql("""
+                insert into spline_scene_catalog(
+                    id, project_id, scene_name, object_count, root_section_count,
+                    worker_id, catalog, synced_at
+                )
+                values (
+                    :id, :projectId, :sceneName, :objectCount, :rootSectionCount,
+                    :workerId, cast(:catalog as jsonb), now()
+                )
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("sceneName", sceneName.trim())
+                .param("objectCount", objectCount)
+                .param("rootSectionCount", rootSectionCount)
+                .param("workerId", workerId)
+                .param("catalog", writeJson(catalog))
+                .update();
+    }
+
+    @SuppressWarnings("unchecked")
+    private int countCatalogNode(Object value) {
+        if (!(value instanceof Map<?, ?> node)) {
+            return 0;
+        }
+
+        int count = 1;
+        Object childrenValue = node.get("children");
+        if (childrenValue instanceof List<?> children) {
+            for (Object child : children) {
+                count += countCatalogNode(child);
+            }
+        }
+        return count;
     }
 
     private UUID findOrchestrationJobId(UUID taskId) {

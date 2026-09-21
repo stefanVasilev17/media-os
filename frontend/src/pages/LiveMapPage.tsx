@@ -9,6 +9,8 @@ import {
   Network,
   Play,
   Plus,
+  RefreshCw,
+  Search,
   ShieldCheck,
   XCircle
 } from 'lucide-react';
@@ -19,11 +21,15 @@ import {
   loadLatestSplineJob,
   loadLiveMap,
   loadPendingSplineApprovals,
+  loadSplineSceneCatalog,
+  refreshSplineSceneCatalog,
   type LiveMapJob,
   type LiveMapTask,
   type LatestSplineJob,
   type LiveMapView,
-  type PendingSplineApproval
+  type PendingSplineApproval,
+  type SplineCatalogNode,
+  type SplineSceneCatalog
 } from '../api/mediaOsApi';
 import { StatusPill } from '../components/StatusPill';
 
@@ -31,6 +37,10 @@ function statusIcon(status: string) {
   if (status === 'COMPLETED' || status === 'APPROVED') return <CheckCircle2 size={16} />;
   if (status === 'RUNNING' || status === 'IN_PROGRESS') return <Activity size={16} />;
   return <Circle size={16} />;
+}
+
+function flattenCatalogNodes(nodes: SplineCatalogNode[]): SplineCatalogNode[] {
+  return nodes.flatMap(node => [node, ...flattenCatalogNodes(node.children ?? [])]);
 }
 
 function taskMeta(task: LiveMapTask) {
@@ -45,7 +55,11 @@ export function LiveMapPage() {
   const [view, setView] = useState<LiveMapView | null>(null);
   const [approvals, setApprovals] = useState<PendingSplineApproval[]>([]);
   const [latestSplineJob, setLatestSplineJob] = useState<LatestSplineJob | null>(null);
+  const [sceneCatalog, setSceneCatalog] = useState<SplineSceneCatalog | null>(null);
+  const [catalogBusy, setCatalogBusy] = useState(false);
   const [showObjectEdit, setShowObjectEdit] = useState(false);
+  const [selectedSectionPath, setSelectedSectionPath] = useState('');
+  const [objectSearch, setObjectSearch] = useState('');
   const [objectName, setObjectName] = useState('MEDIA_OS_CONNECTION_TEST');
   const [position, setPosition] = useState<[number, number, number]>([4700, 0, 0]);
   const [size, setSize] = useState<[number, number, number]>([60, 60, 60]);
@@ -56,20 +70,44 @@ export function LiveMapPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [map, pending, latest] = await Promise.all([
+    const [map, pending, latest, catalog] = await Promise.all([
       loadLiveMap(),
       loadPendingSplineApprovals(),
-      loadLatestSplineJob()
+      loadLatestSplineJob(),
+      loadSplineSceneCatalog()
     ]);
     setView(map);
     setApprovals(pending);
     setLatestSplineJob(latest);
+    setSceneCatalog(catalog);
     setSelectedJobId(current => current ?? map.jobs[0]?.id ?? null);
+
+    if (catalog.status === 'READY' && catalog.catalog?.sections.length) {
+      setSelectedSectionPath(current => current || catalog.catalog!.sections[0].path);
+    }
   }, []);
 
   useEffect(() => {
     refresh().catch(err => setError(err instanceof Error ? err.message : 'Live Map could not be loaded'));
   }, [refresh]);
+
+  const catalogSections = sceneCatalog?.catalog?.sections ?? [];
+  const selectedSection = useMemo(
+    () => catalogSections.find(section => section.path === selectedSectionPath) ?? catalogSections[0],
+    [catalogSections, selectedSectionPath]
+  );
+  const selectedSectionObjects = useMemo(() => {
+    if (!selectedSection) return [];
+    const nodes = flattenCatalogNodes(selectedSection.children ?? []);
+    const query = objectSearch.trim().toLowerCase();
+    return query
+      ? nodes.filter(node =>
+          node.name.toLowerCase().includes(query) ||
+          node.path.toLowerCase().includes(query) ||
+          node.type.toLowerCase().includes(query)
+        )
+      : nodes;
+  }, [selectedSection, objectSearch]);
 
   const selectedJob: LiveMapJob | undefined = useMemo(
     () => view?.jobs.find(job => job.id === selectedJobId) ?? view?.jobs[0],
@@ -87,6 +125,22 @@ export function LiveMapPage() {
       setFlash(err instanceof Error ? err.message : 'Could not create edit proof');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function syncSceneCatalog() {
+    setCatalogBusy(true);
+    setFlash(null);
+    try {
+      await refreshSplineSceneCatalog();
+      setFlash('Spline catalog refresh queued. The Local Runner will read the focused scene.');
+      window.setTimeout(() => {
+        refresh().catch(() => undefined);
+      }, 8000);
+    } catch (err) {
+      setFlash(err instanceof Error ? err.message : 'Could not refresh Spline catalog');
+    } finally {
+      setCatalogBusy(false);
     }
   }
 
@@ -196,10 +250,84 @@ export function LiveMapPage() {
               </div>
             </div>
 
-            <label>
-              <span>Object name</span>
-              <input value={objectName} onChange={event => setObjectName(event.target.value.toUpperCase())} />
-            </label>
+            <div className="scene-catalog-panel">
+              <div className="scene-catalog-toolbar">
+                <div>
+                  <span className="catalog-kicker">SCENE CATALOG</span>
+                  <strong>{sceneCatalog?.sceneName ?? 'Not synced yet'}</strong>
+                  <small>
+                    {sceneCatalog?.status === 'READY'
+                      ? `${sceneCatalog.objectCount ?? 0} objects · ${sceneCatalog.rootSectionCount ?? 0} sections`
+                      : 'Sync the focused Spline scene to browse objects.'}
+                  </small>
+                </div>
+                <button className="catalog-refresh-button" disabled={catalogBusy} onClick={syncSceneCatalog}>
+                  <RefreshCw size={15} className={catalogBusy ? 'spin' : ''} />
+                  {sceneCatalog?.status === 'READY' ? 'Refresh' : 'Sync scene'}
+                </button>
+              </div>
+
+              {sceneCatalog?.status === 'READY' && catalogSections.length > 0 ? (
+                <>
+                  <label>
+                    <span>Main section</span>
+                    <select
+                      value={selectedSection?.path ?? ''}
+                      onChange={event => {
+                        setSelectedSectionPath(event.target.value);
+                        setObjectSearch('');
+                        setObjectName('');
+                      }}
+                    >
+                      {catalogSections.map(section => (
+                        <option key={section.path} value={section.path}>
+                          {section.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Find object in section</span>
+                    <div className="catalog-search">
+                      <Search size={15} />
+                      <input
+                        value={objectSearch}
+                        onChange={event => setObjectSearch(event.target.value)}
+                        placeholder="Search name, path or type"
+                      />
+                    </div>
+                  </label>
+
+                  <label>
+                    <span>Object</span>
+                    <select value={objectName} onChange={event => setObjectName(event.target.value)}>
+                      <option value="">Select object…</option>
+                      {selectedSectionObjects.map(node => (
+                        <option key={node.path} value={node.name}>
+                          {node.name} · {node.type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {objectName && (
+                    <div className="selected-object-summary">
+                      <span>Selected</span>
+                      <strong>{objectName}</strong>
+                      <small>
+                        {selectedSectionObjects.find(node => node.name === objectName)?.path ?? selectedSection?.path}
+                      </small>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="catalog-empty-state">
+                  <strong>No catalog snapshot yet.</strong>
+                  <span>Keep the correct Spline file focused, then sync the scene. This is read-only.</span>
+                </div>
+              )}
+            </div>
 
             <div className="spline-vector-row">
               <div>
@@ -275,7 +403,7 @@ export function LiveMapPage() {
             <ShieldCheck size={20} />
             <div>
               <strong>No decisions waiting.</strong>
-              <span>Create the first controlled edit job for MEDIA_OS_CONNECTION_TEST.</span>
+              <span>Select a catalog object, prepare an edit, then approve it before execution.</span>
             </div>
           </div>
         ) : (
