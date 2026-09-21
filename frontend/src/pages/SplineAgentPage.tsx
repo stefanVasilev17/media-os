@@ -297,7 +297,7 @@ export function SplineAgentPage() {
         }
       }
 
-      setFlash('Snapshot is still being captured. Try Refresh map again in a moment.');
+      setFlash('Snapshot did not update within 30 seconds. Check that Spline is visible and no Windows dialog is covering it, then try again.');
     } catch (error) {
       setFlash(error instanceof Error ? error.message : 'Could not capture Spline map');
     } finally {

@@ -273,11 +273,26 @@ export function splineSnapshotImageUrl(snapshotId?: string): string {
   return `/api/v1/spline/snapshot/image${suffix}`;
 }
 
-export async function requestSplineSnapshot(): Promise<void> {
+export type SplineSnapshotRequest = {
+  productionJobId?: string;
+  status?: string;
+};
+
+export async function requestSplineSnapshot(): Promise<SplineSnapshotRequest> {
   const response = await fetch('/api/v1/spline/snapshot/refresh', { method: 'POST' });
   if (!response.ok) {
     throw new Error('Could not request Spline snapshot');
   }
+  return response.json();
+}
+
+export async function loadSplineSnapshotJob(jobId: string): Promise<LatestSplineJob> {
+  const response = await fetch('/api/v1/spline/jobs/latest', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('Spline snapshot status is not available');
+  }
+  const latest = await response.json() as LatestSplineJob;
+  return latest.id === jobId ? latest : { status: 'UNKNOWN' };
 }
 
 export async function loadSplineChat(): Promise<SplineChatMessage[]> {

@@ -130,7 +130,24 @@ public static class MediaOsWindowCapture {
   public static extern bool SetForegroundWindow(IntPtr hWnd);
 
   [DllImport("user32.dll")]
+  public static extern bool BringWindowToTop(IntPtr hWnd);
+
+  [DllImport("user32.dll")]
+  public static extern IntPtr GetForegroundWindow();
+
+  [DllImport("user32.dll")]
   public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+
+  [DllImport("user32.dll")]
+  public static extern bool SetWindowPos(
+    IntPtr hWnd,
+    IntPtr hWndInsertAfter,
+    int X,
+    int Y,
+    int cx,
+    int cy,
+    uint uFlags
+  );
 }
 "@
   }
@@ -144,9 +161,26 @@ public static class MediaOsWindowCapture {
   }
 
   $handle = [IntPtr]$process.MainWindowHandle
+  $HWND_TOPMOST = [IntPtr](-1)
+  $HWND_NOTOPMOST = [IntPtr](-2)
+  $SWP_NOMOVE = 0x0002
+  $SWP_NOSIZE = 0x0001
+  $SWP_SHOWWINDOW = 0x0040
+  $flags = $SWP_NOMOVE -bor $SWP_NOSIZE -bor $SWP_SHOWWINDOW
+
   [MediaOsWindowCapture]::ShowWindowAsync($handle, 9) | Out-Null
+  [MediaOsWindowCapture]::SetWindowPos($handle, $HWND_TOPMOST, 0, 0, 0, 0, $flags) | Out-Null
+  [MediaOsWindowCapture]::BringWindowToTop($handle) | Out-Null
   [MediaOsWindowCapture]::SetForegroundWindow($handle) | Out-Null
-  Start-Sleep -Milliseconds 450
+  Start-Sleep -Milliseconds 250
+  [MediaOsWindowCapture]::SetWindowPos($handle, $HWND_NOTOPMOST, 0, 0, 0, 0, $flags) | Out-Null
+  [MediaOsWindowCapture]::SetForegroundWindow($handle) | Out-Null
+  Start-Sleep -Milliseconds 650
+
+  $foreground = [MediaOsWindowCapture]::GetForegroundWindow()
+  if ($foreground -ne $handle) {
+    throw "Spline could not be brought to the foreground. Close or minimize the active Windows dialog and try Refresh map again."
+  }
 
   $rect = New-Object MediaOsWindowCapture+RECT
   if (-not [MediaOsWindowCapture]::GetWindowRect($handle, [ref]$rect)) {
