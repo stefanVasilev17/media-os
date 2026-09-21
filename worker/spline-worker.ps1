@@ -916,6 +916,9 @@ SAFETY:
     if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1") {
       $metrics.recipeCache = "HIT"
       $metrics.referenceReadSkipped = $true
+      if ($null -ne $componentRecipe) {
+        $metrics.recipeChars = $componentRecipe.Length
+      }
     } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
       $metrics.recipeCache = "MISS_LEARN"
       $metrics.referenceReadSkipped = $false
@@ -932,9 +935,18 @@ SAFETY:
     $recipe = $null
 
     if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
-      $recipe = Get-MediaOsSplineRecipe -Output $output
+      try {
+        $recipe = Get-MediaOsSplineRecipe -Output $output
+      } catch {
+        Write-Warning "Component recipe could not be parsed; the verified Spline change can still succeed. $($_.Exception.Message)"
+        $recipe = $null
+      }
+
       if ($null -eq $recipe) {
-        throw "Codex finished reference component creation without MEDIA_OS_SPLINE_RECIPE markers."
+        $metrics.recipeCache = "MISS_NO_RECIPE"
+      } else {
+        $recipeJsonForMetrics = ($recipe | ConvertTo-Json -Compress -Depth 30)
+        $metrics.recipeChars = $recipeJsonForMetrics.Length
       }
     }
 
