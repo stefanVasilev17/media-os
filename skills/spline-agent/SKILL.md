@@ -55,3 +55,16 @@ Forbidden:
 
 ## Required report
 Before execution, Media OS must expose target, requested properties, permissions and protected scope for creator approval. After execution, the worker reports semantic result plus execution metrics: token count when available, Spline MCP call count, duration and execution profile.
+
+
+## Scene Catalog v1
+Scene catalog sync is a separate READ-ONLY execution profile: SCENE_CATALOG_V1.
+
+Required behavior:
+- Read the currently focused Spline scene hierarchy without mutation.
+- Preserve exact object names and hierarchy paths.
+- Group catalog data by top-level scene section.
+- Return compact structured JSON for Media OS caching.
+- Never take a screenshot for catalog sync.
+- Never modify the scene during catalog sync.
+- The catalog is navigation metadata, not edit authorization. Visibility in the catalog does not grant permission to edit an object.

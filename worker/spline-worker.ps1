@@ -137,6 +137,31 @@ function Get-CodexExecutionMetrics {
   }
 }
 
+function Get-MediaOsSplineCatalog {
+  param(
+    [string]$Output
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Output)) {
+    return $null
+  }
+
+  $match = [regex]::Match(
+    $Output,
+    '(?is)MEDIA_OS_SPLINE_CATALOG_BEGIN\s*(\{.*?\})\s*MEDIA_OS_SPLINE_CATALOG_END'
+  )
+
+  if (-not $match.Success) {
+    return $null
+  }
+
+  try {
+    return ($match.Groups[1].Value | ConvertFrom-Json)
+  } catch {
+    throw "Codex returned invalid Spline catalog JSON."
+  }
+}
+
 function Get-MediaOsSplineResult {
   param(
     [string]$Output
@@ -200,6 +225,12 @@ exit /b 0
     $failureSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: FAILED - test"
     $successMarker = Get-MediaOsSplineResult -Output $successSample
     $failureMarker = Get-MediaOsSplineResult -Output $failureSample
+    $catalogSample = "MEDIA_OS_SPLINE_CATALOG_BEGIN" + [Environment]::NewLine + '{"sceneName":"Test","sections":[]}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_CATALOG_END"
+    $catalogMarker = Get-MediaOsSplineCatalog -Output $catalogSample
+
+    if ($null -eq $catalogMarker -or $catalogMarker.sceneName -ne "Test") {
+      throw "Spline catalog marker self-test failed."
+    }
 
     if ($successMarker -notmatch "^MEDIA_OS_SPLINE_RESULT: SUCCEEDED") {
       throw "Semantic success marker self-test failed."
@@ -264,7 +295,7 @@ function Invoke-WorkerPost {
     [object]$Body
   )
 
-  $json = $Body | ConvertTo-Json -Depth 10 -Compress
+  $json = $Body | ConvertTo-Json -Depth 50 -Compress
   $utf8 = [System.Text.Encoding]::UTF8.GetBytes($json)
 
   Invoke-RestMethod -Method Post -Uri "$baseUrl$Path" -Headers $headers -ContentType "application/json; charset=utf-8" -Body $utf8
@@ -338,7 +369,38 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  $prompt = @"
+  if ($executionProfile -eq "SCENE_CATALOG_V1") {
+    $prompt = @"
+You are the Architectural Thinking Media OS Spline Catalog Reader.
+
+This is a READ-ONLY scene catalog sync job.
+Use the Spline MCP server on the currently focused Spline 3D editor tab.
+Do not modify, create, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
+
+Read the current scene hierarchy once and return a compact catalog organized by top-level section.
+Each catalog node must have:
+- name: exact Spline object name
+- type: concise Spline object type
+- path: slash-separated hierarchy path
+- children: child nodes, or [] for a leaf
+
+Return exactly one JSON payload between these markers:
+MEDIA_OS_SPLINE_CATALOG_BEGIN
+{"sceneName":"exact scene name","sections":[...]}
+MEDIA_OS_SPLINE_CATALOG_END
+
+Rules:
+- Preserve exact object names.
+- Use top-level scene objects/groups as sections.
+- Include every object in the hierarchy snapshot, including hidden or disabled objects when the scene API returns them.
+- Keep JSON compact and valid. No markdown fences.
+- Do not take a screenshot.
+- Keep narration minimal.
+- If the catalog was read successfully, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
+- If Spline MCP is unavailable or the hierarchy cannot be read, end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
+"@
+  } else {
+    $prompt = @"
 You are the Architectural Thinking Media OS Spline Agent.
 
 This is a controlled execution job issued by Media OS.
@@ -373,6 +435,7 @@ SAFETY:
 - If the requested Spline change is actually completed, end with exactly one concise line beginning: MEDIA_OS_SPLINE_RESULT: SUCCEEDED
 - Never report SUCCEEDED unless the scene change was performed through Spline MCP.
 "@
+  }
 
   $metrics = $null
 
@@ -392,6 +455,14 @@ SAFETY:
     }
 
     $resultLine = Get-MediaOsSplineResult -Output $output
+    $catalog = $null
+
+    if ($executionProfile -eq "SCENE_CATALOG_V1") {
+      $catalog = Get-MediaOsSplineCatalog -Output $output
+      if ($null -eq $catalog) {
+        throw "Codex finished catalog sync without MEDIA_OS_SPLINE_CATALOG markers."
+      }
+    }
 
     if ([string]::IsNullOrWhiteSpace($resultLine)) {
       throw "Codex finished without a MEDIA_OS_SPLINE_RESULT status line."
@@ -409,6 +480,7 @@ SAFETY:
       output = $resultLine
       error = $null
       metrics = $metrics
+      catalog = $catalog
     }
 
     Write-Host "Job completed and reported to Media OS."
@@ -421,6 +493,7 @@ SAFETY:
         output = $null
         error = $message
         metrics = $metrics
+        catalog = $null
       }
     } catch {
       Write-Warning "Could not report failure to Media OS: $($_.Exception.Message)"

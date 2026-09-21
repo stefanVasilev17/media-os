@@ -162,3 +162,40 @@ export async function loadLatestSplineJob(): Promise<LatestSplineJob> {
 
   return response.json();
 }
+
+
+export type SplineCatalogNode = {
+  name: string;
+  type: string;
+  path: string;
+  children?: SplineCatalogNode[];
+};
+
+export type SplineSceneCatalog = {
+  status: 'EMPTY' | 'READY';
+  id?: string;
+  sceneName?: string;
+  objectCount?: number;
+  rootSectionCount?: number;
+  workerId?: string;
+  syncedAt?: string;
+  catalog?: {
+    sceneName: string;
+    sections: SplineCatalogNode[];
+  };
+};
+
+export async function loadSplineSceneCatalog(): Promise<SplineSceneCatalog> {
+  const response = await fetch('/api/v1/spline/catalog/latest');
+  if (!response.ok) {
+    throw new Error('Spline scene catalog is not available');
+  }
+  return response.json();
+}
+
+export async function refreshSplineSceneCatalog(): Promise<void> {
+  const response = await fetch('/api/v1/spline/catalog/refresh', { method: 'POST' });
+  if (!response.ok) {
+    throw new Error('Could not queue Spline scene catalog refresh');
+  }
+}
