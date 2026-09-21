@@ -205,6 +205,7 @@ public class SplineWorkerController {
         String error = result.error() == null ? "Spline worker failed without an error message." : result.error();
         Map<String, Object> failedResult = new LinkedHashMap<>();
         failedResult.put("workerId", workerId);
+        failedResult.put("output", result.output());
         failedResult.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
         String failedResultJson = writeJson(failedResult);
 
