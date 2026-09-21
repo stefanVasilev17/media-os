@@ -377,11 +377,22 @@ TOKEN EFFICIENCY CONTRACT:
     $prompt = @"
 You are the Architectural Thinking Media OS Spline Catalog Reader.
 
-This is a READ-ONLY scene catalog sync job.
-Use the Spline MCP server on the currently focused Spline 3D editor tab.
+This is a READ-ONLY scene catalog sync job against the currently focused Spline 3D editor tab.
+
+MANDATORY TOOL ROUTE:
+- Use ONLY MCP tools from the Spline server. Tool names must begin with Spline/.
+- Do NOT use cua_repl, computer-use, browser automation, UI automation, screenshots, or any fallback interface.
+- Call Spline/3d_load_skill at most once if required.
+- Then call Spline/3d_get_scene_mcp once to read the current scene hierarchy.
+- If that response does not contain enough hierarchy/object metadata, call Spline/3d_get_objects once.
+- Do NOT call Spline/3d_run_code or any mutation-capable tool.
+- If the required Spline/* tools are unavailable or fail, do not fall back to another tool. Report FAILED.
+
+SAFETY:
 Do not modify, create, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
 
-Read the current scene hierarchy once and return a compact catalog organized by top-level section.
+OUTPUT:
+Read the hierarchy returned by Spline MCP and return a compact catalog organized by top-level section.
 Each catalog node must have:
 - name: exact Spline object name
 - type: concise Spline object type
@@ -396,10 +407,10 @@ MEDIA_OS_SPLINE_CATALOG_END
 Rules:
 - Preserve exact object names.
 - Use top-level scene objects/groups as sections.
-- Include every object in the hierarchy snapshot, including hidden or disabled objects when the scene API returns them.
+- Include every object returned by the Spline scene API, including hidden or disabled objects when present.
 - Keep JSON compact and valid. No markdown fences.
-- Do not take a screenshot.
 - Keep narration minimal.
+- Never invent hierarchy entries that were not returned by Spline MCP.
 - If the catalog was read successfully, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
 - If Spline MCP is unavailable or the hierarchy cannot be read, end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
 "@
