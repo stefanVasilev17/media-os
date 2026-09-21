@@ -253,6 +253,28 @@ function Get-MediaOsCatalogNodeCount {
   return $count
 }
 
+function Get-CodexFailureDetail {
+  param(
+    [string]$Output,
+    [int]$ExitCode
+  )
+
+  $prefix = "Codex exited with code $ExitCode."
+
+  if ([string]::IsNullOrWhiteSpace($Output)) {
+    return $prefix
+  }
+
+  $clean = ($Output -replace "[\x00-\x08\x0B\x0C\x0E-\x1F]", "").Trim()
+  $maxLength = 3500
+
+  if ($clean.Length -gt $maxLength) {
+    $clean = "... " + $clean.Substring($clean.Length - $maxLength)
+  }
+
+  return "$prefix $clean"
+}
+
 function Get-MediaOsSplineResult {
   param(
     [string]$Output
@@ -691,7 +713,7 @@ SAFETY:
     Write-Host $output
 
     if ([int]$codexResult.ExitCode -ne 0) {
-      throw "Codex exited with code $($codexResult.ExitCode)."
+      throw (Get-CodexFailureDetail -Output $output -ExitCode ([int]$codexResult.ExitCode))
     }
 
     $resultLine = Get-MediaOsSplineResult -Output $output
@@ -751,7 +773,7 @@ SAFETY:
 
     try {
       Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/fail" -Body @{
-        output = $null
+        output = $output
         error = $message
         metrics = $metrics
         catalog = $null
