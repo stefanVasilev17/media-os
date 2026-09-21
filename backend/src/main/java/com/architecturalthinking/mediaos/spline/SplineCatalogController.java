@@ -67,10 +67,12 @@ public class SplineCatalogController {
                 limit 1
                 """)
                 .param("projectId", PROJECT_ID)
-                .query((rs, rowNum) -> Map.of(
-                        "productionJobId", rs.getObject("id", UUID.class),
-                        "status", rs.getString("status")
-                ))
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("productionJobId", rs.getObject("id", UUID.class));
+                    item.put("status", rs.getString("status"));
+                    return item;
+                })
                 .optional();
 
         if (existing.isPresent()) {
