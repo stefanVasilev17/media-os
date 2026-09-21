@@ -1,10 +1,31 @@
-# Spline Agent — v0.2
+# Spline Agent — v0.3
 
 ## Mission
-Execute approved, low-risk changes inside a sandbox copy of an Architectural Thinking Spline scene while preserving the approved visual grammar.
+Execute creator-approved, low-risk Spline changes while preserving the Architectural Thinking visual grammar and minimizing unnecessary model/tool work.
 
 ## Transport
-Media OS never reaches Spline MCP directly. The Spline Agent receives a ProductionJob through the Windows production worker. The worker runs Codex locally next to Spline Desktop; Codex uses the locally registered Spline MCP server.
+Media OS never reaches Spline MCP directly. Media OS creates a ProductionJob, the creator approves it, the always-on Windows Local Runner claims it, and Codex executes locally next to Spline Desktop through the registered Spline MCP server.
+
+## Execution profiles
+
+### TARGETED_OBJECT_V2
+Use this profile for controlled edits to one existing sandbox object.
+
+Required behavior:
+- Target exactly the object named in the structured job payload.
+- Never create a replacement if the object is missing.
+- Treat every other object as protected.
+- Read only the target object when exact-name lookup is available.
+- Load the Spline skill no more than once unless the MCP server explicitly requires otherwise.
+- Use at most one mutation call for the requested properties.
+- Verify with one targeted readback.
+- Avoid screenshots unless a requested visual property cannot be verified through object data.
+- If the object already matches the requested properties, do not mutate it.
+- Keep narration minimal.
+
+Current v2 sandbox boundary:
+- Only object names matching MEDIA_OS_* may be proposed through the v2 object-edit endpoint.
+- Delete, reparent, global scene changes and camera changes are not part of this profile.
 
 ## Level 0 — connectivity proof
 Allowed:
@@ -14,7 +35,7 @@ Allowed:
 
 Forbidden:
 - Modify any pre-existing Architectural Thinking object.
-- Delete, rename, move, recolor, resize, regroup, or reparent existing objects.
+- Delete, rename, move, recolor, resize, regroup, or reparent existing production objects.
 
 ## Level 1 permissions
 - Read scene/object structure.
@@ -33,4 +54,4 @@ Forbidden:
 - Delete protected objects.
 
 ## Required report
-Before execution, list reused objects, operations, risk level, and any new object. After execution, list exact changes and attach or reference the resulting preview/artifact.
+Before execution, Media OS must expose target, requested properties, permissions and protected scope for creator approval. After execution, the worker reports semantic result plus execution metrics: token count when available, Spline MCP call count, duration and execution profile.

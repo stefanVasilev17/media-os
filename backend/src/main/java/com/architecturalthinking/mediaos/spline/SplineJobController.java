@@ -44,6 +44,13 @@ public class SplineJobController {
             String comment
     ) {}
 
+    public record ObjectEditRequest(
+            @NotBlank String objectName,
+            List<Double> position,
+            List<Double> size,
+            String color
+    ) {}
+
     private record DecisionContext(
             UUID taskId,
             UUID orchestrationJobId,
@@ -74,7 +81,7 @@ public class SplineJobController {
                     item.put("claimedAt", rs.getObject("claimed_at", OffsetDateTime.class));
                     item.put("startedAt", rs.getObject("started_at", OffsetDateTime.class));
                     item.put("finishedAt", rs.getObject("finished_at", OffsetDateTime.class));
-                    item.put("result", rs.getString("result"));
+                    item.put("result", readJson(rs.getString("result")));
                     return item;
                 })
                 .optional()
@@ -117,6 +124,73 @@ public class SplineJobController {
                     return item;
                 })
                 .list();
+    }
+
+    @PostMapping("/object-edit")
+    @Transactional
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> createObjectEdit(@Valid @RequestBody ObjectEditRequest request) {
+        String objectName = request.objectName().trim();
+
+        if (!objectName.matches("MEDIA_OS_[A-Z0-9_]{1,80}")) {
+            throw new InvalidObjectEditException("Spline Agent v2 sandbox edits are limited to MEDIA_OS_* objects.");
+        }
+
+        validateVector("position", request.position(), false);
+        validateVector("size", request.size(), true);
+
+        String color = request.color() == null ? null : request.color().trim();
+        if (color != null && color.isBlank()) {
+            color = null;
+        }
+        if (color != null && !color.matches("#[0-9A-Fa-f]{6}|[A-Za-z][A-Za-z0-9_-]{0,31}")) {
+            throw new InvalidObjectEditException("Color must be a named color or a six-digit hex value.");
+        }
+
+        if (request.position() == null && request.size() == null && color == null) {
+            throw new InvalidObjectEditException("At least one object property must be changed.");
+        }
+
+        List<String> permissions = new java.util.ArrayList<>();
+        permissions.add("READ_TARGET_OBJECT");
+        if (request.position() != null || request.size() != null) {
+            permissions.add("EDIT_TARGET_TRANSFORM");
+        }
+        if (color != null) {
+            permissions.add("EDIT_TARGET_MATERIAL");
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("executionProfile", "TARGETED_OBJECT_V2");
+        payload.put("objectName", objectName);
+        payload.put("expectedPosition", request.position());
+        payload.put("expectedSize", request.size());
+        payload.put("expectedColor", color);
+        payload.put("safeSandboxRequired", true);
+
+        StringBuilder instructions = new StringBuilder();
+        instructions.append("Find the existing object named ").append(objectName)
+                .append(". Do not create a replacement if it is missing. Edit only this object.");
+        if (request.position() != null) {
+            instructions.append(" Set position to ").append(formatVector(request.position())).append(".");
+        }
+        if (request.size() != null) {
+            instructions.append(" Set size to ").append(formatVector(request.size())).append(".");
+        }
+        if (color != null) {
+            instructions.append(" Set its visible material color to ").append(color).append(".");
+        }
+        instructions.append(" Do not modify any other object. Verify only the requested final properties through Spline MCP before reporting success.");
+
+        return create(new CreateSplineJobRequest(
+                "Spline object edit · " + objectName,
+                "EDIT_OBJECT_PROPERTIES_V2",
+                "FOCUSED_SPLINE_3D_TAB",
+                instructions.toString(),
+                permissions,
+                List.of("ALL_OBJECTS_EXCEPT_" + objectName),
+                payload
+        ));
     }
 
     @PostMapping
@@ -305,6 +379,30 @@ public class SplineJobController {
         return Map.of("productionJobId", productionJobId, "status", "CHANGES_REQUESTED");
     }
 
+    private void validateVector(String field, List<Double> values, boolean positiveOnly) {
+        if (values == null) {
+            return;
+        }
+        if (values.size() != 3) {
+            throw new InvalidObjectEditException(field + " must contain exactly three values.");
+        }
+        for (Double value : values) {
+            if (value == null || !Double.isFinite(value)) {
+                throw new InvalidObjectEditException(field + " values must be finite numbers.");
+            }
+            if (positiveOnly && value <= 0) {
+                throw new InvalidObjectEditException(field + " values must be greater than zero.");
+            }
+            if (Math.abs(value) > 100000) {
+                throw new InvalidObjectEditException(field + " value is outside the safe sandbox range.");
+            }
+        }
+    }
+
+    private String formatVector(List<Double> values) {
+        return "(" + values.get(0) + ", " + values.get(1) + ", " + values.get(2) + ")";
+    }
+
     private void writeEvent(
             UUID orchestrationJobId,
             UUID taskId,
@@ -344,6 +442,13 @@ public class SplineJobController {
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     private static class InvalidDecisionException extends RuntimeException {}
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    private static class InvalidObjectEditException extends RuntimeException {
+        InvalidObjectEditException(String message) {
+            super(message);
+        }
+    }
 
     @ResponseStatus(HttpStatus.NOT_FOUND)
     private static class JobNotFoundException extends RuntimeException {}

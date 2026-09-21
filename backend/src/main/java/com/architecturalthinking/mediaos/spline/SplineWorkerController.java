@@ -32,7 +32,7 @@ public class SplineWorkerController {
         this.workerKey = workerKey;
     }
 
-    public record WorkerResult(String output, String error) {}
+    public record WorkerResult(String output, String error, Map<String, Object> metrics) {}
 
     private record ExecutionContext(UUID taskId, UUID orchestrationJobId) {}
 
@@ -139,10 +139,11 @@ public class SplineWorkerController {
         verifyKey(key);
 
         ExecutionContext context = findContext(jobId, workerId);
-        String resultJson = writeJson(Map.of(
-                "output", result.output() == null ? "" : result.output(),
-                "workerId", workerId
-        ));
+        Map<String, Object> resultPayload = new LinkedHashMap<>();
+        resultPayload.put("output", result.output() == null ? "" : result.output());
+        resultPayload.put("workerId", workerId);
+        resultPayload.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
+        String resultJson = writeJson(resultPayload);
 
         jdbc.sql("""
                 update production_job
@@ -189,15 +190,21 @@ public class SplineWorkerController {
 
         ExecutionContext context = findContext(jobId, workerId);
         String error = result.error() == null ? "Spline worker failed without an error message." : result.error();
+        Map<String, Object> failedResult = new LinkedHashMap<>();
+        failedResult.put("workerId", workerId);
+        failedResult.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
+        String failedResultJson = writeJson(failedResult);
 
         jdbc.sql("""
                 update production_job
                 set status='FAILED',
                     finished_at=now(),
                     updated_at=now(),
+                    result=cast(:result as jsonb),
                     error=:error
                 where id=:jobId and worker_id=:workerId
                 """)
+                .param("result", failedResultJson)
                 .param("error", error)
                 .param("jobId", jobId)
                 .param("workerId", workerId)

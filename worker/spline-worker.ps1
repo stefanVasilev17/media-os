@@ -106,6 +106,37 @@ function Invoke-CodexSplineJob {
   }
 }
 
+function Get-CodexExecutionMetrics {
+  param(
+    [string]$Output,
+    [long]$DurationMs,
+    [string]$ExecutionProfile
+  )
+
+  $tokenCount = $null
+  $tokenMatch = [regex]::Match($Output, '(?is)tokens\s+used\s+([\d,]+)')
+
+  if ($tokenMatch.Success) {
+    $tokenText = $tokenMatch.Groups[1].Value -replace ',', ''
+    $parsedTokens = 0L
+    if ([long]::TryParse($tokenText, [ref]$parsedTokens)) {
+      $tokenCount = $parsedTokens
+    }
+  }
+
+  $mcpCalls = [regex]::Matches(
+    $Output,
+    '(?im)^mcp:\s+Spline/[^\r\n]+\(completed\)\s*$'
+  ).Count
+
+  return @{
+    tokenCount = $tokenCount
+    splineMcpCalls = $mcpCalls
+    durationMs = $DurationMs
+    executionProfile = $ExecutionProfile
+  }
+}
+
 function Get-MediaOsSplineResult {
   param(
     [string]$Output
@@ -283,6 +314,29 @@ while ($true) {
 
   $permissions = ($job.permissions | ConvertTo-Json -Compress -Depth 10)
   $protectedObjects = ($job.protectedObjects | ConvertTo-Json -Compress -Depth 10)
+  $payload = ($job.payload | ConvertTo-Json -Compress -Depth 10)
+  $executionProfile = "LEGACY"
+
+  if ($null -ne $job.payload -and $null -ne $job.payload.executionProfile) {
+    $executionProfile = [string]$job.payload.executionProfile
+  }
+
+  $efficiencyContract = ""
+
+  if ($executionProfile -eq "TARGETED_OBJECT_V2") {
+    $efficiencyContract = @"
+TOKEN EFFICIENCY CONTRACT:
+- Keep reasoning and narration minimal.
+- Load the Spline 3D skill at most once if it is required.
+- Do not enumerate or inspect the full scene when an exact-name object lookup is available.
+- Use the objectName from JOB PAYLOAD as the exact target.
+- Prefer one targeted object read before the change.
+- Perform at most one mutation call for the requested edit.
+- Verify with one targeted object readback.
+- Do not take a screenshot unless targeted readback cannot verify a requested visual property.
+- If the object already matches all requested properties, do not mutate it; verify and report success.
+"@
+  }
 
   $prompt = @"
 You are the Architectural Thinking Media OS Spline Agent.
@@ -306,6 +360,11 @@ $permissions
 PROTECTED OBJECTS:
 $protectedObjects
 
+JOB PAYLOAD:
+$payload
+
+$efficiencyContract
+
 SAFETY:
 - Treat every existing object as protected unless the job explicitly permits editing it.
 - Do not delete or redesign existing architecture.
@@ -315,11 +374,16 @@ SAFETY:
 - Never report SUCCEEDED unless the scene change was performed through Spline MCP.
 "@
 
+  $metrics = $null
+
   try {
     Write-Host "Executing through Codex + Spline MCP..."
 
+    $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
     $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand
+    $executionTimer.Stop()
     $output = [string]$codexResult.Output
+    $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
 
     Write-Host $output
 
@@ -344,6 +408,7 @@ SAFETY:
     Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/complete" -Body @{
       output = $resultLine
       error = $null
+      metrics = $metrics
     }
 
     Write-Host "Job completed and reported to Media OS."
@@ -355,6 +420,7 @@ SAFETY:
       Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/fail" -Body @{
         output = $null
         error = $message
+        metrics = $metrics
       }
     } catch {
       Write-Warning "Could not report failure to Media OS: $($_.Exception.Message)"
