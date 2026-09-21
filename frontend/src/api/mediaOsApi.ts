@@ -237,3 +237,65 @@ export async function loadRunnerStatus(): Promise<RunnerStatus> {
   }
   return response.json();
 }
+
+
+export type SplineSnapshotMeta = {
+  status: 'EMPTY' | 'READY';
+  id?: string;
+  workerId?: string;
+  width?: number;
+  height?: number;
+  capturedAt?: string;
+};
+
+export type SplineChatMessage = {
+  id: string;
+  role: 'USER' | 'SYSTEM';
+  content: string;
+  createdAt: string;
+  productionJobId?: string | null;
+  status?: string | null;
+};
+
+export async function loadSplineSnapshotMeta(): Promise<SplineSnapshotMeta> {
+  const response = await fetch('/api/v1/spline/snapshot/meta', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('Spline snapshot metadata is not available');
+  }
+  return response.json();
+}
+
+export function splineSnapshotImageUrl(snapshotId?: string): string {
+  const suffix = snapshotId
+    ? `?id=${encodeURIComponent(snapshotId)}`
+    : `?t=${Date.now()}`;
+  return `/api/v1/spline/snapshot/image${suffix}`;
+}
+
+export async function requestSplineSnapshot(): Promise<void> {
+  const response = await fetch('/api/v1/spline/snapshot/refresh', { method: 'POST' });
+  if (!response.ok) {
+    throw new Error('Could not request Spline snapshot');
+  }
+}
+
+export async function loadSplineChat(): Promise<SplineChatMessage[]> {
+  const response = await fetch('/api/v1/spline/jobs/chat', { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error('Spline Agent chat is not available');
+  }
+  return response.json();
+}
+
+export async function createSplineChatCommand(message: string): Promise<void> {
+  const response = await fetch('/api/v1/spline/jobs/chat-command', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || 'Could not prepare Spline command');
+  }
+}
