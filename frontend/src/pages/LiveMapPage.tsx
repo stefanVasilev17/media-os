@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
-  XCircle
+  XCircle,
+  MessageSquare,
+  Stethoscope
 } from 'lucide-react';
 import {
   createSplineEditProof,
@@ -279,6 +281,16 @@ export function LiveMapPage() {
             <strong>Media OS Live Map</strong>
             <span>{view.project.name} · {view.project.status}</span>
           </div>
+        </div>
+        <div className="topbar-page-actions">
+          <button onClick={() => { window.location.hash = '#/spline-agent'; }}>
+            <MessageSquare size={15} />
+            Spline Agent
+          </button>
+          <button onClick={() => { window.location.hash = '#/diagnostics'; }}>
+            <Stethoscope size={15} />
+            Diagnostics
+          </button>
         </div>
         <StatusPill>LIVE</StatusPill>
       </header>
