@@ -379,7 +379,7 @@ function Get-MediaOsSplineRecipe {
 
   $match = [regex]::Match(
     $Output,
-    '(?is)MEDIA_OS_SPLINE_RECIPE_BEGIN\s*(\{.*?\})\s*MEDIA_OS_SPLINE_RECIPE_END'
+    '(?is)MEDIA_OS_SPLINE_RECIPE_BEGIN\s*(.*?)\s*MEDIA_OS_SPLINE_RECIPE_END'
   )
 
   if (-not $match.Success) {
