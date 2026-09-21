@@ -456,6 +456,12 @@ export function SplineAgentPage() {
                       : '—'}
                     {' · '}
                     {latestExecution.result.metrics.executionProfile ?? 'UNKNOWN_PROFILE'}
+                    {latestExecution.result.metrics.recipeCache
+                      ? ` · recipe ${latestExecution.result.metrics.recipeCache}`
+                      : ''}
+                    {typeof latestExecution.result.metrics.recipeChars === 'number'
+                      ? ` · ${latestExecution.result.metrics.recipeChars} chars`
+                      : ''}
                   </span>
                 )}
               </div>

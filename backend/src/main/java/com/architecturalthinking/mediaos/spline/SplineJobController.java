@@ -182,7 +182,8 @@ public class SplineJobController {
         final Map<String, Object> result;
         if (optimizedIntent.isPresent()) {
             var intent = optimizedIntent.orElseThrow();
-            payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_V1");
+            var cachedRecipe = loadComponentRecipe(intent.referenceObjectName());
+
             payload.put("targetRootName", intent.targetRootName());
             payload.put("referenceObjectName", intent.referenceObjectName());
             payload.put("titleText", intent.titleText());
@@ -193,25 +194,53 @@ public class SplineJobController {
                     ? "Preserve the reference title."
                     : "Set the new title to '" + intent.titleText() + "'.";
 
-            result = create(new CreateSplineJobRequest(
-                    "Spline optimized reference component create",
-                    "CREATOR_SPLINE_COMMAND_V2",
-                    "FOCUSED_SPLINE_3D_TAB",
-                    "Create sandbox root " + intent.targetRootName() +
-                            " from read-only reference " + intent.referenceObjectName() + ". " +
-                            titleInstruction + " Placement policy: " + intent.placementPolicy() + ".",
-                    List.of(
-                            "READ_EXACT_REFERENCE_OBJECT",
-                            "CREATE_EXACT_MEDIA_OS_ROOT",
-                            "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE",
-                            "VERIFY_EXACT_NEW_ROOT"
-                    ),
-                    List.of(
-                            "ALL_PREEXISTING_OBJECTS",
-                            "REFERENCE_OBJECT_" + intent.referenceObjectName()
-                    ),
-                    payload
-            ));
+            if (cachedRecipe.isPresent()) {
+                Map<String, Object> recipe = cachedRecipe.orElseThrow();
+                payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1");
+                payload.put("componentRecipe", recipe.get("recipe"));
+                payload.put("componentRecipeVersion", recipe.get("recipeVersion"));
+                payload.put("recipeCacheHit", true);
+
+                result = create(new CreateSplineJobRequest(
+                        "Spline cached component create",
+                        "CREATOR_SPLINE_COMMAND_V2",
+                        "FOCUSED_SPLINE_3D_TAB",
+                        "Create sandbox root " + intent.targetRootName() +
+                                " from cached recipe for " + intent.referenceObjectName() + ". " +
+                                titleInstruction + " Placement policy: " + intent.placementPolicy() + ".",
+                        List.of(
+                                "CREATE_EXACT_MEDIA_OS_ROOT_FROM_RECIPE",
+                                "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE",
+                                "VERIFY_EXACT_NEW_ROOT"
+                        ),
+                        List.of("ALL_PREEXISTING_OBJECTS"),
+                        payload
+                ));
+            } else {
+                payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_V1");
+                payload.put("recipeCacheHit", false);
+
+                result = create(new CreateSplineJobRequest(
+                        "Spline optimized reference component create",
+                        "CREATOR_SPLINE_COMMAND_V2",
+                        "FOCUSED_SPLINE_3D_TAB",
+                        "Create sandbox root " + intent.targetRootName() +
+                                " from read-only reference " + intent.referenceObjectName() + ". " +
+                                titleInstruction + " Placement policy: " + intent.placementPolicy() + ".",
+                        List.of(
+                                "READ_EXACT_REFERENCE_OBJECT",
+                                "CREATE_EXACT_MEDIA_OS_ROOT",
+                                "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE",
+                                "VERIFY_EXACT_NEW_ROOT",
+                                "LEARN_COMPONENT_RECIPE"
+                        ),
+                        List.of(
+                                "ALL_PREEXISTING_OBJECTS",
+                                "REFERENCE_OBJECT_" + intent.referenceObjectName()
+                        ),
+                        payload
+                ));
+            }
         } else {
             payload.put("executionProfile", "CREATOR_CHAT_V2");
             payload.put("optimizedExecution", false);
@@ -248,6 +277,25 @@ public class SplineJobController {
                 .update();
 
         return result;
+    }
+
+    private java.util.Optional<Map<String, Object>> loadComponentRecipe(String referenceObjectName) {
+        return jdbc.sql("""
+                select recipe_version, recipe::text
+                from spline_component_recipe
+                where project_id=:projectId
+                  and lower(reference_object_name)=lower(:referenceObjectName)
+                limit 1
+                """)
+                .param("projectId", PROJECT_ID)
+                .param("referenceObjectName", referenceObjectName)
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("recipeVersion", rs.getInt("recipe_version"));
+                    item.put("recipe", readJson(rs.getString("recipe")));
+                    return item;
+                })
+                .optional();
     }
 
     @PostMapping("/object-edit")

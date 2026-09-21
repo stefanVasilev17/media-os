@@ -15,6 +15,7 @@ function Get-CodexRuntimeArguments {
 
   if (
     $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_V1" -or
+    $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1" -or
     $ExecutionProfile -eq "TARGETED_OBJECT_V2" -or
     $ExecutionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
     $ExecutionProfile -eq "SCENE_CATALOG_SECTION_V1"
@@ -367,6 +368,32 @@ function Get-MediaOsSplineResult {
   return $matches[$matches.Count - 1].Value.Trim()
 }
 
+function Get-MediaOsSplineRecipe {
+  param(
+    [string]$Output
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Output)) {
+    return $null
+  }
+
+  $match = [regex]::Match(
+    $Output,
+    '(?is)MEDIA_OS_SPLINE_RECIPE_BEGIN\s*(.*?)\s*MEDIA_OS_SPLINE_RECIPE_END'
+  )
+
+  if (-not $match.Success) {
+    return $null
+  }
+
+  try {
+    return ($match.Groups[1].Value | ConvertFrom-Json)
+  } catch {
+    throw "Codex returned invalid component recipe JSON."
+  }
+}
+
+
 if ($LauncherSelfTest) {
   $fakeDir = Join-Path $env:TEMP ("media-os-codex-selftest-" + [Guid]::NewGuid().ToString("N"))
   New-Item -ItemType Directory -Path $fakeDir -Force | Out-Null
@@ -419,6 +446,16 @@ exit /b %ERRORLEVEL%
     $failureMarker = Get-MediaOsSplineResult -Output $failureSample
     $catalogSample = "MEDIA_OS_SPLINE_CATALOG_BEGIN" + [Environment]::NewLine + '{"sceneName":"Test","sections":[{"name":"ROOT","type":"Group","path":"ROOT","children":[{"name":"CHILD","type":"Shape","path":"ROOT/CHILD","children":[]}]}]}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_CATALOG_END"
     $catalogMarker = Get-MediaOsSplineCatalog -Output $catalogSample
+    $recipeSample = "MEDIA_OS_SPLINE_RECIPE_BEGIN" + [Environment]::NewLine + '{"recipeVersion":1,"referenceObjectName":"Headers","construction":{"root":{"type":"Group"}}}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_RECIPE_END"
+    $recipeMarker = Get-MediaOsSplineRecipe -Output $recipeSample
+
+    if (
+      $null -eq $recipeMarker -or
+      $recipeMarker.referenceObjectName -ne "Headers" -or
+      $recipeMarker.construction.root.type -ne "Group"
+    ) {
+      throw "Spline component recipe marker self-test failed."
+    }
 
     if (
       $null -eq $catalogMarker -or
@@ -622,7 +659,50 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
+  if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1") {
+    $titleDirective = "Preserve the recipe title text."
+    if (
+      $null -ne $job.payload.titleText -and
+      -not [string]::IsNullOrWhiteSpace([string]$job.payload.titleText)
+    ) {
+      $titleDirective = "Set the new title text to: $($job.payload.titleText)"
+    }
+
+    $placementDirective = "Place it in the nearest safe empty area."
+    if ([string]$job.payload.placementPolicy -eq "BELOW_MAIN_ARCHITECTURE_MAP") {
+      $placementDirective = "Place it in a safe empty area below the main architecture map."
+    } elseif ([string]$job.payload.placementPolicy -eq "EMPTY_AREA") {
+      $placementDirective = "Place it in a safe empty area without moving existing objects."
+    }
+
+    $componentRecipe = ($job.payload.componentRecipe | ConvertTo-Json -Compress -Depth 30)
+
+    $prompt = @"
+REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1
+
+Use only Spline MCP. Keep reasoning and narration minimal.
+
+NEW ROOT: $($job.payload.targetRootName)
+TITLE: $titleDirective
+PLACEMENT: $placementDirective
+CACHED RECIPE:
+$componentRecipe
+
+EXECUTION CONTRACT:
+1. Do NOT read, inspect, search for, or compare against the reference object. The cached recipe is the source of truth.
+2. Never enumerate the full scene and never call 3d_get_scene_mcp.
+3. Check only whether the exact NEW ROOT name already exists. If it exists, end FAILED before mutation.
+4. Create only NEW ROOT and children beneath it. Never mutate, move, rename, recolor, resize, reparent, or delete any pre-existing object.
+5. Reproduce the cached recipe exactly, applying TITLE only to the new component and using PLACEMENT for its root position.
+6. Prefer one safe 3d_run_code mutation when supported; otherwise use the minimum Spline mutation calls.
+7. Verify NEW ROOT with one exact targeted readback. Do not re-read the reference. No screenshot, camera change, or global scene change.
+8. Do not use web, browser, CUA, node_repl, codex_apps, or any non-Spline fallback.
+9. End with exactly one concise line:
+MEDIA_OS_SPLINE_RESULT: SUCCEEDED
+or
+MEDIA_OS_SPLINE_RESULT: FAILED
+"@
+  } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
     $titleDirective = "Preserve the reference title text."
     if (
       $null -ne $job.payload.titleText -and
@@ -656,8 +736,13 @@ EXECUTION CONTRACT:
 5. Create only NEW ROOT and children beneath it. Match reference dimensions, body/background, border, corner radius, accent colors, spacing, and relevant child structure. Apply TITLE only to the new component.
 6. Use the minimum mutation calls. Prefer one safe 3d_run_code mutation when supported; otherwise use the fewest Spline mutation calls possible.
 7. Verify NEW ROOT with one exact targeted readback. No screenshot, no camera change, no global settings change.
-8. Do not use web, browser, CUA, node_repl, codex_apps, or any non-Spline fallback.
-9. End with exactly one concise line:
+8. After successful verification, emit a compact reusable recipe between these exact markers:
+MEDIA_OS_SPLINE_RECIPE_BEGIN
+{"recipeVersion":1,"referenceObjectName":"$($job.payload.referenceObjectName)","construction":{...}}
+MEDIA_OS_SPLINE_RECIPE_END
+The recipe must contain only reusable construction data: root type/size, visual/material properties, border/corner treatment, child types, relative transforms/sizes, text roles, and spacing needed to recreate the component. Do not include absolute scene position, transient Spline object IDs, the new root name, or unrelated scene data.
+9. Do not use web, browser, CUA, node_repl, codex_apps, or any non-Spline fallback.
+10. End with exactly one concise line:
 MEDIA_OS_SPLINE_RESULT: SUCCEEDED
 or
 MEDIA_OS_SPLINE_RESULT: FAILED
@@ -828,6 +913,16 @@ SAFETY:
     $executionTimer.Stop()
     $output = [string]$codexResult.Output
     $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
+    if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1") {
+      $metrics.recipeCache = "HIT"
+      $metrics.referenceReadSkipped = $true
+      if ($null -ne $componentRecipe) {
+        $metrics.recipeChars = $componentRecipe.Length
+      }
+    } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
+      $metrics.recipeCache = "MISS_LEARN"
+      $metrics.referenceReadSkipped = $false
+    }
 
     Write-Host $output
 
@@ -837,6 +932,23 @@ SAFETY:
 
     $resultLine = Get-MediaOsSplineResult -Output $output
     $catalog = $null
+    $recipe = $null
+
+    if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
+      try {
+        $recipe = Get-MediaOsSplineRecipe -Output $output
+      } catch {
+        Write-Warning "Component recipe could not be parsed; the verified Spline change can still succeed. $($_.Exception.Message)"
+        $recipe = $null
+      }
+
+      if ($null -eq $recipe) {
+        $metrics.recipeCache = "MISS_NO_RECIPE"
+      } else {
+        $recipeJsonForMetrics = ($recipe | ConvertTo-Json -Compress -Depth 30)
+        $metrics.recipeChars = $recipeJsonForMetrics.Length
+      }
+    }
 
     if (
       $executionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
@@ -883,6 +995,7 @@ SAFETY:
       error = $null
       metrics = $metrics
       catalog = $catalog
+      recipe = $recipe
     }
 
     Write-Host "Job completed and reported to Media OS."
@@ -896,6 +1009,7 @@ SAFETY:
         error = $message
         metrics = $metrics
         catalog = $null
+        recipe = $null
       }
     } catch {
       Write-Warning "Could not report failure to Media OS: $($_.Exception.Message)"

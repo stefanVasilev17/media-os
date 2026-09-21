@@ -137,6 +137,9 @@ export type LatestSplineJob = {
       splineMcpCalls?: number;
       durationMs?: number;
       executionProfile?: string;
+      recipeCache?: 'HIT' | 'MISS_LEARN' | string;
+      referenceReadSkipped?: boolean;
+      recipeChars?: number;
     };
   };
 };

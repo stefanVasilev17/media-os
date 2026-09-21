@@ -37,10 +37,16 @@ public class SplineWorkerController {
             String output,
             String error,
             Map<String, Object> metrics,
-            Map<String, Object> catalog
+            Map<String, Object> catalog,
+            Map<String, Object> recipe
     ) {}
 
-    private record ExecutionContext(UUID taskId, UUID orchestrationJobId, String taskType) {}
+    private record ExecutionContext(
+            UUID taskId,
+            UUID orchestrationJobId,
+            String taskType,
+            Map<String, Object> payload
+    ) {}
 
     @GetMapping("/jobs/next")
     @Transactional
@@ -152,10 +158,22 @@ public class SplineWorkerController {
             mergeCatalogSection(result.catalog(), workerId);
         }
 
+        String executionProfile = String.valueOf(context.payload().getOrDefault("executionProfile", ""));
+        boolean recipeLearned = false;
+        if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)
+                && result.recipe() != null
+                && !result.recipe().isEmpty()) {
+            saveComponentRecipe(result.recipe(), context.payload(), workerId);
+            recipeLearned = true;
+        }
+
         Map<String, Object> resultPayload = new LinkedHashMap<>();
         resultPayload.put("output", result.output() == null ? "" : result.output());
         resultPayload.put("workerId", workerId);
         resultPayload.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
+        if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)) {
+            resultPayload.put("recipeLearned", recipeLearned);
+        }
         String resultJson = writeJson(resultPayload);
 
         jdbc.sql("""
@@ -245,7 +263,7 @@ public class SplineWorkerController {
 
     private ExecutionContext findContext(UUID productionJobId, String workerId) {
         return jdbc.sql("""
-                select p.task_id, t.job_id, p.task_type
+                select p.task_id, t.job_id, p.task_type, p.payload::text
                 from production_job p
                 join task t on t.id = p.task_id
                 where p.id=:productionJobId and p.worker_id=:workerId
@@ -255,10 +273,68 @@ public class SplineWorkerController {
                 .query((rs, rowNum) -> new ExecutionContext(
                         rs.getObject("task_id", UUID.class),
                         rs.getObject("job_id", UUID.class),
-                        rs.getString("task_type")
+                        rs.getString("task_type"),
+                        readJsonMap(rs.getString("payload"))
                 ))
                 .optional()
                 .orElseThrow(() -> new WorkerStateException("Job does not belong to this worker."));
+    }
+
+    private void saveComponentRecipe(
+            Map<String, Object> recipe,
+            Map<String, Object> payload,
+            String workerId
+    ) {
+        if (recipe == null || recipe.isEmpty()) {
+            throw new WorkerStateException("Optimized reference creation completed without a component recipe.");
+        }
+
+        Object referenceNameValue = payload.get("referenceObjectName");
+        if (!(referenceNameValue instanceof String referenceObjectName) || referenceObjectName.isBlank()) {
+            throw new WorkerStateException("Reference component recipe is missing referenceObjectName.");
+        }
+
+        Object recipeReferenceValue = recipe.get("referenceObjectName");
+        if (!(recipeReferenceValue instanceof String recipeReferenceObjectName)
+                || !referenceObjectName.equalsIgnoreCase(recipeReferenceObjectName.trim())) {
+            throw new WorkerStateException("Returned component recipe does not match the requested reference object.");
+        }
+
+        Object construction = recipe.get("construction");
+        if (!(construction instanceof Map<?, ?>) && !(construction instanceof List<?>)) {
+            throw new WorkerStateException("Returned component recipe is missing reusable construction data.");
+        }
+
+        int recipeVersion = 1;
+        Object recipeVersionValue = recipe.get("recipeVersion");
+        if (recipeVersionValue instanceof Number number && number.intValue() > 0) {
+            recipeVersion = number.intValue();
+        }
+
+        jdbc.sql("""
+                insert into spline_component_recipe(
+                    id, project_id, reference_object_name, recipe_version,
+                    recipe, source_worker_id, learned_at, updated_at
+                )
+                values (
+                    :id, :projectId, :referenceObjectName, :recipeVersion,
+                    cast(:recipe as jsonb), :workerId, now(), now()
+                )
+                on conflict(project_id, reference_object_name)
+                do update set
+                    recipe_version=excluded.recipe_version,
+                    recipe=excluded.recipe,
+                    source_worker_id=excluded.source_worker_id,
+                    learned_at=now(),
+                    updated_at=now()
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("referenceObjectName", referenceObjectName.trim())
+                .param("recipeVersion", recipeVersion)
+                .param("recipe", writeJson(recipe))
+                .param("workerId", workerId)
+                .update();
     }
 
     private void saveCatalogSnapshot(Map<String, Object> catalog, String workerId) {
