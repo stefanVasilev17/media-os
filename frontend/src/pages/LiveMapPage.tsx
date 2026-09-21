@@ -21,6 +21,7 @@ import {
   loadLatestSplineJob,
   loadLiveMap,
   loadPendingSplineApprovals,
+  loadRunnerStatus,
   loadSplineSceneCatalog,
   refreshSplineSceneCatalog,
   refreshSplineCatalogSection,
@@ -29,6 +30,7 @@ import {
   type LatestSplineJob,
   type LiveMapView,
   type PendingSplineApproval,
+  type RunnerStatus,
   type SplineCatalogNode,
   type SplineSceneCatalog
 } from '../api/mediaOsApi';
@@ -56,6 +58,7 @@ export function LiveMapPage() {
   const [view, setView] = useState<LiveMapView | null>(null);
   const [approvals, setApprovals] = useState<PendingSplineApproval[]>([]);
   const [latestSplineJob, setLatestSplineJob] = useState<LatestSplineJob | null>(null);
+  const [runnerStatus, setRunnerStatus] = useState<RunnerStatus | null>(null);
   const [sceneCatalog, setSceneCatalog] = useState<SplineSceneCatalog | null>(null);
   const [catalogBusy, setCatalogBusy] = useState(false);
   const [sectionBusyPath, setSectionBusyPath] = useState<string | null>(null);
@@ -72,15 +75,17 @@ export function LiveMapPage() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [map, pending, latest, catalog] = await Promise.all([
+    const [map, pending, latest, runner, catalog] = await Promise.all([
       loadLiveMap(),
       loadPendingSplineApprovals(),
       loadLatestSplineJob(),
+      loadRunnerStatus(),
       loadSplineSceneCatalog()
     ]);
     setView(map);
     setApprovals(pending);
     setLatestSplineJob(latest);
+    setRunnerStatus(runner);
     setSceneCatalog(catalog);
     setSelectedJobId(current => current ?? map.jobs[0]?.id ?? null);
 
@@ -298,6 +303,20 @@ export function LiveMapPage() {
           )}
         </div>
 
+        {runnerStatus && (
+          <div className={`runner-status-card ${runnerStatus.online ? 'online' : 'offline'}`}>
+            <div>
+              <span>LOCAL PRODUCTION BRIDGE</span>
+              <strong>{runnerStatus.online ? 'ONLINE' : 'OFFLINE'} · {runnerStatus.status}</strong>
+              <small>{runnerStatus.hostname ?? 'Unknown host'} · runner {runnerStatus.runnerVersion ?? '—'}</small>
+            </div>
+            <div className="runner-status-meta">
+              <span>Production release</span>
+              <strong>{runnerStatus.productionCommit?.slice(0, 8) ?? '—'}</strong>
+            </div>
+          </div>
+        )}
+
         {flash && <div className="flash">{flash}</div>}
 
         {showObjectEdit && approvals.length === 0 && (
@@ -317,12 +336,12 @@ export function LiveMapPage() {
                   <small>
                     {sceneCatalog?.status === 'READY'
                       ? `${sceneCatalog.objectCount ?? 0} objects · ${sceneCatalog.rootSectionCount ?? 0} sections`
-                      : 'Sync the focused Spline scene to browse objects.'}
+                      : 'Scene Catalog is paused for now to avoid unnecessary token usage.'}
                   </small>
                 </div>
-                <button className="catalog-refresh-button" disabled={catalogBusy} onClick={syncSceneCatalog}>
-                  <RefreshCw size={15} className={catalogBusy ? 'spin' : ''} />
-                  {sceneCatalog?.status === 'READY' ? 'Refresh' : 'Sync scene'}
+                <button className="catalog-refresh-button" disabled title="Paused to avoid unnecessary token usage">
+                  <RefreshCw size={15} />
+                  Paused
                 </button>
               </div>
 
