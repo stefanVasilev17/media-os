@@ -43,11 +43,6 @@ function Resolve-CodexStartInfo {
   $startInfo.RedirectStandardError = $true
   $startInfo.CreateNoWindow = $true
 
-  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-  $startInfo.StandardInputEncoding = $utf8NoBom
-  $startInfo.StandardOutputEncoding = $utf8NoBom
-  $startInfo.StandardErrorEncoding = $utf8NoBom
-
   if ($codexPath.EndsWith(".ps1", [System.StringComparison]::OrdinalIgnoreCase)) {
     $powershellExe = Join-Path $PSHOME "powershell.exe"
 
@@ -88,7 +83,9 @@ function Invoke-CodexSplineJob {
   $stdoutTask = $process.StandardOutput.ReadToEndAsync()
   $stderrTask = $process.StandardError.ReadToEndAsync()
 
-  $process.StandardInput.Write($Prompt)
+  $promptBytes = [System.Text.Encoding]::UTF8.GetBytes($Prompt)
+  $process.StandardInput.BaseStream.Write($promptBytes, 0, $promptBytes.Length)
+  $process.StandardInput.BaseStream.Flush()
   $process.StandardInput.Close()
 
   $process.WaitForExit()
