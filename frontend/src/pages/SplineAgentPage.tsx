@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Check,
+  Clock3,
   Eraser,
   Minus,
   Plus,
@@ -32,6 +33,65 @@ function commandText(instructions: string) {
   return instructions
     .replace('Execute exactly this creator command in the focused Spline scene: ', '')
     .replace(' Do not change unrelated objects. Verify the requested result before reporting success.', '');
+}
+
+type CommandActivity = {
+  tone: 'working' | 'waiting' | 'success' | 'error' | 'cancelled';
+  label: string;
+  detail: string;
+  spinning?: boolean;
+};
+
+function commandActivityForStatus(status?: string | null): CommandActivity | null {
+  switch (status) {
+    case 'WAITING_APPROVAL':
+      return {
+        tone: 'waiting',
+        label: 'Waiting for your approval',
+        detail: 'The command is prepared. Review it below, then tap Approve to allow execution.'
+      };
+    case 'QUEUED':
+      return {
+        tone: 'working',
+        label: 'Approved — waiting for Spline Agent',
+        detail: 'The Local Runner is waiting to claim this command.',
+        spinning: true
+      };
+    case 'CLAIMED':
+      return {
+        tone: 'working',
+        label: 'Spline Agent claimed the command',
+        detail: 'The production worker has picked up the job and is preparing execution.',
+        spinning: true
+      };
+    case 'RUNNING':
+      return {
+        tone: 'working',
+        label: 'Spline Agent is working',
+        detail: 'The approved change is being executed in Spline. Keep the Spline desktop session available.',
+        spinning: true
+      };
+    case 'SUCCEEDED':
+      return {
+        tone: 'success',
+        label: 'Command completed',
+        detail: 'Spline Agent reported success. Refresh the map to review the visual result.'
+      };
+    case 'FAILED':
+      return {
+        tone: 'error',
+        label: 'Command failed',
+        detail: 'The change did not complete. Open Diagnostics for the execution error before retrying.'
+      };
+    case 'CHANGES_REQUESTED':
+      return {
+        tone: 'cancelled',
+        label: 'Command cancelled',
+        detail: 'The command was not allowed to execute.'
+      };
+    default:
+      return null;
+  }
 }
 
 function SplineMapViewer({
@@ -176,6 +236,7 @@ export function SplineAgentPage() {
   const [flash, setFlash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [transientActivity, setTransientActivity] = useState<CommandActivity | null>(null);
 
   const refresh = useCallback(async () => {
     const [snapshot, chat, pending] = await Promise.all([
@@ -196,6 +257,22 @@ export function SplineAgentPage() {
   }, [refresh]);
 
   const pending = useMemo(() => approvals[0], [approvals]);
+  const latestCommandStatus = messages.length > 0 ? messages[messages.length - 1]?.status : null;
+  const commandActivity = transientActivity ?? commandActivityForStatus(latestCommandStatus);
+
+  useEffect(() => {
+    if (!latestCommandStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestCommandStatus)) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      refresh().catch(error => {
+        setFlash(error instanceof Error ? error.message : 'Could not refresh command status');
+      });
+    }, 2500);
+
+    return () => window.clearInterval(timer);
+  }, [latestCommandStatus, refresh]);
 
   async function captureSnapshot() {
     setRefreshing(true);
@@ -230,12 +307,24 @@ export function SplineAgentPage() {
 
     setBusy(true);
     setFlash(null);
+    setTransientActivity({
+      tone: 'working',
+      label: 'Preparing command…',
+      detail: 'Media OS is saving your request and creating the approval step.',
+      spinning: true
+    });
 
     try {
       await createSplineChatCommand(text);
       setMessage('');
       await refresh();
+      setTransientActivity(null);
     } catch (error) {
+      setTransientActivity({
+        tone: 'error',
+        label: 'Could not prepare command',
+        detail: error instanceof Error ? error.message : 'Media OS could not create the approval step.'
+      });
       setFlash(error instanceof Error ? error.message : 'Could not prepare Spline command');
     } finally {
       setBusy(false);
@@ -247,6 +336,21 @@ export function SplineAgentPage() {
 
     setBusy(true);
     setFlash(null);
+    setTransientActivity(
+      decision === 'APPROVE'
+        ? {
+            tone: 'working',
+            label: 'Approving command…',
+            detail: 'Media OS is releasing this command to the Spline production worker.',
+            spinning: true
+          }
+        : {
+            tone: 'working',
+            label: 'Cancelling command…',
+            detail: 'Media OS is preventing this command from executing.',
+            spinning: true
+          }
+    );
 
     try {
       await decideSplineJob(
@@ -257,8 +361,14 @@ export function SplineAgentPage() {
           : undefined
       );
       await refresh();
+      setTransientActivity(null);
       setFlash(decision === 'APPROVE' ? 'Command approved and queued.' : 'Command cancelled.');
     } catch (error) {
+      setTransientActivity({
+        tone: 'error',
+        label: 'Could not save decision',
+        detail: error instanceof Error ? error.message : 'Media OS could not update this command.'
+      });
       setFlash(error instanceof Error ? error.message : 'Could not save command decision');
     } finally {
       setBusy(false);
@@ -309,6 +419,26 @@ export function SplineAgentPage() {
               <strong>Tell Spline Agent what to change</strong>
             </div>
           </div>
+
+          {commandActivity && (
+            <div className={`spline-command-activity ${commandActivity.tone}`}>
+              <div className="spline-command-activity-icon">
+                {commandActivity.spinning ? (
+                  <RefreshCw size={17} className="spin" />
+                ) : commandActivity.tone === 'success' ? (
+                  <Check size={17} />
+                ) : commandActivity.tone === 'error' || commandActivity.tone === 'cancelled' ? (
+                  <X size={17} />
+                ) : (
+                  <Clock3 size={17} />
+                )}
+              </div>
+              <div>
+                <strong>{commandActivity.label}</strong>
+                <span>{commandActivity.detail}</span>
+              </div>
+            </div>
+          )}
 
           <div className="spline-chat-history">
             {messages.length === 0 ? (
