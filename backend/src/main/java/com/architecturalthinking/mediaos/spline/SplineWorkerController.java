@@ -148,6 +148,8 @@ public class SplineWorkerController {
 
         if ("SYNC_SCENE_CATALOG_V1".equals(context.taskType())) {
             saveCatalogSnapshot(result.catalog(), workerId);
+        } else if ("SYNC_SCENE_SECTION_V1".equals(context.taskType())) {
+            mergeCatalogSection(result.catalog(), workerId);
         }
 
         Map<String, Object> resultPayload = new LinkedHashMap<>();
@@ -273,7 +275,12 @@ public class SplineWorkerController {
             throw new WorkerStateException("Scene catalog is missing sections.");
         }
 
-        int objectCount = sections.stream().mapToInt(this::countCatalogNode).sum();
+        int countedNodes = sections.stream().mapToInt(this::countCatalogNode).sum();
+        int objectCount = countedNodes;
+        Object reportedObjectCount = catalog.get("objectCount");
+        if (reportedObjectCount instanceof Number number && number.intValue() >= countedNodes) {
+            objectCount = number.intValue();
+        }
         int rootSectionCount = sections.size();
 
         jdbc.sql("""
@@ -294,6 +301,105 @@ public class SplineWorkerController {
                 .param("workerId", workerId)
                 .param("catalog", writeJson(catalog))
                 .update();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mergeCatalogSection(Map<String, Object> sectionCatalog, String workerId) {
+        if (sectionCatalog == null || sectionCatalog.isEmpty()) {
+            throw new WorkerStateException("Section sync completed without a catalog payload.");
+        }
+
+        Object sectionPathValue = sectionCatalog.get("sectionPath");
+        Object sectionValue = sectionCatalog.get("section");
+
+        if (!(sectionPathValue instanceof String sectionPath) || sectionPath.isBlank()) {
+            throw new WorkerStateException("Section catalog is missing sectionPath.");
+        }
+        if (!(sectionValue instanceof Map<?, ?> rawSection)) {
+            throw new WorkerStateException("Section catalog is missing section data.");
+        }
+
+        Map<String, Object> latest = jdbc.sql("""
+                select scene_name, object_count, root_section_count, catalog::text
+                from spline_scene_catalog
+                where project_id = :projectId
+                order by synced_at desc
+                limit 1
+                """)
+                .param("projectId", PROJECT_ID)
+                .query((rs, rowNum) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("sceneName", rs.getString("scene_name"));
+                    row.put("objectCount", rs.getInt("object_count"));
+                    row.put("rootSectionCount", rs.getInt("root_section_count"));
+                    row.put("catalog", readJsonMap(rs.getString("catalog")));
+                    return row;
+                })
+                .optional()
+                .orElseThrow(() -> new WorkerStateException("Cannot merge a Spline section before the root catalog is synced."));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> catalog = (Map<String, Object>) latest.get("catalog");
+        Object sectionsValue = catalog.get("sections");
+        if (!(sectionsValue instanceof List<?> rawSections)) {
+            throw new WorkerStateException("Stored Spline catalog has no root sections.");
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Object> sections = (List<Object>) rawSections;
+        Map<String, Object> replacement = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawSection.entrySet()) {
+            replacement.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        replacement.put("loaded", true);
+
+        if (!replaceCatalogNode(sections, sectionPath, replacement)) {
+            throw new WorkerStateException("Could not find section path in stored Spline catalog: " + sectionPath);
+        }
+
+        jdbc.sql("""
+                insert into spline_scene_catalog(
+                    id, project_id, scene_name, object_count, root_section_count,
+                    worker_id, catalog, synced_at
+                )
+                values (
+                    :id, :projectId, :sceneName, :objectCount, :rootSectionCount,
+                    :workerId, cast(:catalog as jsonb), now()
+                )
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("sceneName", latest.get("sceneName"))
+                .param("objectCount", latest.get("objectCount"))
+                .param("rootSectionCount", latest.get("rootSectionCount"))
+                .param("workerId", workerId)
+                .param("catalog", writeJson(catalog))
+                .update();
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean replaceCatalogNode(List<Object> nodes, String path, Map<String, Object> replacement) {
+        for (int i = 0; i < nodes.size(); i++) {
+            Object value = nodes.get(i);
+            if (!(value instanceof Map<?, ?> rawNode)) {
+                continue;
+            }
+
+            Object nodePath = rawNode.get("path");
+            if (path.equals(String.valueOf(nodePath))) {
+                nodes.set(i, replacement);
+                return true;
+            }
+
+            Object childrenValue = rawNode.get("children");
+            if (childrenValue instanceof List<?> rawChildren) {
+                if (replaceCatalogNode((List<Object>) rawChildren, path, replacement)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @SuppressWarnings("unchecked")

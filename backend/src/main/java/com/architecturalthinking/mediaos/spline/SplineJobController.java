@@ -66,7 +66,7 @@ public class SplineJobController {
                        coalesce(result, '{}'::jsonb)::text as result
                 from production_job
                 where agent_key = 'SPLINE_AGENT'
-                  and task_type <> 'SYNC_SCENE_CATALOG_V1'
+                  and task_type not in ('SYNC_SCENE_CATALOG_V1', 'SYNC_SCENE_SECTION_V1')
                 order by created_at desc
                 limit 1
                 """)

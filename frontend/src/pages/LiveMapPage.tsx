@@ -23,6 +23,7 @@ import {
   loadPendingSplineApprovals,
   loadSplineSceneCatalog,
   refreshSplineSceneCatalog,
+  refreshSplineCatalogSection,
   type LiveMapJob,
   type LiveMapTask,
   type LatestSplineJob,
@@ -57,6 +58,7 @@ export function LiveMapPage() {
   const [latestSplineJob, setLatestSplineJob] = useState<LatestSplineJob | null>(null);
   const [sceneCatalog, setSceneCatalog] = useState<SplineSceneCatalog | null>(null);
   const [catalogBusy, setCatalogBusy] = useState(false);
+  const [sectionBusyPath, setSectionBusyPath] = useState<string | null>(null);
   const [showObjectEdit, setShowObjectEdit] = useState(false);
   const [selectedSectionPath, setSelectedSectionPath] = useState('');
   const [objectSearch, setObjectSearch] = useState('');
@@ -133,31 +135,71 @@ export function LiveMapPage() {
   async function syncSceneCatalog() {
     setCatalogBusy(true);
     setFlash(null);
+    const previousCatalogId = sceneCatalog?.id;
     try {
       await refreshSplineSceneCatalog();
-      setFlash('Spline catalog refresh queued. Waiting for the Local Runner…');
+      setFlash('Reading Spline root sections…');
 
-      for (let attempt = 0; attempt < 18; attempt += 1) {
-        await new Promise(resolve => window.setTimeout(resolve, 4000));
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        await new Promise(resolve => window.setTimeout(resolve, 3000));
         const catalog = await loadSplineSceneCatalog();
 
-        if (catalog.status === 'READY') {
+        if (catalog.status === 'READY' && catalog.id !== previousCatalogId) {
           setSceneCatalog(catalog);
           if (catalog.catalog?.sections.length) {
-            setSelectedSectionPath(current => current || catalog.catalog!.sections[0].path);
+            setSelectedSectionPath(catalog.catalog.sections[0].path);
+            setObjectName('');
           }
           setFlash(
-            `Scene catalog synced · ${catalog.objectCount ?? 0} objects · ${catalog.rootSectionCount ?? 0} sections`
+            `Scene index synced · ${catalog.objectCount ?? 0} reported objects · ${catalog.rootSectionCount ?? 0} root sections`
           );
           return;
         }
       }
 
-      setFlash('Catalog sync is still running. Refresh the page in a moment.');
+      setFlash('Root section sync is still running. Refresh the page in a moment.');
     } catch (err) {
       setFlash(err instanceof Error ? err.message : 'Could not refresh Spline catalog');
     } finally {
       setCatalogBusy(false);
+    }
+  }
+
+  async function syncCatalogSection(section: SplineCatalogNode) {
+    if (section.loaded || sectionBusyPath === section.path) return;
+
+    setSectionBusyPath(section.path);
+    setFlash(null);
+    const previousCatalogId = sceneCatalog?.id;
+
+    try {
+      await refreshSplineCatalogSection(section.path, section.name);
+      setFlash(`Loading ${section.name} objects from Spline…`);
+
+      for (let attempt = 0; attempt < 24; attempt += 1) {
+        await new Promise(resolve => window.setTimeout(resolve, 3000));
+        const catalog = await loadSplineSceneCatalog();
+
+        if (catalog.status !== 'READY' || catalog.id === previousCatalogId) {
+          continue;
+        }
+
+        const updatedSection = catalog.catalog?.sections.find(item => item.path === section.path);
+        setSceneCatalog(catalog);
+
+        if (updatedSection?.loaded) {
+          setFlash(
+            `${section.name} loaded · ${flattenCatalogNodes(updatedSection.children ?? []).length} objects available`
+          );
+          return;
+        }
+      }
+
+      setFlash(`${section.name} is still loading. Try again in a moment.`);
+    } catch (err) {
+      setFlash(err instanceof Error ? err.message : 'Could not load Spline section');
+    } finally {
+      setSectionBusyPath(null);
     }
   }
 
@@ -291,42 +333,68 @@ export function LiveMapPage() {
                     <select
                       value={selectedSection?.path ?? ''}
                       onChange={event => {
-                        setSelectedSectionPath(event.target.value);
+                        const path = event.target.value;
+                        setSelectedSectionPath(path);
                         setObjectSearch('');
                         setObjectName('');
+                        const nextSection = catalogSections.find(section => section.path === path);
+                        if (nextSection && !nextSection.loaded) {
+                          void syncCatalogSection(nextSection);
+                        }
                       }}
                     >
                       {catalogSections.map(section => (
                         <option key={section.path} value={section.path}>
-                          {section.name}
+                          {section.name}{section.loaded ? ' ✓' : ''}
                         </option>
                       ))}
                     </select>
                   </label>
 
-                  <label>
-                    <span>Find object in section</span>
-                    <div className="catalog-search">
-                      <Search size={15} />
-                      <input
-                        value={objectSearch}
-                        onChange={event => setObjectSearch(event.target.value)}
-                        placeholder="Search name, path or type"
-                      />
+                  {!selectedSection?.loaded ? (
+                    <div className="catalog-section-loader">
+                      <div>
+                        <strong>{selectedSection?.name}</strong>
+                        <span>Objects for this section are loaded only when you need them.</span>
+                      </div>
+                      <button
+                        disabled={!selectedSection || sectionBusyPath === selectedSection.path}
+                        onClick={() => selectedSection && void syncCatalogSection(selectedSection)}
+                      >
+                        <RefreshCw
+                          size={14}
+                          className={sectionBusyPath === selectedSection?.path ? 'spin' : ''}
+                        />
+                        {sectionBusyPath === selectedSection?.path ? 'Loading…' : 'Load objects'}
+                      </button>
                     </div>
-                  </label>
+                  ) : (
+                    <>
+                      <label>
+                        <span>Find object in section</span>
+                        <div className="catalog-search">
+                          <Search size={15} />
+                          <input
+                            value={objectSearch}
+                            onChange={event => setObjectSearch(event.target.value)}
+                            placeholder="Search name, path or type"
+                          />
+                        </div>
+                      </label>
 
-                  <label>
-                    <span>Object</span>
-                    <select value={objectName} onChange={event => setObjectName(event.target.value)}>
-                      <option value="">Select object…</option>
-                      {selectedSectionObjects.map(node => (
-                        <option key={node.path} value={node.name}>
-                          {node.name} · {node.type}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <label>
+                        <span>Object</span>
+                        <select value={objectName} onChange={event => setObjectName(event.target.value)}>
+                          <option value="">Select object…</option>
+                          {selectedSectionObjects.map(node => (
+                            <option key={node.path} value={node.name}>
+                              {node.name} · {node.type}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
 
                   {objectName && (
                     <div className="selected-object-summary">

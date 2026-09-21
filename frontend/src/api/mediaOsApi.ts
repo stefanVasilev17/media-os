@@ -168,6 +168,7 @@ export type SplineCatalogNode = {
   name: string;
   type: string;
   path: string;
+  loaded?: boolean;
   children?: SplineCatalogNode[];
 };
 
@@ -197,5 +198,21 @@ export async function refreshSplineSceneCatalog(): Promise<void> {
   const response = await fetch('/api/v1/spline/catalog/refresh', { method: 'POST' });
   if (!response.ok) {
     throw new Error('Could not queue Spline scene catalog refresh');
+  }
+}
+
+
+export async function refreshSplineCatalogSection(
+  sectionPath: string,
+  sectionName: string
+): Promise<void> {
+  const response = await fetch('/api/v1/spline/catalog/section', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sectionPath, sectionName })
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not queue Spline section refresh');
   }
 }
