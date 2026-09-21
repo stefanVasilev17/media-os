@@ -15,11 +15,13 @@ import {
 import {
   createSplineChatCommand,
   decideSplineJob,
+  loadLatestSplineJob,
   loadPendingSplineApprovals,
   loadSplineChat,
   loadSplineSnapshotMeta,
   requestSplineSnapshot,
   splineSnapshotImageUrl,
+  type LatestSplineJob,
   type PendingSplineApproval,
   type SplineChatMessage,
   type SplineSnapshotMeta
@@ -232,6 +234,7 @@ export function SplineAgentPage() {
   const [meta, setMeta] = useState<SplineSnapshotMeta | null>(null);
   const [messages, setMessages] = useState<SplineChatMessage[]>([]);
   const [approvals, setApprovals] = useState<PendingSplineApproval[]>([]);
+  const [latestExecution, setLatestExecution] = useState<LatestSplineJob | null>(null);
   const [message, setMessage] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -239,15 +242,17 @@ export function SplineAgentPage() {
   const [transientActivity, setTransientActivity] = useState<CommandActivity | null>(null);
 
   const refresh = useCallback(async () => {
-    const [snapshot, chat, pending] = await Promise.all([
+    const [snapshot, chat, pending, latest] = await Promise.all([
       loadSplineSnapshotMeta(),
       loadSplineChat(),
-      loadPendingSplineApprovals()
+      loadPendingSplineApprovals(),
+      loadLatestSplineJob()
     ]);
 
     setMeta(snapshot);
     setMessages(chat);
     setApprovals(pending.filter(item => item.taskType.startsWith('CREATOR_SPLINE_COMMAND_')));
+    setLatestExecution(latest);
   }, []);
 
   useEffect(() => {
@@ -440,6 +445,19 @@ export function SplineAgentPage() {
               <div>
                 <strong>{commandActivity.label}</strong>
                 <span>{commandActivity.detail}</span>
+                {latestExecution?.result?.metrics && ['SUCCEEDED', 'FAILED'].includes(latestExecution.status) && (
+                  <span className="spline-command-metrics">
+                    {latestExecution.result.metrics.tokenCount ?? '—'} tokens
+                    {' · '}
+                    {latestExecution.result.metrics.splineMcpCalls ?? '—'} MCP
+                    {' · '}
+                    {typeof latestExecution.result.metrics.durationMs === 'number'
+                      ? `${(latestExecution.result.metrics.durationMs / 1000).toFixed(1)}s`
+                      : '—'}
+                    {' · '}
+                    {latestExecution.result.metrics.executionProfile ?? 'UNKNOWN_PROFILE'}
+                  </span>
+                )}
               </div>
             </div>
           )}

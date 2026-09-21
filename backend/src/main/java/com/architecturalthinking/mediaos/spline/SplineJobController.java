@@ -172,29 +172,68 @@ public class SplineJobController {
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("executionProfile", "CREATOR_CHAT_V2");
         payload.put("creatorMessage", message);
         payload.put("safeSandboxRequired", true);
         payload.put("sandboxPrefix", "MEDIA_OS_");
         payload.put("productionReferencesReadOnly", true);
 
-        Map<String, Object> result = create(new CreateSplineJobRequest(
-                "Spline creator command",
-                "CREATOR_SPLINE_COMMAND_V2",
-                "FOCUSED_SPLINE_3D_TAB",
-                "Execute exactly this creator command in the focused Spline scene: " + message +
-                        " Follow the CREATOR_CHAT_V2 safety contract. Treat visual/reference/source objects as read-only. " +
-                        "Any newly created root sandbox object must use the MEDIA_OS_ prefix. " +
-                        "Do not change unrelated objects. Verify the requested result before reporting success.",
-                List.of(
-                        "READ_CREATOR_NAMED_OBJECTS",
-                        "EDIT_EXPLICIT_CREATOR_TARGETS",
-                        "CREATE_MEDIA_OS_SANDBOX_OBJECTS",
-                        "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE"
-                ),
-                List.of("ALL_OBJECTS_OUTSIDE_EXPLICIT_CREATOR_TARGETS", "ALL_REFERENCE_OBJECTS"),
-                payload
-        ));
+        var optimizedIntent = SplineCommandOptimizer.tryParseReferenceComponentCreate(message);
+
+        final Map<String, Object> result;
+        if (optimizedIntent.isPresent()) {
+            var intent = optimizedIntent.orElseThrow();
+            payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_V1");
+            payload.put("targetRootName", intent.targetRootName());
+            payload.put("referenceObjectName", intent.referenceObjectName());
+            payload.put("titleText", intent.titleText());
+            payload.put("placementPolicy", intent.placementPolicy());
+            payload.put("optimizedExecution", true);
+
+            String titleInstruction = intent.titleText() == null
+                    ? "Preserve the reference title."
+                    : "Set the new title to '" + intent.titleText() + "'.";
+
+            result = create(new CreateSplineJobRequest(
+                    "Spline optimized reference component create",
+                    "CREATOR_SPLINE_COMMAND_V2",
+                    "FOCUSED_SPLINE_3D_TAB",
+                    "Create sandbox root " + intent.targetRootName() +
+                            " from read-only reference " + intent.referenceObjectName() + ". " +
+                            titleInstruction + " Placement policy: " + intent.placementPolicy() + ".",
+                    List.of(
+                            "READ_EXACT_REFERENCE_OBJECT",
+                            "CREATE_EXACT_MEDIA_OS_ROOT",
+                            "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE",
+                            "VERIFY_EXACT_NEW_ROOT"
+                    ),
+                    List.of(
+                            "ALL_PREEXISTING_OBJECTS",
+                            "REFERENCE_OBJECT_" + intent.referenceObjectName()
+                    ),
+                    payload
+            ));
+        } else {
+            payload.put("executionProfile", "CREATOR_CHAT_V2");
+            payload.put("optimizedExecution", false);
+
+            result = create(new CreateSplineJobRequest(
+                    "Spline creator command",
+                    "CREATOR_SPLINE_COMMAND_V2",
+                    "FOCUSED_SPLINE_3D_TAB",
+                    "Execute exactly this creator command in the focused Spline scene: " + message +
+                            " Follow the CREATOR_CHAT_V2 safety contract. Treat visual/reference/source objects as read-only. " +
+                            "Any newly created root sandbox object must use the MEDIA_OS_ prefix. " +
+                            "Do not change unrelated objects. Verify the requested result before reporting success.",
+                    List.of(
+                            "READ_CREATOR_NAMED_OBJECTS",
+                            "EDIT_EXPLICIT_CREATOR_TARGETS",
+                            "CREATE_MEDIA_OS_SANDBOX_OBJECTS",
+                            "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE"
+                    ),
+                    List.of("ALL_OBJECTS_OUTSIDE_EXPLICIT_CREATOR_TARGETS", "ALL_REFERENCE_OBJECTS"),
+                    payload
+            ));
+        }
 
         UUID productionJobId = (UUID) result.get("productionJobId");
 

@@ -6,9 +6,42 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Get-CodexRuntimeArguments {
+  param(
+    [string]$ExecutionProfile
+  )
+
+  $reasoningEffort = "medium"
+
+  if (
+    $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_V1" -or
+    $ExecutionProfile -eq "TARGETED_OBJECT_V2" -or
+    $ExecutionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
+    $ExecutionProfile -eq "SCENE_CATALOG_SECTION_V1"
+  ) {
+    $reasoningEffort = "low"
+  }
+
+  $configs = @(
+    "web_search=disabled",
+    "agents.enabled=false",
+    "mcp_servers.codex_app.enabled=false",
+    "mcp_servers.codex_apps.enabled=false",
+    "mcp_servers.cua_repl.enabled=false",
+    "mcp_servers.node_repl.enabled=false",
+    "model_reasoning_effort=$reasoningEffort",
+    "model_reasoning_summary=none",
+    "model_verbosity=low"
+  )
+
+  $configArgs = ($configs | ForEach-Object { "--config $_" }) -join " "
+  return "$configArgs --approve-for-me exec --skip-git-repo-check --ephemeral -"
+}
+
 function Resolve-CodexStartInfo {
   param(
-    [string]$Command
+    [string]$Command,
+    [string]$ExecutionProfile
   )
 
   $resolved = Get-Command $Command -ErrorAction Stop
@@ -42,6 +75,7 @@ function Resolve-CodexStartInfo {
   $startInfo.RedirectStandardOutput = $true
   $startInfo.RedirectStandardError = $true
   $startInfo.CreateNoWindow = $true
+  $codexRuntimeArguments = Get-CodexRuntimeArguments -ExecutionProfile $ExecutionProfile
 
   if ($codexPath.EndsWith(".ps1", [System.StringComparison]::OrdinalIgnoreCase)) {
     $powershellExe = Join-Path $PSHOME "powershell.exe"
@@ -51,16 +85,16 @@ function Resolve-CodexStartInfo {
     }
 
     $startInfo.FileName = $powershellExe
-    $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" --approve-for-me exec --skip-git-repo-check --ephemeral -' -f $codexPath
+    $startInfo.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" {1}' -f $codexPath, $codexRuntimeArguments
   } elseif (
     $codexPath.EndsWith(".cmd", [System.StringComparison]::OrdinalIgnoreCase) -or
     $codexPath.EndsWith(".bat", [System.StringComparison]::OrdinalIgnoreCase)
   ) {
     $startInfo.FileName = $env:ComSpec
-    $startInfo.Arguments = '/d /s /c ""{0}" --approve-for-me exec --skip-git-repo-check --ephemeral -"' -f $codexPath
+    $startInfo.Arguments = '/d /s /c ""{0}" {1}"' -f $codexPath, $codexRuntimeArguments
   } else {
     $startInfo.FileName = $codexPath
-    $startInfo.Arguments = '--approve-for-me exec --skip-git-repo-check --ephemeral -'
+    $startInfo.Arguments = $codexRuntimeArguments
   }
 
   return $startInfo
@@ -69,10 +103,11 @@ function Resolve-CodexStartInfo {
 function Invoke-CodexSplineJob {
   param(
     [string]$Prompt,
-    [string]$Command
+    [string]$Command,
+    [string]$ExecutionProfile
   )
 
-  $startInfo = Resolve-CodexStartInfo -Command $Command
+  $startInfo = Resolve-CodexStartInfo -Command $Command -ExecutionProfile $ExecutionProfile
   $process = New-Object System.Diagnostics.Process
   $process.StartInfo = $startInfo
 
@@ -352,7 +387,7 @@ exit /b %ERRORLEVEL%
 '@ | Set-Content -Path $fakeCodexCmd -Encoding ASCII
 
   try {
-    $result = Invoke-CodexSplineJob -Prompt "PING – UTF-8 ✓" -Command $fakeCodexPs1
+    $result = Invoke-CodexSplineJob -Prompt "PING – UTF-8 ✓" -Command $fakeCodexPs1 -ExecutionProfile "REFERENCE_COMPONENT_CREATE_V1"
 
     if ([int]$result.ExitCode -ne 0) {
       throw "Launcher self-test returned exit code $($result.ExitCode). Output: $($result.Output)"
@@ -364,6 +399,14 @@ exit /b %ERRORLEVEL%
 
     if ([string]$result.Output -notmatch "--approve-for-me exec") {
       throw "Launcher self-test did not enable Codex auto-review. Output: $($result.Output)"
+    }
+
+    if ([string]$result.Output -notmatch "model_reasoning_effort=low") {
+      throw "Launcher self-test did not apply low reasoning for targeted execution. Output: $($result.Output)"
+    }
+
+    if ([string]$result.Output -notmatch "mcp_servers.codex_apps.enabled=false") {
+      throw "Launcher self-test did not disable unrelated Codex Apps MCP tools. Output: $($result.Output)"
     }
 
     if ([string]$result.Output -notmatch "UTF8_STDIN_OK") {
@@ -579,7 +622,47 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  if ($executionProfile -eq "CREATOR_CHAT_V2") {
+  if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
+    $titleDirective = "Preserve the reference title text."
+    if (
+      $null -ne $job.payload.titleText -and
+      -not [string]::IsNullOrWhiteSpace([string]$job.payload.titleText)
+    ) {
+      $titleDirective = "Set the new title text to: $($job.payload.titleText)"
+    }
+
+    $placementDirective = "Place it in the nearest safe empty area."
+    if ([string]$job.payload.placementPolicy -eq "BELOW_MAIN_ARCHITECTURE_MAP") {
+      $placementDirective = "Place it in a safe empty area below the main architecture map."
+    } elseif ([string]$job.payload.placementPolicy -eq "EMPTY_AREA") {
+      $placementDirective = "Place it in a safe empty area without moving existing objects."
+    }
+
+    $prompt = @"
+REFERENCE_COMPONENT_CREATE_V1
+
+Use only Spline MCP. Keep reasoning and narration minimal.
+
+REFERENCE READ-ONLY: $($job.payload.referenceObjectName)
+NEW ROOT: $($job.payload.targetRootName)
+TITLE: $titleDirective
+PLACEMENT: $placementDirective
+
+EXECUTION CONTRACT:
+1. Use exact-name targeted object lookup. Never enumerate the full scene and never call 3d_get_scene_mcp.
+2. Check the exact NEW ROOT name first. If it already exists, end FAILED before mutation.
+3. Read only the REFERENCE object and the minimum descendants required to reproduce its card construction.
+4. Never mutate, move, rename, recolor, resize, reparent, or delete the REFERENCE or any pre-existing object.
+5. Create only NEW ROOT and children beneath it. Match reference dimensions, body/background, border, corner radius, accent colors, spacing, and relevant child structure. Apply TITLE only to the new component.
+6. Use the minimum mutation calls. Prefer one safe 3d_run_code mutation when supported; otherwise use the fewest Spline mutation calls possible.
+7. Verify NEW ROOT with one exact targeted readback. No screenshot, no camera change, no global settings change.
+8. Do not use web, browser, CUA, node_repl, codex_apps, or any non-Spline fallback.
+9. End with exactly one concise line:
+MEDIA_OS_SPLINE_RESULT: SUCCEEDED
+or
+MEDIA_OS_SPLINE_RESULT: FAILED
+"@
+  } elseif ($executionProfile -eq "CREATOR_CHAT_V2") {
     $prompt = @"
 You are the Architectural Thinking Media OS Spline Agent.
 
@@ -741,7 +824,7 @@ SAFETY:
     Write-Host "Executing through Codex + Spline MCP..."
 
     $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand
+    $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand -ExecutionProfile $executionProfile
     $executionTimer.Stop()
     $output = [string]$codexResult.Output
     $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile

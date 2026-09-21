@@ -297,6 +297,7 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
 .spline-command-activity strong, .spline-command-activity span { display:block; }
 .spline-command-activity strong { font-size:11px; line-height:1.35; }
 .spline-command-activity span { margin-top:4px; color:#8e9db3; font-size:9px; line-height:1.45; }
+.spline-command-activity .spline-command-metrics { margin-top:7px; color:#b8c8dc; font-size:8px; letter-spacing:.035em; font-variant-numeric:tabular-nums; }
 .spline-command-activity.working { border-color:rgba(85,217,255,.24); background:rgba(85,217,255,.055); }
 .spline-command-activity.working .spline-command-activity-icon, .spline-command-activity.working strong { color:var(--cyan); }
 .spline-command-activity.waiting { border-color:rgba(255,215,138,.22); background:rgba(255,215,138,.045); }
