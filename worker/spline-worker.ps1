@@ -148,7 +148,7 @@ function Get-MediaOsSplineCatalog {
 
   $match = [regex]::Match(
     $Output,
-    '(?is)MEDIA_OS_SPLINE_CATALOG_BEGIN\s*(\{.*?\})\s*MEDIA_OS_SPLINE_CATALOG_END'
+    '(?is)MEDIA_OS_SPLINE_CATALOG_BEGIN\s*(.*?)\s*MEDIA_OS_SPLINE_CATALOG_END'
   )
 
   if (-not $match.Success) {
@@ -225,10 +225,14 @@ exit /b 0
     $failureSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: FAILED - test"
     $successMarker = Get-MediaOsSplineResult -Output $successSample
     $failureMarker = Get-MediaOsSplineResult -Output $failureSample
-    $catalogSample = "MEDIA_OS_SPLINE_CATALOG_BEGIN" + [Environment]::NewLine + '{"sceneName":"Test","sections":[]}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_CATALOG_END"
+    $catalogSample = "MEDIA_OS_SPLINE_CATALOG_BEGIN" + [Environment]::NewLine + '{"sceneName":"Test","sections":[{"name":"ROOT","type":"Group","path":"ROOT","children":[{"name":"CHILD","type":"Shape","path":"ROOT/CHILD","children":[]}]}]}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_CATALOG_END"
     $catalogMarker = Get-MediaOsSplineCatalog -Output $catalogSample
 
-    if ($null -eq $catalogMarker -or $catalogMarker.sceneName -ne "Test") {
+    if (
+      $null -eq $catalogMarker -or
+      $catalogMarker.sceneName -ne "Test" -or
+      $catalogMarker.sections[0].children[0].name -ne "CHILD"
+    ) {
       throw "Spline catalog marker self-test failed."
     }
 

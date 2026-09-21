@@ -40,6 +40,30 @@ function Rotate-RunnerLog {
   Move-Item $logPath $archivePath -Force
 }
 
+function Stop-OrphanedSplineWorkers {
+  $escapedWorkerPath = [regex]::Escape($workerPath)
+
+  try {
+    $processes = Get-CimInstance Win32_Process -ErrorAction Stop |
+      Where-Object {
+        $_.ProcessId -ne $PID -and
+        $_.Name -match "^(powershell|pwsh)\.exe$" -and
+        $_.CommandLine -match $escapedWorkerPath
+      }
+
+    foreach ($process in $processes) {
+      try {
+        Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+        Write-RunnerLog "Stopped orphaned Spline worker process $($process.ProcessId)."
+      } catch {
+        Write-RunnerLog "Could not stop orphaned worker $($process.ProcessId): $($_.Exception.Message)"
+      }
+    }
+  } catch {
+    Write-RunnerLog "Could not inspect orphaned worker processes: $($_.Exception.Message)"
+  }
+}
+
 function Sync-Worker {
   try {
     Invoke-WebRequest -Uri $workerSource -OutFile $workerTempPath -UseBasicParsing
@@ -108,17 +132,21 @@ if (-not $createdNew) {
 
 try {
   Write-RunnerLog "Local Runner started for $env:COMPUTERNAME."
+  Stop-OrphanedSplineWorkers
 
   while ($true) {
     Rotate-RunnerLog
     Sync-Worker
 
-    Write-RunnerLog "Starting continuous Spline worker."
+    Write-RunnerLog "Starting continuous Spline worker in-process."
 
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $workerPath -PollSeconds $PollSeconds *>> $logPath
-    $exitCode = $LASTEXITCODE
+    try {
+      & $workerPath -PollSeconds $PollSeconds *>> $logPath
+      Write-RunnerLog "Spline worker returned normally. Restarting in $RestartDelaySeconds seconds."
+    } catch {
+      Write-RunnerLog "Spline worker exited with error: $($_.Exception.Message). Restarting in $RestartDelaySeconds seconds."
+    }
 
-    Write-RunnerLog "Spline worker exited with code $exitCode. Restarting in $RestartDelaySeconds seconds."
     Start-Sleep -Seconds $RestartDelaySeconds
   }
 } finally {
