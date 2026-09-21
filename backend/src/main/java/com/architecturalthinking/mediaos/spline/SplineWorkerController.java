@@ -159,16 +159,20 @@ public class SplineWorkerController {
         }
 
         String executionProfile = String.valueOf(context.payload().getOrDefault("executionProfile", ""));
-        if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)) {
+        boolean recipeLearned = false;
+        if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)
+                && result.recipe() != null
+                && !result.recipe().isEmpty()) {
             saveComponentRecipe(result.recipe(), context.payload(), workerId);
+            recipeLearned = true;
         }
 
         Map<String, Object> resultPayload = new LinkedHashMap<>();
         resultPayload.put("output", result.output() == null ? "" : result.output());
         resultPayload.put("workerId", workerId);
         resultPayload.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
-        if (result.recipe() != null && !result.recipe().isEmpty()) {
-            resultPayload.put("recipeLearned", true);
+        if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)) {
+            resultPayload.put("recipeLearned", recipeLearned);
         }
         String resultJson = writeJson(resultPayload);
 
