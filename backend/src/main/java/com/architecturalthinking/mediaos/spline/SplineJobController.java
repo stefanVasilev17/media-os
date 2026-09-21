@@ -51,6 +51,10 @@ public class SplineJobController {
             String color
     ) {}
 
+    public record ChatCommandRequest(
+            @NotBlank String message
+    ) {}
+
     private record DecisionContext(
             UUID taskId,
             UUID orchestrationJobId,
@@ -66,7 +70,7 @@ public class SplineJobController {
                        coalesce(result, '{}'::jsonb)::text as result
                 from production_job
                 where agent_key = 'SPLINE_AGENT'
-                  and task_type not in ('SYNC_SCENE_CATALOG_V1', 'SYNC_SCENE_SECTION_V1')
+                  and task_type not in ('SYNC_SCENE_CATALOG_V1', 'SYNC_SCENE_SECTION_V1', 'CAPTURE_SPLINE_SNAPSHOT')
                 order by created_at desc
                 limit 1
                 """)
@@ -125,6 +129,74 @@ public class SplineJobController {
                     return item;
                 })
                 .list();
+    }
+
+    @GetMapping("/chat")
+    public List<Map<String, Object>> chatHistory() {
+        List<Map<String, Object>> items = jdbc.sql("""
+                select m.id, m.role, m.content, m.created_at,
+                       p.id as production_job_id,
+                       p.status as production_status
+                from spline_agent_message m
+                left join production_job p on p.id = m.production_job_id
+                where m.project_id = :projectId
+                order by m.created_at desc
+                limit 50
+                """)
+                .param("projectId", PROJECT_ID)
+                .query((rs, rowNum) -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", rs.getObject("id", UUID.class));
+                    item.put("role", rs.getString("role"));
+                    item.put("content", rs.getString("content"));
+                    item.put("createdAt", rs.getObject("created_at", OffsetDateTime.class));
+                    item.put("productionJobId", rs.getObject("production_job_id", UUID.class));
+                    item.put("status", rs.getString("production_status"));
+                    return item;
+                })
+                .list();
+
+        java.util.Collections.reverse(items);
+        return items;
+    }
+
+    @PostMapping("/chat-command")
+    @Transactional
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> createChatCommand(@Valid @RequestBody ChatCommandRequest request) {
+        String message = request.message().trim();
+        if (message.length() > 4000) {
+            throw new InvalidObjectEditException("Spline command is too long.");
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("executionProfile", "CREATOR_CHAT_V1");
+        payload.put("creatorMessage", message);
+
+        Map<String, Object> result = create(new CreateSplineJobRequest(
+                "Spline command",
+                "CREATOR_SPLINE_COMMAND_V1",
+                "FOCUSED_SPLINE_3D_TAB",
+                "Execute exactly this creator command in the focused Spline scene: " + message +
+                        " Do not change unrelated objects. Verify the requested result before reporting success.",
+                List.of("READ_SCENE", "EDIT_CREATOR_REQUESTED_SCOPE"),
+                List.of("ALL_OBJECTS_OUTSIDE_CREATOR_REQUEST"),
+                payload
+        ));
+
+        UUID productionJobId = (UUID) result.get("productionJobId");
+
+        jdbc.sql("""
+                insert into spline_agent_message(id, project_id, production_job_id, role, content)
+                values (:id, :projectId, :productionJobId, 'USER', :content)
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("productionJobId", productionJobId)
+                .param("content", message)
+                .update();
+
+        return result;
     }
 
     @PostMapping("/object-edit")

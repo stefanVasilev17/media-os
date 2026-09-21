@@ -106,6 +106,79 @@ function Invoke-CodexSplineJob {
   }
 }
 
+function Capture-SplineWindowSnapshot {
+  Add-Type -AssemblyName System.Drawing
+
+  if (-not ("MediaOsWindowCapture" -as [type])) {
+    Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+
+public static class MediaOsWindowCapture {
+  [StructLayout(LayoutKind.Sequential)]
+  public struct RECT {
+    public int Left;
+    public int Top;
+    public int Right;
+    public int Bottom;
+  }
+
+  [DllImport("user32.dll")]
+  public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+  [DllImport("user32.dll")]
+  public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+}
+"@
+  }
+
+  $process = Get-Process -ErrorAction SilentlyContinue |
+    Where-Object { $_.MainWindowHandle -ne 0 -and $_.ProcessName -match "(?i)spline" } |
+    Select-Object -First 1
+
+  if ($null -eq $process) {
+    throw "Could not find an open Spline desktop window."
+  }
+
+  $handle = [IntPtr]$process.MainWindowHandle
+  [MediaOsWindowCapture]::ShowWindowAsync($handle, 9) | Out-Null
+  [MediaOsWindowCapture]::SetForegroundWindow($handle) | Out-Null
+  Start-Sleep -Milliseconds 450
+
+  $rect = New-Object MediaOsWindowCapture+RECT
+  if (-not [MediaOsWindowCapture]::GetWindowRect($handle, [ref]$rect)) {
+    throw "Could not read the Spline window bounds."
+  }
+
+  $width = $rect.Right - $rect.Left
+  $height = $rect.Bottom - $rect.Top
+
+  if ($width -lt 100 -or $height -lt 100) {
+    throw "Spline window is minimized or has invalid bounds."
+  }
+
+  $bitmap = New-Object System.Drawing.Bitmap $width, $height
+  $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+  $path = Join-Path $env:TEMP ("media-os-spline-snapshot-" + [Guid]::NewGuid().ToString("N") + ".png")
+
+  try {
+    $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+    $bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+  } finally {
+    $graphics.Dispose()
+    $bitmap.Dispose()
+  }
+
+  return @{
+    Path = $path
+    Width = $width
+    Height = $height
+  }
+}
+
 function Get-CodexExecutionMetrics {
   param(
     [string]$Output,
@@ -365,6 +438,63 @@ while ($true) {
   Write-Host "Claimed job ${jobId}: $($job.taskType)"
   Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/started" -Body @{}
 
+  if ([string]$job.taskType -eq "CAPTURE_SPLINE_SNAPSHOT") {
+    $snapshot = $null
+    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+
+    try {
+      $snapshot = Capture-SplineWindowSnapshot
+      $uploadUri = "$baseUrl/api/v1/worker/spline/snapshot/$($job.id)?width=$($snapshot.Width)&height=$($snapshot.Height)"
+
+      Invoke-WebRequest -Method Post -Uri $uploadUri -Headers $headers -ContentType "image/png" -InFile $snapshot.Path -UseBasicParsing | Out-Null
+      $timer.Stop()
+
+      Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/complete" -Body @{
+        output = "MEDIA_OS_SPLINE_RESULT: SUCCEEDED - local Spline snapshot captured"
+        error = $null
+        metrics = @{
+          tokenCount = 0
+          splineMcpCalls = 0
+          durationMs = $timer.ElapsedMilliseconds
+          executionProfile = "LOCAL_SCREENSHOT_V1"
+        }
+        catalog = $null
+      }
+
+      Write-Host "Spline snapshot captured and uploaded without Codex."
+    } catch {
+      $timer.Stop()
+      $message = $_.Exception.Message
+      Write-Error $message -ErrorAction Continue
+
+      try {
+        Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/fail" -Body @{
+          output = $null
+          error = $message
+          metrics = @{
+            tokenCount = 0
+            splineMcpCalls = 0
+            durationMs = $timer.ElapsedMilliseconds
+            executionProfile = "LOCAL_SCREENSHOT_V1"
+          }
+          catalog = $null
+        }
+      } catch {
+        Write-Warning "Could not report snapshot failure to Media OS: $($_.Exception.Message)"
+      }
+    } finally {
+      if ($null -ne $snapshot -and $null -ne $snapshot.Path) {
+        Remove-Item $snapshot.Path -Force -ErrorAction SilentlyContinue
+      }
+    }
+
+    if ($Once) {
+      exit 0
+    }
+
+    continue
+  }
+
   $permissions = ($job.permissions | ConvertTo-Json -Compress -Depth 10)
   $protectedObjects = ($job.protectedObjects | ConvertTo-Json -Compress -Depth 10)
   $payload = ($job.payload | ConvertTo-Json -Compress -Depth 10)
@@ -376,7 +506,7 @@ while ($true) {
 
   $efficiencyContract = ""
 
-  if ($executionProfile -eq "TARGETED_OBJECT_V2") {
+  if ($executionProfile -eq "TARGETED_OBJECT_V2" -or $executionProfile -eq "CREATOR_CHAT_V1") {
     $efficiencyContract = @"
 TOKEN EFFICIENCY CONTRACT:
 - Keep reasoning and narration minimal.
