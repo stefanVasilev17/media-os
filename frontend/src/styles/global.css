@@ -292,6 +292,21 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
 .spline-chat-heading span, .spline-chat-heading strong { display:block; }
 .spline-chat-heading span { color:var(--cyan); font-size:9px; letter-spacing:.1em; font-weight:900; }
 .spline-chat-heading strong { margin-top:4px; font-size:14px; }
+.spline-command-activity { margin:0 14px 12px; padding:12px; border-radius:13px; display:flex; gap:10px; align-items:flex-start; border:1px solid var(--line); background:#080f19; }
+.spline-command-activity-icon { width:34px; height:34px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; background:#0c1724; }
+.spline-command-activity strong, .spline-command-activity span { display:block; }
+.spline-command-activity strong { font-size:11px; line-height:1.35; }
+.spline-command-activity span { margin-top:4px; color:#8e9db3; font-size:9px; line-height:1.45; }
+.spline-command-activity.working { border-color:rgba(85,217,255,.24); background:rgba(85,217,255,.055); }
+.spline-command-activity.working .spline-command-activity-icon, .spline-command-activity.working strong { color:var(--cyan); }
+.spline-command-activity.waiting { border-color:rgba(255,215,138,.22); background:rgba(255,215,138,.045); }
+.spline-command-activity.waiting .spline-command-activity-icon, .spline-command-activity.waiting strong { color:#e0c787; }
+.spline-command-activity.success { border-color:rgba(76,224,163,.22); background:rgba(76,224,163,.045); }
+.spline-command-activity.success .spline-command-activity-icon, .spline-command-activity.success strong { color:#73e5b4; }
+.spline-command-activity.error { border-color:rgba(255,105,105,.24); background:rgba(255,105,105,.05); }
+.spline-command-activity.error .spline-command-activity-icon, .spline-command-activity.error strong { color:#ff9696; }
+.spline-command-activity.cancelled { border-color:rgba(150,163,184,.16); background:rgba(150,163,184,.035); }
+.spline-command-activity.cancelled .spline-command-activity-icon, .spline-command-activity.cancelled strong { color:#9aa8bc; }
 .spline-chat-history { max-height:280px; overflow:auto; padding:4px 14px 12px; display:flex; flex-direction:column; gap:8px; }
 .spline-chat-empty { padding:14px; border:1px dashed var(--line); border-radius:12px; color:var(--muted); font-size:11px; line-height:1.5; }
 .spline-chat-message { align-self:flex-end; max-width:min(760px,88%); padding:11px 12px; border-radius:14px 14px 4px 14px; background:rgba(74,130,255,.13); border:1px solid rgba(74,130,255,.2); }
