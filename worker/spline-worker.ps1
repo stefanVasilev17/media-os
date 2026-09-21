@@ -83,7 +83,9 @@ function Invoke-CodexSplineJob {
   $stdoutTask = $process.StandardOutput.ReadToEndAsync()
   $stderrTask = $process.StandardError.ReadToEndAsync()
 
-  $process.StandardInput.Write($Prompt)
+  $promptBytes = [System.Text.Encoding]::UTF8.GetBytes($Prompt)
+  $process.StandardInput.BaseStream.Write($promptBytes, 0, $promptBytes.Length)
+  $process.StandardInput.BaseStream.Flush()
   $process.StandardInput.Close()
 
   $process.WaitForExit()
@@ -345,12 +347,12 @@ throw "PowerShell shim was selected instead of the sibling native Windows shim."
 @echo off
 echo FAKE_CODEX_CMD_OK
 echo ARGS:%*
-more
-exit /b 0
+powershell -NoProfile -Command "$inputStream=[Console]::OpenStandardInput(); $memory=New-Object System.IO.MemoryStream; $buffer=New-Object byte[] 4096; while (($read=$inputStream.Read($buffer,0,$buffer.Length)) -gt 0) { $memory.Write($buffer,0,$read) }; try { $utf8=New-Object System.Text.UTF8Encoding($false,$true); $text=$utf8.GetString($memory.ToArray()); if ($text -notmatch 'PING') { exit 43 }; Write-Output 'UTF8_STDIN_OK'; exit 0 } catch { Write-Error $_.Exception.Message; exit 42 }"
+exit /b %ERRORLEVEL%
 '@ | Set-Content -Path $fakeCodexCmd -Encoding ASCII
 
   try {
-    $result = Invoke-CodexSplineJob -Prompt "PING" -Command $fakeCodexPs1
+    $result = Invoke-CodexSplineJob -Prompt "PING – UTF-8 ✓" -Command $fakeCodexPs1
 
     if ([int]$result.ExitCode -ne 0) {
       throw "Launcher self-test returned exit code $($result.ExitCode). Output: $($result.Output)"
@@ -364,8 +366,8 @@ exit /b 0
       throw "Launcher self-test did not enable Codex auto-review. Output: $($result.Output)"
     }
 
-    if ([string]$result.Output -notmatch "PING") {
-      throw "Launcher self-test did not preserve redirected stdin. Output: $($result.Output)"
+    if ([string]$result.Output -notmatch "UTF8_STDIN_OK") {
+      throw "Launcher self-test did not preserve UTF-8 redirected stdin. Output: $($result.Output)"
     }
 
     $successSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: SUCCEEDED - test"
