@@ -225,6 +225,12 @@ exit /b 0
     $failureSample = "noise" + [Environment]::NewLine + "MEDIA_OS_SPLINE_RESULT: FAILED - test"
     $successMarker = Get-MediaOsSplineResult -Output $successSample
     $failureMarker = Get-MediaOsSplineResult -Output $failureSample
+    $catalogSample = "MEDIA_OS_SPLINE_CATALOG_BEGIN" + [Environment]::NewLine + '{"sceneName":"Test","sections":[]}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_CATALOG_END"
+    $catalogMarker = Get-MediaOsSplineCatalog -Output $catalogSample
+
+    if ($null -eq $catalogMarker -or $catalogMarker.sceneName -ne "Test") {
+      throw "Spline catalog marker self-test failed."
+    }
 
     if ($successMarker -notmatch "^MEDIA_OS_SPLINE_RESULT: SUCCEEDED") {
       throw "Semantic success marker self-test failed."
@@ -386,7 +392,7 @@ MEDIA_OS_SPLINE_CATALOG_END
 Rules:
 - Preserve exact object names.
 - Use top-level scene objects/groups as sections.
-- Include every visible object in the hierarchy snapshot.
+- Include every object in the hierarchy snapshot, including hidden or disabled objects when the scene API returns them.
 - Keep JSON compact and valid. No markdown fences.
 - Do not take a screenshot.
 - Keep narration minimal.

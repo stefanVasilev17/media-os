@@ -98,7 +98,9 @@ export function LiveMapPage() {
   );
   const selectedSectionObjects = useMemo(() => {
     if (!selectedSection) return [];
-    const nodes = flattenCatalogNodes(selectedSection.children ?? []);
+    const nodes = selectedSection.children?.length
+      ? flattenCatalogNodes(selectedSection.children)
+      : [selectedSection];
     const query = objectSearch.trim().toLowerCase();
     return query
       ? nodes.filter(node =>
@@ -224,7 +226,7 @@ export function LiveMapPage() {
           <div>
             <div className="review-label">APPROVAL FEED</div>
             <h2>Spline Agent decisions</h2>
-            <p className="muted">Nothing reaches the production worker until you approve it.</p>
+            <p className="muted">Edits require approval. Read-only scene catalog sync can run automatically.</p>
           </div>
           {approvals.length === 0 && (
             <div className="spline-create-actions">
@@ -366,7 +368,17 @@ export function LiveMapPage() {
               <input value={color} onChange={event => setColor(event.target.value)} placeholder="cyan or #00ffff" />
             </label>
 
-            <button className="prepare-v2-button" disabled={busy || !objectName.trim()} onClick={prepareObjectEdit}>
+            {objectName && !objectName.startsWith('MEDIA_OS_') && (
+              <div className="catalog-permission-note">
+                This object is visible in the catalog, but v2 execution is still sandbox-limited to MEDIA_OS_* objects.
+              </div>
+            )}
+
+            <button
+              className="prepare-v2-button"
+              disabled={busy || !objectName.trim() || !objectName.startsWith('MEDIA_OS_')}
+              onClick={prepareObjectEdit}
+            >
               <ShieldCheck size={16} />
               Prepare for approval
             </button>
