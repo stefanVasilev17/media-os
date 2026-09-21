@@ -68,3 +68,17 @@ Required behavior:
 - Never take a screenshot for catalog sync.
 - Never modify the scene during catalog sync.
 - The catalog is navigation metadata, not edit authorization. Visibility in the catalog does not grant permission to edit an object.
+
+
+## Scene Catalog large-scene rule
+For large Spline scenes, a single scene-inspection response may intentionally condense or omit many objects. A complete Media OS catalog must therefore use bounded read-only pagination rather than treating one condensed scene response as authoritative.
+
+Preferred catalog strategy:
+- load the Spline 3D skill once;
+- use read-only 3d_run_code traversal;
+- return at most 80 minimal rows per page;
+- represent each row as exact hierarchy path + concise type;
+- page until the number of unique paths equals the total object count;
+- only then build and return the full cached hierarchy.
+
+Using 3d_run_code for catalog sync does not grant edit permission. The executed code must be inspection-only and must not mutate any scene state.

@@ -162,6 +162,24 @@ function Get-MediaOsSplineCatalog {
   }
 }
 
+function Get-MediaOsCatalogNodeCount {
+  param([object]$Node)
+
+  if ($null -eq $Node) {
+    return 0
+  }
+
+  $count = 1
+
+  if ($null -ne $Node.PSObject.Properties["children"] -and $null -ne $Node.children) {
+    foreach ($child in @($Node.children)) {
+      $count += Get-MediaOsCatalogNodeCount -Node $child
+    }
+  }
+
+  return $count
+}
+
 function Get-MediaOsSplineResult {
   param(
     [string]$Output
@@ -379,46 +397,62 @@ You are the Architectural Thinking Media OS Spline Catalog Reader.
 
 This is a READ-ONLY scene catalog sync job against the currently focused Spline 3D editor tab.
 
+WHY THIS JOB USES PAGED READ CODE:
+The ordinary Spline scene readers can report the total object count while folding or omitting hundreds of objects in large scenes. They are useful for inspection, but they are not sufficient for a complete 700+ object catalog. For this catalog job, enumerate the hierarchy in bounded read-only pages.
+
 MANDATORY TOOL ROUTE:
 - Use ONLY MCP tools from the Spline server. Tool names must begin with Spline/.
 - Do NOT use cua_repl, computer-use, browser automation, UI automation, screenshots, or any fallback interface.
-- Do NOT call Spline/3d_load_skill for this job. Catalog sync does not depend on a Spline skill package.
-- Start with a read-only scene inspection tool. Prefer Spline/3d_get_scene when available because the catalog needs scene/object hierarchy data.
-- If Spline/3d_get_scene is unavailable or does not expose enough hierarchy, use Spline/3d_get_scene_mcp.
-- If additional object detail is required, call Spline/3d_get_objects using only identifiers, filters, or arguments returned by the prior scene read or required by the tool schema. Do not guess object IDs and do not call it with meaningless empty arguments.
-- You may make multiple read-only Spline calls if needed to traverse the hierarchy, but keep the call count minimal.
-- Do NOT call Spline/3d_run_code or any mutation-capable tool.
-- If a read-only Spline tool returns partial data, continue with another read-only Spline tool rather than returning an empty catalog immediately.
-- If the required Spline/* read tools are unavailable or all return unusable data, report FAILED.
+- FIRST call Spline/3d_load_skill exactly once so you use the documented Spline scene/code API correctly.
+- Then use Spline/3d_run_code ONLY for READ-ONLY enumeration. The code must not assign to scene objects, transforms, materials, names, parents, states, events, variables, or any other scene data.
+- Do not use Spline/3d_get_scene or Spline/3d_get_scene_mcp as the source of the full catalog because large-scene results are condensed.
+- A scene-read tool may be used only for lightweight metadata such as scene title if needed.
+- Do not use any other mutation-capable action.
+
+PAGINATION CONTRACT:
+1. In the first read-only 3d_run_code call, traverse the live object hierarchy and produce:
+   - total: total number of catalogued objects
+   - offset: 0
+   - limit: at most 80
+   - sceneName when available
+   - rows: the first page of minimal rows
+2. Each row should contain only the minimum needed to rebuild the tree:
+   - path: slash-separated hierarchy path using exact Spline names
+   - type: concise Spline object type
+3. Repeat read-only 3d_run_code calls with offsets 80, 160, 240, and so on until every object from 0 through total-1 has been returned.
+4. Never ask one MCP response to contain the entire 700+ object hierarchy.
+5. Do not stop because an individual page is condensed. Reduce the page size and retry that page if necessary.
+6. Before reporting success, verify that the number of unique collected paths equals total.
 
 SAFETY:
-Do not modify, create, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
+- This job is strictly READ-ONLY.
+- Do not create, modify, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
+- If the loaded Spline skill cannot provide a read-only traversal approach, report FAILED rather than improvising a write.
 
-OUTPUT:
-Read the hierarchy returned by Spline MCP and return a compact catalog organized by top-level section.
+FINAL OUTPUT:
+Rebuild the collected rows into a hierarchy organized by top-level section.
 Each catalog node must have:
 - name: exact Spline object name
 - type: concise Spline object type
 - path: slash-separated hierarchy path
 - children: child nodes, or [] for a leaf
 
-Return exactly one JSON payload between these markers:
+Return exactly one compact JSON payload between these markers:
 MEDIA_OS_SPLINE_CATALOG_BEGIN
-{"sceneName":"exact scene name","sections":[...]}
+{"sceneName":"exact scene name or Focused Spline 3D Scene","objectCount":771,"sections":[...]}
 MEDIA_OS_SPLINE_CATALOG_END
 
 Rules:
+- objectCount must equal the number of unique nodes in sections.
 - Preserve exact object names.
-- Use top-level scene objects/groups as sections.
-- Include every object returned by the Spline scene API, including hidden or disabled objects when present.
-- If Spline returns objects but does not expose the tab or scene title, use "Focused Spline 3D Scene" as sceneName rather than failing only because the title is unavailable.
-- Keep JSON compact and valid. No markdown fences.
+- Include hidden or disabled objects when the live scene traversal exposes them.
+- If the tab title is unavailable but hierarchy data is complete, use "Focused Spline 3D Scene".
+- No markdown fences.
 - Keep narration minimal.
-- Never invent hierarchy entries that were not returned by Spline MCP.
-- If the scene read is empty or unusable, emit one concise diagnostic line before the result:
-  MEDIA_OS_SPLINE_DIAGNOSTIC: <which Spline read tools completed, whether each returned scene/object data, and why the data was insufficient>
-- If the catalog was read successfully, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
-- If Spline MCP is unavailable or the hierarchy cannot be read, end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
+- If pagination or traversal cannot produce every object, emit:
+  MEDIA_OS_SPLINE_DIAGNOSTIC: <total reported, unique paths collected, failed offset/page and reason>
+- If every object was collected and verified, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
+- Otherwise end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
 "@
   } else {
     $prompt = @"
@@ -482,6 +516,22 @@ SAFETY:
       $catalog = Get-MediaOsSplineCatalog -Output $output
       if ($null -eq $catalog) {
         throw "Codex finished catalog sync without MEDIA_OS_SPLINE_CATALOG markers."
+      }
+
+      $catalogNodeCount = 0
+      foreach ($section in @($catalog.sections)) {
+        $catalogNodeCount += Get-MediaOsCatalogNodeCount -Node $section
+      }
+
+      if ($catalogNodeCount -le 0) {
+        throw "Codex returned an empty Spline scene catalog."
+      }
+
+      if (
+        $null -ne $catalog.PSObject.Properties["objectCount"] -and
+        [int]$catalog.objectCount -ne $catalogNodeCount
+      ) {
+        throw "Spline catalog count mismatch. Declared $($catalog.objectCount), parsed $catalogNodeCount."
       }
     }
 
