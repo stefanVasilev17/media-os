@@ -136,7 +136,8 @@ public class SplineJobController {
         List<Map<String, Object>> items = jdbc.sql("""
                 select m.id, m.role, m.content, m.created_at,
                        p.id as production_job_id,
-                       p.status as production_status
+                       p.status as production_status,
+                       p.error as production_error
                 from spline_agent_message m
                 left join production_job p on p.id = m.production_job_id
                 where m.project_id = :projectId
@@ -152,6 +153,7 @@ public class SplineJobController {
                     item.put("createdAt", rs.getObject("created_at", OffsetDateTime.class));
                     item.put("productionJobId", rs.getObject("production_job_id", UUID.class));
                     item.put("status", rs.getString("production_status"));
+                    item.put("error", rs.getString("production_error"));
                     return item;
                 })
                 .list();
@@ -170,17 +172,27 @@ public class SplineJobController {
         }
 
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("executionProfile", "CREATOR_CHAT_V1");
+        payload.put("executionProfile", "CREATOR_CHAT_V2");
         payload.put("creatorMessage", message);
+        payload.put("safeSandboxRequired", true);
+        payload.put("sandboxPrefix", "MEDIA_OS_");
+        payload.put("productionReferencesReadOnly", true);
 
         Map<String, Object> result = create(new CreateSplineJobRequest(
-                "Spline command",
-                "CREATOR_SPLINE_COMMAND_V1",
+                "Spline creator command",
+                "CREATOR_SPLINE_COMMAND_V2",
                 "FOCUSED_SPLINE_3D_TAB",
                 "Execute exactly this creator command in the focused Spline scene: " + message +
-                        " Do not change unrelated objects. Verify the requested result before reporting success.",
-                List.of("READ_SCENE", "EDIT_CREATOR_REQUESTED_SCOPE"),
-                List.of("ALL_OBJECTS_OUTSIDE_CREATOR_REQUEST"),
+                        " Follow the CREATOR_CHAT_V2 safety contract. Treat visual/reference/source objects as read-only. " +
+                        "Any newly created root sandbox object must use the MEDIA_OS_ prefix. " +
+                        "Do not change unrelated objects. Verify the requested result before reporting success.",
+                List.of(
+                        "READ_CREATOR_NAMED_OBJECTS",
+                        "EDIT_EXPLICIT_CREATOR_TARGETS",
+                        "CREATE_MEDIA_OS_SANDBOX_OBJECTS",
+                        "EDIT_NEW_MEDIA_OS_SANDBOX_SUBTREE"
+                ),
+                List.of("ALL_OBJECTS_OUTSIDE_EXPLICIT_CREATOR_TARGETS", "ALL_REFERENCE_OBJECTS"),
                 payload
         ));
 

@@ -42,7 +42,7 @@ type CommandActivity = {
   spinning?: boolean;
 };
 
-function commandActivityForStatus(status?: string | null): CommandActivity | null {
+function commandActivityForStatus(status?: string | null, error?: string | null): CommandActivity | null {
   switch (status) {
     case 'WAITING_APPROVAL':
       return {
@@ -81,7 +81,7 @@ function commandActivityForStatus(status?: string | null): CommandActivity | nul
       return {
         tone: 'error',
         label: 'Command failed',
-        detail: 'The change did not complete. Open Diagnostics for the execution error before retrying.'
+        detail: error?.trim() || 'The change did not complete. Open Diagnostics for the execution error before retrying.'
       };
     case 'CHANGES_REQUESTED':
       return {
@@ -247,7 +247,7 @@ export function SplineAgentPage() {
 
     setMeta(snapshot);
     setMessages(chat);
-    setApprovals(pending.filter(item => item.taskType === 'CREATOR_SPLINE_COMMAND_V1'));
+    setApprovals(pending.filter(item => item.taskType.startsWith('CREATOR_SPLINE_COMMAND_')));
   }, []);
 
   useEffect(() => {
@@ -257,8 +257,12 @@ export function SplineAgentPage() {
   }, [refresh]);
 
   const pending = useMemo(() => approvals[0], [approvals]);
-  const latestCommandStatus = messages.length > 0 ? messages[messages.length - 1]?.status : null;
-  const commandActivity = transientActivity ?? commandActivityForStatus(latestCommandStatus);
+  const latestCommand = messages.length > 0 ? messages[messages.length - 1] : null;
+  const latestCommandStatus = latestCommand?.status ?? null;
+  const commandInFlight = Boolean(
+    latestCommandStatus && ['WAITING_APPROVAL', 'QUEUED', 'CLAIMED', 'RUNNING'].includes(latestCommandStatus)
+  );
+  const commandActivity = transientActivity ?? commandActivityForStatus(latestCommandStatus, latestCommand?.error);
 
   useEffect(() => {
     if (!latestCommandStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestCommandStatus)) {
@@ -459,7 +463,11 @@ export function SplineAgentPage() {
             <div className="spline-pending-command">
               <div>
                 <span>READY FOR APPROVAL</span>
-                <strong>{commandText(pending.instructions)}</strong>
+                <strong>
+                  {typeof pending.payload.creatorMessage === 'string'
+                    ? pending.payload.creatorMessage
+                    : commandText(pending.instructions)}
+                </strong>
               </div>
               <div>
                 <button
@@ -496,7 +504,7 @@ export function SplineAgentPage() {
               }}
             />
             <button
-              disabled={busy || !message.trim() || Boolean(pending)}
+              disabled={busy || !message.trim() || commandInFlight}
               onClick={() => void sendCommand()}
             >
               <Send size={17} />
@@ -504,11 +512,15 @@ export function SplineAgentPage() {
             </button>
           </div>
 
-          {pending && (
+          {pending ? (
             <small className="spline-chat-note">
               Approve or cancel the current command before sending another one.
             </small>
-          )}
+          ) : commandInFlight ? (
+            <small className="spline-chat-note">
+              Wait for the current Spline command to finish before sending another one.
+            </small>
+          ) : null}
         </section>
       </div>
     </main>

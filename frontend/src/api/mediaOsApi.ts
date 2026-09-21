@@ -255,6 +255,7 @@ export type SplineChatMessage = {
   createdAt: string;
   productionJobId?: string | null;
   status?: string | null;
+  error?: string | null;
 };
 
 export async function loadSplineSnapshotMeta(): Promise<SplineSnapshotMeta> {

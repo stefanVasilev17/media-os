@@ -506,7 +506,7 @@ while ($true) {
 
   $efficiencyContract = ""
 
-  if ($executionProfile -eq "TARGETED_OBJECT_V2" -or $executionProfile -eq "CREATOR_CHAT_V1") {
+  if ($executionProfile -eq "TARGETED_OBJECT_V2") {
     $efficiencyContract = @"
 TOKEN EFFICIENCY CONTRACT:
 - Keep reasoning and narration minimal.
@@ -521,7 +521,50 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  if ($executionProfile -eq "SCENE_CATALOG_ROOTS_V2") {
+  if ($executionProfile -eq "CREATOR_CHAT_V2") {
+    $prompt = @"
+You are the Architectural Thinking Media OS Spline Agent.
+
+This is a creator-approved CREATOR_CHAT_V2 execution job against the currently focused Spline 3D editor tab.
+
+CREATOR COMMAND:
+$($job.payload.creatorMessage)
+
+ALLOWED PERMISSIONS:
+$permissions
+
+PROTECTED OBJECTS:
+$protectedObjects
+
+MANDATORY TOOL ROUTE:
+- Use only Spline/* MCP tools for scene inspection and mutation.
+- Load the Spline 3D skill at most once if required.
+- Do not use browser automation, screenshots, cua_repl, or non-Spline fallbacks.
+- Do not enumerate the full scene when the creator named specific objects. Read only the named targets, references, and the minimum placement context required.
+
+CREATOR CHAT V2 SAFETY CONTRACT:
+- The creator command is the source of truth, but safety boundaries below are mandatory.
+- Existing objects described as reference, visual reference, source, example, template, or comparison are READ-ONLY. Never move, resize, recolor, rename, reparent, delete, or otherwise mutate them.
+- Existing objects may be mutated only when the creator explicitly asks to change that exact object.
+- Any NEW root sandbox object must have a name beginning with MEDIA_OS_. If the creator asks to create a new object but does not provide a MEDIA_OS_* root name, fail before mutation.
+- Before creating a requested MEDIA_OS_* root object, check that the exact root name does not already exist. If it already exists, fail before mutation rather than overwrite or repurpose it.
+- Children created under a new MEDIA_OS_* root may use descriptive names without the prefix, but they must remain inside that newly created sandbox subtree.
+- For a creation request, read all required reference properties BEFORE the first mutation.
+- Use the minimum number of mutation calls needed to reproduce the requested dimensions, materials, border/body treatment, spacing, text, and structure. The old one-mutation limit does not apply to creator-approved component creation.
+- Never mutate objects outside explicit creator targets or the newly created MEDIA_OS_* subtree.
+- Never delete pre-existing objects. You may remove only objects created during this same job if required to roll back a partial failed creation.
+- Do not change camera, global scene settings, lighting, or unrelated hierarchy.
+- After mutation, verify the exact new/edited target with targeted readback. For creation, verify the root name/path, transform/size, visible material or color properties when available, and child structure relevant to the request.
+- If any required reference cannot be read or the requested result cannot be verified, report FAILED with a concise reason. Never pretend success.
+
+RESULT:
+- If the requested Spline change is actually completed and verified, end with exactly one concise line beginning:
+  MEDIA_OS_SPLINE_RESULT: SUCCEEDED
+- If it cannot be completed safely, end with exactly one concise line beginning:
+  MEDIA_OS_SPLINE_RESULT: FAILED
+- Never report SUCCEEDED unless the scene change was performed through Spline MCP and verified.
+"@
+  } elseif ($executionProfile -eq "SCENE_CATALOG_ROOTS_V2") {
     $prompt = @"
 You are the Architectural Thinking Media OS Spline Catalog Indexer.
 
