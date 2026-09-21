@@ -247,7 +247,7 @@ export function SplineAgentPage() {
 
     setMeta(snapshot);
     setMessages(chat);
-    setApprovals(pending.filter(item => item.taskType === 'CREATOR_SPLINE_COMMAND_V1'));
+    setApprovals(pending.filter(item => item.taskType.startsWith('CREATOR_SPLINE_COMMAND_')));
   }, []);
 
   useEffect(() => {
@@ -463,7 +463,11 @@ export function SplineAgentPage() {
             <div className="spline-pending-command">
               <div>
                 <span>READY FOR APPROVAL</span>
-                <strong>{commandText(pending.instructions)}</strong>
+                <strong>
+                  {typeof pending.payload.creatorMessage === 'string'
+                    ? pending.payload.creatorMessage
+                    : commandText(pending.instructions)}
+                </strong>
               </div>
               <div>
                 <button
