@@ -135,10 +135,25 @@ export function LiveMapPage() {
     setFlash(null);
     try {
       await refreshSplineSceneCatalog();
-      setFlash('Spline catalog refresh queued. The Local Runner will read the focused scene.');
-      window.setTimeout(() => {
-        refresh().catch(() => undefined);
-      }, 8000);
+      setFlash('Spline catalog refresh queued. Waiting for the Local Runner…');
+
+      for (let attempt = 0; attempt < 18; attempt += 1) {
+        await new Promise(resolve => window.setTimeout(resolve, 4000));
+        const catalog = await loadSplineSceneCatalog();
+
+        if (catalog.status === 'READY') {
+          setSceneCatalog(catalog);
+          if (catalog.catalog?.sections.length) {
+            setSelectedSectionPath(current => current || catalog.catalog!.sections[0].path);
+          }
+          setFlash(
+            `Scene catalog synced · ${catalog.objectCount ?? 0} objects · ${catalog.rootSectionCount ?? 0} sections`
+          );
+          return;
+        }
+      }
+
+      setFlash('Catalog sync is still running. Refresh the page in a moment.');
     } catch (err) {
       setFlash(err instanceof Error ? err.message : 'Could not refresh Spline catalog');
     } finally {
