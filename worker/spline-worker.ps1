@@ -190,6 +190,22 @@ $workerKey = $env:MEDIA_OS_WORKER_KEY
 $workerId = $env:MEDIA_OS_WORKER_ID
 $codexCommand = $env:CODEX_COMMAND
 
+if ($null -ne $baseUrl) {
+  $baseUrl = $baseUrl.Trim()
+}
+
+if ($null -ne $workerKey) {
+  $workerKey = ($workerKey -replace "[\r\n]", "").Trim()
+}
+
+if ($null -ne $workerId) {
+  $workerId = ($workerId -replace "[\r\n]", "").Trim()
+}
+
+if ($null -ne $codexCommand) {
+  $codexCommand = $codexCommand.Trim()
+}
+
 if ([string]::IsNullOrWhiteSpace($baseUrl)) {
   $baseUrl = "https://media-os-backend-production.up.railway.app"
 }
