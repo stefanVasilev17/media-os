@@ -39,14 +39,24 @@ jobs:
       - name: Validate Windows PowerShell worker syntax
         shell: powershell
         run: |
-          $tokens = $null
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile("$env:GITHUB_WORKSPACE\worker\spline-worker.ps1", [ref]$tokens, [ref]$errors)
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_.Message }
-            exit 1
+          $scripts = @(
+            "$env:GITHUB_WORKSPACE\worker\spline-worker.ps1",
+            "$env:GITHUB_WORKSPACE\worker\media-os-local-runner.ps1",
+            "$env:GITHUB_WORKSPACE\worker\install-local-runner.ps1"
+          )
+
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$errors)
+
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error "$script: $($_.Message)" }
+              exit 1
+            }
+
+            Write-Host "$script syntax OK"
           }
-          Write-Host "spline-worker.ps1 syntax OK"
       - name: Smoke-test PowerShell Codex shim launcher
         shell: powershell
         run: |
