@@ -109,3 +109,56 @@ export async function decideSplineJob(
     throw new Error('Could not save Spline approval decision');
   }
 }
+
+
+export type SplineObjectEditDraft = {
+  objectName: string;
+  position?: [number, number, number];
+  size?: [number, number, number];
+  color?: string;
+};
+
+export type LatestSplineJob = {
+  id?: string;
+  taskType?: string;
+  target?: string;
+  status: string;
+  workerId?: string | null;
+  error?: string | null;
+  createdAt?: string;
+  claimedAt?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  result?: {
+    output?: string;
+    workerId?: string;
+    metrics?: {
+      tokenCount?: number | null;
+      splineMcpCalls?: number;
+      durationMs?: number;
+      executionProfile?: string;
+    };
+  };
+};
+
+export async function createSplineObjectEdit(draft: SplineObjectEditDraft): Promise<void> {
+  const response = await fetch('/api/v1/spline/jobs/object-edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft)
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Could not create controlled Spline object edit');
+  }
+}
+
+export async function loadLatestSplineJob(): Promise<LatestSplineJob> {
+  const response = await fetch('/api/v1/spline/jobs/latest');
+  if (!response.ok) {
+    throw new Error('Latest Spline execution is not available');
+  }
+
+  return response.json();
+}

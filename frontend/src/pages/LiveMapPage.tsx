@@ -14,11 +14,14 @@ import {
 } from 'lucide-react';
 import {
   createSplineEditProof,
+  createSplineObjectEdit,
   decideSplineJob,
+  loadLatestSplineJob,
   loadLiveMap,
   loadPendingSplineApprovals,
   type LiveMapJob,
   type LiveMapTask,
+  type LatestSplineJob,
   type LiveMapView,
   type PendingSplineApproval
 } from '../api/mediaOsApi';
@@ -41,15 +44,26 @@ function taskMeta(task: LiveMapTask) {
 export function LiveMapPage() {
   const [view, setView] = useState<LiveMapView | null>(null);
   const [approvals, setApprovals] = useState<PendingSplineApproval[]>([]);
+  const [latestSplineJob, setLatestSplineJob] = useState<LatestSplineJob | null>(null);
+  const [showObjectEdit, setShowObjectEdit] = useState(false);
+  const [objectName, setObjectName] = useState('MEDIA_OS_CONNECTION_TEST');
+  const [position, setPosition] = useState<[number, number, number]>([4700, 0, 0]);
+  const [size, setSize] = useState<[number, number, number]>([60, 60, 60]);
+  const [color, setColor] = useState('cyan');
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const [map, pending] = await Promise.all([loadLiveMap(), loadPendingSplineApprovals()]);
+    const [map, pending, latest] = await Promise.all([
+      loadLiveMap(),
+      loadPendingSplineApprovals(),
+      loadLatestSplineJob()
+    ]);
     setView(map);
     setApprovals(pending);
+    setLatestSplineJob(latest);
     setSelectedJobId(current => current ?? map.jobs[0]?.id ?? null);
   }, []);
 
@@ -74,6 +88,38 @@ export function LiveMapPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function prepareObjectEdit() {
+    setBusy(true);
+    setFlash(null);
+    try {
+      await createSplineObjectEdit({
+        objectName: objectName.trim(),
+        position,
+        size,
+        color: color.trim()
+      });
+      await refresh();
+      setShowObjectEdit(false);
+      setFlash('Controlled Spline object edit prepared. Review it before execution.');
+    } catch (err) {
+      setFlash(err instanceof Error ? err.message : 'Could not create controlled object edit');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function updateVector(
+    current: [number, number, number],
+    index: number,
+    value: string,
+    setter: (value: [number, number, number]) => void
+  ) {
+    const parsed = Number(value);
+    const next: [number, number, number] = [...current] as [number, number, number];
+    next[index] = Number.isFinite(parsed) ? parsed : 0;
+    setter(next);
   }
 
   async function decide(productionJobId: string, decision: 'APPROVE' | 'REQUEST_CHANGES') {
@@ -127,14 +173,102 @@ export function LiveMapPage() {
             <p className="muted">Nothing reaches the production worker until you approve it.</p>
           </div>
           {approvals.length === 0 && (
-            <button className="prepare-proof-button" disabled={busy} onClick={prepareEditProof}>
-              <Plus size={16} />
-              Prepare safe edit proof
-            </button>
+            <div className="spline-create-actions">
+              <button className="prepare-proof-button" disabled={busy} onClick={() => setShowObjectEdit(value => !value)}>
+                <Plus size={16} />
+                New controlled edit
+              </button>
+              <button className="secondary-proof-button" disabled={busy} onClick={prepareEditProof}>
+                Safe proof
+              </button>
+            </div>
           )}
         </div>
 
         {flash && <div className="flash">{flash}</div>}
+
+        {showObjectEdit && approvals.length === 0 && (
+          <div className="spline-object-editor">
+            <div className="spline-editor-heading">
+              <div>
+                <strong>Spline Agent v2 · targeted object edit</strong>
+                <span>Sandbox scope: MEDIA_OS_* objects only. Execution still requires approval.</span>
+              </div>
+            </div>
+
+            <label>
+              <span>Object name</span>
+              <input value={objectName} onChange={event => setObjectName(event.target.value.toUpperCase())} />
+            </label>
+
+            <div className="spline-vector-row">
+              <div>
+                <span>Position</span>
+                <div className="vector-inputs">
+                  {position.map((value, index) => (
+                    <input
+                      key={`position-${index}`}
+                      type="number"
+                      value={value}
+                      onChange={event => updateVector(position, index, event.target.value, setPosition)}
+                      aria-label={`Position ${['X', 'Y', 'Z'][index]}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <span>Size</span>
+                <div className="vector-inputs">
+                  {size.map((value, index) => (
+                    <input
+                      key={`size-${index}`}
+                      type="number"
+                      min="0.01"
+                      value={value}
+                      onChange={event => updateVector(size, index, event.target.value, setSize)}
+                      aria-label={`Size ${['X', 'Y', 'Z'][index]}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <label>
+              <span>Material color</span>
+              <input value={color} onChange={event => setColor(event.target.value)} placeholder="cyan or #00ffff" />
+            </label>
+
+            <button className="prepare-v2-button" disabled={busy || !objectName.trim()} onClick={prepareObjectEdit}>
+              <ShieldCheck size={16} />
+              Prepare for approval
+            </button>
+          </div>
+        )}
+
+        {latestSplineJob && latestSplineJob.status !== 'NONE' && (
+          <div className="spline-execution-metrics">
+            <div>
+              <span>Latest execution</span>
+              <strong>{latestSplineJob.status}</strong>
+            </div>
+            <div>
+              <span>Tokens</span>
+              <strong>{latestSplineJob.result?.metrics?.tokenCount?.toLocaleString() ?? '—'}</strong>
+            </div>
+            <div>
+              <span>Spline MCP calls</span>
+              <strong>{latestSplineJob.result?.metrics?.splineMcpCalls ?? '—'}</strong>
+            </div>
+            <div>
+              <span>Duration</span>
+              <strong>
+                {latestSplineJob.result?.metrics?.durationMs
+                  ? `${Math.round(latestSplineJob.result.metrics.durationMs / 1000)}s`
+                  : '—'}
+              </strong>
+            </div>
+          </div>
+        )}
 
         {approvals.length === 0 ? (
           <div className="approval-empty">
