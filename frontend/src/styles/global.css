@@ -234,3 +234,10 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
 }
 
 .catalog-permission-note { margin-top:12px; padding:10px 11px; border-radius:11px; border:1px solid rgba(255,215,138,.18); background:rgba(255,215,138,.05); color:#d8c28f; font-size:10px; line-height:1.45; }
+
+.catalog-section-loader { margin-top:12px; padding:12px; border:1px dashed rgba(85,217,255,.18); border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:12px; background:rgba(85,217,255,.025); }
+.catalog-section-loader strong, .catalog-section-loader span { display:block; }
+.catalog-section-loader strong { font-size:12px; }
+.catalog-section-loader span { margin-top:4px; color:var(--muted); font-size:10px; line-height:1.4; }
+.catalog-section-loader button { min-height:38px; padding:0 10px; border-radius:10px; border:1px solid rgba(85,217,255,.2); background:rgba(85,217,255,.07); color:var(--cyan); display:flex; align-items:center; gap:6px; font-size:10px; font-weight:800; flex:0 0 auto; }
+.catalog-section-loader button:disabled { opacity:.55; cursor:wait; }

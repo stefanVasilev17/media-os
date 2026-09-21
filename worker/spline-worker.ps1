@@ -391,68 +391,80 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  if ($executionProfile -eq "SCENE_CATALOG_V1") {
+  if ($executionProfile -eq "SCENE_CATALOG_ROOTS_V2") {
     $prompt = @"
-You are the Architectural Thinking Media OS Spline Catalog Reader.
+You are the Architectural Thinking Media OS Spline Catalog Indexer.
 
-This is a READ-ONLY scene catalog sync job against the currently focused Spline 3D editor tab.
+This is a strictly READ-ONLY root index job against the currently focused Spline 3D editor tab.
 
-WHY THIS JOB USES PAGED READ CODE:
-The ordinary Spline scene readers can report the total object count while folding or omitting hundreds of objects in large scenes. They are useful for inspection, but they are not sufficient for a complete 700+ object catalog. For this catalog job, enumerate the hierarchy in bounded read-only pages.
+GOAL:
+Do NOT try to enumerate all 700+ objects. Read only the scene summary needed to identify every top-level/root object or group. Large-scene folding is acceptable below the root level.
 
 MANDATORY TOOL ROUTE:
-- Use ONLY MCP tools from the Spline server. Tool names must begin with Spline/.
-- Do NOT use cua_repl, computer-use, browser automation, UI automation, screenshots, or any fallback interface.
-- FIRST call Spline/3d_load_skill exactly once so you use the documented Spline scene/code API correctly.
-- Then use Spline/3d_run_code ONLY for READ-ONLY enumeration. The code must not assign to scene objects, transforms, materials, names, parents, states, events, variables, or any other scene data.
-- Do not use Spline/3d_get_scene or Spline/3d_get_scene_mcp as the source of the full catalog because large-scene results are condensed.
-- A scene-read tool may be used only for lightweight metadata such as scene title if needed.
-- Do not use any other mutation-capable action.
+- Use only Spline/* MCP tools.
+- FIRST call Spline/3d_load_skill exactly once.
+- Then call Spline/3d_get_scene_mcp once.
+- Do not call 3d_run_code.
+- Do not use cua_repl, screenshots, browser/UI automation, or any fallback.
+- Do not modify anything.
 
-PAGINATION CONTRACT:
-1. In the first read-only 3d_run_code call, traverse the live object hierarchy and produce:
-   - total: total number of catalogued objects
-   - offset: 0
-   - limit: at most 80
-   - sceneName when available
-   - rows: the first page of minimal rows
-2. Each row should contain only the minimum needed to rebuild the tree:
-   - path: slash-separated hierarchy path using exact Spline names
-   - type: concise Spline object type
-3. Repeat read-only 3d_run_code calls with offsets 80, 160, 240, and so on until every object from 0 through total-1 has been returned.
-4. Never ask one MCP response to contain the entire 700+ object hierarchy.
-5. Do not stop because an individual page is condensed. Reduce the page size and retry that page if necessary.
-6. Before reporting success, verify that the number of unique collected paths equals total.
-
-SAFETY:
-- This job is strictly READ-ONLY.
-- Do not create, modify, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
-- If the loaded Spline skill cannot provide a read-only traversal approach, report FAILED rather than improvising a write.
-
-FINAL OUTPUT:
-Rebuild the collected rows into a hierarchy organized by top-level section.
-Each catalog node must have:
-- name: exact Spline object name
-- type: concise Spline object type
-- path: slash-separated hierarchy path
-- children: child nodes, or [] for a leaf
-
-Return exactly one compact JSON payload between these markers:
+OUTPUT:
+Return exactly one compact JSON payload:
 MEDIA_OS_SPLINE_CATALOG_BEGIN
-{"sceneName":"exact scene name or Focused Spline 3D Scene","objectCount":771,"sections":[...]}
+{"sceneName":"exact scene name or Focused Spline 3D Scene","objectCount":771,"sections":[{"name":"exact root name","type":"concise type","path":"exact root name","loaded":false,"children":[]}]}
 MEDIA_OS_SPLINE_CATALOG_END
 
 Rules:
-- objectCount must equal the number of unique nodes in sections.
-- Preserve exact object names.
-- Include hidden or disabled objects when the live scene traversal exposes them.
-- If the tab title is unavailable but hierarchy data is complete, use "Focused Spline 3D Scene".
-- No markdown fences.
-- Keep narration minimal.
-- If pagination or traversal cannot produce every object, emit:
-  MEDIA_OS_SPLINE_DIAGNOSTIC: <total reported, unique paths collected, failed offset/page and reason>
-- If every object was collected and verified, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
-- Otherwise end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
+- sections contains only top-level/root entries visible in the scene summary.
+- objectCount should use the total reported by Spline when available; it may be larger than sections.length.
+- If a root entry is explicitly known to be a leaf with no children, set loaded:true. Otherwise set loaded:false.
+- Preserve exact names.
+- Never invent root entries.
+- If at least one real root entry is read, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene root index synced
+- Otherwise emit MEDIA_OS_SPLINE_DIAGNOSTIC and end with FAILED.
+"@
+  } elseif ($executionProfile -eq "SCENE_CATALOG_SECTION_V1") {
+    $prompt = @"
+You are the Architectural Thinking Media OS Spline Section Reader.
+
+This is a strictly READ-ONLY targeted section job against the currently focused Spline 3D editor tab.
+
+TARGET SECTION:
+Name: $($job.payload.sectionName)
+Path: $($job.payload.sectionPath)
+
+GOAL:
+Read this one section/subtree only. Do not enumerate unrelated scene objects.
+
+MANDATORY TOOL ROUTE:
+- Use only Spline/* MCP tools.
+- FIRST call Spline/3d_load_skill exactly once.
+- Use the exact read-only object lookup arguments documented by the loaded skill.
+- Resolve the target section by exact name/path from the scene summary if an identifier is required.
+- Prefer Spline/3d_get_objects for the target section and its descendants.
+- If the returned target subtree is folded, follow only the identifiers of child groups inside this target branch until the branch is complete.
+- Do not call 3d_run_code.
+- Do not use cua_repl, screenshots, browser/UI automation, or any fallback.
+- Do not modify anything.
+
+OUTPUT:
+Return exactly one compact JSON payload:
+MEDIA_OS_SPLINE_CATALOG_BEGIN
+{"sceneName":"Focused Spline 3D Scene","sectionPath":"$($job.payload.sectionPath)","section":{"name":"$($job.payload.sectionName)","type":"Group","path":"$($job.payload.sectionPath)","loaded":true,"children":[...]}}
+MEDIA_OS_SPLINE_CATALOG_END
+
+Every child node must contain:
+- name: exact Spline name
+- type: concise type
+- path: slash-separated path under the target section
+- loaded:true when its returned descendants are complete
+- children: child nodes or []
+
+Rules:
+- Never include objects outside the requested target section.
+- Preserve exact names.
+- If the branch cannot be completed, emit MEDIA_OS_SPLINE_DIAGNOSTIC with the unresolved child/group and end with FAILED rather than pretending the branch is complete.
+- If the target section is completely read, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene section synced
 "@
   } else {
     $prompt = @"
@@ -512,26 +524,31 @@ SAFETY:
     $resultLine = Get-MediaOsSplineResult -Output $output
     $catalog = $null
 
-    if ($executionProfile -eq "SCENE_CATALOG_V1") {
+    if (
+      $executionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
+      $executionProfile -eq "SCENE_CATALOG_SECTION_V1"
+    ) {
       $catalog = Get-MediaOsSplineCatalog -Output $output
       if ($null -eq $catalog) {
         throw "Codex finished catalog sync without MEDIA_OS_SPLINE_CATALOG markers."
       }
 
-      $catalogNodeCount = 0
-      foreach ($section in @($catalog.sections)) {
-        $catalogNodeCount += Get-MediaOsCatalogNodeCount -Node $section
-      }
+      if ($executionProfile -eq "SCENE_CATALOG_ROOTS_V2") {
+        $catalogNodeCount = 0
+        foreach ($section in @($catalog.sections)) {
+          $catalogNodeCount += Get-MediaOsCatalogNodeCount -Node $section
+        }
 
-      if ($catalogNodeCount -le 0) {
-        throw "Codex returned an empty Spline scene catalog."
-      }
-
-      if (
-        $null -ne $catalog.PSObject.Properties["objectCount"] -and
-        [int]$catalog.objectCount -ne $catalogNodeCount
-      ) {
-        throw "Spline catalog count mismatch. Declared $($catalog.objectCount), parsed $catalogNodeCount."
+        if ($catalogNodeCount -le 0) {
+          throw "Codex returned an empty Spline root catalog."
+        }
+      } else {
+        if (
+          $null -eq $catalog.PSObject.Properties["section"] -or
+          $null -eq $catalog.PSObject.Properties["sectionPath"]
+        ) {
+          throw "Codex returned an invalid targeted Spline section catalog."
+        }
       }
     }
 
