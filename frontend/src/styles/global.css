@@ -241,3 +241,16 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
 .catalog-section-loader span { margin-top:4px; color:var(--muted); font-size:10px; line-height:1.4; }
 .catalog-section-loader button { min-height:38px; padding:0 10px; border-radius:10px; border:1px solid rgba(85,217,255,.2); background:rgba(85,217,255,.07); color:var(--cyan); display:flex; align-items:center; gap:6px; font-size:10px; font-weight:800; flex:0 0 auto; }
 .catalog-section-loader button:disabled { opacity:.55; cursor:wait; }
+
+
+/* Media OS Local Runner v2 */
+.runner-status-card { display:flex; justify-content:space-between; gap:14px; align-items:center; margin:0 0 14px; padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:#0a101a; }
+.runner-status-card.online { border-color:rgba(86,220,155,.22); background:rgba(86,220,155,.045); }
+.runner-status-card.offline { border-color:rgba(255,139,139,.18); background:rgba(255,139,139,.035); }
+.runner-status-card span, .runner-status-card strong, .runner-status-card small { display:block; }
+.runner-status-card span { color:var(--muted); font-size:9px; letter-spacing:.09em; }
+.runner-status-card strong { margin-top:4px; font-size:12px; }
+.runner-status-card.online > div:first-child strong { color:var(--green); }
+.runner-status-card.offline > div:first-child strong { color:#ff9a9a; }
+.runner-status-card small { color:#7f8ea6; font-size:10px; margin-top:4px; }
+.runner-status-meta { text-align:right; flex:0 0 auto; }

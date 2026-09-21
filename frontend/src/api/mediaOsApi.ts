@@ -216,3 +216,24 @@ export async function refreshSplineCatalogSection(
     throw new Error('Could not queue Spline section refresh');
   }
 }
+
+
+export type RunnerStatus = {
+  online: boolean;
+  workerId?: string;
+  hostname?: string;
+  status: string;
+  runnerVersion?: string;
+  workerVersion?: string;
+  productionCommit?: string;
+  lastError?: string | null;
+  lastSeen?: string;
+};
+
+export async function loadRunnerStatus(): Promise<RunnerStatus> {
+  const response = await fetch('/api/v1/runner/status');
+  if (!response.ok) {
+    throw new Error('Runner status is not available');
+  }
+  return response.json();
+}

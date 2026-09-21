@@ -77,7 +77,7 @@ Register-ScheduledTask `
   -Action $action `
   -Trigger $trigger `
   -Settings $settings `
-  -Description "Always-on Media OS worker bridge for approved Spline production jobs." `
+  -Description "Self-updating Media OS production bridge for approved local worker jobs." `
   -Force | Out-Null
 
 Start-ScheduledTask -TaskName $taskName
@@ -87,6 +87,7 @@ $task = Get-ScheduledTask -TaskName $taskName
 $info = Get-ScheduledTaskInfo -TaskName $taskName
 
 Write-Host "MEDIA_OS_LOCAL_RUNNER: INSTALLED"
+Write-Host "Runner mode: SELF_UPDATING_V2"
 Write-Host "Task state: $($task.State)"
 Write-Host "Last result: $($info.LastTaskResult)"
 Write-Host "Worker directory: $workerDir"
