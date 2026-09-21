@@ -382,13 +382,14 @@ This is a READ-ONLY scene catalog sync job against the currently focused Spline 
 MANDATORY TOOL ROUTE:
 - Use ONLY MCP tools from the Spline server. Tool names must begin with Spline/.
 - Do NOT use cua_repl, computer-use, browser automation, UI automation, screenshots, or any fallback interface.
-- FIRST call Spline/3d_load_skill exactly once and follow the returned Spline 3D read instructions.
-- After loading the skill, inspect the focused scene with the read-only Spline tools and arguments recommended by that skill.
-- Prefer Spline/3d_get_scene_mcp for the initial scene read.
-- If additional object detail is required, call Spline/3d_get_objects with the exact arguments required by the loaded skill or by identifiers returned from the scene read. Do not call it blindly with guessed or empty arguments.
-- Spline/3d_get_scene may be used only if the loaded skill identifies it as a read-only inspection tool and the earlier read did not expose the hierarchy.
+- Do NOT call Spline/3d_load_skill for this job. Catalog sync does not depend on a Spline skill package.
+- Start with a read-only scene inspection tool. Prefer Spline/3d_get_scene when available because the catalog needs scene/object hierarchy data.
+- If Spline/3d_get_scene is unavailable or does not expose enough hierarchy, use Spline/3d_get_scene_mcp.
+- If additional object detail is required, call Spline/3d_get_objects using only identifiers, filters, or arguments returned by the prior scene read or required by the tool schema. Do not guess object IDs and do not call it with meaningless empty arguments.
+- You may make multiple read-only Spline calls if needed to traverse the hierarchy, but keep the call count minimal.
 - Do NOT call Spline/3d_run_code or any mutation-capable tool.
-- If the required Spline/* tools are unavailable or fail, do not fall back to another tool. Report FAILED.
+- If a read-only Spline tool returns partial data, continue with another read-only Spline tool rather than returning an empty catalog immediately.
+- If the required Spline/* read tools are unavailable or all return unusable data, report FAILED.
 
 SAFETY:
 Do not modify, create, delete, rename, move, recolor, resize, regroup, reparent, animate, or otherwise change any object.
@@ -415,7 +416,7 @@ Rules:
 - Keep narration minimal.
 - Never invent hierarchy entries that were not returned by Spline MCP.
 - If the scene read is empty or unusable, emit one concise diagnostic line before the result:
-  MEDIA_OS_SPLINE_DIAGNOSTIC: <which Spline tools completed and why the returned data was insufficient>
+  MEDIA_OS_SPLINE_DIAGNOSTIC: <which Spline read tools completed, whether each returned scene/object data, and why the data was insufficient>
 - If the catalog was read successfully, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene catalog synced
 - If Spline MCP is unavailable or the hierarchy cannot be read, end with: MEDIA_OS_SPLINE_RESULT: FAILED - scene catalog sync failed
 "@
