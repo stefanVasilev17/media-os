@@ -23,10 +23,16 @@ public class SplineSceneSlotRegistryService {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final SplineAuthoringOverlayRegistryService overlayRegistryService;
 
-    public SplineSceneSlotRegistryService(JdbcClient jdbc, ObjectMapper objectMapper) {
+    public SplineSceneSlotRegistryService(
+            JdbcClient jdbc,
+            ObjectMapper objectMapper,
+            SplineAuthoringOverlayRegistryService overlayRegistryService
+    ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.overlayRegistryService = overlayRegistryService;
     }
 
     @Transactional
@@ -84,6 +90,15 @@ public class SplineSceneSlotRegistryService {
 
         Map<String, Object> summary = summarize(sceneFingerprint, candidates);
         logSummary(sceneFingerprint, candidates, summary);
+
+        if (overlayRegistryService != null) {
+            try {
+                overlayRegistryService.syncFromSlots(sceneFingerprint);
+            } catch (RuntimeException ex) {
+                log.warn("Spline authoring overlay sync failed without failing the scene slot registry: {}", ex.getMessage());
+            }
+        }
+
         return summary;
     }
 
