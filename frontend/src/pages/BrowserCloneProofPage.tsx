@@ -142,6 +142,30 @@ function browserProofParams() {
   return new URLSearchParams(query);
 }
 
+function normalizeSceneInput(rawValue: string) {
+  const value = rawValue.trim();
+
+  if (!value) {
+    return { sceneUrl: '', source: null as string | null, clone: null as string | null };
+  }
+
+  if (value.includes('browser-clone-proof?scene=')) {
+    const query = value.split('?')[1] ?? '';
+    const params = new URLSearchParams(query);
+    return {
+      sceneUrl: params.get('scene') ?? '',
+      source: params.get('source'),
+      clone: params.get('clone')
+    };
+  }
+
+  return {
+    sceneUrl: value,
+    source: null as string | null,
+    clone: null as string | null
+  };
+}
+
 export function BrowserCloneProofPage() {
   const initialParamsRef = useRef(browserProofParams());
   const autoLoadRequested = initialParamsRef.current.get('autoload') === '1';
@@ -266,9 +290,15 @@ export function BrowserCloneProofPage() {
         : 'pending';
 
   async function loadScene() {
-    const url = sceneUrl.trim();
+    const normalized = normalizeSceneInput(sceneUrl);
+    const url = normalized.sceneUrl;
+
+    if (normalized.source) setSourceName(normalized.source);
+    if (normalized.clone) setCloneName(normalized.clone);
+    if (url && url !== sceneUrl) setSceneUrl(url);
+
     if (!url.includes('.splinecode')) {
-      setError('Use the Vanilla JS export URL ending in scene.splinecode.');
+      setError('Paste either the direct scene.splinecode URL or the full Media OS one-click browser proof link.');
       return;
     }
 
@@ -576,11 +606,11 @@ export function BrowserCloneProofPage() {
           </div>
 
           <label>
-            <span>Vanilla JS .splinecode URL · saved only in this browser</span>
+            <span>Scene URL or one-click proof link · saved only in this browser</span>
             <input
               value={sceneUrl}
               onChange={event => setSceneUrl(event.target.value)}
-              placeholder="https://prod.spline.design/.../scene.splinecode"
+              placeholder="scene.splinecode URL or full Media OS browser-proof link"
             />
           </label>
 
