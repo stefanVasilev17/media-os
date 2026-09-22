@@ -26,17 +26,20 @@ public class SplineWorkerController {
     private final ObjectMapper objectMapper;
     private final String workerKey;
     private final SplineCapabilityCatalogService capabilityCatalogService;
+    private final SplineAuthoringOverlayRegistryService authoringOverlayRegistryService;
 
     public SplineWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             @Value("${SPLINE_WORKER_KEY:}") String workerKey,
-            SplineCapabilityCatalogService capabilityCatalogService
+            SplineCapabilityCatalogService capabilityCatalogService,
+            SplineAuthoringOverlayRegistryService authoringOverlayRegistryService
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.workerKey = workerKey;
         this.capabilityCatalogService = capabilityCatalogService;
+        this.authoringOverlayRegistryService = authoringOverlayRegistryService;
     }
 
     public record WorkerResult(
@@ -44,7 +47,8 @@ public class SplineWorkerController {
             String error,
             Map<String, Object> metrics,
             Map<String, Object> catalog,
-            Map<String, Object> recipe
+            Map<String, Object> recipe,
+            Map<String, Object> authoringOverlay
     ) {}
 
     private record ExecutionContext(
@@ -158,12 +162,22 @@ public class SplineWorkerController {
 
         ExecutionContext context = findContext(jobId, workerId);
 
+        Map<String, Object> overlayDiscoveryApplied = null;
         if ("SYNC_SCENE_CATALOG_V1".equals(context.taskType())) {
             saveCatalogSnapshot(result.catalog(), workerId);
             rebuildMasterKnowledgeBestEffort();
         } else if ("SYNC_SCENE_SECTION_V1".equals(context.taskType())) {
             mergeCatalogSection(result.catalog(), workerId);
             rebuildMasterKnowledgeBestEffort();
+        } else if ("AUTHORING_OVERLAY_DISCOVERY_V1".equals(context.taskType())) {
+            if (result.authoringOverlay() == null || result.authoringOverlay().isEmpty()) {
+                throw new WorkerStateException("Authoring overlay discovery completed without a discovery payload.");
+            }
+            overlayDiscoveryApplied = authoringOverlayRegistryService.applyDiscovery(
+                    context.payload(),
+                    result.authoringOverlay(),
+                    workerId
+            );
         }
 
         String executionProfile = String.valueOf(context.payload().getOrDefault("executionProfile", ""));
@@ -184,6 +198,9 @@ public class SplineWorkerController {
         resultPayload.put("output", result.output() == null ? "" : result.output());
         resultPayload.put("workerId", workerId);
         resultPayload.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
+        if (overlayDiscoveryApplied != null) {
+            resultPayload.put("authoringOverlayDiscovery", overlayDiscoveryApplied);
+        }
         if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)) {
             resultPayload.put("recipeLearned", recipeLearned);
             if (recipeLearningError != null && !recipeLearningError.isBlank()) {
@@ -237,6 +254,14 @@ public class SplineWorkerController {
 
         ExecutionContext context = findContext(jobId, workerId);
         String error = result.error() == null ? "Spline worker failed without an error message." : result.error();
+
+        if ("AUTHORING_OVERLAY_DISCOVERY_V1".equals(context.taskType())) {
+            try {
+                authoringOverlayRegistryService.markDiscoveryFailed(context.payload(), error);
+            } catch (RuntimeException ex) {
+                log.warn("Could not return authoring overlay discovery targets to pending state: {}", ex.getMessage());
+            }
+        }
         Map<String, Object> failedResult = new LinkedHashMap<>();
         failedResult.put("workerId", workerId);
         failedResult.put("output", result.output());

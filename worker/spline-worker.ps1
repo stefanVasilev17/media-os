@@ -13,6 +13,7 @@ function Get-CodexRuntimeArguments {
 
   $reasoningEffort = "medium"
   $ultraLeanRecipeExecution = $false
+  $authoringOverlayDiscovery = $false
 
   if (
     $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_V1" -or
@@ -20,7 +21,8 @@ function Get-CodexRuntimeArguments {
     $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2" -or
     $ExecutionProfile -eq "TARGETED_OBJECT_V2" -or
     $ExecutionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
-    $ExecutionProfile -eq "SCENE_CATALOG_SECTION_V1"
+    $ExecutionProfile -eq "SCENE_CATALOG_SECTION_V1" -or
+    $ExecutionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1"
   ) {
     $reasoningEffort = "low"
   }
@@ -28,6 +30,11 @@ function Get-CodexRuntimeArguments {
   if ($ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") {
     $reasoningEffort = "minimal"
     $ultraLeanRecipeExecution = $true
+  }
+
+  if ($ExecutionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+    $reasoningEffort = "minimal"
+    $authoringOverlayDiscovery = $true
   }
 
   $configs = @(
@@ -49,6 +56,15 @@ function Get-CodexRuntimeArguments {
       "mcp_servers.spline.enabled_tools=['3d_get_objects','3d_run_code']",
       "mcp_servers.spline.tools.3d_get_objects.output_token_limit=2500",
       "mcp_servers.spline.tools.3d_run_code.output_token_limit=2000"
+    )
+  }
+
+  if ($authoringOverlayDiscovery) {
+    $configs += @(
+      "features.shell_tool=false",
+      "features.skill_mcp_dependency_install=false",
+      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=3500",
+      "mcp_servers.spline.tools.3d_get_scene_mcp.output_token_limit=2500"
     )
   }
 
@@ -324,6 +340,31 @@ function Get-MediaOsSplineCatalog {
   }
 }
 
+function Get-MediaOsAuthoringOverlay {
+  param(
+    [string]$Output
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Output)) {
+    return $null
+  }
+
+  $match = [regex]::Match(
+    $Output,
+    '(?is)MEDIA_OS_AUTHORING_OVERLAY_BEGIN\s*(.*?)\s*MEDIA_OS_AUTHORING_OVERLAY_END'
+  )
+
+  if (-not $match.Success) {
+    return $null
+  }
+
+  try {
+    return ($match.Groups[1].Value | ConvertFrom-Json)
+  } catch {
+    throw "Codex returned invalid authoring overlay JSON."
+  }
+}
+
 function Get-MediaOsCatalogNodeCount {
   param([object]$Node)
 
@@ -463,6 +504,14 @@ exit /b %ERRORLEVEL%
       throw "Ultra-lean recipe execution is missing required Spline tools. Args: $ultraLeanArgs"
     }
 
+    $overlayArgs = Get-CodexRuntimeArguments -ExecutionProfile "AUTHORING_OVERLAY_DISCOVERY_V1"
+    if ($overlayArgs -notmatch "model_reasoning_effort=minimal") {
+      throw "Authoring overlay discovery did not apply minimal reasoning. Args: $overlayArgs"
+    }
+    if ($overlayArgs -notmatch "features.shell_tool=false") {
+      throw "Authoring overlay discovery did not disable shell execution. Args: $overlayArgs"
+    }
+
     if ([string]$result.Output -notmatch "mcp_servers.codex_apps.enabled=false") {
       throw "Launcher self-test did not disable unrelated Codex Apps MCP tools. Output: $($result.Output)"
     }
@@ -479,6 +528,8 @@ exit /b %ERRORLEVEL%
     $catalogMarker = Get-MediaOsSplineCatalog -Output $catalogSample
     $recipeSample = "MEDIA_OS_SPLINE_RECIPE_BEGIN" + [Environment]::NewLine + '{"recipeVersion":1,"referenceObjectName":"Headers","construction":{"root":{"type":"Group"}}}' + [Environment]::NewLine + "MEDIA_OS_SPLINE_RECIPE_END"
     $recipeMarker = Get-MediaOsSplineRecipe -Output $recipeSample
+    $overlaySample = "MEDIA_OS_AUTHORING_OVERLAY_BEGIN" + [Environment]::NewLine + '{"sceneFingerprint":"abc","items":[{"slotKey":"AT_SLOT_TEST","label":{"status":"FOUND","targetPath":"Test/TITLE","currentText":"Test"},"states":[],"eventBindings":[],"actionGraph":[],"coverage":{"label":"EXPOSED","states":"CONFIRMED_EMPTY","events":"CONFIRMED_EMPTY","actions":"CONFIRMED_EMPTY"}}]}' + [Environment]::NewLine + "MEDIA_OS_AUTHORING_OVERLAY_END"
+    $overlayMarker = Get-MediaOsAuthoringOverlay -Output $overlaySample
 
     if (
       $null -eq $recipeMarker -or
@@ -486,6 +537,14 @@ exit /b %ERRORLEVEL%
       $recipeMarker.construction.root.type -ne "Group"
     ) {
       throw "Spline component recipe marker self-test failed."
+    }
+
+    if (
+      $null -eq $overlayMarker -or
+      $overlayMarker.items[0].slotKey -ne "AT_SLOT_TEST" -or
+      $overlayMarker.items[0].label.targetPath -ne "Test/TITLE"
+    ) {
+      throw "Spline authoring overlay marker self-test failed."
     }
 
     if (
@@ -813,6 +872,53 @@ RESULT:
   MEDIA_OS_SPLINE_RESULT: FAILED
 - Never report SUCCEEDED unless the scene change was performed through Spline MCP and verified.
 "@
+  } elseif ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+    $overlayTargets = ($job.payload.overlays | ConvertTo-Json -Compress -Depth 20)
+    $prompt = @"
+AUTHORING_OVERLAY_DISCOVERY_V1
+
+This is a strictly READ-ONLY, token-minimized metadata extraction job against the currently focused Spline 3D editor tab.
+
+SCENE FINGERPRINT:
+$($job.payload.sceneFingerprint)
+
+EXACT TARGETS:
+$overlayTargets
+
+GOAL:
+For each supplied target only, extract authoring metadata that Media OS cannot obtain from the published browser runtime:
+1) the visible Text object/path that acts as the primary displayed label, if directly identifiable;
+2) authored state definitions directly exposed by Spline read tools;
+3) authored event bindings directly exposed by Spline read tools;
+4) authored action/transition information directly exposed by Spline read tools.
+
+TOKEN / CALL BUDGET:
+- Keep reasoning and narration minimal.
+- Load the Spline 3D skill at most once, and only if needed to use the exact read-only tool schema.
+- Prefer one batched exact-target read if the tool supports multiple targets.
+- Otherwise read each supplied target once. Do not inspect unrelated objects.
+- Do not enumerate the full scene.
+- Do not take screenshots.
+- Do not use shell, web, browser automation, cua_repl, or non-Spline fallbacks.
+- Never call mutation tools or 3d_run_code.
+- Do not retry speculative lookups repeatedly. If metadata is not directly exposed, mark it NOT_EXPOSED and move on.
+
+TRUTHFULNESS:
+- Never infer a label target from naming alone. It must be directly visible in the returned target/subtree metadata.
+- Never invent states, event bindings, actions, paths, text, or IDs.
+- An empty array means the read result directly confirmed none.
+- If the API/tool does not expose a field, use coverage value NOT_EXPOSED and keep the corresponding array empty.
+- Preserve every slotKey exactly as provided.
+
+OUTPUT ONLY:
+MEDIA_OS_AUTHORING_OVERLAY_BEGIN
+{"sceneFingerprint":"$($job.payload.sceneFingerprint)","items":[{"slotKey":"exact input slotKey","objectName":"exact input objectName","editorPath":"exact input editorPath","label":{"status":"FOUND|NOT_FOUND|NOT_EXPOSED","targetPath":"exact path or null","currentText":"exact visible text or null"},"states":[],"eventBindings":[],"actionGraph":[],"coverage":{"label":"EXPOSED|NOT_FOUND|NOT_EXPOSED|PARTIAL","states":"EXPOSED|CONFIRMED_EMPTY|NOT_EXPOSED|PARTIAL","events":"EXPOSED|CONFIRMED_EMPTY|NOT_EXPOSED|PARTIAL","actions":"EXPOSED|CONFIRMED_EMPTY|NOT_EXPOSED|PARTIAL"},"notes":"brief factual note or null"}]}
+MEDIA_OS_AUTHORING_OVERLAY_END
+MEDIA_OS_SPLINE_RESULT: SUCCEEDED - authoring overlay batch read
+
+If none of the supplied targets can be read safely:
+MEDIA_OS_SPLINE_RESULT: FAILED - authoring overlay targets unreadable
+"@
   } elseif ($executionProfile -eq "SCENE_CATALOG_ROOTS_V2") {
     $prompt = @"
 You are the Architectural Thinking Media OS Spline Catalog Indexer.
@@ -956,6 +1062,16 @@ SAFETY:
     } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
       $metrics.recipeCache = "MISS_LEARN"
       $metrics.referenceReadSkipped = $false
+    } elseif ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+      $metrics.reasoningEffort = "minimal"
+      $metrics.readOnly = $true
+      $metrics.targetTokenBudget = 5000
+      $metrics.targetMcpCalls = 6
+      $metrics.batchSize = @($job.payload.overlays).Count
+      $metrics.efficiencyBudgetExceeded = (
+        [int]$metrics.splineMcpCalls -gt 6 -or
+        ($null -ne $metrics.tokenCount -and [long]$metrics.tokenCount -gt 5000)
+      )
     }
 
     Write-Host $output
@@ -967,6 +1083,7 @@ SAFETY:
     $resultLine = Get-MediaOsSplineResult -Output $output
     $catalog = $null
     $recipe = $null
+    $authoringOverlay = $null
 
     if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
       try {
@@ -981,6 +1098,20 @@ SAFETY:
       } else {
         $recipeJsonForMetrics = ($recipe | ConvertTo-Json -Compress -Depth 30)
         $metrics.recipeChars = $recipeJsonForMetrics.Length
+      }
+    }
+
+    if ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+      $authoringOverlay = Get-MediaOsAuthoringOverlay -Output $output
+      if ($null -eq $authoringOverlay) {
+        throw "Codex finished authoring overlay discovery without MEDIA_OS_AUTHORING_OVERLAY markers."
+      }
+      if (
+        $null -eq $authoringOverlay.PSObject.Properties["sceneFingerprint"] -or
+        $null -eq $authoringOverlay.PSObject.Properties["items"] -or
+        @($authoringOverlay.items).Count -le 0
+      ) {
+        throw "Codex returned an invalid authoring overlay discovery payload."
       }
     }
 
@@ -1030,6 +1161,7 @@ SAFETY:
       metrics = $metrics
       catalog = $catalog
       recipe = $recipe
+      authoringOverlay = $authoringOverlay
     }
 
     Write-Host "Job completed and reported to Media OS."
