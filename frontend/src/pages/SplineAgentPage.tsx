@@ -462,6 +462,17 @@ export function SplineAgentPage() {
                     {typeof latestExecution.result.metrics.recipeChars === 'number'
                       ? ` · ${latestExecution.result.metrics.recipeChars} chars`
                       : ''}
+                    {latestExecution.result.metrics.reasoningEffort
+                      ? ` · ${latestExecution.result.metrics.reasoningEffort} reasoning`
+                      : ''}
+                    {typeof latestExecution.result.metrics.mcpToolSurface === 'number'
+                      ? ` · ${latestExecution.result.metrics.mcpToolSurface} tools`
+                      : ''}
+                    {typeof latestExecution.result.metrics.efficiencyBudgetExceeded === 'boolean'
+                      ? latestExecution.result.metrics.efficiencyBudgetExceeded
+                        ? ' · budget OVER'
+                        : ' · budget OK'
+                      : ''}
                   </span>
                 )}
               </div>
