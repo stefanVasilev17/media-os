@@ -196,7 +196,7 @@ public class SplineJobController {
 
             if (cachedRecipe.isPresent()) {
                 Map<String, Object> recipe = cachedRecipe.orElseThrow();
-                payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1");
+                payload.put("executionProfile", "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2");
                 payload.put("componentRecipe", recipe.get("recipe"));
                 payload.put("componentRecipeVersion", recipe.get("recipeVersion"));
                 payload.put("recipeCacheHit", true);

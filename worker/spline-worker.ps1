@@ -12,15 +12,22 @@ function Get-CodexRuntimeArguments {
   )
 
   $reasoningEffort = "medium"
+  $ultraLeanRecipeExecution = $false
 
   if (
     $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_V1" -or
     $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1" -or
+    $ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2" -or
     $ExecutionProfile -eq "TARGETED_OBJECT_V2" -or
     $ExecutionProfile -eq "SCENE_CATALOG_ROOTS_V2" -or
     $ExecutionProfile -eq "SCENE_CATALOG_SECTION_V1"
   ) {
     $reasoningEffort = "low"
+  }
+
+  if ($ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") {
+    $reasoningEffort = "minimal"
+    $ultraLeanRecipeExecution = $true
   }
 
   $configs = @(
@@ -34,6 +41,16 @@ function Get-CodexRuntimeArguments {
     "model_reasoning_summary=none",
     "model_verbosity=low"
   )
+
+  if ($ultraLeanRecipeExecution) {
+    $configs += @(
+      "features.shell_tool=false",
+      "features.skill_mcp_dependency_install=false",
+      "mcp_servers.spline.enabled_tools=['3d_get_objects','3d_run_code']",
+      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=2500",
+      "mcp_servers.spline.tools.3d_run_code.output_token_limit=2000"
+    )
+  }
 
   $configArgs = ($configs | ForEach-Object { "--config $_" }) -join " "
   return "$configArgs --approve-for-me exec --skip-git-repo-check --ephemeral -"
@@ -432,6 +449,20 @@ exit /b %ERRORLEVEL%
       throw "Launcher self-test did not apply low reasoning for targeted execution. Output: $($result.Output)"
     }
 
+    $ultraLeanArgs = Get-CodexRuntimeArguments -ExecutionProfile "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2"
+    if ($ultraLeanArgs -notmatch "model_reasoning_effort=minimal") {
+      throw "Ultra-lean recipe execution did not apply minimal reasoning. Args: $ultraLeanArgs"
+    }
+    if ($ultraLeanArgs -notmatch "features.shell_tool=false") {
+      throw "Ultra-lean recipe execution did not disable the shell tool. Args: $ultraLeanArgs"
+    }
+    if ($ultraLeanArgs -notmatch "mcp_servers.spline.enabled_tools=") {
+      throw "Ultra-lean recipe execution did not restrict the Spline MCP tool surface. Args: $ultraLeanArgs"
+    }
+    if ($ultraLeanArgs -notmatch "3d_get_objects" -or $ultraLeanArgs -notmatch "3d_run_code") {
+      throw "Ultra-lean recipe execution is missing required Spline tools. Args: $ultraLeanArgs"
+    }
+
     if ([string]$result.Output -notmatch "mcp_servers.codex_apps.enabled=false") {
       throw "Launcher self-test did not disable unrelated Codex Apps MCP tools. Output: $($result.Output)"
     }
@@ -659,48 +690,40 @@ TOKEN EFFICIENCY CONTRACT:
 "@
   }
 
-  if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1") {
-    $titleDirective = "Preserve the recipe title text."
+  if (
+    $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2" -or
+    $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1"
+  ) {
+    $titleDirective = "preserve recipe title"
     if (
       $null -ne $job.payload.titleText -and
       -not [string]::IsNullOrWhiteSpace([string]$job.payload.titleText)
     ) {
-      $titleDirective = "Set the new title text to: $($job.payload.titleText)"
+      $titleDirective = [string]$job.payload.titleText
     }
 
-    $placementDirective = "Place it in the nearest safe empty area."
-    if ([string]$job.payload.placementPolicy -eq "BELOW_MAIN_ARCHITECTURE_MAP") {
-      $placementDirective = "Place it in a safe empty area below the main architecture map."
-    } elseif ([string]$job.payload.placementPolicy -eq "EMPTY_AREA") {
-      $placementDirective = "Place it in a safe empty area without moving existing objects."
+    $placementDirective = [string]$job.payload.placementPolicy
+    if ([string]::IsNullOrWhiteSpace($placementDirective)) {
+      $placementDirective = "NEAREST_SAFE_EMPTY_AREA"
     }
 
     $componentRecipe = ($job.payload.componentRecipe | ConvertTo-Json -Compress -Depth 30)
 
     $prompt = @"
-REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1
+RECIPE_EXEC
+ROOT=$($job.payload.targetRootName)
+TITLE=$titleDirective
+PLACE=$placementDirective
+RECIPE=$componentRecipe
 
-Use only Spline MCP. Keep reasoning and narration minimal.
+Only Spline MCP is available. Use <=3 MCP calls total:
+1) 3d_get_objects: exact ROOT existence check only.
+2) 3d_run_code: create ROOT + descendants from RECIPE in one mutation. Never change pre-existing objects.
+3) 3d_get_objects: exact ROOT verification only.
 
-NEW ROOT: $($job.payload.targetRootName)
-TITLE: $titleDirective
-PLACEMENT: $placementDirective
-CACHED RECIPE:
-$componentRecipe
-
-EXECUTION CONTRACT:
-1. Do NOT read, inspect, search for, or compare against the reference object. The cached recipe is the source of truth.
-2. Never enumerate the full scene and never call 3d_get_scene_mcp.
-3. Check only whether the exact NEW ROOT name already exists. If it exists, end FAILED before mutation.
-4. Create only NEW ROOT and children beneath it. Never mutate, move, rename, recolor, resize, reparent, or delete any pre-existing object.
-5. Reproduce the cached recipe exactly, applying TITLE only to the new component and using PLACEMENT for its root position.
-6. Prefer one safe 3d_run_code mutation when supported; otherwise use the minimum Spline mutation calls.
-7. Verify NEW ROOT with one exact targeted readback. Do not re-read the reference. No screenshot, camera change, or global scene change.
-8. Do not use web, browser, CUA, node_repl, codex_apps, or any non-Spline fallback.
-9. End with exactly one concise line:
-MEDIA_OS_SPLINE_RESULT: SUCCEEDED
-or
-MEDIA_OS_SPLINE_RESULT: FAILED
+Do not read the reference, scene, camera, or unrelated objects. No skill load, screenshot, shell, web, or narration.
+If ROOT already exists or create/verify is unsafe: MEDIA_OS_SPLINE_RESULT: FAILED
+If created and verified: MEDIA_OS_SPLINE_RESULT: SUCCEEDED
 "@
   } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
     $titleDirective = "Preserve the reference title text."
@@ -913,12 +936,23 @@ SAFETY:
     $executionTimer.Stop()
     $output = [string]$codexResult.Output
     $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
-    if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1") {
+    if (
+      $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2" -or
+      $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1"
+    ) {
       $metrics.recipeCache = "HIT"
       $metrics.referenceReadSkipped = $true
+      $metrics.reasoningEffort = if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") { "minimal" } else { "low" }
+      $metrics.mcpToolSurface = if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") { 2 } else { $null }
+      $metrics.targetMcpCalls = 3
+      $metrics.targetTokenBudget = 6000
       if ($null -ne $componentRecipe) {
         $metrics.recipeChars = $componentRecipe.Length
       }
+      $metrics.efficiencyBudgetExceeded = (
+        [int]$metrics.splineMcpCalls -gt 3 -or
+        ($null -ne $metrics.tokenCount -and [long]$metrics.tokenCount -gt 6000)
+      )
     } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
       $metrics.recipeCache = "MISS_LEARN"
       $metrics.referenceReadSkipped = $false
