@@ -28,4 +28,11 @@ public class SplineAuthoringOverlayRegistryController {
     public Map<String, Object> pending(@RequestParam(value = "limit", defaultValue = "20") int limit) {
         return service.pending(limit);
     }
+
+    @PostMapping("/discover")
+    public Map<String, Object> discover(
+            @RequestParam(value = "batchSize", defaultValue = "4") int batchSize
+    ) {
+        return service.queueDiscoveryBatch(batchSize);
+    }
 }
