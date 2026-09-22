@@ -160,11 +160,16 @@ public class SplineWorkerController {
 
         String executionProfile = String.valueOf(context.payload().getOrDefault("executionProfile", ""));
         boolean recipeLearned = false;
+        String recipeLearningError = null;
         if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)
                 && result.recipe() != null
                 && !result.recipe().isEmpty()) {
-            saveComponentRecipe(result.recipe(), context.payload(), workerId);
-            recipeLearned = true;
+            try {
+                saveComponentRecipe(result.recipe(), context.payload(), workerId);
+                recipeLearned = true;
+            } catch (RuntimeException ex) {
+                recipeLearningError = ex.getMessage();
+            }
         }
 
         Map<String, Object> resultPayload = new LinkedHashMap<>();
@@ -173,6 +178,9 @@ public class SplineWorkerController {
         resultPayload.put("metrics", result.metrics() == null ? Map.of() : result.metrics());
         if ("REFERENCE_COMPONENT_CREATE_V1".equals(executionProfile)) {
             resultPayload.put("recipeLearned", recipeLearned);
+            if (recipeLearningError != null && !recipeLearningError.isBlank()) {
+                resultPayload.put("recipeLearningError", recipeLearningError);
+            }
         }
         String resultJson = writeJson(resultPayload);
 
@@ -311,6 +319,11 @@ public class SplineWorkerController {
             recipeVersion = number.intValue();
         }
 
+        String recipeJson = writeJson(recipe);
+        if (recipeJson.length() > 10_000) {
+            throw new WorkerStateException("Component recipe exceeds the 10,000 character cache budget.");
+        }
+
         jdbc.sql("""
                 insert into spline_component_recipe(
                     id, project_id, reference_object_name, recipe_version,
@@ -332,7 +345,7 @@ public class SplineWorkerController {
                 .param("projectId", PROJECT_ID)
                 .param("referenceObjectName", referenceObjectName.trim())
                 .param("recipeVersion", recipeVersion)
-                .param("recipe", writeJson(recipe))
+                .param("recipe", recipeJson)
                 .param("workerId", workerId)
                 .update();
     }
