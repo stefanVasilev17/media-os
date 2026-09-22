@@ -7,6 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      selfDestroying: true,
       manifest: {
         name: 'Media OS',
         short_name: 'Media OS',
