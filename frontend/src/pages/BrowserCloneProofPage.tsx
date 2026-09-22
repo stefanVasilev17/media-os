@@ -237,7 +237,7 @@ export function BrowserCloneProofPage() {
     if (!autoRunRequested || autoRunDoneRef.current || !loaded || running) return;
     autoRunDoneRef.current = true;
     const timer = window.setTimeout(() => {
-      runCloneProof();
+      void runCloneProof();
     }, 100);
     return () => window.clearTimeout(timer);
   }, [autoRunRequested, loaded, running]);
@@ -374,7 +374,7 @@ export function BrowserCloneProofPage() {
     setError(null);
   }
 
-  function runCloneProof() {
+  async function runCloneProof() {
     const app = appRef.current;
     if (!app) {
       setError('Load the browser scene first.');
@@ -447,8 +447,37 @@ export function BrowserCloneProofPage() {
       setStateProbe(stateResult);
       const firstStateCandidate = stateResult.candidates[0];
       if (firstStateCandidate) {
+        const firstState = firstStateCandidate.discoveredStates[0];
         setStateTargetUuid(firstStateCandidate.uuid);
-        setStateTargetValue(String(firstStateCandidate.discoveredStates[0] ?? ''));
+        setStateTargetValue(String(firstState ?? ''));
+
+        const stateTarget = created.find(object => object.uuid === firstStateCandidate.uuid);
+        if (stateTarget && firstState !== undefined) {
+          const cloneBeforeStateControl = snapshotObjects(created);
+          const productionBeforeStateControl = snapshotObjects(productionObjectsRef.current);
+          const originalState = stateTarget.state;
+          const stateStartedAt = performance.now();
+
+          app.play();
+          stateTarget.state = firstState;
+          await new Promise(resolve => window.setTimeout(resolve, 120));
+          app.stop();
+
+          setTransitionProbe({
+            targetName: stateTarget.name || '(unnamed object)',
+            targetUuid: stateTarget.uuid,
+            targetState: firstState,
+            changedCloneObjects: countChangedObjects(created, cloneBeforeStateControl),
+            changedProductionObjects: countChangedObjects(productionObjectsRef.current, productionBeforeStateControl),
+            durationMs: performance.now() - stateStartedAt
+          });
+
+          try {
+            stateTarget.state = originalState;
+          } catch {
+            // Runtime-only clone; reload remains the hard reset boundary.
+          }
+        }
       }
 
       setCloneResult({
@@ -644,7 +673,7 @@ export function BrowserCloneProofPage() {
               <RefreshCw size={16} className={loading ? 'spin' : ''} />
               {loading ? 'Loading…' : 'Load scene'}
             </button>
-            <button disabled={!loaded || running} onClick={runCloneProof}>
+            <button disabled={!loaded || running} onClick={() => void runCloneProof()}>
               <Copy size={16} />
               {running ? 'Cloning…' : 'Run clone proof'}
             </button>
