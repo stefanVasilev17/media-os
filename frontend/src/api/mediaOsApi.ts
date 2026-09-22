@@ -186,6 +186,56 @@ export async function loadSplineRuntimeConfig(): Promise<SplineRuntimeConfig> {
 }
 
 
+export type SplineSceneBlueprintCapture = {
+  schemaVersion: 1;
+  sceneUrl: string;
+  sceneFingerprint: string;
+  objectCount: number;
+  variableCount: number;
+  eventDefinitionCount: number;
+  capabilitySummary: Record<string, unknown>;
+  blueprint: Record<string, unknown>;
+};
+
+export type SplineSceneBlueprintSummary = {
+  status: 'EMPTY' | 'READY';
+  id?: string;
+  schemaVersion?: number;
+  sceneUrl?: string;
+  sceneFingerprint?: string;
+  objectCount?: number;
+  variableCount?: number;
+  eventDefinitionCount?: number;
+  capabilitySummary?: Record<string, unknown>;
+  capturedAt?: string;
+};
+
+export async function captureSplineSceneBlueprint(
+  capture: SplineSceneBlueprintCapture
+): Promise<{ id: string; status: string; sceneFingerprint: string; objectCount: number }> {
+  const response = await fetch('/api/v1/spline/blueprint', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(capture)
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'Could not save Spline scene blueprint');
+  }
+
+  return response.json();
+}
+
+export async function loadLatestSplineSceneBlueprintSummary(): Promise<SplineSceneBlueprintSummary> {
+  const response = await fetch('/api/v1/spline/blueprint/latest/summary');
+  if (!response.ok) {
+    throw new Error('Spline scene blueprint summary is not available');
+  }
+  return response.json();
+}
+
+
 export type SplineCatalogNode = {
   name: string;
   type: string;

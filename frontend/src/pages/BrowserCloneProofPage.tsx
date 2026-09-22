@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Application, type SPEObject } from '@splinetool/runtime';
 import { ArrowLeft, Check, Copy, RefreshCw, RotateCcw, TestTube2, X } from 'lucide-react';
-import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
+import {
+  captureSplineSceneBlueprint,
+  loadSplineRuntimeConfig
+} from '../api/mediaOsApi';
 
 const SCENE_URL_STORAGE_KEY = 'mediaos.browserProof.sceneUrl';
 const SOURCE_NAME_STORAGE_KEY = 'mediaos.browserProof.sourceName';
@@ -13,6 +16,15 @@ type RuntimeObject = SPEObject & {
   text?: string;
   visible?: boolean;
   color?: string;
+  type?: string;
+  id?: string;
+  intensity?: number;
+  parent?: RuntimeObject | null;
+  children?: RuntimeObject[];
+  material?: {
+    alpha?: number;
+    layers?: Array<Record<string, unknown>>;
+  };
 };
 
 type CatalogNode = {
@@ -85,6 +97,128 @@ function vectorSnapshot(value: unknown) {
   const vector = value as { x?: number; y?: number; z?: number } | null | undefined;
   if (!vector) return null;
   return [rounded(vector.x), rounded(vector.y), rounded(vector.z)];
+}
+
+function serializableMaterialValue(value: unknown): unknown {
+  if (value == null || typeof value === 'string' || typeof value === 'boolean') return value;
+  if (typeof value === 'number') return rounded(value);
+
+  if (Array.isArray(value)) {
+    if (value.length > 64) return undefined;
+    const items = value.map(item => serializableMaterialValue(item));
+    return items.some(item => item === undefined) ? undefined : items;
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const simpleKeys = ['r', 'g', 'b', 'x', 'y', 'z'];
+    const keys = Object.keys(record);
+    if (keys.length > 0 && keys.every(key => simpleKeys.includes(key))) {
+      const result: Record<string, unknown> = {};
+      for (const key of keys) {
+        const serialized = serializableMaterialValue(record[key]);
+        if (serialized !== undefined) result[key] = serialized;
+      }
+      return result;
+    }
+  }
+
+  return undefined;
+}
+
+function materialSnapshot(object: RuntimeObject) {
+  const material = object.material;
+  if (!material) return null;
+
+  const layers = Array.isArray(material.layers)
+    ? material.layers.map(layer => {
+        const result: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(layer ?? {})) {
+          if (typeof value === 'function' || key === 'texture') continue;
+          const serialized = serializableMaterialValue(value);
+          if (serialized !== undefined) result[key] = serialized;
+        }
+        return result;
+      })
+    : [];
+
+  return {
+    alpha: rounded(material.alpha),
+    layers
+  };
+}
+
+function runtimeObjectSnapshot(object: RuntimeObject, eventDump: string) {
+  return {
+    uuid: object.uuid,
+    id: object.id ?? object.uuid,
+    name: object.name,
+    type: object.type ?? null,
+    parentUuid: object.parent?.uuid ?? null,
+    childUuids: Array.isArray(object.children) ? object.children.map(child => child.uuid) : [],
+    position: vectorSnapshot(object.position),
+    rotation: vectorSnapshot(object.rotation),
+    scale: vectorSnapshot(object.scale),
+    visible: typeof object.visible === 'boolean' ? object.visible : null,
+    currentState: object.state ?? null,
+    color: typeof object.color === 'string' ? object.color : null,
+    intensity: rounded(object.intensity),
+    runtimeText: typeof object.text === 'string' ? object.text : null,
+    material: materialSnapshot(object),
+    authoredEventRefCount: countOccurrences(eventDump, object.uuid),
+    capabilities: {
+      transform: Boolean(object.position && object.rotation && object.scale),
+      visibility: typeof object.visible === 'boolean',
+      stateCurrentExposed: object.state !== undefined,
+      color: typeof object.color === 'string',
+      runtimeText: typeof object.text === 'string',
+      material: Boolean(object.material)
+    }
+  };
+}
+
+function buildCapabilitySummary(objects: RuntimeObject[], eventDump: string) {
+  const names = new Map<string, number>();
+  let transform = 0;
+  let visibility = 0;
+  let stateCurrentExposed = 0;
+  let color = 0;
+  let runtimeText = 0;
+  let material = 0;
+  let authoredEventReferencedObjects = 0;
+
+  for (const object of objects) {
+    names.set(object.name, (names.get(object.name) ?? 0) + 1);
+    if (object.position && object.rotation && object.scale) transform += 1;
+    if (typeof object.visible === 'boolean') visibility += 1;
+    if (object.state !== undefined) stateCurrentExposed += 1;
+    if (typeof object.color === 'string') color += 1;
+    if (typeof object.text === 'string') runtimeText += 1;
+    if (object.material) material += 1;
+    if (countOccurrences(eventDump, object.uuid) > 0) authoredEventReferencedObjects += 1;
+  }
+
+  return {
+    transform,
+    visibility,
+    stateCurrentExposed,
+    color,
+    runtimeText,
+    material,
+    authoredEventReferencedObjects,
+    uniqueNames: names.size,
+    duplicateNameCount: [...names.values()].filter(count => count > 1).length,
+    runtimeDeepCloneAvailable: true,
+    runtimeVariablesAvailable: true
+  };
+}
+
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await window.crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)]
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function objectFingerprint(object: RuntimeObject) {
@@ -205,6 +339,10 @@ export function BrowserCloneProofPage() {
   const [stateProbe, setStateProbe] = useState<StateProbeResult | null>(null);
   const [transitionProbe, setTransitionProbe] = useState<TransitionProbeResult | null>(null);
   const [sceneVariables, setSceneVariables] = useState<Record<string, string | number | boolean>>({});
+  const [blueprintStatus, setBlueprintStatus] = useState<'IDLE' | 'SAVING' | 'SAVED' | 'ERROR'>('IDLE');
+  const [blueprintFingerprint, setBlueprintFingerprint] = useState<string | null>(null);
+  const [blueprintCapabilitySummary, setBlueprintCapabilitySummary] = useState<Record<string, unknown> | null>(null);
+  const [blueprintMessage, setBlueprintMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -326,6 +464,10 @@ export function BrowserCloneProofPage() {
     setStateProbe(null);
     setTransitionProbe(null);
     setTextCandidates([]);
+    setBlueprintStatus('IDLE');
+    setBlueprintFingerprint(null);
+    setBlueprintCapabilitySummary(null);
+    setBlueprintMessage(null);
     createdObjectsRef.current = [];
     productionObjectsRef.current = [];
     cloneRef.current = null;
@@ -353,6 +495,13 @@ export function BrowserCloneProofPage() {
       setLoadDurationMs(performance.now() - startedAt);
       setLoaded(true);
 
+      void saveRuntimeBlueprint(
+        url,
+        objects,
+        events,
+        variables ?? {}
+      );
+
       window.localStorage.setItem(SCENE_URL_STORAGE_KEY, url);
       window.localStorage.setItem(SOURCE_NAME_STORAGE_KEY, sourceName.trim());
 
@@ -363,6 +512,78 @@ export function BrowserCloneProofPage() {
       setError(cause instanceof Error ? cause.message : 'Could not load Spline scene.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveRuntimeBlueprint(
+    url: string,
+    objects: RuntimeObject[],
+    events: unknown,
+    variables: Record<string, string | number | boolean>
+  ) {
+    setBlueprintStatus('SAVING');
+    setBlueprintMessage(null);
+
+    try {
+      const eventDump = JSON.stringify(events ?? {});
+      const sortedObjects = [...objects].sort((left, right) => left.uuid.localeCompare(right.uuid));
+      const objectSnapshots = sortedObjects.map(object => runtimeObjectSnapshot(object, eventDump));
+      const capabilitySummary = buildCapabilitySummary(sortedObjects, eventDump);
+      const eventDefinitions = Array.isArray(events) ? events.length : Object.keys((events ?? {}) as object).length;
+
+      const blueprint = {
+        schemaVersion: 1,
+        sceneUrl: url,
+        capturedAt: new Date().toISOString(),
+        objects: objectSnapshots,
+        variables,
+        eventDefinitionCount: eventDefinitions,
+        runtimeContract: {
+          source: '@splinetool/runtime',
+          browserOnly: true,
+          codexRequired: false,
+          cloudPcRequired: false
+        },
+        knowledgeCoverage: {
+          objectIdentity: 'RUNTIME_EXPOSED',
+          transforms: 'RUNTIME_EXPOSED',
+          visibility: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          materials: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          currentState: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          variables: 'RUNTIME_EXPOSED',
+          authoredEventReferences: 'DERIVED_FROM_RUNTIME_EVENT_DATA',
+          fullStateDefinitions: 'NOT_EXPOSED_BY_RUNTIME',
+          authoredActionGraph: 'NOT_EXPOSED_BY_RUNTIME'
+        }
+      };
+
+      const fingerprintPayload = JSON.stringify({
+        schemaVersion: 1,
+        sceneUrl: url,
+        objects: objectSnapshots,
+        variables,
+        eventDefinitionCount: eventDefinitions
+      });
+      const sceneFingerprint = await sha256Hex(fingerprintPayload);
+
+      await captureSplineSceneBlueprint({
+        schemaVersion: 1,
+        sceneUrl: url,
+        sceneFingerprint,
+        objectCount: objectSnapshots.length,
+        variableCount: Object.keys(variables).length,
+        eventDefinitionCount: eventDefinitions,
+        capabilitySummary,
+        blueprint
+      });
+
+      setBlueprintFingerprint(sceneFingerprint);
+      setBlueprintCapabilitySummary(capabilitySummary);
+      setBlueprintStatus('SAVED');
+      setBlueprintMessage(`Media OS stored ${objectSnapshots.length} runtime objects as scene blueprint ${sceneFingerprint.slice(0, 10)}…`);
+    } catch (cause) {
+      setBlueprintStatus('ERROR');
+      setBlueprintMessage(cause instanceof Error ? cause.message : 'Could not store Spline runtime blueprint.');
     }
   }
 
@@ -705,6 +926,21 @@ export function BrowserCloneProofPage() {
             <div><span>Objects</span><strong>{objectCount ?? '—'}</strong></div>
             <div><span>Load</span><strong>{loadDurationMs == null ? '—' : `${loadDurationMs.toFixed(0)} ms`}</strong></div>
           </div>
+
+          {blueprintStatus !== 'IDLE' && (
+            <div className={`browser-proof-note ${blueprintStatus === 'ERROR' ? 'browser-proof-blueprint-error' : ''}`}>
+              <strong>Scene Blueprint:</strong> {blueprintStatus}
+              {blueprintFingerprint ? ` · ${blueprintFingerprint.slice(0, 12)}…` : ''}
+              {blueprintMessage ? <> · {blueprintMessage}</> : null}
+              {blueprintCapabilitySummary ? (
+                <>
+                  {' '}· transforms <strong>{String(blueprintCapabilitySummary.transform ?? 0)}</strong>
+                  {' '}· materials <strong>{String(blueprintCapabilitySummary.material ?? 0)}</strong>
+                  {' '}· event-bound <strong>{String(blueprintCapabilitySummary.authoredEventReferencedObjects ?? 0)}</strong>
+                </>
+              ) : null}
+            </div>
+          )}
 
           {cloneResult && (
             <div className="browser-proof-result success">
