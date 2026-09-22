@@ -140,6 +140,11 @@ export type LatestSplineJob = {
       recipeCache?: 'HIT' | 'MISS_LEARN' | string;
       referenceReadSkipped?: boolean;
       recipeChars?: number;
+      reasoningEffort?: string;
+      mcpToolSurface?: number | null;
+      targetMcpCalls?: number;
+      targetTokenBudget?: number;
+      efficiencyBudgetExceeded?: boolean;
     };
   };
 };
