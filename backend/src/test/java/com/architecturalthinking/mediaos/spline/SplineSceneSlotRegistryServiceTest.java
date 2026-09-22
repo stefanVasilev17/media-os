@@ -12,7 +12,7 @@ class SplineSceneSlotRegistryServiceTest {
 
     @Test
     void derivesOnlyEvidenceBackedSlotCandidates() {
-        var service = new SplineSceneSlotRegistryService(null, new ObjectMapper());
+        var service = new SplineSceneSlotRegistryService(null, new ObjectMapper(), null);
 
         Map<String, Object> catalog = Map.of(
                 "objects", List.of(
