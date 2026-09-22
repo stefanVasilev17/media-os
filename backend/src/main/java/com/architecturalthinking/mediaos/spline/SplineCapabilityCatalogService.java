@@ -262,13 +262,15 @@ public class SplineCapabilityCatalogService {
         List<Map<String, Object>> largestRoots = objects.stream()
                 .filter(item -> Boolean.TRUE.equals(item.get("root")))
                 .limit(30)
-                .map(item -> Map.of(
-                        "uuid", item.get("uuid"),
-                        "name", item.get("name"),
-                        "type", item.get("type"),
-                        "subtreeSize", item.get("subtreeSize"),
-                        "authoredEventRefCount", item.get("authoredEventRefCount")
-                ))
+                .map(item -> {
+                    Map<String, Object> root = new LinkedHashMap<>();
+                    root.put("uuid", item.get("uuid"));
+                    root.put("name", item.get("name"));
+                    root.put("type", item.get("type"));
+                    root.put("subtreeSize", item.get("subtreeSize"));
+                    root.put("authoredEventRefCount", item.get("authoredEventRefCount"));
+                    return root;
+                })
                 .toList();
 
         Map<String, Object> summary = new LinkedHashMap<>();
