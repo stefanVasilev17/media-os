@@ -20,7 +20,6 @@ class SplineCapabilityCatalogServiceTest {
                                 "uuid", "root",
                                 "name", "Headers",
                                 "type", "Group",
-                                "parentUuid", nullValue(),
                                 "authoredEventRefCount", 2,
                                 "capabilities", Map.of(
                                         "transform", true,
@@ -72,9 +71,5 @@ class SplineCapabilityCatalogServiceTest {
         @SuppressWarnings("unchecked")
         List<String> overlay = (List<String>) root.get("authoringOverlayRequiredFor");
         assertThat(overlay).contains("SET_DISPLAY_LABEL", "ENUMERATE_AUTHORED_STATES", "REPLAY_AUTHORED_ACTION_GRAPH");
-    }
-
-    private static Object nullValue() {
-        return null;
     }
 }
