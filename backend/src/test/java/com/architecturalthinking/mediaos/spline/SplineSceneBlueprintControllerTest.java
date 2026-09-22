@@ -15,7 +15,8 @@ class SplineSceneBlueprintControllerTest {
         var controller = new SplineSceneBlueprintController(
                 null,
                 new ObjectMapper(),
-                "https://prod.spline.design/expected/scene.splinecode"
+                "https://prod.spline.design/expected/scene.splinecode",
+                null
         );
 
         var request = new SplineSceneBlueprintController.CaptureRequest(
@@ -39,7 +40,8 @@ class SplineSceneBlueprintControllerTest {
         var controller = new SplineSceneBlueprintController(
                 null,
                 new ObjectMapper(),
-                ""
+                "",
+                null
         );
 
         var request = new SplineSceneBlueprintController.CaptureRequest(
