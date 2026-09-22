@@ -20,10 +20,16 @@ public class SplineCapabilityCatalogService {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final SplineSceneSlotRegistryService slotRegistryService;
 
-    public SplineCapabilityCatalogService(JdbcClient jdbc, ObjectMapper objectMapper) {
+    public SplineCapabilityCatalogService(
+            JdbcClient jdbc,
+            ObjectMapper objectMapper,
+            SplineSceneSlotRegistryService slotRegistryService
+    ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.slotRegistryService = slotRegistryService;
     }
 
     @Transactional
@@ -92,6 +98,14 @@ public class SplineCapabilityCatalogService {
                 .single();
 
         logSummary(sceneFingerprint, summary);
+
+        if (slotRegistryService != null) {
+            try {
+                slotRegistryService.rebuild(id, sceneFingerprint, catalog);
+            } catch (RuntimeException ex) {
+                log.warn("Spline scene slot registry rebuild failed without failing master knowledge: {}", ex.getMessage());
+            }
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", "READY");
