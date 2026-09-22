@@ -26,15 +26,18 @@ public class SplineSceneBlueprintController {
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final String configuredSceneUrl;
+    private final SplineCapabilityCatalogService capabilityCatalogService;
 
     public SplineSceneBlueprintController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
-            @Value("${MEDIA_OS_SPLINE_RUNTIME_URL:}") String configuredSceneUrl
+            @Value("${MEDIA_OS_SPLINE_RUNTIME_URL:}") String configuredSceneUrl,
+            SplineCapabilityCatalogService capabilityCatalogService
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.configuredSceneUrl = configuredSceneUrl == null ? "" : configuredSceneUrl.trim();
+        this.capabilityCatalogService = capabilityCatalogService;
     }
 
     public record CaptureRequest(
@@ -93,11 +96,18 @@ public class SplineSceneBlueprintController {
                 .query(UUID.class)
                 .single();
 
+        Map<String, Object> capabilityCatalog = capabilityCatalogService.rebuild(
+                id,
+                request.sceneFingerprint().trim().toLowerCase(),
+                request.blueprint()
+        );
+
         return Map.of(
                 "id", id,
                 "status", "READY",
                 "sceneFingerprint", request.sceneFingerprint().trim().toLowerCase(),
-                "objectCount", request.objectCount()
+                "objectCount", request.objectCount(),
+                "capabilityCatalogStatus", capabilityCatalog.getOrDefault("status", "UNKNOWN")
         );
     }
 
