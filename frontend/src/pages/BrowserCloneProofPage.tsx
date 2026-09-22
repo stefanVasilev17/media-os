@@ -543,6 +543,17 @@ export function BrowserCloneProofPage() {
           browserOnly: true,
           codexRequired: false,
           cloudPcRequired: false
+        },
+        knowledgeCoverage: {
+          objectIdentity: 'RUNTIME_EXPOSED',
+          transforms: 'RUNTIME_EXPOSED',
+          visibility: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          materials: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          currentState: 'RUNTIME_EXPOSED_WHEN_SUPPORTED',
+          variables: 'RUNTIME_EXPOSED',
+          authoredEventReferences: 'DERIVED_FROM_RUNTIME_EVENT_DATA',
+          fullStateDefinitions: 'NOT_EXPOSED_BY_RUNTIME',
+          authoredActionGraph: 'NOT_EXPOSED_BY_RUNTIME'
         }
       };
 
