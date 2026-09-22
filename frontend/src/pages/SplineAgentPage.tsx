@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Send,
   Stethoscope,
+  TestTube2,
   X
 } from 'lucide-react';
 import {
@@ -401,6 +402,10 @@ export function SplineAgentPage() {
         </div>
 
         <div className="spline-agent-header-actions">
+          <button onClick={() => { window.location.hash = '#/browser-clone-proof'; }}>
+            <TestTube2 size={16} />
+            Browser proof
+          </button>
           <button onClick={() => { window.location.hash = '#/diagnostics'; }}>
             <Stethoscope size={16} />
             Diagnostics

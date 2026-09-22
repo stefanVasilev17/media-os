@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DiagnosticsPage } from './pages/DiagnosticsPage';
 import { LiveMapPage } from './pages/LiveMapPage';
+import { BrowserCloneProofPage } from './pages/BrowserCloneProofPage';
 import { SplineAgentPage } from './pages/SplineAgentPage';
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  if (hash.startsWith('#/browser-clone-proof')) return <BrowserCloneProofPage />;
   if (hash.startsWith('#/spline-agent')) return <SplineAgentPage />;
   if (hash.startsWith('#/diagnostics')) return <DiagnosticsPage />;
   return <LiveMapPage />;
