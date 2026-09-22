@@ -137,16 +137,32 @@ function VerdictRow({
   );
 }
 
+function browserProofParams() {
+  const query = window.location.hash.split('?')[1] ?? '';
+  return new URLSearchParams(query);
+}
+
 export function BrowserCloneProofPage() {
+  const initialParamsRef = useRef(browserProofParams());
+  const autoLoadRequested = initialParamsRef.current.get('autoload') === '1';
+  const autoRunRequested = initialParamsRef.current.get('autorun') === '1';
+  const autoLoadDoneRef = useRef(false);
+  const autoRunDoneRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const createdObjectsRef = useRef<RuntimeObject[]>([]);
   const productionObjectsRef = useRef<RuntimeObject[]>([]);
   const cloneRef = useRef<RuntimeObject | null>(null);
 
-  const [sceneUrl, setSceneUrl] = useState('');
-  const [sourceName, setSourceName] = useState('Headers');
-  const [cloneName, setCloneName] = useState('MEDIA_OS_BROWSER_CLONE_TEST');
+  const [sceneUrl, setSceneUrl] = useState(
+    () => initialParamsRef.current.get('scene') ?? window.localStorage.getItem(SCENE_URL_STORAGE_KEY) ?? ''
+  );
+  const [sourceName, setSourceName] = useState(
+    () => initialParamsRef.current.get('source') ?? window.localStorage.getItem(SOURCE_NAME_STORAGE_KEY) ?? 'Headers'
+  );
+  const [cloneName, setCloneName] = useState(
+    () => initialParamsRef.current.get('clone') ?? 'MEDIA_OS_BROWSER_CLONE_TEST'
+  );
   const [offsetX, setOffsetX] = useState('0');
   const [offsetY, setOffsetY] = useState('-900');
   const [offsetZ, setOffsetZ] = useState('0');
@@ -171,11 +187,6 @@ export function BrowserCloneProofPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedUrl = window.localStorage.getItem(SCENE_URL_STORAGE_KEY);
-    const savedSource = window.localStorage.getItem(SOURCE_NAME_STORAGE_KEY);
-    if (savedUrl) setSceneUrl(savedUrl);
-    if (savedSource) setSourceName(savedSource);
-
     fetch('/api/v1/spline/catalog/latest')
       .then(response => response.ok ? response.json() : null)
       .then(data => {
@@ -192,6 +203,24 @@ export function BrowserCloneProofPage() {
       appRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!autoLoadRequested || autoLoadDoneRef.current || !sceneUrl.trim()) return;
+    autoLoadDoneRef.current = true;
+    const timer = window.setTimeout(() => {
+      void loadScene();
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [autoLoadRequested, sceneUrl]);
+
+  useEffect(() => {
+    if (!autoRunRequested || autoRunDoneRef.current || !loaded || running) return;
+    autoRunDoneRef.current = true;
+    const timer = window.setTimeout(() => {
+      runCloneProof();
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [autoRunRequested, loaded, running]);
 
   const createdNames = useMemo(() => cloneResult?.createdNames ?? [], [cloneResult]);
   const sourceHasAuthoredEvents = (cloneResult?.sourceEventRefs ?? 0) > 0;
