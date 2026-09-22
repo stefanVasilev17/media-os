@@ -12,7 +12,7 @@ class SplineCapabilityCatalogServiceTest {
 
     @Test
     void doesNotPretendRuntimeHierarchyExistsWhenNoParentEdgesAreExposed() {
-        var service = new SplineCapabilityCatalogService(null, new ObjectMapper());
+        var service = new SplineCapabilityCatalogService(null, new ObjectMapper(), null);
 
         Map<String, Object> blueprint = Map.of(
                 "objects", List.of(
@@ -52,7 +52,7 @@ class SplineCapabilityCatalogServiceTest {
 
     @Test
     void fusesUniqueEditorPathsWithoutGuessingAmbiguousNames() {
-        var service = new SplineCapabilityCatalogService(null, new ObjectMapper());
+        var service = new SplineCapabilityCatalogService(null, new ObjectMapper(), null);
 
         Map<String, Object> blueprint = Map.of(
                 "objects", List.of(
@@ -131,7 +131,7 @@ class SplineCapabilityCatalogServiceTest {
 
     @Test
     void refusesPathBindingWhenRuntimeNameIsDuplicated() {
-        var service = new SplineCapabilityCatalogService(null, new ObjectMapper());
+        var service = new SplineCapabilityCatalogService(null, new ObjectMapper(), null);
 
         Map<String, Object> blueprint = Map.of(
                 "objects", List.of(
