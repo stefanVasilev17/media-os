@@ -88,8 +88,7 @@ public class SplineAuthoringOverlayRegistryService {
                 sceneFingerprint.substring(0, Math.min(12, sceneFingerprint.length())),
                 summary.get("overlayCount"),
                 summary.get("pendingDiscovery"),
-                summary.get("ready"),
-                "AT_ACTIVE_OBJECT_LABEL"
+                summary.get("ready")
         );
         return summary;
     }
