@@ -172,6 +172,20 @@ export async function loadLatestSplineJob(): Promise<LatestSplineJob> {
 }
 
 
+export type SplineRuntimeConfig = {
+  sceneUrl: string;
+  configured: boolean;
+};
+
+export async function loadSplineRuntimeConfig(): Promise<SplineRuntimeConfig> {
+  const response = await fetch('/api/v1/spline/runtime-config');
+  if (!response.ok) {
+    throw new Error('Spline runtime configuration is not available');
+  }
+  return response.json();
+}
+
+
 export type SplineCatalogNode = {
   name: string;
   type: string;
