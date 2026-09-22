@@ -1,6 +1,8 @@
 package com.architecturalthinking.mediaos.spline;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,20 +19,24 @@ import java.util.UUID;
 @RequestMapping("/api/v1/worker/spline")
 public class SplineWorkerController {
 
+    private static final Logger log = LoggerFactory.getLogger(SplineWorkerController.class);
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final String workerKey;
+    private final SplineCapabilityCatalogService capabilityCatalogService;
 
     public SplineWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
-            @Value("${SPLINE_WORKER_KEY:}") String workerKey
+            @Value("${SPLINE_WORKER_KEY:}") String workerKey,
+            SplineCapabilityCatalogService capabilityCatalogService
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.workerKey = workerKey;
+        this.capabilityCatalogService = capabilityCatalogService;
     }
 
     public record WorkerResult(
@@ -154,8 +160,10 @@ public class SplineWorkerController {
 
         if ("SYNC_SCENE_CATALOG_V1".equals(context.taskType())) {
             saveCatalogSnapshot(result.catalog(), workerId);
+            rebuildMasterKnowledgeBestEffort();
         } else if ("SYNC_SCENE_SECTION_V1".equals(context.taskType())) {
             mergeCatalogSection(result.catalog(), workerId);
+            rebuildMasterKnowledgeBestEffort();
         }
 
         String executionProfile = String.valueOf(context.payload().getOrDefault("executionProfile", ""));
@@ -286,6 +294,14 @@ public class SplineWorkerController {
                 ))
                 .optional()
                 .orElseThrow(() -> new WorkerStateException("Job does not belong to this worker."));
+    }
+
+    private void rebuildMasterKnowledgeBestEffort() {
+        try {
+            capabilityCatalogService.rebuildLatest();
+        } catch (RuntimeException ex) {
+            log.warn("Spline master knowledge rebuild failed without failing the source catalog sync: {}", ex.getMessage());
+        }
     }
 
     private void saveComponentRecipe(
