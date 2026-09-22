@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Application, type SPEObject, type SplineEventName } from '@splinetool/runtime';
-import { ArrowLeft, Check, Copy, Play, RefreshCw, RotateCcw, TestTube2, X } from 'lucide-react';
+import { Application, type SPEObject } from '@splinetool/runtime';
+import { ArrowLeft, Check, Copy, RefreshCw, RotateCcw, TestTube2, X } from 'lucide-react';
 
 const SCENE_URL_STORAGE_KEY = 'mediaos.browserProof.sceneUrl';
 const SOURCE_NAME_STORAGE_KEY = 'mediaos.browserProof.sourceName';
@@ -34,33 +34,32 @@ type CloneResult = {
   position: { x: number; y: number; z: number };
 };
 
-type LabelResult = {
-  passed: boolean;
-  before?: string;
-  after?: string;
-  changedProductionObjects: number;
-  durationMs: number;
-};
-
-type EventResult = {
-  targetName: string;
-  targetUuid: string;
-  eventName: string;
-  changedCloneObjects: number;
-  changedProductionObjects: number;
-  durationMs: number;
-};
-
 type TextCandidate = {
   uuid: string;
   name: string;
   text: string;
 };
 
-type EventCandidate = {
+type StateCandidate = {
   uuid: string;
   name: string;
-  refs: number;
+  originalState: string | number | undefined;
+  discoveredStates: Array<string | number>;
+};
+
+type StateProbeResult = {
+  candidates: StateCandidate[];
+  changedProductionObjects: number;
+  durationMs: number;
+};
+
+type TransitionProbeResult = {
+  targetName: string;
+  targetUuid: string;
+  targetState: string | number;
+  changedCloneObjects: number;
+  changedProductionObjects: number;
+  durationMs: number;
 };
 
 type VerdictTone = 'pending' | 'pass' | 'fail' | 'partial';
@@ -190,10 +189,8 @@ export function BrowserCloneProofPage() {
   const [offsetX, setOffsetX] = useState('0');
   const [offsetY, setOffsetY] = useState('-900');
   const [offsetZ, setOffsetZ] = useState('0');
-  const [labelObjectUuid, setLabelObjectUuid] = useState('');
-  const [labelText, setLabelText] = useState('BROWSER TEST');
-  const [eventTargetUuid, setEventTargetUuid] = useState('');
-  const [eventName, setEventName] = useState<SplineEventName>('mouseDown');
+  const [stateTargetUuid, setStateTargetUuid] = useState('');
+  const [stateTargetValue, setStateTargetValue] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
@@ -204,10 +201,9 @@ export function BrowserCloneProofPage() {
   const [catalogNames, setCatalogNames] = useState<string[]>([]);
   const [cloneResult, setCloneResult] = useState<CloneResult | null>(null);
   const [textCandidates, setTextCandidates] = useState<TextCandidate[]>([]);
-  const [eventCandidates, setEventCandidates] = useState<EventCandidate[]>([]);
-  const [eventResult, setEventResult] = useState<EventResult | null>(null);
-  const [labelResult, setLabelResult] = useState<LabelResult | null>(null);
-  const [labelMessage, setLabelMessage] = useState<string | null>(null);
+  const [stateProbe, setStateProbe] = useState<StateProbeResult | null>(null);
+  const [transitionProbe, setTransitionProbe] = useState<TransitionProbeResult | null>(null);
+  const [sceneVariables, setSceneVariables] = useState<Record<string, string | number | boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -247,7 +243,10 @@ export function BrowserCloneProofPage() {
   }, [autoRunRequested, loaded, running]);
 
   const createdNames = useMemo(() => cloneResult?.createdNames ?? [], [cloneResult]);
-  const sourceHasAuthoredEvents = (cloneResult?.sourceEventRefs ?? 0) > 0;
+  const stringVariables = useMemo(
+    () => Object.entries(sceneVariables).filter(([, value]) => typeof value === 'string'),
+    [sceneVariables]
+  );
 
   const cloneTone: VerdictTone = !cloneResult
     ? 'pending'
@@ -255,37 +254,29 @@ export function BrowserCloneProofPage() {
       ? 'pass'
       : 'fail';
 
-  const labelTone: VerdictTone = !cloneResult
+  const stateDiscoveryTone: VerdictTone = !cloneResult
     ? 'pending'
-    : !labelResult
+    : !stateProbe
       ? 'pending'
-      : labelResult.passed && labelResult.changedProductionObjects === 0
-        ? 'pass'
-        : 'fail';
-
-  const wiringTone: VerdictTone = !cloneResult
-    ? 'pending'
-    : !sourceHasAuthoredEvents
-      ? 'partial'
-      : cloneResult.cloneEventRefs > 0
-        ? 'pass'
-        : 'fail';
-
-  const behaviorTone: VerdictTone = !cloneResult
-    ? 'pending'
-    : !sourceHasAuthoredEvents
-      ? 'partial'
-      : !eventResult
-        ? 'pending'
-        : eventResult.changedCloneObjects > 0 && eventResult.changedProductionObjects === 0
+      : stateProbe.changedProductionObjects > 0
+        ? 'fail'
+        : stateProbe.candidates.length > 0
           ? 'pass'
-          : 'fail';
+          : 'partial';
 
-  const overallTone: VerdictTone = cloneTone === 'fail' || labelTone === 'fail' || wiringTone === 'fail' || behaviorTone === 'fail'
+  const stateControlTone: VerdictTone = !cloneResult
+    ? 'pending'
+    : !transitionProbe
+      ? 'pending'
+      : transitionProbe.changedProductionObjects === 0 && transitionProbe.changedCloneObjects > 0
+        ? 'pass'
+        : 'fail';
+
+  const overallTone: VerdictTone = cloneTone === 'fail' || stateDiscoveryTone === 'fail' || stateControlTone === 'fail'
     ? 'fail'
-    : cloneTone === 'pass' && labelTone === 'pass' && wiringTone === 'pass' && behaviorTone === 'pass'
+    : cloneTone === 'pass' && stateDiscoveryTone === 'pass' && stateControlTone === 'pass'
       ? 'pass'
-      : cloneTone === 'pass' && labelTone === 'pass' && !sourceHasAuthoredEvents
+      : cloneTone === 'pass' && stateDiscoveryTone === 'partial'
         ? 'partial'
         : 'pending';
 
@@ -319,11 +310,9 @@ export function BrowserCloneProofPage() {
     setError(null);
     setLoaded(false);
     setCloneResult(null);
-    setEventResult(null);
-    setLabelResult(null);
-    setLabelMessage(null);
+    setStateProbe(null);
+    setTransitionProbe(null);
     setTextCandidates([]);
-    setEventCandidates([]);
     createdObjectsRef.current = [];
     productionObjectsRef.current = [];
     cloneRef.current = null;
@@ -342,8 +331,10 @@ export function BrowserCloneProofPage() {
 
       const objects = app.getAllObjects() as RuntimeObject[];
       const events = app.getSplineEvents();
+      const variables = app.getVariables();
 
       productionObjectsRef.current = objects;
+      setSceneVariables(variables ?? {});
       setObjectCount(objects.length);
       setEventDefinitionCount(Array.isArray(events) ? events.length : Object.keys(events ?? {}).length);
       setLoadDurationMs(performance.now() - startedAt);
@@ -376,12 +367,10 @@ export function BrowserCloneProofPage() {
     createdObjectsRef.current = [];
     setCloneResult(null);
     setTextCandidates([]);
-    setEventCandidates([]);
-    setLabelObjectUuid('');
-    setEventTargetUuid('');
-    setLabelResult(null);
-    setLabelMessage(null);
-    setEventResult(null);
+    setStateTargetUuid('');
+    setStateTargetValue('');
+    setStateProbe(null);
+    setTransitionProbe(null);
     setError(null);
   }
 
@@ -450,29 +439,17 @@ export function BrowserCloneProofPage() {
           text: object.text ?? ''
         }));
 
-      const eventBound: EventCandidate[] = created
-        .map(object => ({
-          uuid: object.uuid,
-          name: object.name || '(unnamed object)',
-          refs: countOccurrences(eventDump, object.uuid)
-        }))
-        .filter(candidate => candidate.refs > 0)
-        .sort((a, b) => b.refs - a.refs);
-
-      const exactLabel = texts.find(candidate =>
-        candidate.text.trim().toLowerCase() === sourceName.trim().toLowerCase()
-      );
-      const preferredText = exactLabel ?? (texts.length === 1 ? texts[0] : undefined);
-
-      const preferredEventTarget = eventBound.find(candidate => candidate.uuid === clone.uuid)
-        ?? eventBound[0];
-
       cloneRef.current = clone;
       createdObjectsRef.current = created;
       setTextCandidates(texts);
-      setEventCandidates(eventBound);
-      setLabelObjectUuid(preferredText?.uuid ?? '');
-      setEventTargetUuid(preferredEventTarget?.uuid ?? '');
+
+      const stateResult = probeClonedStates(created, productionObjectsRef.current);
+      setStateProbe(stateResult);
+      const firstStateCandidate = stateResult.candidates[0];
+      if (firstStateCandidate) {
+        setStateTargetUuid(firstStateCandidate.uuid);
+        setStateTargetValue(String(firstStateCandidate.discoveredStates[0] ?? ''));
+      }
 
       setCloneResult({
         sourceName: source.name,
@@ -499,85 +476,109 @@ export function BrowserCloneProofPage() {
     }
   }
 
-  function patchLabel() {
-    const target = createdObjectsRef.current.find(object => object.uuid === labelObjectUuid);
-    if (!target) {
-      setLabelMessage('Select one of the detected cloned Text objects first.');
-      setLabelResult(null);
-      return;
-    }
-
-    const productionBefore = snapshotObjects(productionObjectsRef.current);
-    const before = target.text;
+  function probeClonedStates(
+    clonedObjects: RuntimeObject[],
+    productionObjects: RuntimeObject[]
+  ): StateProbeResult {
+    const productionBefore = snapshotObjects(productionObjects);
     const startedAt = performance.now();
+    const candidates: StateCandidate[] = [];
 
-    try {
-      target.text = labelText;
-      const after = target.text;
-      const changedProductionObjects = countChangedObjects(productionObjectsRef.current, productionBefore);
-      const passed = after === labelText && changedProductionObjects === 0;
+    for (const object of clonedObjects) {
+      const originalState = object.state;
+      const discoveredStates: Array<string | number> = [];
+      let misses = 0;
 
-      setLabelResult({
-        passed,
-        before,
-        after,
-        changedProductionObjects,
-        durationMs: performance.now() - startedAt
-      });
-      setLabelMessage(
-        passed
-          ? `Clone-only text patch verified: "${before ?? ''}" → "${after ?? ''}".`
-          : `Label patch was not isolated. Production changes: ${changedProductionObjects}.`
-      );
-    } catch (cause) {
-      setLabelResult({
-        passed: false,
-        before,
-        after: target.text,
-        changedProductionObjects: countChangedObjects(productionObjectsRef.current, productionBefore),
-        durationMs: performance.now() - startedAt
-      });
-      setLabelMessage(cause instanceof Error ? cause.message : 'Runtime label patch failed.');
+      for (let index = 1; index <= 6; index += 1) {
+        try {
+          object.state = index;
+          const current = object.state;
+          const changed = current !== undefined && current !== originalState;
+
+          if (changed && !discoveredStates.some(value => String(value) === String(current))) {
+            discoveredStates.push(current);
+            misses = 0;
+          } else {
+            misses += 1;
+          }
+
+          if (misses >= 2) break;
+        } catch {
+          break;
+        }
+      }
+
+      try {
+        object.state = originalState;
+      } catch {
+        // Clone is transient. A scene reload remains the hard reset boundary.
+      }
+
+      if (discoveredStates.length > 0) {
+        candidates.push({
+          uuid: object.uuid,
+          name: object.name || '(unnamed object)',
+          originalState,
+          discoveredStates
+        });
+      }
     }
+
+    return {
+      candidates,
+      changedProductionObjects: countChangedObjects(productionObjects, productionBefore),
+      durationMs: performance.now() - startedAt
+    };
   }
 
-  async function runEventTest() {
+  async function runStateControlProof() {
     const app = appRef.current;
-    const target = createdObjectsRef.current.find(object => object.uuid === eventTargetUuid);
-
-    if (!app || !cloneRef.current) {
-      setError('Create the runtime clone first.');
-      return;
-    }
-    if (!target) {
-      setError('Select a cloned object that owns authored event references.');
+    const target = createdObjectsRef.current.find(object => object.uuid === stateTargetUuid);
+    if (!app || !target) {
+      setError('Select a state-capable cloned object first.');
       return;
     }
 
-    setError(null);
+    const candidate = stateProbe?.candidates.find(item => item.uuid === stateTargetUuid);
+    const targetState = candidate?.discoveredStates.find(value => String(value) === stateTargetValue);
+    if (targetState === undefined) {
+      setError('Select a discovered cloned state first.');
+      return;
+    }
+
     const cloneBefore = snapshotObjects(createdObjectsRef.current);
     const productionBefore = snapshotObjects(productionObjectsRef.current);
+    const originalState = target.state;
     const startedAt = performance.now();
 
     try {
       app.play();
-      target.emitEvent(eventName);
-      await new Promise(resolve => window.setTimeout(resolve, 1200));
+      target.state = targetState;
+      await new Promise(resolve => window.setTimeout(resolve, 120));
       app.stop();
 
-      setEventResult({
+      const result: TransitionProbeResult = {
         targetName: target.name || '(unnamed object)',
         targetUuid: target.uuid,
-        eventName,
+        targetState,
         changedCloneObjects: countChangedObjects(createdObjectsRef.current, cloneBefore),
         changedProductionObjects: countChangedObjects(productionObjectsRef.current, productionBefore),
         durationMs: performance.now() - startedAt
-      });
+      };
+      setTransitionProbe(result);
+
+      try {
+        target.state = originalState;
+      } catch {
+        // Runtime-only clone; reload is always available as the final reset.
+      }
     } catch (cause) {
       app.stop();
-      setError(cause instanceof Error ? cause.message : 'Event test failed.');
+      setError(cause instanceof Error ? cause.message : 'State control proof failed.');
     }
   }
+
+
 
   return (
     <main className="browser-proof-page">
@@ -586,7 +587,7 @@ export function BrowserCloneProofPage() {
           <ArrowLeft size={19} />
         </button>
         <div>
-          <span>BROWSER CLONE PROOF V2</span>
+          <span>BROWSER RUNTIME PROOF V3</span>
           <strong>Deterministic zero-Codex acceptance test</strong>
         </div>
         <div className="browser-proof-cost">
@@ -601,7 +602,7 @@ export function BrowserCloneProofPage() {
             <TestTube2 size={17} />
             <div>
               <span>ACTION 1</span>
-              <strong>Clone → patch → trigger → verify isolation</strong>
+              <strong>Clone → discover states → control clone → verify isolation</strong>
             </div>
           </div>
 
@@ -671,7 +672,8 @@ export function BrowserCloneProofPage() {
                 <div><dt>Fresh root ID</dt><dd>{cloneResult.freshRootId ? 'YES' : 'NO'}</dd></div>
                 <div><dt>Source unchanged</dt><dd>{cloneResult.sourceUnchanged ? 'YES' : 'NO'}</dd></div>
                 <div><dt>New subtree objects</dt><dd>{cloneResult.createdObjectCount}</dd></div>
-                <div><dt>Text candidates</dt><dd>{textCandidates.length}</dd></div>
+                <div><dt>Writable text candidates</dt><dd>{textCandidates.length}</dd></div>
+                <div><dt>State-capable clone objects</dt><dd>{stateProbe?.candidates.length ?? '—'}</dd></div>
                 <div><dt>Source event refs</dt><dd>{cloneResult.sourceEventRefs}</dd></div>
                 <div><dt>Clone event refs</dt><dd>{cloneResult.cloneEventRefs}</dd></div>
                 <div><dt>Clone latency</dt><dd>{cloneResult.cloneDurationMs.toFixed(2)} ms</dd></div>
@@ -684,78 +686,78 @@ export function BrowserCloneProofPage() {
             <>
               <div className="browser-proof-divider" />
               <div className="browser-proof-section-title compact">
-                <div><span>REQUIRED PATCH</span><strong>Clone-only visible label</strong></div>
+                <div><span>STATE PROBE</span><strong>Direct behavior control without cloned events</strong></div>
               </div>
 
-              <div className="browser-proof-grid">
-                <label>
-                  <span>Detected cloned Text object</span>
-                  <select value={labelObjectUuid} onChange={event => setLabelObjectUuid(event.target.value)}>
-                    <option value="">Select text object…</option>
-                    {textCandidates.map(candidate => (
-                      <option key={candidate.uuid} value={candidate.uuid}>
-                        {candidate.name} · "{candidate.text}"
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>New visible text</span>
-                  <input value={labelText} onChange={event => setLabelText(event.target.value)} />
-                </label>
-              </div>
-
-              <button className="browser-proof-secondary" disabled={!labelObjectUuid} onClick={patchLabel}>
-                Patch + verify isolation
-              </button>
-              {labelMessage && <div className="browser-proof-note">{labelMessage}</div>}
-
-              <div className="browser-proof-divider" />
-              <div className="browser-proof-section-title compact">
-                <div><span>BEHAVIOR PROBE</span><strong>Authored event stays inside clone</strong></div>
-              </div>
-
-              {sourceHasAuthoredEvents ? (
+              {stateProbe && stateProbe.candidates.length > 0 ? (
                 <>
                   <div className="browser-proof-grid">
                     <label>
-                      <span>Event-bound cloned object</span>
-                      <select value={eventTargetUuid} onChange={event => setEventTargetUuid(event.target.value)}>
-                        <option value="">Select event target…</option>
-                        {eventCandidates.map(candidate => (
+                      <span>State-capable cloned object</span>
+                      <select
+                        value={stateTargetUuid}
+                        onChange={event => {
+                          const uuid = event.target.value;
+                          setStateTargetUuid(uuid);
+                          const candidate = stateProbe.candidates.find(item => item.uuid === uuid);
+                          setStateTargetValue(String(candidate?.discoveredStates[0] ?? ''));
+                        }}
+                      >
+                        {stateProbe.candidates.map(candidate => (
                           <option key={candidate.uuid} value={candidate.uuid}>
-                            {candidate.name} · {candidate.refs} event ref(s)
+                            {candidate.name} · {candidate.discoveredStates.length} state(s)
                           </option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span>Event type</span>
-                      <select value={eventName} onChange={event => setEventName(event.target.value as SplineEventName)}>
-                        <option value="mouseDown">mouseDown</option>
-                        <option value="mouseUp">mouseUp</option>
-                        <option value="mouseHover">mouseHover</option>
-                        <option value="start">start</option>
-                        <option value="keyDown">keyDown</option>
-                        <option value="keyUp">keyUp</option>
+                      <span>Discovered state</span>
+                      <select value={stateTargetValue} onChange={event => setStateTargetValue(event.target.value)}>
+                        {(stateProbe.candidates.find(item => item.uuid === stateTargetUuid)?.discoveredStates ?? []).map(value => (
+                          <option value={String(value)} key={String(value)}>{String(value)}</option>
+                        ))}
                       </select>
                     </label>
                   </div>
-                  <button className="browser-proof-secondary" disabled={!eventTargetUuid} onClick={() => void runEventTest()}>
-                    <Play size={15} /> Trigger + verify isolation
+                  <button className="browser-proof-secondary" onClick={() => void runStateControlProof()}>
+                    Apply cloned state + verify isolation
                   </button>
+                  <div className="browser-proof-note">
+                    State discovery probed only transient clone objects and restored them. Production changes detected: <strong>{stateProbe.changedProductionObjects}</strong>. Probe time: <strong>{stateProbe.durationMs.toFixed(2)} ms</strong>.
+                  </div>
                 </>
               ) : (
                 <div className="browser-proof-note">
-                  This source has no authored event references. Clone + label can be proven here, but choose an interactive template for the full behavior acceptance test.
+                  No alternate state was discovered on this cloned subtree by index probe. This does not invalidate visual cloning; it means this template cannot yet prove deterministic state control.
                 </div>
               )}
 
-              {eventResult && (
+              {transitionProbe && (
                 <div className="browser-proof-note">
-                  <strong>{eventResult.eventName}</strong> on <strong>{eventResult.targetName}</strong> changed <strong>{eventResult.changedCloneObjects}</strong> cloned object(s) and <strong>{eventResult.changedProductionObjects}</strong> production object(s) in {eventResult.durationMs.toFixed(0)} ms.
+                  State <strong>{String(transitionProbe.targetState)}</strong> on <strong>{transitionProbe.targetName}</strong> changed <strong>{transitionProbe.changedCloneObjects}</strong> clone object(s) and <strong>{transitionProbe.changedProductionObjects}</strong> production object(s) in {transitionProbe.durationMs.toFixed(2)} ms.
                 </div>
               )}
+
+              <div className="browser-proof-divider" />
+              <div className="browser-proof-section-title compact">
+                <div><span>PARAMETERIZATION INVENTORY</span><strong>Labels are a separate compiler concern</strong></div>
+              </div>
+
+              <div className="browser-proof-note">
+                Writable runtime text properties detected: <strong>{textCandidates.length}</strong>. Scene String variables detected: <strong>{stringVariables.length}</strong>.
+                {' '}The Direct Executor gate no longer depends on authored event cloning or generic runtime text mutation.
+              </div>
+
+              {stringVariables.length > 0 && (
+                <details className="browser-proof-objects">
+                  <summary>Scene String variables ({stringVariables.length})</summary>
+                  <div>{stringVariables.map(([name, value]) => <code key={name}>{name}="{String(value)}"</code>)}</div>
+                </details>
+              )}
+
+              <div className="browser-proof-note">
+                Existing authored events remain useful as a one-time behavior blueprint, but runtime clones do not receive their event bindings automatically. Media OS will own the deterministic action sequence instead.
+              </div>
 
               <div className="browser-proof-divider" />
               <div className="browser-proof-section-title compact">
@@ -769,19 +771,19 @@ export function BrowserCloneProofPage() {
                   detail={!cloneResult ? 'Not run yet.' : `${cloneResult.createdObjectCount} fresh runtime object(s); original ${cloneResult.sourceUnchanged ? 'unchanged' : 'changed'}.`}
                 />
                 <VerdictRow
-                  label="Clone-only text patch"
-                  tone={labelTone}
-                  detail={!labelResult ? 'Patch one detected Text object.' : `${labelResult.changedProductionObjects} production object change(s); ${labelResult.durationMs.toFixed(2)} ms.`}
+                  label="Clone state preservation"
+                  tone={stateDiscoveryTone}
+                  detail={!stateProbe ? 'State probe not run yet.' : `${stateProbe.candidates.length} state-capable clone object(s); ${stateProbe.changedProductionObjects} production changes.`}
                 />
                 <VerdictRow
-                  label="Authored event wiring"
-                  tone={wiringTone}
-                  detail={!sourceHasAuthoredEvents ? 'Not applicable to this template.' : `${cloneResult.cloneEventRefs} cloned event reference(s) detected.`}
+                  label="Deterministic state control"
+                  tone={stateControlTone}
+                  detail={!transitionProbe ? 'Apply one discovered state to the clone.' : `${transitionProbe.changedCloneObjects} clone / ${transitionProbe.changedProductionObjects} production changes.`}
                 />
                 <VerdictRow
-                  label="Behavior isolation"
-                  tone={behaviorTone}
-                  detail={!sourceHasAuthoredEvents ? 'Use an interactive template for final proof.' : !eventResult ? 'Trigger the correct authored event.' : `${eventResult.changedCloneObjects} clone / ${eventResult.changedProductionObjects} production changes.`}
+                  label="Authored events"
+                  tone="partial"
+                  detail={cloneResult?.sourceEventRefs ? `Not copied: ${cloneResult.sourceEventRefs} source ref(s), ${cloneResult.cloneEventRefs} clone ref(s). Direct Executor will replace this layer.` : 'No source event refs on this template.'}
                 />
                 <div className="browser-proof-overall">
                   <span>OVERALL</span>
