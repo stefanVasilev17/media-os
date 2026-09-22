@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Application, type SPEObject } from '@splinetool/runtime';
 import { ArrowLeft, Check, Copy, RefreshCw, RotateCcw, TestTube2, X } from 'lucide-react';
+import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
 
 const SCENE_URL_STORAGE_KEY = 'mediaos.browserProof.sceneUrl';
 const SOURCE_NAME_STORAGE_KEY = 'mediaos.browserProof.sourceName';
@@ -167,8 +168,8 @@ function normalizeSceneInput(rawValue: string) {
 
 export function BrowserCloneProofPage() {
   const initialParamsRef = useRef(browserProofParams());
-  const autoLoadRequested = initialParamsRef.current.get('autoload') === '1';
-  const autoRunRequested = initialParamsRef.current.get('autorun') === '1';
+  const autoLoadRequested = initialParamsRef.current.get('autoload') !== '0';
+  const autoRunRequested = initialParamsRef.current.get('autorun') !== '0';
   const autoLoadDoneRef = useRef(false);
   const autoRunDoneRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -217,6 +218,18 @@ export function BrowserCloneProofPage() {
       .catch(() => {
         setCatalogNames([]);
       });
+
+    if (!sceneUrl.trim()) {
+      loadSplineRuntimeConfig()
+        .then(config => {
+          if (config.configured && config.sceneUrl.trim()) {
+            setSceneUrl(config.sceneUrl.trim());
+          }
+        })
+        .catch(() => {
+          // Diagnostic override input remains available if backend config is unavailable.
+        });
+    }
 
     return () => {
       appRef.current?.dispose();
@@ -636,7 +649,7 @@ export function BrowserCloneProofPage() {
           </div>
 
           <label>
-            <span>Scene URL or one-click proof link · saved only in this browser</span>
+            <span>Scene URL · supplied by Media OS backend · local override allowed</span>
             <input
               value={sceneUrl}
               onChange={event => setSceneUrl(event.target.value)}
