@@ -418,3 +418,28 @@ code { padding:6px 8px; border-radius:8px; background:#0b111b; border:1px solid 
   .browser-proof-controls { padding:12px; }
   .browser-proof-grid, .browser-proof-grid-3, .browser-proof-buttons { grid-template-columns:1fr; }
 }
+
+.browser-proof-reset { margin-top:8px; }
+.browser-proof-secondary:disabled { opacity:.38; cursor:not-allowed; }
+.browser-proof-verdict { margin-top:8px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#060b12; }
+.browser-proof-verdict.pass { border-color:rgba(76,224,163,.28); }
+.browser-proof-verdict.fail { border-color:rgba(255,105,105,.28); }
+.browser-proof-verdict.partial { border-color:rgba(255,195,84,.24); }
+.browser-proof-verdict-row { display:grid; grid-template-columns:18px minmax(120px,1fr) 1.45fr; gap:8px; align-items:center; min-height:40px; padding:7px 9px; border-bottom:1px solid var(--line); }
+.browser-proof-verdict-row > span { display:flex; align-items:center; justify-content:center; color:#77889e; }
+.browser-proof-verdict-row strong { font-size:9px; }
+.browser-proof-verdict-row small { color:#7f90a6; font-size:8px; line-height:1.4; text-align:right; }
+.browser-proof-verdict-row.pass > span { color:#73e5b4; }
+.browser-proof-verdict-row.fail > span { color:#ff9999; }
+.browser-proof-verdict-row.partial > span { color:#e8bc68; }
+.browser-proof-overall { display:flex; justify-content:space-between; align-items:center; padding:9px; }
+.browser-proof-overall span { color:#76879d; font-size:8px; letter-spacing:.09em; }
+.browser-proof-overall strong { font-size:10px; }
+.browser-proof-verdict.pass .browser-proof-overall strong { color:#73e5b4; }
+.browser-proof-verdict.fail .browser-proof-overall strong { color:#ff9999; }
+.browser-proof-verdict.partial .browser-proof-overall strong { color:#e8bc68; }
+
+@media (max-width:520px) {
+  .browser-proof-verdict-row { grid-template-columns:18px 1fr; }
+  .browser-proof-verdict-row small { grid-column:2; text-align:left; }
+}
