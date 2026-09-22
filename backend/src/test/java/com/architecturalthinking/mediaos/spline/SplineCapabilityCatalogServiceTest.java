@@ -129,6 +129,46 @@ class SplineCapabilityCatalogServiceTest {
         assertThat(repeatedHierarchy.get("matchStatus")).isEqualTo("AMBIGUOUS_NAME");
     }
 
+    @Test
+    void refusesPathBindingWhenRuntimeNameIsDuplicated() {
+        var service = new SplineCapabilityCatalogService(null, new ObjectMapper());
+
+        Map<String, Object> blueprint = Map.of(
+                "objects", List.of(
+                        runtimeObject("1", "Repeated", false),
+                        runtimeObject("2", "Repeated", true)
+                )
+        );
+
+        Map<String, Object> editorCatalog = Map.of(
+                "sections", List.of(
+                        Map.of(
+                                "name", "Repeated",
+                                "type", "Group",
+                                "path", "Repeated",
+                                "loaded", true,
+                                "children", List.of()
+                        )
+                )
+        );
+
+        Map<String, Object> catalog = service.buildCatalogDocument("c".repeat(64), blueprint, editorCatalog);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> summary = (Map<String, Object>) catalog.get("summary");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> objects = (List<Map<String, Object>>) catalog.get("objects");
+
+        assertThat(summary.get("editorHierarchyMatchedUnique")).isEqualTo(0);
+        assertThat(summary.get("editorHierarchyAmbiguous")).isEqualTo(2);
+
+        for (Map<String, Object> object : objects) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> hierarchy = (Map<String, Object>) object.get("editorHierarchy");
+            assertThat(hierarchy.get("matchStatus")).isEqualTo("AMBIGUOUS_NAME");
+        }
+    }
+
     private static Map<String, Object> runtimeObject(String uuid, String name, boolean color) {
         return Map.of(
                 "uuid", uuid,

@@ -226,9 +226,11 @@ public class SplineCapabilityCatalogService {
             String editorMatchStatus;
             Map<String, Object> editorHierarchy = new LinkedHashMap<>();
 
+            boolean runtimeNameUnique = runtimeNameCounts.getOrDefault(raw.name(), 0) == 1;
+
             if (editorCatalog == null || editorCatalog.isEmpty()) {
                 editorMatchStatus = "CATALOG_UNAVAILABLE";
-            } else if (editorMatches.size() == 1) {
+            } else if (runtimeNameUnique && editorMatches.size() == 1) {
                 editorMatchStatus = "MATCHED_UNIQUE_NAME";
                 editorMatchedUnique++;
                 EditorNode node = editorMatches.get(0);
@@ -238,7 +240,7 @@ public class SplineCapabilityCatalogService {
                 editorHierarchy.put("depth", node.depth());
                 editorHierarchy.put("loaded", node.loaded());
                 editorHierarchy.put("knownChildCount", node.knownChildCount());
-            } else if (editorMatches.size() > 1) {
+            } else if (!editorMatches.isEmpty()) {
                 editorMatchStatus = "AMBIGUOUS_NAME";
                 editorAmbiguous++;
                 editorHierarchy.put(
