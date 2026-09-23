@@ -886,7 +886,10 @@ For each supplied target only, extract authoring metadata that Media OS cannot o
 
 TOKEN / CALL BUDGET:
 - Keep reasoning and narration minimal.
-- Load the Spline 3D skill at most once, and only if needed to use the exact read-only tool schema.
+- FIRST call Spline/3d_load_skill exactly once.
+- Read the exact current schema for Spline/3d_get_objects from the loaded skill.
+- Then call Spline/3d_get_objects using only arguments documented by that skill.
+- Do not guess argument names or shapes.
 - Prefer one batched exact-target read if the tool supports multiple targets.
 - Otherwise read each supplied target once. Do not inspect unrelated objects.
 - Do not enumerate the full scene.
