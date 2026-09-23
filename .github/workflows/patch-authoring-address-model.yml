@@ -16,207 +16,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-      - name: Apply authoring address model
-        shell: python
-        run: |
-          from pathlib import Path
-
-          slot = Path('backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineSceneSlotRegistryService.java')
-          s = slot.read_text()
-
-          old = '''            candidates.add(new SlotCandidate(
-                    slotKey(name, String.valueOf(object.get("uuid"))),
-                    String.valueOf(object.get("uuid")),
-                    name,
-                    editorPath,
-                    candidateKind,
-                    "CANDIDATE_NEEDS_AUTHORING_OVERLAY",
-                    editorPath == null ? "RUNTIME_UNIQUE_NAME" : "EDITOR_PATH_AND_RUNTIME_NAME",
-                    transform ? "RUNTIME_DIRECT" : "UNAVAILABLE",
-                    visibility ? "RUNTIME_DIRECT" : "UNAVAILABLE",
-                    runtimeText ? "RUNTIME_DIRECT" : "AUTHORING_VARIABLE_REQUIRED",
-                    "AUTHORING_OVERLAY_REQUIRED",
-                    "RUNTIME_DIRECT",
-                    evidence
-            ));'''
-          new = '''            candidates.add(new SlotCandidate(
-                    slotKey(name, String.valueOf(object.get("uuid"))),
-                    String.valueOf(object.get("uuid")),
-                    name,
-                    editorPath,
-                    candidateKind,
-                    "CANDIDATE_NEEDS_AUTHORING_OVERLAY",
-                    editorPath == null ? "RUNTIME_UNIQUE_NAME" : "EDITOR_PATH_AND_RUNTIME_NAME",
-                    transform ? "RUNTIME_DIRECT" : "UNAVAILABLE",
-                    visibility ? "RUNTIME_DIRECT" : "UNAVAILABLE",
-                    runtimeText
-                            ? "RUNTIME_DIRECT"
-                            : editorPath != null ? "AUTHORING_VARIABLE_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
-                    editorPath != null ? "AUTHORING_OVERLAY_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
-                    "RUNTIME_DIRECT",
-                    evidence
-            ));'''
-          if old not in s:
-              raise SystemExit('Slot candidate constructor pattern not found')
-          s = s.replace(old, new, 1)
-
-          old = '''        long variableLabels = candidates.stream().filter(c -> "AUTHORING_VARIABLE_REQUIRED".equals(c.labelStrategy())).count();
-        long editorGroups = candidates.stream().filter(c -> c.candidateKind().contains("EDITOR_GROUP")).count();'''
-          new = '''        long variableLabels = candidates.stream().filter(c -> "AUTHORING_VARIABLE_REQUIRED".equals(c.labelStrategy())).count();
-        long behaviorOverlayRequired = candidates.stream().filter(c -> "AUTHORING_OVERLAY_REQUIRED".equals(c.behaviorStrategy())).count();
-        long authoringAddressUnresolved = candidates.stream().filter(c -> "AUTHORING_ADDRESS_UNRESOLVED".equals(c.behaviorStrategy())).count();
-        long editorGroups = candidates.stream().filter(c -> c.candidateKind().contains("EDITOR_GROUP")).count();'''
-          if old not in s:
-              raise SystemExit('Slot summary count pattern not found')
-          s = s.replace(old, new, 1)
-
-          old = '''        summary.put("labelVariableAuthoringRequired", variableLabels);
-        summary.put("behaviorOverlayRequired", candidates.size());
-        summary.put("semanticRoleUnclassified", candidates.size());'''
-          new = '''        summary.put("labelVariableAuthoringRequired", variableLabels);
-        summary.put("behaviorOverlayRequired", behaviorOverlayRequired);
-        summary.put("authoringAddressUnresolved", authoringAddressUnresolved);
-        summary.put("semanticRoleUnclassified", candidates.size());'''
-          if old not in s:
-              raise SystemExit('Slot summary output pattern not found')
-          s = s.replace(old, new, 1)
-          slot.write_text(s)
-
-          overlay = Path('backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineAuthoringOverlayRegistryService.java')
-          s = overlay.read_text()
-
-          old = '''        }
-
-        Map<String, Object> summary = summaryFor(sceneFingerprint);'''
-          new = '''        }
-
-        jdbc.sql("""
-                update spline_authoring_overlay o
-                set status='AUTHORING_ADDRESS_UNRESOLVED',
-                    label_target_path=null,
-                    label_current_text=null,
-                    state_definitions='[]'::jsonb,
-                    action_graph='[]'::jsonb,
-                    event_bindings='[]'::jsonb,
-                    discovery_coverage='{\"label\":\"ADDRESS_UNRESOLVED\",\"states\":\"ADDRESS_UNRESOLVED\",\"events\":\"ADDRESS_UNRESOLVED\",\"actions\":\"ADDRESS_UNRESOLVED\"}'::jsonb,
-                    discovery_notes='Runtime visual-family slot has no resolved authoring/editor object address.',
-                    discovered_by=null,
-                    discovered_at=null,
-                    updated_at=now()
-                from spline_scene_slot_registry s
-                where o.slot_registry_id=s.id
-                  and o.project_id=:projectId
-                  and o.scene_fingerprint=:fingerprint
-                  and s.behavior_strategy='AUTHORING_ADDRESS_UNRESOLVED'
-                """)
-                .param("projectId", PROJECT_ID)
-                .param("fingerprint", sceneFingerprint)
-                .update();
-
-        Map<String, Object> summary = summaryFor(sceneFingerprint);'''
-          if old not in s:
-              raise SystemExit('Overlay sync insertion point not found')
-          s = s.replace(old, new, 1)
-
-          old = '''                  and o.status='PENDING_DISCOVERY'
-                order by'''
-          new = '''                  and o.status='PENDING_DISCOVERY'
-                  and s.behavior_strategy='AUTHORING_OVERLAY_REQUIRED'
-                order by'''
-          if old not in s:
-              raise SystemExit('Overlay queue eligibility pattern not found')
-          s = s.replace(old, new, 1)
-
-          old = '''                       count(*) filter (where status='DISCOVERED_PARTIAL') as partial_count,
-                       count(*) filter (where status='READY') as ready_count,'''
-          new = '''                       count(*) filter (where status='DISCOVERED_PARTIAL') as partial_count,
-                       count(*) filter (where status='AUTHORING_ADDRESS_UNRESOLVED') as address_unresolved_count,
-                       count(*) filter (where status='READY') as ready_count,'''
-          if old not in s:
-              raise SystemExit('Overlay summary SQL pattern not found')
-          s = s.replace(old, new, 1)
-
-          old = '''                    result.put("discoveredPartial", rs.getLong("partial_count"));
-                    result.put("ready", rs.getLong("ready_count"));'''
-          new = '''                    result.put("discoveredPartial", rs.getLong("partial_count"));
-                    result.put("authoringAddressUnresolved", rs.getLong("address_unresolved_count"));
-                    result.put("ready", rs.getLong("ready_count"));'''
-          if old not in s:
-              raise SystemExit('Overlay summary output pattern not found')
-          s = s.replace(old, new, 1)
-          overlay.write_text(s)
-
-          worker = Path('worker/spline-worker.ps1')
-          s = worker.read_text()
-          start = s.index('    if ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {\n      Write-Host "Executing direct Spline MCP overlay discovery..."')
-          end_marker = '    } else {\n      Write-Host "Executing through Codex + Spline MCP..."'
-          end = s.index(end_marker, start)
-          replacement = '''    if ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
-      Write-Host "Executing direct Spline MCP overlay discovery..."
-
-      $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
-
-      try {
-        $directResult = Invoke-DirectSplineAuthoringOverlay `
-          -SceneFingerprint ([string]$job.payload.sceneFingerprint) `
-          -Targets @($job.payload.overlays)
-
-        if ([int]$directResult.ExitCode -ne 0) {
-          $directFailure = [string]$directResult.Diagnostics
-          if ([string]::IsNullOrWhiteSpace($directFailure)) {
-            $directFailure = "Direct Spline MCP helper exited with code $($directResult.ExitCode)."
-          }
-          throw $directFailure
-        }
-
-        $output = [string]$directResult.Output
-        $codexResult = @{
-          ExitCode = 0
-          Output = $output
-        }
-        $directOverlayUsed = $true
-        $executionTimer.Stop()
-
-        $metrics = [pscustomobject]@{
-          durationMs = $executionTimer.ElapsedMilliseconds
-          tokenCount = 0
-          splineMcpCalls = 1
-          targetMcpCalls = 1
-          reasoningEffort = "none"
-          executionProfile = $executionProfile
-          targetTokenBudget = 0
-          batchSize = @($job.payload.overlays).Count
-          readOnly = $true
-          efficiencyBudgetExceeded = $false
-          executionEngine = "DIRECT_SPLINE_MCP"
-        }
-      } catch {
-        if ($executionTimer.IsRunning) {
-          $executionTimer.Stop()
-        }
-        $directFailure = $_.Exception.Message
-        $metrics = [pscustomobject]@{
-          durationMs = $executionTimer.ElapsedMilliseconds
-          tokenCount = 0
-          splineMcpCalls = 1
-          targetMcpCalls = 1
-          reasoningEffort = "none"
-          executionProfile = $executionProfile
-          targetTokenBudget = 0
-          batchSize = @($job.payload.overlays).Count
-          readOnly = $true
-          efficiencyBudgetExceeded = $false
-          executionEngine = "DIRECT_SPLINE_MCP_FAILED"
-        }
-        throw "Direct Spline MCP overlay discovery failed without Codex fallback. $directFailure"
-      }
-'''
-          s = s[:start] + replacement + s[end:]
-          worker.write_text(s)
+      - name: Apply patch
+        run: python scripts/patch_authoring_address_model.py
       - name: Compile backend
         working-directory: backend
         run: mvn -q -DskipTests compile
@@ -230,12 +35,14 @@ jobs:
             $errors | ForEach-Object { Write-Error $_.Message }
             exit 1
           }
-      - name: Remove temporary workflow
-        run: rm .github/workflows/patch-authoring-address-model.yml
+      - name: Remove temporary patch files
+        run: |
+          rm scripts/patch_authoring_address_model.py
+          rm .github/workflows/patch-authoring-address-model.yml
       - name: Commit patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineSceneSlotRegistryService.java backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineAuthoringOverlayRegistryService.java worker/spline-worker.ps1 .github/workflows/patch-authoring-address-model.yml
+          git add backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineSceneSlotRegistryService.java backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineAuthoringOverlayRegistryService.java worker/spline-worker.ps1 scripts/patch_authoring_address_model.py .github/workflows/patch-authoring-address-model.yml
           git commit -m 'Separate runtime visual slots from authoring discovery'
           git push origin main
