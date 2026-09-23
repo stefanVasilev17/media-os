@@ -25,6 +25,8 @@ let finished = false;
 let sequence = 10;
 let toolListAttempts = 0;
 let callId = null;
+let objectCallAttempts = 0;
+const MAX_OBJECT_CALL_ATTEMPTS = 60;
 const toolListIds = new Set();
 
 function cleanup(exitCode) {
@@ -57,6 +59,48 @@ function requestToolList() {
     method: "tools/list",
     params: {}
   });
+}
+
+function callGetObjects() {
+  objectCallAttempts += 1;
+  callId = sequence++;
+  send({
+    jsonrpc: "2.0",
+    id: callId,
+    method: "tools/call",
+    params: {
+      name: "3d_get_objects",
+      arguments: {
+        ids: targets.map((target) => String(target.objectUuid))
+      }
+    }
+  });
+}
+
+function isEditorNotConnected(value) {
+  const encoded = JSON.stringify(value ?? "");
+  const text = String(encoded ?? value ?? "").toLowerCase();
+  return text.includes("editor") && (
+    text.includes("not connected") ||
+    text.includes("no editor is connected") ||
+    text.includes("no 3d editor is connected") ||
+    text.includes("no two editor is connected")
+  );
+}
+
+function retryEditorReadiness(value) {
+  if (!isEditorNotConnected(value)) return false;
+
+  if (objectCallAttempts >= MAX_OBJECT_CALL_ATTEMPTS) {
+    fail(
+      `Spline editor did not connect to the MCP bridge after ${objectCallAttempts} ` +
+      `3d_get_objects readiness attempts.`
+    );
+    return true;
+  }
+
+  setTimeout(callGetObjects, 300);
+  return true;
 }
 
 function parseJsonCandidate(text) {
@@ -357,27 +401,18 @@ child.stdout.on("data", (chunk) => {
         continue;
       }
 
-      callId = sequence++;
-      send({
-        jsonrpc: "2.0",
-        id: callId,
-        method: "tools/call",
-        params: {
-          name: "3d_get_objects",
-          arguments: {
-            ids: targets.map((target) => String(target.objectUuid))
-          }
-        }
-      });
+      setTimeout(callGetObjects, 300);
       continue;
     }
 
     if (callId != null && message.id === callId) {
       if (message.error) {
+        if (retryEditorReadiness(message.error)) return;
         fail(`3d_get_objects failed: ${JSON.stringify(message.error)}`);
         return;
       }
       if (!message.result || message.result.isError === true) {
+        if (retryEditorReadiness(message.result)) return;
         fail(`3d_get_objects returned an error result: ${JSON.stringify(message.result)}`);
         return;
       }
