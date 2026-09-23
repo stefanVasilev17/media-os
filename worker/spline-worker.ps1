@@ -999,14 +999,15 @@ MANDATORY TOOL ROUTE:
 OUTPUT:
 Return exactly one compact JSON payload:
 MEDIA_OS_SPLINE_CATALOG_BEGIN
-{"sceneName":"exact scene name or Focused Spline 3D Scene","objectCount":771,"sections":[{"name":"exact root name","type":"concise type","path":"exact root name","loaded":false,"children":[]}]}
+{"sceneName":"exact scene name or Focused Spline 3D Scene","objectCount":771,"sections":[{"name":"exact root name","objectId":"exact Spline object id or null","type":"concise type","path":"exact root name","loaded":false,"children":[]}]}
 MEDIA_OS_SPLINE_CATALOG_END
 
 Rules:
 - sections contains only top-level/root entries visible in the scene summary.
 - objectCount should use the total reported by Spline when available; it may be larger than sections.length.
 - If a root entry is explicitly known to be a leaf with no children, set loaded:true. Otherwise set loaded:false.
-- Preserve exact names.
+- Preserve exact names and exact Spline object ids when the tool exposes them.
+- Use objectId:null when an id is genuinely not exposed. Never infer or invent ids.
 - Never invent root entries.
 - If at least one real root entry is read, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene root index synced
 - Otherwise emit MEDIA_OS_SPLINE_DIAGNOSTIC and end with FAILED.
@@ -1038,11 +1039,12 @@ MANDATORY TOOL ROUTE:
 OUTPUT:
 Return exactly one compact JSON payload:
 MEDIA_OS_SPLINE_CATALOG_BEGIN
-{"sceneName":"Focused Spline 3D Scene","sectionPath":"$($job.payload.sectionPath)","section":{"name":"$($job.payload.sectionName)","type":"Group","path":"$($job.payload.sectionPath)","loaded":true,"children":[...]}}
+{"sceneName":"Focused Spline 3D Scene","sectionPath":"$($job.payload.sectionPath)","section":{"name":"$($job.payload.sectionName)","objectId":"exact Spline object id or null","type":"Group","path":"$($job.payload.sectionPath)","loaded":true,"children":[...]}}
 MEDIA_OS_SPLINE_CATALOG_END
 
 Every child node must contain:
 - name: exact Spline name
+- objectId: exact Spline object id returned by the read tool, or null only when genuinely not exposed
 - type: concise type
 - path: slash-separated path under the target section
 - loaded:true when its returned descendants are complete
@@ -1050,7 +1052,7 @@ Every child node must contain:
 
 Rules:
 - Never include objects outside the requested target section.
-- Preserve exact names.
+- Preserve exact names and exact object ids; never infer or synthesize an id.
 - If the branch cannot be completed, emit MEDIA_OS_SPLINE_DIAGNOSTIC with the unresolved child/group and end with FAILED rather than pretending the branch is complete.
 - If the target section is completely read, end with: MEDIA_OS_SPLINE_RESULT: SUCCEEDED - scene section synced
 "@

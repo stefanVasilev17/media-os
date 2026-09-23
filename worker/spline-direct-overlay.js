@@ -61,18 +61,30 @@ function requestToolList() {
   });
 }
 
+function targetIds(target) {
+  const resolved = Array.isArray(target && target.authoringObjectIds)
+    ? target.authoringObjectIds.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  if (resolved.length > 0) return [...new Set(resolved)];
+  const fallback = String((target && target.objectUuid) || "").trim();
+  return fallback ? [fallback] : [];
+}
+
 function callGetObjects() {
   objectCallAttempts += 1;
   callId = sequence++;
+  const ids = [...new Set(targets.flatMap(targetIds))];
+  if (ids.length === 0) {
+    fail("Direct overlay discovery has no resolved authoring object ids.");
+    return;
+  }
   send({
     jsonrpc: "2.0",
     id: callId,
     method: "tools/call",
     params: {
       name: "3d_get_objects",
-      arguments: {
-        ids: targets.map((target) => String(target.objectUuid))
-      }
+      arguments: { ids }
     }
   });
 }
@@ -321,24 +333,88 @@ function normalizeTarget(target, object) {
   };
 }
 
+function sourceTagged(value, sourceObjectId) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return { ...value, sourceObjectId };
+  }
+  return { value, sourceObjectId };
+}
+
+function mergeCoverage(results, key) {
+  const values = results.map((item) => item.coverage[key]);
+  if (values.includes("PARTIAL")) return "PARTIAL";
+  const unique = new Set(values);
+  if (unique.size === 1) return values[0];
+  if (unique.has("EXPOSED") && unique.has("NOT_EXPOSED")) return "PARTIAL";
+  if (unique.has("EXPOSED")) return "EXPOSED";
+  if (unique.has("NOT_EXPOSED")) return "NOT_EXPOSED";
+  return "CONFIRMED_EMPTY";
+}
+
+function mergeTargetResults(target, normalized) {
+  if (normalized.length === 1) return normalized[0].result;
+
+  const states = normalized.flatMap(({ id, result }) =>
+    result.states.map((value) => sourceTagged(value, id))
+  );
+  const eventBindings = normalized.flatMap(({ id, result }) =>
+    result.eventBindings.map((value) => sourceTagged(value, id))
+  );
+  const actionGraph = normalized.flatMap(({ id, result }) =>
+    result.actionGraph.map((value) => sourceTagged(value, id))
+  );
+
+  return {
+    slotKey: target.slotKey,
+    objectName: target.objectName,
+    editorPath: target.editorPath ?? null,
+    label: {
+      status: "NOT_EXPOSED",
+      targetPath: null,
+      currentText: null
+    },
+    states,
+    eventBindings,
+    actionGraph,
+    coverage: {
+      label: "NOT_EXPOSED",
+      states: mergeCoverage(normalized.map((item) => item.result), "states"),
+      events: mergeCoverage(normalized.map((item) => item.result), "events"),
+      actions: mergeCoverage(normalized.map((item) => item.result), "actions")
+    },
+    notes:
+      `Direct 3d_get_objects family read: ${normalized.length} authoring object(s), ` +
+      `${states.length} state(s), ${eventBindings.length} event(s), ${actionGraph.length} action group(s); ` +
+      `subtree label text is not inferred.`
+  };
+}
+
 function emitOverlay(result) {
   const roots = toolRoots(result);
   const items = [];
 
   for (const target of targets) {
-    const objectId = String(target.objectUuid || "");
-    let object = null;
-
-    for (const root of roots) {
-      object = findById(root, objectId);
-      if (object) break;
+    const ids = targetIds(target);
+    if (ids.length === 0) {
+      throw new Error(`No authoring object ids resolved for ${target.slotKey || target.objectName}.`);
     }
 
-    if (!object) {
-      throw new Error(`Direct 3d_get_objects response omitted target ${objectId}.`);
+    const normalized = [];
+    for (const objectId of ids) {
+      let object = null;
+      for (const root of roots) {
+        object = findById(root, objectId);
+        if (object) break;
+      }
+
+      if (!object) {
+        throw new Error(`Direct 3d_get_objects response omitted authoring target ${objectId}.`);
+      }
+
+      normalized.push({ id: objectId, result: normalizeTarget(target, object) });
     }
 
-    items.push(normalizeTarget(target, object));
+    items.push(mergeTargetResults(target, normalized));
   }
 
   console.log("MEDIA_OS_AUTHORING_OVERLAY_BEGIN");

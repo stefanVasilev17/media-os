@@ -254,6 +254,9 @@ public class SplineCapabilityCatalogService {
                 editorHierarchy.put("depth", node.depth());
                 editorHierarchy.put("loaded", node.loaded());
                 editorHierarchy.put("knownChildCount", node.knownChildCount());
+                if (node.objectId() != null) {
+                    editorHierarchy.put("objectId", node.objectId());
+                }
             } else if (!editorMatches.isEmpty()) {
                 editorMatchStatus = "AMBIGUOUS_NAME";
                 editorAmbiguous++;
@@ -401,12 +404,15 @@ public class SplineCapabilityCatalogService {
         if (name == null) name = "";
         String type = stringValue(node.get("type"));
         String path = stringValue(node.get("path"));
+        String objectId = stringValue(node.get("objectId"));
+        if (objectId == null) objectId = stringValue(node.get("id"));
+        if (objectId == null) objectId = stringValue(node.get("uuid"));
         boolean loaded = Boolean.TRUE.equals(node.get("loaded"));
 
         Object childrenValue = node.get("children");
         int childCount = childrenValue instanceof List<?> children ? children.size() : 0;
 
-        result.add(new EditorNode(name, type, path, parentPath, depth, loaded, childCount));
+        result.add(new EditorNode(name, type, path, parentPath, depth, loaded, childCount, objectId));
 
         if (childrenValue instanceof List<?> children) {
             for (Object child : children) {
@@ -557,6 +563,7 @@ public class SplineCapabilityCatalogService {
             String parentPath,
             int depth,
             boolean loaded,
-            int knownChildCount
+            int knownChildCount,
+            String objectId
     ) {}
 }

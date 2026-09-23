@@ -108,6 +108,23 @@ public class SplineAuthoringOverlayRegistryService {
                 .param("fingerprint", sceneFingerprint)
                 .update();
 
+        jdbc.sql("""
+                update spline_authoring_overlay o
+                set status='PENDING_DISCOVERY',
+                    discovery_coverage='{}'::jsonb,
+                    discovery_notes='Authoring/editor object address resolved from the refreshed editor catalog.',
+                    updated_at=now()
+                from spline_scene_slot_registry s
+                where o.slot_registry_id=s.id
+                  and o.project_id=:projectId
+                  and o.scene_fingerprint=:fingerprint
+                  and s.behavior_strategy='AUTHORING_OVERLAY_REQUIRED'
+                  and o.status='AUTHORING_ADDRESS_UNRESOLVED'
+                """)
+                .param("projectId", PROJECT_ID)
+                .param("fingerprint", sceneFingerprint)
+                .update();
+
         Map<String, Object> summary = summaryFor(sceneFingerprint);
         log.info(
                 "Spline authoring overlay registry synced fingerprint={} overlays={} pending={} ready={} requestedGlobalActiveLabel=AT_ACTIVE_OBJECT_LABEL",
@@ -154,7 +171,7 @@ public class SplineAuthoringOverlayRegistryService {
 
         List<DiscoveryTarget> targets = jdbc.sql("""
                 select o.slot_key, o.object_uuid, o.object_name, o.editor_path,
-                       o.requested_label_variable, s.candidate_kind
+                       o.requested_label_variable, s.candidate_kind, s.evidence::text as slot_evidence
                 from spline_authoring_overlay o
                 join spline_scene_slot_registry s on s.id=o.slot_registry_id
                 where o.project_id=:projectId
@@ -179,7 +196,8 @@ public class SplineAuthoringOverlayRegistryService {
                         rs.getString("object_name"),
                         rs.getString("editor_path"),
                         rs.getString("requested_label_variable"),
-                        rs.getString("candidate_kind")
+                        rs.getString("candidate_kind"),
+                        authoringObjectIds(readJson(rs.getString("slot_evidence")))
                 ))
                 .list();
 
@@ -199,6 +217,7 @@ public class SplineAuthoringOverlayRegistryService {
             item.put("editorPath", target.editorPath());
             item.put("requestedLabelVariable", target.requestedLabelVariable());
             item.put("candidateKind", target.candidateKind());
+            item.put("authoringObjectIds", target.authoringObjectIds());
             return item;
         }).toList();
 
@@ -578,6 +597,20 @@ public class SplineAuthoringOverlayRegistryService {
                 .list();
     }
 
+    private List<String> authoringObjectIds(Object evidenceValue) {
+        if (!(evidenceValue instanceof Map<?, ?> rawEvidence)) return List.of();
+        Object rawTargets = rawEvidence.get("authoringTargets");
+        if (!(rawTargets instanceof List<?> targets)) return List.of();
+
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        for (Object value : targets) {
+            if (!(value instanceof Map<?, ?> target)) continue;
+            String objectId = stringValue(target.get("objectId"));
+            if (objectId != null) ids.add(objectId);
+        }
+        return List.copyOf(ids);
+    }
+
     private Set<String> discoverySlotKeys(Map<String, Object> payload) {
         Object raw = payload.get("overlays");
         if (!(raw instanceof List<?> overlays)) return Set.of();
@@ -725,6 +758,7 @@ public class SplineAuthoringOverlayRegistryService {
             String objectName,
             String editorPath,
             String requestedLabelVariable,
-            String candidateKind
+            String candidateKind,
+            List<String> authoringObjectIds
     ) {}
 }

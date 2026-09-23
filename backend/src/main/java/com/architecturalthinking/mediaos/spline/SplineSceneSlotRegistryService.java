@@ -233,6 +233,46 @@ public class SplineSceneSlotRegistryService {
             boolean runtimeText = Boolean.TRUE.equals(runtimeCapabilities.get("runtimeText"));
 
             String editorPath = stringValue(editorHierarchy.get("path"));
+
+            List<Map<String, Object>> authoringTargets = new ArrayList<>();
+            Set<String> seenAuthoringIds = new LinkedHashSet<>();
+
+            String baseAuthoringObjectId = stringValue(editorHierarchy.get("objectId"));
+            if (baseAuthoringObjectId != null && seenAuthoringIds.add(baseAuthoringObjectId)) {
+                Map<String, Object> target = new LinkedHashMap<>();
+                target.put("name", name);
+                target.put("objectId", baseAuthoringObjectId);
+                target.put("path", editorPath);
+                target.put("type", editorHierarchy.get("type"));
+                target.put("role", "BASE");
+                authoringTargets.add(target);
+            }
+
+            for (String companionName : companions) {
+                Map<String, Object> companionObject = uniqueByName.get(companionName);
+                if (companionObject == null) continue;
+
+                @SuppressWarnings("unchecked")
+                Map<String, Object> companionHierarchy = companionObject.get("editorHierarchy") instanceof Map<?, ?> map
+                        ? copyMap(map)
+                        : Map.of();
+
+                if (!"MATCHED_UNIQUE_NAME".equals(companionHierarchy.get("matchStatus"))) continue;
+
+                String companionAuthoringObjectId = stringValue(companionHierarchy.get("objectId"));
+                if (companionAuthoringObjectId == null || !seenAuthoringIds.add(companionAuthoringObjectId)) continue;
+
+                Map<String, Object> target = new LinkedHashMap<>();
+                target.put("name", companionName);
+                target.put("objectId", companionAuthoringObjectId);
+                target.put("path", stringValue(companionHierarchy.get("path")));
+                target.put("type", companionHierarchy.get("type"));
+                target.put("role", "COMPANION");
+                authoringTargets.add(target);
+            }
+
+            boolean authoringAddressResolved = editorPath != null || !authoringTargets.isEmpty();
+
             String candidateKind = uniqueEditorGroup && visualFamily
                     ? "EDITOR_GROUP_AND_VISUAL_FAMILY"
                     : uniqueEditorGroup ? "EDITOR_GROUP" : "VISUAL_FAMILY";
@@ -245,6 +285,7 @@ public class SplineSceneSlotRegistryService {
             evidence.put("reasons", reasons);
             evidence.put("editorHierarchy", editorHierarchy);
             evidence.put("structuralCompanions", companions);
+            evidence.put("authoringTargets", authoringTargets);
             evidence.put("directOperations", object.getOrDefault("directOperations", List.of()));
             evidence.put("authoredEventRefCount", object.getOrDefault("authoredEventRefCount", 0));
             evidence.put("stableUniqueName", true);
@@ -256,13 +297,15 @@ public class SplineSceneSlotRegistryService {
                     editorPath,
                     candidateKind,
                     "CANDIDATE_NEEDS_AUTHORING_OVERLAY",
-                    editorPath == null ? "RUNTIME_UNIQUE_NAME" : "EDITOR_PATH_AND_RUNTIME_NAME",
+                    !authoringTargets.isEmpty()
+                            ? "AUTHORING_OBJECT_IDS_AND_RUNTIME_NAME"
+                            : editorPath == null ? "RUNTIME_UNIQUE_NAME" : "EDITOR_PATH_AND_RUNTIME_NAME",
                     transform ? "RUNTIME_DIRECT" : "UNAVAILABLE",
                     visibility ? "RUNTIME_DIRECT" : "UNAVAILABLE",
                     runtimeText
                             ? "RUNTIME_DIRECT"
-                            : editorPath != null ? "AUTHORING_VARIABLE_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
-                    editorPath != null ? "AUTHORING_OVERLAY_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
+                            : authoringAddressResolved ? "AUTHORING_VARIABLE_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
+                    authoringAddressResolved ? "AUTHORING_OVERLAY_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
                     "RUNTIME_DIRECT",
                     evidence
             ));
