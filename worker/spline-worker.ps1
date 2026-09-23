@@ -173,6 +173,71 @@ function Invoke-CodexSplineJob {
   }
 }
 
+function Invoke-DirectSplineAuthoringOverlay {
+  param(
+    [string]$SceneFingerprint,
+    [object[]]$Targets
+  )
+
+  $helperPath = Join-Path (Split-Path -Parent $PSCommandPath) "spline-direct-overlay.js"
+  if (-not (Test-Path $helperPath)) {
+    throw "Direct Spline overlay helper is missing: $helperPath"
+  }
+
+  $nodeCommand = Get-Command node -ErrorAction Stop
+  $nodePath = $nodeCommand.Source
+  if ([string]::IsNullOrWhiteSpace($nodePath)) {
+    $nodePath = $nodeCommand.Path
+  }
+  if ([string]::IsNullOrWhiteSpace($nodePath)) {
+    throw "Node.js is required for direct Spline MCP overlay discovery."
+  }
+
+  $splineExe = Join-Path $env:LOCALAPPDATA "Programs\Spline\Spline.exe"
+  $mcpScript = Join-Path $env:LOCALAPPDATA "Programs\Spline\resources\spline-mcp.cjs"
+
+  if (-not (Test-Path $splineExe)) {
+    throw "Spline.exe was not found at $splineExe"
+  }
+  if (-not (Test-Path $mcpScript)) {
+    throw "spline-mcp.cjs was not found at $mcpScript"
+  }
+
+  $targetsJson = ConvertTo-Json -InputObject @($Targets) -Compress -Depth 20
+
+  $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+  $startInfo.UseShellExecute = $false
+  $startInfo.RedirectStandardOutput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.CreateNoWindow = $true
+  $startInfo.FileName = $nodePath
+  $startInfo.Arguments = '"{0}"' -f $helperPath
+  $startInfo.EnvironmentVariables["MEDIA_OS_SPLINE_TARGETS_JSON"] = $targetsJson
+  $startInfo.EnvironmentVariables["MEDIA_OS_SCENE_FINGERPRINT"] = $SceneFingerprint
+  $startInfo.EnvironmentVariables["MEDIA_OS_SPLINE_EXE"] = $splineExe
+  $startInfo.EnvironmentVariables["MEDIA_OS_SPLINE_MCP_SCRIPT"] = $mcpScript
+
+  $process = New-Object System.Diagnostics.Process
+  $process.StartInfo = $startInfo
+
+  if (-not $process.Start()) {
+    throw "Could not start direct Spline MCP helper."
+  }
+
+  $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+  $stderrTask = $process.StandardError.ReadToEndAsync()
+  $process.WaitForExit()
+
+  $stdout = $stdoutTask.Result
+  $stderr = $stderrTask.Result
+
+  return @{
+    ExitCode = $process.ExitCode
+    Output = if ($null -eq $stdout) { "" } else { $stdout.Trim() }
+    Diagnostics = if ($null -eq $stderr) { "" } else { $stderr.Trim() }
+  }
+}
+
 function Capture-SplineWindowSnapshot {
   Add-Type -AssemblyName System.Drawing
 
@@ -1030,13 +1095,66 @@ SAFETY:
   $metrics = $null
 
   try {
-    Write-Host "Executing through Codex + Spline MCP..."
+    $directOverlayUsed = $false
 
-    $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand -ExecutionProfile $executionProfile
-    $executionTimer.Stop()
-    $output = [string]$codexResult.Output
-    $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
+    if ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+      Write-Host "Executing direct Spline MCP overlay discovery..."
+
+      $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
+
+      try {
+        $directResult = Invoke-DirectSplineAuthoringOverlay `
+          -SceneFingerprint ([string]$job.payload.sceneFingerprint) `
+          -Targets @($job.payload.overlays)
+
+        if ([int]$directResult.ExitCode -ne 0) {
+          $directFailure = [string]$directResult.Diagnostics
+          if ([string]::IsNullOrWhiteSpace($directFailure)) {
+            $directFailure = "Direct Spline MCP helper exited with code $($directResult.ExitCode)."
+          }
+          throw $directFailure
+        }
+
+        $output = [string]$directResult.Output
+        $codexResult = @{
+          ExitCode = 0
+          Output = $output
+        }
+        $directOverlayUsed = $true
+      } catch {
+        Write-Warning "Direct Spline MCP overlay discovery failed; falling back to Codex V1. $($_.Exception.Message)"
+        $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand -ExecutionProfile $executionProfile
+        $output = [string]$codexResult.Output
+      }
+
+      $executionTimer.Stop()
+
+      if ($directOverlayUsed) {
+        $metrics = [pscustomobject]@{
+          durationMs = $executionTimer.ElapsedMilliseconds
+          tokenCount = 0
+          splineMcpCalls = 1
+          targetMcpCalls = 1
+          reasoningEffort = "none"
+          executionProfile = $executionProfile
+          targetTokenBudget = 0
+          batchSize = @($job.payload.overlays).Count
+          readOnly = $true
+          efficiencyBudgetExceeded = $false
+          executionEngine = "DIRECT_SPLINE_MCP"
+        }
+      } else {
+        $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
+      }
+    } else {
+      Write-Host "Executing through Codex + Spline MCP..."
+
+      $executionTimer = [System.Diagnostics.Stopwatch]::StartNew()
+      $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand -ExecutionProfile $executionProfile
+      $executionTimer.Stop()
+      $output = [string]$codexResult.Output
+      $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
+    }
     if (
       $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2" -or
       $executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V1"
@@ -1057,7 +1175,7 @@ SAFETY:
     } elseif ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_V1") {
       $metrics.recipeCache = "MISS_LEARN"
       $metrics.referenceReadSkipped = $false
-    } elseif ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
+    } elseif ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1" -and -not $directOverlayUsed) {
       $metrics.reasoningEffort = "low"
       $metrics.readOnly = $true
       $metrics.targetTokenBudget = 5000

@@ -15,6 +15,8 @@ $runnerPath = Join-Path $workerDir "media-os-local-runner.ps1"
 $runnerTempPath = Join-Path $workerDir "media-os-local-runner.ps1.download"
 $workerPath = Join-Path $workerDir "spline-worker.ps1"
 $workerTempPath = Join-Path $workerDir "spline-worker.ps1.download"
+$directOverlayHelperPath = Join-Path $workerDir "spline-direct-overlay.js"
+$directOverlayHelperTempPath = Join-Path $workerDir "spline-direct-overlay.js.download"
 $logPath = Join-Path $logDir "spline-worker.log"
 
 New-Item -ItemType Directory -Path $workerDir -Force | Out-Null
@@ -123,9 +125,13 @@ function Sync-ProductionRelease {
 
     $root = "https://raw.githubusercontent.com/stefanVasilev17/media-os/$($script:currentCommit)/worker"
     $workerChanged = Download-Atomic -Uri "$root/spline-worker.ps1" -TargetPath $workerPath -TempPath $workerTempPath
+    $directOverlayHelperChanged = Download-Atomic -Uri "$root/spline-direct-overlay.js" -TargetPath $directOverlayHelperPath -TempPath $directOverlayHelperTempPath
 
     if ($workerChanged) {
       Write-RunnerLog "Worker updated to production commit $($script:currentCommit)."
+    }
+    if ($directOverlayHelperChanged) {
+      Write-RunnerLog "Direct Spline overlay helper updated to production commit $($script:currentCommit)."
     }
 
     $runnerChanged = Download-Atomic -Uri "$root/media-os-local-runner.ps1" -TargetPath $runnerPath -TempPath $runnerTempPath
@@ -147,6 +153,9 @@ if ($SelfTest) {
   Sync-ProductionRelease
   if (-not (Test-Path $workerPath)) {
     throw "Local Runner self-test could not find the worker."
+  }
+  if (-not (Test-Path $directOverlayHelperPath)) {
+    throw "Local Runner self-test could not find the direct Spline overlay helper."
   }
   Write-Host "MEDIA_OS_LOCAL_RUNNER_SELF_TEST: OK"
   Write-Host "Runner version: $runnerVersion"

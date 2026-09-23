@@ -325,7 +325,12 @@ public class SplineAuthoringOverlayRegistryService {
                     && coverage.containsKey("states")
                     && coverage.containsKey("events")
                     && coverage.containsKey("actions");
-            String status = labelTargetPath != null && coverageDeclared
+            boolean coverageTerminal = coverageDeclared
+                    && Set.of("EXPOSED", "NOT_FOUND", "NOT_EXPOSED").contains(stringValue(coverage.get("label")))
+                    && Set.of("EXPOSED", "CONFIRMED_EMPTY", "NOT_EXPOSED").contains(stringValue(coverage.get("states")))
+                    && Set.of("EXPOSED", "CONFIRMED_EMPTY", "NOT_EXPOSED").contains(stringValue(coverage.get("events")))
+                    && Set.of("EXPOSED", "CONFIRMED_EMPTY", "NOT_EXPOSED").contains(stringValue(coverage.get("actions")));
+            String status = coverageTerminal
                     ? "READY"
                     : "DISCOVERED_PARTIAL";
 
