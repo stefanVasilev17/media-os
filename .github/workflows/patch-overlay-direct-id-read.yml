@@ -1,0 +1,96 @@
+name: Patch overlay direct ID read
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-overlay-direct-id-read.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch worker
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("worker/spline-worker.ps1")
+          text = path.read_text(encoding="utf-8")
+
+          old_config = '''  if ($authoringOverlayDiscovery) {
+    $configs += @(
+      "features.shell_tool=false",
+      "features.skill_mcp_dependency_install=false",
+      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=3500",
+      "mcp_servers.spline.tools.3d_get_scene_mcp.output_token_limit=2500"
+    )
+  }'''
+
+          new_config = '''  if ($authoringOverlayDiscovery) {
+    $configs += @(
+      "features.shell_tool=false",
+      "features.skill_mcp_dependency_install=false",
+      "mcp_servers.spline.enabled_tools=['3d_get_objects']",
+      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=3500"
+    )
+  }'''
+
+          old_route = '''- FIRST call Spline/3d_load_skill exactly once.
+- Read the exact current schema for Spline/3d_get_objects from the loaded skill.
+- Then call Spline/3d_get_objects using only arguments documented by that skill.
+- Do not guess argument names or shapes.
+- Prefer one batched exact-target read if the tool supports multiple targets.
+- Otherwise read each supplied target once. Do not inspect unrelated objects.'''
+
+          new_route = '''- Do NOT call 3d_load_skill, get_scene_mcp, get_scene, run_code, or any other Spline tool.
+- Call exactly one Spline/3d_get_objects for the entire batch.
+- The only valid input is {"ids":[...]}; fill ids with every exact objectUuid from EXACT TARGETS, preserving target order.
+- Do not use objectName or editorPath as lookup arguments. 3d_get_objects accepts object ids only.
+- Use the returned object details as the sole source of truth for states, events, actions/transitions, and variable bindings.
+- If a requested label is not directly exposed by the returned target detail, mark label NOT_EXPOSED instead of performing another lookup.'''
+
+          replacements = [
+              (old_config, new_config, "overlay runtime config"),
+              (old_route, new_route, "overlay tool route"),
+              ('$metrics.targetMcpCalls = 6', '$metrics.targetMcpCalls = 1', "overlay target MCP calls"),
+              ('[int]$metrics.splineMcpCalls -gt 6 -or', '[int]$metrics.splineMcpCalls -gt 1 -or', "overlay MCP budget")
+          ]
+
+          for old, new, label in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one {label}, found {count}.")
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding="utf-8")
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("worker/spline-worker.ps1", [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Remove temporary workflow
+        run: git rm .github/workflows/patch-overlay-direct-id-read.yml
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/spline-worker.ps1
+          git commit -m "Use direct object IDs for overlay discovery"
+          git push origin HEAD:main
