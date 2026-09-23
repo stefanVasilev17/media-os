@@ -43,15 +43,20 @@ public class SplineSceneSlotRegistryService {
     ) {
         List<SlotCandidate> candidates = deriveCandidates(capabilityCatalog);
 
-        jdbc.sql("""
-                delete from spline_scene_slot_registry
+        Set<String> existingSlotKeys = new LinkedHashSet<>(jdbc.sql("""
+                select slot_key
+                from spline_scene_slot_registry
                 where project_id=:projectId and scene_fingerprint=:fingerprint
                 """)
                 .param("projectId", PROJECT_ID)
                 .param("fingerprint", sceneFingerprint)
-                .update();
+                .query(String.class)
+                .list());
+
+        Set<String> currentSlotKeys = new LinkedHashSet<>();
 
         for (SlotCandidate candidate : candidates) {
+            currentSlotKeys.add(candidate.slotKey());
             jdbc.sql("""
                     insert into spline_scene_slot_registry(
                         id, project_id, scene_fingerprint, capability_catalog_id,
@@ -67,6 +72,22 @@ public class SplineSceneSlotRegistryService {
                         :placementStrategy, :visibilityStrategy, :labelStrategy,
                         :behaviorStrategy, :cloneStrategy, cast(:evidence as jsonb), now()
                     )
+                    on conflict(project_id, scene_fingerprint, slot_key)
+                    do update set
+                        capability_catalog_id=excluded.capability_catalog_id,
+                        object_uuid=excluded.object_uuid,
+                        object_name=excluded.object_name,
+                        editor_path=excluded.editor_path,
+                        candidate_kind=excluded.candidate_kind,
+                        status=excluded.status,
+                        address_strategy=excluded.address_strategy,
+                        placement_strategy=excluded.placement_strategy,
+                        visibility_strategy=excluded.visibility_strategy,
+                        label_strategy=excluded.label_strategy,
+                        behavior_strategy=excluded.behavior_strategy,
+                        clone_strategy=excluded.clone_strategy,
+                        evidence=excluded.evidence,
+                        updated_at=now()
                     """)
                     .param("id", UUID.randomUUID())
                     .param("projectId", PROJECT_ID)
@@ -85,6 +106,21 @@ public class SplineSceneSlotRegistryService {
                     .param("behaviorStrategy", candidate.behaviorStrategy())
                     .param("cloneStrategy", candidate.cloneStrategy())
                     .param("evidence", writeJson(candidate.evidence()))
+                    .update();
+        }
+
+        for (String existingSlotKey : existingSlotKeys) {
+            if (currentSlotKeys.contains(existingSlotKey)) continue;
+
+            jdbc.sql("""
+                    delete from spline_scene_slot_registry
+                    where project_id=:projectId
+                      and scene_fingerprint=:fingerprint
+                      and slot_key=:slotKey
+                    """)
+                    .param("projectId", PROJECT_ID)
+                    .param("fingerprint", sceneFingerprint)
+                    .param("slotKey", existingSlotKey)
                     .update();
         }
 
