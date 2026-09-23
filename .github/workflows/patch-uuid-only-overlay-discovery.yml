@@ -34,7 +34,7 @@ jobs:
           p.write_text(s)
       - name: Compile backend
         working-directory: backend
-        run: ./mvnw -q -DskipTests compile
+        run: mvn -q -DskipTests compile
       - name: Remove temporary workflow
         run: rm .github/workflows/patch-uuid-only-overlay-discovery.yml
       - name: Commit patch
