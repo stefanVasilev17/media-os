@@ -59,8 +59,8 @@ function Get-CodexRuntimeArguments {
     $configs += @(
       "features.shell_tool=false",
       "features.skill_mcp_dependency_install=false",
-      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=3500",
-      "mcp_servers.spline.tools.3d_get_scene_mcp.output_token_limit=2500"
+      "mcp_servers.spline.enabled_tools=['3d_get_objects']",
+      "mcp_servers.spline.tools.3d_get_objects.output_token_limit=3500"
     )
   }
 
@@ -886,12 +886,12 @@ For each supplied target only, extract authoring metadata that Media OS cannot o
 
 TOKEN / CALL BUDGET:
 - Keep reasoning and narration minimal.
-- FIRST call Spline/3d_load_skill exactly once.
-- Read the exact current schema for Spline/3d_get_objects from the loaded skill.
-- Then call Spline/3d_get_objects using only arguments documented by that skill.
-- Do not guess argument names or shapes.
-- Prefer one batched exact-target read if the tool supports multiple targets.
-- Otherwise read each supplied target once. Do not inspect unrelated objects.
+- Do NOT call 3d_load_skill, get_scene_mcp, get_scene, run_code, or any other Spline tool.
+- Call exactly one Spline/3d_get_objects for the entire batch.
+- The only valid input is {"ids":[...]}; fill ids with every exact objectUuid from EXACT TARGETS, preserving target order.
+- Do not use objectName or editorPath as lookup arguments. 3d_get_objects accepts object ids only.
+- Use the returned object details as the sole source of truth for states, events, actions/transitions, and variable bindings.
+- If a requested label is not directly exposed by the returned target detail, mark label NOT_EXPOSED instead of performing another lookup.
 - Do not enumerate the full scene.
 - Do not take screenshots.
 - Do not use shell, web, browser automation, cua_repl, or non-Spline fallbacks.
@@ -1061,10 +1061,10 @@ SAFETY:
       $metrics.reasoningEffort = "low"
       $metrics.readOnly = $true
       $metrics.targetTokenBudget = 5000
-      $metrics.targetMcpCalls = 6
+      $metrics.targetMcpCalls = 1
       $metrics.batchSize = @($job.payload.overlays).Count
       $metrics.efficiencyBudgetExceeded = (
-        [int]$metrics.splineMcpCalls -gt 6 -or
+        [int]$metrics.splineMcpCalls -gt 1 -or
         ($null -ne $metrics.tokenCount -and [long]$metrics.tokenCount -gt 5000)
       )
     }
