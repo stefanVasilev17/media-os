@@ -1121,15 +1121,8 @@ SAFETY:
           Output = $output
         }
         $directOverlayUsed = $true
-      } catch {
-        Write-Warning "Direct Spline MCP overlay discovery failed; falling back to Codex V1. $($_.Exception.Message)"
-        $codexResult = Invoke-CodexSplineJob -Prompt $prompt -Command $codexCommand -ExecutionProfile $executionProfile
-        $output = [string]$codexResult.Output
-      }
+        $executionTimer.Stop()
 
-      $executionTimer.Stop()
-
-      if ($directOverlayUsed) {
         $metrics = [pscustomobject]@{
           durationMs = $executionTimer.ElapsedMilliseconds
           tokenCount = 0
@@ -1143,8 +1136,25 @@ SAFETY:
           efficiencyBudgetExceeded = $false
           executionEngine = "DIRECT_SPLINE_MCP"
         }
-      } else {
-        $metrics = Get-CodexExecutionMetrics -Output $output -DurationMs $executionTimer.ElapsedMilliseconds -ExecutionProfile $executionProfile
+      } catch {
+        if ($executionTimer.IsRunning) {
+          $executionTimer.Stop()
+        }
+        $directFailure = $_.Exception.Message
+        $metrics = [pscustomobject]@{
+          durationMs = $executionTimer.ElapsedMilliseconds
+          tokenCount = 0
+          splineMcpCalls = 1
+          targetMcpCalls = 1
+          reasoningEffort = "none"
+          executionProfile = $executionProfile
+          targetTokenBudget = 0
+          batchSize = @($job.payload.overlays).Count
+          readOnly = $true
+          efficiencyBudgetExceeded = $false
+          executionEngine = "DIRECT_SPLINE_MCP_FAILED"
+        }
+        throw "Direct Spline MCP overlay discovery failed without Codex fallback. $directFailure"
       }
     } else {
       Write-Host "Executing through Codex + Spline MCP..."

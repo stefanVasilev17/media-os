@@ -259,8 +259,10 @@ public class SplineSceneSlotRegistryService {
                     editorPath == null ? "RUNTIME_UNIQUE_NAME" : "EDITOR_PATH_AND_RUNTIME_NAME",
                     transform ? "RUNTIME_DIRECT" : "UNAVAILABLE",
                     visibility ? "RUNTIME_DIRECT" : "UNAVAILABLE",
-                    runtimeText ? "RUNTIME_DIRECT" : "AUTHORING_VARIABLE_REQUIRED",
-                    "AUTHORING_OVERLAY_REQUIRED",
+                    runtimeText
+                            ? "RUNTIME_DIRECT"
+                            : editorPath != null ? "AUTHORING_VARIABLE_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
+                    editorPath != null ? "AUTHORING_OVERLAY_REQUIRED" : "AUTHORING_ADDRESS_UNRESOLVED",
                     "RUNTIME_DIRECT",
                     evidence
             ));
@@ -277,6 +279,8 @@ public class SplineSceneSlotRegistryService {
         long runtimePlacement = candidates.stream().filter(c -> "RUNTIME_DIRECT".equals(c.placementStrategy())).count();
         long runtimeVisibility = candidates.stream().filter(c -> "RUNTIME_DIRECT".equals(c.visibilityStrategy())).count();
         long variableLabels = candidates.stream().filter(c -> "AUTHORING_VARIABLE_REQUIRED".equals(c.labelStrategy())).count();
+        long behaviorOverlayRequired = candidates.stream().filter(c -> "AUTHORING_OVERLAY_REQUIRED".equals(c.behaviorStrategy())).count();
+        long authoringAddressUnresolved = candidates.stream().filter(c -> "AUTHORING_ADDRESS_UNRESOLVED".equals(c.behaviorStrategy())).count();
         long editorGroups = candidates.stream().filter(c -> c.candidateKind().contains("EDITOR_GROUP")).count();
         long visualFamilies = candidates.stream().filter(c -> c.candidateKind().contains("VISUAL_FAMILY")).count();
 
@@ -287,7 +291,8 @@ public class SplineSceneSlotRegistryService {
         summary.put("runtimePlacementReady", runtimePlacement);
         summary.put("runtimeVisibilityReady", runtimeVisibility);
         summary.put("labelVariableAuthoringRequired", variableLabels);
-        summary.put("behaviorOverlayRequired", candidates.size());
+        summary.put("behaviorOverlayRequired", behaviorOverlayRequired);
+        summary.put("authoringAddressUnresolved", authoringAddressUnresolved);
         summary.put("semanticRoleUnclassified", candidates.size());
         summary.put("editorGroupCandidates", editorGroups);
         summary.put("visualFamilyCandidates", visualFamilies);

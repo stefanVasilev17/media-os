@@ -85,6 +85,29 @@ public class SplineAuthoringOverlayRegistryService {
                     .update();
         }
 
+        jdbc.sql("""
+                update spline_authoring_overlay o
+                set status='AUTHORING_ADDRESS_UNRESOLVED',
+                    label_target_path=null,
+                    label_current_text=null,
+                    state_definitions='[]'::jsonb,
+                    action_graph='[]'::jsonb,
+                    event_bindings='[]'::jsonb,
+                    discovery_coverage='{"label":"ADDRESS_UNRESOLVED","states":"ADDRESS_UNRESOLVED","events":"ADDRESS_UNRESOLVED","actions":"ADDRESS_UNRESOLVED"}'::jsonb,
+                    discovery_notes='Runtime visual-family slot has no resolved authoring/editor object address.',
+                    discovered_by=null,
+                    discovered_at=null,
+                    updated_at=now()
+                from spline_scene_slot_registry s
+                where o.slot_registry_id=s.id
+                  and o.project_id=:projectId
+                  and o.scene_fingerprint=:fingerprint
+                  and s.behavior_strategy='AUTHORING_ADDRESS_UNRESOLVED'
+                """)
+                .param("projectId", PROJECT_ID)
+                .param("fingerprint", sceneFingerprint)
+                .update();
+
         Map<String, Object> summary = summaryFor(sceneFingerprint);
         log.info(
                 "Spline authoring overlay registry synced fingerprint={} overlays={} pending={} ready={} requestedGlobalActiveLabel=AT_ACTIVE_OBJECT_LABEL",
@@ -137,6 +160,7 @@ public class SplineAuthoringOverlayRegistryService {
                 where o.project_id=:projectId
                   and o.scene_fingerprint=:fingerprint
                   and o.status='PENDING_DISCOVERY'
+                  and s.behavior_strategy='AUTHORING_OVERLAY_REQUIRED'
                 order by
                   case
                     when s.candidate_kind='EDITOR_GROUP_AND_VISUAL_FAMILY' then 0
@@ -495,6 +519,7 @@ public class SplineAuthoringOverlayRegistryService {
                        count(*) filter (where status='PENDING_DISCOVERY') as pending_count,
                        count(*) filter (where status='DISCOVERY_QUEUED') as queued_count,
                        count(*) filter (where status='DISCOVERED_PARTIAL') as partial_count,
+                       count(*) filter (where status='AUTHORING_ADDRESS_UNRESOLVED') as address_unresolved_count,
                        count(*) filter (where status='READY') as ready_count,
                        count(*) filter (where semantic_role='UNCLASSIFIED') as unclassified_count,
                        count(*) filter (where label_target_path is null) as labels_unbound
@@ -511,6 +536,7 @@ public class SplineAuthoringOverlayRegistryService {
                     result.put("pendingDiscovery", rs.getLong("pending_count"));
                     result.put("discoveryQueued", rs.getLong("queued_count"));
                     result.put("discoveredPartial", rs.getLong("partial_count"));
+                    result.put("authoringAddressUnresolved", rs.getLong("address_unresolved_count"));
                     result.put("ready", rs.getLong("ready_count"));
                     result.put("semanticRoleUnclassified", rs.getLong("unclassified_count"));
                     result.put("labelsUnbound", rs.getLong("labels_unbound"));
