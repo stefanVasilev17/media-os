@@ -137,7 +137,6 @@ public class SplineAuthoringOverlayRegistryService {
                 where o.project_id=:projectId
                   and o.scene_fingerprint=:fingerprint
                   and o.status='PENDING_DISCOVERY'
-                  and o.editor_path is not null
                 order by
                   case
                     when s.candidate_kind='EDITOR_GROUP_AND_VISUAL_FAMILY' then 0
