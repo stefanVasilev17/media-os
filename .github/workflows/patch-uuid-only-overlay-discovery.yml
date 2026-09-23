@@ -1,0 +1,46 @@
+name: Patch UUID-only overlay discovery
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-uuid-only-overlay-discovery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Remove obsolete editor_path eligibility gate
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineAuthoringOverlayRegistryService.java')
+          s = p.read_text()
+          old = "                  and o.status='PENDING_DISCOVERY'\n                  and o.editor_path is not null\n                order by"
+          new = "                  and o.status='PENDING_DISCOVERY'\n                order by"
+          if old not in s:
+              raise SystemExit('Expected editor_path eligibility gate not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+      - name: Compile backend
+        working-directory: backend
+        run: ./mvnw -q -DskipTests compile
+      - name: Remove temporary workflow
+        run: rm .github/workflows/patch-uuid-only-overlay-discovery.yml
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/src/main/java/com/architecturalthinking/mediaos/spline/SplineAuthoringOverlayRegistryService.java .github/workflows/patch-uuid-only-overlay-discovery.yml
+          git commit -m 'Allow UUID-only authoring overlay discovery'
+          git push origin main
