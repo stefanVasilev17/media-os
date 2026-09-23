@@ -28,22 +28,18 @@ function Get-CodexRuntimeArguments {
   }
 
   if ($ExecutionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") {
-    $reasoningEffort = "minimal"
+    $reasoningEffort = "low"
     $ultraLeanRecipeExecution = $true
   }
 
   if ($ExecutionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
-    $reasoningEffort = "minimal"
+    $reasoningEffort = "low"
     $authoringOverlayDiscovery = $true
   }
 
   $configs = @(
     "web_search=disabled",
     "agents.enabled=false",
-    "mcp_servers.codex_app.enabled=false",
-    "mcp_servers.codex_apps.enabled=false",
-    "mcp_servers.cua_repl.enabled=false",
-    "mcp_servers.node_repl.enabled=false",
     "model_reasoning_effort=$reasoningEffort",
     "model_reasoning_summary=none",
     "model_verbosity=low"
@@ -491,8 +487,8 @@ exit /b %ERRORLEVEL%
     }
 
     $ultraLeanArgs = Get-CodexRuntimeArguments -ExecutionProfile "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2"
-    if ($ultraLeanArgs -notmatch "model_reasoning_effort=minimal") {
-      throw "Ultra-lean recipe execution did not apply minimal reasoning. Args: $ultraLeanArgs"
+    if ($ultraLeanArgs -notmatch "model_reasoning_effort=low") {
+      throw "Ultra-lean recipe execution did not apply low reasoning. Args: $ultraLeanArgs"
     }
     if ($ultraLeanArgs -notmatch "features.shell_tool=false") {
       throw "Ultra-lean recipe execution did not disable the shell tool. Args: $ultraLeanArgs"
@@ -505,15 +501,11 @@ exit /b %ERRORLEVEL%
     }
 
     $overlayArgs = Get-CodexRuntimeArguments -ExecutionProfile "AUTHORING_OVERLAY_DISCOVERY_V1"
-    if ($overlayArgs -notmatch "model_reasoning_effort=minimal") {
-      throw "Authoring overlay discovery did not apply minimal reasoning. Args: $overlayArgs"
+    if ($overlayArgs -notmatch "model_reasoning_effort=low") {
+      throw "Authoring overlay discovery did not apply low reasoning. Args: $overlayArgs"
     }
     if ($overlayArgs -notmatch "features.shell_tool=false") {
       throw "Authoring overlay discovery did not disable shell execution. Args: $overlayArgs"
-    }
-
-    if ([string]$result.Output -notmatch "mcp_servers.codex_apps.enabled=false") {
-      throw "Launcher self-test did not disable unrelated Codex Apps MCP tools. Output: $($result.Output)"
     }
 
     if ([string]$result.Output -notmatch "UTF8_STDIN_OK") {
@@ -1048,7 +1040,7 @@ SAFETY:
     ) {
       $metrics.recipeCache = "HIT"
       $metrics.referenceReadSkipped = $true
-      $metrics.reasoningEffort = if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") { "minimal" } else { "low" }
+      $metrics.reasoningEffort = if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") { "low" } else { "low" }
       $metrics.mcpToolSurface = if ($executionProfile -eq "REFERENCE_COMPONENT_CREATE_FROM_RECIPE_V2") { 2 } else { $null }
       $metrics.targetMcpCalls = 3
       $metrics.targetTokenBudget = 6000
@@ -1063,7 +1055,7 @@ SAFETY:
       $metrics.recipeCache = "MISS_LEARN"
       $metrics.referenceReadSkipped = $false
     } elseif ($executionProfile -eq "AUTHORING_OVERLAY_DISCOVERY_V1") {
-      $metrics.reasoningEffort = "minimal"
+      $metrics.reasoningEffort = "low"
       $metrics.readOnly = $true
       $metrics.targetTokenBudget = 5000
       $metrics.targetMcpCalls = 6
