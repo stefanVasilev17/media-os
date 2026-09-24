@@ -27,6 +27,40 @@ type RuntimeStatus = {
   text: string;
 };
 
+type Vector3Like = {
+  x?: number;
+  y?: number;
+  z?: number;
+  set?: (x: number, y: number, z: number) => unknown;
+};
+
+type CameraControlsLike = {
+  getPosition?: (target: VectorProbe) => unknown;
+  getTarget?: (target: VectorProbe) => unknown;
+  setLookAt?: (
+    positionX: number,
+    positionY: number,
+    positionZ: number,
+    targetX: number,
+    targetY: number,
+    targetZ: number,
+    enableTransition?: boolean
+  ) => unknown;
+  setTarget?: (x: number, y: number, z: number, enableTransition?: boolean) => unknown;
+  update?: (delta?: number) => unknown;
+  camera?: { position?: Vector3Like };
+  _camera?: { position?: Vector3Like };
+  target?: Vector3Like;
+  _target?: Vector3Like;
+};
+
+type Vector3 = { x: number; y: number; z: number };
+type CameraPose = { position: Vector3; target: Vector3 };
+type VectorProbe = Vector3 & {
+  copy: (value: Vector3Like) => VectorProbe;
+  set: (x: number, y: number, z: number) => VectorProbe;
+};
+
 const ACTIONS: Array<{
   id: ActionMode;
   label: string;
@@ -41,7 +75,8 @@ const ACTIONS: Array<{
 ];
 
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
-const DEFAULT_OVERVIEW_ZOOM = 0.45;
+const DEFAULT_OVERVIEW_ZOOM = 0.12;
+const DEFAULT_FOCUS_ZOOM = 0.85;
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -62,9 +97,190 @@ function chooseRecordingMimeType() {
   return candidates.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) ?? '';
 }
 
+function finiteVector(value: Vector3Like | null | undefined): Vector3 | null {
+  if (!value) return null;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  const z = Number(value.z);
+  return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? { x, y, z } : null;
+}
+
+function createVectorProbe(): VectorProbe {
+  return {
+    x: 0,
+    y: 0,
+    z: 0,
+    copy(value) {
+      this.x = Number(value.x) || 0;
+      this.y = Number(value.y) || 0;
+      this.z = Number(value.z) || 0;
+      return this;
+    },
+    set(x, y, z) {
+      this.x = x;
+      this.y = y;
+      this.z = z;
+      return this;
+    }
+  };
+}
+
+function cameraControls(app: Application): CameraControlsLike | null {
+  const runtime = app as unknown as { controls?: CameraControlsLike; _controls?: CameraControlsLike };
+  return runtime.controls ?? runtime._controls ?? null;
+}
+
+function readCameraPose(app: Application): CameraPose | null {
+  const controls = cameraControls(app);
+  if (!controls) return null;
+
+  try {
+    let position: Vector3 | null = null;
+    let target: Vector3 | null = null;
+
+    if (typeof controls.getPosition === 'function') {
+      const probe = createVectorProbe();
+      controls.getPosition(probe);
+      position = finiteVector(probe);
+    }
+    if (typeof controls.getTarget === 'function') {
+      const probe = createVectorProbe();
+      controls.getTarget(probe);
+      target = finiteVector(probe);
+    }
+
+    position ??= finiteVector(controls.camera?.position ?? controls._camera?.position);
+    target ??= finiteVector(controls.target ?? controls._target);
+
+    return position && target ? { position, target } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeVector(target: Vector3Like | null | undefined, value: Vector3) {
+  if (!target) return false;
+  if (typeof target.set === 'function') {
+    target.set(value.x, value.y, value.z);
+    return true;
+  }
+  target.x = value.x;
+  target.y = value.y;
+  target.z = value.z;
+  return true;
+}
+
+function applyCameraPose(app: Application, pose: CameraPose, animate: boolean) {
+  const controls = cameraControls(app);
+  if (!controls) return false;
+
+  try {
+    if (typeof controls.setLookAt === 'function') {
+      controls.setLookAt(
+        pose.position.x,
+        pose.position.y,
+        pose.position.z,
+        pose.target.x,
+        pose.target.y,
+        pose.target.z,
+        animate
+      );
+      app.requestRender();
+      return true;
+    }
+
+    const positionTarget = controls.camera?.position ?? controls._camera?.position;
+    const targetTarget = controls.target ?? controls._target;
+    if (writeVector(positionTarget, pose.position) && writeVector(targetTarget, pose.target)) {
+      controls.update?.(0);
+      app.requestRender();
+      return true;
+    }
+
+    if (typeof controls.setTarget === 'function') {
+      controls.setTarget(pose.target.x, pose.target.y, pose.target.z, animate);
+      app.requestRender();
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
+  const rx = Number(rotation?.x) || 0;
+  const ry = Number(rotation?.y) || 0;
+  const rz = Number(rotation?.z) || 0;
+
+  let x = point.x;
+  let y = point.y;
+  let z = point.z;
+
+  if (rx !== 0) {
+    const cos = Math.cos(rx);
+    const sin = Math.sin(rx);
+    const nextY = y * cos - z * sin;
+    const nextZ = y * sin + z * cos;
+    y = nextY;
+    z = nextZ;
+  }
+  if (ry !== 0) {
+    const cos = Math.cos(ry);
+    const sin = Math.sin(ry);
+    const nextX = x * cos + z * sin;
+    const nextZ = -x * sin + z * cos;
+    x = nextX;
+    z = nextZ;
+  }
+  if (rz !== 0) {
+    const cos = Math.cos(rz);
+    const sin = Math.sin(rz);
+    const nextX = x * cos - y * sin;
+    const nextY = x * sin + y * cos;
+    x = nextX;
+    y = nextY;
+  }
+
+  return { x, y, z };
+}
+
+function runtimeWorldPosition(object: RuntimeObject): Vector3 {
+  let point: Vector3 = {
+    x: Number(object.position?.x) || 0,
+    y: Number(object.position?.y) || 0,
+    z: Number(object.position?.z) || 0
+  };
+  let parent = object.parent ?? null;
+  let depth = 0;
+  const visited = new Set<string>();
+
+  while (parent && depth < 32 && !visited.has(parent.uuid)) {
+    visited.add(parent.uuid);
+    const scale = parent.scale as Vector3Like | undefined;
+    point = {
+      x: point.x * (Number(scale?.x) || 1),
+      y: point.y * (Number(scale?.y) || 1),
+      z: point.z * (Number(scale?.z) || 1)
+    };
+    point = rotateXYZ(point, parent.rotation as Vector3Like | undefined);
+    point = {
+      x: point.x + (Number(parent.position?.x) || 0),
+      y: point.y + (Number(parent.position?.y) || 0),
+      z: point.z + (Number(parent.position?.z) || 0)
+    };
+    parent = parent.parent ?? null;
+    depth += 1;
+  }
+
+  return point;
+}
+
 export function SplineRuntimeComposer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
+  const overviewCameraRef = useRef<CameraPose | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingNameRef = useRef('spline-scene');
@@ -137,6 +353,7 @@ export function SplineRuntimeComposer() {
       if (recorder && recorder.state !== 'inactive') recorder.stop();
       appRef.current?.dispose();
       appRef.current = null;
+      overviewCameraRef.current = null;
     };
   }, []);
 
@@ -160,11 +377,6 @@ export function SplineRuntimeComposer() {
     setSceneRevision(value => value + 1);
   }
 
-  function syncRuntimeMutation(nextZoom?: number) {
-    if (typeof nextZoom === 'number' && Number.isFinite(nextZoom)) setZoom(String(nextZoom));
-    refreshObjectList();
-  }
-
   async function loadScene(url = sceneUrl) {
     const canvas = canvasRef.current;
     if (!canvas || !url.trim()) return;
@@ -179,6 +391,12 @@ export function SplineRuntimeComposer() {
       appRef.current = app;
       await app.load(url.trim());
       app.play();
+      overviewCameraRef.current = readCameraPose(app);
+      if (!overviewCameraRef.current) {
+        window.requestAnimationFrame(() => {
+          if (appRef.current === app) overviewCameraRef.current = readCameraPose(app);
+        });
+      }
       app.setZoom(DEFAULT_OVERVIEW_ZOOM);
       const next = refreshObjectList(app);
       const firstNamed = next.find(object => Boolean(object.name?.trim()));
@@ -187,7 +405,7 @@ export function SplineRuntimeComposer() {
       setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `Live scene ready in overview · ${next.length} objects available.` });
+      setStatus({ tone: 'success', text: `Full architecture overview ready · ${next.length} objects available.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
     } finally {
@@ -207,6 +425,59 @@ export function SplineRuntimeComposer() {
     const normalized = candidate.trim();
     if (!normalized) return false;
     return !objects.some(object => object.uuid !== ignoreUuid && object.name === normalized);
+  }
+
+  function restoreOverview() {
+    const app = appRef.current;
+    if (!app) return;
+    if (overviewCameraRef.current) applyCameraPose(app, overviewCameraRef.current, true);
+    app.setZoom(DEFAULT_OVERVIEW_ZOOM);
+    setZoom(String(DEFAULT_OVERVIEW_ZOOM));
+    app.play();
+    setStatus({ tone: 'success', text: 'Full architecture overview restored.' });
+  }
+
+  function focusObject(object: RuntimeObject) {
+    const app = appRef.current;
+    if (!app) return false;
+
+    const worldTarget = runtimeWorldPosition(object);
+    const overviewPose = overviewCameraRef.current ?? readCameraPose(app);
+    let centered = false;
+
+    if (overviewPose) {
+      const delta = {
+        x: worldTarget.x - overviewPose.target.x,
+        y: worldTarget.y - overviewPose.target.y,
+        z: worldTarget.z - overviewPose.target.z
+      };
+      centered = applyCameraPose(app, {
+        position: {
+          x: overviewPose.position.x + delta.x,
+          y: overviewPose.position.y + delta.y,
+          z: overviewPose.position.z + delta.z
+        },
+        target: worldTarget
+      }, true);
+    }
+
+    app.setZoom(DEFAULT_FOCUS_ZOOM);
+    setZoom(String(DEFAULT_FOCUS_ZOOM));
+    app.play();
+    setStatus({
+      tone: centered ? 'success' : 'neutral',
+      text: centered
+        ? `Focused on ${object.name || 'selected object'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.`
+        : `${object.name || 'Selected object'} zoomed to ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×. Camera centering is not exposed by this runtime scene.`
+    });
+    return centered;
+  }
+
+  function selectObject(uuid: string) {
+    setSelectedUuid(uuid);
+    if (!uuid || recording) return;
+    const object = objects.find(candidate => candidate.uuid === uuid);
+    if (object) focusObject(object);
   }
 
   function createFromTemplate() {
@@ -234,8 +505,9 @@ export function SplineRuntimeComposer() {
       clone.name = targetName;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
+      focusObject(clone);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName}.` });
+      setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName} and brought into view.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not create the runtime object.' });
     }
@@ -260,8 +532,9 @@ export function SplineRuntimeComposer() {
       clone.name = candidate;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
+      focusObject(clone);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate}.` });
+      setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate} and brought into view.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not duplicate the selected object.' });
     }
@@ -456,7 +729,7 @@ export function SplineRuntimeComposer() {
 
           <label className="runtime-object-picker">
             <span>Selected object</span>
-            <select value={selectedUuid} onChange={event => setSelectedUuid(event.target.value)} disabled={!loaded || recording}>
+            <select value={selectedUuid} onChange={event => selectObject(event.target.value)} disabled={!loaded || recording}>
               <option value="">Choose object…</option>
               {namedObjects.map(object => (
                 <option key={object.uuid} value={object.uuid}>
@@ -465,6 +738,18 @@ export function SplineRuntimeComposer() {
               ))}
             </select>
           </label>
+
+          <div className="runtime-shot-presets" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', marginTop: 8 }}>
+            <button disabled={!loaded || recording} onClick={restoreOverview}>
+              <Shapes size={15} /> Full overview
+            </button>
+            <button disabled={!selectedObject || recording} onClick={() => selectedObject && focusObject(selectedObject)}>
+              <Camera size={15} /> Focus selected
+            </button>
+          </div>
+          <p className="runtime-action-note" style={{ marginTop: 7 }}>
+            Choosing an object automatically brings it into focus. Use Full overview to return to the complete architecture map.
+          </p>
 
           <div className={`runtime-status ${status.tone}`}>
             {status.tone === 'success' ? <Check size={15} /> : status.tone === 'working' ? <LoaderCircle size={15} className="spin" /> : <Square size={13} />}
@@ -567,18 +852,18 @@ export function SplineRuntimeComposer() {
             {activeAction === 'frame' && (
               <div className="runtime-form-stack">
                 <div className="runtime-shot-presets">
-                  <button disabled={recording} onClick={() => applyZoom(String(DEFAULT_OVERVIEW_ZOOM))}>Overview</button>
+                  <button disabled={recording} onClick={restoreOverview}>Overview</button>
                   <button disabled={recording} onClick={() => applyZoom('1')}>Standard</button>
                   <button disabled={recording} onClick={() => applyZoom('1.5')}>Close</button>
                 </div>
                 <label>
                   <span>Camera zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
-                  <input type="range" min="0.25" max="3" step="0.05" value={zoom} onChange={event => {
+                  <input type="range" min="0.1" max="3" step="0.05" value={zoom} onChange={event => {
                     setZoom(event.target.value);
                     applyZoom(event.target.value);
                   }} disabled={!loaded || recording} />
                 </label>
-                <p className="runtime-action-note">Scenes now open in a wide overview so the full architecture is easier to navigate. Use this control or timeline camera cues to move into the shot.</p>
+                <p className="runtime-action-note">Overview returns to the complete map. Selecting an object automatically shifts the runtime camera to that object and applies a readable focus zoom.</p>
               </div>
             )}
 
