@@ -41,6 +41,7 @@ const ACTIONS: Array<{
 ];
 
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
+const DEFAULT_OVERVIEW_ZOOM = 0.45;
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -91,7 +92,7 @@ export function SplineRuntimeComposer() {
 
   const [stateValue, setStateValue] = useState('1');
   const [eventType, setEventType] = useState('mouseDown');
-  const [zoom, setZoom] = useState('1');
+  const [zoom, setZoom] = useState(String(DEFAULT_OVERVIEW_ZOOM));
   const [recording, setRecording] = useState(false);
 
   const namedObjects = useMemo(
@@ -178,14 +179,15 @@ export function SplineRuntimeComposer() {
       appRef.current = app;
       await app.load(url.trim());
       app.play();
+      app.setZoom(DEFAULT_OVERVIEW_ZOOM);
       const next = refreshObjectList(app);
       const firstNamed = next.find(object => Boolean(object.name?.trim()));
       setSelectedUuid(firstNamed?.uuid ?? '');
       setTemplateUuid(firstNamed?.uuid ?? '');
-      setZoom('1');
+      setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `Live scene ready · ${next.length} objects available.` });
+      setStatus({ tone: 'success', text: `Live scene ready in overview · ${next.length} objects available.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
     } finally {
@@ -333,7 +335,7 @@ export function SplineRuntimeComposer() {
   function applyZoom(nextValue = zoom) {
     const app = appRef.current;
     if (!app) return;
-    const value = Math.max(0.1, numberValue(nextValue, 1));
+    const value = Math.max(0.1, numberValue(nextValue, DEFAULT_OVERVIEW_ZOOM));
     setZoom(String(value));
     app.setZoom(value);
     markManualSceneChange();
@@ -565,18 +567,18 @@ export function SplineRuntimeComposer() {
             {activeAction === 'frame' && (
               <div className="runtime-form-stack">
                 <div className="runtime-shot-presets">
-                  <button disabled={recording} onClick={() => applyZoom('0.75')}>Wide</button>
+                  <button disabled={recording} onClick={() => applyZoom(String(DEFAULT_OVERVIEW_ZOOM))}>Overview</button>
                   <button disabled={recording} onClick={() => applyZoom('1')}>Standard</button>
                   <button disabled={recording} onClick={() => applyZoom('1.5')}>Close</button>
                 </div>
                 <label>
-                  <span>Camera zoom · {numberValue(zoom, 1).toFixed(2)}×</span>
-                  <input type="range" min="0.35" max="3" step="0.05" value={zoom} onChange={event => {
+                  <span>Camera zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
+                  <input type="range" min="0.25" max="3" step="0.05" value={zoom} onChange={event => {
                     setZoom(event.target.value);
                     applyZoom(event.target.value);
                   }} disabled={!loaded || recording} />
                 </label>
-                <p className="runtime-action-note">This controls the live runtime framing. The compositor below can sequence zoom changes and authored camera events on the episode timeline.</p>
+                <p className="runtime-action-note">Scenes now open in a wide overview so the full architecture is easier to navigate. Use this control or timeline camera cues to move into the shot.</p>
               </div>
             )}
 
@@ -606,7 +608,7 @@ export function SplineRuntimeComposer() {
         objects={objects}
         ready={loaded}
         selectedUuid={selectedUuid}
-        currentZoom={numberValue(zoom, 1)}
+        currentZoom={numberValue(zoom, DEFAULT_OVERVIEW_ZOOM)}
         sceneRevision={sceneRevision}
         recording={recording}
         onStartRecording={startRecording}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Application } from '@splinetool/runtime';
-import { CircleDot, ListVideo, Pause, Play, Plus, RotateCcw, Square, Trash2, Video } from 'lucide-react';
+import { CircleDot, ListVideo, Minus, Pause, Play, Plus, RotateCcw, Square, Trash2, Video } from 'lucide-react';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import {
   clampEpisodeSceneTime,
@@ -11,8 +11,11 @@ import {
   type EpisodeSceneCueKind,
   type EpisodeScenePlaybackState
 } from '../lib/episodeSceneTimeline';
+import '../styles/mobileCompositorUsability.css';
 
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
+const CUE_TIME_STEP_MS = 100;
+const DURATION_STEP_MS = 500;
 const CUE_LABELS: Record<EpisodeSceneCueKind, string> = {
   state: 'Set state',
   event: 'Run animation',
@@ -349,6 +352,10 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     setCues(previous => previous.map(cue => ({ ...cue, atMs: Math.min(cue.atMs, next) })));
   }
 
+  function stepDuration(deltaMs: number) {
+    changeDuration((durationMs + deltaMs) / 1000);
+  }
+
   function addCue() {
     const object = objects.find(item => item.uuid === selectedUuid) ?? namedObjects[0];
     setCues(previous => [...previous, createEpisodeSceneCue('state', playheadMs, object?.uuid ?? '')]);
@@ -356,6 +363,10 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
 
   function updateCue(id: string, patch: Partial<EpisodeSceneCue>) {
     setCues(previous => previous.map(cue => cue.id === id ? { ...cue, ...patch } : cue));
+  }
+
+  function stepCueTime(cue: EpisodeSceneCue, deltaMs: number) {
+    updateCue(cue.id, { atMs: clampEpisodeSceneTime(cue.atMs + deltaMs, durationMs) });
   }
 
   function changeCueKind(cue: EpisodeSceneCue, kind: EpisodeSceneCueKind) {
@@ -394,7 +405,15 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
         </div>
         <div className="episode-scene-meta">
           <label><span>Scene name</span><input value={sceneName} onChange={event => setSceneName(event.target.value)} disabled={playbackState === 'playing'} /></label>
-          <label><span>Length</span><div><input type="number" min="0.5" max="120" step="0.5" value={durationMs / 1000} onChange={event => changeDuration(Number(event.target.value))} disabled={playbackState === 'playing'} /><b>s</b></div></label>
+          <label>
+            <span>Length</span>
+            <div className="episode-number-stepper">
+              <button type="button" className="episode-stepper-button" aria-label="Decrease scene length by 0.5 seconds" disabled={editorLocked || durationMs <= 500} onClick={() => stepDuration(-DURATION_STEP_MS)}><Minus size={16} /></button>
+              <input type="number" min="0.5" max="120" step="0.5" value={durationMs / 1000} onChange={event => changeDuration(Number(event.target.value))} disabled={playbackState === 'playing'} />
+              <b>s</b>
+              <button type="button" className="episode-stepper-button" aria-label="Increase scene length by 0.5 seconds" disabled={editorLocked || durationMs >= 120000} onClick={() => stepDuration(DURATION_STEP_MS)}><Plus size={16} /></button>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -426,7 +445,15 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
           return (
             <article className={`episode-cue-row ${playheadMs >= cue.atMs ? 'reached' : ''}`} key={cue.id}>
               <div className="episode-cue-index">{String(index + 1).padStart(2, '0')}</div>
-              <label className="episode-cue-time"><span>Time</span><div><input type="number" min="0" max={durationMs / 1000} step="0.1" value={(cue.atMs / 1000).toFixed(1)} disabled={editorLocked} onChange={event => updateCue(cue.id, { atMs: clampEpisodeSceneTime(Number(event.target.value) * 1000, durationMs) })} /><b>s</b></div></label>
+              <label className="episode-cue-time">
+                <span>Time</span>
+                <div className="episode-number-stepper">
+                  <button type="button" className="episode-stepper-button" aria-label={`Move cue ${index + 1} back by 0.1 seconds`} disabled={editorLocked || cue.atMs <= 0} onClick={() => stepCueTime(cue, -CUE_TIME_STEP_MS)}><Minus size={16} /></button>
+                  <input type="number" min="0" max={durationMs / 1000} step="0.1" value={(cue.atMs / 1000).toFixed(1)} disabled={editorLocked} onChange={event => updateCue(cue.id, { atMs: clampEpisodeSceneTime(Number(event.target.value) * 1000, durationMs) })} />
+                  <b>s</b>
+                  <button type="button" className="episode-stepper-button" aria-label={`Move cue ${index + 1} forward by 0.1 seconds`} disabled={editorLocked || cue.atMs >= durationMs} onClick={() => stepCueTime(cue, CUE_TIME_STEP_MS)}><Plus size={16} /></button>
+                </div>
+              </label>
               <label><span>Action</span><select value={cue.kind} disabled={editorLocked} onChange={event => changeCueKind(cue, event.target.value as EpisodeSceneCueKind)}>{(Object.keys(CUE_LABELS) as EpisodeSceneCueKind[]).map(kind => <option key={kind} value={kind}>{CUE_LABELS[kind]}</option>)}</select></label>
               {cue.kind !== 'zoom' && <label className="episode-cue-target"><span>Object</span><select value={cue.targetUuid || ''} disabled={editorLocked} onChange={event => updateCue(cue.id, { targetUuid: event.target.value })}><option value="">Choose object…</option>{namedObjects.map(item => <option key={item.uuid} value={item.uuid}>{item.name}</option>)}</select></label>}
               <div className="episode-cue-value">
