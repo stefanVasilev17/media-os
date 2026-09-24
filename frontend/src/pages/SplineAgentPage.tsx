@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowLeft,
   Check,
+  CheckCircle2,
   Clock3,
-  Eraser,
+  HeartPulse,
+  Map,
+  MessageSquare,
   Minus,
   Plus,
   RefreshCw,
   RotateCcw,
   Send,
-  Stethoscope,
-  TestTube2,
   X
 } from 'lucide-react';
 import {
@@ -18,15 +18,32 @@ import {
   decideSplineJob,
   loadLatestSplineJob,
   loadPendingSplineApprovals,
+  loadRunnerStatus,
   loadSplineChat,
   loadSplineSnapshotMeta,
   requestSplineSnapshot,
   splineSnapshotImageUrl,
   type LatestSplineJob,
   type PendingSplineApproval,
+  type RunnerStatus,
   type SplineChatMessage,
   type SplineSnapshotMeta
 } from '../api/mediaOsApi';
+
+type WorkspaceView = 'chat' | 'map' | 'health';
+
+type CommandActivity = {
+  tone: 'working' | 'waiting' | 'success' | 'error' | 'cancelled';
+  label: string;
+  detail: string;
+  spinning?: boolean;
+};
+
+function initialView(): WorkspaceView {
+  const query = window.location.hash.split('?')[1] ?? '';
+  const requested = new URLSearchParams(query).get('view');
+  return requested === 'map' || requested === 'health' ? requested : 'chat';
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -38,59 +55,52 @@ function commandText(instructions: string) {
     .replace(' Do not change unrelated objects. Verify the requested result before reporting success.', '');
 }
 
-type CommandActivity = {
-  tone: 'working' | 'waiting' | 'success' | 'error' | 'cancelled';
-  label: string;
-  detail: string;
-  spinning?: boolean;
-};
-
 function commandActivityForStatus(status?: string | null, error?: string | null): CommandActivity | null {
   switch (status) {
     case 'WAITING_APPROVAL':
       return {
         tone: 'waiting',
-        label: 'Waiting for your approval',
-        detail: 'The command is prepared. Review it below, then tap Approve to allow execution.'
+        label: 'Ready for your approval',
+        detail: 'Review the prepared change below, then approve or cancel it.'
       };
     case 'QUEUED':
       return {
         tone: 'working',
-        label: 'Approved — waiting for Spline Agent',
-        detail: 'The Local Runner is waiting to claim this command.',
+        label: 'Approved — waiting for the Spline worker',
+        detail: 'The command is queued and will start as soon as the production bridge claims it.',
         spinning: true
       };
     case 'CLAIMED':
       return {
         tone: 'working',
         label: 'Spline Agent claimed the command',
-        detail: 'The production worker has picked up the job and is preparing execution.',
+        detail: 'The worker is preparing the requested scene operation.',
         spinning: true
       };
     case 'RUNNING':
       return {
         tone: 'working',
         label: 'Spline Agent is working',
-        detail: 'The approved change is being executed in Spline. Keep the Spline desktop session available.',
+        detail: 'The approved change is being executed in the current Spline scene.',
         spinning: true
       };
     case 'SUCCEEDED':
       return {
         tone: 'success',
         label: 'Command completed',
-        detail: 'Spline Agent reported success. Refresh the map to review the visual result.'
+        detail: 'The requested Spline change completed successfully.'
       };
     case 'FAILED':
       return {
         tone: 'error',
         label: 'Command failed',
-        detail: error?.trim() || 'The change did not complete. Open Diagnostics for the execution error before retrying.'
+        detail: error?.trim() || 'The Spline change did not complete.'
       };
     case 'CHANGES_REQUESTED':
       return {
         tone: 'cancelled',
         label: 'Command cancelled',
-        detail: 'The command was not allowed to execute.'
+        detail: 'The prepared change was not released to the production worker.'
       };
     default:
       return null;
@@ -138,9 +148,10 @@ function SplineMapViewer({
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (pointers.current.size === 1) {
-      const dx = event.clientX - previous.x;
-      const dy = event.clientY - previous.y;
-      setOffset(current => ({ x: current.x + dx, y: current.y + dy }));
+      setOffset(current => ({
+        x: current.x + event.clientX - previous.x,
+        y: current.y + event.clientY - previous.y
+      }));
       return;
     }
 
@@ -162,21 +173,20 @@ function SplineMapViewer({
   }
 
   return (
-    <section className="spline-map-card">
-      <div className="spline-map-toolbar">
+    <section className="spline-workspace-panel spline-map-panel">
+      <div className="spline-panel-heading">
         <div>
-          <span>CURRENT SPLINE MAP</span>
-          <strong>{meta?.status === 'READY' ? 'Latest desktop snapshot' : 'No snapshot yet'}</strong>
-          {meta?.capturedAt && <small>{new Date(meta.capturedAt).toLocaleString()}</small>}
+          <span>CURRENT MAP</span>
+          <strong>{meta?.status === 'READY' ? 'Latest Spline snapshot' : 'No snapshot yet'}</strong>
+          {meta?.capturedAt && <small>Updated {new Date(meta.capturedAt).toLocaleString()}</small>}
         </div>
-
         <div className="spline-map-actions">
           <button onClick={() => zoom(-0.5)} aria-label="Zoom out"><Minus size={16} /></button>
           <button onClick={reset} aria-label="Reset zoom"><RotateCcw size={16} /></button>
           <button onClick={() => zoom(0.5)} aria-label="Zoom in"><Plus size={16} /></button>
           <button className="snapshot-refresh" disabled={refreshing} onClick={onRefresh}>
             <RefreshCw size={16} className={refreshing ? 'spin' : ''} />
-            {refreshing ? 'Capturing…' : 'Refresh map'}
+            {refreshing ? 'Refreshing…' : 'Refresh map'}
           </button>
         </div>
       </div>
@@ -196,15 +206,13 @@ function SplineMapViewer({
           <img
             draggable={false}
             src={splineSnapshotImageUrl(meta.id)}
-            alt="Current Spline map snapshot"
-            style={{
-              transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`
-            }}
+            alt="Current Spline map"
+            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})` }}
           />
         ) : (
           <div className="spline-map-empty">
-            <strong>No map image yet.</strong>
-            <span>Keep Spline open on the laptop and tap Refresh map.</span>
+            <strong>No map image yet</strong>
+            <span>Keep Spline available on the production machine, then tap Refresh map.</span>
           </div>
         )}
       </div>
@@ -212,30 +220,13 @@ function SplineMapViewer({
   );
 }
 
-async function clearFrontendCache() {
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(key => caches.delete(key)));
-  }
-
-  localStorage.clear();
-  sessionStorage.clear();
-
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map(registration => registration.update()));
-  }
-
-  const url = new URL(window.location.href);
-  url.searchParams.set('cacheBust', Date.now().toString());
-  window.location.replace(url.toString());
-}
-
 export function SplineAgentPage() {
+  const [view, setView] = useState<WorkspaceView>(() => initialView());
   const [meta, setMeta] = useState<SplineSnapshotMeta | null>(null);
   const [messages, setMessages] = useState<SplineChatMessage[]>([]);
   const [approvals, setApprovals] = useState<PendingSplineApproval[]>([]);
   const [latestExecution, setLatestExecution] = useState<LatestSplineJob | null>(null);
+  const [runner, setRunner] = useState<RunnerStatus | null>(null);
   const [message, setMessage] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -243,17 +234,19 @@ export function SplineAgentPage() {
   const [transientActivity, setTransientActivity] = useState<CommandActivity | null>(null);
 
   const refresh = useCallback(async () => {
-    const [snapshot, chat, pending, latest] = await Promise.all([
+    const [snapshot, chat, pending, latest, runnerStatus] = await Promise.all([
       loadSplineSnapshotMeta(),
       loadSplineChat(),
       loadPendingSplineApprovals(),
-      loadLatestSplineJob()
+      loadLatestSplineJob(),
+      loadRunnerStatus()
     ]);
 
     setMeta(snapshot);
     setMessages(chat);
     setApprovals(pending.filter(item => item.taskType.startsWith('CREATOR_SPLINE_COMMAND_')));
     setLatestExecution(latest);
+    setRunner(runnerStatus);
   }, []);
 
   useEffect(() => {
@@ -271,18 +264,18 @@ export function SplineAgentPage() {
   const commandActivity = transientActivity ?? commandActivityForStatus(latestCommandStatus, latestCommand?.error);
 
   useEffect(() => {
-    if (!latestCommandStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestCommandStatus)) {
-      return;
-    }
-
+    if (!latestCommandStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestCommandStatus)) return;
     const timer = window.setInterval(() => {
-      refresh().catch(error => {
-        setFlash(error instanceof Error ? error.message : 'Could not refresh command status');
-      });
+      refresh().catch(() => undefined);
     }, 2500);
-
     return () => window.clearInterval(timer);
   }, [latestCommandStatus, refresh]);
+
+  function selectView(next: WorkspaceView) {
+    setView(next);
+    const url = `#/agents/spline?view=${next}`;
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${url}`);
+  }
 
   async function captureSnapshot() {
     setRefreshing(true);
@@ -291,21 +284,18 @@ export function SplineAgentPage() {
 
     try {
       await requestSplineSnapshot();
-
       for (let attempt = 0; attempt < 20; attempt += 1) {
         await new Promise(resolve => window.setTimeout(resolve, 1500));
         const next = await loadSplineSnapshotMeta();
-
         if (next.status === 'READY' && next.id !== previousId) {
           setMeta(next);
-          setFlash('Map refreshed.');
+          setFlash('Current map refreshed.');
           return;
         }
       }
-
-      setFlash('Snapshot did not update within 30 seconds. Check that Spline is visible and no Windows dialog is covering it, then try again.');
+      setFlash('The map did not update within 30 seconds. Check the Spline production session and try again.');
     } catch (error) {
-      setFlash(error instanceof Error ? error.message : 'Could not capture Spline map');
+      setFlash(error instanceof Error ? error.message : 'Could not refresh the current map');
     } finally {
       setRefreshing(false);
     }
@@ -319,8 +309,8 @@ export function SplineAgentPage() {
     setFlash(null);
     setTransientActivity({
       tone: 'working',
-      label: 'Preparing command…',
-      detail: 'Media OS is saving your request and creating the approval step.',
+      label: 'Preparing your request',
+      detail: 'Media OS is converting the message into an approval-ready Spline command.',
       spinning: true
     });
 
@@ -332,10 +322,9 @@ export function SplineAgentPage() {
     } catch (error) {
       setTransientActivity({
         tone: 'error',
-        label: 'Could not prepare command',
-        detail: error instanceof Error ? error.message : 'Media OS could not create the approval step.'
+        label: 'Could not prepare the request',
+        detail: error instanceof Error ? error.message : 'Media OS could not prepare this Spline command.'
       });
-      setFlash(error instanceof Error ? error.message : 'Could not prepare Spline command');
     } finally {
       setBusy(false);
     }
@@ -343,143 +332,74 @@ export function SplineAgentPage() {
 
   async function decide(decision: 'APPROVE' | 'REQUEST_CHANGES') {
     if (!pending) return;
-
     setBusy(true);
     setFlash(null);
-    setTransientActivity(
-      decision === 'APPROVE'
-        ? {
-            tone: 'working',
-            label: 'Approving command…',
-            detail: 'Media OS is releasing this command to the Spline production worker.',
-            spinning: true
-          }
-        : {
-            tone: 'working',
-            label: 'Cancelling command…',
-            detail: 'Media OS is preventing this command from executing.',
-            spinning: true
-          }
-    );
 
     try {
       await decideSplineJob(
         pending.productionJobId,
         decision,
-        decision === 'REQUEST_CHANGES'
-          ? 'Creator cancelled the command from Spline Agent chat.'
-          : undefined
+        decision === 'REQUEST_CHANGES' ? 'Creator cancelled the command from Spline Agent chat.' : undefined
       );
       await refresh();
       setTransientActivity(null);
       setFlash(decision === 'APPROVE' ? 'Command approved and queued.' : 'Command cancelled.');
     } catch (error) {
-      setTransientActivity({
-        tone: 'error',
-        label: 'Could not save decision',
-        detail: error instanceof Error ? error.message : 'Media OS could not update this command.'
-      });
-      setFlash(error instanceof Error ? error.message : 'Could not save command decision');
+      setFlash(error instanceof Error ? error.message : 'Could not save the decision');
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <main className="spline-agent-shell">
-      <header className="spline-agent-header">
-        <button
-          className="icon-button"
-          onClick={() => { window.location.hash = '#/'; }}
-          aria-label="Back"
-        >
-          <ArrowLeft size={19} />
-        </button>
-
-        <div className="spline-agent-title">
-          <span>SPLINE AGENT</span>
-          <strong>Living Map control</strong>
+    <main className="media-os-page spline-workspace-page">
+      <header className="media-os-page-header spline-workspace-header">
+        <div>
+          <span className="media-os-eyebrow">AGENT</span>
+          <h1>Spline Agent</h1>
+          <p>One workspace for architecture-map changes, visual context and production health.</p>
         </div>
-
-        <div className="spline-agent-header-actions">
-          <button onClick={() => { window.location.hash = '#/browser-clone-proof'; }}>
-            <TestTube2 size={16} />
-            Browser proof
-          </button>
-          <button onClick={() => { window.location.hash = '#/diagnostics'; }}>
-            <Stethoscope size={16} />
-            Diagnostics
-          </button>
-          <button onClick={() => void clearFrontendCache()}>
-            <Eraser size={16} />
-            Clear cache
-          </button>
+        <div className={`spline-agent-connection ${runner?.online ? 'online' : 'offline'}`}>
+          <span>{runner?.online ? 'Connected' : 'Standby'}</span>
+          <strong>{runner?.status ?? 'UNKNOWN'}</strong>
         </div>
       </header>
 
-      <div className="spline-agent-content">
-        {flash && <div className="spline-agent-flash">{flash}</div>}
+      <nav className="spline-workspace-tabs" aria-label="Spline Agent sections">
+        <button className={view === 'chat' ? 'active' : ''} onClick={() => selectView('chat')}>
+          <MessageSquare size={17} /> Chat
+        </button>
+        <button className={view === 'map' ? 'active' : ''} onClick={() => selectView('map')}>
+          <Map size={17} /> Map
+        </button>
+        <button className={view === 'health' ? 'active' : ''} onClick={() => selectView('health')}>
+          <HeartPulse size={17} /> Health
+        </button>
+      </nav>
 
-        <SplineMapViewer
-          meta={meta}
-          refreshing={refreshing}
-          onRefresh={captureSnapshot}
-        />
+      {flash && <div className="spline-agent-flash">{flash}</div>}
 
-        <section className="spline-chat-card">
-          <div className="spline-chat-heading">
+      {view === 'chat' && (
+        <section className="spline-workspace-panel spline-chat-panel">
+          <div className="spline-panel-heading">
             <div>
-              <span>COMMAND CHAT</span>
-              <strong>Tell Spline Agent what to change</strong>
+              <span>CHAT</span>
+              <strong>Tell Spline Agent what you want changed</strong>
+              <small>Every write operation stays behind an approval step.</small>
             </div>
           </div>
 
           {commandActivity && (
             <div className={`spline-command-activity ${commandActivity.tone}`}>
               <div className="spline-command-activity-icon">
-                {commandActivity.spinning ? (
-                  <RefreshCw size={17} className="spin" />
-                ) : commandActivity.tone === 'success' ? (
-                  <Check size={17} />
-                ) : commandActivity.tone === 'error' || commandActivity.tone === 'cancelled' ? (
-                  <X size={17} />
-                ) : (
-                  <Clock3 size={17} />
-                )}
+                {commandActivity.spinning ? <RefreshCw size={17} className="spin" />
+                  : commandActivity.tone === 'success' ? <Check size={17} />
+                    : commandActivity.tone === 'error' || commandActivity.tone === 'cancelled' ? <X size={17} />
+                      : <Clock3 size={17} />}
               </div>
               <div>
                 <strong>{commandActivity.label}</strong>
                 <span>{commandActivity.detail}</span>
-                {latestExecution?.result?.metrics && ['SUCCEEDED', 'FAILED'].includes(latestExecution.status) && (
-                  <span className="spline-command-metrics">
-                    {latestExecution.result.metrics.tokenCount ?? '—'} tokens
-                    {' · '}
-                    {latestExecution.result.metrics.splineMcpCalls ?? '—'} MCP
-                    {' · '}
-                    {typeof latestExecution.result.metrics.durationMs === 'number'
-                      ? `${(latestExecution.result.metrics.durationMs / 1000).toFixed(1)}s`
-                      : '—'}
-                    {' · '}
-                    {latestExecution.result.metrics.executionProfile ?? 'UNKNOWN_PROFILE'}
-                    {latestExecution.result.metrics.recipeCache
-                      ? ` · recipe ${latestExecution.result.metrics.recipeCache}`
-                      : ''}
-                    {typeof latestExecution.result.metrics.recipeChars === 'number'
-                      ? ` · ${latestExecution.result.metrics.recipeChars} chars`
-                      : ''}
-                    {latestExecution.result.metrics.reasoningEffort
-                      ? ` · ${latestExecution.result.metrics.reasoningEffort} reasoning`
-                      : ''}
-                    {typeof latestExecution.result.metrics.mcpToolSurface === 'number'
-                      ? ` · ${latestExecution.result.metrics.mcpToolSurface} tools`
-                      : ''}
-                    {typeof latestExecution.result.metrics.efficiencyBudgetExceeded === 'boolean'
-                      ? latestExecution.result.metrics.efficiencyBudgetExceeded
-                        ? ' · budget OVER'
-                        : ' · budget OK'
-                      : ''}
-                  </span>
-                )}
               </div>
             </div>
           )}
@@ -487,7 +407,7 @@ export function SplineAgentPage() {
           <div className="spline-chat-history">
             {messages.length === 0 ? (
               <div className="spline-chat-empty">
-                Use the map above for context, then describe the exact change you want.
+                Describe the scene change in normal language. Media OS will prepare it for approval before anything is edited.
               </div>
             ) : (
               messages.map(item => (
@@ -510,21 +430,11 @@ export function SplineAgentPage() {
                 </strong>
               </div>
               <div>
-                <button
-                  className="cancel-command"
-                  disabled={busy}
-                  onClick={() => void decide('REQUEST_CHANGES')}
-                >
-                  <X size={16} />
-                  Cancel
+                <button className="cancel-command" disabled={busy} onClick={() => void decide('REQUEST_CHANGES')}>
+                  <X size={16} /> Cancel
                 </button>
-                <button
-                  className="approve-command"
-                  disabled={busy}
-                  onClick={() => void decide('APPROVE')}
-                >
-                  <Check size={16} />
-                  Approve
+                <button className="approve-command" disabled={busy} onClick={() => void decide('APPROVE')}>
+                  <Check size={16} /> Approve
                 </button>
               </div>
             </div>
@@ -534,8 +444,8 @@ export function SplineAgentPage() {
             <textarea
               value={message}
               onChange={event => setMessage(event.target.value)}
-              placeholder="Example: Move AUTH_SERVICE 80px to the right and keep all connected paths aligned."
-              rows={3}
+              placeholder="Example: Move Auth Service slightly to the right and keep the connected paths aligned."
+              rows={4}
               onKeyDown={event => {
                 if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                   event.preventDefault();
@@ -543,26 +453,54 @@ export function SplineAgentPage() {
                 }
               }}
             />
-            <button
-              disabled={busy || !message.trim() || commandInFlight}
-              onClick={() => void sendCommand()}
-            >
-              <Send size={17} />
-              Send
+            <button disabled={busy || !message.trim() || commandInFlight} onClick={() => void sendCommand()}>
+              <Send size={17} /> Send
             </button>
           </div>
 
-          {pending ? (
-            <small className="spline-chat-note">
-              Approve or cancel the current command before sending another one.
-            </small>
-          ) : commandInFlight ? (
-            <small className="spline-chat-note">
-              Wait for the current Spline command to finish before sending another one.
-            </small>
-          ) : null}
+          {pending && <small className="spline-chat-note">Approve or cancel the current request before sending another.</small>}
         </section>
-      </div>
+      )}
+
+      {view === 'map' && (
+        <SplineMapViewer meta={meta} refreshing={refreshing} onRefresh={captureSnapshot} />
+      )}
+
+      {view === 'health' && (
+        <section className="spline-health-grid">
+          <article className="spline-workspace-panel spline-health-card">
+            <div className="spline-health-icon"><CheckCircle2 size={19} /></div>
+            <span>PRODUCTION BRIDGE</span>
+            <strong>{runner?.online ? 'ONLINE' : 'OFFLINE'} · {runner?.status ?? 'UNKNOWN'}</strong>
+            <p>{runner?.hostname ?? 'No runner registered'} · runner {runner?.runnerVersion ?? '—'}</p>
+            <dl>
+              <div><dt>Production commit</dt><dd>{runner?.productionCommit ?? '—'}</dd></div>
+              <div><dt>Last heartbeat</dt><dd>{runner?.lastSeen ? new Date(runner.lastSeen).toLocaleString() : '—'}</dd></div>
+              <div><dt>Last error</dt><dd>{runner?.lastError || 'None'}</dd></div>
+            </dl>
+          </article>
+
+          <article className="spline-workspace-panel spline-health-card">
+            <div className="spline-health-icon"><HeartPulse size={19} /></div>
+            <span>LATEST SPLINE EXECUTION</span>
+            <strong>{latestExecution?.status ?? 'NONE'}</strong>
+            <dl>
+              <div><dt>Task</dt><dd>{latestExecution?.taskType ?? '—'}</dd></div>
+              <div><dt>Tokens</dt><dd>{latestExecution?.result?.metrics?.tokenCount?.toLocaleString() ?? '—'}</dd></div>
+              <div><dt>MCP calls</dt><dd>{latestExecution?.result?.metrics?.splineMcpCalls ?? '—'}</dd></div>
+              <div>
+                <dt>Duration</dt>
+                <dd>{latestExecution?.result?.metrics?.durationMs ? `${Math.round(latestExecution.result.metrics.durationMs / 1000)}s` : '—'}</dd>
+              </div>
+              <div><dt>Error</dt><dd>{latestExecution?.error || 'None'}</dd></div>
+            </dl>
+          </article>
+
+          <button className="spline-health-refresh" disabled={busy} onClick={() => void refresh()}>
+            <RefreshCw size={16} className={busy ? 'spin' : ''} /> Refresh health
+          </button>
+        </section>
+      )}
     </main>
   );
 }
