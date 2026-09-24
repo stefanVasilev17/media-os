@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { Activity, Box, Home, Settings } from 'lucide-react';
 
 type NavItem = {
   label: string;
   hash: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   match: (hash: string) => boolean;
 };
 
