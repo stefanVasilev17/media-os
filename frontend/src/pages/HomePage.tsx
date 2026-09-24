@@ -3,11 +3,12 @@ import {
   Activity,
   ArrowRight,
   Box,
-  CheckCircle2,
-  MessageSquare,
-  MonitorUp,
+  Camera,
+  Download,
+  Move3d,
+  Plus,
   Settings,
-  ShieldCheck
+  WandSparkles
 } from 'lucide-react';
 import { loadRunnerStatus, type RunnerStatus } from '../api/mediaOsApi';
 import { loadSystemVersionInfo, type SystemVersionInfo } from '../api/systemApi';
@@ -33,7 +34,7 @@ export function HomePage() {
         <div>
           <span className="media-os-eyebrow">MEDIA OS</span>
           <h1>Your production control center</h1>
-          <p>Open an agent, review current production activity, or manage the running Media OS version.</p>
+          <p>Open an agent, work on the current episode, review production activity, or manage the running Media OS version.</p>
         </div>
         <div className="media-os-release-pill">
           <StatusDot ready={Boolean(system)} />
@@ -48,7 +49,7 @@ export function HomePage() {
             <span>AGENTS</span>
             <h2>Work with an agent</h2>
           </div>
-          <small>Each agent has one workspace and its own chat.</small>
+          <small>One agent = one workspace, one chat, all of its tools.</small>
         </div>
 
         <button
@@ -59,17 +60,18 @@ export function HomePage() {
           <div className="media-os-agent-copy">
             <div className="media-os-agent-title-row">
               <strong>Spline Agent</strong>
-              <span className={runner?.online ? 'ready' : 'standby'}>
-                <StatusDot ready={Boolean(runner?.online)} />
-                {runner?.online ? 'Connected' : 'Standby'}
+              <span className="ready">
+                <StatusDot ready />
+                Browser workspace
               </span>
             </div>
-            <p>Inspect the current architecture map, send change instructions, approve edits, and check Spline health from one place.</p>
+            <p>Build a temporary episode scene from reusable Spline objects, adjust it visually, animate it, frame the shot and export the result.</p>
             <div className="media-os-capability-row">
-              <span><MessageSquare size={14} /> Chat</span>
-              <span><MonitorUp size={14} /> Current map</span>
-              <span><ShieldCheck size={14} /> Approvals</span>
-              <span><CheckCircle2 size={14} /> Health</span>
+              <span><Plus size={14} /> Create</span>
+              <span><Move3d size={14} /> Edit</span>
+              <span><WandSparkles size={14} /> Animate</span>
+              <span><Camera size={14} /> Frame</span>
+              <span><Download size={14} /> Export</span>
             </div>
           </div>
           <ArrowRight size={20} />
@@ -89,7 +91,7 @@ export function HomePage() {
             <Activity size={21} />
             <div>
               <strong>Production Activity</strong>
-              <span>Jobs, approvals, tasks and current execution state.</span>
+              <span>Current work, approvals and execution progress.</span>
             </div>
             <ArrowRight size={17} />
           </button>
@@ -98,7 +100,7 @@ export function HomePage() {
             <Settings size={21} />
             <div>
               <strong>Settings & Version</strong>
-              <span>Running release, deployment information and hard cache refresh.</span>
+              <span>Running release, deployment information and hard refresh.</span>
             </div>
             <ArrowRight size={17} />
           </button>
@@ -107,12 +109,12 @@ export function HomePage() {
 
       <section className="media-os-system-strip">
         <div>
-          <span>MEDIA OS BACKEND</span>
+          <span>MEDIA OS</span>
           <strong>{system ? `v${system.version} · ${system.environment}` : 'Checking system…'}</strong>
         </div>
         <div>
-          <span>SPLINE BRIDGE</span>
-          <strong>{runner?.online ? `${runner.hostname ?? 'Runner'} · ${runner.status}` : 'Not connected'}</strong>
+          <span>SPLINE AGENT</span>
+          <strong>{runner?.online ? 'Browser tools ready · assisted editing available' : 'Browser tools ready'}</strong>
         </div>
       </section>
     </main>
