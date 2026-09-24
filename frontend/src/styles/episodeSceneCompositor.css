@@ -1,0 +1,444 @@
+.episode-compositor {
+  margin-top: 16px;
+  padding: 15px;
+  border: 1px solid rgba(103, 157, 255, .18);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(17, 28, 45, .72), rgba(7, 12, 20, .7));
+}
+
+.episode-compositor-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.episode-compositor-heading > div:first-child > span,
+.episode-scene-meta label > span,
+.episode-cue-row label > span {
+  color: #8390a3;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.episode-compositor-heading > div:first-child > strong {
+  display: block;
+  margin-top: 3px;
+  color: #f3f6fb;
+  font-size: 17px;
+}
+
+.episode-compositor-heading > div:first-child > small {
+  display: block;
+  max-width: 720px;
+  margin-top: 4px;
+  color: #8491a4;
+  line-height: 1.45;
+}
+
+.episode-scene-meta {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) 92px;
+  gap: 8px;
+  min-width: 310px;
+}
+
+.episode-scene-meta label,
+.episode-cue-row label,
+.episode-cue-value label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.episode-scene-meta input,
+.episode-cue-row input,
+.episode-cue-row select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 9px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 9px;
+  background: #0a111c;
+  color: #eaf0f7;
+  outline: none;
+}
+
+.episode-scene-meta input:focus,
+.episode-cue-row input:focus,
+.episode-cue-row select:focus {
+  border-color: rgba(77, 145, 249, .68);
+  box-shadow: 0 0 0 3px rgba(77, 145, 249, .09);
+}
+
+.episode-scene-meta label > div,
+.episode-cue-time > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.episode-scene-meta b,
+.episode-cue-time b {
+  color: #7f8da0;
+  font-size: 11px;
+}
+
+.episode-transport {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, .18);
+}
+
+.episode-transport button,
+.episode-cue-header button,
+.episode-cue-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .04);
+  color: #c8d1dc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.episode-transport button:disabled,
+.episode-cue-header button:disabled,
+.episode-cue-delete:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.episode-transport .episode-transport-primary {
+  border-color: rgba(74, 142, 248, .4);
+  background: rgba(50, 116, 222, .18);
+  color: #dbe8ff;
+}
+
+.episode-transport .episode-record-run {
+  border-color: rgba(236, 91, 91, .34);
+  background: rgba(236, 91, 91, .11);
+  color: #ffb8b8;
+}
+
+.episode-playback-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  color: #7f8da0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.episode-playback-state.playing { color: #8db7ff; }
+.episode-playback-state.paused { color: #f3c576; }
+.episode-playback-state.complete { color: #7dd9a1; }
+.episode-playback-state.error { color: #ff9292; }
+
+.episode-playhead {
+  position: relative;
+  margin-top: 12px;
+  padding: 11px 10px 15px;
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 11px;
+  background: rgba(3, 7, 13, .48);
+}
+
+.episode-playhead-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.episode-playhead-labels strong {
+  color: #dfe7f1;
+  font-size: 12px;
+}
+
+.episode-playhead-labels span {
+  color: #718095;
+  font-size: 11px;
+}
+
+.episode-playhead input[type='range'] {
+  width: 100%;
+  margin: 0;
+}
+
+.episode-cue-markers {
+  position: absolute;
+  left: 13px;
+  right: 13px;
+  bottom: 7px;
+  height: 4px;
+  pointer-events: none;
+}
+
+.episode-cue-markers i {
+  position: absolute;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #6d9eed;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 3px rgba(86, 145, 238, .11);
+}
+
+.episode-cue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.episode-cue-header > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.episode-cue-header strong,
+.episode-cue-header span {
+  display: block;
+}
+
+.episode-cue-header strong {
+  color: #dce4ee;
+  font-size: 13px;
+}
+
+.episode-cue-header span {
+  margin-top: 2px;
+  color: #748196;
+  font-size: 11px;
+}
+
+.episode-cue-header button {
+  border-color: rgba(74, 142, 248, .28);
+  color: #cfe0ff;
+}
+
+.episode-cue-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.episode-cue-empty {
+  padding: 24px 16px;
+  border: 1px dashed rgba(255, 255, 255, .09);
+  border-radius: 11px;
+  text-align: center;
+  background: rgba(0, 0, 0, .12);
+}
+
+.episode-cue-empty strong,
+.episode-cue-empty span {
+  display: block;
+}
+
+.episode-cue-empty strong {
+  color: #cfd7e2;
+  font-size: 13px;
+}
+
+.episode-cue-empty span {
+  max-width: 580px;
+  margin: 4px auto 0;
+  color: #758296;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.episode-cue-row {
+  display: grid;
+  grid-template-columns: 34px 82px minmax(120px, .8fr) minmax(150px, 1.1fr) minmax(130px, 1fr) 38px;
+  align-items: end;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, .065);
+  border-radius: 11px;
+  background: rgba(6, 11, 18, .62);
+  transition: border-color .18s ease, background .18s ease;
+}
+
+.episode-cue-row.reached {
+  border-color: rgba(88, 157, 255, .18);
+  background: rgba(31, 75, 137, .08);
+}
+
+.episode-cue-index {
+  align-self: center;
+  color: #607087;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.episode-cue-target,
+.episode-cue-value {
+  min-width: 0;
+}
+
+.episode-cue-vector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.episode-cue-delete {
+  width: 38px;
+  padding: 0;
+  color: #8c98a8;
+}
+
+.episode-cue-delete:not(:disabled):hover {
+  color: #ff9d9d;
+  border-color: rgba(236, 91, 91, .25);
+}
+
+.episode-compositor-note {
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .025);
+  color: #758296;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.episode-run-log {
+  margin-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+  padding-top: 9px;
+}
+
+.episode-run-log summary {
+  cursor: pointer;
+  color: #8390a3;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.episode-run-log > div {
+  display: grid;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.episode-run-log p {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  color: #8997a9;
+  font-size: 11px;
+}
+
+.episode-run-log b {
+  color: #abc6ef;
+}
+
+@media (max-width: 1050px) {
+  .episode-compositor-heading {
+    flex-direction: column;
+  }
+
+  .episode-scene-meta {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .episode-cue-row {
+    grid-template-columns: 32px 82px minmax(120px, .8fr) minmax(150px, 1.1fr) 38px;
+  }
+
+  .episode-cue-value {
+    grid-column: 3 / 5;
+  }
+}
+
+@media (max-width: 720px) {
+  .episode-compositor {
+    padding: 11px;
+  }
+
+  .episode-scene-meta {
+    grid-template-columns: 1fr 90px;
+  }
+
+  .episode-transport {
+    overflow-x: auto;
+  }
+
+  .episode-transport button {
+    flex: 0 0 auto;
+  }
+
+  .episode-playback-state {
+    flex: 0 0 auto;
+    padding-right: 3px;
+  }
+
+  .episode-cue-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .episode-cue-header button {
+    width: 100%;
+  }
+
+  .episode-cue-row {
+    grid-template-columns: 28px minmax(0, 1fr) 36px;
+    align-items: stretch;
+  }
+
+  .episode-cue-index {
+    grid-row: 1 / span 4;
+  }
+
+  .episode-cue-time,
+  .episode-cue-row > label,
+  .episode-cue-target,
+  .episode-cue-value {
+    grid-column: 2;
+  }
+
+  .episode-cue-delete {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .episode-cue-value {
+    grid-column: 2 / 4;
+  }
+}
+
+@media (max-width: 480px) {
+  .episode-scene-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .episode-cue-vector {
+    grid-template-columns: 1fr;
+  }
+}

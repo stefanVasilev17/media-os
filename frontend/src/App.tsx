@@ -3,6 +3,7 @@ import { AppBottomNav } from './components/AppBottomNav';
 import { ActivityPage } from './pages/ActivityPage';
 import { HomePage } from './pages/HomePage';
 import { SettingsPage } from './pages/SettingsPage';
+import './styles/episodeSceneCompositor.css';
 
 const SplineWorkspacePage = lazy(async () => {
   const module = await import('./pages/SplineWorkspacePage');
