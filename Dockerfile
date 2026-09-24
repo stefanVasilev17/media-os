@@ -9,6 +9,7 @@ FROM maven:3.9-eclipse-temurin-21 AS backend-build
 WORKDIR /backend
 COPY backend/pom.xml ./
 COPY backend/src ./src
+RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > src/main/resources/media-os-build-time.txt
 COPY --from=frontend-build /frontend/dist ./src/main/resources/static
 RUN mvn -q -DskipTests package
 
