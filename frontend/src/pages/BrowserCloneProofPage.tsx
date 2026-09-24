@@ -1,275 +1,54 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Application, type SPEObject } from '@splinetool/runtime';
-import { ArrowLeft, Check, Copy, RefreshCw, RotateCcw, TestTube2, X } from 'lucide-react';
+import { Application } from '@splinetool/runtime';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Copy,
+  Layers3,
+  LoaderCircle,
+  Play,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  X
+} from 'lucide-react';
 import {
   captureSplineSceneBlueprint,
-  loadSplineRuntimeConfig
+  loadSplineRuntimeConfig,
+  loadSplineSceneCatalog
 } from '../api/mediaOsApi';
+import {
+  buildCapabilitySummary,
+  collectCatalogNames,
+  countOccurrences,
+  countVisualChanges,
+  discoverNumericStates,
+  fullFingerprint,
+  numberValue,
+  runtimeObjectSnapshot,
+  sha256Hex,
+  snapshotVisualObjects,
+  type CloneResult,
+  type RuntimeObject,
+  type StateBehaviorResult,
+  type StateProbeResult
+} from '../lib/runtimeSceneProof';
+import '../styles/browserCloneProof.css';
 
-const SCENE_URL_STORAGE_KEY = 'mediaos.browserProof.sceneUrl';
-const SOURCE_NAME_STORAGE_KEY = 'mediaos.browserProof.sourceName';
+const SCENE_URL_STORAGE_KEY = 'mediaos.runtimeLab.sceneUrl';
+const SOURCE_NAME_STORAGE_KEY = 'mediaos.runtimeLab.sourceName';
+const CLONE_NAME_STORAGE_KEY = 'mediaos.runtimeLab.cloneName';
+const STATE_SETTLE_MS = 220;
 
-type RuntimeObject = SPEObject & {
-  name: string;
-  uuid: string;
-  state?: string | number;
-  text?: string;
-  visible?: boolean;
-  color?: string;
-  type?: string;
-  id?: string;
-  intensity?: number;
-  parent?: RuntimeObject | null;
-  children?: RuntimeObject[];
-  material?: {
-    alpha?: number;
-    layers?: Array<Record<string, unknown>>;
-  };
-};
+type ProofTone = 'pending' | 'pass' | 'fail' | 'partial';
+type BlueprintStatus = 'IDLE' | 'SAVING' | 'SAVED' | 'ERROR';
 
-type CatalogNode = {
-  name?: string;
-  children?: CatalogNode[];
-};
-
-type CloneResult = {
-  sourceName: string;
-  sourceUuid: string;
-  cloneName: string;
-  cloneUuid: string;
-  createdObjectCount: number;
-  createdNames: string[];
-  sourceEventRefs: number;
-  cloneEventRefs: number;
-  sourceUnchanged: boolean;
-  freshRootId: boolean;
-  cloneDurationMs: number;
-  position: { x: number; y: number; z: number };
-};
-
-type TextCandidate = {
-  uuid: string;
-  name: string;
-  text: string;
-};
-
-type StateCandidate = {
-  uuid: string;
-  name: string;
-  originalState: string | number | undefined;
-  discoveredStates: Array<string | number>;
-};
-
-type StateProbeResult = {
-  candidates: StateCandidate[];
-  changedProductionObjects: number;
-  durationMs: number;
-};
-
-type TransitionProbeResult = {
-  targetName: string;
-  targetUuid: string;
-  targetState: string | number;
-  changedCloneObjects: number;
-  changedProductionObjects: number;
-  durationMs: number;
-};
-
-type VerdictTone = 'pending' | 'pass' | 'fail' | 'partial';
-
-function countOccurrences(value: string, needle: string) {
-  if (!needle) return 0;
-  return value.split(needle).length - 1;
-}
-
-function numberValue(value: string, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function rounded(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? Math.round(value * 1000) / 1000
-    : null;
-}
-
-function vectorSnapshot(value: unknown) {
-  const vector = value as { x?: number; y?: number; z?: number } | null | undefined;
-  if (!vector) return null;
-  return [rounded(vector.x), rounded(vector.y), rounded(vector.z)];
-}
-
-function serializableMaterialValue(value: unknown): unknown {
-  if (value == null || typeof value === 'string' || typeof value === 'boolean') return value;
-  if (typeof value === 'number') return rounded(value);
-
-  if (Array.isArray(value)) {
-    if (value.length > 64) return undefined;
-    const items = value.map(item => serializableMaterialValue(item));
-    return items.some(item => item === undefined) ? undefined : items;
-  }
-
-  if (typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const simpleKeys = ['r', 'g', 'b', 'x', 'y', 'z'];
-    const keys = Object.keys(record);
-    if (keys.length > 0 && keys.every(key => simpleKeys.includes(key))) {
-      const result: Record<string, unknown> = {};
-      for (const key of keys) {
-        const serialized = serializableMaterialValue(record[key]);
-        if (serialized !== undefined) result[key] = serialized;
-      }
-      return result;
-    }
-  }
-
-  return undefined;
-}
-
-function materialSnapshot(object: RuntimeObject) {
-  const material = object.material;
-  if (!material) return null;
-
-  const layers = Array.isArray(material.layers)
-    ? material.layers.map(layer => {
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(layer ?? {})) {
-          if (typeof value === 'function' || key === 'texture') continue;
-          const serialized = serializableMaterialValue(value);
-          if (serialized !== undefined) result[key] = serialized;
-        }
-        return result;
-      })
-    : [];
-
-  return {
-    alpha: rounded(material.alpha),
-    layers
-  };
-}
-
-function runtimeObjectSnapshot(object: RuntimeObject, eventDump: string) {
-  return {
-    uuid: object.uuid,
-    id: object.id ?? object.uuid,
-    name: object.name,
-    type: object.type ?? null,
-    parentUuid: object.parent?.uuid ?? null,
-    childUuids: Array.isArray(object.children) ? object.children.map(child => child.uuid) : [],
-    position: vectorSnapshot(object.position),
-    rotation: vectorSnapshot(object.rotation),
-    scale: vectorSnapshot(object.scale),
-    visible: typeof object.visible === 'boolean' ? object.visible : null,
-    currentState: object.state ?? null,
-    color: typeof object.color === 'string' ? object.color : null,
-    intensity: rounded(object.intensity),
-    runtimeText: typeof object.text === 'string' ? object.text : null,
-    material: materialSnapshot(object),
-    authoredEventRefCount: countOccurrences(eventDump, object.uuid),
-    capabilities: {
-      transform: Boolean(object.position && object.rotation && object.scale),
-      visibility: typeof object.visible === 'boolean',
-      stateCurrentExposed: object.state !== undefined,
-      color: typeof object.color === 'string',
-      runtimeText: typeof object.text === 'string',
-      material: Boolean(object.material)
-    }
-  };
-}
-
-function buildCapabilitySummary(objects: RuntimeObject[], eventDump: string) {
-  const names = new Map<string, number>();
-  let transform = 0;
-  let visibility = 0;
-  let stateCurrentExposed = 0;
-  let color = 0;
-  let runtimeText = 0;
-  let material = 0;
-  let authoredEventReferencedObjects = 0;
-
-  for (const object of objects) {
-    names.set(object.name, (names.get(object.name) ?? 0) + 1);
-    if (object.position && object.rotation && object.scale) transform += 1;
-    if (typeof object.visible === 'boolean') visibility += 1;
-    if (object.state !== undefined) stateCurrentExposed += 1;
-    if (typeof object.color === 'string') color += 1;
-    if (typeof object.text === 'string') runtimeText += 1;
-    if (object.material) material += 1;
-    if (countOccurrences(eventDump, object.uuid) > 0) authoredEventReferencedObjects += 1;
-  }
-
-  return {
-    transform,
-    visibility,
-    stateCurrentExposed,
-    color,
-    runtimeText,
-    material,
-    authoredEventReferencedObjects,
-    uniqueNames: names.size,
-    duplicateNameCount: [...names.values()].filter(count => count > 1).length,
-    runtimeDeepCloneAvailable: true,
-    runtimeVariablesAvailable: true
-  };
-}
-
-async function sha256Hex(value: string) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await window.crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)]
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-function objectFingerprint(object: RuntimeObject) {
-  return JSON.stringify({
-    uuid: object.uuid,
-    name: object.name,
-    state: object.state ?? null,
-    visible: object.visible ?? null,
-    text: typeof object.text === 'string' ? object.text : null,
-    color: object.color ?? null,
-    position: vectorSnapshot(object.position),
-    rotation: vectorSnapshot(object.rotation),
-    scale: vectorSnapshot(object.scale)
-  });
-}
-
-function snapshotObjects(objects: RuntimeObject[]) {
-  return new Map(objects.map(object => [object.uuid, objectFingerprint(object)]));
-}
-
-function countChangedObjects(objects: RuntimeObject[], before: Map<string, string>) {
-  return objects.reduce(
-    (count, object) => count + (before.get(object.uuid) !== objectFingerprint(object) ? 1 : 0),
-    0
-  );
-}
-
-function collectCatalogNames(nodes: CatalogNode[] | undefined, names: Set<string>) {
-  for (const node of nodes ?? []) {
-    if (node.name?.trim()) names.add(node.name.trim());
-    collectCatalogNames(node.children, names);
-  }
-}
-
-function VerdictRow({
-  label,
-  tone,
-  detail
-}: {
+type ProofItemProps = {
   label: string;
-  tone: VerdictTone;
   detail: string;
-}) {
-  return (
-    <div className={`browser-proof-verdict-row ${tone}`}>
-      <span>{tone === 'pass' ? <Check size={13} /> : tone === 'fail' ? <X size={13} /> : <span>•</span>}</span>
-      <strong>{label}</strong>
-      <small>{detail}</small>
-    </div>
-  );
-}
+  tone: ProofTone;
+};
 
 function browserProofParams() {
   const query = window.location.hash.split('?')[1] ?? '';
@@ -300,16 +79,46 @@ function normalizeSceneInput(rawValue: string) {
   };
 }
 
+function toneIcon(tone: ProofTone) {
+  if (tone === 'pass') return <Check size={13} />;
+  if (tone === 'fail') return <X size={13} />;
+  if (tone === 'partial') return <AlertTriangle size={13} />;
+  return <span>•</span>;
+}
+
+function ProofItem({ label, detail, tone }: ProofItemProps) {
+  return (
+    <div className={`runtime-lab-proof-item ${tone}`}>
+      <div className="runtime-lab-proof-icon">{toneIcon(tone)}</div>
+      <div>
+        <strong>{label}</strong>
+        <small>{detail}</small>
+      </div>
+    </div>
+  );
+}
+
+function wait(ms: number) {
+  return new Promise<void>(resolve => window.setTimeout(resolve, ms));
+}
+
+async function settleRuntime() {
+  await new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
+  await new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
+  await wait(STATE_SETTLE_MS);
+}
+
 export function BrowserCloneProofPage() {
   const initialParamsRef = useRef(browserProofParams());
   const autoLoadRequested = initialParamsRef.current.get('autoload') !== '0';
   const autoRunRequested = initialParamsRef.current.get('autorun') !== '0';
   const autoLoadDoneRef = useRef(false);
   const autoRunDoneRef = useRef(false);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
-  const createdObjectsRef = useRef<RuntimeObject[]>([]);
   const productionObjectsRef = useRef<RuntimeObject[]>([]);
+  const createdObjectsRef = useRef<RuntimeObject[]>([]);
   const cloneRef = useRef<RuntimeObject | null>(null);
 
   const [sceneUrl, setSceneUrl] = useState(
@@ -319,43 +128,39 @@ export function BrowserCloneProofPage() {
     () => initialParamsRef.current.get('source') ?? window.localStorage.getItem(SOURCE_NAME_STORAGE_KEY) ?? 'Headers'
   );
   const [cloneName, setCloneName] = useState(
-    () => initialParamsRef.current.get('clone') ?? 'MEDIA_OS_BROWSER_CLONE_TEST'
+    () => initialParamsRef.current.get('clone') ?? window.localStorage.getItem(CLONE_NAME_STORAGE_KEY) ?? 'MEDIA_OS_RUNTIME_CLONE'
   );
-  const [offsetX, setOffsetX] = useState('0');
-  const [offsetY, setOffsetY] = useState('-900');
+  const [offsetX, setOffsetX] = useState('480');
+  const [offsetY, setOffsetY] = useState('0');
   const [offsetZ, setOffsetZ] = useState('0');
-  const [stateTargetUuid, setStateTargetUuid] = useState('');
-  const [stateTargetValue, setStateTargetValue] = useState('');
 
+  const [catalogNames, setCatalogNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [loadDurationMs, setLoadDurationMs] = useState<number | null>(null);
   const [objectCount, setObjectCount] = useState<number | null>(null);
   const [eventDefinitionCount, setEventDefinitionCount] = useState<number | null>(null);
-  const [catalogNames, setCatalogNames] = useState<string[]>([]);
-  const [cloneResult, setCloneResult] = useState<CloneResult | null>(null);
-  const [textCandidates, setTextCandidates] = useState<TextCandidate[]>([]);
-  const [stateProbe, setStateProbe] = useState<StateProbeResult | null>(null);
-  const [transitionProbe, setTransitionProbe] = useState<TransitionProbeResult | null>(null);
+  const [loadDurationMs, setLoadDurationMs] = useState<number | null>(null);
   const [sceneVariables, setSceneVariables] = useState<Record<string, string | number | boolean>>({});
-  const [blueprintStatus, setBlueprintStatus] = useState<'IDLE' | 'SAVING' | 'SAVED' | 'ERROR'>('IDLE');
+
+  const [cloneResult, setCloneResult] = useState<CloneResult | null>(null);
+  const [stateProbe, setStateProbe] = useState<StateProbeResult | null>(null);
+  const [stateBehavior, setStateBehavior] = useState<StateBehaviorResult | null>(null);
+  const [stateTargetUuid, setStateTargetUuid] = useState('');
+  const [stateTargetValue, setStateTargetValue] = useState('');
+
+  const [blueprintStatus, setBlueprintStatus] = useState<BlueprintStatus>('IDLE');
   const [blueprintFingerprint, setBlueprintFingerprint] = useState<string | null>(null);
-  const [blueprintCapabilitySummary, setBlueprintCapabilitySummary] = useState<Record<string, unknown> | null>(null);
-  const [blueprintMessage, setBlueprintMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/v1/spline/catalog/latest')
-      .then(response => response.ok ? response.json() : null)
-      .then(data => {
+    loadSplineSceneCatalog()
+      .then(catalog => {
         const names = new Set<string>();
-        collectCatalogNames(data?.catalog?.sections, names);
-        setCatalogNames([...names].sort((a, b) => a.localeCompare(b)));
+        collectCatalogNames(catalog.catalog?.sections, names);
+        setCatalogNames([...names].sort((left, right) => left.localeCompare(right)));
       })
-      .catch(() => {
-        setCatalogNames([]);
-      });
+      .catch(() => setCatalogNames([]));
 
     if (!sceneUrl.trim()) {
       loadSplineRuntimeConfig()
@@ -364,9 +169,7 @@ export function BrowserCloneProofPage() {
             setSceneUrl(config.sceneUrl.trim());
           }
         })
-        .catch(() => {
-          // Diagnostic override input remains available if backend config is unavailable.
-        });
+        .catch(() => undefined);
     }
 
     return () => {
@@ -378,80 +181,106 @@ export function BrowserCloneProofPage() {
   useEffect(() => {
     if (!autoLoadRequested || autoLoadDoneRef.current || !sceneUrl.trim()) return;
     autoLoadDoneRef.current = true;
-    const timer = window.setTimeout(() => {
-      void loadScene();
-    }, 50);
+    const timer = window.setTimeout(() => void loadScene(), 50);
     return () => window.clearTimeout(timer);
   }, [autoLoadRequested, sceneUrl]);
 
   useEffect(() => {
     if (!autoRunRequested || autoRunDoneRef.current || !loaded || running) return;
     autoRunDoneRef.current = true;
-    const timer = window.setTimeout(() => {
-      void runCloneProof();
-    }, 100);
+    const timer = window.setTimeout(() => void runCloneProof(), 100);
     return () => window.clearTimeout(timer);
   }, [autoRunRequested, loaded, running]);
 
-  const createdNames = useMemo(() => cloneResult?.createdNames ?? [], [cloneResult]);
-  const stringVariables = useMemo(
-    () => Object.entries(sceneVariables).filter(([, value]) => typeof value === 'string'),
-    [sceneVariables]
+  const sourceMatches = useMemo(
+    () => productionObjectsRef.current.filter(object => object.name === sourceName.trim()).length,
+    [sourceName, loaded, objectCount]
   );
 
-  const cloneTone: VerdictTone = !cloneResult
+  const selectedStateCandidate = useMemo(
+    () => stateProbe?.candidates.find(candidate => candidate.uuid === stateTargetUuid) ?? null,
+    [stateProbe, stateTargetUuid]
+  );
+
+  const cloneTone: ProofTone = !cloneResult
     ? 'pending'
     : cloneResult.freshRootId && cloneResult.sourceUnchanged && cloneResult.createdObjectCount > 0
       ? 'pass'
       : 'fail';
 
-  const stateDiscoveryTone: VerdictTone = !cloneResult
+  const stateDiscoveryTone: ProofTone = !cloneResult
     ? 'pending'
     : !stateProbe
       ? 'pending'
-      : stateProbe.changedProductionObjects > 0
+      : stateProbe.changedProductionVisualObjects > 0
         ? 'fail'
         : stateProbe.candidates.length > 0
           ? 'pass'
           : 'partial';
 
-  const stateControlTone: VerdictTone = !cloneResult
+  const stateBehaviorTone: ProofTone = !cloneResult
     ? 'pending'
-    : !transitionProbe
-      ? 'pending'
-      : transitionProbe.changedProductionObjects === 0 && transitionProbe.changedCloneObjects > 0
-        ? 'pass'
-        : 'fail';
+    : !stateBehavior
+      ? stateProbe && stateProbe.candidates.length === 0 ? 'partial' : 'pending'
+      : stateBehavior.changedProductionVisualObjects > 0
+        ? 'fail'
+        : stateBehavior.stateAccepted && stateBehavior.changedCloneVisualObjects > 0
+          ? 'pass'
+          : stateBehavior.stateAccepted
+            ? 'partial'
+            : 'fail';
 
-  const overallTone: VerdictTone = cloneTone === 'fail' || stateDiscoveryTone === 'fail' || stateControlTone === 'fail'
-    ? 'fail'
-    : cloneTone === 'pass' && stateDiscoveryTone === 'pass' && stateControlTone === 'pass'
+  const eventTone: ProofTone = !cloneResult
+    ? 'pending'
+    : cloneResult.sourceEventRefs === 0 || cloneResult.cloneEventRefs > 0
       ? 'pass'
-      : cloneTone === 'pass' && stateDiscoveryTone === 'partial'
+      : 'partial';
+
+  const overallTone: ProofTone = cloneTone === 'fail' || stateDiscoveryTone === 'fail' || stateBehaviorTone === 'fail'
+    ? 'fail'
+    : cloneTone === 'pass' && stateDiscoveryTone === 'pass' && stateBehaviorTone === 'pass'
+      ? 'pass'
+      : cloneTone === 'pass'
         ? 'partial'
         : 'pending';
 
+  const overallTitle = overallTone === 'pass'
+    ? 'STATEFUL CLONE VERIFIED'
+    : overallTone === 'fail'
+      ? 'PROOF FAILED'
+      : overallTone === 'partial'
+        ? 'VISUAL CLONE VERIFIED'
+        : 'WAITING FOR PROOF';
+
+  const overallDetail = overallTone === 'pass'
+    ? 'The transient clone is isolated from production objects and an inherited state produces a visual change inside the cloned subtree.'
+    : overallTone === 'fail'
+      ? 'One of the safety or state-isolation checks failed. Do not use this template for automated runtime composition yet.'
+      : overallTone === 'partial'
+        ? 'Deep cloning works, but this template has not yet proven a visible inherited-state transition.'
+        : 'Load the scene, clone one template, then run a state test.';
+
   async function loadScene() {
     const normalized = normalizeSceneInput(sceneUrl);
-    const url = normalized.sceneUrl;
+    const url = normalized.sceneUrl.trim();
 
     if (normalized.source) setSourceName(normalized.source);
     if (normalized.clone) setCloneName(normalized.clone);
     if (url && url !== sceneUrl) setSceneUrl(url);
 
     if (!url.includes('.splinecode')) {
-      setError('Paste either the direct scene.splinecode URL or the full Media OS one-click browser proof link.');
+      setError('Use the direct scene.splinecode URL or a full Media OS runtime-lab link.');
       return;
     }
 
     try {
       const parsed = new URL(url, window.location.origin);
       if (!['https:', 'http:'].includes(parsed.protocol)) {
-        setError('Spline runtime URL must use HTTP or HTTPS.');
+        setError('The Spline scene URL must use HTTP or HTTPS.');
         return;
       }
     } catch {
-      setError('Invalid Spline runtime URL.');
+      setError('The Spline scene URL is not valid.');
       return;
     }
 
@@ -462,14 +291,13 @@ export function BrowserCloneProofPage() {
     setLoaded(false);
     setCloneResult(null);
     setStateProbe(null);
-    setTransitionProbe(null);
-    setTextCandidates([]);
+    setStateBehavior(null);
+    setStateTargetUuid('');
+    setStateTargetValue('');
     setBlueprintStatus('IDLE');
     setBlueprintFingerprint(null);
-    setBlueprintCapabilitySummary(null);
-    setBlueprintMessage(null);
-    createdObjectsRef.current = [];
     productionObjectsRef.current = [];
+    createdObjectsRef.current = [];
     cloneRef.current = null;
 
     const startedAt = performance.now();
@@ -481,35 +309,28 @@ export function BrowserCloneProofPage() {
         htmlContentMode: 'none'
       });
       appRef.current = app;
+
       await app.load(url);
       app.stop();
 
       const objects = app.getAllObjects() as RuntimeObject[];
       const events = app.getSplineEvents();
-      const variables = app.getVariables();
+      const variables = app.getVariables() ?? {};
 
       productionObjectsRef.current = objects;
-      setSceneVariables(variables ?? {});
       setObjectCount(objects.length);
       setEventDefinitionCount(Array.isArray(events) ? events.length : Object.keys(events ?? {}).length);
+      setSceneVariables(variables);
       setLoadDurationMs(performance.now() - startedAt);
       setLoaded(true);
 
-      void saveRuntimeBlueprint(
-        url,
-        objects,
-        events,
-        variables ?? {}
-      );
-
       window.localStorage.setItem(SCENE_URL_STORAGE_KEY, url);
       window.localStorage.setItem(SOURCE_NAME_STORAGE_KEY, sourceName.trim());
+      window.localStorage.setItem(CLONE_NAME_STORAGE_KEY, cloneName.trim());
 
-      if (!app.findObjectByName(sourceName.trim())) {
-        setError(`Scene loaded, but source object "${sourceName.trim()}" was not found. Pick another catalog object and run the clone proof.`);
-      }
+      void saveRuntimeBlueprint(url, objects, events, variables);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load Spline scene.');
+      setError(cause instanceof Error ? cause.message : 'The browser runtime could not load this Spline scene.');
     } finally {
       setLoading(false);
     }
@@ -522,7 +343,6 @@ export function BrowserCloneProofPage() {
     variables: Record<string, string | number | boolean>
   ) {
     setBlueprintStatus('SAVING');
-    setBlueprintMessage(null);
 
     try {
       const eventDump = JSON.stringify(events ?? {});
@@ -542,7 +362,8 @@ export function BrowserCloneProofPage() {
           source: '@splinetool/runtime',
           browserOnly: true,
           codexRequired: false,
-          cloudPcRequired: false
+          cloudPcRequired: false,
+          transientCompositionSupported: true
         },
         knowledgeCoverage: {
           objectIdentity: 'RUNTIME_EXPOSED',
@@ -578,12 +399,9 @@ export function BrowserCloneProofPage() {
       });
 
       setBlueprintFingerprint(sceneFingerprint);
-      setBlueprintCapabilitySummary(capabilitySummary);
       setBlueprintStatus('SAVED');
-      setBlueprintMessage(`Media OS stored ${objectSnapshots.length} runtime objects as scene blueprint ${sceneFingerprint.slice(0, 10)}…`);
-    } catch (cause) {
+    } catch {
       setBlueprintStatus('ERROR');
-      setBlueprintMessage(cause instanceof Error ? cause.message : 'Could not store Spline runtime blueprint.');
     }
   }
 
@@ -593,18 +411,17 @@ export function BrowserCloneProofPage() {
       try {
         app.removeObject(cloneRef.current);
       } catch {
-        // Runtime clone is transient; full reload remains the final reset boundary.
+        // A full scene reload remains the final reset boundary for transient runtime objects.
       }
     }
 
     cloneRef.current = null;
     createdObjectsRef.current = [];
     setCloneResult(null);
-    setTextCandidates([]);
+    setStateProbe(null);
+    setStateBehavior(null);
     setStateTargetUuid('');
     setStateTargetValue('');
-    setStateProbe(null);
-    setTransitionProbe(null);
     setError(null);
   }
 
@@ -617,20 +434,33 @@ export function BrowserCloneProofPage() {
 
     resetProofState();
 
-    const source = app.findObjectByName(sourceName.trim()) as RuntimeObject | undefined;
-    if (!source) {
-      setError(`Source object "${sourceName.trim()}" was not found.`);
-      return;
-    }
-
+    const exactSourceName = sourceName.trim();
     const targetName = cloneName.trim();
-    if (!targetName.startsWith('MEDIA_OS_')) {
-      setError('Clone root must use the MEDIA_OS_ sandbox prefix.');
+    const sourceMatchesNow = (app.getAllObjects() as RuntimeObject[])
+      .filter(object => object.name === exactSourceName);
+
+    if (!exactSourceName) {
+      setError('Choose a source template.');
       return;
     }
 
-    if (app.findObjectByName(targetName)) {
-      setError(`"${targetName}" already exists in the loaded scene. Refusing to overwrite it.`);
+    if (sourceMatchesNow.length === 0) {
+      setError(`Source template "${exactSourceName}" was not found in the runtime scene.`);
+      return;
+    }
+
+    if (sourceMatchesNow.length > 1) {
+      setError(`Source name "${exactSourceName}" is ambiguous (${sourceMatchesNow.length} matches). Use a unique template name before automating it.`);
+      return;
+    }
+
+    if (!targetName) {
+      setError('Give the transient clone a name.');
+      return;
+    }
+
+    if ((app.getAllObjects() as RuntimeObject[]).some(object => object.name === targetName)) {
+      setError(`"${targetName}" already exists in the loaded scene. Choose a different runtime name.`);
       return;
     }
 
@@ -638,12 +468,12 @@ export function BrowserCloneProofPage() {
     setError(null);
 
     try {
+      const source = sourceMatchesNow[0];
       const before = app.getAllObjects() as RuntimeObject[];
       productionObjectsRef.current = before;
       const beforeIds = new Set(before.map(object => object.uuid));
-      const sourceBefore = objectFingerprint(source);
+      const sourceBefore = fullFingerprint(source);
       const sourcePosition = source.position;
-
       const targetPosition: [number, number, number] = [
         sourcePosition.x + numberValue(offsetX),
         sourcePosition.y + numberValue(offsetY),
@@ -659,59 +489,19 @@ export function BrowserCloneProofPage() {
       const created = after.filter(object => !beforeIds.has(object.uuid));
       const eventDump = JSON.stringify(app.getSplineEvents() ?? {});
       const createdIds = new Set(created.map(object => object.uuid));
-
-      let cloneEventRefs = 0;
-      for (const id of createdIds) {
-        cloneEventRefs += countOccurrences(eventDump, id);
-      }
-
-      const texts: TextCandidate[] = created
-        .filter(object => typeof object.text === 'string')
-        .map(object => ({
-          uuid: object.uuid,
-          name: object.name || '(unnamed text)',
-          text: object.text ?? ''
-        }));
+      const cloneEventRefs = [...createdIds]
+        .reduce((total, id) => total + countOccurrences(eventDump, id), 0);
 
       cloneRef.current = clone;
       createdObjectsRef.current = created;
-      setTextCandidates(texts);
 
-      const stateResult = probeClonedStates(created, productionObjectsRef.current);
-      setStateProbe(stateResult);
-      const firstStateCandidate = stateResult.candidates[0];
-      if (firstStateCandidate) {
-        const firstState = firstStateCandidate.discoveredStates[0];
-        setStateTargetUuid(firstStateCandidate.uuid);
-        setStateTargetValue(String(firstState ?? ''));
+      const discoveredStates = discoverNumericStates(created, productionObjectsRef.current);
+      setStateProbe(discoveredStates);
 
-        const stateTarget = created.find(object => object.uuid === firstStateCandidate.uuid);
-        if (stateTarget && firstState !== undefined) {
-          const cloneBeforeStateControl = snapshotObjects(created);
-          const productionBeforeStateControl = snapshotObjects(productionObjectsRef.current);
-          const originalState = stateTarget.state;
-          const stateStartedAt = performance.now();
-
-          app.play();
-          stateTarget.state = firstState;
-          await new Promise(resolve => window.setTimeout(resolve, 120));
-          app.stop();
-
-          setTransitionProbe({
-            targetName: stateTarget.name || '(unnamed object)',
-            targetUuid: stateTarget.uuid,
-            targetState: firstState,
-            changedCloneObjects: countChangedObjects(created, cloneBeforeStateControl),
-            changedProductionObjects: countChangedObjects(productionObjectsRef.current, productionBeforeStateControl),
-            durationMs: performance.now() - stateStartedAt
-          });
-
-          try {
-            stateTarget.state = originalState;
-          } catch {
-            // Runtime-only clone; reload remains the hard reset boundary.
-          }
-        }
+      const firstCandidate = discoveredStates.candidates[0];
+      if (firstCandidate) {
+        setStateTargetUuid(firstCandidate.uuid);
+        setStateTargetValue(String(firstCandidate.discoveredStates[0] ?? ''));
       }
 
       setCloneResult({
@@ -723,7 +513,7 @@ export function BrowserCloneProofPage() {
         createdNames: created.map(object => object.name).filter(Boolean),
         sourceEventRefs: countOccurrences(eventDump, source.uuid),
         cloneEventRefs,
-        sourceUnchanged: sourceBefore === objectFingerprint(source),
+        sourceUnchanged: sourceBefore === fullFingerprint(source),
         freshRootId: clone.uuid !== source.uuid && !beforeIds.has(clone.uuid),
         cloneDurationMs,
         position: {
@@ -732,359 +522,385 @@ export function BrowserCloneProofPage() {
           z: clone.position.z
         }
       });
+
+      window.localStorage.setItem(SOURCE_NAME_STORAGE_KEY, exactSourceName);
+      window.localStorage.setItem(CLONE_NAME_STORAGE_KEY, targetName);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Clone proof failed.');
+      setError(cause instanceof Error ? cause.message : 'The transient runtime clone could not be created.');
     } finally {
       setRunning(false);
     }
   }
 
-  function probeClonedStates(
-    clonedObjects: RuntimeObject[],
-    productionObjects: RuntimeObject[]
-  ): StateProbeResult {
-    const productionBefore = snapshotObjects(productionObjects);
-    const startedAt = performance.now();
-    const candidates: StateCandidate[] = [];
-
-    for (const object of clonedObjects) {
-      const originalState = object.state;
-      const discoveredStates: Array<string | number> = [];
-      let misses = 0;
-
-      for (let index = 1; index <= 6; index += 1) {
-        try {
-          object.state = index;
-          const current = object.state;
-          const changed = current !== undefined && current !== originalState;
-
-          if (changed && !discoveredStates.some(value => String(value) === String(current))) {
-            discoveredStates.push(current);
-            misses = 0;
-          } else {
-            misses += 1;
-          }
-
-          if (misses >= 2) break;
-        } catch {
-          break;
-        }
-      }
-
-      try {
-        object.state = originalState;
-      } catch {
-        // Clone is transient. A scene reload remains the hard reset boundary.
-      }
-
-      if (discoveredStates.length > 0) {
-        candidates.push({
-          uuid: object.uuid,
-          name: object.name || '(unnamed object)',
-          originalState,
-          discoveredStates
-        });
-      }
-    }
-
-    return {
-      candidates,
-      changedProductionObjects: countChangedObjects(productionObjects, productionBefore),
-      durationMs: performance.now() - startedAt
-    };
-  }
-
-  async function runStateControlProof() {
+  async function runStateBehaviorProof() {
     const app = appRef.current;
     const target = createdObjectsRef.current.find(object => object.uuid === stateTargetUuid);
-    if (!app || !target) {
-      setError('Select a state-capable cloned object first.');
-      return;
-    }
-
     const candidate = stateProbe?.candidates.find(item => item.uuid === stateTargetUuid);
     const targetState = candidate?.discoveredStates.find(value => String(value) === stateTargetValue);
-    if (targetState === undefined) {
-      setError('Select a discovered cloned state first.');
+
+    if (!app || !target || !candidate || targetState === undefined) {
+      setError('Select one discovered state from the cloned subtree first.');
       return;
     }
 
-    const cloneBefore = snapshotObjects(createdObjectsRef.current);
-    const productionBefore = snapshotObjects(productionObjectsRef.current);
+    setRunning(true);
+    setError(null);
+
+    const cloneBefore = snapshotVisualObjects(createdObjectsRef.current);
+    const productionBefore = snapshotVisualObjects(productionObjectsRef.current);
     const originalState = target.state;
     const startedAt = performance.now();
 
     try {
       app.play();
       target.state = targetState;
-      await new Promise(resolve => window.setTimeout(resolve, 120));
-      app.stop();
+      await settleRuntime();
 
-      const result: TransitionProbeResult = {
+      const result: StateBehaviorResult = {
         targetName: target.name || '(unnamed object)',
         targetUuid: target.uuid,
         targetState,
-        changedCloneObjects: countChangedObjects(createdObjectsRef.current, cloneBefore),
-        changedProductionObjects: countChangedObjects(productionObjectsRef.current, productionBefore),
+        changedCloneVisualObjects: countVisualChanges(createdObjectsRef.current, cloneBefore),
+        changedProductionVisualObjects: countVisualChanges(productionObjectsRef.current, productionBefore),
+        stateAccepted: target.state !== undefined && String(target.state) === String(targetState),
         durationMs: performance.now() - startedAt
       };
-      setTransitionProbe(result);
+      setStateBehavior(result);
 
       try {
         target.state = originalState;
+        await settleRuntime();
       } catch {
-        // Runtime-only clone; reload is always available as the final reset.
+        // Runtime-only clone. Reloading the scene is the hard reset boundary.
       }
     } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The cloned-state behavior test failed.');
+    } finally {
       app.stop();
-      setError(cause instanceof Error ? cause.message : 'State control proof failed.');
+      setRunning(false);
     }
   }
 
-
-
   return (
-    <main className="browser-proof-page">
-      <header className="browser-proof-header">
-        <button className="icon-button" onClick={() => { window.location.hash = '#/spline-agent'; }} aria-label="Back">
-          <ArrowLeft size={19} />
+    <main className="runtime-lab-page">
+      <header className="runtime-lab-header">
+        <button
+          className="icon-button"
+          onClick={() => { window.location.hash = '#/spline-agent'; }}
+          aria-label="Back to Spline Agent"
+        >
+          <ArrowLeft size={18} />
         </button>
-        <div>
-          <span>BROWSER RUNTIME PROOF V3</span>
-          <strong>Deterministic zero-Codex acceptance test</strong>
+
+        <div className="runtime-lab-header-copy">
+          <span className="runtime-lab-eyebrow">Runtime Scene Lab · V1</span>
+          <strong>Clone a Spline template, inherit behavior, discard after render</strong>
         </div>
-        <div className="browser-proof-cost">
-          <span>EXECUTION PATH</span>
-          <strong>Browser only · 0 Codex tokens · 0 Cloud PC</strong>
+
+        <div className="runtime-lab-badges">
+          <span className="runtime-lab-badge good"><ShieldCheck size={12} /> Browser only</span>
+          <span className="runtime-lab-badge good">0 Codex tokens</span>
+          <span className="runtime-lab-badge">Transient scene</span>
         </div>
       </header>
 
-      <div className="browser-proof-layout">
-        <section className="browser-proof-controls">
-          <div className="browser-proof-section-title">
-            <TestTube2 size={17} />
-            <div>
-              <span>ACTION 1</span>
-              <strong>Clone → discover states → control clone → verify isolation</strong>
+      <div className="runtime-lab-shell">
+        <aside className="runtime-lab-panel left">
+          <section className="runtime-lab-section">
+            <div className="runtime-lab-section-heading">
+              <span className="runtime-lab-step">1</span>
+              <div>
+                <span className="runtime-lab-section-kicker">Template</span>
+                <strong>Load the reusable source</strong>
+              </div>
             </div>
-          </div>
 
-          <label>
-            <span>Scene URL · supplied by Media OS backend · local override allowed</span>
-            <input
-              value={sceneUrl}
-              onChange={event => setSceneUrl(event.target.value)}
-              placeholder="scene.splinecode URL or full Media OS browser-proof link"
-            />
-          </label>
+            <p className="runtime-lab-copy">
+              Pick one uniquely named object from the master Spline scene. Nothing created here is saved back to the authored file.
+            </p>
 
-          <div className="browser-proof-grid">
-            <label>
-              <span>Source object</span>
+            <label className="runtime-lab-field">
+              <span>Source template</span>
               <input
                 value={sourceName}
-                list="browser-proof-catalog-names"
+                list="runtime-lab-catalog-names"
                 onChange={event => setSourceName(event.target.value)}
+                placeholder="Auth Service"
               />
-              <datalist id="browser-proof-catalog-names">
+              <datalist id="runtime-lab-catalog-names">
                 {catalogNames.map(name => <option value={name} key={name} />)}
               </datalist>
             </label>
-            <label>
-              <span>Clone root</span>
-              <input value={cloneName} onChange={event => setCloneName(event.target.value)} />
+
+            <button className="runtime-lab-button" disabled={loading} onClick={() => void loadScene()}>
+              {loading ? <LoaderCircle size={15} className="runtime-lab-spin" /> : <RefreshCw size={15} />}
+              {loading ? 'Loading runtime…' : loaded ? 'Reload scene' : 'Load scene'}
+            </button>
+
+            <div className="runtime-lab-mini-status">
+              <span>Template identity</span>
+              <strong className={sourceMatches === 1 ? 'good' : sourceMatches > 1 ? 'warn' : ''}>
+                {!loaded ? 'WAITING' : sourceMatches === 1 ? 'UNIQUE' : sourceMatches > 1 ? `${sourceMatches} MATCHES` : 'NOT FOUND'}
+              </strong>
+            </div>
+
+            <details className="runtime-lab-advanced">
+              <summary>Advanced · scene source</summary>
+              <div>
+                <label className="runtime-lab-field">
+                  <span>scene.splinecode URL</span>
+                  <input value={sceneUrl} onChange={event => setSceneUrl(event.target.value)} />
+                </label>
+                <div className="runtime-lab-mini-status">
+                  <span>Runtime blueprint</span>
+                  <strong className={blueprintStatus === 'SAVED' ? 'good' : blueprintStatus === 'ERROR' ? 'warn' : ''}>
+                    {blueprintStatus}
+                  </strong>
+                </div>
+                {blueprintFingerprint && (
+                  <div className="runtime-lab-note">Fingerprint <strong>{blueprintFingerprint.slice(0, 16)}…</strong></div>
+                )}
+              </div>
+            </details>
+          </section>
+
+          <section className="runtime-lab-section">
+            <div className="runtime-lab-section-heading">
+              <span className="runtime-lab-step">2</span>
+              <div>
+                <span className="runtime-lab-section-kicker">Clone</span>
+                <strong>Create the episode instance</strong>
+              </div>
+            </div>
+
+            <label className="runtime-lab-field">
+              <span>New runtime name</span>
+              <input value={cloneName} onChange={event => setCloneName(event.target.value)} placeholder="Token Service" />
             </label>
-          </div>
 
-          <div className="browser-proof-grid browser-proof-grid-3">
-            <label><span>Offset X</span><input value={offsetX} onChange={event => setOffsetX(event.target.value)} /></label>
-            <label><span>Offset Y</span><input value={offsetY} onChange={event => setOffsetY(event.target.value)} /></label>
-            <label><span>Offset Z</span><input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} /></label>
-          </div>
+            <div className="runtime-lab-grid-3">
+              <label className="runtime-lab-field">
+                <span>X</span>
+                <input value={offsetX} onChange={event => setOffsetX(event.target.value)} inputMode="decimal" />
+              </label>
+              <label className="runtime-lab-field">
+                <span>Y</span>
+                <input value={offsetY} onChange={event => setOffsetY(event.target.value)} inputMode="decimal" />
+              </label>
+              <label className="runtime-lab-field">
+                <span>Z</span>
+                <input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} inputMode="decimal" />
+              </label>
+            </div>
 
-          <div className="browser-proof-buttons">
-            <button disabled={loading} onClick={() => void loadScene()}>
-              <RefreshCw size={16} className={loading ? 'spin' : ''} />
-              {loading ? 'Loading…' : 'Load scene'}
+            <button className="runtime-lab-button" disabled={!loaded || running || sourceMatches !== 1} onClick={() => void runCloneProof()}>
+              {running ? <LoaderCircle size={15} className="runtime-lab-spin" /> : <Copy size={15} />}
+              {running ? 'Working…' : 'Create runtime clone'}
             </button>
-            <button disabled={!loaded || running} onClick={() => void runCloneProof()}>
-              <Copy size={16} />
-              {running ? 'Cloning…' : 'Run clone proof'}
-            </button>
-          </div>
 
-          {cloneResult && (
-            <button className="browser-proof-secondary browser-proof-reset" onClick={resetProofState}>
-              <RotateCcw size={15} /> Remove transient clone
-            </button>
-          )}
+            {cloneResult && (
+              <button className="runtime-lab-button ghost" disabled={running} onClick={resetProofState}>
+                <RotateCcw size={14} /> Remove transient clone
+              </button>
+            )}
+          </section>
 
-          {error && <div className="browser-proof-error"><X size={15} />{error}</div>}
-
-          <div className="browser-proof-facts">
-            <div><span>Scene</span><strong>{loaded ? 'LOADED / PAUSED' : 'NOT LOADED'}</strong></div>
-            <div><span>Objects</span><strong>{objectCount ?? '—'}</strong></div>
-            <div><span>Load</span><strong>{loadDurationMs == null ? '—' : `${loadDurationMs.toFixed(0)} ms`}</strong></div>
-          </div>
-
-          {blueprintStatus !== 'IDLE' && (
-            <div className={`browser-proof-note ${blueprintStatus === 'ERROR' ? 'browser-proof-blueprint-error' : ''}`}>
-              <strong>Scene Blueprint:</strong> {blueprintStatus}
-              {blueprintFingerprint ? ` · ${blueprintFingerprint.slice(0, 12)}…` : ''}
-              {blueprintMessage ? <> · {blueprintMessage}</> : null}
-              {blueprintCapabilitySummary ? (
-                <>
-                  {' '}· transforms <strong>{String(blueprintCapabilitySummary.transform ?? 0)}</strong>
-                  {' '}· materials <strong>{String(blueprintCapabilitySummary.material ?? 0)}</strong>
-                  {' '}· event-bound <strong>{String(blueprintCapabilitySummary.authoredEventReferencedObjects ?? 0)}</strong>
-                </>
-              ) : null}
+          {error && (
+            <div className="runtime-lab-error">
+              <AlertTriangle size={15} />
+              <span>{error}</span>
             </div>
           )}
+        </aside>
 
-          {cloneResult && (
-            <div className="browser-proof-result success">
-              <div className="browser-proof-result-title"><Check size={16} /><strong>Runtime clone created</strong></div>
-              <dl>
-                <div><dt>Root</dt><dd>{cloneResult.cloneName}</dd></div>
-                <div><dt>Fresh root ID</dt><dd>{cloneResult.freshRootId ? 'YES' : 'NO'}</dd></div>
-                <div><dt>Source unchanged</dt><dd>{cloneResult.sourceUnchanged ? 'YES' : 'NO'}</dd></div>
-                <div><dt>New subtree objects</dt><dd>{cloneResult.createdObjectCount}</dd></div>
-                <div><dt>Writable text candidates</dt><dd>{textCandidates.length}</dd></div>
-                <div><dt>State-capable clone objects</dt><dd>{stateProbe?.candidates.length ?? '—'}</dd></div>
-                <div><dt>Source event refs</dt><dd>{cloneResult.sourceEventRefs}</dd></div>
-                <div><dt>Clone event refs</dt><dd>{cloneResult.cloneEventRefs}</dd></div>
-                <div><dt>Clone latency</dt><dd>{cloneResult.cloneDurationMs.toFixed(2)} ms</dd></div>
-                <div><dt>Position</dt><dd>{cloneResult.position.x.toFixed(1)}, {cloneResult.position.y.toFixed(1)}, {cloneResult.position.z.toFixed(1)}</dd></div>
-              </dl>
+        <section className="runtime-lab-stage">
+          <div className="runtime-lab-stage-head">
+            <div>
+              <span className="runtime-lab-canvas-kicker">Live browser runtime</span>
+              <strong>Episode scene · temporary working surface</strong>
             </div>
-          )}
-
-          {cloneResult && (
-            <>
-              <div className="browser-proof-divider" />
-              <div className="browser-proof-section-title compact">
-                <div><span>STATE PROBE</span><strong>Direct behavior control without cloned events</strong></div>
-              </div>
-
-              {stateProbe && stateProbe.candidates.length > 0 ? (
-                <>
-                  <div className="browser-proof-grid">
-                    <label>
-                      <span>State-capable cloned object</span>
-                      <select
-                        value={stateTargetUuid}
-                        onChange={event => {
-                          const uuid = event.target.value;
-                          setStateTargetUuid(uuid);
-                          const candidate = stateProbe.candidates.find(item => item.uuid === uuid);
-                          setStateTargetValue(String(candidate?.discoveredStates[0] ?? ''));
-                        }}
-                      >
-                        {stateProbe.candidates.map(candidate => (
-                          <option key={candidate.uuid} value={candidate.uuid}>
-                            {candidate.name} · {candidate.discoveredStates.length} state(s)
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Discovered state</span>
-                      <select value={stateTargetValue} onChange={event => setStateTargetValue(event.target.value)}>
-                        {(stateProbe.candidates.find(item => item.uuid === stateTargetUuid)?.discoveredStates ?? []).map(value => (
-                          <option value={String(value)} key={String(value)}>{String(value)}</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <button className="browser-proof-secondary" onClick={() => void runStateControlProof()}>
-                    Apply cloned state + verify isolation
-                  </button>
-                  <div className="browser-proof-note">
-                    State discovery probed only transient clone objects and restored them. Production changes detected: <strong>{stateProbe.changedProductionObjects}</strong>. Probe time: <strong>{stateProbe.durationMs.toFixed(2)} ms</strong>.
-                  </div>
-                </>
-              ) : (
-                <div className="browser-proof-note">
-                  No alternate state was discovered on this cloned subtree by index probe. This does not invalidate visual cloning; it means this template cannot yet prove deterministic state control.
-                </div>
-              )}
-
-              {transitionProbe && (
-                <div className="browser-proof-note">
-                  State <strong>{String(transitionProbe.targetState)}</strong> on <strong>{transitionProbe.targetName}</strong> changed <strong>{transitionProbe.changedCloneObjects}</strong> clone object(s) and <strong>{transitionProbe.changedProductionObjects}</strong> production object(s) in {transitionProbe.durationMs.toFixed(2)} ms.
-                </div>
-              )}
-
-              <div className="browser-proof-divider" />
-              <div className="browser-proof-section-title compact">
-                <div><span>PARAMETERIZATION INVENTORY</span><strong>Labels are a separate compiler concern</strong></div>
-              </div>
-
-              <div className="browser-proof-note">
-                Writable runtime text properties detected: <strong>{textCandidates.length}</strong>. Scene String variables detected: <strong>{stringVariables.length}</strong>.
-                {' '}The Direct Executor gate no longer depends on authored event cloning or generic runtime text mutation.
-              </div>
-
-              {stringVariables.length > 0 && (
-                <details className="browser-proof-objects">
-                  <summary>Scene String variables ({stringVariables.length})</summary>
-                  <div>{stringVariables.map(([name, value]) => <code key={name}>{name}="{String(value)}"</code>)}</div>
-                </details>
-              )}
-
-              <div className="browser-proof-note">
-                Existing authored events remain useful as a one-time behavior blueprint, but runtime clones do not receive their event bindings automatically. Media OS will own the deterministic action sequence instead.
-              </div>
-
-              <div className="browser-proof-divider" />
-              <div className="browser-proof-section-title compact">
-                <div><span>ACCEPTANCE</span><strong>Direct Executor gate</strong></div>
-              </div>
-
-              <div className={`browser-proof-verdict ${overallTone}`}>
-                <VerdictRow
-                  label="Deep clone + source safety"
-                  tone={cloneTone}
-                  detail={!cloneResult ? 'Not run yet.' : `${cloneResult.createdObjectCount} fresh runtime object(s); original ${cloneResult.sourceUnchanged ? 'unchanged' : 'changed'}.`}
-                />
-                <VerdictRow
-                  label="Clone state preservation"
-                  tone={stateDiscoveryTone}
-                  detail={!stateProbe ? 'State probe not run yet.' : `${stateProbe.candidates.length} state-capable clone object(s); ${stateProbe.changedProductionObjects} production changes.`}
-                />
-                <VerdictRow
-                  label="Deterministic state control"
-                  tone={stateControlTone}
-                  detail={!transitionProbe ? 'Apply one discovered state to the clone.' : `${transitionProbe.changedCloneObjects} clone / ${transitionProbe.changedProductionObjects} production changes.`}
-                />
-                <VerdictRow
-                  label="Authored events"
-                  tone="partial"
-                  detail={cloneResult?.sourceEventRefs ? `Not copied: ${cloneResult.sourceEventRefs} source ref(s), ${cloneResult.cloneEventRefs} clone ref(s). Direct Executor will replace this layer.` : 'No source event refs on this template.'}
-                />
-                <div className="browser-proof-overall">
-                  <span>OVERALL</span>
-                  <strong>{overallTone.toUpperCase()}</strong>
-                </div>
-              </div>
-
-              <details className="browser-proof-objects">
-                <summary>Created subtree object names ({createdNames.length}) · scene event definitions {eventDefinitionCount ?? '—'}</summary>
-                <div>{createdNames.map((name, index) => <code key={index}>{name || '(unnamed)'}</code>)}</div>
-              </details>
-            </>
-          )}
-        </section>
-
-        <section className="browser-proof-canvas-card">
-          <div>
-            <span>LIVE BROWSER RUNTIME</span>
-            <strong>Real .splinecode scene · paused between tests to minimize resource use</strong>
+            <div className="runtime-lab-scene-state">
+              <span className={`runtime-lab-scene-dot ${loaded ? 'live' : ''}`} />
+              {loaded ? 'SCENE LOADED' : 'NO SCENE'}
+            </div>
           </div>
-          <canvas ref={canvasRef} className="browser-proof-canvas" />
-          <small>All proof mutations are runtime-only. Reloading the scene restores the authored Spline file.</small>
+
+          <div className="runtime-lab-canvas-frame">
+            <canvas ref={canvasRef} className="runtime-lab-canvas" />
+            {!loaded && !loading && (
+              <div className="runtime-lab-canvas-empty">
+                <div>
+                  <Layers3 size={26} />
+                  <strong>Load the master runtime scene</strong>
+                  <span>The original authored Spline file remains untouched.</span>
+                </div>
+              </div>
+            )}
+            <div className="runtime-lab-canvas-overlay">
+              <span>RUNTIME-ONLY MUTATIONS</span>
+              <strong>{cloneResult ? `${cloneResult.sourceName} → ${cloneResult.cloneName}` : 'No transient clone yet'}</strong>
+            </div>
+          </div>
+
+          <div className="runtime-lab-metrics">
+            <div className="runtime-lab-metric">
+              <span>Objects</span>
+              <strong>{objectCount ?? '—'}</strong>
+            </div>
+            <div className="runtime-lab-metric">
+              <span>Load</span>
+              <strong>{loadDurationMs == null ? '—' : `${loadDurationMs.toFixed(0)} ms`}</strong>
+            </div>
+            <div className="runtime-lab-metric">
+              <span>Clone</span>
+              <strong>{cloneResult ? `${cloneResult.cloneDurationMs.toFixed(1)} ms` : '—'}</strong>
+            </div>
+            <div className="runtime-lab-metric">
+              <span>New subtree</span>
+              <strong>{cloneResult?.createdObjectCount ?? '—'}</strong>
+            </div>
+          </div>
         </section>
+
+        <aside className="runtime-lab-panel right">
+          <section className="runtime-lab-section">
+            <div className={`runtime-lab-proof-hero ${overallTone}`}>
+              <span>ACCEPTANCE RESULT</span>
+              <strong>{overallTitle}</strong>
+              <small>{overallDetail}</small>
+            </div>
+
+            <div className="runtime-lab-proof-list">
+              <ProofItem
+                label="Deep clone"
+                tone={cloneTone}
+                detail={!cloneResult
+                  ? 'Create a transient clone first.'
+                  : `${cloneResult.createdObjectCount} new object(s), fresh root ID, source ${cloneResult.sourceUnchanged ? 'unchanged' : 'changed'}.`}
+              />
+              <ProofItem
+                label="Inherited states"
+                tone={stateDiscoveryTone}
+                detail={!stateProbe
+                  ? 'State discovery has not run yet.'
+                  : `${stateProbe.candidates.length} cloned object(s) expose alternate state indexes; ${stateProbe.changedProductionVisualObjects} production visual changes.`}
+              />
+              <ProofItem
+                label="Visible state behavior"
+                tone={stateBehaviorTone}
+                detail={!stateBehavior
+                  ? stateProbe?.candidates.length === 0 ? 'No alternate clone state was discovered.' : 'Run one cloned-state test.'
+                  : `${stateBehavior.changedCloneVisualObjects} clone visual change(s), ${stateBehavior.changedProductionVisualObjects} production visual change(s).`}
+              />
+              <ProofItem
+                label="Authored event bindings"
+                tone={eventTone}
+                detail={!cloneResult
+                  ? 'Not inspected yet.'
+                  : cloneResult.sourceEventRefs === 0
+                    ? 'The selected source has no runtime event references.'
+                    : `${cloneResult.sourceEventRefs} source ref(s), ${cloneResult.cloneEventRefs} clone ref(s). Direct JS can own episode behavior when bindings are not copied.`}
+              />
+            </div>
+          </section>
+
+          <section className="runtime-lab-section">
+            <div className="runtime-lab-section-heading">
+              <span className="runtime-lab-step">3</span>
+              <div>
+                <span className="runtime-lab-section-kicker">State proof</span>
+                <strong>Verify inherited visual behavior</strong>
+              </div>
+            </div>
+
+            {stateProbe && stateProbe.candidates.length > 0 ? (
+              <>
+                <label className="runtime-lab-field">
+                  <span>Cloned state object</span>
+                  <select
+                    value={stateTargetUuid}
+                    onChange={event => {
+                      const uuid = event.target.value;
+                      setStateTargetUuid(uuid);
+                      const candidate = stateProbe.candidates.find(item => item.uuid === uuid);
+                      setStateTargetValue(String(candidate?.discoveredStates[0] ?? ''));
+                      setStateBehavior(null);
+                    }}
+                  >
+                    {stateProbe.candidates.map(candidate => (
+                      <option key={candidate.uuid} value={candidate.uuid}>
+                        {candidate.name} · {candidate.discoveredStates.length} state(s)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="runtime-lab-field">
+                  <span>State index</span>
+                  <select value={stateTargetValue} onChange={event => { setStateTargetValue(event.target.value); setStateBehavior(null); }}>
+                    {(selectedStateCandidate?.discoveredStates ?? []).map(value => (
+                      <option value={String(value)} key={String(value)}>{String(value)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <button className="runtime-lab-button" disabled={running} onClick={() => void runStateBehaviorProof()}>
+                  {running ? <LoaderCircle size={15} className="runtime-lab-spin" /> : <Play size={15} />}
+                  {running ? 'Testing state…' : 'Test cloned state'}
+                </button>
+              </>
+            ) : (
+              <div className="runtime-lab-note">
+                {cloneResult
+                  ? 'This clone is visually valid, but no alternate numeric state index was discovered in its subtree. Try a known stateful template such as Auth Service.'
+                  : 'Create a runtime clone first. State-capable objects will appear here automatically.'}
+              </div>
+            )}
+
+            {stateBehavior && (
+              <div className="runtime-lab-fact-list">
+                <div className="runtime-lab-fact"><span>Target</span><strong>{stateBehavior.targetName}</strong></div>
+                <div className="runtime-lab-fact"><span>Applied state</span><strong>{String(stateBehavior.targetState)}</strong></div>
+                <div className="runtime-lab-fact"><span>Clone visual changes</span><strong>{stateBehavior.changedCloneVisualObjects}</strong></div>
+                <div className="runtime-lab-fact"><span>Production visual changes</span><strong>{stateBehavior.changedProductionVisualObjects}</strong></div>
+                <div className="runtime-lab-fact"><span>Proof latency</span><strong>{stateBehavior.durationMs.toFixed(0)} ms</strong></div>
+              </div>
+            )}
+          </section>
+
+          <section className="runtime-lab-section">
+            <div className="runtime-lab-section-heading">
+              <span className="runtime-lab-step">4</span>
+              <div>
+                <span className="runtime-lab-section-kicker">Composition gate</span>
+                <strong>Ready for camera + timeline JS?</strong>
+              </div>
+            </div>
+
+            <div className="runtime-lab-note">
+              <strong>{overallTone === 'pass' ? 'YES.' : overallTone === 'partial' ? 'VISUAL-ONLY FOR NOW.' : overallTone === 'fail' ? 'NO.' : 'NOT TESTED.'}</strong>{' '}
+              {overallTone === 'pass'
+                ? 'This template can be cloned for an episode, renamed, positioned and state-driven in the browser without persisting the scene.'
+                : overallTone === 'partial'
+                  ? 'Runtime cloning is usable, but stateful automation still needs another template or a JS-owned behavior layer.'
+                  : overallTone === 'fail'
+                    ? 'Fix the failing isolation/state condition before using this template in automated scene generation.'
+                    : 'Run the three steps above before connecting camera framing and episode timeline execution.'}
+            </div>
+
+            <details className="runtime-lab-advanced">
+              <summary>Technical runtime facts</summary>
+              <div>
+                <div className="runtime-lab-fact-list">
+                  <div className="runtime-lab-fact"><span>Scene events</span><strong>{eventDefinitionCount ?? '—'}</strong></div>
+                  <div className="runtime-lab-fact"><span>Scene variables</span><strong>{Object.keys(sceneVariables).length}</strong></div>
+                  <div className="runtime-lab-fact"><span>Created names</span><strong>{cloneResult?.createdNames.length ?? '—'}</strong></div>
+                  <div className="runtime-lab-fact"><span>Persistence</span><strong>NONE / TRANSIENT</strong></div>
+                </div>
+              </div>
+            </details>
+          </section>
+        </aside>
       </div>
     </main>
   );
