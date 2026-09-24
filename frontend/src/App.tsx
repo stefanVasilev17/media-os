@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
+import { ActivityPage } from './pages/ActivityPage';
 import { HomePage } from './pages/HomePage';
-import { LiveMapPage } from './pages/LiveMapPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SplineWorkspacePage } from './pages/SplineWorkspacePage';
 
@@ -39,7 +39,7 @@ export function App() {
   if (hash.startsWith('#/agents/spline')) {
     page = <SplineWorkspacePage />;
   } else if (hash.startsWith('#/activity')) {
-    page = <LiveMapPage />;
+    page = <ActivityPage />;
   } else if (hash.startsWith('#/settings')) {
     page = <SettingsPage />;
   } else {
