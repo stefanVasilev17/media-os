@@ -1,15 +1,27 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
 import { ActivityPage } from './pages/ActivityPage';
 import { HomePage } from './pages/HomePage';
 import { SettingsPage } from './pages/SettingsPage';
-import { SplineWorkspacePage } from './pages/SplineWorkspacePage';
+
+const SplineWorkspacePage = lazy(async () => {
+  const module = await import('./pages/SplineWorkspacePage');
+  return { default: module.SplineWorkspacePage };
+});
 
 function normalizeLegacyRoute(hash: string) {
   if (hash.startsWith('#/spline-agent')) return '#/agents/spline';
-  if (hash.startsWith('#/diagnostics')) return '#/agents/spline?view=health';
+  if (hash.startsWith('#/diagnostics')) return '#/agents/spline';
   if (hash.startsWith('#/browser-clone-proof')) return '#/agents/spline';
   return hash;
+}
+
+function AgentLoading() {
+  return (
+    <main className="media-os-page">
+      <div className="loading">Opening Spline Agent…</div>
+    </main>
+  );
 }
 
 export function App() {
@@ -37,7 +49,11 @@ export function App() {
   let page: ReactNode;
 
   if (hash.startsWith('#/agents/spline')) {
-    page = <SplineWorkspacePage />;
+    page = (
+      <Suspense fallback={<AgentLoading />}>
+        <SplineWorkspacePage />
+      </Suspense>
+    );
   } else if (hash.startsWith('#/activity')) {
     page = <ActivityPage />;
   } else if (hash.startsWith('#/settings')) {
