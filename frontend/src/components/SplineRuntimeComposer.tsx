@@ -36,8 +36,8 @@ type Vector3Like = {
 
 type Vector3 = { x: number; y: number; z: number };
 
-type NavigationBaseline = {
-  rootUuid: string;
+type NavigationRootBaseline = {
+  uuid: string;
   x: number;
   y: number;
   z: number;
@@ -69,8 +69,9 @@ const DEFAULT_OVERVIEW_ZOOM = 0.12;
 const DEFAULT_FOCUS_ZOOM = 0.42;
 const MIN_VIEW_ZOOM = 0.08;
 const MAX_VIEW_ZOOM = 3;
-const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.75;
-const NAVIGATION_ROOT_NAMES = ['components', 'diagram', 'architecture', 'scene'];
+const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.34;
+const SYSTEM_NAME_HINTS = ['camera', 'light', 'lighting', 'environment', 'background'];
+const GLOBAL_CONTAINER_HINTS = ['scene', 'world', 'root'];
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -145,7 +146,7 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   let depth = 0;
   const visited = new Set<string>();
 
-  while (parent && depth < 32 && !visited.has(parent.uuid)) {
+  while (parent && depth < 64 && !visited.has(parent.uuid)) {
     visited.add(parent.uuid);
 
     const scale = parent.scale as Vector3Like | undefined;
@@ -156,7 +157,6 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
     };
 
     point = rotateXYZ(point, parent.rotation as Vector3Like | undefined);
-
     point = {
       x: point.x + (Number(parent.position?.x) || 0),
       y: point.y + (Number(parent.position?.y) || 0),
@@ -170,39 +170,88 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   return point;
 }
 
-function isDescendantOf(object: RuntimeObject, ancestor: RuntimeObject) {
-  let parent = object.parent ?? null;
+function normalizedIdentity(object: RuntimeObject) {
+  return `${object.name ?? ''} ${object.type ?? ''}`.trim().toLowerCase();
+}
+
+function isSystemObject(object: RuntimeObject) {
+  const identity = normalizedIdentity(object);
+  return SYSTEM_NAME_HINTS.some(hint => identity.includes(hint));
+}
+
+function isGlobalContainer(object: RuntimeObject) {
+  const identity = normalizedIdentity(object);
+  return GLOBAL_CONTAINER_HINTS.some(hint => identity === hint || identity.startsWith(`${hint} `) || identity.endsWith(` ${hint}`));
+}
+
+function hasPosition(object: RuntimeObject) {
+  return Boolean(object.position && Number.isFinite(Number(object.position.x)) && Number.isFinite(Number(object.position.y)));
+}
+
+function uniqueObjects(objects: RuntimeObject[]) {
+  const seen = new Set<string>();
+  return objects.filter(object => {
+    if (!object?.uuid || seen.has(object.uuid)) return false;
+    seen.add(object.uuid);
+    return true;
+  });
+}
+
+function collectNavigationRoots(objects: RuntimeObject[]) {
+  const objectIds = new Set(objects.map(object => object.uuid));
+  const structuralRoots = objects.filter(object => !object.parent || !objectIds.has(object.parent.uuid));
+
+  let candidates = structuralRoots;
+  if (structuralRoots.length === 1 && (structuralRoots[0].children?.length ?? 0) > 0) {
+    candidates = structuralRoots[0].children as RuntimeObject[];
+  }
+
+  const expanded: RuntimeObject[] = [];
+  for (const candidate of candidates) {
+    if (isGlobalContainer(candidate) && (candidate.children?.length ?? 0) > 0) {
+      expanded.push(...(candidate.children as RuntimeObject[]));
+    } else {
+      expanded.push(candidate);
+    }
+  }
+
+  const navigable = uniqueObjects(expanded)
+    .filter(hasPosition)
+    .filter(object => !isSystemObject(object));
+
+  if (navigable.length > 0) return navigable;
+
+  return uniqueObjects(objects.filter(object => !object.parent && hasPosition(object) && !isSystemObject(object)));
+}
+
+function isDescendantOfAny(object: RuntimeObject, rootIds: Set<string>) {
+  let current: RuntimeObject | null | undefined = object;
   let depth = 0;
-  while (parent && depth < 64) {
-    if (parent.uuid === ancestor.uuid) return true;
-    parent = parent.parent ?? null;
+  const visited = new Set<string>();
+
+  while (current && depth < 96 && !visited.has(current.uuid)) {
+    if (rootIds.has(current.uuid)) return true;
+    visited.add(current.uuid);
+    current = current.parent ?? null;
     depth += 1;
   }
+
   return false;
 }
 
-function findNavigationRoot(objects: RuntimeObject[]) {
-  for (const name of NAVIGATION_ROOT_NAMES) {
-    const exact = objects.find(object => object.name?.trim().toLowerCase() === name);
-    if (exact) return exact;
-  }
+function diagramCenter(objects: RuntimeObject[], navigationRoots: RuntimeObject[]) {
+  if (navigationRoots.length === 0) return { x: 0, y: 0, z: 0 };
 
-  const rootCandidates = objects
-    .filter(object => !object.parent && Array.isArray(object.children) && object.children.length > 1)
-    .sort((left, right) => (right.children?.length ?? 0) - (left.children?.length ?? 0));
+  const rootIds = new Set(navigationRoots.map(root => root.uuid));
+  const candidates = objects.filter(object =>
+    object.visible !== false &&
+    hasPosition(object) &&
+    !isSystemObject(object) &&
+    isDescendantOfAny(object, rootIds)
+  );
 
-  return rootCandidates[0] ?? null;
-}
-
-function diagramCenter(root: RuntimeObject, objects: RuntimeObject[]): Vector3 {
-  const directChildren = (root.children ?? []).filter(child => child.visible !== false);
-  const candidates = directChildren.length >= 2
-    ? directChildren
-    : objects.filter(object => object.visible !== false && isDescendantOf(object, root));
-
-  if (candidates.length === 0) return runtimeWorldPosition(root);
-
-  const points = candidates.map(runtimeWorldPosition);
+  const source = candidates.length > 0 ? candidates : navigationRoots;
+  const points = source.map(runtimeWorldPosition);
   const xs = points.map(point => point.x);
   const ys = points.map(point => point.y);
   const zs = points.map(point => point.z);
@@ -228,8 +277,9 @@ function pointerMidpoint(left: PointerPoint, right: PointerPoint): PointerPoint 
 export function SplineRuntimeComposer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
-  const navigationBaselineRef = useRef<NavigationBaseline | null>(null);
-  const navigationRootRef = useRef<RuntimeObject | null>(null);
+  const navigationRootsRef = useRef<RuntimeObject[]>([]);
+  const navigationBaselinesRef = useRef<NavigationRootBaseline[]>([]);
+  const navigationCenterRef = useRef<Vector3>({ x: 0, y: 0, z: 0 });
   const pointersRef = useRef<Map<number, PointerPoint>>(new Map());
   const panLastRef = useRef<PointerPoint | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
@@ -283,13 +333,11 @@ export function SplineRuntimeComposer() {
       try {
         const config = await loadSplineRuntimeConfig();
         if (cancelled) return;
-
         if (!config.configured || !config.sceneUrl.trim()) {
           setLoading(false);
           setStatus({ tone: 'error', text: 'No browser runtime scene is configured yet.' });
           return;
         }
-
         setSceneUrl(config.sceneUrl.trim());
         await loadScene(config.sceneUrl.trim());
       } catch (error) {
@@ -308,8 +356,8 @@ export function SplineRuntimeComposer() {
       if (recorder && recorder.state !== 'inactive') recorder.stop();
       appRef.current?.dispose();
       appRef.current = null;
-      navigationRootRef.current = null;
-      navigationBaselineRef.current = null;
+      navigationRootsRef.current = [];
+      navigationBaselinesRef.current = [];
       pointersRef.current.clear();
     };
   }, []);
@@ -335,39 +383,55 @@ export function SplineRuntimeComposer() {
   }
 
   function captureNavigationBaseline(nextObjects: RuntimeObject[]) {
-    const root = findNavigationRoot(nextObjects);
-    navigationRootRef.current = root;
-
-    if (!root) {
-      navigationBaselineRef.current = null;
-      return;
-    }
-
-    navigationBaselineRef.current = {
-      rootUuid: root.uuid,
+    const roots = collectNavigationRoots(nextObjects);
+    navigationRootsRef.current = roots;
+    navigationBaselinesRef.current = roots.map(root => ({
+      uuid: root.uuid,
       x: Number(root.position.x) || 0,
       y: Number(root.position.y) || 0,
       z: Number(root.position.z) || 0
-    };
+    }));
+    navigationCenterRef.current = diagramCenter(nextObjects, roots);
   }
 
-  function currentNavigationRoot() {
-    const root = navigationRootRef.current;
-    if (root && objects.some(object => object.uuid === root.uuid)) return root;
+  function currentNavigationRoots() {
+    const ids = new Set(navigationBaselinesRef.current.map(item => item.uuid));
+    const current = objects.filter(object => ids.has(object.uuid));
+    if (current.length > 0) {
+      navigationRootsRef.current = current;
+      return current;
+    }
 
-    const found = findNavigationRoot(objects);
-    navigationRootRef.current = found;
+    const found = collectNavigationRoots(objects);
+    navigationRootsRef.current = found;
     return found;
   }
 
-  function restoreNavigationRoot() {
-    const root = currentNavigationRoot();
-    const baseline = navigationBaselineRef.current;
-    if (!root || !baseline || root.uuid !== baseline.rootUuid) return false;
+  function restoreNavigationRoots() {
+    const rootsById = new Map(currentNavigationRoots().map(root => [root.uuid, root]));
+    let restored = 0;
 
-    root.position.x = baseline.x;
-    root.position.y = baseline.y;
-    root.position.z = baseline.z;
+    for (const baseline of navigationBaselinesRef.current) {
+      const root = rootsById.get(baseline.uuid);
+      if (!root) continue;
+      root.position.x = baseline.x;
+      root.position.y = baseline.y;
+      root.position.z = baseline.z;
+      restored += 1;
+    }
+
+    return restored;
+  }
+
+  function translateNavigationRoots(deltaX: number, deltaY: number) {
+    const roots = currentNavigationRoots();
+    if (roots.length === 0) return false;
+
+    for (const root of roots) {
+      root.position.x += deltaX;
+      root.position.y += deltaY;
+    }
+
     return true;
   }
 
@@ -400,7 +464,7 @@ export function SplineRuntimeComposer() {
 
       setStatus({
         tone: 'success',
-        text: `Full architecture overview ready · ${next.length} objects available. Drag with one finger; pinch with two.`
+        text: `Full architecture overview ready · ${next.length} objects · ${navigationRootsRef.current.length} movable diagram groups.`
       });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
@@ -427,65 +491,48 @@ export function SplineRuntimeComposer() {
     const app = appRef.current;
     if (!app) return;
 
-    restoreNavigationRoot();
+    restoreNavigationRoots();
     app.setZoom(DEFAULT_OVERVIEW_ZOOM);
     app.play();
     app.requestRender();
     setZoom(String(DEFAULT_OVERVIEW_ZOOM));
     markManualSceneChange();
-
-    setStatus({
-      tone: 'success',
-      text: 'Full architecture overview restored. One finger pans; two fingers only zoom.'
-    });
+    setStatus({ tone: 'success', text: 'Full architecture overview restored.' });
   }
 
   function focusObject(object: RuntimeObject) {
     const app = appRef.current;
     if (!app) return false;
 
-    const root = currentNavigationRoot();
-    const baseline = navigationBaselineRef.current;
+    restoreNavigationRoots();
+    const roots = currentNavigationRoots();
+    const rootIds = new Set(roots.map(root => root.uuid));
 
-    if (!root || !baseline || root.uuid !== baseline.rootUuid || (object.uuid !== root.uuid && !isDescendantOf(object, root))) {
-      app.setZoom(DEFAULT_FOCUS_ZOOM);
-      app.play();
-      app.requestRender();
-      setZoom(String(DEFAULT_FOCUS_ZOOM));
-      markManualSceneChange();
-      setStatus({
-        tone: 'neutral',
-        text: `${object.name || 'Selected object'} zoomed to ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×. It is outside the 2D diagram root, so centering was not applied.`
-      });
+    if (!isDescendantOfAny(object, rootIds)) {
+      setStatus({ tone: 'error', text: `${object.name || 'Selected object'} is not part of the movable architecture groups.` });
       return false;
     }
 
-    restoreNavigationRoot();
-
-    const center = diagramCenter(root, objects);
+    const center = navigationCenterRef.current;
     const target = runtimeWorldPosition(object);
-
-    root.position.x += center.x - target.x;
-    root.position.y += center.y - target.y;
+    const translated = translateNavigationRoots(center.x - target.x, center.y - target.y);
+    if (!translated) {
+      setStatus({ tone: 'error', text: 'Could not move the architecture groups for focus.' });
+      return false;
+    }
 
     app.setZoom(DEFAULT_FOCUS_ZOOM);
     app.play();
     app.requestRender();
     setZoom(String(DEFAULT_FOCUS_ZOOM));
     markManualSceneChange();
-
-    setStatus({
-      tone: 'success',
-      text: `Focused on ${object.name || 'selected object'} in the 2D diagram plane · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.`
-    });
-
+    setStatus({ tone: 'success', text: `Focused on ${object.name || 'selected object'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.` });
     return true;
   }
 
   function selectObject(uuid: string) {
     setSelectedUuid(uuid);
     if (!uuid || recording) return;
-
     const object = objects.find(candidate => candidate.uuid === uuid);
     if (object) focusObject(object);
   }
@@ -499,7 +546,6 @@ export function SplineRuntimeComposer() {
       setStatus({ tone: 'error', text: 'Choose a template object first.' });
       return;
     }
-
     if (!uniqueName(targetName)) {
       setStatus({ tone: 'error', text: 'Give the new object a unique name.' });
       return;
@@ -518,7 +564,6 @@ export function SplineRuntimeComposer() {
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
       markManualSceneChange();
-
       window.requestAnimationFrame(() => focusObject(clone));
       setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName}.` });
     } catch (error) {
@@ -533,7 +578,6 @@ export function SplineRuntimeComposer() {
 
     let suffix = 2;
     let candidate = `${source.name || 'Object'} Copy`;
-
     while (!uniqueName(candidate)) {
       candidate = `${source.name || 'Object'} Copy ${suffix}`;
       suffix += 1;
@@ -543,12 +587,10 @@ export function SplineRuntimeComposer() {
       const clone = app.cloneObject(source, {
         position: [source.position.x + 320, source.position.y, source.position.z]
       }) as RuntimeObject;
-
       clone.name = candidate;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
       markManualSceneChange();
-
       window.requestAnimationFrame(() => focusObject(clone));
       setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate}.` });
     } catch (error) {
@@ -559,7 +601,6 @@ export function SplineRuntimeComposer() {
   function applyEdit() {
     const object = requireSelectedObject();
     if (!object) return;
-
     const targetName = editName.trim();
 
     if (!uniqueName(targetName, object.uuid)) {
@@ -572,9 +613,7 @@ export function SplineRuntimeComposer() {
       object.position.x = numberValue(editX, object.position.x);
       object.position.y = numberValue(editY, object.position.y);
       object.position.z = numberValue(editZ, object.position.z);
-
       if (typeof object.visible === 'boolean') object.visible = editVisible;
-
       refreshObjectList();
       markManualSceneChange();
       setStatus({ tone: 'success', text: `${targetName} updated in the live scene.` });
@@ -589,7 +628,6 @@ export function SplineRuntimeComposer() {
     if (!app || !object) return;
 
     const raw = stateValue.trim();
-
     if (!raw) {
       setStatus({ tone: 'error', text: 'Enter a state name or state index.' });
       return;
@@ -638,14 +676,9 @@ export function SplineRuntimeComposer() {
     setStatus({ tone: 'success', text: `View zoom set to ${value.toFixed(2)}×.` });
   }
 
-  function panNavigationRoot(deltaX: number, deltaY: number, zoomValue: number) {
-    const root = currentNavigationRoot();
-    if (!root) return false;
-
+  function panNavigationRoots(deltaX: number, deltaY: number, zoomValue: number) {
     const worldUnitsPerPixel = PAN_WORLD_UNITS_AT_ZOOM_1 / Math.max(MIN_VIEW_ZOOM, zoomValue);
-    root.position.x += deltaX * worldUnitsPerPixel;
-    root.position.y -= deltaY * worldUnitsPerPixel;
-    return true;
+    return translateNavigationRoots(deltaX * worldUnitsPerPixel, -deltaY * worldUnitsPerPixel);
   }
 
   function beginPointer(event: ReactPointerEvent<HTMLDivElement>) {
@@ -656,7 +689,6 @@ export function SplineRuntimeComposer() {
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     const points = [...pointersRef.current.values()];
-
     if (points.length === 1) {
       panLastRef.current = points[0];
       pinchRef.current = null;
@@ -684,14 +716,13 @@ export function SplineRuntimeComposer() {
     if (!app) return;
 
     const points = [...pointersRef.current.values()];
-
     if (points.length === 1) {
       const current = points[0];
       const previous = panLastRef.current ?? current;
       const dx = current.x - previous.x;
       const dy = current.y - previous.y;
 
-      if (Math.abs(dx) + Math.abs(dy) > 0 && panNavigationRoot(dx, dy, numberValue(zoom, DEFAULT_OVERVIEW_ZOOM))) {
+      if (Math.abs(dx) + Math.abs(dy) > 0 && panNavigationRoots(dx, dy, numberValue(zoom, DEFAULT_OVERVIEW_ZOOM))) {
         navigationDirtyRef.current = true;
         app.play();
         app.requestRender();
@@ -716,33 +747,25 @@ export function SplineRuntimeComposer() {
       const panDx = midpoint.x - gesture.midpoint.x;
       const panDy = midpoint.y - gesture.midpoint.y;
 
-      panNavigationRoot(panDx, panDy, nextZoom);
+      panNavigationRoots(panDx, panDy, nextZoom);
       app.setZoom(nextZoom);
       app.play();
       app.requestRender();
-
       setZoom(String(nextZoom));
       navigationDirtyRef.current = true;
-      pinchRef.current = {
-        distance,
-        zoom: nextZoom,
-        midpoint
-      };
+      pinchRef.current = { distance, zoom: nextZoom, midpoint };
       panLastRef.current = null;
     }
   }
 
   function endPointer(event: ReactPointerEvent<HTMLDivElement>) {
-    if (pointersRef.current.has(event.pointerId)) {
-      pointersRef.current.delete(event.pointerId);
-    }
+    pointersRef.current.delete(event.pointerId);
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
     const points = [...pointersRef.current.values()];
-
     if (points.length === 1) {
       panLastRef.current = points[0];
       pinchRef.current = null;
@@ -753,10 +776,7 @@ export function SplineRuntimeComposer() {
       if (navigationDirtyRef.current) {
         navigationDirtyRef.current = false;
         markManualSceneChange();
-        setStatus({
-          tone: 'neutral',
-          text: `2D view adjusted · ${numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×.`
-        });
+        setStatus({ tone: 'neutral', text: `2D view adjusted · ${numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×.` });
       }
     }
   }
@@ -781,7 +801,6 @@ export function SplineRuntimeComposer() {
         setStatus({ tone: 'error', text: 'The browser could not create a PNG from the current frame.' });
         return;
       }
-
       downloadBlob(blob, `${safeFileName(selectedObject?.name || 'spline-scene')}.png`);
       setStatus({ tone: 'success', text: 'Current frame exported as PNG.' });
     }, 'image/png');
@@ -789,26 +808,21 @@ export function SplineRuntimeComposer() {
 
   function startRecording(fileBase = selectedObject?.name || 'spline-scene') {
     const canvas = canvasRef.current;
-
     if (!canvas || typeof MediaRecorder === 'undefined' || typeof canvas.captureStream !== 'function') {
       setStatus({ tone: 'error', text: 'This browser does not support live canvas recording.' });
       return false;
     }
-
     if (recorderRef.current && recorderRef.current.state !== 'inactive') return false;
 
     try {
       const stream = canvas.captureStream(60);
       const mimeType = chooseRecordingMimeType();
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
-
       recordingNameRef.current = safeFileName(fileBase);
       recordingChunksRef.current = [];
-
       recorder.ondataavailable = event => {
         if (event.data.size > 0) recordingChunksRef.current.push(event.data);
       };
-
       recorder.onstop = () => {
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
         downloadBlob(blob, `${recordingNameRef.current}.webm`);
@@ -818,7 +832,6 @@ export function SplineRuntimeComposer() {
         setRecording(false);
         setStatus({ tone: 'success', text: 'Runtime clip saved. The temporary scene can now be discarded.' });
       };
-
       recorderRef.current = recorder;
       recorder.start(250);
       setRecording(true);
@@ -919,7 +932,7 @@ export function SplineRuntimeComposer() {
           </div>
 
           <p className="runtime-action-note runtime-navigation-note">
-            The working viewport is locked to a flat 2D navigation mode: drag with one finger to pan and pinch with two fingers to zoom. Rotation/orbit is disabled.
+            The viewport stays flat. One finger moves the complete architecture map and two fingers only zoom. Focus selected moves every diagram group together so components from different scene branches stay aligned.
           </p>
 
           <div className={`runtime-status ${status.tone}`}>
@@ -936,7 +949,6 @@ export function SplineRuntimeComposer() {
           <div className="runtime-action-tabs" role="tablist" aria-label="Spline runtime actions">
             {ACTIONS.map(action => {
               const Icon = action.icon;
-
               return (
                 <button
                   key={action.id}
@@ -967,22 +979,18 @@ export function SplineRuntimeComposer() {
                     {namedObjects.map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
                   </select>
                 </label>
-
                 <label>
                   <span>New name</span>
                   <input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" disabled={recording} />
                 </label>
-
                 <div className="runtime-vector-grid">
                   <label><span>X offset</span><input value={offsetX} onChange={event => setOffsetX(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                   <label><span>Y offset</span><input value={offsetY} onChange={event => setOffsetY(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                   <label><span>Z offset</span><input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                 </div>
-
                 <button className="runtime-primary-action" disabled={!loaded || recording} onClick={createFromTemplate}>
                   <Plus size={16} /> Create from template
                 </button>
-
                 <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={duplicateSelected}>
                   <Copy size={16} /> Duplicate selected
                 </button>
@@ -992,18 +1000,15 @@ export function SplineRuntimeComposer() {
             {activeAction === 'edit' && (
               <div className="runtime-form-stack">
                 <label><span>Name</span><input value={editName} onChange={event => setEditName(event.target.value)} disabled={!selectedObject || recording} /></label>
-
                 <div className="runtime-vector-grid">
                   <label><span>X</span><input value={editX} onChange={event => setEditX(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                   <label><span>Y</span><input value={editY} onChange={event => setEditY(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                   <label><span>Z</span><input value={editZ} onChange={event => setEditZ(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                 </div>
-
                 <label className="runtime-toggle-row">
                   <input type="checkbox" checked={editVisible} onChange={event => setEditVisible(event.target.checked)} disabled={!selectedObject || recording || typeof selectedObject.visible !== 'boolean'} />
                   <span>Visible in scene</span>
                 </label>
-
                 <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyEdit}>
                   <Move3d size={16} /> Apply edit
                 </button>
@@ -1016,20 +1021,16 @@ export function SplineRuntimeComposer() {
                   <span>State name or index</span>
                   <input value={stateValue} onChange={event => setStateValue(event.target.value)} placeholder="ACTIVE or 1" disabled={!selectedObject || recording} />
                 </label>
-
                 <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyState}>
                   <WandSparkles size={16} /> Set state
                 </button>
-
                 <div className="runtime-divider"><span>or trigger authored event</span></div>
-
                 <label>
                   <span>Event</span>
                   <select value={eventType} onChange={event => setEventType(event.target.value)} disabled={!selectedObject || recording}>
                     {EVENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                   </select>
                 </label>
-
                 <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={triggerEvent}>
                   <Play size={16} /> Run animation
                 </button>
@@ -1043,7 +1044,6 @@ export function SplineRuntimeComposer() {
                   <button disabled={!selectedObject || recording} onClick={() => selectedObject && focusObject(selectedObject)}>Selected</button>
                   <button disabled={recording} onClick={() => applyZoom('0.7')}>Close</button>
                 </div>
-
                 <label>
                   <span>View zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
                   <input
@@ -1056,9 +1056,8 @@ export function SplineRuntimeComposer() {
                     disabled={!loaded || recording}
                   />
                 </label>
-
                 <p className="runtime-action-note">
-                  Overview restores the complete map. Selected centers the chosen component in the flat diagram plane. The viewport itself supports one-finger pan and two-finger pinch zoom.
+                  Overview restores the complete map. Selected centers the chosen component while keeping the scene flat. The viewport supports one-finger pan and two-finger pinch zoom.
                 </p>
               </div>
             )}
@@ -1068,7 +1067,6 @@ export function SplineRuntimeComposer() {
                 <button className="runtime-primary-action" disabled={!loaded || recording} onClick={exportPng}>
                   <Download size={16} /> Export current frame
                 </button>
-
                 {!recording ? (
                   <button className="runtime-secondary-action" disabled={!loaded} onClick={() => void startRecording()}>
                     <Film size={16} /> Start clip recording
@@ -1078,7 +1076,6 @@ export function SplineRuntimeComposer() {
                     <Square size={14} /> Stop & save clip
                   </button>
                 )}
-
                 <p className="runtime-action-note">
                   Manual recording captures the live canvas. “Record run” below starts recording and the episode timeline together, then stops automatically at the scene end.
                 </p>
@@ -1109,7 +1106,7 @@ export function SplineRuntimeComposer() {
           <div><dt>Runtime source</dt><dd>@splinetool/runtime</dd></div>
           <div><dt>Scene URL</dt><dd>{sceneUrl || 'Not configured'}</dd></div>
           <div><dt>Persistence</dt><dd>Temporary browser session only</dd></div>
-          <div><dt>Navigation</dt><dd>2D diagram-root pan + runtime zoom</dd></div>
+          <div><dt>Navigation</dt><dd>Multi-root 2D pan + runtime zoom</dd></div>
           <div><dt>Compositor</dt><dd>Timed browser-runtime cue executor</dd></div>
         </dl>
       </details>
