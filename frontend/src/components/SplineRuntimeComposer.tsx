@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
+import { EpisodeSceneCompositor } from './EpisodeSceneCompositor';
 import '../styles/splineRuntimeComposer.css';
 
 type ActionMode = 'create' | 'edit' | 'animate' | 'frame' | 'export';
@@ -65,6 +66,7 @@ export function SplineRuntimeComposer() {
   const appRef = useRef<Application | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingNameRef = useRef('spline-scene');
 
   const [activeAction, setActiveAction] = useState<ActionMode>('create');
   const [sceneUrl, setSceneUrl] = useState('');
@@ -73,6 +75,7 @@ export function SplineRuntimeComposer() {
   const [objects, setObjects] = useState<RuntimeObject[]>([]);
   const [selectedUuid, setSelectedUuid] = useState('');
   const [status, setStatus] = useState<RuntimeStatus>({ tone: 'working', text: 'Loading the live scene…' });
+  const [sceneRevision, setSceneRevision] = useState(0);
 
   const [templateUuid, setTemplateUuid] = useState('');
   const [newName, setNewName] = useState('');
@@ -129,7 +132,8 @@ export function SplineRuntimeComposer() {
 
     return () => {
       cancelled = true;
-      recorderRef.current?.stop();
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== 'inactive') recorder.stop();
       appRef.current?.dispose();
       appRef.current = null;
     };
@@ -151,6 +155,15 @@ export function SplineRuntimeComposer() {
     return next;
   }
 
+  function markManualSceneChange() {
+    setSceneRevision(value => value + 1);
+  }
+
+  function syncRuntimeMutation(nextZoom?: number) {
+    if (typeof nextZoom === 'number' && Number.isFinite(nextZoom)) setZoom(String(nextZoom));
+    refreshObjectList();
+  }
+
   async function loadScene(url = sceneUrl) {
     const canvas = canvasRef.current;
     if (!canvas || !url.trim()) return;
@@ -169,7 +182,9 @@ export function SplineRuntimeComposer() {
       const firstNamed = next.find(object => Boolean(object.name?.trim()));
       setSelectedUuid(firstNamed?.uuid ?? '');
       setTemplateUuid(firstNamed?.uuid ?? '');
+      setZoom('1');
       setLoaded(true);
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `Live scene ready · ${next.length} objects available.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
@@ -217,6 +232,7 @@ export function SplineRuntimeComposer() {
       clone.name = targetName;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not create the runtime object.' });
@@ -242,6 +258,7 @@ export function SplineRuntimeComposer() {
       clone.name = candidate;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not duplicate the selected object.' });
@@ -265,6 +282,7 @@ export function SplineRuntimeComposer() {
       object.position.z = numberValue(editZ, object.position.z);
       if (typeof object.visible === 'boolean') object.visible = editVisible;
       refreshObjectList();
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `${targetName} updated in the live scene.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not update the selected object.' });
@@ -288,6 +306,8 @@ export function SplineRuntimeComposer() {
     try {
       app.play();
       object.state = value;
+      refreshObjectList();
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `${object.name || 'Object'} state set to ${raw}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not set the selected state.' });
@@ -303,6 +323,7 @@ export function SplineRuntimeComposer() {
       app.play();
       const emitter = app.emitEvent as unknown as (name: string, target: string) => void;
       emitter(eventType, object.uuid);
+      markManualSceneChange();
       setStatus({ tone: 'success', text: `${eventType} animation triggered on ${object.name || 'the selected object'}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not trigger the authored animation.' });
@@ -315,6 +336,7 @@ export function SplineRuntimeComposer() {
     const value = Math.max(0.1, numberValue(nextValue, 1));
     setZoom(String(value));
     app.setZoom(value);
+    markManualSceneChange();
     setStatus({ tone: 'success', text: `Camera framing set to ${value.toFixed(2)}× zoom.` });
   }
 
@@ -342,34 +364,40 @@ export function SplineRuntimeComposer() {
     }, 'image/png');
   }
 
-  function startRecording() {
+  function startRecording(fileBase = selectedObject?.name || 'spline-scene') {
     const canvas = canvasRef.current;
     if (!canvas || typeof MediaRecorder === 'undefined' || typeof canvas.captureStream !== 'function') {
       setStatus({ tone: 'error', text: 'This browser does not support live canvas recording.' });
-      return;
+      return false;
     }
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') return false;
 
     try {
       const stream = canvas.captureStream(60);
       const mimeType = chooseRecordingMimeType();
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recordingNameRef.current = safeFileName(fileBase);
       recordingChunksRef.current = [];
       recorder.ondataavailable = event => {
         if (event.data.size > 0) recordingChunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
-        downloadBlob(blob, `${safeFileName(selectedObject?.name || 'spline-scene')}.webm`);
+        downloadBlob(blob, `${recordingNameRef.current}.webm`);
         recordingChunksRef.current = [];
+        recorder.stream.getTracks().forEach(track => track.stop());
+        recorderRef.current = null;
         setRecording(false);
         setStatus({ tone: 'success', text: 'Runtime clip saved. The temporary scene can now be discarded.' });
       };
       recorderRef.current = recorder;
-      recorder.start(1000);
+      recorder.start(250);
       setRecording(true);
       setStatus({ tone: 'working', text: 'Recording the live browser scene…' });
+      return true;
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not start browser recording.' });
+      return false;
     }
   }
 
@@ -377,8 +405,18 @@ export function SplineRuntimeComposer() {
     const recorder = recorderRef.current;
     if (!recorder || recorder.state === 'inactive') return;
     recorder.stop();
-    recorder.stream.getTracks().forEach(track => track.stop());
-    recorderRef.current = null;
+  }
+
+  function pauseRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== 'recording') return;
+    recorder.pause();
+  }
+
+  function resumeRecording() {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state !== 'paused') return;
+    recorder.resume();
   }
 
   return (
@@ -389,7 +427,7 @@ export function SplineRuntimeComposer() {
           <strong>Build the temporary episode scene in the browser</strong>
           <small>Create, edit, animate, frame and export without saving changes back to the master Spline file.</small>
         </div>
-        <button className="runtime-scene-reload" disabled={loading || !sceneUrl} onClick={() => void loadScene()}>
+        <button className="runtime-scene-reload" disabled={loading || !sceneUrl || recording} onClick={() => void loadScene()}>
           <RefreshCw size={15} className={loading ? 'spin' : ''} />
           Reload scene
         </button>
@@ -408,7 +446,7 @@ export function SplineRuntimeComposer() {
             )}
             {loaded && (
               <div className="runtime-stage-badge">
-                <span>LIVE</span>
+                <span>{recording ? 'REC' : 'LIVE'}</span>
                 <strong>{objects.length} objects</strong>
               </div>
             )}
@@ -416,7 +454,7 @@ export function SplineRuntimeComposer() {
 
           <label className="runtime-object-picker">
             <span>Selected object</span>
-            <select value={selectedUuid} onChange={event => setSelectedUuid(event.target.value)} disabled={!loaded}>
+            <select value={selectedUuid} onChange={event => setSelectedUuid(event.target.value)} disabled={!loaded || recording}>
               <option value="">Choose object…</option>
               {namedObjects.map(object => (
                 <option key={object.uuid} value={object.uuid}>
@@ -461,24 +499,24 @@ export function SplineRuntimeComposer() {
               <div className="runtime-form-stack">
                 <label>
                   <span>Template</span>
-                  <select value={templateUuid} onChange={event => setTemplateUuid(event.target.value)}>
+                  <select value={templateUuid} onChange={event => setTemplateUuid(event.target.value)} disabled={recording}>
                     <option value="">Choose template…</option>
                     {namedObjects.map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
                   </select>
                 </label>
                 <label>
                   <span>New name</span>
-                  <input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" />
+                  <input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" disabled={recording} />
                 </label>
                 <div className="runtime-vector-grid">
-                  <label><span>X offset</span><input value={offsetX} onChange={event => setOffsetX(event.target.value)} inputMode="decimal" /></label>
-                  <label><span>Y offset</span><input value={offsetY} onChange={event => setOffsetY(event.target.value)} inputMode="decimal" /></label>
-                  <label><span>Z offset</span><input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} inputMode="decimal" /></label>
+                  <label><span>X offset</span><input value={offsetX} onChange={event => setOffsetX(event.target.value)} inputMode="decimal" disabled={recording} /></label>
+                  <label><span>Y offset</span><input value={offsetY} onChange={event => setOffsetY(event.target.value)} inputMode="decimal" disabled={recording} /></label>
+                  <label><span>Z offset</span><input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                 </div>
-                <button className="runtime-primary-action" disabled={!loaded} onClick={createFromTemplate}>
+                <button className="runtime-primary-action" disabled={!loaded || recording} onClick={createFromTemplate}>
                   <Plus size={16} /> Create from template
                 </button>
-                <button className="runtime-secondary-action" disabled={!selectedObject} onClick={duplicateSelected}>
+                <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={duplicateSelected}>
                   <Copy size={16} /> Duplicate selected
                 </button>
               </div>
@@ -486,17 +524,17 @@ export function SplineRuntimeComposer() {
 
             {activeAction === 'edit' && (
               <div className="runtime-form-stack">
-                <label><span>Name</span><input value={editName} onChange={event => setEditName(event.target.value)} disabled={!selectedObject} /></label>
+                <label><span>Name</span><input value={editName} onChange={event => setEditName(event.target.value)} disabled={!selectedObject || recording} /></label>
                 <div className="runtime-vector-grid">
-                  <label><span>X</span><input value={editX} onChange={event => setEditX(event.target.value)} inputMode="decimal" disabled={!selectedObject} /></label>
-                  <label><span>Y</span><input value={editY} onChange={event => setEditY(event.target.value)} inputMode="decimal" disabled={!selectedObject} /></label>
-                  <label><span>Z</span><input value={editZ} onChange={event => setEditZ(event.target.value)} inputMode="decimal" disabled={!selectedObject} /></label>
+                  <label><span>X</span><input value={editX} onChange={event => setEditX(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
+                  <label><span>Y</span><input value={editY} onChange={event => setEditY(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
+                  <label><span>Z</span><input value={editZ} onChange={event => setEditZ(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                 </div>
                 <label className="runtime-toggle-row">
-                  <input type="checkbox" checked={editVisible} onChange={event => setEditVisible(event.target.checked)} disabled={!selectedObject || typeof selectedObject.visible !== 'boolean'} />
+                  <input type="checkbox" checked={editVisible} onChange={event => setEditVisible(event.target.checked)} disabled={!selectedObject || recording || typeof selectedObject.visible !== 'boolean'} />
                   <span>Visible in scene</span>
                 </label>
-                <button className="runtime-primary-action" disabled={!selectedObject} onClick={applyEdit}>
+                <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyEdit}>
                   <Move3d size={16} /> Apply edit
                 </button>
               </div>
@@ -506,19 +544,19 @@ export function SplineRuntimeComposer() {
               <div className="runtime-form-stack">
                 <label>
                   <span>State name or index</span>
-                  <input value={stateValue} onChange={event => setStateValue(event.target.value)} placeholder="ACTIVE or 1" disabled={!selectedObject} />
+                  <input value={stateValue} onChange={event => setStateValue(event.target.value)} placeholder="ACTIVE or 1" disabled={!selectedObject || recording} />
                 </label>
-                <button className="runtime-primary-action" disabled={!selectedObject} onClick={applyState}>
+                <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyState}>
                   <WandSparkles size={16} /> Set state
                 </button>
                 <div className="runtime-divider"><span>or trigger authored event</span></div>
                 <label>
                   <span>Event</span>
-                  <select value={eventType} onChange={event => setEventType(event.target.value)} disabled={!selectedObject}>
+                  <select value={eventType} onChange={event => setEventType(event.target.value)} disabled={!selectedObject || recording}>
                     {EVENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                   </select>
                 </label>
-                <button className="runtime-secondary-action" disabled={!selectedObject} onClick={triggerEvent}>
+                <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={triggerEvent}>
                   <Play size={16} /> Run animation
                 </button>
               </div>
@@ -527,28 +565,28 @@ export function SplineRuntimeComposer() {
             {activeAction === 'frame' && (
               <div className="runtime-form-stack">
                 <div className="runtime-shot-presets">
-                  <button onClick={() => applyZoom('0.75')}>Wide</button>
-                  <button onClick={() => applyZoom('1')}>Standard</button>
-                  <button onClick={() => applyZoom('1.5')}>Close</button>
+                  <button disabled={recording} onClick={() => applyZoom('0.75')}>Wide</button>
+                  <button disabled={recording} onClick={() => applyZoom('1')}>Standard</button>
+                  <button disabled={recording} onClick={() => applyZoom('1.5')}>Close</button>
                 </div>
                 <label>
                   <span>Camera zoom · {numberValue(zoom, 1).toFixed(2)}×</span>
                   <input type="range" min="0.35" max="3" step="0.05" value={zoom} onChange={event => {
                     setZoom(event.target.value);
                     applyZoom(event.target.value);
-                  }} disabled={!loaded} />
+                  }} disabled={!loaded || recording} />
                 </label>
-                <p className="runtime-action-note">This controls the live runtime framing. Object-targeted camera choreography will be added as a separate camera action, not hidden behind this control.</p>
+                <p className="runtime-action-note">This controls the live runtime framing. The compositor below can sequence zoom changes and authored camera events on the episode timeline.</p>
               </div>
             )}
 
             {activeAction === 'export' && (
               <div className="runtime-form-stack">
-                <button className="runtime-primary-action" disabled={!loaded} onClick={exportPng}>
+                <button className="runtime-primary-action" disabled={!loaded || recording} onClick={exportPng}>
                   <Download size={16} /> Export current frame
                 </button>
                 {!recording ? (
-                  <button className="runtime-secondary-action" disabled={!loaded} onClick={startRecording}>
+                  <button className="runtime-secondary-action" disabled={!loaded} onClick={() => void startRecording()}>
                     <Film size={16} /> Start clip recording
                   </button>
                 ) : (
@@ -556,12 +594,27 @@ export function SplineRuntimeComposer() {
                     <Square size={14} /> Stop & save clip
                   </button>
                 )}
-                <p className="runtime-action-note">Frame export is PNG. Live recording uses the browser canvas and saves a WebM clip when the browser supports MediaRecorder.</p>
+                <p className="runtime-action-note">Manual recording captures the live canvas. “Record run” below starts recording and the episode timeline together, then stops automatically at the scene end.</p>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <EpisodeSceneCompositor
+        app={appRef.current}
+        objects={objects}
+        ready={loaded}
+        selectedUuid={selectedUuid}
+        currentZoom={numberValue(zoom, 1)}
+        sceneRevision={sceneRevision}
+        recording={recording}
+        onStartRecording={startRecording}
+        onStopRecording={stopRecording}
+        onPauseRecording={pauseRecording}
+        onResumeRecording={resumeRecording}
+        onStatus={setStatus}
+      />
 
       <details className="runtime-advanced-details">
         <summary>Advanced scene details</summary>
@@ -569,6 +622,7 @@ export function SplineRuntimeComposer() {
           <div><dt>Runtime source</dt><dd>@splinetool/runtime</dd></div>
           <div><dt>Scene URL</dt><dd>{sceneUrl || 'Not configured'}</dd></div>
           <div><dt>Persistence</dt><dd>Temporary browser session only</dd></div>
+          <div><dt>Compositor</dt><dd>Timed browser-runtime cue executor</dd></div>
         </dl>
       </details>
     </section>
