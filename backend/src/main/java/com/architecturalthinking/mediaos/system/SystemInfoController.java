@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/system")
 public class SystemInfoController {
 
-    private static final String MEDIA_OS_VERSION = "0.4.4";
+    private static final String MEDIA_OS_VERSION = "0.5.0";
     private final Instant startedAt = Instant.now();
 
     @GetMapping("/version")
