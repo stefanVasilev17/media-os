@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Application } from '@splinetool/runtime';
 import {
   Camera,
@@ -19,6 +19,7 @@ import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import { EpisodeSceneCompositor } from './EpisodeSceneCompositor';
 import '../styles/splineRuntimeComposer.css';
+import '../styles/runtime2dNavigation.css';
 
 type ActionMode = 'create' | 'edit' | 'animate' | 'frame' | 'export';
 
@@ -31,34 +32,23 @@ type Vector3Like = {
   x?: number;
   y?: number;
   z?: number;
-  set?: (x: number, y: number, z: number) => unknown;
-};
-
-type CameraControlsLike = {
-  getPosition?: (target: VectorProbe) => unknown;
-  getTarget?: (target: VectorProbe) => unknown;
-  setLookAt?: (
-    positionX: number,
-    positionY: number,
-    positionZ: number,
-    targetX: number,
-    targetY: number,
-    targetZ: number,
-    enableTransition?: boolean
-  ) => unknown;
-  setTarget?: (x: number, y: number, z: number, enableTransition?: boolean) => unknown;
-  update?: (delta?: number) => unknown;
-  camera?: { position?: Vector3Like };
-  _camera?: { position?: Vector3Like };
-  target?: Vector3Like;
-  _target?: Vector3Like;
 };
 
 type Vector3 = { x: number; y: number; z: number };
-type CameraPose = { position: Vector3; target: Vector3 };
-type VectorProbe = Vector3 & {
-  copy: (value: Vector3Like) => VectorProbe;
-  set: (x: number, y: number, z: number) => VectorProbe;
+
+type NavigationBaseline = {
+  rootUuid: string;
+  x: number;
+  y: number;
+  z: number;
+};
+
+type PointerPoint = { x: number; y: number };
+
+type PinchGesture = {
+  distance: number;
+  zoom: number;
+  midpoint: PointerPoint;
 };
 
 const ACTIONS: Array<{
@@ -70,17 +60,25 @@ const ACTIONS: Array<{
   { id: 'create', label: 'Create', description: 'Clone a reusable template or duplicate an object.', icon: Plus },
   { id: 'edit', label: 'Edit', description: 'Rename, move and show or hide an object.', icon: Move3d },
   { id: 'animate', label: 'Animate', description: 'Set an object state or trigger an authored event.', icon: WandSparkles },
-  { id: 'frame', label: 'Frame', description: 'Adjust the live camera zoom for the shot.', icon: Camera },
+  { id: 'frame', label: 'Frame', description: 'Adjust the live view for the shot.', icon: Camera },
   { id: 'export', label: 'Export', description: 'Save a still frame or record the live browser canvas.', icon: Download }
 ];
 
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
 const DEFAULT_OVERVIEW_ZOOM = 0.12;
-const DEFAULT_FOCUS_ZOOM = 0.85;
+const DEFAULT_FOCUS_ZOOM = 0.42;
+const MIN_VIEW_ZOOM = 0.08;
+const MAX_VIEW_ZOOM = 3;
+const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.75;
+const NAVIGATION_ROOT_NAMES = ['components', 'diagram', 'architecture', 'scene'];
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function safeFileName(value: string) {
@@ -95,118 +93,6 @@ function chooseRecordingMimeType() {
     'video/webm'
   ];
   return candidates.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) ?? '';
-}
-
-function finiteVector(value: Vector3Like | null | undefined): Vector3 | null {
-  if (!value) return null;
-  const x = Number(value.x);
-  const y = Number(value.y);
-  const z = Number(value.z);
-  return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z) ? { x, y, z } : null;
-}
-
-function createVectorProbe(): VectorProbe {
-  return {
-    x: 0,
-    y: 0,
-    z: 0,
-    copy(value) {
-      this.x = Number(value.x) || 0;
-      this.y = Number(value.y) || 0;
-      this.z = Number(value.z) || 0;
-      return this;
-    },
-    set(x, y, z) {
-      this.x = x;
-      this.y = y;
-      this.z = z;
-      return this;
-    }
-  };
-}
-
-function cameraControls(app: Application): CameraControlsLike | null {
-  const runtime = app as unknown as { controls?: CameraControlsLike; _controls?: CameraControlsLike };
-  return runtime.controls ?? runtime._controls ?? null;
-}
-
-function readCameraPose(app: Application): CameraPose | null {
-  const controls = cameraControls(app);
-  if (!controls) return null;
-
-  try {
-    let position: Vector3 | null = null;
-    let target: Vector3 | null = null;
-
-    if (typeof controls.getPosition === 'function') {
-      const probe = createVectorProbe();
-      controls.getPosition(probe);
-      position = finiteVector(probe);
-    }
-    if (typeof controls.getTarget === 'function') {
-      const probe = createVectorProbe();
-      controls.getTarget(probe);
-      target = finiteVector(probe);
-    }
-
-    position ??= finiteVector(controls.camera?.position ?? controls._camera?.position);
-    target ??= finiteVector(controls.target ?? controls._target);
-
-    return position && target ? { position, target } : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeVector(target: Vector3Like | null | undefined, value: Vector3) {
-  if (!target) return false;
-  if (typeof target.set === 'function') {
-    target.set(value.x, value.y, value.z);
-    return true;
-  }
-  target.x = value.x;
-  target.y = value.y;
-  target.z = value.z;
-  return true;
-}
-
-function applyCameraPose(app: Application, pose: CameraPose, animate: boolean) {
-  const controls = cameraControls(app);
-  if (!controls) return false;
-
-  try {
-    if (typeof controls.setLookAt === 'function') {
-      controls.setLookAt(
-        pose.position.x,
-        pose.position.y,
-        pose.position.z,
-        pose.target.x,
-        pose.target.y,
-        pose.target.z,
-        animate
-      );
-      app.requestRender();
-      return true;
-    }
-
-    const positionTarget = controls.camera?.position ?? controls._camera?.position;
-    const targetTarget = controls.target ?? controls._target;
-    if (writeVector(positionTarget, pose.position) && writeVector(targetTarget, pose.target)) {
-      controls.update?.(0);
-      app.requestRender();
-      return true;
-    }
-
-    if (typeof controls.setTarget === 'function') {
-      controls.setTarget(pose.target.x, pose.target.y, pose.target.z, animate);
-      app.requestRender();
-      return true;
-    }
-  } catch {
-    return false;
-  }
-
-  return false;
 }
 
 function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
@@ -226,6 +112,7 @@ function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Ve
     y = nextY;
     z = nextZ;
   }
+
   if (ry !== 0) {
     const cos = Math.cos(ry);
     const sin = Math.sin(ry);
@@ -234,6 +121,7 @@ function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Ve
     x = nextX;
     z = nextZ;
   }
+
   if (rz !== 0) {
     const cos = Math.cos(rz);
     const sin = Math.sin(rz);
@@ -252,24 +140,29 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
     y: Number(object.position?.y) || 0,
     z: Number(object.position?.z) || 0
   };
+
   let parent = object.parent ?? null;
   let depth = 0;
   const visited = new Set<string>();
 
   while (parent && depth < 32 && !visited.has(parent.uuid)) {
     visited.add(parent.uuid);
+
     const scale = parent.scale as Vector3Like | undefined;
     point = {
       x: point.x * (Number(scale?.x) || 1),
       y: point.y * (Number(scale?.y) || 1),
       z: point.z * (Number(scale?.z) || 1)
     };
+
     point = rotateXYZ(point, parent.rotation as Vector3Like | undefined);
+
     point = {
       x: point.x + (Number(parent.position?.x) || 0),
       y: point.y + (Number(parent.position?.y) || 0),
       z: point.z + (Number(parent.position?.z) || 0)
     };
+
     parent = parent.parent ?? null;
     depth += 1;
   }
@@ -277,10 +170,70 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   return point;
 }
 
+function isDescendantOf(object: RuntimeObject, ancestor: RuntimeObject) {
+  let parent = object.parent ?? null;
+  let depth = 0;
+  while (parent && depth < 64) {
+    if (parent.uuid === ancestor.uuid) return true;
+    parent = parent.parent ?? null;
+    depth += 1;
+  }
+  return false;
+}
+
+function findNavigationRoot(objects: RuntimeObject[]) {
+  for (const name of NAVIGATION_ROOT_NAMES) {
+    const exact = objects.find(object => object.name?.trim().toLowerCase() === name);
+    if (exact) return exact;
+  }
+
+  const rootCandidates = objects
+    .filter(object => !object.parent && Array.isArray(object.children) && object.children.length > 1)
+    .sort((left, right) => (right.children?.length ?? 0) - (left.children?.length ?? 0));
+
+  return rootCandidates[0] ?? null;
+}
+
+function diagramCenter(root: RuntimeObject, objects: RuntimeObject[]): Vector3 {
+  const directChildren = (root.children ?? []).filter(child => child.visible !== false);
+  const candidates = directChildren.length >= 2
+    ? directChildren
+    : objects.filter(object => object.visible !== false && isDescendantOf(object, root));
+
+  if (candidates.length === 0) return runtimeWorldPosition(root);
+
+  const points = candidates.map(runtimeWorldPosition);
+  const xs = points.map(point => point.x);
+  const ys = points.map(point => point.y);
+  const zs = points.map(point => point.z);
+
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2,
+    z: (Math.min(...zs) + Math.max(...zs)) / 2
+  };
+}
+
+function pointerDistance(left: PointerPoint, right: PointerPoint) {
+  return Math.hypot(right.x - left.x, right.y - left.y);
+}
+
+function pointerMidpoint(left: PointerPoint, right: PointerPoint): PointerPoint {
+  return {
+    x: (left.x + right.x) / 2,
+    y: (left.y + right.y) / 2
+  };
+}
+
 export function SplineRuntimeComposer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
-  const overviewCameraRef = useRef<CameraPose | null>(null);
+  const navigationBaselineRef = useRef<NavigationBaseline | null>(null);
+  const navigationRootRef = useRef<RuntimeObject | null>(null);
+  const pointersRef = useRef<Map<number, PointerPoint>>(new Map());
+  const panLastRef = useRef<PointerPoint | null>(null);
+  const pinchRef = useRef<PinchGesture | null>(null);
+  const navigationDirtyRef = useRef(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordingChunksRef = useRef<Blob[]>([]);
   const recordingNameRef = useRef('spline-scene');
@@ -330,11 +283,13 @@ export function SplineRuntimeComposer() {
       try {
         const config = await loadSplineRuntimeConfig();
         if (cancelled) return;
+
         if (!config.configured || !config.sceneUrl.trim()) {
           setLoading(false);
           setStatus({ tone: 'error', text: 'No browser runtime scene is configured yet.' });
           return;
         }
+
         setSceneUrl(config.sceneUrl.trim());
         await loadScene(config.sceneUrl.trim());
       } catch (error) {
@@ -353,7 +308,9 @@ export function SplineRuntimeComposer() {
       if (recorder && recorder.state !== 'inactive') recorder.stop();
       appRef.current?.dispose();
       appRef.current = null;
-      overviewCameraRef.current = null;
+      navigationRootRef.current = null;
+      navigationBaselineRef.current = null;
+      pointersRef.current.clear();
     };
   }, []);
 
@@ -377,6 +334,43 @@ export function SplineRuntimeComposer() {
     setSceneRevision(value => value + 1);
   }
 
+  function captureNavigationBaseline(nextObjects: RuntimeObject[]) {
+    const root = findNavigationRoot(nextObjects);
+    navigationRootRef.current = root;
+
+    if (!root) {
+      navigationBaselineRef.current = null;
+      return;
+    }
+
+    navigationBaselineRef.current = {
+      rootUuid: root.uuid,
+      x: Number(root.position.x) || 0,
+      y: Number(root.position.y) || 0,
+      z: Number(root.position.z) || 0
+    };
+  }
+
+  function currentNavigationRoot() {
+    const root = navigationRootRef.current;
+    if (root && objects.some(object => object.uuid === root.uuid)) return root;
+
+    const found = findNavigationRoot(objects);
+    navigationRootRef.current = found;
+    return found;
+  }
+
+  function restoreNavigationRoot() {
+    const root = currentNavigationRoot();
+    const baseline = navigationBaselineRef.current;
+    if (!root || !baseline || root.uuid !== baseline.rootUuid) return false;
+
+    root.position.x = baseline.x;
+    root.position.y = baseline.y;
+    root.position.z = baseline.z;
+    return true;
+  }
+
   async function loadScene(url = sceneUrl) {
     const canvas = canvasRef.current;
     if (!canvas || !url.trim()) return;
@@ -389,23 +383,25 @@ export function SplineRuntimeComposer() {
       appRef.current?.dispose();
       const app = new Application(canvas, { renderMode: 'auto', htmlContentMode: 'none' });
       appRef.current = app;
+
       await app.load(url.trim());
       app.play();
-      overviewCameraRef.current = readCameraPose(app);
-      if (!overviewCameraRef.current) {
-        window.requestAnimationFrame(() => {
-          if (appRef.current === app) overviewCameraRef.current = readCameraPose(app);
-        });
-      }
       app.setZoom(DEFAULT_OVERVIEW_ZOOM);
+
       const next = refreshObjectList(app);
+      captureNavigationBaseline(next);
+
       const firstNamed = next.find(object => Boolean(object.name?.trim()));
       setSelectedUuid(firstNamed?.uuid ?? '');
       setTemplateUuid(firstNamed?.uuid ?? '');
       setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `Full architecture overview ready · ${next.length} objects available.` });
+
+      setStatus({
+        tone: 'success',
+        text: `Full architecture overview ready · ${next.length} objects available. Drag with one finger; pinch with two.`
+      });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
     } finally {
@@ -430,52 +426,66 @@ export function SplineRuntimeComposer() {
   function restoreOverview() {
     const app = appRef.current;
     if (!app) return;
-    if (overviewCameraRef.current) applyCameraPose(app, overviewCameraRef.current, true);
+
+    restoreNavigationRoot();
     app.setZoom(DEFAULT_OVERVIEW_ZOOM);
-    setZoom(String(DEFAULT_OVERVIEW_ZOOM));
     app.play();
-    setStatus({ tone: 'success', text: 'Full architecture overview restored.' });
+    app.requestRender();
+    setZoom(String(DEFAULT_OVERVIEW_ZOOM));
+    markManualSceneChange();
+
+    setStatus({
+      tone: 'success',
+      text: 'Full architecture overview restored. One finger pans; two fingers only zoom.'
+    });
   }
 
   function focusObject(object: RuntimeObject) {
     const app = appRef.current;
     if (!app) return false;
 
-    const worldTarget = runtimeWorldPosition(object);
-    const overviewPose = overviewCameraRef.current ?? readCameraPose(app);
-    let centered = false;
+    const root = currentNavigationRoot();
+    const baseline = navigationBaselineRef.current;
 
-    if (overviewPose) {
-      const delta = {
-        x: worldTarget.x - overviewPose.target.x,
-        y: worldTarget.y - overviewPose.target.y,
-        z: worldTarget.z - overviewPose.target.z
-      };
-      centered = applyCameraPose(app, {
-        position: {
-          x: overviewPose.position.x + delta.x,
-          y: overviewPose.position.y + delta.y,
-          z: overviewPose.position.z + delta.z
-        },
-        target: worldTarget
-      }, true);
+    if (!root || !baseline || root.uuid !== baseline.rootUuid || (object.uuid !== root.uuid && !isDescendantOf(object, root))) {
+      app.setZoom(DEFAULT_FOCUS_ZOOM);
+      app.play();
+      app.requestRender();
+      setZoom(String(DEFAULT_FOCUS_ZOOM));
+      markManualSceneChange();
+      setStatus({
+        tone: 'neutral',
+        text: `${object.name || 'Selected object'} zoomed to ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×. It is outside the 2D diagram root, so centering was not applied.`
+      });
+      return false;
     }
 
+    restoreNavigationRoot();
+
+    const center = diagramCenter(root, objects);
+    const target = runtimeWorldPosition(object);
+
+    root.position.x += center.x - target.x;
+    root.position.y += center.y - target.y;
+
     app.setZoom(DEFAULT_FOCUS_ZOOM);
-    setZoom(String(DEFAULT_FOCUS_ZOOM));
     app.play();
+    app.requestRender();
+    setZoom(String(DEFAULT_FOCUS_ZOOM));
+    markManualSceneChange();
+
     setStatus({
-      tone: centered ? 'success' : 'neutral',
-      text: centered
-        ? `Focused on ${object.name || 'selected object'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.`
-        : `${object.name || 'Selected object'} zoomed to ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×. Camera centering is not exposed by this runtime scene.`
+      tone: 'success',
+      text: `Focused on ${object.name || 'selected object'} in the 2D diagram plane · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.`
     });
-    return centered;
+
+    return true;
   }
 
   function selectObject(uuid: string) {
     setSelectedUuid(uuid);
     if (!uuid || recording) return;
+
     const object = objects.find(candidate => candidate.uuid === uuid);
     if (object) focusObject(object);
   }
@@ -489,6 +499,7 @@ export function SplineRuntimeComposer() {
       setStatus({ tone: 'error', text: 'Choose a template object first.' });
       return;
     }
+
     if (!uniqueName(targetName)) {
       setStatus({ tone: 'error', text: 'Give the new object a unique name.' });
       return;
@@ -502,12 +513,14 @@ export function SplineRuntimeComposer() {
           source.position.z + numberValue(offsetZ)
         ]
       }) as RuntimeObject;
+
       clone.name = targetName;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
-      focusObject(clone);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName} and brought into view.` });
+
+      window.requestAnimationFrame(() => focusObject(clone));
+      setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not create the runtime object.' });
     }
@@ -520,6 +533,7 @@ export function SplineRuntimeComposer() {
 
     let suffix = 2;
     let candidate = `${source.name || 'Object'} Copy`;
+
     while (!uniqueName(candidate)) {
       candidate = `${source.name || 'Object'} Copy ${suffix}`;
       suffix += 1;
@@ -529,12 +543,14 @@ export function SplineRuntimeComposer() {
       const clone = app.cloneObject(source, {
         position: [source.position.x + 320, source.position.y, source.position.z]
       }) as RuntimeObject;
+
       clone.name = candidate;
       refreshObjectList(app);
       setSelectedUuid(clone.uuid);
-      focusObject(clone);
       markManualSceneChange();
-      setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate} and brought into view.` });
+
+      window.requestAnimationFrame(() => focusObject(clone));
+      setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate}.` });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not duplicate the selected object.' });
     }
@@ -543,6 +559,7 @@ export function SplineRuntimeComposer() {
   function applyEdit() {
     const object = requireSelectedObject();
     if (!object) return;
+
     const targetName = editName.trim();
 
     if (!uniqueName(targetName, object.uuid)) {
@@ -555,7 +572,9 @@ export function SplineRuntimeComposer() {
       object.position.x = numberValue(editX, object.position.x);
       object.position.y = numberValue(editY, object.position.y);
       object.position.z = numberValue(editZ, object.position.z);
+
       if (typeof object.visible === 'boolean') object.visible = editVisible;
+
       refreshObjectList();
       markManualSceneChange();
       setStatus({ tone: 'success', text: `${targetName} updated in the live scene.` });
@@ -570,6 +589,7 @@ export function SplineRuntimeComposer() {
     if (!app || !object) return;
 
     const raw = stateValue.trim();
+
     if (!raw) {
       setStatus({ tone: 'error', text: 'Enter a state name or state index.' });
       return;
@@ -608,11 +628,137 @@ export function SplineRuntimeComposer() {
   function applyZoom(nextValue = zoom) {
     const app = appRef.current;
     if (!app) return;
-    const value = Math.max(0.1, numberValue(nextValue, DEFAULT_OVERVIEW_ZOOM));
+
+    const value = clamp(numberValue(nextValue, DEFAULT_OVERVIEW_ZOOM), MIN_VIEW_ZOOM, MAX_VIEW_ZOOM);
     setZoom(String(value));
     app.setZoom(value);
+    app.play();
+    app.requestRender();
     markManualSceneChange();
-    setStatus({ tone: 'success', text: `Camera framing set to ${value.toFixed(2)}× zoom.` });
+    setStatus({ tone: 'success', text: `View zoom set to ${value.toFixed(2)}×.` });
+  }
+
+  function panNavigationRoot(deltaX: number, deltaY: number, zoomValue: number) {
+    const root = currentNavigationRoot();
+    if (!root) return false;
+
+    const worldUnitsPerPixel = PAN_WORLD_UNITS_AT_ZOOM_1 / Math.max(MIN_VIEW_ZOOM, zoomValue);
+    root.position.x += deltaX * worldUnitsPerPixel;
+    root.position.y -= deltaY * worldUnitsPerPixel;
+    return true;
+  }
+
+  function beginPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!loaded || recording) return;
+
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    const points = [...pointersRef.current.values()];
+
+    if (points.length === 1) {
+      panLastRef.current = points[0];
+      pinchRef.current = null;
+      return;
+    }
+
+    if (points.length >= 2) {
+      const [left, right] = points;
+      pinchRef.current = {
+        distance: Math.max(1, pointerDistance(left, right)),
+        zoom: numberValue(zoom, DEFAULT_OVERVIEW_ZOOM),
+        midpoint: pointerMidpoint(left, right)
+      };
+      panLastRef.current = null;
+    }
+  }
+
+  function movePointer(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!pointersRef.current.has(event.pointerId) || recording) return;
+
+    event.preventDefault();
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    const app = appRef.current;
+    if (!app) return;
+
+    const points = [...pointersRef.current.values()];
+
+    if (points.length === 1) {
+      const current = points[0];
+      const previous = panLastRef.current ?? current;
+      const dx = current.x - previous.x;
+      const dy = current.y - previous.y;
+
+      if (Math.abs(dx) + Math.abs(dy) > 0 && panNavigationRoot(dx, dy, numberValue(zoom, DEFAULT_OVERVIEW_ZOOM))) {
+        navigationDirtyRef.current = true;
+        app.play();
+        app.requestRender();
+      }
+
+      panLastRef.current = current;
+      pinchRef.current = null;
+      return;
+    }
+
+    if (points.length >= 2) {
+      const [left, right] = points;
+      const distance = Math.max(1, pointerDistance(left, right));
+      const midpoint = pointerMidpoint(left, right);
+      const gesture = pinchRef.current ?? {
+        distance,
+        zoom: numberValue(zoom, DEFAULT_OVERVIEW_ZOOM),
+        midpoint
+      };
+
+      const nextZoom = clamp(gesture.zoom * (distance / gesture.distance), MIN_VIEW_ZOOM, MAX_VIEW_ZOOM);
+      const panDx = midpoint.x - gesture.midpoint.x;
+      const panDy = midpoint.y - gesture.midpoint.y;
+
+      panNavigationRoot(panDx, panDy, nextZoom);
+      app.setZoom(nextZoom);
+      app.play();
+      app.requestRender();
+
+      setZoom(String(nextZoom));
+      navigationDirtyRef.current = true;
+      pinchRef.current = {
+        distance,
+        zoom: nextZoom,
+        midpoint
+      };
+      panLastRef.current = null;
+    }
+  }
+
+  function endPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.delete(event.pointerId);
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    const points = [...pointersRef.current.values()];
+
+    if (points.length === 1) {
+      panLastRef.current = points[0];
+      pinchRef.current = null;
+    } else if (points.length === 0) {
+      panLastRef.current = null;
+      pinchRef.current = null;
+
+      if (navigationDirtyRef.current) {
+        navigationDirtyRef.current = false;
+        markManualSceneChange();
+        setStatus({
+          tone: 'neutral',
+          text: `2D view adjusted · ${numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×.`
+        });
+      }
+    }
   }
 
   function downloadBlob(blob: Blob, name: string) {
@@ -629,11 +775,13 @@ export function SplineRuntimeComposer() {
   function exportPng() {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     canvas.toBlob(blob => {
       if (!blob) {
         setStatus({ tone: 'error', text: 'The browser could not create a PNG from the current frame.' });
         return;
       }
+
       downloadBlob(blob, `${safeFileName(selectedObject?.name || 'spline-scene')}.png`);
       setStatus({ tone: 'success', text: 'Current frame exported as PNG.' });
     }, 'image/png');
@@ -641,21 +789,26 @@ export function SplineRuntimeComposer() {
 
   function startRecording(fileBase = selectedObject?.name || 'spline-scene') {
     const canvas = canvasRef.current;
+
     if (!canvas || typeof MediaRecorder === 'undefined' || typeof canvas.captureStream !== 'function') {
       setStatus({ tone: 'error', text: 'This browser does not support live canvas recording.' });
       return false;
     }
+
     if (recorderRef.current && recorderRef.current.state !== 'inactive') return false;
 
     try {
       const stream = canvas.captureStream(60);
       const mimeType = chooseRecordingMimeType();
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+
       recordingNameRef.current = safeFileName(fileBase);
       recordingChunksRef.current = [];
+
       recorder.ondataavailable = event => {
         if (event.data.size > 0) recordingChunksRef.current.push(event.data);
       };
+
       recorder.onstop = () => {
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'video/webm' });
         downloadBlob(blob, `${recordingNameRef.current}.webm`);
@@ -665,6 +818,7 @@ export function SplineRuntimeComposer() {
         setRecording(false);
         setStatus({ tone: 'success', text: 'Runtime clip saved. The temporary scene can now be discarded.' });
       };
+
       recorderRef.current = recorder;
       recorder.start(250);
       setRecording(true);
@@ -702,6 +856,7 @@ export function SplineRuntimeComposer() {
           <strong>Build the temporary episode scene in the browser</strong>
           <small>Create, edit, animate, frame and export without saving changes back to the master Spline file.</small>
         </div>
+
         <button className="runtime-scene-reload" disabled={loading || !sceneUrl || recording} onClick={() => void loadScene()}>
           <RefreshCw size={15} className={loading ? 'spin' : ''} />
           Reload scene
@@ -712,6 +867,20 @@ export function SplineRuntimeComposer() {
         <div className="runtime-stage-column">
           <div className="runtime-stage-frame">
             <canvas ref={canvasRef} className="runtime-stage-canvas" />
+
+            {loaded && !recording && (
+              <div
+                className="runtime-2d-navigation-surface"
+                onPointerDown={beginPointer}
+                onPointerMove={movePointer}
+                onPointerUp={endPointer}
+                onPointerCancel={endPointer}
+                aria-label="2D scene navigation: drag with one finger or pointer to pan, pinch with two fingers to zoom"
+              >
+                <span className="runtime-navigation-hint">1 finger pan · 2 finger zoom</span>
+              </div>
+            )}
+
             {!loaded && (
               <div className="runtime-stage-empty">
                 {loading ? <LoaderCircle size={25} className="spin" /> : <Shapes size={25} />}
@@ -719,6 +888,7 @@ export function SplineRuntimeComposer() {
                 <span>{status.text}</span>
               </div>
             )}
+
             {loaded && (
               <div className="runtime-stage-badge">
                 <span>{recording ? 'REC' : 'LIVE'}</span>
@@ -739,7 +909,7 @@ export function SplineRuntimeComposer() {
             </select>
           </label>
 
-          <div className="runtime-shot-presets" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', marginTop: 8 }}>
+          <div className="runtime-shot-presets runtime-navigation-actions">
             <button disabled={!loaded || recording} onClick={restoreOverview}>
               <Shapes size={15} /> Full overview
             </button>
@@ -747,12 +917,17 @@ export function SplineRuntimeComposer() {
               <Camera size={15} /> Focus selected
             </button>
           </div>
-          <p className="runtime-action-note" style={{ marginTop: 7 }}>
-            Choosing an object automatically brings it into focus. Use Full overview to return to the complete architecture map.
+
+          <p className="runtime-action-note runtime-navigation-note">
+            The working viewport is locked to a flat 2D navigation mode: drag with one finger to pan and pinch with two fingers to zoom. Rotation/orbit is disabled.
           </p>
 
           <div className={`runtime-status ${status.tone}`}>
-            {status.tone === 'success' ? <Check size={15} /> : status.tone === 'working' ? <LoaderCircle size={15} className="spin" /> : <Square size={13} />}
+            {status.tone === 'success'
+              ? <Check size={15} />
+              : status.tone === 'working'
+                ? <LoaderCircle size={15} className="spin" />
+                : <Square size={13} />}
             <span>{status.text}</span>
           </div>
         </div>
@@ -761,6 +936,7 @@ export function SplineRuntimeComposer() {
           <div className="runtime-action-tabs" role="tablist" aria-label="Spline runtime actions">
             {ACTIONS.map(action => {
               const Icon = action.icon;
+
               return (
                 <button
                   key={action.id}
@@ -791,18 +967,22 @@ export function SplineRuntimeComposer() {
                     {namedObjects.map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
                   </select>
                 </label>
+
                 <label>
                   <span>New name</span>
                   <input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" disabled={recording} />
                 </label>
+
                 <div className="runtime-vector-grid">
                   <label><span>X offset</span><input value={offsetX} onChange={event => setOffsetX(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                   <label><span>Y offset</span><input value={offsetY} onChange={event => setOffsetY(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                   <label><span>Z offset</span><input value={offsetZ} onChange={event => setOffsetZ(event.target.value)} inputMode="decimal" disabled={recording} /></label>
                 </div>
+
                 <button className="runtime-primary-action" disabled={!loaded || recording} onClick={createFromTemplate}>
                   <Plus size={16} /> Create from template
                 </button>
+
                 <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={duplicateSelected}>
                   <Copy size={16} /> Duplicate selected
                 </button>
@@ -812,15 +992,18 @@ export function SplineRuntimeComposer() {
             {activeAction === 'edit' && (
               <div className="runtime-form-stack">
                 <label><span>Name</span><input value={editName} onChange={event => setEditName(event.target.value)} disabled={!selectedObject || recording} /></label>
+
                 <div className="runtime-vector-grid">
                   <label><span>X</span><input value={editX} onChange={event => setEditX(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                   <label><span>Y</span><input value={editY} onChange={event => setEditY(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                   <label><span>Z</span><input value={editZ} onChange={event => setEditZ(event.target.value)} inputMode="decimal" disabled={!selectedObject || recording} /></label>
                 </div>
+
                 <label className="runtime-toggle-row">
                   <input type="checkbox" checked={editVisible} onChange={event => setEditVisible(event.target.checked)} disabled={!selectedObject || recording || typeof selectedObject.visible !== 'boolean'} />
                   <span>Visible in scene</span>
                 </label>
+
                 <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyEdit}>
                   <Move3d size={16} /> Apply edit
                 </button>
@@ -833,16 +1016,20 @@ export function SplineRuntimeComposer() {
                   <span>State name or index</span>
                   <input value={stateValue} onChange={event => setStateValue(event.target.value)} placeholder="ACTIVE or 1" disabled={!selectedObject || recording} />
                 </label>
+
                 <button className="runtime-primary-action" disabled={!selectedObject || recording} onClick={applyState}>
                   <WandSparkles size={16} /> Set state
                 </button>
+
                 <div className="runtime-divider"><span>or trigger authored event</span></div>
+
                 <label>
                   <span>Event</span>
                   <select value={eventType} onChange={event => setEventType(event.target.value)} disabled={!selectedObject || recording}>
                     {EVENT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                   </select>
                 </label>
+
                 <button className="runtime-secondary-action" disabled={!selectedObject || recording} onClick={triggerEvent}>
                   <Play size={16} /> Run animation
                 </button>
@@ -853,17 +1040,26 @@ export function SplineRuntimeComposer() {
               <div className="runtime-form-stack">
                 <div className="runtime-shot-presets">
                   <button disabled={recording} onClick={restoreOverview}>Overview</button>
-                  <button disabled={recording} onClick={() => applyZoom('1')}>Standard</button>
-                  <button disabled={recording} onClick={() => applyZoom('1.5')}>Close</button>
+                  <button disabled={!selectedObject || recording} onClick={() => selectedObject && focusObject(selectedObject)}>Selected</button>
+                  <button disabled={recording} onClick={() => applyZoom('0.7')}>Close</button>
                 </div>
+
                 <label>
-                  <span>Camera zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
-                  <input type="range" min="0.1" max="3" step="0.05" value={zoom} onChange={event => {
-                    setZoom(event.target.value);
-                    applyZoom(event.target.value);
-                  }} disabled={!loaded || recording} />
+                  <span>View zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
+                  <input
+                    type="range"
+                    min={MIN_VIEW_ZOOM}
+                    max={MAX_VIEW_ZOOM}
+                    step="0.02"
+                    value={zoom}
+                    onChange={event => applyZoom(event.target.value)}
+                    disabled={!loaded || recording}
+                  />
                 </label>
-                <p className="runtime-action-note">Overview returns to the complete map. Selecting an object automatically shifts the runtime camera to that object and applies a readable focus zoom.</p>
+
+                <p className="runtime-action-note">
+                  Overview restores the complete map. Selected centers the chosen component in the flat diagram plane. The viewport itself supports one-finger pan and two-finger pinch zoom.
+                </p>
               </div>
             )}
 
@@ -872,6 +1068,7 @@ export function SplineRuntimeComposer() {
                 <button className="runtime-primary-action" disabled={!loaded || recording} onClick={exportPng}>
                   <Download size={16} /> Export current frame
                 </button>
+
                 {!recording ? (
                   <button className="runtime-secondary-action" disabled={!loaded} onClick={() => void startRecording()}>
                     <Film size={16} /> Start clip recording
@@ -881,7 +1078,10 @@ export function SplineRuntimeComposer() {
                     <Square size={14} /> Stop & save clip
                   </button>
                 )}
-                <p className="runtime-action-note">Manual recording captures the live canvas. “Record run” below starts recording and the episode timeline together, then stops automatically at the scene end.</p>
+
+                <p className="runtime-action-note">
+                  Manual recording captures the live canvas. “Record run” below starts recording and the episode timeline together, then stops automatically at the scene end.
+                </p>
               </div>
             )}
           </div>
@@ -909,6 +1109,7 @@ export function SplineRuntimeComposer() {
           <div><dt>Runtime source</dt><dd>@splinetool/runtime</dd></div>
           <div><dt>Scene URL</dt><dd>{sceneUrl || 'Not configured'}</dd></div>
           <div><dt>Persistence</dt><dd>Temporary browser session only</dd></div>
+          <div><dt>Navigation</dt><dd>2D diagram-root pan + runtime zoom</dd></div>
           <div><dt>Compositor</dt><dd>Timed browser-runtime cue executor</dd></div>
         </dl>
       </details>
