@@ -1,0 +1,116 @@
+.runtime-camera-input-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.runtime-camera-input-surface:active {
+  cursor: grabbing;
+}
+
+.runtime-camera-input-hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(119, 165, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(7, 14, 25, 0.82);
+  color: rgba(222, 232, 247, 0.78);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.runtime-camera-rig-card {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.runtime-camera-rig-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.runtime-camera-rig-card span {
+  color: rgba(148, 163, 184, 0.88);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.runtime-camera-rig-card strong {
+  font-size: 13px;
+}
+
+.runtime-camera-rig-card small {
+  color: rgba(203, 213, 225, 0.78);
+  line-height: 1.45;
+}
+
+.runtime-camera-rig-card.ready {
+  border-color: rgba(74, 222, 128, 0.22);
+  background: rgba(20, 83, 45, 0.16);
+}
+
+.runtime-camera-rig-card.ready strong {
+  color: rgb(134, 239, 172);
+}
+
+.runtime-camera-rig-card.setup {
+  border-color: rgba(251, 191, 36, 0.22);
+  background: rgba(120, 53, 15, 0.12);
+}
+
+.runtime-camera-rig-card.setup strong {
+  color: rgb(253, 224, 71);
+}
+
+.runtime-navigation-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.runtime-navigation-note {
+  margin-top: 7px;
+}
+
+.runtime-stage-badge {
+  z-index: 5;
+  pointer-events: none;
+}
+
+.runtime-stage-empty {
+  z-index: 6;
+}
+
+@media (max-width: 720px) {
+  .runtime-camera-input-hint {
+    right: 8px;
+    bottom: 8px;
+    min-height: 28px;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  .runtime-navigation-actions button {
+    min-height: 52px;
+  }
+}
