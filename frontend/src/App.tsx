@@ -3,7 +3,7 @@ import { AppBottomNav } from './components/AppBottomNav';
 import { HomePage } from './pages/HomePage';
 import { LiveMapPage } from './pages/LiveMapPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { SplineAgentPage } from './pages/SplineAgentPage';
+import { SplineWorkspacePage } from './pages/SplineWorkspacePage';
 
 function normalizeLegacyRoute(hash: string) {
   if (hash.startsWith('#/spline-agent')) return '#/agents/spline';
@@ -37,7 +37,7 @@ export function App() {
   let page: ReactNode;
 
   if (hash.startsWith('#/agents/spline')) {
-    page = <SplineAgentPage />;
+    page = <SplineWorkspacePage />;
   } else if (hash.startsWith('#/activity')) {
     page = <LiveMapPage />;
   } else if (hash.startsWith('#/settings')) {
