@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
 import { HomePage } from './pages/HomePage';
 import { LiveMapPage } from './pages/LiveMapPage';
@@ -34,7 +34,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  let page: React.ReactNode;
+  let page: ReactNode;
 
   if (hash.startsWith('#/agents/spline')) {
     page = <SplineAgentPage />;
