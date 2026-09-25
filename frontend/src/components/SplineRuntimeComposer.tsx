@@ -131,8 +131,7 @@ function isMeaningfulParent(object: RuntimeObject) {
   return Boolean(objectName(object)) &&
     !isSystemObject(object) &&
     !isGenericParent(object) &&
-    !isInternalPart(object) &&
-    (object.children?.length ?? 0) > 0;
+    !isInternalPart(object);
 }
 
 function hasMeaningfulAncestor(object: RuntimeObject) {
@@ -151,22 +150,26 @@ function hasMeaningfulAncestor(object: RuntimeObject) {
 }
 
 function collectParentTargets(objects: RuntimeObject[]) {
-  const strictParents = objects
-    .filter(isMeaningfulParent)
-    .filter(object => !hasMeaningfulAncestor(object));
+  const referencedParents = new Map<string, RuntimeObject>();
 
-  const source = strictParents.length > 0
-    ? strictParents
-    : objects.filter(object => isMeaningfulParent(object));
+  for (const object of objects) {
+    let parent = object.parent ?? null;
+    let depth = 0;
+    const visited = new Set<string>();
 
-  const seen = new Set<string>();
-  return source
-    .filter(object => {
-      if (seen.has(object.uuid)) return false;
-      seen.add(object.uuid);
-      return true;
-    })
-    .sort((left, right) => objectName(left).localeCompare(objectName(right)) || left.uuid.localeCompare(right.uuid));
+    while (parent && depth < 64 && !visited.has(parent.uuid)) {
+      visited.add(parent.uuid);
+      referencedParents.set(parent.uuid, parent);
+      parent = parent.parent ?? null;
+      depth += 1;
+    }
+  }
+
+  const meaningfulParents = [...referencedParents.values()].filter(isMeaningfulParent);
+  const strictParents = meaningfulParents.filter(object => !hasMeaningfulAncestor(object));
+  const source = strictParents.length > 0 ? strictParents : meaningfulParents;
+
+  return source.sort((left, right) => objectName(left).localeCompare(objectName(right)) || left.uuid.localeCompare(right.uuid));
 }
 
 function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
@@ -324,8 +327,8 @@ export function SplineRuntimeComposer() {
   );
 
   const selectedObject = useMemo(
-    () => objects.find(object => object.uuid === selectedUuid) ?? null,
-    [objects, selectedUuid]
+    () => parentObjects.find(object => object.uuid === selectedUuid) ?? objects.find(object => object.uuid === selectedUuid) ?? null,
+    [objects, parentObjects, selectedUuid]
   );
 
   const cameraObject = useMemo(
@@ -465,7 +468,7 @@ export function SplineRuntimeComposer() {
   function uniqueName(candidate: string, ignoreUuid?: string) {
     const normalized = candidate.trim();
     if (!normalized) return false;
-    return !objects.some(object => object.uuid !== ignoreUuid && object.name === normalized);
+    return ![...objects, ...parentObjects].some(object => object.uuid !== ignoreUuid && object.name === normalized);
   }
 
   function restoreOverview() {
@@ -525,7 +528,7 @@ export function SplineRuntimeComposer() {
 
   function createFromTemplate() {
     const app = appRef.current;
-    const source = objects.find(object => object.uuid === templateUuid);
+    const source = parentObjects.find(object => object.uuid === templateUuid) ?? objects.find(object => object.uuid === templateUuid);
     const targetName = newName.trim();
 
     if (!app || !source) {
