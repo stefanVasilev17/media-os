@@ -15,7 +15,12 @@ import {
   Square,
   WandSparkles
 } from 'lucide-react';
-import { loadSplineRuntimeConfig, loadSplineSceneCatalog, type SplineCatalogNode } from '../api/mediaOsApi';
+import {
+  loadSplineRuntimeConfig,
+  loadSplineSceneCatalog,
+  refreshSplineCatalogSection,
+  type SplineCatalogNode
+} from '../api/mediaOsApi';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import { EpisodeSceneCompositor } from './EpisodeSceneCompositor';
 import '../styles/splineRuntimeComposer.css';
@@ -72,6 +77,33 @@ const DEFAULT_FOCUS_ZOOM = 0.42;
 const MIN_VIEW_ZOOM = 0.08;
 const MAX_VIEW_ZOOM = 3;
 const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.34;
+const MAX_PARENT_CATALOG_DEPTH = 3;
+const CATALOG_SECTION_POLL_ATTEMPTS = 12;
+const CATALOG_SECTION_POLL_MS = 1750;
+const CATALOG_LIBRARY_ROOTS = new Set(['icons', 'icon library', 'assets', 'asset library', 'templates', 'template library']);
+const CATALOG_GENERIC_NAMES = new Set([
+  'components',
+  'component',
+  'scene',
+  'world',
+  'root',
+  'group',
+  'container',
+  'container rotation',
+  'rotation'
+]);
+const CATALOG_INTERNAL_SUFFIXES = [
+  '_TEXT',
+  '_ICON',
+  '_SEPARATOR',
+  '_BODY',
+  '_BORDER',
+  '_PATH',
+  '_LINE',
+  '_LABEL',
+  '_BG',
+  '_BACKGROUND'
+];
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -100,6 +132,131 @@ function isCatalogSystemNode(node: SplineCatalogNode) {
   return name.includes('camera') || name.includes('light') || name.includes('environment') || name === 'background';
 }
 
+function isCatalogLibraryNode(node: SplineCatalogNode) {
+  const name = node.name?.trim().toLowerCase() ?? '';
+  return CATALOG_LIBRARY_ROOTS.has(name);
+}
+
+function isCatalogGenericNode(node: SplineCatalogNode) {
+  const name = node.name?.trim().toLowerCase() ?? '';
+  if (CATALOG_GENERIC_NAMES.has(name)) return true;
+  return /^(rectangle|ellipse|circle|shape|group|image|vector|text|line|path)(\s+\d+)?$/i.test(name);
+}
+
+function isCatalogInternalNode(node: SplineCatalogNode) {
+  const name = node.name?.trim() ?? '';
+  const upper = name.toUpperCase();
+  return !name || CATALOG_INTERNAL_SUFFIXES.some(suffix => upper.endsWith(suffix));
+}
+
+function catalogChildren(node: SplineCatalogNode) {
+  return Array.isArray(node.children) ? node.children : [];
+}
+
+function pathDepth(path: string) {
+  return path.split('/').filter(Boolean).length;
+}
+
+function collectCatalogParentNodes(nodes: SplineCatalogNode[]) {
+  const candidates: CatalogRootNode[] = [];
+  const seen = new Set<string>();
+
+  function add(node: SplineCatalogNode) {
+    const typed = node as CatalogRootNode;
+    const name = typed.name?.trim() ?? '';
+    const path = typed.path?.trim() || name;
+    const key = typed.objectId?.trim() || path;
+    if (!name || !key || seen.has(key)) return;
+    seen.add(key);
+    candidates.push(typed);
+  }
+
+  function visit(node: SplineCatalogNode, depth: number) {
+    if (isCatalogSystemNode(node) || isCatalogLibraryNode(node)) return;
+
+    const children = catalogChildren(node);
+    const meaningful =
+      depth > 0 &&
+      depth <= MAX_PARENT_CATALOG_DEPTH &&
+      !isCatalogGenericNode(node) &&
+      !isCatalogInternalNode(node) &&
+      (children.length > 0 || depth <= 2);
+
+    if (meaningful) add(node);
+    if (depth >= MAX_PARENT_CATALOG_DEPTH) return;
+    children.forEach(child => visit(child, depth + 1));
+  }
+
+  for (const root of nodes) {
+    if (isCatalogSystemNode(root) || isCatalogLibraryNode(root)) continue;
+    const children = catalogChildren(root);
+    if (children.length > 0) {
+      children.forEach(child => visit(child, 1));
+    }
+  }
+
+  if (candidates.length > 0) {
+    return candidates.sort((left, right) => {
+      const depthDifference = pathDepth(left.path ?? left.name) - pathDepth(right.path ?? right.name);
+      return depthDifference || left.name.localeCompare(right.name);
+    });
+  }
+
+  for (const root of nodes) {
+    if (isCatalogSystemNode(root) || isCatalogLibraryNode(root) || isCatalogInternalNode(root)) continue;
+    add(root);
+  }
+
+  return candidates.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function findCatalogNodeByPath(nodes: SplineCatalogNode[], path: string): SplineCatalogNode | null {
+  for (const node of nodes) {
+    if ((node.path?.trim() || node.name?.trim()) === path) return node;
+    const found = findCatalogNodeByPath(catalogChildren(node), path);
+    if (found) return found;
+  }
+  return null;
+}
+
+function wait(ms: number) {
+  return new Promise<void>(resolve => window.setTimeout(resolve, ms));
+}
+
+async function expandCatalogRootSections(initialSections: SplineCatalogNode[]) {
+  const expandableRoots = initialSections.filter(node =>
+    !isCatalogSystemNode(node) &&
+    !isCatalogLibraryNode(node) &&
+    node.loaded !== true
+  );
+
+  if (expandableRoots.length === 0) return initialSections;
+
+  await Promise.allSettled(
+    expandableRoots.map(node => refreshSplineCatalogSection(node.path?.trim() || node.name.trim(), node.name.trim()))
+  );
+
+  let latestSections = initialSections;
+  const targetPaths = expandableRoots.map(node => node.path?.trim() || node.name.trim());
+
+  for (let attempt = 0; attempt < CATALOG_SECTION_POLL_ATTEMPTS; attempt += 1) {
+    await wait(CATALOG_SECTION_POLL_MS);
+
+    try {
+      const catalog = await loadSplineSceneCatalog();
+      if (catalog.status !== 'READY') continue;
+      latestSections = catalog.catalog?.sections ?? latestSections;
+
+      const ready = targetPaths.every(path => findCatalogNodeByPath(latestSections, path)?.loaded === true);
+      if (ready) break;
+    } catch {
+      void 0;
+    }
+  }
+
+  return latestSections;
+}
+
 function resolveCatalogTargetObject(app: Application, node: CatalogRootNode): RuntimeObject | null {
   const lookup = app as RuntimeLookupApplication;
   const objectId = node.objectId?.trim() ?? '';
@@ -120,11 +277,12 @@ function resolveCatalogTargetObject(app: Application, node: CatalogRootNode): Ru
 function resolveCatalogParentTargets(app: Application, nodes: SplineCatalogNode[]) {
   const targets: ParentTarget[] = [];
   const seen = new Set<string>();
+  const catalogParents = collectCatalogParentNodes(nodes);
 
-  for (let index = 0; index < nodes.length; index += 1) {
-    const node = nodes[index] as CatalogRootNode;
+  for (let index = 0; index < catalogParents.length; index += 1) {
+    const node = catalogParents[index];
     const name = node.name?.trim() ?? '';
-    if (!name || isCatalogSystemNode(node)) continue;
+    if (!name) continue;
 
     const objectId = node.objectId?.trim() || null;
     const path = node.path?.trim() || name;
@@ -250,6 +408,59 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   }
 
   return point;
+}
+
+function runtimeVisualCenter(object: RuntimeObject): Vector3 {
+  const points: Vector3[] = [];
+  const visited = new Set<string>();
+
+  function visit(node: RuntimeObject, depth: number) {
+    if (depth > 16 || visited.has(node.uuid)) return;
+    visited.add(node.uuid);
+
+    const children = Array.isArray(node.children)
+      ? node.children.filter(child => child && child.position && child.visible !== false)
+      : [];
+
+    if (children.length === 0) {
+      points.push(runtimeWorldPosition(node));
+      return;
+    }
+
+    children.forEach(child => visit(child, depth + 1));
+  }
+
+  visit(object, 0);
+  if (points.length === 0) return runtimeWorldPosition(object);
+
+  let minX = points[0].x;
+  let maxX = points[0].x;
+  let minY = points[0].y;
+  let maxY = points[0].y;
+  let minZ = points[0].z;
+  let maxZ = points[0].z;
+
+  for (const point of points.slice(1)) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+    minZ = Math.min(minZ, point.z);
+    maxZ = Math.max(maxZ, point.z);
+  }
+
+  return {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+    z: (minZ + maxZ) / 2
+  };
+}
+
+function lockCameraFrontFacing(camera: RuntimeObject | null | undefined) {
+  if (!camera?.rotation) return;
+  camera.rotation.x = 0;
+  camera.rotation.y = 0;
+  camera.rotation.z = 0;
 }
 
 function pointerDistance(left: PointerPoint, right: PointerPoint) {
@@ -393,6 +604,7 @@ export function SplineRuntimeComposer() {
         z: Number(camera.position.z) || 0
       }
     };
+    lockCameraFrontFacing(camera);
     return true;
   }
 
@@ -423,22 +635,70 @@ export function SplineRuntimeComposer() {
         catalogSections = [];
       }
 
-      const targets = resolveCatalogParentTargets(app, catalogSections);
-      setParentTargets(targets);
-      const firstParent = targets[0];
+      const initialTargets = resolveCatalogParentTargets(app, catalogSections);
+      setParentTargets(initialTargets);
+      const firstParent = initialTargets[0];
       setSelectedUuid(firstParent?.key ?? '');
       setTemplateUuid(firstParent?.key ?? '');
       setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
 
-      const resolvedCount = targets.filter(target => target.object).length;
-      setStatus({
-        tone: rigReady ? 'success' : 'neutral',
-        text: rigReady
-          ? `Camera rig ready · ${targets.length} catalog parents · ${resolvedCount} runtime targets.`
-          : `Scene ready · ${targets.length} catalog parents. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
-      });
+      const expandableRoots = catalogSections.filter(node =>
+        !isCatalogSystemNode(node) &&
+        !isCatalogLibraryNode(node) &&
+        node.loaded !== true
+      );
+
+      if (expandableRoots.length > 0) {
+        setStatus({
+          tone: 'working',
+          text: `Scene ready · expanding ${expandableRoots.length} production root into real parent groups…`
+        });
+
+        void expandCatalogRootSections(catalogSections).then(expandedSections => {
+          if (appRef.current !== app) return;
+
+          const expandedTargets = resolveCatalogParentTargets(app, expandedSections);
+          if (expandedTargets.length === 0) {
+            setStatus({
+              tone: rigReady ? 'success' : 'neutral',
+              text: rigReady
+                ? `Camera rig ready · ${initialTargets.length} parent targets.`
+                : `Scene ready · ${initialTargets.length} parent targets.`
+            });
+            return;
+          }
+
+          setParentTargets(expandedTargets);
+          setSelectedUuid(current => expandedTargets.some(target => target.key === current) ? current : expandedTargets[0]?.key ?? '');
+          setTemplateUuid(current => expandedTargets.some(target => target.key === current) ? current : expandedTargets[0]?.key ?? '');
+
+          const resolvedCount = expandedTargets.filter(target => target.object).length;
+          setStatus({
+            tone: rigReady ? 'success' : 'neutral',
+            text: rigReady
+              ? `Camera rig ready · ${expandedTargets.length} semantic parents · ${resolvedCount} runtime targets.`
+              : `Scene ready · ${expandedTargets.length} semantic parents.`
+          });
+        }).catch(error => {
+          if (appRef.current !== app) return;
+          setStatus({
+            tone: 'neutral',
+            text: error instanceof Error
+              ? `Scene ready, but parent expansion did not finish: ${error.message}`
+              : 'Scene ready, but parent expansion did not finish.'
+          });
+        });
+      } else {
+        const resolvedCount = initialTargets.filter(target => target.object).length;
+        setStatus({
+          tone: rigReady ? 'success' : 'neutral',
+          text: rigReady
+            ? `Camera rig ready · ${initialTargets.length} semantic parents · ${resolvedCount} runtime targets.`
+            : `Scene ready · ${initialTargets.length} semantic parents. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
+        });
+      }
     } catch (error) {
       setParentTargets([]);
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
@@ -473,6 +733,7 @@ export function SplineRuntimeComposer() {
       camera.position.x = baseline.position.x;
       camera.position.y = baseline.position.y;
       camera.position.z = baseline.position.z;
+      lockCameraFrontFacing(camera);
     }
 
     app.setZoom(DEFAULT_OVERVIEW_ZOOM);
@@ -484,7 +745,7 @@ export function SplineRuntimeComposer() {
     setStatus({
       tone: baseline ? 'success' : 'neutral',
       text: baseline
-        ? 'Production camera restored to overview.'
+        ? 'Production camera restored to flat overview.'
         : `Overview zoom restored. ${CAMERA_RIG_NAME} is still required for camera position reset.`
     });
   }
@@ -501,16 +762,17 @@ export function SplineRuntimeComposer() {
       return false;
     }
 
-    const target = runtimeWorldPosition(object);
+    const target = runtimeVisualCenter(object);
     camera.position.x = target.x;
     camera.position.y = target.y;
     camera.position.z = baseline.position.z;
+    lockCameraFrontFacing(camera);
     app.setZoom(DEFAULT_FOCUS_ZOOM);
     app.play();
     app.requestRender();
     setZoom(String(DEFAULT_FOCUS_ZOOM));
     markManualSceneChange();
-    setStatus({ tone: 'success', text: `Camera focused on ${object.name || 'selected parent'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.` });
+    setStatus({ tone: 'success', text: `Camera centered on ${object.name || 'selected parent'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.` });
     return true;
   }
 
@@ -692,6 +954,7 @@ export function SplineRuntimeComposer() {
     const worldUnitsPerPixel = PAN_WORLD_UNITS_AT_ZOOM_1 / Math.max(MIN_VIEW_ZOOM, zoomValue);
     camera.position.x -= deltaX * worldUnitsPerPixel;
     camera.position.y += deltaY * worldUnitsPerPixel;
+    lockCameraFrontFacing(camera);
     app.play();
     app.requestRender();
     return true;
@@ -909,7 +1172,7 @@ export function SplineRuntimeComposer() {
             </div>
             <small>
               {cameraReady
-                ? `${CAMERA_RIG_NAME} controls pan and focus. Scene geometry stays fixed.`
+                ? `${CAMERA_RIG_NAME} keeps a flat front-facing view for pan and focus. Scene geometry stays fixed.`
                 : `In Spline, add a top-level production camera named ${CAMERA_RIG_NAME}, make it the active/start camera, keep it front-facing, then Reload scene.`}
             </small>
           </div>
@@ -936,7 +1199,7 @@ export function SplineRuntimeComposer() {
           </div>
 
           <p className="runtime-action-note runtime-navigation-note">
-            Media OS no longer moves architecture objects to simulate navigation. Pan and focus are camera-only; pinch zoom remains available even before camera setup.
+            Media OS keeps architecture geometry fixed. Pan and focus move only a front-facing production camera; focus uses the selected parent’s visual center instead of its wrapper pivot.
           </p>
 
           <div className={`runtime-status ${status.tone}`}>
@@ -1036,7 +1299,7 @@ export function SplineRuntimeComposer() {
                   <span>View zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
                   <input type="range" min={MIN_VIEW_ZOOM} max={MAX_VIEW_ZOOM} step="0.02" value={zoom} onChange={event => applyZoom(event.target.value)} disabled={!loaded || recording} />
                 </label>
-                <p className="runtime-action-note">Camera Rig V1 keeps scene geometry fixed. Once {CAMERA_RIG_NAME} is present, one-finger pan and Selected focus move only the production camera.</p>
+                <p className="runtime-action-note">Camera Rig V1 keeps scene geometry fixed and the camera front-facing. Selected focus centers the visible contents of the parent rather than its raw pivot.</p>
               </div>
             )}
 
@@ -1078,7 +1341,7 @@ export function SplineRuntimeComposer() {
           <div><dt>Persistence</dt><dd>Temporary browser session only</dd></div>
           <div><dt>Camera contract</dt><dd>{CAMERA_RIG_NAME}</dd></div>
           <div><dt>Camera status</dt><dd>{cameraReady ? 'Ready' : 'Setup required'}</dd></div>
-          <div><dt>Navigation</dt><dd>Camera-only pan + runtime zoom; scene geometry fixed</dd></div>
+          <div><dt>Navigation</dt><dd>Flat camera-only pan + visual-center focus + runtime zoom</dd></div>
           <div><dt>Compositor</dt><dd>Timed browser-runtime cue executor</dd></div>
         </dl>
       </details>
