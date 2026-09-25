@@ -172,12 +172,55 @@ export async function loadLatestSplineJob(): Promise<LatestSplineJob> {
 }
 
 
+const MEDIA_OS_CAMERA_NAME = 'MEDIA_OS_CAMERA';
+let splineCameraCatalogPatchPromise: Promise<void> | null = null;
+
+async function ensureProductionCameraIsDiscoverable(): Promise<void> {
+  if (!splineCameraCatalogPatchPromise) {
+    splineCameraCatalogPatchPromise = import('@splinetool/runtime').then(({ Application }) => {
+      type RuntimeObjectLike = { uuid?: string; name?: string };
+      type RuntimeApplicationLike = {
+        getAllObjects: () => RuntimeObjectLike[];
+        findObjectByName?: (name: string) => RuntimeObjectLike | undefined;
+      };
+      type RuntimePrototype = {
+        getAllObjects: (this: RuntimeApplicationLike) => RuntimeObjectLike[];
+        __mediaOsCameraCatalogPatched?: boolean;
+      };
+
+      const prototype = Application.prototype as unknown as RuntimePrototype;
+      if (prototype.__mediaOsCameraCatalogPatched) return;
+
+      const originalGetAllObjects = prototype.getAllObjects;
+      prototype.getAllObjects = function patchedGetAllObjects(this: RuntimeApplicationLike) {
+        const objects = originalGetAllObjects.call(this) ?? [];
+        const camera = this.findObjectByName?.(MEDIA_OS_CAMERA_NAME);
+        if (!camera) return objects;
+
+        const cameraId = camera.uuid;
+        const alreadyIncluded = objects.some(object =>
+          object === camera ||
+          (cameraId && object.uuid === cameraId) ||
+          object.name === MEDIA_OS_CAMERA_NAME
+        );
+
+        return alreadyIncluded ? objects : [...objects, camera];
+      };
+      prototype.__mediaOsCameraCatalogPatched = true;
+    });
+  }
+
+  await splineCameraCatalogPatchPromise;
+}
+
 export type SplineRuntimeConfig = {
   sceneUrl: string;
   configured: boolean;
 };
 
 export async function loadSplineRuntimeConfig(): Promise<SplineRuntimeConfig> {
+  await ensureProductionCameraIsDiscoverable();
+
   const response = await fetch('/api/v1/spline/runtime-config');
   if (!response.ok) {
     throw new Error('Spline runtime configuration is not available');
