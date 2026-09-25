@@ -70,6 +70,18 @@ const GENERIC_PARENT_NAMES = new Set([
   'container rotation',
   'rotation'
 ]);
+const INTERNAL_PART_SUFFIXES = [
+  '_TEXT',
+  '_ICON',
+  '_SEPARATOR',
+  '_BODY',
+  '_BORDER',
+  '_PATH',
+  '_LINE',
+  '_LABEL',
+  '_BG',
+  '_BACKGROUND'
+];
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -106,28 +118,46 @@ function isGenericParent(object: RuntimeObject) {
   return GENERIC_PARENT_NAMES.has(objectName(object).toLowerCase());
 }
 
-function collectParentTargets(objects: RuntimeObject[]) {
-  const allIds = new Set(objects.map(object => object.uuid));
-  const architecture = objects.filter(object => !isSystemObject(object));
-  const structuralRoots = architecture.filter(object => !object.parent || !allIds.has(object.parent.uuid) || isSystemObject(object.parent));
-  const expanded: RuntimeObject[] = [];
+function isInternalPart(object: RuntimeObject) {
+  const name = objectName(object);
+  const upper = name.toUpperCase();
+  if (!name) return true;
+  if (INTERNAL_PART_SUFFIXES.some(suffix => upper.endsWith(suffix))) return true;
+  const lower = name.toLowerCase();
+  return lower === 'text' || lower === 'path' || lower === 'line' || lower === 'rectangle' || lower === 'ellipse' || lower === 'circle' || lower === 'image' || lower === 'vector';
+}
 
-  for (const root of structuralRoots) {
-    const children = (root.children ?? []) as RuntimeObject[];
-    if (isGenericParent(root) && children.length > 0) {
-      expanded.push(...children.filter(child => !isSystemObject(child)));
-    } else {
-      expanded.push(root);
-    }
+function isMeaningfulParent(object: RuntimeObject) {
+  return Boolean(objectName(object)) &&
+    !isSystemObject(object) &&
+    !isGenericParent(object) &&
+    !isInternalPart(object) &&
+    (object.children?.length ?? 0) > 0;
+}
+
+function hasMeaningfulAncestor(object: RuntimeObject) {
+  let parent = object.parent ?? null;
+  let depth = 0;
+  const visited = new Set<string>();
+
+  while (parent && depth < 64 && !visited.has(parent.uuid)) {
+    visited.add(parent.uuid);
+    if (isMeaningfulParent(parent)) return true;
+    parent = parent.parent ?? null;
+    depth += 1;
   }
 
-  const directParents = expanded
-    .filter(object => Boolean(objectName(object)))
-    .filter(object => !isGenericParent(object));
+  return false;
+}
 
-  const source = directParents.length > 0
-    ? directParents
-    : architecture.filter(object => Boolean(objectName(object)) && (object.children?.length ?? 0) > 0 && !isGenericParent(object));
+function collectParentTargets(objects: RuntimeObject[]) {
+  const strictParents = objects
+    .filter(isMeaningfulParent)
+    .filter(object => !hasMeaningfulAncestor(object));
+
+  const source = strictParents.length > 0
+    ? strictParents
+    : objects.filter(object => isMeaningfulParent(object));
 
   const seen = new Set<string>();
   return source
@@ -247,46 +277,6 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   return point;
 }
 
-function centerFromPoints(points: Vector3[]) {
-  if (points.length === 0) return { x: 0, y: 0, z: 0 };
-  const xs = points.map(point => point.x);
-  const ys = points.map(point => point.y);
-  const zs = points.map(point => point.z);
-  return {
-    x: (Math.min(...xs) + Math.max(...xs)) / 2,
-    y: (Math.min(...ys) + Math.max(...ys)) / 2,
-    z: (Math.min(...zs) + Math.max(...zs)) / 2
-  };
-}
-
-function runtimeVisualCenter(object: RuntimeObject): Vector3 {
-  const points: Vector3[] = [];
-  const stack: RuntimeObject[] = [object];
-  const visited = new Set<string>();
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current || visited.has(current.uuid) || current.visible === false) continue;
-    visited.add(current.uuid);
-
-    const children = ((current.children ?? []) as RuntimeObject[]).filter(child => child.visible !== false);
-    if (children.length > 0) {
-      stack.push(...children);
-      continue;
-    }
-
-    if (current.position) points.push(runtimeWorldPosition(current));
-  }
-
-  if (points.length === 0) points.push(runtimeWorldPosition(object));
-  return centerFromPoints(points);
-}
-
-function overviewCenter(objects: RuntimeObject[]) {
-  const points = objects.map(runtimeVisualCenter);
-  return centerFromPoints(points);
-}
-
 function pointerDistance(left: PointerPoint, right: PointerPoint) {
   return Math.hypot(right.x - left.x, right.y - left.y);
 }
@@ -295,7 +285,6 @@ export function SplineRuntimeComposer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const cameraBaselineRef = useRef<CameraBaseline | null>(null);
-  const overviewCenterRef = useRef<Vector3>({ x: 0, y: 0, z: 0 });
   const pointersRef = useRef<Map<number, PointerPoint>>(new Map());
   const panLastRef = useRef<PointerPoint | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
@@ -384,7 +373,6 @@ export function SplineRuntimeComposer() {
       appRef.current?.dispose();
       appRef.current = null;
       cameraBaselineRef.current = null;
-      overviewCenterRef.current = { x: 0, y: 0, z: 0 };
       pointersRef.current.clear();
     };
   }, []);
@@ -446,7 +434,6 @@ export function SplineRuntimeComposer() {
       const next = refreshObjectList(app);
       const rigReady = captureCameraBaseline(next);
       const targets = collectParentTargets(next);
-      overviewCenterRef.current = overviewCenter(targets);
       const firstParent = targets[0];
       setSelectedUuid(firstParent?.uuid ?? '');
       setTemplateUuid(firstParent?.uuid ?? '');
@@ -519,17 +506,16 @@ export function SplineRuntimeComposer() {
       return false;
     }
 
-    const target = runtimeVisualCenter(object);
-    const center = overviewCenterRef.current;
-    camera.position.x = baseline.position.x + (target.x - center.x);
-    camera.position.y = baseline.position.y + (target.y - center.y);
+    const target = runtimeWorldPosition(object);
+    camera.position.x = target.x;
+    camera.position.y = target.y;
     camera.position.z = baseline.position.z;
     app.setZoom(DEFAULT_FOCUS_ZOOM);
     app.play();
     app.requestRender();
     setZoom(String(DEFAULT_FOCUS_ZOOM));
     markManualSceneChange();
-    setStatus({ tone: 'success', text: `Camera focused on ${object.name || 'selected object'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.` });
+    setStatus({ tone: 'success', text: `Camera focused on ${object.name || 'selected parent'} · ${DEFAULT_FOCUS_ZOOM.toFixed(2)}×.` });
     return true;
   }
 
@@ -883,7 +869,7 @@ export function SplineRuntimeComposer() {
             {loaded && (
               <div className="runtime-stage-badge">
                 <span>{recording ? 'REC' : 'LIVE'}</span>
-                <strong>{objects.length} objects</strong>
+                <strong>{parentObjects.length} parents</strong>
               </div>
             )}
           </div>
