@@ -6,6 +6,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import './styles/episodeSceneCompositor.css';
 
 const SplineWorkspacePage = lazy(async () => {
+  await import('./lib/runtimeCameraVariables');
   const module = await import('./pages/SplineWorkspacePage');
   return { default: module.SplineWorkspacePage };
 });
