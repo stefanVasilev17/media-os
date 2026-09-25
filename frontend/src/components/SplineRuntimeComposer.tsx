@@ -42,7 +42,7 @@ type Vector3Like = {
 type Vector3 = { x: number; y: number; z: number };
 type PointerPoint = { x: number; y: number };
 type PinchGesture = { distance: number; zoom: number };
-type CameraBaseline = { uuid: string; position: Vector3 };
+type CameraBaseline = { uuid: string; position: Vector3; rotation: Vector3 };
 type CatalogRootNode = SplineCatalogNode & { objectId?: string | null };
 type ParentTarget = {
   key: string;
@@ -65,9 +65,9 @@ const ACTIONS: Array<{
 }> = [
   { id: 'create', label: 'Create', description: 'Clone a reusable template or duplicate an object.', icon: Plus },
   { id: 'edit', label: 'Edit', description: 'Rename, move and show or hide an object.', icon: Move3d },
-  { id: 'animate', label: 'Animate', description: 'Set an object state or trigger an authored event.', icon: WandSparkles },
+  { id: 'animate', label: 'Animate', description: 'Set an object state or trigger an authored animation.', icon: WandSparkles },
   { id: 'frame', label: 'Frame', description: 'Control the production camera and shot framing.', icon: Camera },
-  { id: 'export', label: 'Export', description: 'Save a still frame or record the live browser canvas.', icon: Download }
+  { id: 'export', label: 'Export', description: 'Save a still frame or record the temporary scene.', icon: Download }
 ];
 
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
@@ -456,11 +456,11 @@ function runtimeVisualCenter(object: RuntimeObject): Vector3 {
   };
 }
 
-function lockCameraFrontFacing(camera: RuntimeObject | null | undefined) {
-  if (!camera?.rotation) return;
-  camera.rotation.x = 0;
-  camera.rotation.y = 0;
-  camera.rotation.z = 0;
+function restoreCameraRotation(camera: RuntimeObject | null | undefined, baseline: CameraBaseline | null) {
+  if (!camera?.rotation || !baseline) return;
+  camera.rotation.x = baseline.rotation.x;
+  camera.rotation.y = baseline.rotation.y;
+  camera.rotation.z = baseline.rotation.z;
 }
 
 function pointerDistance(left: PointerPoint, right: PointerPoint) {
@@ -591,7 +591,7 @@ export function SplineRuntimeComposer() {
 
   function captureCameraBaseline(nextObjects: RuntimeObject[]) {
     const camera = nextObjects.find(object => object.name?.trim() === CAMERA_RIG_NAME);
-    if (!camera || camera.parent || !camera.position) {
+    if (!camera || camera.parent || !camera.position || !camera.rotation) {
       cameraBaselineRef.current = null;
       return false;
     }
@@ -602,9 +602,13 @@ export function SplineRuntimeComposer() {
         x: Number(camera.position.x) || 0,
         y: Number(camera.position.y) || 0,
         z: Number(camera.position.z) || 0
+      },
+      rotation: {
+        x: Number(camera.rotation.x) || 0,
+        y: Number(camera.rotation.y) || 0,
+        z: Number(camera.rotation.z) || 0
       }
     };
-    lockCameraFrontFacing(camera);
     return true;
   }
 
@@ -733,7 +737,7 @@ export function SplineRuntimeComposer() {
       camera.position.x = baseline.position.x;
       camera.position.y = baseline.position.y;
       camera.position.z = baseline.position.z;
-      lockCameraFrontFacing(camera);
+      restoreCameraRotation(camera, baseline);
     }
 
     app.setZoom(DEFAULT_OVERVIEW_ZOOM);
@@ -745,7 +749,7 @@ export function SplineRuntimeComposer() {
     setStatus({
       tone: baseline ? 'success' : 'neutral',
       text: baseline
-        ? 'Production camera restored to flat overview.'
+        ? 'Production camera restored to authored overview.'
         : `Overview zoom restored. ${CAMERA_RIG_NAME} is still required for camera position reset.`
     });
   }
@@ -766,7 +770,7 @@ export function SplineRuntimeComposer() {
     camera.position.x = target.x;
     camera.position.y = target.y;
     camera.position.z = baseline.position.z;
-    lockCameraFrontFacing(camera);
+    restoreCameraRotation(camera, baseline);
     app.setZoom(DEFAULT_FOCUS_ZOOM);
     app.play();
     app.requestRender();
@@ -949,12 +953,13 @@ export function SplineRuntimeComposer() {
   function panCamera(deltaX: number, deltaY: number, zoomValue: number) {
     const app = appRef.current;
     const camera = cameraObject;
-    if (!app || !cameraReady || !camera?.position) return false;
+    const baseline = cameraBaselineRef.current;
+    if (!app || !cameraReady || !camera?.position || !baseline) return false;
 
     const worldUnitsPerPixel = PAN_WORLD_UNITS_AT_ZOOM_1 / Math.max(MIN_VIEW_ZOOM, zoomValue);
     camera.position.x -= deltaX * worldUnitsPerPixel;
     camera.position.y += deltaY * worldUnitsPerPixel;
-    lockCameraFrontFacing(camera);
+    restoreCameraRotation(camera, baseline);
     app.play();
     app.requestRender();
     return true;
@@ -1172,8 +1177,8 @@ export function SplineRuntimeComposer() {
             </div>
             <small>
               {cameraReady
-                ? `${CAMERA_RIG_NAME} keeps a flat front-facing view for pan and focus. Scene geometry stays fixed.`
-                : `In Spline, add a top-level production camera named ${CAMERA_RIG_NAME}, make it the active/start camera, keep it front-facing, then Reload scene.`}
+                ? `${CAMERA_RIG_NAME} preserves the authored camera angle while pan and focus move only its position.`
+                : `In Spline, add a top-level production camera named ${CAMERA_RIG_NAME}, make it the active/start camera, then Reload scene.`}
             </small>
           </div>
 
@@ -1199,7 +1204,7 @@ export function SplineRuntimeComposer() {
           </div>
 
           <p className="runtime-action-note runtime-navigation-note">
-            Media OS keeps architecture geometry fixed. Pan and focus move only a front-facing production camera; focus uses the selected parent’s visual center instead of its wrapper pivot.
+            Media OS keeps architecture geometry fixed. Pan and focus move only the production camera and preserve the camera orientation authored in Spline.
           </p>
 
           <div className={`runtime-status ${status.tone}`}>
@@ -1299,7 +1304,7 @@ export function SplineRuntimeComposer() {
                   <span>View zoom · {numberValue(zoom, DEFAULT_OVERVIEW_ZOOM).toFixed(2)}×</span>
                   <input type="range" min={MIN_VIEW_ZOOM} max={MAX_VIEW_ZOOM} step="0.02" value={zoom} onChange={event => applyZoom(event.target.value)} disabled={!loaded || recording} />
                 </label>
-                <p className="runtime-action-note">Camera Rig V1 keeps scene geometry fixed and the camera front-facing. Selected focus centers the visible contents of the parent rather than its raw pivot.</p>
+                <p className="runtime-action-note">Camera Rig keeps scene geometry fixed and preserves the authored Spline camera orientation while framing selected parents.</p>
               </div>
             )}
 
@@ -1341,7 +1346,7 @@ export function SplineRuntimeComposer() {
           <div><dt>Persistence</dt><dd>Temporary browser session only</dd></div>
           <div><dt>Camera contract</dt><dd>{CAMERA_RIG_NAME}</dd></div>
           <div><dt>Camera status</dt><dd>{cameraReady ? 'Ready' : 'Setup required'}</dd></div>
-          <div><dt>Navigation</dt><dd>Flat camera-only pan + visual-center focus + runtime zoom</dd></div>
+          <div><dt>Navigation</dt><dd>Authored-angle camera pan + visual-center focus + runtime zoom</dd></div>
           <div><dt>Compositor</dt><dd>Timed browser-runtime cue executor</dd></div>
         </dl>
       </details>
