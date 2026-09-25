@@ -148,6 +148,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     let cancelled = false;
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const previewCanvas: HTMLCanvasElement = canvas;
 
     setStatus('loading');
     setError('');
@@ -155,8 +156,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
     const resize = () => {
       const ratio = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.max(1, Math.round(window.innerWidth * ratio));
-      canvas.height = Math.max(1, Math.round(window.innerHeight * ratio));
+      previewCanvas.width = Math.max(1, Math.round(window.innerWidth * ratio));
+      previewCanvas.height = Math.max(1, Math.round(window.innerHeight * ratio));
     };
     resize();
     window.addEventListener('resize', resize);
@@ -169,7 +170,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           return;
         }
 
-        const app = new Application(canvas, { renderMode: 'auto', htmlContentMode: 'none' });
+        const app = new Application(previewCanvas, { renderMode: 'auto', htmlContentMode: 'none' });
         appRef.current = app;
         await app.load(config.sceneUrl.trim());
         if (cancelled) return;
