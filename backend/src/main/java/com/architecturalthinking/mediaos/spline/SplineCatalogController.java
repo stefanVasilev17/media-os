@@ -45,15 +45,23 @@ public class SplineCatalogController {
                 """)
                 .param("projectId", PROJECT_ID)
                 .query((rs, rowNum) -> {
+                    int objectCount = rs.getInt("object_count");
+                    int rootSectionCount = rs.getInt("root_section_count");
+                    Object catalog = normalizeCatalogForRuntimeNavigation(
+                            readJson(rs.getString("catalog")),
+                            objectCount,
+                            rootSectionCount
+                    );
+
                     Map<String, Object> item = new LinkedHashMap<>();
                     item.put("status", "READY");
                     item.put("id", rs.getObject("id", UUID.class));
                     item.put("sceneName", rs.getString("scene_name"));
-                    item.put("objectCount", rs.getInt("object_count"));
-                    item.put("rootSectionCount", rs.getInt("root_section_count"));
+                    item.put("objectCount", objectCount);
+                    item.put("rootSectionCount", rootSectionCount);
                     item.put("workerId", rs.getString("worker_id"));
                     item.put("syncedAt", rs.getObject("synced_at", OffsetDateTime.class));
-                    item.put("catalog", readJson(rs.getString("catalog")));
+                    item.put("catalog", catalog);
                     return item;
                 })
                 .optional()
@@ -269,6 +277,44 @@ public class SplineCatalogController {
                 .param("message", message)
                 .param("payload", writeJson(payload))
                 .update();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object normalizeCatalogForRuntimeNavigation(
+            Object catalogValue,
+            int objectCount,
+            int rootSectionCount
+    ) {
+        if (!(catalogValue instanceof Map<?, ?> rawCatalog)) {
+            return catalogValue;
+        }
+
+        Map<String, Object> catalog = (Map<String, Object>) rawCatalog;
+        Object sectionsValue = catalog.get("sections");
+        if (!(sectionsValue instanceof List<?> sections)) {
+            return catalog;
+        }
+
+        int visibleRootCount = Math.max(rootSectionCount, sections.size());
+        if (objectCount <= visibleRootCount) {
+            return catalog;
+        }
+
+        for (Object sectionValue : sections) {
+            if (!(sectionValue instanceof Map<?, ?> rawSection)) {
+                continue;
+            }
+
+            Map<String, Object> section = (Map<String, Object>) rawSection;
+            Object childrenValue = section.get("children");
+            boolean hasChildren = childrenValue instanceof List<?> children && !children.isEmpty();
+
+            if (!hasChildren) {
+                section.put("loaded", false);
+            }
+        }
+
+        return catalog;
     }
 
     private Object readJson(String json) {
