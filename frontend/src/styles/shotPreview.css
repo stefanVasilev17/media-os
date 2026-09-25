@@ -1,0 +1,133 @@
+.shot-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #050912;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.shot-preview-canvas {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  background: #050912;
+}
+
+.shot-preview-topbar {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  right: max(18px, env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.shot-preview-topbar > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(132, 162, 211, 0.18);
+  border-radius: 12px;
+  background: rgba(5, 10, 20, 0.72);
+  backdrop-filter: blur(14px);
+}
+
+.shot-preview-topbar span {
+  color: #7ee7c4;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.shot-preview-topbar strong {
+  color: #f4f7ff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.shot-preview-topbar button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(132, 162, 211, 0.22);
+  border-radius: 12px;
+  background: rgba(5, 10, 20, 0.78);
+  color: #e8eefc;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+}
+
+.shot-preview-center-status,
+.shot-preview-error {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(88vw, 420px);
+  border: 1px solid rgba(132, 162, 211, 0.18);
+  border-radius: 18px;
+  background: rgba(7, 13, 25, 0.9);
+  color: #eef3ff;
+  backdrop-filter: blur(16px);
+}
+
+.shot-preview-center-status {
+  min-height: 116px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.shot-preview-error {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+}
+
+.shot-preview-error span {
+  color: #aebbd2;
+  line-height: 1.55;
+}
+
+.shot-preview-error > div {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.shot-preview-error button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(132, 162, 211, 0.22);
+  border-radius: 11px;
+  background: #111a2b;
+  color: #eef3ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.shot-preview-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: max(4px, env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.shot-preview-progress i {
+  display: block;
+  width: 100%;
+  height: 4px;
+  transform-origin: left center;
+  background: #65e7c2;
+  transition: transform 80ms linear;
+}
