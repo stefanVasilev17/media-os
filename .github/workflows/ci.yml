@@ -41,6 +41,7 @@ jobs:
         run: |
           $scripts = @(
             "$env:GITHUB_WORKSPACE\worker\spline-worker.ps1",
+            "$env:GITHUB_WORKSPACE\worker\spline-shot-worker.ps1",
             "$env:GITHUB_WORKSPACE\worker\media-os-local-runner.ps1",
             "$env:GITHUB_WORKSPACE\worker\install-local-runner.ps1"
           )
@@ -61,3 +62,4 @@ jobs:
         shell: powershell
         run: |
           powershell -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\worker\spline-worker.ps1" -LauncherSelfTest
+          powershell -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\worker\spline-shot-worker.ps1" -LauncherSelfTest
