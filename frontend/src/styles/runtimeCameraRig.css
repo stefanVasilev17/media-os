@@ -83,6 +83,20 @@
   color: rgb(253, 224, 71);
 }
 
+.runtime-camera-rig-card.setup small {
+  font-size: 0;
+}
+
+.runtime-camera-rig-card.setup small::after {
+  content: 'MEDIA_OS_CAMERA is configured in Spline. Create number variables MEDIA_OS_CAM_X and MEDIA_OS_CAM_Y, bind them to the camera Position X and Position Y fields, then update the runtime scene and Reload scene.';
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.runtime-camera-rig-card.setup ~ .runtime-status.neutral {
+  display: none;
+}
+
 .runtime-navigation-actions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 8px;
