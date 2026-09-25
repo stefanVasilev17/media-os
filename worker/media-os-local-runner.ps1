@@ -5,7 +5,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$runnerVersion = "2.0.0"
+$runnerVersion = "2.1.0"
 $workerVersion = "dynamic"
 
 $installRoot = Join-Path $env:LOCALAPPDATA "MediaOS"
@@ -15,6 +15,8 @@ $runnerPath = Join-Path $workerDir "media-os-local-runner.ps1"
 $runnerTempPath = Join-Path $workerDir "media-os-local-runner.ps1.download"
 $workerPath = Join-Path $workerDir "spline-worker.ps1"
 $workerTempPath = Join-Path $workerDir "spline-worker.ps1.download"
+$shotWorkerPath = Join-Path $workerDir "spline-shot-worker.ps1"
+$shotWorkerTempPath = Join-Path $workerDir "spline-shot-worker.ps1.download"
 $directOverlayHelperPath = Join-Path $workerDir "spline-direct-overlay.js"
 $directOverlayHelperTempPath = Join-Path $workerDir "spline-direct-overlay.js.download"
 $logPath = Join-Path $logDir "spline-worker.log"
@@ -125,10 +127,14 @@ function Sync-ProductionRelease {
 
     $root = "https://raw.githubusercontent.com/stefanVasilev17/media-os/$($script:currentCommit)/worker"
     $workerChanged = Download-Atomic -Uri "$root/spline-worker.ps1" -TargetPath $workerPath -TempPath $workerTempPath
+    $shotWorkerChanged = Download-Atomic -Uri "$root/spline-shot-worker.ps1" -TargetPath $shotWorkerPath -TempPath $shotWorkerTempPath
     $directOverlayHelperChanged = Download-Atomic -Uri "$root/spline-direct-overlay.js" -TargetPath $directOverlayHelperPath -TempPath $directOverlayHelperTempPath
 
     if ($workerChanged) {
       Write-RunnerLog "Worker updated to production commit $($script:currentCommit)."
+    }
+    if ($shotWorkerChanged) {
+      Write-RunnerLog "Shot Director worker updated to production commit $($script:currentCommit)."
     }
     if ($directOverlayHelperChanged) {
       Write-RunnerLog "Direct Spline overlay helper updated to production commit $($script:currentCommit)."
@@ -152,11 +158,15 @@ function Sync-ProductionRelease {
 if ($SelfTest) {
   Sync-ProductionRelease
   if (-not (Test-Path $workerPath)) {
-    throw "Local Runner self-test could not find the worker."
+    throw "Local Runner self-test could not find the Spline worker."
+  }
+  if (-not (Test-Path $shotWorkerPath)) {
+    throw "Local Runner self-test could not find the Shot Director worker."
   }
   if (-not (Test-Path $directOverlayHelperPath)) {
     throw "Local Runner self-test could not find the direct Spline overlay helper."
   }
+  & $shotWorkerPath -LauncherSelfTest
   Write-Host "MEDIA_OS_LOCAL_RUNNER_SELF_TEST: OK"
   Write-Host "Runner version: $runnerVersion"
   Write-Host "Production commit: $currentCommit"
@@ -184,6 +194,7 @@ try {
 
     try {
       & $workerPath -Once *>> $logPath
+      & $shotWorkerPath -Once *>> $logPath
       $lastError = $null
     } catch {
       $lastError = "Worker cycle failed: $($_.Exception.Message)"
