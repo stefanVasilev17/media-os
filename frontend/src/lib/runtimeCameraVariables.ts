@@ -27,14 +27,29 @@ type RuntimePrototype = {
   __mediaOsVariableCameraPatched?: boolean;
 };
 
-function hasOwn(record: Record<string, VariableValue>, key: string) {
-  return Object.prototype.hasOwnProperty.call(record, key);
+function readVariable(app: RuntimeApplicationLike, name: string): VariableValue | undefined {
+  try {
+    const direct = app.getVariable?.(name);
+    if (direct !== undefined && direct !== null) return direct;
+  } catch {
+    // Fall through to the optional aggregate accessor used by some runtime builds.
+  }
+
+  try {
+    return app.getVariables?.()?.[name];
+  } catch {
+    return undefined;
+  }
 }
 
-function readNumber(app: RuntimeApplicationLike, variables: Record<string, VariableValue>, name: string, fallback = 0) {
-  const raw = app.getVariable?.(name) ?? variables[name];
-  const value = Number(raw);
+function readNumber(app: RuntimeApplicationLike, name: string, fallback = 0) {
+  const value = Number(readVariable(app, name));
   return Number.isFinite(value) ? value : fallback;
+}
+
+function hasNumberVariable(app: RuntimeApplicationLike, name: string) {
+  const value = Number(readVariable(app, name));
+  return Number.isFinite(value);
 }
 
 function installVariableBackedCameraBridge() {
@@ -46,8 +61,7 @@ function installVariableBackedCameraBridge() {
     const objects = originalGetAllObjects.call(this) ?? [];
     if (objects.some(object => object.name === CAMERA_NAME)) return objects;
 
-    const variables = this.getVariables?.() ?? {};
-    if (!hasOwn(variables, CAMERA_X) || !hasOwn(variables, CAMERA_Y) || !this.setVariable) {
+    if (!hasNumberVariable(this, CAMERA_X) || !hasNumberVariable(this, CAMERA_Y) || !this.setVariable) {
       return objects;
     }
 
@@ -55,23 +69,19 @@ function installVariableBackedCameraBridge() {
     Object.defineProperties(position, {
       x: {
         enumerable: true,
-        get: () => readNumber(this, this.getVariables?.() ?? variables, CAMERA_X),
+        get: () => readNumber(this, CAMERA_X),
         set: (value: number) => this.setVariable?.(CAMERA_X, Number(value))
       },
       y: {
         enumerable: true,
-        get: () => readNumber(this, this.getVariables?.() ?? variables, CAMERA_Y),
+        get: () => readNumber(this, CAMERA_Y),
         set: (value: number) => this.setVariable?.(CAMERA_Y, Number(value))
       },
       z: {
         enumerable: true,
-        get: () => {
-          const current = this.getVariables?.() ?? variables;
-          return hasOwn(current, CAMERA_Z) ? readNumber(this, current, CAMERA_Z) : 0;
-        },
+        get: () => hasNumberVariable(this, CAMERA_Z) ? readNumber(this, CAMERA_Z) : 0,
         set: (value: number) => {
-          const current = this.getVariables?.() ?? variables;
-          if (hasOwn(current, CAMERA_Z)) this.setVariable?.(CAMERA_Z, Number(value));
+          if (hasNumberVariable(this, CAMERA_Z)) this.setVariable?.(CAMERA_Z, Number(value));
         }
       }
     });
