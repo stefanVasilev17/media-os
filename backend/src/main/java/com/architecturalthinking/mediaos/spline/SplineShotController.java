@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ public class SplineShotController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String TASK_TYPE = "CREATE_RUNTIME_SHOT_V1";
+    private static final String SHOT_AGENT_KEY = "SPLINE_SHOT_AGENT";
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
@@ -128,13 +128,14 @@ public class SplineShotController {
                     permissions, protected_objects, payload, status
                 )
                 values (
-                    :id, :projectId, :taskId, 'SPLINE_AGENT', :taskType, 'FOCUSED_SPLINE_3D_TAB', :instructions,
+                    :id, :projectId, :taskId, :agentKey, :taskType, 'FOCUSED_SPLINE_3D_TAB', :instructions,
                     cast(:permissions as jsonb), cast(:protectedObjects as jsonb), cast(:payload as jsonb), 'QUEUED'
                 )
                 """)
                 .param("id", productionJobId)
                 .param("projectId", PROJECT_ID)
                 .param("taskId", taskId)
+                .param("agentKey", SHOT_AGENT_KEY)
                 .param("taskType", TASK_TYPE)
                 .param("instructions", instructions)
                 .param("permissions", writeJson(List.of(
@@ -173,13 +174,14 @@ public class SplineShotController {
                        created_at, finished_at
                 from production_job
                 where project_id=:projectId
-                  and agent_key='SPLINE_AGENT'
+                  and agent_key=:agentKey
                   and task_type=:taskType
                   and status='SUCCEEDED'
                 order by created_at desc
                 limit 1
                 """)
                 .param("projectId", PROJECT_ID)
+                .param("agentKey", SHOT_AGENT_KEY)
                 .param("taskType", TASK_TYPE)
                 .query((rs, rowNum) -> buildShotResponse(
                         rs.getObject("id", UUID.class),
