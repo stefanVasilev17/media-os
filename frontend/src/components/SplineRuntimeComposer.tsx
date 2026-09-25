@@ -28,6 +28,12 @@ type RuntimeStatus = {
   text: string;
 };
 
+type Vector3Like = {
+  x?: number;
+  y?: number;
+  z?: number;
+};
+
 type Vector3 = { x: number; y: number; z: number };
 type PointerPoint = { x: number; y: number };
 type PinchGesture = { distance: number; zoom: number };
@@ -73,24 +79,108 @@ function chooseRecordingMimeType() {
   return candidates.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) ?? '';
 }
 
+function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
+  const rx = Number(rotation?.x) || 0;
+  const ry = Number(rotation?.y) || 0;
+  const rz = Number(rotation?.z) || 0;
+
+  let x = point.x;
+  let y = point.y;
+  let z = point.z;
+
+  if (rx !== 0) {
+    const cos = Math.cos(rx);
+    const sin = Math.sin(rx);
+    const nextY = y * cos - z * sin;
+    const nextZ = y * sin + z * cos;
+    y = nextY;
+    z = nextZ;
+  }
+
+  if (ry !== 0) {
+    const cos = Math.cos(ry);
+    const sin = Math.sin(ry);
+    const nextX = x * cos + z * sin;
+    const nextZ = -x * sin + z * cos;
+    x = nextX;
+    z = nextZ;
+  }
+
+  if (rz !== 0) {
+    const cos = Math.cos(rz);
+    const sin = Math.sin(rz);
+    const nextX = x * cos - y * sin;
+    const nextY = x * sin + y * cos;
+    x = nextX;
+    y = nextY;
+  }
+
+  return { x, y, z };
+}
+
 function runtimeWorldPosition(object: RuntimeObject): Vector3 {
-  let x = Number(object.position?.x) || 0;
-  let y = Number(object.position?.y) || 0;
-  let z = Number(object.position?.z) || 0;
+  const nativeObject = object as RuntimeObject & {
+    getWorldPosition?: (target: { x: number; y: number; z: number }) => { x: number; y: number; z: number };
+  };
+  const nativePosition = object.position as unknown as {
+    x: number;
+    y: number;
+    z: number;
+    clone?: () => { x: number; y: number; z: number };
+  };
+
+  if (typeof nativeObject.getWorldPosition === 'function' && typeof nativePosition?.clone === 'function') {
+    try {
+      const target = nativePosition.clone();
+      const world = nativeObject.getWorldPosition(target) ?? target;
+      if (
+        Number.isFinite(Number(world.x)) &&
+        Number.isFinite(Number(world.y)) &&
+        Number.isFinite(Number(world.z))
+      ) {
+        return {
+          x: Number(world.x),
+          y: Number(world.y),
+          z: Number(world.z)
+        };
+      }
+    } catch {
+      // Fall through to the hierarchy calculation used by runtime objects that do not expose Three.js helpers.
+    }
+  }
+
+  let point: Vector3 = {
+    x: Number(object.position?.x) || 0,
+    y: Number(object.position?.y) || 0,
+    z: Number(object.position?.z) || 0
+  };
+
   let parent = object.parent ?? null;
   let depth = 0;
   const visited = new Set<string>();
 
   while (parent && depth < 64 && !visited.has(parent.uuid)) {
     visited.add(parent.uuid);
-    x += Number(parent.position?.x) || 0;
-    y += Number(parent.position?.y) || 0;
-    z += Number(parent.position?.z) || 0;
+
+    const scale = parent.scale as Vector3Like | undefined;
+    point = {
+      x: point.x * (Number(scale?.x) || 1),
+      y: point.y * (Number(scale?.y) || 1),
+      z: point.z * (Number(scale?.z) || 1)
+    };
+
+    point = rotateXYZ(point, parent.rotation as Vector3Like | undefined);
+    point = {
+      x: point.x + (Number(parent.position?.x) || 0),
+      y: point.y + (Number(parent.position?.y) || 0),
+      z: point.z + (Number(parent.position?.z) || 0)
+    };
+
     parent = parent.parent ?? null;
     depth += 1;
   }
 
-  return { x, y, z };
+  return point;
 }
 
 function pointerDistance(left: PointerPoint, right: PointerPoint) {
