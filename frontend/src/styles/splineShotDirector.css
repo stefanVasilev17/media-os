@@ -1,3 +1,7 @@
+.runtime-composer-card > .episode-compositor {
+  display: none;
+}
+
 .spline-director-memory-strip,
 .spline-shot-ready-card,
 .spline-shot-revision-context {
