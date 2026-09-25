@@ -15,7 +15,7 @@ import {
   Square,
   WandSparkles
 } from 'lucide-react';
-import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
+import { loadSplineRuntimeConfig, loadSplineSceneCatalog, type SplineCatalogNode } from '../api/mediaOsApi';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import { EpisodeSceneCompositor } from './EpisodeSceneCompositor';
 import '../styles/splineRuntimeComposer.css';
@@ -38,6 +38,19 @@ type Vector3 = { x: number; y: number; z: number };
 type PointerPoint = { x: number; y: number };
 type PinchGesture = { distance: number; zoom: number };
 type CameraBaseline = { uuid: string; position: Vector3 };
+type CatalogRootNode = SplineCatalogNode & { objectId?: string | null };
+type ParentTarget = {
+  key: string;
+  name: string;
+  path: string;
+  objectId: string | null;
+  object: RuntimeObject | null;
+};
+
+type RuntimeLookupApplication = Application & {
+  findObjectById?: (id: string) => unknown;
+  findObjectByName?: (name: string) => unknown;
+};
 
 const ACTIONS: Array<{
   id: ActionMode;
@@ -59,29 +72,6 @@ const DEFAULT_FOCUS_ZOOM = 0.42;
 const MIN_VIEW_ZOOM = 0.08;
 const MAX_VIEW_ZOOM = 3;
 const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.34;
-const GENERIC_PARENT_NAMES = new Set([
-  'components',
-  'component',
-  'scene',
-  'world',
-  'root',
-  'group',
-  'container',
-  'container rotation',
-  'rotation'
-]);
-const INTERNAL_PART_SUFFIXES = [
-  '_TEXT',
-  '_ICON',
-  '_SEPARATOR',
-  '_BODY',
-  '_BORDER',
-  '_PATH',
-  '_LINE',
-  '_LABEL',
-  '_BG',
-  '_BACKGROUND'
-];
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -102,74 +92,56 @@ function chooseRecordingMimeType() {
   return candidates.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) ?? '';
 }
 
-function objectName(object: RuntimeObject) {
-  return object.name?.trim() ?? '';
-}
-
-function isSystemObject(object: RuntimeObject) {
-  const name = objectName(object).toLowerCase();
+function isCatalogSystemNode(node: SplineCatalogNode) {
+  const name = node.name?.trim().toLowerCase() ?? '';
   if (!name) return true;
   if (name === CAMERA_RIG_NAME.toLowerCase()) return true;
   if (name.startsWith('cam_') || name.startsWith('media_os_')) return true;
-  return name.includes('camera') || name.includes('light') || name.includes('environment') || name.includes('background');
+  return name.includes('camera') || name.includes('light') || name.includes('environment') || name === 'background';
 }
 
-function isGenericParent(object: RuntimeObject) {
-  return GENERIC_PARENT_NAMES.has(objectName(object).toLowerCase());
-}
+function resolveCatalogTargetObject(app: Application, node: CatalogRootNode): RuntimeObject | null {
+  const lookup = app as RuntimeLookupApplication;
+  const objectId = node.objectId?.trim() ?? '';
 
-function isInternalPart(object: RuntimeObject) {
-  const name = objectName(object);
-  const upper = name.toUpperCase();
-  if (!name) return true;
-  if (INTERNAL_PART_SUFFIXES.some(suffix => upper.endsWith(suffix))) return true;
-  const lower = name.toLowerCase();
-  return lower === 'text' || lower === 'path' || lower === 'line' || lower === 'rectangle' || lower === 'ellipse' || lower === 'circle' || lower === 'image' || lower === 'vector';
-}
-
-function isMeaningfulParent(object: RuntimeObject) {
-  return Boolean(objectName(object)) &&
-    !isSystemObject(object) &&
-    !isGenericParent(object) &&
-    !isInternalPart(object);
-}
-
-function hasMeaningfulAncestor(object: RuntimeObject) {
-  let parent = object.parent ?? null;
-  let depth = 0;
-  const visited = new Set<string>();
-
-  while (parent && depth < 64 && !visited.has(parent.uuid)) {
-    visited.add(parent.uuid);
-    if (isMeaningfulParent(parent)) return true;
-    parent = parent.parent ?? null;
-    depth += 1;
+  if (objectId && typeof lookup.findObjectById === 'function') {
+    const byId = lookup.findObjectById(objectId) as RuntimeObject | undefined;
+    if (byId?.uuid && byId.position) return byId;
   }
 
-  return false;
-}
-
-function collectParentTargets(objects: RuntimeObject[]) {
-  const referencedParents = new Map<string, RuntimeObject>();
-
-  for (const object of objects) {
-    let parent = object.parent ?? null;
-    let depth = 0;
-    const visited = new Set<string>();
-
-    while (parent && depth < 64 && !visited.has(parent.uuid)) {
-      visited.add(parent.uuid);
-      referencedParents.set(parent.uuid, parent);
-      parent = parent.parent ?? null;
-      depth += 1;
-    }
+  if (typeof lookup.findObjectByName === 'function') {
+    const byName = lookup.findObjectByName(node.name.trim()) as RuntimeObject | undefined;
+    if (byName?.uuid && byName.position) return byName;
   }
 
-  const meaningfulParents = [...referencedParents.values()].filter(isMeaningfulParent);
-  const strictParents = meaningfulParents.filter(object => !hasMeaningfulAncestor(object));
-  const source = strictParents.length > 0 ? strictParents : meaningfulParents;
+  return null;
+}
 
-  return source.sort((left, right) => objectName(left).localeCompare(objectName(right)) || left.uuid.localeCompare(right.uuid));
+function resolveCatalogParentTargets(app: Application, nodes: SplineCatalogNode[]) {
+  const targets: ParentTarget[] = [];
+  const seen = new Set<string>();
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index] as CatalogRootNode;
+    const name = node.name?.trim() ?? '';
+    if (!name || isCatalogSystemNode(node)) continue;
+
+    const objectId = node.objectId?.trim() || null;
+    const path = node.path?.trim() || name;
+    const key = objectId || path || `${name}:${index}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    targets.push({
+      key,
+      name,
+      path,
+      objectId,
+      object: resolveCatalogTargetObject(app, node)
+    });
+  }
+
+  return targets;
 }
 
 function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
@@ -300,6 +272,7 @@ export function SplineRuntimeComposer() {
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [objects, setObjects] = useState<RuntimeObject[]>([]);
+  const [parentTargets, setParentTargets] = useState<ParentTarget[]>([]);
   const [selectedUuid, setSelectedUuid] = useState('');
   const [status, setStatus] = useState<RuntimeStatus>({ tone: 'working', text: 'Loading the live scene…' });
   const [sceneRevision, setSceneRevision] = useState(0);
@@ -322,13 +295,18 @@ export function SplineRuntimeComposer() {
   const [recording, setRecording] = useState(false);
 
   const parentObjects = useMemo(
-    () => collectParentTargets(objects),
-    [objects]
+    () => parentTargets.flatMap(target => target.object ? [target.object] : []),
+    [parentTargets]
+  );
+
+  const selectedTarget = useMemo(
+    () => parentTargets.find(target => target.key === selectedUuid) ?? null,
+    [parentTargets, selectedUuid]
   );
 
   const selectedObject = useMemo(
-    () => parentObjects.find(object => object.uuid === selectedUuid) ?? objects.find(object => object.uuid === selectedUuid) ?? null,
-    [objects, parentObjects, selectedUuid]
+    () => selectedTarget?.object ?? objects.find(object => object.uuid === selectedUuid) ?? null,
+    [objects, selectedTarget, selectedUuid]
   );
 
   const cameraObject = useMemo(
@@ -436,21 +414,33 @@ export function SplineRuntimeComposer() {
 
       const next = refreshObjectList(app);
       const rigReady = captureCameraBaseline(next);
-      const targets = collectParentTargets(next);
+      let catalogSections: SplineCatalogNode[] = [];
+
+      try {
+        const catalog = await loadSplineSceneCatalog();
+        if (catalog.status === 'READY') catalogSections = catalog.catalog?.sections ?? [];
+      } catch {
+        catalogSections = [];
+      }
+
+      const targets = resolveCatalogParentTargets(app, catalogSections);
+      setParentTargets(targets);
       const firstParent = targets[0];
-      setSelectedUuid(firstParent?.uuid ?? '');
-      setTemplateUuid(firstParent?.uuid ?? '');
+      setSelectedUuid(firstParent?.key ?? '');
+      setTemplateUuid(firstParent?.key ?? '');
       setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
 
+      const resolvedCount = targets.filter(target => target.object).length;
       setStatus({
         tone: rigReady ? 'success' : 'neutral',
         text: rigReady
-          ? `Camera rig ready · ${targets.length} parent targets.`
-          : `Scene ready · ${targets.length} parent targets. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
+          ? `Camera rig ready · ${targets.length} catalog parents · ${resolvedCount} runtime targets.`
+          : `Scene ready · ${targets.length} catalog parents. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
       });
     } catch (error) {
+      setParentTargets([]);
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
     } finally {
       setLoading(false);
@@ -459,7 +449,7 @@ export function SplineRuntimeComposer() {
 
   function requireSelectedObject() {
     if (!selectedObject) {
-      setStatus({ tone: 'error', text: 'Choose an object first.' });
+      setStatus({ tone: 'error', text: 'Choose a parent that is available in the live runtime.' });
       return null;
     }
     return selectedObject;
@@ -468,7 +458,9 @@ export function SplineRuntimeComposer() {
   function uniqueName(candidate: string, ignoreUuid?: string) {
     const normalized = candidate.trim();
     if (!normalized) return false;
-    return ![...objects, ...parentObjects].some(object => object.uuid !== ignoreUuid && object.name === normalized);
+    const runtimeDuplicate = objects.some(object => object.uuid !== ignoreUuid && object.name === normalized);
+    const parentDuplicate = parentTargets.some(target => target.object?.uuid !== ignoreUuid && target.name === normalized);
+    return !runtimeDuplicate && !parentDuplicate;
   }
 
   function restoreOverview() {
@@ -522,17 +514,33 @@ export function SplineRuntimeComposer() {
     return true;
   }
 
-  function selectObject(uuid: string) {
-    setSelectedUuid(uuid);
+  function selectObject(key: string) {
+    setSelectedUuid(key);
+    const target = parentTargets.find(item => item.key === key);
+    if (!target || target.object || !appRef.current) return;
+
+    const resolved = resolveCatalogTargetObject(appRef.current, {
+      name: target.name,
+      path: target.path,
+      type: 'Group',
+      objectId: target.objectId
+    });
+
+    if (resolved) {
+      setParentTargets(current => current.map(item => item.key === key ? { ...item, object: resolved } : item));
+      return;
+    }
+
+    setStatus({ tone: 'error', text: `${target.name} exists in the Spline catalog but is not exposed by the browser runtime.` });
   }
 
   function createFromTemplate() {
     const app = appRef.current;
-    const source = parentObjects.find(object => object.uuid === templateUuid) ?? objects.find(object => object.uuid === templateUuid);
+    const source = parentTargets.find(target => target.key === templateUuid)?.object ?? objects.find(object => object.uuid === templateUuid);
     const targetName = newName.trim();
 
     if (!app || !source) {
-      setStatus({ tone: 'error', text: 'Choose a template object first.' });
+      setStatus({ tone: 'error', text: 'Choose a runtime-available template parent first.' });
       return;
     }
     if (!uniqueName(targetName)) {
@@ -550,6 +558,14 @@ export function SplineRuntimeComposer() {
       }) as RuntimeObject;
       clone.name = targetName;
       refreshObjectList(app);
+      const cloneTarget: ParentTarget = {
+        key: clone.uuid,
+        name: targetName,
+        path: targetName,
+        objectId: clone.uuid,
+        object: clone
+      };
+      setParentTargets(current => [...current, cloneTarget]);
       setSelectedUuid(clone.uuid);
       markManualSceneChange();
       setStatus({ tone: 'success', text: `${source.name} was cloned as ${targetName}.` });
@@ -576,6 +592,14 @@ export function SplineRuntimeComposer() {
       }) as RuntimeObject;
       clone.name = candidate;
       refreshObjectList(app);
+      const cloneTarget: ParentTarget = {
+        key: clone.uuid,
+        name: candidate,
+        path: candidate,
+        objectId: clone.uuid,
+        object: clone
+      };
+      setParentTargets(current => [...current, cloneTarget]);
       setSelectedUuid(clone.uuid);
       markManualSceneChange();
       setStatus({ tone: 'success', text: `${source.name || 'Object'} duplicated as ${candidate}.` });
@@ -599,6 +623,7 @@ export function SplineRuntimeComposer() {
       object.position.y = numberValue(editY, object.position.y);
       object.position.z = numberValue(editZ, object.position.z);
       if (typeof object.visible === 'boolean') object.visible = editVisible;
+      setParentTargets(current => current.map(target => target.object?.uuid === object.uuid ? { ...target, name: targetName } : target));
       refreshObjectList();
       markManualSceneChange();
       setStatus({ tone: 'success', text: `${targetName} updated in the live scene.` });
@@ -872,7 +897,7 @@ export function SplineRuntimeComposer() {
             {loaded && (
               <div className="runtime-stage-badge">
                 <span>{recording ? 'REC' : 'LIVE'}</span>
-                <strong>{parentObjects.length} parents</strong>
+                <strong>{parentTargets.length} parents</strong>
               </div>
             )}
           </div>
@@ -893,9 +918,9 @@ export function SplineRuntimeComposer() {
             <span>Selected parent</span>
             <select value={selectedUuid} onChange={event => selectObject(event.target.value)} disabled={!loaded || recording}>
               <option value="">Choose parent…</option>
-              {parentObjects.map(object => (
-                <option key={object.uuid} value={object.uuid}>
-                  {object.name}
+              {parentTargets.map(target => (
+                <option key={target.key} value={target.key}>
+                  {target.name}
                 </option>
               ))}
             </select>
@@ -955,7 +980,7 @@ export function SplineRuntimeComposer() {
                   <span>Template parent</span>
                   <select value={templateUuid} onChange={event => setTemplateUuid(event.target.value)} disabled={recording}>
                     <option value="">Choose parent…</option>
-                    {parentObjects.map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
+                    {parentTargets.map(target => <option key={target.key} value={target.key}>{target.name}</option>)}
                   </select>
                 </label>
                 <label><span>New name</span><input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" disabled={recording} /></label>
@@ -1034,7 +1059,7 @@ export function SplineRuntimeComposer() {
         app={appRef.current}
         objects={objects}
         ready={loaded}
-        selectedUuid={selectedUuid}
+        selectedUuid={selectedObject?.uuid ?? ''}
         currentZoom={numberValue(zoom, DEFAULT_OVERVIEW_ZOOM)}
         sceneRevision={sceneRevision}
         recording={recording}
