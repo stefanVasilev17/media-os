@@ -16,6 +16,14 @@ import '../styles/mobileCompositorUsability.css';
 const EVENT_TYPES = ['mouseDown', 'mouseHover', 'mouseUp', 'keyDown', 'keyUp', 'start', 'lookAt', 'follow', 'scroll'];
 const CUE_TIME_STEP_MS = 100;
 const DURATION_STEP_MS = 500;
+const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
+const SCENE_ONE_LOGIN_CAMERA = 'CAM_LOGIN';
+const SCENE_ONE_CLIENT_CAMERA = 'CAM_CLIENT_REVEAL';
+const SCENE_ONE_DURATION_MS = 20000;
+const SCENE_ONE_TRANSITION_START_MS = 8000;
+const SCENE_ONE_TRANSITION_END_MS = 12000;
+const SCENE_ONE_LOGIN_ZOOM_FALLBACK = 0.42;
+const SCENE_ONE_CLIENT_ZOOM_FALLBACK = 0.26;
 const CUE_LABELS: Record<EpisodeSceneCueKind, string> = {
   state: 'Set state',
   event: 'Run animation',
@@ -30,11 +38,23 @@ type ObjectBaseline = {
   x: number;
   y: number;
   z: number;
+  rx: number;
+  ry: number;
+  rz: number;
   visible: boolean | undefined;
   state: string | number | undefined;
 };
 type SceneBaseline = { zoom: number; objects: ObjectBaseline[] };
 type RunLogEntry = { id: string; atMs: number; text: string };
+type CameraPose = {
+  x: number;
+  y: number;
+  z: number;
+  rx: number;
+  ry: number;
+  rz: number;
+  zoom: number;
+};
 
 type EpisodeSceneCompositorProps = {
   app: Application | null;
@@ -61,6 +81,56 @@ function finite(value: number, fallback: number) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function smoothstep(value: number) {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+}
+
+function lerp(from: number, to: number, amount: number) {
+  return from + (to - from) * amount;
+}
+
+function lerpAngle(from: number, to: number, amount: number) {
+  let delta = (to - from) % (Math.PI * 2);
+  if (delta > Math.PI) delta -= Math.PI * 2;
+  if (delta < -Math.PI) delta += Math.PI * 2;
+  return from + delta * amount;
+}
+
+function cameraZoom(object: RuntimeObject, fallback: number) {
+  const candidate = object as RuntimeObject & {
+    zoom?: number;
+    camera?: { zoom?: number; orthographicZoom?: number };
+    orthographicZoom?: number;
+  };
+  const values = [
+    candidate.zoom,
+    candidate.orthographicZoom,
+    candidate.camera?.zoom,
+    candidate.camera?.orthographicZoom
+  ];
+  const found = values
+    .map(value => Number(value))
+    .find(value => Number.isFinite(value) && value >= 0.05 && value <= 3);
+  return found ?? fallback;
+}
+
+function cameraPose(object: RuntimeObject, fallbackZoom: number): CameraPose {
+  return {
+    x: finite(Number(object.position?.x), 0),
+    y: finite(Number(object.position?.y), 0),
+    z: finite(Number(object.position?.z), 0),
+    rx: finite(Number(object.rotation?.x), 0),
+    ry: finite(Number(object.rotation?.y), 0),
+    rz: finite(Number(object.rotation?.z), 0),
+    zoom: cameraZoom(object, fallbackZoom)
+  };
+}
+
 export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
   const {
     app,
@@ -77,8 +147,8 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     onStatus
   } = props;
 
-  const [sceneName, setSceneName] = useState('Episode Scene 01');
-  const [durationMs, setDurationMs] = useState(8000);
+  const [sceneName, setSceneName] = useState('EP001 · Shot 01 · Login → Client Reveal');
+  const [durationMs, setDurationMs] = useState(SCENE_ONE_DURATION_MS);
   const [playheadMs, setPlayheadMs] = useState(0);
   const [playbackState, setPlaybackState] = useState<EpisodeScenePlaybackState>('idle');
   const [cues, setCues] = useState<EpisodeSceneCue[]>([]);
@@ -97,7 +167,27 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
   );
   const sortedCues = useMemo(() => sortEpisodeSceneCues(cues), [cues]);
   const hasEventCues = cues.some(cue => cue.kind === 'event');
-  const transportLocked = !ready || !app || cues.length === 0;
+  const productionCamera = useMemo(
+    () => objects.find(object => object.name?.trim() === CAMERA_RIG_NAME) ?? null,
+    [objects]
+  );
+  const loginCamera = useMemo(
+    () => objects.find(object => object.name?.trim() === SCENE_ONE_LOGIN_CAMERA) ?? null,
+    [objects]
+  );
+  const clientRevealCamera = useMemo(
+    () => objects.find(object => object.name?.trim() === SCENE_ONE_CLIENT_CAMERA) ?? null,
+    [objects]
+  );
+  const sceneOneCameraReady = Boolean(
+    productionCamera?.position &&
+    productionCamera?.rotation &&
+    loginCamera?.position &&
+    loginCamera?.rotation &&
+    clientRevealCamera?.position &&
+    clientRevealCamera?.rotation
+  );
+  const transportLocked = !ready || !app || (cues.length === 0 && !sceneOneCameraReady);
   const canResumeRecording = recording && playbackState === 'paused' && recordingRunRef.current;
 
   useEffect(() => {
@@ -127,6 +217,9 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
         x: object.position.x,
         y: object.position.y,
         z: object.position.z,
+        rx: object.rotation.x,
+        ry: object.rotation.y,
+        rz: object.rotation.z,
         visible: typeof object.visible === 'boolean' ? object.visible : undefined,
         state: object.state
       }))
@@ -149,11 +242,42 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
       object.position.x = snapshot.x;
       object.position.y = snapshot.y;
       object.position.z = snapshot.z;
+      object.rotation.x = snapshot.rx;
+      object.rotation.y = snapshot.ry;
+      object.rotation.z = snapshot.rz;
       if (snapshot.visible !== undefined && typeof object.visible === 'boolean') object.visible = snapshot.visible;
       if (snapshot.state !== undefined) object.state = snapshot.state;
     });
     app.setZoom(baseline.zoom);
     app.play();
+    app.requestRender();
+  }
+
+  function applySceneOneCamera(atMs: number) {
+    if (!app || !sceneOneCameraReady || !productionCamera || !loginCamera || !clientRevealCamera) return false;
+
+    const loginPose = cameraPose(loginCamera, SCENE_ONE_LOGIN_ZOOM_FALLBACK);
+    const clientPose = cameraPose(clientRevealCamera, SCENE_ONE_CLIENT_ZOOM_FALLBACK);
+
+    let amount = 0;
+    if (atMs >= SCENE_ONE_TRANSITION_END_MS) {
+      amount = 1;
+    } else if (atMs > SCENE_ONE_TRANSITION_START_MS) {
+      amount = smoothstep(
+        (atMs - SCENE_ONE_TRANSITION_START_MS) /
+        (SCENE_ONE_TRANSITION_END_MS - SCENE_ONE_TRANSITION_START_MS)
+      );
+    }
+
+    productionCamera.position.x = lerp(loginPose.x, clientPose.x, amount);
+    productionCamera.position.y = lerp(loginPose.y, clientPose.y, amount);
+    productionCamera.position.z = lerp(loginPose.z, clientPose.z, amount);
+    productionCamera.rotation.x = lerpAngle(loginPose.rx, clientPose.rx, amount);
+    productionCamera.rotation.y = lerpAngle(loginPose.ry, clientPose.ry, amount);
+    productionCamera.rotation.z = lerpAngle(loginPose.rz, clientPose.rz, amount);
+    app.setZoom(lerp(loginPose.zoom, clientPose.zoom, amount));
+    app.requestRender();
+    return true;
   }
 
   function description(cue: EpisodeSceneCue) {
@@ -211,6 +335,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
 
   function finishRun() {
     cancelFrame();
+    applySceneOneCamera(durationMs);
     setPlayheadMs(durationMs);
     setPlaybackState('complete');
     onStatus({ tone: 'success', text: `Episode scene completed · ${formatEpisodeSceneTime(durationMs)}.` });
@@ -234,6 +359,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     const tick = (now: number) => {
       const nextPlayhead = clampEpisodeSceneTime(startPlayhead + (now - startedAt), durationMs);
       try {
+        applySceneOneCamera(nextPlayhead);
         runCues.forEach(cue => {
           if (cue.atMs > nextPlayhead || executedRef.current.has(cue.id)) return;
           execute(cue);
@@ -261,7 +387,12 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
 
   function play() {
     if (transportLocked) {
-      onStatus({ tone: 'error', text: ready ? 'Add at least one timeline cue first.' : 'Load the live scene first.' });
+      onStatus({
+        tone: 'error',
+        text: ready
+          ? `Scene 01 needs ${CAMERA_RIG_NAME}, ${SCENE_ONE_LOGIN_CAMERA} and ${SCENE_ONE_CLIENT_CAMERA}, or at least one timeline cue.`
+          : 'Load the live scene first.'
+      });
       return;
     }
     if (playbackState === 'complete' || playheadMs >= durationMs) {
@@ -269,10 +400,12 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
       executedRef.current.clear();
       setRunLog([]);
       setPlayheadMs(0);
+      applySceneOneCamera(0);
       startLoop(0);
       return;
     }
     ensureBaseline();
+    applySceneOneCamera(playheadMs);
     if (canResumeRecording) onResumeRecording();
     startLoop(playheadMs);
   }
@@ -307,6 +440,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     executedRef.current.clear();
     setRunLog([]);
     setPlayheadMs(0);
+    applySceneOneCamera(0);
     startLoop(0);
   }
 
@@ -317,6 +451,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     executedRef.current.clear();
     setRunLog([]);
     setPlayheadMs(0);
+    applySceneOneCamera(0);
     const fileBase = (sceneName.trim() || 'episode-scene').replace(/[^a-z0-9-_]+/gi, '-');
     if (!onStartRecording(fileBase)) return;
     recordingRunRef.current = true;
@@ -331,6 +466,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
     restoreBaseline();
     executedRef.current.clear();
     try {
+      applySceneOneCamera(next);
       sortedCues.forEach(cue => {
         if (cue.atMs > next) return;
         if (cue.kind !== 'event') execute(cue, true);
@@ -338,7 +474,12 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
       });
       setPlayheadMs(next);
       setPlaybackState('idle');
-      onStatus({ tone: 'neutral', text: `Previewing ${formatEpisodeSceneTime(next)}. Event animations run only during playback.` });
+      onStatus({
+        tone: 'neutral',
+        text: sceneOneCameraReady
+          ? `Previewing ${formatEpisodeSceneTime(next)} · Scene 01 camera beat active.`
+          : `Previewing ${formatEpisodeSceneTime(next)}. Event animations run only during playback.`
+      });
     } catch (error) {
       setPlaybackState('error');
       onStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not preview the timeline.' });
@@ -346,7 +487,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
   }
 
   function changeDuration(seconds: number) {
-    const next = Math.round(Math.max(.5, Math.min(120, finite(seconds, 8))) * 1000);
+    const next = Math.round(Math.max(.5, Math.min(120, finite(seconds, 20))) * 1000);
     setDurationMs(next);
     setPlayheadMs(current => Math.min(current, next));
     setCues(previous => previous.map(cue => ({ ...cue, atMs: Math.min(cue.atMs, next) })));
@@ -401,7 +542,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
         <div>
           <span>EPISODE SCENE COMPOSITOR</span>
           <strong>Run the shot as a timed scene</strong>
-          <small>Sequence object states, authored animations, movement, visibility and camera zoom on one browser timeline.</small>
+          <small>Scene 01 uses authored Spline camera waypoints, plus optional object states, animations, movement and visibility cues.</small>
         </div>
         <div className="episode-scene-meta">
           <label><span>Scene name</span><input value={sceneName} onChange={event => setSceneName(event.target.value)} disabled={playbackState === 'playing'} /></label>
@@ -417,6 +558,14 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
         </div>
       </div>
 
+      <div className="episode-compositor-note">
+        <span>
+          {sceneOneCameraReady
+            ? `Scene 01 camera ready: hold ${SCENE_ONE_LOGIN_CAMERA} 0–8s → smooth move 8–12s → hold ${SCENE_ONE_CLIENT_CAMERA} 12–20s.`
+            : `Scene 01 camera preset is waiting for ${CAMERA_RIG_NAME}, ${SCENE_ONE_LOGIN_CAMERA} and ${SCENE_ONE_CLIENT_CAMERA}.`}
+        </span>
+      </div>
+
       <div className="episode-transport">
         <button className="episode-transport-primary" disabled={playDisabled} onClick={play}><Play size={16} /> {playbackState === 'paused' ? 'Resume' : 'Play'}</button>
         <button disabled={playbackState !== 'playing'} onClick={pause}><Pause size={16} /> Pause</button>
@@ -429,17 +578,34 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
       <div className="episode-playhead">
         <div className="episode-playhead-labels"><strong>{formatEpisodeSceneTime(playheadMs)}</strong><span>{formatEpisodeSceneTime(durationMs)}</span></div>
         <input type="range" min="0" max={durationMs} step="50" value={Math.min(playheadMs, durationMs)} disabled={!ready || playbackState === 'playing' || recording} onChange={event => previewAt(Number(event.target.value))} aria-label="Episode scene playhead" />
-        <div className="episode-cue-markers" aria-hidden="true">{sortedCues.map(cue => <i key={cue.id} style={{ left: `${Math.min(100, cue.atMs / durationMs * 100)}%` }} />)}</div>
+        <div className="episode-cue-markers" aria-hidden="true">
+          {sceneOneCameraReady && durationMs > 0 && (
+            <>
+              <i style={{ left: `${Math.min(100, SCENE_ONE_TRANSITION_START_MS / durationMs * 100)}%` }} />
+              <i style={{ left: `${Math.min(100, SCENE_ONE_TRANSITION_END_MS / durationMs * 100)}%` }} />
+            </>
+          )}
+          {sortedCues.map(cue => <i key={cue.id} style={{ left: `${Math.min(100, cue.atMs / durationMs * 100)}%` }} />)}
+        </div>
       </div>
 
       <div className="episode-cue-header">
-        <div><ListVideo size={17} /><div><strong>{cues.length} timeline {cues.length === 1 ? 'cue' : 'cues'}</strong><span>Add actions at the current playhead, then run the complete shot.</span></div></div>
+        <div>
+          <ListVideo size={17} />
+          <div>
+            <strong>{sceneOneCameraReady ? `Camera beat + ${cues.length} timeline ${cues.length === 1 ? 'cue' : 'cues'}` : `${cues.length} timeline ${cues.length === 1 ? 'cue' : 'cues'}`}</strong>
+            <span>{sceneOneCameraReady ? 'The first 20 seconds already have camera choreography. Add cues only for extra runtime actions.' : 'Add actions at the current playhead, then run the complete shot.'}</span>
+          </div>
+        </div>
         <button disabled={!ready || editorLocked} onClick={addCue}><Plus size={15} /> Add cue at {(playheadMs / 1000).toFixed(1)}s</button>
       </div>
 
       <div className="episode-cue-list">
         {sortedCues.length === 0 ? (
-          <div className="episode-cue-empty"><strong>No scene cues yet.</strong><span>Move the playhead to a moment, press “Add cue”, then choose what should happen there.</span></div>
+          <div className="episode-cue-empty">
+            <strong>{sceneOneCameraReady ? 'Camera choreography is ready.' : 'No scene cues yet.'}</strong>
+            <span>{sceneOneCameraReady ? 'Press Play to review the 20-second camera pass. Add cues only if this shot needs additional runtime actions.' : 'Move the playhead to a moment, press “Add cue”, then choose what should happen there.'}</span>
+          </div>
         ) : sortedCues.map((cue, index) => {
           const object = target(cue);
           return (
@@ -469,7 +635,7 @@ export function EpisodeSceneCompositor(props: EpisodeSceneCompositorProps) {
         })}
       </div>
 
-      <div className="episode-compositor-note"><span>Scrubbing previews state, movement, visibility and zoom. {hasEventCues ? 'Authored event animations fire only during Play / Record so scrubbing cannot accidentally advance an event state machine.' : 'Add an animation cue when you want to trigger an authored Spline event.'}</span></div>
+      <div className="episode-compositor-note"><span>Scrubbing previews the Scene 01 camera pass plus state, movement, visibility and zoom. {hasEventCues ? 'Authored event animations fire only during Play / Record so scrubbing cannot accidentally advance an event state machine.' : 'Existing Spline-authored animation keeps running; add an event cue only when this shot must trigger one explicitly.'}</span></div>
 
       {runLog.length > 0 && <details className="episode-run-log"><summary>Run log · {runLog.length} executed actions</summary><div>{runLog.map(entry => <p key={entry.id}><b>{formatEpisodeSceneTime(entry.atMs)}</b><span>{entry.text}</span></p>)}</div></details>}
     </section>
