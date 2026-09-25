@@ -59,6 +59,17 @@ const DEFAULT_FOCUS_ZOOM = 0.42;
 const MIN_VIEW_ZOOM = 0.08;
 const MAX_VIEW_ZOOM = 3;
 const PAN_WORLD_UNITS_AT_ZOOM_1 = 0.34;
+const GENERIC_PARENT_NAMES = new Set([
+  'components',
+  'component',
+  'scene',
+  'world',
+  'root',
+  'group',
+  'container',
+  'container rotation',
+  'rotation'
+]);
 
 function numberValue(value: string, fallback = 0) {
   const parsed = Number(value);
@@ -77,6 +88,55 @@ function safeFileName(value: string) {
 function chooseRecordingMimeType() {
   const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
   return candidates.find(type => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(type)) ?? '';
+}
+
+function objectName(object: RuntimeObject) {
+  return object.name?.trim() ?? '';
+}
+
+function isSystemObject(object: RuntimeObject) {
+  const name = objectName(object).toLowerCase();
+  if (!name) return true;
+  if (name === CAMERA_RIG_NAME.toLowerCase()) return true;
+  if (name.startsWith('cam_') || name.startsWith('media_os_')) return true;
+  return name.includes('camera') || name.includes('light') || name.includes('environment') || name.includes('background');
+}
+
+function isGenericParent(object: RuntimeObject) {
+  return GENERIC_PARENT_NAMES.has(objectName(object).toLowerCase());
+}
+
+function collectParentTargets(objects: RuntimeObject[]) {
+  const allIds = new Set(objects.map(object => object.uuid));
+  const architecture = objects.filter(object => !isSystemObject(object));
+  const structuralRoots = architecture.filter(object => !object.parent || !allIds.has(object.parent.uuid) || isSystemObject(object.parent));
+  const expanded: RuntimeObject[] = [];
+
+  for (const root of structuralRoots) {
+    const children = (root.children ?? []) as RuntimeObject[];
+    if (isGenericParent(root) && children.length > 0) {
+      expanded.push(...children.filter(child => !isSystemObject(child)));
+    } else {
+      expanded.push(root);
+    }
+  }
+
+  const directParents = expanded
+    .filter(object => Boolean(objectName(object)))
+    .filter(object => !isGenericParent(object));
+
+  const source = directParents.length > 0
+    ? directParents
+    : architecture.filter(object => Boolean(objectName(object)) && (object.children?.length ?? 0) > 0 && !isGenericParent(object));
+
+  const seen = new Set<string>();
+  return source
+    .filter(object => {
+      if (seen.has(object.uuid)) return false;
+      seen.add(object.uuid);
+      return true;
+    })
+    .sort((left, right) => objectName(left).localeCompare(objectName(right)) || left.uuid.localeCompare(right.uuid));
 }
 
 function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Vector3 {
@@ -121,6 +181,8 @@ function rotateXYZ(point: Vector3, rotation: Vector3Like | null | undefined): Ve
 function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   const nativeObject = object as RuntimeObject & {
     getWorldPosition?: (target: { x: number; y: number; z: number }) => { x: number; y: number; z: number };
+    updateWorldMatrix?: (updateParents: boolean, updateChildren: boolean) => void;
+    updateMatrixWorld?: (force?: boolean) => void;
   };
   const nativePosition = object.position as unknown as {
     x: number;
@@ -131,6 +193,8 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
 
   if (typeof nativeObject.getWorldPosition === 'function' && typeof nativePosition?.clone === 'function') {
     try {
+      nativeObject.updateWorldMatrix?.(true, false);
+      nativeObject.updateMatrixWorld?.(true);
       const target = nativePosition.clone();
       const world = nativeObject.getWorldPosition(target) ?? target;
       if (
@@ -145,7 +209,7 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
         };
       }
     } catch {
-      // Fall through to the hierarchy calculation used by runtime objects that do not expose Three.js helpers.
+      void 0;
     }
   }
 
@@ -183,6 +247,46 @@ function runtimeWorldPosition(object: RuntimeObject): Vector3 {
   return point;
 }
 
+function centerFromPoints(points: Vector3[]) {
+  if (points.length === 0) return { x: 0, y: 0, z: 0 };
+  const xs = points.map(point => point.x);
+  const ys = points.map(point => point.y);
+  const zs = points.map(point => point.z);
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2,
+    z: (Math.min(...zs) + Math.max(...zs)) / 2
+  };
+}
+
+function runtimeVisualCenter(object: RuntimeObject): Vector3 {
+  const points: Vector3[] = [];
+  const stack: RuntimeObject[] = [object];
+  const visited = new Set<string>();
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current || visited.has(current.uuid) || current.visible === false) continue;
+    visited.add(current.uuid);
+
+    const children = ((current.children ?? []) as RuntimeObject[]).filter(child => child.visible !== false);
+    if (children.length > 0) {
+      stack.push(...children);
+      continue;
+    }
+
+    if (current.position) points.push(runtimeWorldPosition(current));
+  }
+
+  if (points.length === 0) points.push(runtimeWorldPosition(object));
+  return centerFromPoints(points);
+}
+
+function overviewCenter(objects: RuntimeObject[]) {
+  const points = objects.map(runtimeVisualCenter);
+  return centerFromPoints(points);
+}
+
 function pointerDistance(left: PointerPoint, right: PointerPoint) {
   return Math.hypot(right.x - left.x, right.y - left.y);
 }
@@ -191,6 +295,7 @@ export function SplineRuntimeComposer() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
   const cameraBaselineRef = useRef<CameraBaseline | null>(null);
+  const overviewCenterRef = useRef<Vector3>({ x: 0, y: 0, z: 0 });
   const pointersRef = useRef<Map<number, PointerPoint>>(new Map());
   const panLastRef = useRef<PointerPoint | null>(null);
   const pinchRef = useRef<PinchGesture | null>(null);
@@ -224,10 +329,8 @@ export function SplineRuntimeComposer() {
   const [zoom, setZoom] = useState(String(DEFAULT_OVERVIEW_ZOOM));
   const [recording, setRecording] = useState(false);
 
-  const namedObjects = useMemo(
-    () => [...objects]
-      .filter(object => Boolean(object.name?.trim()))
-      .sort((left, right) => left.name.localeCompare(right.name) || left.uuid.localeCompare(right.uuid)),
+  const parentObjects = useMemo(
+    () => collectParentTargets(objects),
     [objects]
   );
 
@@ -281,6 +384,7 @@ export function SplineRuntimeComposer() {
       appRef.current?.dispose();
       appRef.current = null;
       cameraBaselineRef.current = null;
+      overviewCenterRef.current = { x: 0, y: 0, z: 0 };
       pointersRef.current.clear();
     };
   }, []);
@@ -341,9 +445,11 @@ export function SplineRuntimeComposer() {
 
       const next = refreshObjectList(app);
       const rigReady = captureCameraBaseline(next);
-      const firstNamed = next.find(object => Boolean(object.name?.trim()) && object.name !== CAMERA_RIG_NAME);
-      setSelectedUuid(firstNamed?.uuid ?? '');
-      setTemplateUuid(firstNamed?.uuid ?? '');
+      const targets = collectParentTargets(next);
+      overviewCenterRef.current = overviewCenter(targets);
+      const firstParent = targets[0];
+      setSelectedUuid(firstParent?.uuid ?? '');
+      setTemplateUuid(firstParent?.uuid ?? '');
       setZoom(String(DEFAULT_OVERVIEW_ZOOM));
       setLoaded(true);
       markManualSceneChange();
@@ -351,8 +457,8 @@ export function SplineRuntimeComposer() {
       setStatus({
         tone: rigReady ? 'success' : 'neutral',
         text: rigReady
-          ? `Camera rig ready · ${next.length} objects available.`
-          : `Scene ready · ${next.length} objects available. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
+          ? `Camera rig ready · ${targets.length} parent targets.`
+          : `Scene ready · ${targets.length} parent targets. Add ${CAMERA_RIG_NAME} in Spline to enable pan and focus.`
       });
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'The browser runtime scene could not be loaded.' });
@@ -404,7 +510,8 @@ export function SplineRuntimeComposer() {
   function focusObject(object: RuntimeObject) {
     const app = appRef.current;
     const camera = cameraObject;
-    if (!app || !cameraReady || !camera?.position) {
+    const baseline = cameraBaselineRef.current;
+    if (!app || !cameraReady || !camera?.position || !baseline) {
       setStatus({
         tone: 'error',
         text: `Focus is disabled until a top-level ${CAMERA_RIG_NAME} is present in the runtime scene.`
@@ -412,9 +519,11 @@ export function SplineRuntimeComposer() {
       return false;
     }
 
-    const target = runtimeWorldPosition(object);
-    camera.position.x = target.x;
-    camera.position.y = target.y;
+    const target = runtimeVisualCenter(object);
+    const center = overviewCenterRef.current;
+    camera.position.x = baseline.position.x + (target.x - center.x);
+    camera.position.y = baseline.position.y + (target.y - center.y);
+    camera.position.z = baseline.position.z;
     app.setZoom(DEFAULT_FOCUS_ZOOM);
     app.play();
     app.requestRender();
@@ -792,12 +901,12 @@ export function SplineRuntimeComposer() {
           </div>
 
           <label className="runtime-object-picker">
-            <span>Selected object</span>
+            <span>Selected parent</span>
             <select value={selectedUuid} onChange={event => selectObject(event.target.value)} disabled={!loaded || recording}>
-              <option value="">Choose object…</option>
-              {namedObjects.filter(object => object.name !== CAMERA_RIG_NAME).map(object => (
+              <option value="">Choose parent…</option>
+              {parentObjects.map(object => (
                 <option key={object.uuid} value={object.uuid}>
-                  {object.name} · {object.uuid.slice(0, 8)}
+                  {object.name}
                 </option>
               ))}
             </select>
@@ -854,10 +963,10 @@ export function SplineRuntimeComposer() {
             {activeAction === 'create' && (
               <div className="runtime-form-stack">
                 <label>
-                  <span>Template</span>
+                  <span>Template parent</span>
                   <select value={templateUuid} onChange={event => setTemplateUuid(event.target.value)} disabled={recording}>
-                    <option value="">Choose template…</option>
-                    {namedObjects.filter(object => object.name !== CAMERA_RIG_NAME).map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
+                    <option value="">Choose parent…</option>
+                    {parentObjects.map(object => <option key={object.uuid} value={object.uuid}>{object.name}</option>)}
                   </select>
                 </label>
                 <label><span>New name</span><input value={newName} onChange={event => setNewName(event.target.value)} placeholder="Token Service" disabled={recording} /></label>
