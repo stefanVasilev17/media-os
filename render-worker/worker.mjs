@@ -2,13 +2,11 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
-const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 92);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -74,36 +72,12 @@ async function upload(renderId, filePath) {
   }
 }
 
-function selectFrames(frames, fps, durationMs) {
-  if (frames.length === 0) throw new Error('Chromium produced no video frames.');
-  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
-  const firstTimestamp = Number.isFinite(frames[0].timestamp) ? frames[0].timestamp : 0;
-  let cursor = 0;
-  const result = [];
-
-  for (let index = 0; index < count; index += 1) {
-    const target = firstTimestamp + index / fps;
-    while (
-      cursor + 1 < frames.length &&
-      Number.isFinite(frames[cursor + 1].timestamp) &&
-      frames[cursor + 1].timestamp <= target
-    ) {
-      cursor += 1;
-    }
-    result.push(frames[cursor].buffer);
-  }
-  return result;
-}
-
-async function encodeFrames(frames, workDir, fps) {
-  const output = path.join(workDir, 'preview.mp4');
+async function transcodeWebm(input, output, fps) {
   const args = [
     '-hide_banner', '-loglevel', 'warning', '-y',
-    '-f', 'image2pipe',
-    '-framerate', String(fps),
-    '-vcodec', 'mjpeg',
-    '-i', 'pipe:0',
+    '-i', input,
     '-an',
+    '-vf', `fps=${fps}`,
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', '18',
@@ -114,14 +88,14 @@ async function encodeFrames(frames, workDir, fps) {
     output
   ];
 
-  const child = spawn('ffmpeg', args, { stdio: ['pipe', 'ignore', 'pipe'] });
+  const child = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', chunk => {
     stderr += chunk.toString();
     if (stderr.length > 12000) stderr = stderr.slice(-12000);
   });
 
-  const completion = new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code, signal) => {
       if (code === 0) {
@@ -132,20 +106,81 @@ async function encodeFrames(frames, workDir, fps) {
     });
   });
 
-  try {
-    for (const frame of frames) {
-      if (!child.stdin.write(frame)) await once(child.stdin, 'drain');
-    }
-    child.stdin.end();
-    await completion;
-  } catch (error) {
-    if (!child.killed) child.kill('SIGKILL');
-    throw error;
-  }
-
   const stat = await fs.stat(output);
   if (stat.size < 1024) throw new Error(`ffmpeg created an invalid MP4 (${stat.size} bytes).`);
-  return output;
+}
+
+async function recordCanvas(page, workDir, fps, durationMs) {
+  const input = path.join(workDir, 'capture.webm');
+  await fs.writeFile(input, Buffer.alloc(0));
+
+  await page.exposeFunction('__mediaOsAppendVideoChunk', async base64 => {
+    if (typeof base64 !== 'string' || !base64) return;
+    await fs.appendFile(input, Buffer.from(base64, 'base64'));
+  });
+
+  const recording = await page.evaluate(async ({ fps, durationMs }) => {
+    const canvas = document.querySelector('.shot-preview-canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Spline preview canvas is not available.');
+    if (typeof canvas.captureStream !== 'function') throw new Error('Canvas captureStream is not supported by Chromium.');
+    if (typeof MediaRecorder !== 'function') throw new Error('MediaRecorder is not supported by Chromium.');
+
+    const mimeCandidates = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm'
+    ];
+    const mimeType = mimeCandidates.find(value => MediaRecorder.isTypeSupported(value)) || '';
+    const stream = canvas.captureStream(fps);
+    const recorder = new MediaRecorder(stream, mimeType
+      ? { mimeType, videoBitsPerSecond: 12_000_000 }
+      : { videoBitsPerSecond: 12_000_000 });
+
+    const blobToBase64 = blob => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error || new Error('Could not read MediaRecorder chunk.'));
+      reader.onload = () => {
+        const value = String(reader.result || '');
+        resolve(value.includes(',') ? value.slice(value.indexOf(',') + 1) : value);
+      };
+      reader.readAsDataURL(blob);
+    });
+
+    let chain = Promise.resolve();
+    let chunks = 0;
+    let bytes = 0;
+
+    const done = new Promise((resolve, reject) => {
+      recorder.onerror = event => reject(event.error || new Error('MediaRecorder failed.'));
+      recorder.ondataavailable = event => {
+        if (!event.data || event.data.size === 0) return;
+        chunks += 1;
+        bytes += event.data.size;
+        chain = chain
+          .then(() => blobToBase64(event.data))
+          .then(base64 => window.__mediaOsAppendVideoChunk(base64));
+      };
+      recorder.onstop = async () => {
+        try {
+          await chain;
+          resolve({ mimeType: recorder.mimeType, chunks, bytes });
+        } catch (error) {
+          reject(error);
+        }
+      };
+    });
+
+    recorder.start(1000);
+    window.setTimeout(() => {
+      if (recorder.state !== 'inactive') recorder.stop();
+    }, durationMs + 220);
+
+    return done;
+  }, { fps, durationMs });
+
+  const stat = await fs.stat(input);
+  if (stat.size < 1024) throw new Error(`Canvas recording is empty (${stat.size} bytes).`);
+  return { input, recording, size: stat.size };
 }
 
 async function render(job, chromiumPath) {
@@ -166,6 +201,10 @@ async function render(job, chromiumPath) {
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=CalculateNativeWinOcclusion',
         '--enable-webgl',
         '--ignore-gpu-blocklist',
         '--use-gl=swiftshader',
@@ -177,6 +216,7 @@ async function render(job, chromiumPath) {
 
     const page = await browser.newPage();
     await page.setViewport({ width, height, deviceScaleFactor: 1 });
+    await page.bringToFront();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 90_000 });
 
     await page.addStyleTag({ content: `
@@ -191,44 +231,34 @@ async function render(job, chromiumPath) {
 
     await page.waitForFunction(() => {
       const canvas = document.querySelector('.shot-preview-canvas');
-      if (!canvas) return false;
+      if (!(canvas instanceof HTMLCanvasElement)) return false;
       const style = getComputedStyle(canvas);
       return style.visibility !== 'hidden' && canvas.width > 100 && canvas.height > 100;
     }, { timeout: 90_000 });
 
-    const client = await page.target().createCDPSession();
-    const frames = [];
-    let captureStopped = false;
-    client.on('Page.screencastFrame', async event => {
-      if (captureStopped) return;
-      frames.push({
-        timestamp: Number(event.metadata?.timestamp),
-        buffer: Buffer.from(event.data, 'base64')
+    const diagnostics = await page.evaluate(async () => {
+      let frames = 0;
+      const startedAt = performance.now();
+      await new Promise(resolve => {
+        const tick = now => {
+          frames += 1;
+          if (now - startedAt >= 500) resolve();
+          else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
       });
-      try {
-        await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
-      } catch {
-      }
+      return { frames, visibility: document.visibilityState };
     });
+    console.log(`Browser animation probe: ${diagnostics.frames} rAF frames / 500ms, visibility=${diagnostics.visibility}`);
 
-    await client.send('Page.startScreencast', {
-      format: 'jpeg',
-      quality: Math.max(60, Math.min(100, QUALITY)),
-      maxWidth: width,
-      maxHeight: height,
-      everyNthFrame: 1
-    });
+    const { input, recording, size } = await recordCanvas(page, workDir, fps, durationMs);
+    console.log(`Canvas capture: ${recording.chunks} chunks, browserBytes=${recording.bytes}, fileBytes=${size}, mime=${recording.mimeType}`);
 
-    await sleep(durationMs + 450);
-    captureStopped = true;
-    await client.send('Page.stopScreencast').catch(() => undefined);
-    await sleep(150);
-
-    const selected = selectFrames(frames, fps, durationMs);
-    console.log(`Captured ${frames.length} source frames; encoding ${selected.length} frames for ${job.renderId}`);
-    const mp4 = await encodeFrames(selected, workDir, fps);
-    await upload(job.renderId, mp4);
-    console.log(`Rendered ${job.shotKey} r${job.revision}: ${selected.length} frames -> ${job.renderId}`);
+    const output = path.join(workDir, 'preview.mp4');
+    await transcodeWebm(input, output, fps);
+    await upload(job.renderId, output);
+    const outputStat = await fs.stat(output);
+    console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputStat.size} byte MP4 -> ${job.renderId}`);
   } finally {
     if (browser) await browser.close().catch(() => undefined);
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
