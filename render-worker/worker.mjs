@@ -77,20 +77,14 @@ async function upload(renderId, filePath) {
 function selectFrames(frames, fps, durationMs) {
   if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
   const count = Math.max(1, Math.round(durationMs / 1000 * fps));
-  const firstTimestamp = Number.isFinite(frames[0].timestamp) ? frames[0].timestamp : 0;
-  let cursor = 0;
+  if (count === 1) return [frames[0].buffer];
   const result = [];
+  const maxSourceIndex = frames.length - 1;
+  const maxOutputIndex = count - 1;
 
   for (let index = 0; index < count; index += 1) {
-    const target = firstTimestamp + index / fps;
-    while (
-      cursor + 1 < frames.length &&
-      Number.isFinite(frames[cursor + 1].timestamp) &&
-      frames[cursor + 1].timestamp <= target
-    ) {
-      cursor += 1;
-    }
-    result.push(frames[cursor].buffer);
+    const sourceIndex = Math.min(maxSourceIndex, Math.round(index * maxSourceIndex / maxOutputIndex));
+    result.push(frames[sourceIndex].buffer);
   }
   return result;
 }
