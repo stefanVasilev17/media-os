@@ -17,17 +17,11 @@ type RuntimeLookupApplication = Application & {
   findObjectByName?: (name: string) => unknown;
 };
 
-const FLOWS: Record<string, RuntimeFlowDefinition> = {
-  EP001_LOGIN_FLOW: {
-    name: 'EP001_LOGIN_FLOW',
-    durationMs: 7600,
-    steps: [
-      { atMs: 0, eventName: 'mouseDown', targetName: 'LOGIN' },
-      { atMs: 1150, eventName: 'mouseDown', targetName: 'PHONE_DEVICE' },
-      { atMs: 2450, eventName: 'mouseDown', targetName: 'REQUEST_ASSEMBLY' }
-    ]
-  }
-};
+const FLOWS: Record<string, RuntimeFlowDefinition> = {};
+
+export function registerRuntimeFlow(flow: RuntimeFlowDefinition) {
+  FLOWS[flow.name.trim().toUpperCase()] = flow;
+}
 
 export function getRuntimeFlow(name: string) {
   return FLOWS[name.trim().toUpperCase()] ?? null;
