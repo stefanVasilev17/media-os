@@ -46,16 +46,14 @@ export function SplineWorkspacePage() {
     if (!shot) return;
 
     setLatestShot(shot);
-    if (pendingShotJobId && shot.productionJobId === pendingShotJobId) {
-      setPendingShotJobId(null);
-    }
+    setPendingShotJobId(current => current && shot.productionJobId === current ? null : current);
 
     let render = await loadLatestSplineShotRender(shot.id).catch(() => null);
     if (!render) {
       render = await ensureSplineShotRender(shot.id).catch(() => null);
     }
     setLatestRender(render);
-  }, [pendingShotJobId]);
+  }, []);
 
   useEffect(() => {
     setSessionMessages([]);
