@@ -2,11 +2,13 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
+const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 94);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -72,12 +74,35 @@ async function upload(renderId, filePath) {
   }
 }
 
-async function transcodeWebm(input, output, fps) {
+function selectFrames(frames, fps, durationMs) {
+  if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
+  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
+  const firstTimestamp = Number.isFinite(frames[0].timestamp) ? frames[0].timestamp : 0;
+  let cursor = 0;
+  const result = [];
+
+  for (let index = 0; index < count; index += 1) {
+    const target = firstTimestamp + index / fps;
+    while (
+      cursor + 1 < frames.length &&
+      Number.isFinite(frames[cursor + 1].timestamp) &&
+      frames[cursor + 1].timestamp <= target
+    ) {
+      cursor += 1;
+    }
+    result.push(frames[cursor].buffer);
+  }
+  return result;
+}
+
+async function encodeFrames(frames, output, fps) {
   const args = [
     '-hide_banner', '-loglevel', 'warning', '-y',
-    '-i', input,
+    '-f', 'image2pipe',
+    '-framerate', String(fps),
+    '-vcodec', 'mjpeg',
+    '-i', 'pipe:0',
     '-an',
-    '-vf', `fps=${fps}`,
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', '18',
@@ -88,14 +113,14 @@ async function transcodeWebm(input, output, fps) {
     output
   ];
 
-  const child = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const child = spawn('ffmpeg', args, { stdio: ['pipe', 'ignore', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', chunk => {
     stderr += chunk.toString();
     if (stderr.length > 12000) stderr = stderr.slice(-12000);
   });
 
-  await new Promise((resolve, reject) => {
+  const completion = new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code, signal) => {
       if (code === 0) {
@@ -106,118 +131,100 @@ async function transcodeWebm(input, output, fps) {
     });
   });
 
+  try {
+    for (const frame of frames) {
+      if (!child.stdin.write(frame)) await once(child.stdin, 'drain');
+    }
+    child.stdin.end();
+    await completion;
+  } catch (error) {
+    if (!child.killed) child.kill('SIGKILL');
+    throw error;
+  }
+
   const stat = await fs.stat(output);
   if (stat.size < 1024) throw new Error(`ffmpeg created an invalid MP4 (${stat.size} bytes).`);
+  return stat.size;
 }
 
-async function recordCanvas(page, workDir, fps, durationMs) {
-  const input = path.join(workDir, 'capture.webm');
-  await fs.writeFile(input, Buffer.alloc(0));
+async function startCompositorPulse(page) {
+  return page.evaluate(async () => {
+    const pulse = document.createElement('div');
+    pulse.setAttribute('data-media-os-render-pulse', 'true');
+    pulse.style.position = 'fixed';
+    pulse.style.right = '0';
+    pulse.style.bottom = '0';
+    pulse.style.width = '2px';
+    pulse.style.height = '2px';
+    pulse.style.background = '#050913';
+    pulse.style.opacity = '0.01';
+    pulse.style.pointerEvents = 'none';
+    pulse.style.willChange = 'transform';
+    pulse.style.zIndex = '2147483647';
+    document.body.appendChild(pulse);
 
-  await page.exposeFunction('__mediaOsAppendVideoChunk', async base64 => {
-    if (typeof base64 !== 'string' || !base64) return;
-    await fs.appendFile(input, Buffer.from(base64, 'base64'));
-  });
-
-  const recording = await page.evaluate(async ({ fps, durationMs }) => {
-    const source = document.querySelector('.shot-preview-canvas');
-    if (!(source instanceof HTMLCanvasElement)) throw new Error('Spline preview canvas is not available.');
-    if (typeof MediaRecorder !== 'function') throw new Error('MediaRecorder is not supported by Chromium.');
-
-    const proxy = document.createElement('canvas');
-    proxy.width = source.width;
-    proxy.height = source.height;
-    proxy.style.position = 'fixed';
-    proxy.style.left = '-10000px';
-    proxy.style.top = '0';
-    proxy.style.width = `${source.width}px`;
-    proxy.style.height = `${source.height}px`;
-    proxy.style.pointerEvents = 'none';
-    document.body.appendChild(proxy);
-
-    const context = proxy.getContext('2d', { alpha: false, desynchronized: false });
-    if (!context) throw new Error('2D proxy canvas is not available.');
-
-    context.fillStyle = '#050913';
-    context.fillRect(0, 0, proxy.width, proxy.height);
-    context.drawImage(source, 0, 0, proxy.width, proxy.height);
-
-    const manualStream = typeof proxy.captureStream === 'function' ? proxy.captureStream(0) : null;
-    const timedStream = typeof proxy.captureStream === 'function' ? proxy.captureStream(fps) : null;
-    const manualTrack = manualStream?.getVideoTracks?.()[0] || null;
-    const canRequestFrame = Boolean(manualTrack && typeof manualTrack.requestFrame === 'function');
-    const stream = canRequestFrame ? manualStream : timedStream;
-    if (!stream) throw new Error('2D canvas captureStream is not supported by Chromium.');
-
-    const mimeCandidates = [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm'
-    ];
-    const mimeType = mimeCandidates.find(value => MediaRecorder.isTypeSupported(value)) || '';
-    const recorder = new MediaRecorder(stream, mimeType
-      ? { mimeType, videoBitsPerSecond: 12_000_000 }
-      : { videoBitsPerSecond: 12_000_000 });
-
-    const blobToBase64 = blob => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(reader.error || new Error('Could not read MediaRecorder chunk.'));
-      reader.onload = () => {
-        const value = String(reader.result || '');
-        resolve(value.includes(',') ? value.slice(value.indexOf(',') + 1) : value);
-      };
-      reader.readAsDataURL(blob);
-    });
-
-    let chain = Promise.resolve();
-    let chunks = 0;
-    let bytes = 0;
-    let copiedFrames = 0;
+    let frames = 0;
     let running = true;
-
-    const pump = () => {
+    const startedAt = performance.now();
+    const tick = () => {
       if (!running) return;
-      context.drawImage(source, 0, 0, proxy.width, proxy.height);
-      copiedFrames += 1;
-      if (canRequestFrame) manualTrack.requestFrame();
-      requestAnimationFrame(pump);
+      frames += 1;
+      pulse.style.transform = frames % 2 === 0 ? 'translateX(0px)' : 'translateX(-1px)';
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+
+    window.__mediaOsStopRenderPulse = () => {
+      running = false;
+      pulse.remove();
+      return { frames, elapsedMs: performance.now() - startedAt };
     };
 
-    const done = new Promise((resolve, reject) => {
-      recorder.onerror = event => reject(event.error || new Error('MediaRecorder failed.'));
-      recorder.ondataavailable = event => {
-        if (!event.data || event.data.size === 0) return;
-        chunks += 1;
-        bytes += event.data.size;
-        chain = chain
-          .then(() => blobToBase64(event.data))
-          .then(base64 => window.__mediaOsAppendVideoChunk(base64));
-      };
-      recorder.onstop = async () => {
-        running = false;
-        try {
-          await chain;
-          proxy.remove();
-          stream.getTracks().forEach(track => track.stop());
-          resolve({ mimeType: recorder.mimeType, chunks, bytes, copiedFrames, canRequestFrame });
-        } catch (error) {
-          reject(error);
-        }
-      };
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { frames, visibility: document.visibilityState };
+  });
+}
+
+async function stopCompositorPulse(page) {
+  return page.evaluate(() => {
+    if (typeof window.__mediaOsStopRenderPulse !== 'function') return null;
+    return window.__mediaOsStopRenderPulse();
+  }).catch(() => null);
+}
+
+async function captureScreencast(page, fps, durationMs, width, height) {
+  const client = await page.target().createCDPSession();
+  const frames = [];
+  let captureStopped = false;
+
+  client.on('Page.screencastFrame', async event => {
+    if (captureStopped) return;
+    frames.push({
+      timestamp: Number(event.metadata?.timestamp),
+      buffer: Buffer.from(event.data, 'base64')
     });
+    try {
+      await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
+    } catch {
+    }
+  });
 
-    recorder.start(500);
-    requestAnimationFrame(pump);
-    window.setTimeout(() => {
-      if (recorder.state !== 'inactive') recorder.stop();
-    }, durationMs + 220);
+  await client.send('Page.startScreencast', {
+    format: 'jpeg',
+    quality: Math.max(70, Math.min(100, QUALITY)),
+    maxWidth: width,
+    maxHeight: height,
+    everyNthFrame: 1
+  });
 
-    return done;
-  }, { fps, durationMs });
+  await sleep(durationMs + 350);
+  captureStopped = true;
+  await client.send('Page.stopScreencast').catch(() => undefined);
+  await sleep(120);
 
-  const stat = await fs.stat(input);
-  if (stat.size < 1024) throw new Error(`Proxy canvas recording is empty (${stat.size} bytes).`);
-  return { input, recording, size: stat.size };
+  const selected = selectFrames(frames, fps, durationMs);
+  const totalBytes = frames.reduce((sum, frame) => sum + frame.buffer.length, 0);
+  return { frames, selected, totalBytes };
 }
 
 async function render(job, chromiumPath) {
@@ -273,29 +280,21 @@ async function render(job, chromiumPath) {
       return style.visibility !== 'hidden' && canvas.width > 100 && canvas.height > 100;
     }, { timeout: 90_000 });
 
-    const diagnostics = await page.evaluate(async () => {
-      let frames = 0;
-      const startedAt = performance.now();
-      await new Promise(resolve => {
-        const tick = now => {
-          frames += 1;
-          if (now - startedAt >= 500) resolve();
-          else requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
-      return { frames, visibility: document.visibilityState };
-    });
-    console.log(`Browser animation probe: ${diagnostics.frames} rAF frames / 500ms, visibility=${diagnostics.visibility}`);
+    const pulseProbe = await startCompositorPulse(page);
+    console.log(`Compositor pulse probe: ${pulseProbe.frames} rAF frames / 500ms, visibility=${pulseProbe.visibility}`);
 
-    const { input, recording, size } = await recordCanvas(page, workDir, fps, durationMs);
-    console.log(`Proxy canvas capture: ${recording.copiedFrames} copied frames, ${recording.chunks} chunks, browserBytes=${recording.bytes}, fileBytes=${size}, requestFrame=${recording.canRequestFrame}, mime=${recording.mimeType}`);
+    const capture = await captureScreencast(page, fps, durationMs, width, height);
+    const pulseResult = await stopCompositorPulse(page);
+    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
+
+    if (capture.frames.length < Math.max(10, Math.floor(durationMs / 1000))) {
+      throw new Error(`Screencast produced only ${capture.frames.length} source frames for ${durationMs}ms.`);
+    }
 
     const output = path.join(workDir, 'preview.mp4');
-    await transcodeWebm(input, output, fps);
+    const outputBytes = await encodeFrames(capture.selected, output, fps);
     await upload(job.renderId, output);
-    const outputStat = await fs.stat(output);
-    console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputStat.size} byte MP4 -> ${job.renderId}`);
+    console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
   } finally {
     if (browser) await browser.close().catch(() => undefined);
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
