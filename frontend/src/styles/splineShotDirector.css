@@ -1,95 +1,219 @@
-.runtime-composer-card > .episode-compositor {
-  display: none;
-}
-
-.spline-director-memory-strip,
-.spline-shot-ready-card,
-.spline-shot-revision-context {
-  border: 1px solid rgba(116, 147, 197, 0.18);
-  border-radius: 16px;
-  background: rgba(9, 16, 29, 0.76);
-}
-
-.spline-director-memory-strip {
+.spline-minimal-page {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 22px 22px 132px;
   display: grid;
-  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
   gap: 18px;
-  padding: 16px 18px;
 }
 
-.spline-director-memory-strip > div,
-.spline-shot-ready-card > div,
-.spline-shot-revision-context {
-  display: grid;
-  gap: 5px;
-}
-
-.spline-director-memory-strip span,
-.spline-shot-ready-card span,
-.spline-shot-revision-context span {
-  color: #78e5c2;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.spline-director-memory-strip strong,
-.spline-shot-ready-card strong,
-.spline-shot-revision-context strong {
-  color: #f1f5ff;
-}
-
-.spline-director-memory-strip p,
-.spline-shot-ready-card small,
-.spline-shot-revision-context small {
-  margin: 0;
-  color: #98a7bf;
-  line-height: 1.55;
-}
-
-.spline-shot-ready-card {
+.spline-minimal-header {
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 18px;
-  border-color: rgba(86, 222, 181, 0.3);
-  background: linear-gradient(135deg, rgba(11, 37, 36, 0.88), rgba(8, 17, 31, 0.88));
+  gap: 16px;
 }
 
-.spline-shot-ready-card button {
-  min-width: 156px;
-  min-height: 48px;
-  padding: 0 18px;
-  border: 1px solid rgba(92, 235, 190, 0.42);
-  border-radius: 13px;
-  background: rgba(38, 174, 139, 0.16);
+.spline-minimal-header > strong {
+  color: #f3f7ff;
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.spline-minimal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #8290a7;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.035em;
+  white-space: nowrap;
+}
+
+.spline-minimal-brand svg {
+  color: #67d7f4;
+}
+
+.spline-director-scene {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgba(112, 139, 184, 0.16);
+  border-radius: 18px;
+  background: #060b14;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+}
+
+.spline-director-scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #060b14;
+}
+
+.spline-director-scene-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(6, 11, 20, 0.74);
+  color: #8695ac;
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.spline-director-scene-state.error {
+  color: #e89098;
+}
+
+.spline-minimal-chat {
+  display: grid;
+  gap: 10px;
+}
+
+.spline-minimal-chat-session {
+  max-height: 230px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+}
+
+.spline-minimal-chat-session::-webkit-scrollbar {
+  display: none;
+}
+
+.spline-minimal-message {
+  width: fit-content;
+  max-width: min(86%, 680px);
+  padding: 10px 13px;
+  border-radius: 14px;
+  color: #d8e0ed;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.spline-minimal-message.user {
+  justify-self: end;
+  background: rgba(39, 76, 139, 0.28);
+  border: 1px solid rgba(86, 130, 208, 0.22);
+}
+
+.spline-minimal-message.agent {
+  justify-self: start;
+  color: #9caac0;
+  background: rgba(12, 20, 34, 0.66);
+  border: 1px solid rgba(112, 139, 184, 0.12);
+}
+
+.spline-minimal-composer {
+  position: relative;
+  border: 1px solid rgba(96, 151, 206, 0.28);
+  border-radius: 18px;
+  background: rgba(7, 13, 23, 0.78);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.spline-minimal-composer:focus-within {
+  border-color: rgba(75, 190, 229, 0.56);
+  box-shadow: 0 0 0 3px rgba(54, 151, 206, 0.07);
+}
+
+.spline-minimal-composer textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 16px 54px 16px 16px;
+  background: transparent;
+  color: #eef4ff;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.spline-minimal-composer textarea::placeholder {
+  color: #65738a;
+}
+
+.spline-minimal-composer > button {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(75, 190, 229, 0.28);
+  border-radius: 12px;
+  background: rgba(35, 132, 185, 0.18);
+  color: #9ee9ff;
+  display: grid;
+  place-items: center;
+}
+
+.spline-minimal-composer > button:disabled {
+  opacity: 0.34;
+}
+
+.spline-minimal-preview {
+  width: 100%;
+  min-height: 56px;
+  border: 1px solid rgba(82, 222, 181, 0.34);
+  border-radius: 16px;
+  background: rgba(28, 132, 109, 0.13);
   color: #dffff3;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 780;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
+  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
 }
 
-.spline-shot-revision-context {
-  padding: 15px 17px;
-  border-color: rgba(101, 153, 241, 0.26);
-  background: rgba(17, 31, 55, 0.76);
+.spline-minimal-preview:not(:disabled):active {
+  background: rgba(28, 132, 109, 0.22);
+}
+
+.spline-minimal-preview:disabled {
+  opacity: 0.48;
+}
+
+.spline-minimal-preview.failed {
+  border-color: rgba(236, 106, 118, 0.34);
+  background: rgba(151, 43, 57, 0.12);
+  color: #ffc1c7;
 }
 
 @media (max-width: 720px) {
-  .spline-director-memory-strip {
-    grid-template-columns: 1fr;
-    gap: 8px;
+  .spline-minimal-page {
+    padding: 18px 16px 126px;
+    gap: 15px;
   }
 
-  .spline-shot-ready-card {
-    align-items: stretch;
-    flex-direction: column;
+  .spline-minimal-header > strong {
+    font-size: 17px;
   }
 
-  .spline-shot-ready-card button {
-    width: 100%;
+  .spline-director-scene {
+    border-radius: 15px;
+  }
+
+  .spline-minimal-chat-session {
+    max-height: 180px;
+  }
+
+  .spline-minimal-composer textarea {
+    min-height: 104px;
+    font-size: 14px;
   }
 }
