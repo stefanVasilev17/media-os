@@ -325,8 +325,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           if (!object) throw new Error(`Shot target “${beat.targetName}” is not available in the runtime scene.`);
 
           if (beat.type === 'EVENT') {
-            const emit = app.emitEvent as unknown as (eventName: string, objectId: string) => void;
-            emit(beat.eventName, object.uuid);
+            app.emitEvent(beat.eventName as never, object.uuid);
           } else if (beat.type === 'STATE') {
             object.state = beat.stateValue;
           } else if (typeof object.visible === 'boolean') {
@@ -350,8 +349,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           const trigger = resolve(triggerName);
           executedCameraCues.add(index);
           if (!trigger?.uuid) return false;
-          const emit = app.emitEvent as unknown as (eventName: string, objectId: string) => void;
-          emit('mouseDown', trigger.uuid);
+          app.emitEvent('mouseDown', trigger.uuid);
           return true;
         }
 
