@@ -80,6 +80,24 @@ export type SplineDirectorMemorySummary = {
   recent: string[];
 };
 
+export type SplineShotRender = {
+  renderId: string;
+  shotId: string;
+  shotKey: string;
+  revision: number;
+  status: 'QUEUED' | 'RENDERING' | 'READY' | 'FAILED' | 'EMPTY';
+  width: number;
+  height: number;
+  fps: number;
+  durationMs: number;
+  progress: number;
+  sizeBytes?: number | null;
+  error?: string | null;
+  videoUrl?: string;
+  createdAt?: string;
+  finishedAt?: string;
+};
+
 export async function createSplineShotCommand(message: string, shotId?: string | null): Promise<SplineShotCommandResult> {
   const response = await fetch('/api/v1/spline/shots/command', {
     method: 'POST',
@@ -113,4 +131,23 @@ export async function loadSplineDirectorMemorySummary(): Promise<SplineDirectorM
   const response = await fetch('/api/v1/spline/shots/memory/summary', { cache: 'no-store' });
   if (!response.ok) throw new Error('Director memory summary is not available.');
   return response.json();
+}
+
+export async function ensureSplineShotRender(shotId: string): Promise<SplineShotRender> {
+  const response = await fetch(`/api/v1/spline/renders/shots/${encodeURIComponent(shotId)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(detail || 'Could not queue the 1080p shot render.');
+  }
+  return response.json();
+}
+
+export async function loadLatestSplineShotRender(shotId: string): Promise<SplineShotRender | null> {
+  const response = await fetch(`/api/v1/spline/renders/shots/${encodeURIComponent(shotId)}/latest`, { cache: 'no-store' });
+  if (!response.ok) throw new Error('Shot render status is not available.');
+  const result = await response.json();
+  return result.status === 'EMPTY' ? null : result as SplineShotRender;
 }
