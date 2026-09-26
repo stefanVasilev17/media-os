@@ -27,7 +27,7 @@ const FLOWS: Record<string, RuntimeFlowDefinition> = {
     durationMs: 7600,
     steps: [
       {
-        atMs: 650,
+        atMs: 0,
         eventName: 'mouseDown',
         targetNames: [
           'LOGIN_SUBMIT',
