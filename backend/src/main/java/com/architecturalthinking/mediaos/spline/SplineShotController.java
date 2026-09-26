@@ -59,21 +59,6 @@ public class SplineShotController {
         String shotKey = previous == null ? "SHOT_%02d".formatted(shotSequence) : previous.shotKey();
         int revision = previous == null ? 1 : previous.revision() + 1;
 
-        if (previous != null) {
-            jdbc.sql("""
-                    insert into spline_director_memory(
-                        id, project_id, scope, shot_key, source_production_job_id, feedback
-                    )
-                    values (:id, :projectId, 'SHOT', :shotKey, :sourceJobId, :feedback)
-                    """)
-                    .param("id", UUID.randomUUID())
-                    .param("projectId", PROJECT_ID)
-                    .param("shotKey", shotKey)
-                    .param("sourceJobId", previous.productionJobId())
-                    .param("feedback", message)
-                    .update();
-        }
-
         List<String> directorMemory = loadDirectorMemory();
         UUID orchestrationJobId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
@@ -92,15 +77,15 @@ public class SplineShotController {
         payload.put("readOnlySplinePlanning", true);
 
         String instructions = """
-                Create or revise a temporary browser-runtime shot specification from the director command. This is a READ-ONLY Spline planning task: inspect the focused Spline scene through Spline MCP, but do not mutate, move, rename, recolor, delete, create, or reparent any Spline object. Resolve exact existing object names, camera reference names, authored states, and authored events only when needed for the requested shot. Use MEDIA_OS_CAMERA as the production camera and semantic camera/object references rather than hard-coded world coordinates whenever possible. If previousShotSpec exists, preserve the existing shot and apply only the director's requested correction unless the correction requires a broader timing adjustment. Apply the supplied directorMemory as learned collaboration preferences when it is relevant, but the current director command always has priority.
+                Create or revise a temporary browser-runtime shot specification from the director command. This is a READ-ONLY Spline planning task: inspect the focused Spline scene through Spline MCP, but do not mutate, move, rename, recolor, delete, create, or reparent any Spline object. Resolve exact existing object names, camera reference names, authored states, authored events, and registered runtime flows only when needed for the requested shot. Use MEDIA_OS_CAMERA as the production camera and semantic camera/object references rather than hard-coded world coordinates whenever possible. If previousShotSpec exists, preserve the existing shot and apply only the director's requested correction unless the correction requires a broader timing adjustment. Apply the supplied directorMemory as learned collaboration preferences when it is relevant, but the current director command always has priority.
 
                 Return exactly one final status line. On success the line MUST be:
                 MEDIA_OS_SPLINE_RESULT: SUCCEEDED {compact-json}
 
                 The compact JSON must follow this schema:
-                {"schemaVersion":1,"name":"human readable shot name","durationMs":20000,"beats":[{"type":"CAMERA","atMs":0,"targetName":"CAM_LOGIN","transitionMs":0,"easing":"smooth","zoom":0.42},{"type":"EVENT","atMs":2500,"targetName":"exact object name","eventName":"mouseDown"},{"type":"STATE","atMs":4000,"targetName":"exact object name","stateValue":"ACTIVE"},{"type":"VISIBILITY","atMs":6000,"targetName":"exact object name","visible":true},{"type":"ZOOM","atMs":8000,"value":0.35,"transitionMs":1200,"easing":"smooth"}]}
+                {"schemaVersion":1,"name":"human readable shot name","durationMs":20000,"beats":[{"type":"FLOW","atMs":0,"flowName":"EP001_LOGIN_FLOW"},{"type":"CAMERA","atMs":8000,"targetName":"CAM_CLIENT_REVEAL","transitionMs":4000,"easing":"smooth","zoom":0.30},{"type":"EVENT","atMs":2500,"targetName":"exact object name","eventName":"mouseDown"},{"type":"STATE","atMs":4000,"targetName":"exact object name","stateValue":"ACTIVE"},{"type":"VISIBILITY","atMs":6000,"targetName":"exact object name","visible":true},{"type":"ZOOM","atMs":8000,"value":0.35,"transitionMs":1200,"easing":"smooth"}]}
 
-                Rules for the JSON: durationMs must be between 500 and 120000; beats must be sorted by atMs; allowed beat types are CAMERA, EVENT, STATE, VISIBILITY, ZOOM; CAMERA targetName must be an exact existing Spline camera/reference object name; EVENT/STATE/VISIBILITY targetName must be an exact existing runtime object name; transitionMs is optional and defaults to 0; easing is one of linear, smooth, easeInOut; omit beat fields that do not apply; never invent object names or camera names. A hold is represented by the absence of another camera beat, not by fake movement. If a required reference cannot be verified, return MEDIA_OS_SPLINE_RESULT: FAILED with a concise reason instead of inventing it.
+                Rules for the JSON: durationMs must be between 500 and 120000; beats must be sorted by atMs; allowed beat types are CAMERA, EVENT, STATE, VISIBILITY, ZOOM, FLOW; CAMERA targetName must be an exact existing Spline camera/reference object name; EVENT/STATE/VISIBILITY targetName must be an exact existing runtime object name; FLOW flowName must be an existing registered runtime flow; transitionMs is optional and defaults to 0; easing is one of linear, smooth, easeInOut; omit beat fields that do not apply; never invent object names, camera names, or flow names. A hold is represented by the absence of another camera beat, not by fake movement. If a required reference cannot be verified, return MEDIA_OS_SPLINE_RESULT: FAILED with a concise reason instead of inventing it.
                 """;
 
         jdbc.sql("""
@@ -143,6 +128,7 @@ public class SplineShotController {
                         "READ_EXACT_CREATOR_NAMED_OBJECTS",
                         "READ_CAMERA_REFERENCES",
                         "READ_AUTHORED_STATES_AND_EVENTS",
+                        "READ_REGISTERED_RUNTIME_FLOWS",
                         "CREATE_RUNTIME_SHOT_SPEC"
                 )))
                 .param("protectedObjects", writeJson(List.of("ALL_SPLINE_OBJECTS_READ_ONLY")))
@@ -356,8 +342,11 @@ public class SplineShotController {
             Map<String, Object> beat = new LinkedHashMap<>();
             rawBeat.forEach((key, value) -> beat.put(String.valueOf(key), value));
             String type = String.valueOf(beat.getOrDefault("type", ""));
-            if (!List.of("CAMERA", "EVENT", "STATE", "VISIBILITY", "ZOOM").contains(type)) {
+            if (!List.of("CAMERA", "EVENT", "STATE", "VISIBILITY", "ZOOM", "FLOW").contains(type)) {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ShotSpec contains an unsupported beat type.");
+            }
+            if ("FLOW".equals(type) && String.valueOf(beat.getOrDefault("flowName", "")).isBlank()) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ShotSpec FLOW beat is missing flowName.");
             }
             int atMs = number(beat.get("atMs"), -1);
             if (atMs < 0 || atMs > durationMs || atMs < previousAt) {
