@@ -120,10 +120,34 @@ async function recordCanvas(page, workDir, fps, durationMs) {
   });
 
   const recording = await page.evaluate(async ({ fps, durationMs }) => {
-    const canvas = document.querySelector('.shot-preview-canvas');
-    if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Spline preview canvas is not available.');
-    if (typeof canvas.captureStream !== 'function') throw new Error('Canvas captureStream is not supported by Chromium.');
+    const source = document.querySelector('.shot-preview-canvas');
+    if (!(source instanceof HTMLCanvasElement)) throw new Error('Spline preview canvas is not available.');
     if (typeof MediaRecorder !== 'function') throw new Error('MediaRecorder is not supported by Chromium.');
+
+    const proxy = document.createElement('canvas');
+    proxy.width = source.width;
+    proxy.height = source.height;
+    proxy.style.position = 'fixed';
+    proxy.style.left = '-10000px';
+    proxy.style.top = '0';
+    proxy.style.width = `${source.width}px`;
+    proxy.style.height = `${source.height}px`;
+    proxy.style.pointerEvents = 'none';
+    document.body.appendChild(proxy);
+
+    const context = proxy.getContext('2d', { alpha: false, desynchronized: false });
+    if (!context) throw new Error('2D proxy canvas is not available.');
+
+    context.fillStyle = '#050913';
+    context.fillRect(0, 0, proxy.width, proxy.height);
+    context.drawImage(source, 0, 0, proxy.width, proxy.height);
+
+    const manualStream = typeof proxy.captureStream === 'function' ? proxy.captureStream(0) : null;
+    const timedStream = typeof proxy.captureStream === 'function' ? proxy.captureStream(fps) : null;
+    const manualTrack = manualStream?.getVideoTracks?.()[0] || null;
+    const canRequestFrame = Boolean(manualTrack && typeof manualTrack.requestFrame === 'function');
+    const stream = canRequestFrame ? manualStream : timedStream;
+    if (!stream) throw new Error('2D canvas captureStream is not supported by Chromium.');
 
     const mimeCandidates = [
       'video/webm;codecs=vp9',
@@ -131,7 +155,6 @@ async function recordCanvas(page, workDir, fps, durationMs) {
       'video/webm'
     ];
     const mimeType = mimeCandidates.find(value => MediaRecorder.isTypeSupported(value)) || '';
-    const stream = canvas.captureStream(fps);
     const recorder = new MediaRecorder(stream, mimeType
       ? { mimeType, videoBitsPerSecond: 12_000_000 }
       : { videoBitsPerSecond: 12_000_000 });
@@ -149,6 +172,16 @@ async function recordCanvas(page, workDir, fps, durationMs) {
     let chain = Promise.resolve();
     let chunks = 0;
     let bytes = 0;
+    let copiedFrames = 0;
+    let running = true;
+
+    const pump = () => {
+      if (!running) return;
+      context.drawImage(source, 0, 0, proxy.width, proxy.height);
+      copiedFrames += 1;
+      if (canRequestFrame) manualTrack.requestFrame();
+      requestAnimationFrame(pump);
+    };
 
     const done = new Promise((resolve, reject) => {
       recorder.onerror = event => reject(event.error || new Error('MediaRecorder failed.'));
@@ -161,16 +194,20 @@ async function recordCanvas(page, workDir, fps, durationMs) {
           .then(base64 => window.__mediaOsAppendVideoChunk(base64));
       };
       recorder.onstop = async () => {
+        running = false;
         try {
           await chain;
-          resolve({ mimeType: recorder.mimeType, chunks, bytes });
+          proxy.remove();
+          stream.getTracks().forEach(track => track.stop());
+          resolve({ mimeType: recorder.mimeType, chunks, bytes, copiedFrames, canRequestFrame });
         } catch (error) {
           reject(error);
         }
       };
     });
 
-    recorder.start(1000);
+    recorder.start(500);
+    requestAnimationFrame(pump);
     window.setTimeout(() => {
       if (recorder.state !== 'inactive') recorder.stop();
     }, durationMs + 220);
@@ -179,7 +216,7 @@ async function recordCanvas(page, workDir, fps, durationMs) {
   }, { fps, durationMs });
 
   const stat = await fs.stat(input);
-  if (stat.size < 1024) throw new Error(`Canvas recording is empty (${stat.size} bytes).`);
+  if (stat.size < 1024) throw new Error(`Proxy canvas recording is empty (${stat.size} bytes).`);
   return { input, recording, size: stat.size };
 }
 
@@ -252,7 +289,7 @@ async function render(job, chromiumPath) {
     console.log(`Browser animation probe: ${diagnostics.frames} rAF frames / 500ms, visibility=${diagnostics.visibility}`);
 
     const { input, recording, size } = await recordCanvas(page, workDir, fps, durationMs);
-    console.log(`Canvas capture: ${recording.chunks} chunks, browserBytes=${recording.bytes}, fileBytes=${size}, mime=${recording.mimeType}`);
+    console.log(`Proxy canvas capture: ${recording.copiedFrames} copied frames, ${recording.chunks} chunks, browserBytes=${recording.bytes}, fileBytes=${size}, requestFrame=${recording.canRequestFrame}, mime=${recording.mimeType}`);
 
     const output = path.join(workDir, 'preview.mp4');
     await transcodeWebm(input, output, fps);
