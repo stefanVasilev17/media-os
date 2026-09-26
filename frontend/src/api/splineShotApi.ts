@@ -38,7 +38,13 @@ export type ZoomShotBeat = {
   easing?: ShotEasing;
 };
 
-export type ShotBeat = CameraShotBeat | EventShotBeat | StateShotBeat | VisibilityShotBeat | ZoomShotBeat;
+export type FlowShotBeat = {
+  type: 'FLOW';
+  atMs: number;
+  flowName: string;
+};
+
+export type ShotBeat = CameraShotBeat | EventShotBeat | StateShotBeat | VisibilityShotBeat | ZoomShotBeat | FlowShotBeat;
 
 export type SplineShotSpec = {
   schemaVersion: 1;
