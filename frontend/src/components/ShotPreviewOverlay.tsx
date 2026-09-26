@@ -30,12 +30,17 @@ type CameraPose = {
 
 type RuntimeLookupApplication = Application & {
   findObjectByName?: (name: string) => unknown;
+  pauseGameControls?: () => void;
+  setSize?: (width: number, height: number) => void;
 };
 
 const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 4;
-const FINAL_FRAME_HOLD_MS = 260;
+const FINAL_FRAME_HOLD_MS = 320;
+const TARGET_PREVIEW_PIXELS = 1920 * 1080;
+const MAX_PREVIEW_SCALE = 2.6;
+const PROGRESS_UPDATE_MS = 48;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -82,6 +87,14 @@ function runtimeZoom(object: RuntimeObject, fallback: number) {
   return found ?? fallback;
 }
 
+function semanticCameraZoom(name: string) {
+  const normalized = name.trim().toUpperCase();
+  if (normalized === 'CAM_LOGIN') return 0.42;
+  if (normalized === 'CAM_CLIENT_REVEAL') return 0.30;
+  if (normalized === CAMERA_RIG_NAME) return 0.12;
+  return null;
+}
+
 function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
   return {
     x: finite(object.position?.x),
@@ -91,6 +104,20 @@ function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
     ry: finite(object.rotation?.y),
     rz: finite(object.rotation?.z),
     zoom: runtimeZoom(object, fallbackZoom)
+  };
+}
+
+function referencePose(reference: RuntimeObject, beat: CameraShotBeat, productionBaseline: CameraPose): CameraPose {
+  const semanticZoom = semanticCameraZoom(beat.targetName);
+  const zoom = beat.zoom ?? semanticZoom ?? runtimeZoom(reference, productionBaseline.zoom);
+  return {
+    x: finite(reference.position?.x, productionBaseline.x),
+    y: finite(reference.position?.y, productionBaseline.y),
+    z: productionBaseline.z,
+    rx: productionBaseline.rx,
+    ry: productionBaseline.ry,
+    rz: productionBaseline.rz,
+    zoom: clamp(zoom, MIN_ZOOM, MAX_ZOOM)
   };
 }
 
@@ -119,14 +146,37 @@ function sortedBeats(beats: ShotBeat[]) {
   return [...beats].sort((left, right) => left.atMs - right.atMs);
 }
 
+function previewSize() {
+  const cssWidth = Math.max(1, window.visualViewport?.width ?? window.innerWidth);
+  const cssHeight = Math.max(1, window.visualViewport?.height ?? window.innerHeight);
+  const cssPixels = cssWidth * cssHeight;
+  const targetScale = Math.sqrt(TARGET_PREVIEW_PIXELS / cssPixels);
+  const deviceScale = Math.max(1, window.devicePixelRatio || 1);
+  const scale = clamp(Math.min(deviceScale, targetScale), 1, MAX_PREVIEW_SCALE);
+  return {
+    width: Math.max(1, Math.round(cssWidth * scale)),
+    height: Math.max(1, Math.round(cssHeight * scale))
+  };
+}
+
+function nextFrame() {
+  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+}
+
+function cameraTriggerName(cameraName: string) {
+  const normalized = cameraName.trim().toUpperCase();
+  if (!normalized.startsWith('CAM_') || normalized.startsWith('CAM_TRG_')) return null;
+  return `CAM_TRG_${normalized.slice(4)}`;
+}
+
 export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const appRef = useRef<Application | null>(null);
+  const progressBarRef = useRef<HTMLElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const [status, setStatus] = useState<'loading' | 'playing' | 'error'>('loading');
   const [error, setError] = useState('');
-  const [progress, setProgress] = useState(0);
   const [runToken, setRunToken] = useState(0);
 
   useEffect(() => {
@@ -152,15 +202,20 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
     setStatus('loading');
     setError('');
-    setProgress(0);
+    if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(0)';
 
     const resize = () => {
-      const ratio = Math.min(2, window.devicePixelRatio || 1);
-      previewCanvas.width = Math.max(1, Math.round(window.innerWidth * ratio));
-      previewCanvas.height = Math.max(1, Math.round(window.innerHeight * ratio));
+      const size = previewSize();
+      previewCanvas.width = size.width;
+      previewCanvas.height = size.height;
+      const app = appRef.current as RuntimeLookupApplication | null;
+      app?.setSize?.(size.width, size.height);
+      app?.requestRender();
     };
+
     resize();
     window.addEventListener('resize', resize);
+    window.visualViewport?.addEventListener('resize', resize);
 
     async function run() {
       try {
@@ -174,12 +229,18 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         appRef.current = app;
         await app.load(config.sceneUrl.trim());
         if (cancelled) return;
-        app.play();
 
-        const lookup = app as RuntimeLookupApplication;
+        resize();
+        const controlledApp = app as RuntimeLookupApplication;
+        controlledApp.pauseGameControls?.();
+        app.play();
+        await nextFrame();
+        await nextFrame();
+        if (cancelled) return;
+
         const resolve = (name: string) => {
-          if (!name.trim() || typeof lookup.findObjectByName !== 'function') return null;
-          return lookup.findObjectByName(name.trim()) as RuntimeObject | undefined ?? null;
+          if (!name.trim() || typeof controlledApp.findObjectByName !== 'function') return null;
+          return controlledApp.findObjectByName(name.trim()) as RuntimeObject | undefined ?? null;
         };
 
         const productionCamera = resolve(CAMERA_RIG_NAME);
@@ -192,18 +253,17 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         const zoomBeats = beats.filter((beat): beat is ZoomShotBeat => beat.type === 'ZOOM');
         const executable = beats.filter(beat => beat.type === 'EVENT' || beat.type === 'STATE' || beat.type === 'VISIBILITY');
         const executed = new Set<number>();
+        const executedCameraCues = new Set<number>();
 
-        const startingZoom = cameraBeats[0]?.zoom ?? 0.12;
+        const initialCameraPose = pose(productionCamera, 0.12);
+        const initialZoom = initialCameraPose.zoom;
         const cameraReferences = cameraBeats.map(beat => {
           const object = resolve(beat.targetName);
           if (!object?.position || !object.rotation) {
             throw new Error(`Shot camera reference “${beat.targetName}” is not available in the runtime scene.`);
           }
-          return { beat, object, pose: pose(object, beat.zoom ?? startingZoom) };
+          return { beat, object, pose: referencePose(object, beat, initialCameraPose) };
         });
-
-        const initialCameraPose = pose(productionCamera, startingZoom);
-        const initialZoom = initialCameraPose.zoom;
 
         function cameraAt(elapsed: number) {
           if (cameraReferences.length === 0) return { pose: initialCameraPose, zoom: initialZoom };
@@ -215,7 +275,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           for (let index = 0; index < cameraReferences.length; index += 1) {
             const item = cameraReferences[index];
             const beat = item.beat;
-            const targetPose = { ...item.pose, zoom: beat.zoom ?? item.pose.zoom };
+            const targetPose = item.pose;
 
             if (elapsed < beat.atMs) break;
 
@@ -252,8 +312,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         }
 
         function executeBeat(beat: ShotBeat, index: number) {
-          if (executed.has(index)) return;
-          if (beat.type !== 'EVENT' && beat.type !== 'STATE' && beat.type !== 'VISIBILITY') return;
+          if (executed.has(index)) return false;
+          if (beat.type !== 'EVENT' && beat.type !== 'STATE' && beat.type !== 'VISIBILITY') return false;
           const object = resolve(beat.targetName);
           if (!object) throw new Error(`Shot target “${beat.targetName}” is not available in the runtime scene.`);
 
@@ -268,30 +328,76 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
             throw new Error(`Visibility is not exposed for “${beat.targetName}”.`);
           }
           executed.add(index);
+          return true;
         }
+
+        function executeCameraCue(index: number) {
+          if (executedCameraCues.has(index)) return false;
+          const item = cameraReferences[index];
+          if (!item) return false;
+          const triggerName = cameraTriggerName(item.beat.targetName);
+          if (!triggerName) {
+            executedCameraCues.add(index);
+            return false;
+          }
+          const trigger = resolve(triggerName);
+          executedCameraCues.add(index);
+          if (!trigger?.uuid) return false;
+          const emit = app.emitEvent as unknown as (eventName: string, objectId: string) => void;
+          emit('mouseDown', trigger.uuid);
+          return true;
+        }
+
+        const firstFrame = cameraAt(0);
+        copyPose(productionCamera, firstFrame.pose);
+        app.setZoom(clamp(zoomAt(0, firstFrame.zoom), MIN_ZOOM, MAX_ZOOM));
+        cameraReferences.forEach((item, index) => {
+          if (item.beat.atMs === 0) executeCameraCue(index);
+        });
+        app.requestRender();
+        await nextFrame();
+        if (cancelled) return;
 
         setStatus('playing');
         const startedAt = performance.now();
+        let lastProgressPaint = -PROGRESS_UPDATE_MS;
+        let lastZoom = Number.NaN;
 
         const tick = (now: number) => {
           if (cancelled) return;
           const elapsed = Math.min(shot.durationMs, Math.max(0, now - startedAt));
 
+          let dirty = false;
           const camera = cameraAt(elapsed);
           copyPose(productionCamera, camera.pose);
-          app.setZoom(clamp(zoomAt(elapsed, camera.zoom), MIN_ZOOM, MAX_ZOOM));
+          const nextZoom = clamp(zoomAt(elapsed, camera.zoom), MIN_ZOOM, MAX_ZOOM);
+          if (!Number.isFinite(lastZoom) || Math.abs(nextZoom - lastZoom) > 0.0005) {
+            app.setZoom(nextZoom);
+            lastZoom = nextZoom;
+          }
+          dirty = true;
+
+          cameraReferences.forEach((item, index) => {
+            if (elapsed >= item.beat.atMs && executeCameraCue(index)) dirty = true;
+          });
 
           executable.forEach(beat => {
             const index = beats.indexOf(beat);
-            if (elapsed >= beat.atMs) executeBeat(beat, index);
+            if (elapsed >= beat.atMs && executeBeat(beat, index)) dirty = true;
           });
 
-          app.play();
-          app.requestRender();
-          setProgress(shot.durationMs > 0 ? elapsed / shot.durationMs : 1);
+          if (dirty) app.requestRender();
+
+          if (elapsed - lastProgressPaint >= PROGRESS_UPDATE_MS || elapsed >= shot.durationMs) {
+            lastProgressPaint = elapsed;
+            if (progressBarRef.current) {
+              const progress = shot.durationMs > 0 ? elapsed / shot.durationMs : 1;
+              progressBarRef.current.style.transform = `scaleX(${clamp(progress, 0, 1)})`;
+            }
+          }
 
           if (elapsed >= shot.durationMs) {
-            setProgress(1);
+            if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(1)';
             completeTimerRef.current = window.setTimeout(() => {
               if (!cancelled) onComplete();
             }, FINAL_FRAME_HOLD_MS);
@@ -316,6 +422,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     return () => {
       cancelled = true;
       window.removeEventListener('resize', resize);
+      window.visualViewport?.removeEventListener('resize', resize);
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
       frameRef.current = null;
@@ -340,7 +447,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       {status === 'loading' && (
         <div className="shot-preview-center-status">
           <LoaderCircle size={30} className="spin" />
-          <strong>Preparing shot preview…</strong>
+          <strong>Preparing 1080p-class shot preview…</strong>
         </div>
       )}
 
@@ -356,7 +463,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       )}
 
       <div className="shot-preview-progress" aria-hidden="true">
-        <i style={{ transform: `scaleX(${clamp(progress, 0, 1)})` }} />
+        <i ref={progressBarRef} />
       </div>
     </div>
   );
