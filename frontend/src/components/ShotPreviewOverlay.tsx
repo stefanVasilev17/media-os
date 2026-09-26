@@ -11,6 +11,7 @@ import type {
   ZoomShotBeat
 } from '../api/splineShotApi';
 import { createRuntimeFlowExecutor, getRuntimeFlow } from '../lib/episodeRuntimeFlows';
+import { runtimeVisualCenter } from '../lib/runtimeObjectFocus';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import '../styles/shotPreview.css';
 
@@ -32,6 +33,7 @@ type CameraPose = {
 
 type RuntimeLookupApplication = Application & {
   findObjectByName?: (name: string) => unknown;
+  getAllObjects?: () => unknown[];
   pauseGameControls?: () => void;
   setSize?: (width: number, height: number) => void;
   stop?: () => void;
@@ -105,6 +107,36 @@ function cameraZoomFallback(cameraName: string, fallback: number) {
   return fallback;
 }
 
+function semanticCameraAnchorCandidates(cameraName: string) {
+  const normalized = cameraName.trim().toUpperCase();
+  if (normalized === 'CAM_LOGIN') {
+    return ['PHONE_DEVICE', 'Phone / Device', 'PHONE', 'Phone'];
+  }
+  if (normalized === 'CAM_CLIENT_REVEAL') {
+    return [
+      'REQUEST ASSEMBLY',
+      'Request Assembly',
+      'REQUEST_ASSEMBLY',
+      'RequestAssembly',
+      'CLIENT_BOUNDARY',
+      'Client Boundary',
+      'CLIENT BOUNDARY'
+    ];
+  }
+  return [];
+}
+
+function normalizeObjectName(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function semanticCameraAnchorTokens(cameraName: string) {
+  const normalized = cameraName.trim().toUpperCase();
+  if (normalized === 'CAM_LOGIN') return ['phone'];
+  if (normalized === 'CAM_CLIENT_REVEAL') return ['request assembly', 'client boundary'];
+  return [];
+}
+
 function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
   return {
     x: finite(object.position?.x),
@@ -123,6 +155,20 @@ function referencePose(reference: RuntimeObject, beat: CameraShotBeat, productio
   return {
     x: finite(reference.position?.x, productionBaseline.x),
     y: finite(reference.position?.y, productionBaseline.y),
+    z: productionBaseline.z,
+    rx: productionBaseline.rx,
+    ry: productionBaseline.ry,
+    rz: productionBaseline.rz,
+    zoom: clamp(zoom, MIN_ZOOM, MAX_ZOOM)
+  };
+}
+
+function semanticAnchorPose(anchor: RuntimeObject, beat: CameraShotBeat, productionBaseline: CameraPose): CameraPose {
+  const center = runtimeVisualCenter(anchor);
+  const zoom = beat.zoom ?? cameraZoomFallback(beat.targetName, productionBaseline.zoom);
+  return {
+    x: center.x,
+    y: center.y,
     z: productionBaseline.z,
     rx: productionBaseline.rx,
     ry: productionBaseline.ry,
@@ -299,6 +345,37 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           return controlledApp.findObjectByName(name.trim()) as RuntimeObject | undefined ?? null;
         };
 
+        const resolveSemanticAnchor = (cameraName: string) => {
+          for (const candidate of semanticCameraAnchorCandidates(cameraName)) {
+            const exact = resolve(candidate);
+            if (exact?.position) return exact;
+          }
+
+          if (typeof controlledApp.getAllObjects !== 'function') return null;
+          const tokens = semanticCameraAnchorTokens(cameraName);
+          if (tokens.length === 0) return null;
+
+          try {
+            const objects = (controlledApp.getAllObjects() as RuntimeObject[]).filter(object => Boolean(object?.position && object?.name));
+            const ranked = objects
+              .map(object => {
+                const name = normalizeObjectName(object.name ?? '');
+                let score = 0;
+                for (const token of tokens) {
+                  if (name === token) score += 50;
+                  else if (name.includes(token)) score += 24;
+                }
+                if (/text|label|icon|path|line|border|body/.test(name)) score -= 30;
+                return { object, score };
+              })
+              .filter(entry => entry.score > 0)
+              .sort((left, right) => right.score - left.score || left.object.name.localeCompare(right.object.name));
+            return ranked[0]?.object ?? null;
+          } catch {
+            return null;
+          }
+        };
+
         const productionCamera = resolve(CAMERA_RIG_NAME);
         if (!productionCamera?.position || !productionCamera.rotation) {
           throw new Error(`${CAMERA_RIG_NAME} is not available in the runtime scene.`);
@@ -311,7 +388,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         const flowBeats: FlowShotBeat[] = explicitFlowBeats.length > 0
           ? explicitFlowBeats
           : shouldRunImplicitLoginFlow(shot)
-            ? [{ type: 'FLOW', atMs: 650, flowName: 'EP001_LOGIN_FLOW' }]
+            ? [{ type: 'FLOW', atMs: 250, flowName: 'EP001_LOGIN_FLOW' }]
             : [];
         const executable = beats.filter(beat => beat.type === 'EVENT' || beat.type === 'STATE' || beat.type === 'VISIBILITY');
         const executed = new Set<number>();
@@ -321,12 +398,16 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
         const initialCameraPose = pose(productionCamera, 0.12);
         const cameraReferences: CameraReference[] = cameraBeats.map(beat => {
-          const triggerName = cameraTriggerName(beat.targetName);
-          const trigger = triggerName ? resolve(triggerName) : null;
-          const reference = resolve(beat.targetName);
-          const referenceCameraPose = reference?.position && reference.rotation
-            ? referencePose(reference, beat, initialCameraPose)
+          const semanticAnchor = resolveSemanticAnchor(beat.targetName);
+          const semanticPose = semanticAnchor?.position
+            ? semanticAnchorPose(semanticAnchor, beat, initialCameraPose)
             : null;
+          const triggerName = semanticPose ? null : cameraTriggerName(beat.targetName);
+          const trigger = triggerName ? resolve(triggerName) : null;
+          const reference = semanticPose ? null : resolve(beat.targetName);
+          const referenceCameraPose = semanticPose ?? (reference?.position && reference.rotation
+            ? referencePose(reference, beat, initialCameraPose)
+            : null);
 
           if (!trigger?.uuid && !referenceCameraPose) {
             throw new Error(`Shot camera reference “${beat.targetName}” is not available in the runtime scene.`);
