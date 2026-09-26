@@ -39,12 +39,7 @@ export function createRuntimeFlowExecutor(app: Application) {
     return controlledApp.findObjectByName(name.trim()) as RuntimeObject | undefined ?? null;
   };
 
-  return (flowName: string, elapsedMs: number, executedSteps: Set<string>) => {
-    const flow = getRuntimeFlow(flowName);
-    if (!flow) {
-      throw new Error(`Runtime flow “${flowName}” is not registered.`);
-    }
-
+  return (flow: RuntimeFlowDefinition, elapsedMs: number, executedSteps: Set<string>) => {
     let dirty = false;
     for (let index = 0; index < flow.steps.length; index += 1) {
       const step = flow.steps[index];
