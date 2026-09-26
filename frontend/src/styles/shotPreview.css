@@ -12,6 +12,10 @@
   width: 100vw;
   height: 100dvh;
   background: #050912;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 .shot-preview-topbar {
