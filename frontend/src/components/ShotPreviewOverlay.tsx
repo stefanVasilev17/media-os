@@ -35,16 +35,21 @@ type RuntimeLookupApplication = Application & {
   stop?: () => void;
 };
 
+type CameraReference = {
+  beat: CameraShotBeat;
+  trigger: RuntimeObject | null;
+  pose: CameraPose | null;
+};
+
 const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
+const PREVIEW_WIDTH = 1920;
+const PREVIEW_HEIGHT = 1080;
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 4;
 const FINAL_FRAME_HOLD_MS = 320;
-const TARGET_PREVIEW_SHORT_EDGE = 1080;
-const MAX_PREVIEW_PIXELS = 2_650_000;
-const MAX_PREVIEW_SCALE = 3;
 const PROGRESS_UPDATE_MS = 48;
-const PREVIEW_BOOT_GRACE_MS = 420;
-const PREVIEW_TEARDOWN_GRACE_MS = 480;
+const PREVIEW_BOOT_GRACE_MS = 650;
+const PREVIEW_TEARDOWN_GRACE_MS = 900;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -91,14 +96,6 @@ function runtimeZoom(object: RuntimeObject, fallback: number) {
   return found ?? fallback;
 }
 
-function semanticCameraZoom(name: string) {
-  const normalized = name.trim().toUpperCase();
-  if (normalized === 'CAM_LOGIN') return 0.42;
-  if (normalized === 'CAM_CLIENT_REVEAL') return 0.30;
-  if (normalized === CAMERA_RIG_NAME) return 0.12;
-  return null;
-}
-
 function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
   return {
     x: finite(object.position?.x),
@@ -112,8 +109,7 @@ function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
 }
 
 function referencePose(reference: RuntimeObject, beat: CameraShotBeat, productionBaseline: CameraPose): CameraPose {
-  const semanticZoom = semanticCameraZoom(beat.targetName);
-  const zoom = beat.zoom ?? semanticZoom ?? runtimeZoom(reference, productionBaseline.zoom);
+  const zoom = beat.zoom ?? runtimeZoom(reference, productionBaseline.zoom);
   return {
     x: finite(reference.position?.x, productionBaseline.x),
     y: finite(reference.position?.y, productionBaseline.y),
@@ -148,25 +144,6 @@ function interpolatePose(from: CameraPose, to: CameraPose, amount: number): Came
 
 function sortedBeats(beats: ShotBeat[]) {
   return [...beats].sort((left, right) => left.atMs - right.atMs);
-}
-
-function previewSize() {
-  const cssWidth = Math.max(1, window.visualViewport?.width ?? window.innerWidth);
-  const cssHeight = Math.max(1, window.visualViewport?.height ?? window.innerHeight);
-  const cssPixels = cssWidth * cssHeight;
-  const shortEdge = Math.max(1, Math.min(cssWidth, cssHeight));
-  const desired1080Scale = TARGET_PREVIEW_SHORT_EDGE / shortEdge;
-  const pixelBudgetScale = Math.sqrt(MAX_PREVIEW_PIXELS / cssPixels);
-  const deviceScale = Math.max(1, window.devicePixelRatio || 1);
-  const scale = clamp(
-    Math.min(deviceScale, desired1080Scale, pixelBudgetScale, MAX_PREVIEW_SCALE),
-    1,
-    MAX_PREVIEW_SCALE
-  );
-  return {
-    width: Math.max(1, Math.round(cssWidth * scale)),
-    height: Math.max(1, Math.round(cssHeight * scale))
-  };
 }
 
 function nextFrame() {
@@ -245,9 +222,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
   useEffect(() => {
     let cancelled = false;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const previewCanvas: HTMLCanvasElement = canvas;
+    const previewCanvas = canvasRef.current;
+    if (!previewCanvas) return;
 
     const releaseRuntime = () => {
       const activeApp = appRef.current as RuntimeLookupApplication | null;
@@ -268,20 +244,9 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
     setStatus('loading');
     setError('');
+    previewCanvas.width = PREVIEW_WIDTH;
+    previewCanvas.height = PREVIEW_HEIGHT;
     if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(0)';
-
-    const resize = () => {
-      const size = previewSize();
-      previewCanvas.width = size.width;
-      previewCanvas.height = size.height;
-      const app = appRef.current as RuntimeLookupApplication | null;
-      app?.setSize?.(size.width, size.height);
-      app?.requestRender();
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-    window.visualViewport?.addEventListener('resize', resize);
 
     async function run() {
       try {
@@ -299,8 +264,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         await app.load(config.sceneUrl.trim());
         if (cancelled) return;
 
-        resize();
         const controlledApp = app as RuntimeLookupApplication;
+        controlledApp.setSize?.(PREVIEW_WIDTH, PREVIEW_HEIGHT);
         controlledApp.pauseGameControls?.();
         app.play();
         await nextFrame();
@@ -325,42 +290,50 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         const executedCameraCues = new Set<number>();
 
         const initialCameraPose = pose(productionCamera, 0.12);
-        const initialZoom = initialCameraPose.zoom;
-        const cameraReferences = cameraBeats.map(beat => {
-          const object = resolve(beat.targetName);
-          if (!object?.position || !object.rotation) {
+        const cameraReferences: CameraReference[] = cameraBeats.map(beat => {
+          const triggerName = cameraTriggerName(beat.targetName);
+          const trigger = triggerName ? resolve(triggerName) : null;
+          if (trigger?.uuid) {
+            return { beat, trigger, pose: null };
+          }
+
+          const reference = resolve(beat.targetName);
+          if (!reference?.position || !reference.rotation) {
             throw new Error(`Shot camera reference “${beat.targetName}” is not available in the runtime scene.`);
           }
-          return { beat, object, pose: referencePose(object, beat, initialCameraPose) };
+          return {
+            beat,
+            trigger: null,
+            pose: referencePose(reference, beat, initialCameraPose)
+          };
         });
 
-        function cameraAt(elapsed: number) {
-          if (cameraReferences.length === 0) return { pose: initialCameraPose, zoom: initialZoom };
+        const directCameraReferences = cameraReferences.filter(
+          (item): item is CameraReference & { pose: CameraPose } => item.pose !== null
+        );
+
+        function directCameraAt(elapsed: number) {
+          if (directCameraReferences.length === 0) return null;
 
           let previousPose = initialCameraPose;
           let currentPose = initialCameraPose;
-          let currentZoom = initialZoom;
 
-          for (let index = 0; index < cameraReferences.length; index += 1) {
-            const item = cameraReferences[index];
+          for (const item of directCameraReferences) {
             const beat = item.beat;
             const targetPose = item.pose;
-
             if (elapsed < beat.atMs) break;
 
             const duration = Math.max(0, finite(beat.transitionMs));
             if (duration > 0 && elapsed < beat.atMs + duration) {
               const amount = ease((elapsed - beat.atMs) / duration, beat.easing);
-              const mixed = interpolatePose(previousPose, targetPose, amount);
-              return { pose: mixed, zoom: mixed.zoom };
+              return interpolatePose(previousPose, targetPose, amount);
             }
 
             currentPose = targetPose;
-            currentZoom = targetPose.zoom;
             previousPose = targetPose;
           }
 
-          return { pose: currentPose, zoom: currentZoom };
+          return currentPose;
         }
 
         function zoomAt(elapsed: number, baseZoom: number) {
@@ -403,24 +376,21 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           if (executedCameraCues.has(index)) return false;
           const item = cameraReferences[index];
           if (!item) return false;
-          const triggerName = cameraTriggerName(item.beat.targetName);
-          if (!triggerName) {
-            executedCameraCues.add(index);
-            return false;
-          }
-          const trigger = resolve(triggerName);
           executedCameraCues.add(index);
-          if (!trigger?.uuid) return false;
-          app.emitEvent('mouseDown', trigger.uuid);
+          if (!item.trigger?.uuid) return false;
+          app.emitEvent('mouseDown', item.trigger.uuid);
           return true;
         }
 
-        const firstFrame = cameraAt(0);
-        copyPose(productionCamera, firstFrame.pose);
-        app.setZoom(clamp(zoomAt(0, firstFrame.zoom), MIN_ZOOM, MAX_ZOOM));
         cameraReferences.forEach((item, index) => {
           if (item.beat.atMs === 0) executeCameraCue(index);
         });
+
+        const firstDirectPose = directCameraAt(0);
+        if (firstDirectPose) copyPose(productionCamera, firstDirectPose);
+        if (zoomBeats.length > 0) {
+          app.setZoom(clamp(zoomAt(0, initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM));
+        }
         app.requestRender();
         await nextFrame();
         if (cancelled) return;
@@ -433,16 +403,22 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         const tick = (now: number) => {
           if (cancelled) return;
           const elapsed = Math.min(shot.durationMs, Math.max(0, now - startedAt));
-
           let dirty = false;
-          const camera = cameraAt(elapsed);
-          copyPose(productionCamera, camera.pose);
-          const nextZoom = clamp(zoomAt(elapsed, camera.zoom), MIN_ZOOM, MAX_ZOOM);
-          if (!Number.isFinite(lastZoom) || Math.abs(nextZoom - lastZoom) > 0.0005) {
-            app.setZoom(nextZoom);
-            lastZoom = nextZoom;
+
+          const directPose = directCameraAt(elapsed);
+          if (directPose) {
+            copyPose(productionCamera, directPose);
+            dirty = true;
           }
-          dirty = true;
+
+          if (zoomBeats.length > 0) {
+            const nextZoom = clamp(zoomAt(elapsed, initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM);
+            if (!Number.isFinite(lastZoom) || Math.abs(nextZoom - lastZoom) > 0.0005) {
+              app.setZoom(nextZoom);
+              lastZoom = nextZoom;
+              dirty = true;
+            }
+          }
 
           cameraReferences.forEach((item, index) => {
             if (elapsed >= item.beat.atMs && executeCameraCue(index)) dirty = true;
@@ -492,8 +468,6 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
     return () => {
       cancelled = true;
-      window.removeEventListener('resize', resize);
-      window.visualViewport?.removeEventListener('resize', resize);
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
       frameRef.current = null;
@@ -504,7 +478,9 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
   return (
     <div className="shot-preview-overlay" role="dialog" aria-modal="true" aria-label={`Preview ${shot.name}`}>
-      <canvas ref={canvasRef} className="shot-preview-canvas" aria-hidden="true" />
+      <div className="shot-preview-stage">
+        <canvas ref={canvasRef} className="shot-preview-canvas" aria-hidden="true" />
+      </div>
 
       <div className="shot-preview-topbar">
         <div>
@@ -517,7 +493,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       {status === 'loading' && (
         <div className="shot-preview-center-status">
           <LoaderCircle size={30} className="spin" />
-          <strong>Preparing 1080p shot preview…</strong>
+          <strong>Preparing 1920×1080 shot preview…</strong>
         </div>
       )}
 
