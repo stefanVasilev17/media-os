@@ -186,6 +186,7 @@ export function SplineWorkspacePage() {
     latestCommand?.status === 'SUCCEEDED' &&
     latestCommand.productionJobId === latestShot.productionJobId
   );
+  const shotDirectorMode = Boolean(latestShot || revisionShotId || isShotExecution);
 
   useEffect(() => {
     if (!latestStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestStatus)) return;
@@ -304,7 +305,7 @@ export function SplineWorkspacePage() {
     >
       {flash && <div className="spline-agent-flash">{flash}</div>}
 
-      <SplineRuntimeComposer />
+      {!shotDirectorMode && <SplineRuntimeComposer />}
 
       <section className="agent-chat-section" ref={chatSectionRef}>
         <div className="agent-chat-section-header">
