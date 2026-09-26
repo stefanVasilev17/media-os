@@ -11,6 +11,12 @@ const SplineWorkspacePage = lazy(async () => {
   return { default: module.SplineWorkspacePage };
 });
 
+const ShotRenderPage = lazy(async () => {
+  await import('./lib/runtimeCameraVariables');
+  const module = await import('./pages/ShotRenderPage');
+  return { default: module.ShotRenderPage };
+});
+
 function normalizeLegacyRoute(hash: string) {
   if (hash.startsWith('#/spline-agent')) return '#/agents/spline';
   if (hash.startsWith('#/diagnostics')) return '#/agents/spline';
@@ -47,6 +53,14 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  if (hash.startsWith('#/render/spline-shot/')) {
+    return (
+      <Suspense fallback={<div style={{ width: '100vw', height: '100vh', background: '#050913' }} />}>
+        <ShotRenderPage />
+      </Suspense>
+    );
+  }
 
   let page: ReactNode;
 
