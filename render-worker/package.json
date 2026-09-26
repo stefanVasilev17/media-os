@@ -1,0 +1,9 @@
+{
+  "name": "media-os-render-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "puppeteer-core": "latest"
+  }
+}
