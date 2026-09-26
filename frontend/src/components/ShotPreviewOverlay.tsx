@@ -4,11 +4,13 @@ import { LoaderCircle, RotateCcw, X } from 'lucide-react';
 import { loadSplineRuntimeConfig } from '../api/mediaOsApi';
 import type {
   CameraShotBeat,
+  FlowShotBeat,
   ShotBeat,
   ShotEasing,
   SplineShot,
   ZoomShotBeat
 } from '../api/splineShotApi';
+import { createRuntimeFlowExecutor, getRuntimeFlow } from '../lib/episodeRuntimeFlows';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import '../styles/shotPreview.css';
 
@@ -96,6 +98,13 @@ function runtimeZoom(object: RuntimeObject, fallback: number) {
   return found ?? fallback;
 }
 
+function cameraZoomFallback(cameraName: string, fallback: number) {
+  const normalized = cameraName.trim().toUpperCase();
+  if (normalized === 'CAM_LOGIN') return 0.42;
+  if (normalized === 'CAM_CLIENT_REVEAL') return 0.30;
+  return fallback;
+}
+
 function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
   return {
     x: finite(object.position?.x),
@@ -109,7 +118,8 @@ function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
 }
 
 function referencePose(reference: RuntimeObject, beat: CameraShotBeat, productionBaseline: CameraPose): CameraPose {
-  const zoom = beat.zoom ?? runtimeZoom(reference, productionBaseline.zoom);
+  const fallbackZoom = cameraZoomFallback(beat.targetName, productionBaseline.zoom);
+  const zoom = beat.zoom ?? runtimeZoom(reference, fallbackZoom);
   return {
     x: finite(reference.position?.x, productionBaseline.x),
     y: finite(reference.position?.y, productionBaseline.y),
@@ -158,6 +168,17 @@ function cameraTriggerName(cameraName: string) {
   const normalized = cameraName.trim().toUpperCase();
   if (!normalized.startsWith('CAM_') || normalized.startsWith('CAM_TRG_')) return null;
   return `CAM_TRG_${normalized.slice(4)}`;
+}
+
+function normalizeDirection(value: string) {
+  return value.toLowerCase().replace('–', '-').replace('—', '-');
+}
+
+function shouldRunImplicitLoginFlow(shot: SplineShot) {
+  const text = normalizeDirection(`${shot.name} ${shot.creatorPrompt ?? ''}`);
+  const login = text.includes('login') || text.includes('phone') || text.includes('логин') || text.includes('телефон');
+  const authoredMotion = text.includes('animation') || text.includes('анимац') || text.includes('existing') || text.includes('съществуващ') || text.includes('client boundary') || text.includes('request assembly');
+  return login && authoredMotion;
 }
 
 function isPreviewUiControl(target: EventTarget | null) {
@@ -286,31 +307,40 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         const beats = sortedBeats(shot.spec.beats);
         const cameraBeats = beats.filter((beat): beat is CameraShotBeat => beat.type === 'CAMERA');
         const zoomBeats = beats.filter((beat): beat is ZoomShotBeat => beat.type === 'ZOOM');
+        const explicitFlowBeats = beats.filter((beat): beat is FlowShotBeat => beat.type === 'FLOW');
+        const flowBeats: FlowShotBeat[] = explicitFlowBeats.length > 0
+          ? explicitFlowBeats
+          : shouldRunImplicitLoginFlow(shot)
+            ? [{ type: 'FLOW', atMs: 650, flowName: 'EP001_LOGIN_FLOW' }]
+            : [];
         const executable = beats.filter(beat => beat.type === 'EVENT' || beat.type === 'STATE' || beat.type === 'VISIBILITY');
         const executed = new Set<number>();
         const executedCameraCues = new Set<number>();
+        const executedFlowSteps = new Set<string>();
+        const flowExecutor = createRuntimeFlowExecutor(app);
 
         const initialCameraPose = pose(productionCamera, 0.12);
         const cameraReferences: CameraReference[] = cameraBeats.map(beat => {
           const triggerName = cameraTriggerName(beat.targetName);
           const trigger = triggerName ? resolve(triggerName) : null;
-          if (trigger?.uuid) {
-            return { beat, trigger, pose: null };
-          }
-
           const reference = resolve(beat.targetName);
-          if (!reference?.position || !reference.rotation) {
+          const referenceCameraPose = reference?.position && reference.rotation
+            ? referencePose(reference, beat, initialCameraPose)
+            : null;
+
+          if (!trigger?.uuid && !referenceCameraPose) {
             throw new Error(`Shot camera reference “${beat.targetName}” is not available in the runtime scene.`);
           }
+
           return {
             beat,
-            trigger: null,
-            pose: referencePose(reference, beat, initialCameraPose)
+            trigger: trigger?.uuid ? trigger : null,
+            pose: referenceCameraPose
           };
         });
 
         const directCameraReferences = cameraReferences.filter(
-          (item): item is CameraReference & { pose: CameraPose } => item.pose !== null
+          (item): item is CameraReference & { pose: CameraPose } => item.pose !== null && !item.trigger?.uuid
         );
 
         function directCameraAt(elapsed: number) {
@@ -377,20 +407,41 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           if (executedCameraCues.has(index)) return false;
           const item = cameraReferences[index];
           if (!item) return false;
+
+          if (item.beat.atMs === 0 && item.pose) {
+            executedCameraCues.add(index);
+            return false;
+          }
+
           executedCameraCues.add(index);
           if (!item.trigger?.uuid) return false;
           app.emitEvent('mouseDown', item.trigger.uuid);
           return true;
         }
 
+        const openingCameraIndex = cameraReferences.findIndex(item => item.beat.atMs === 0 && item.pose !== null);
+        if (openingCameraIndex >= 0) {
+          const openingCamera = cameraReferences[openingCameraIndex];
+          if (openingCamera.pose) {
+            copyPose(productionCamera, openingCamera.pose);
+            app.setZoom(openingCamera.pose.zoom);
+            executedCameraCues.add(openingCameraIndex);
+          }
+        }
+
         cameraReferences.forEach((item, index) => {
-          if (item.beat.atMs === 0) executeCameraCue(index);
+          if (item.beat.atMs === 0 && index !== openingCameraIndex) executeCameraCue(index);
         });
 
         const firstDirectPose = directCameraAt(0);
-        if (firstDirectPose) copyPose(productionCamera, firstDirectPose);
+        if (firstDirectPose) {
+          copyPose(productionCamera, firstDirectPose);
+          app.setZoom(firstDirectPose.zoom);
+        }
         if (zoomBeats.length > 0) {
-          app.setZoom(clamp(zoomAt(0, initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM));
+          app.setZoom(clamp(zoomAt(0, openingCameraIndex >= 0
+            ? cameraReferences[openingCameraIndex].pose?.zoom ?? initialCameraPose.zoom
+            : initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM));
         }
         app.requestRender();
         await nextFrame();
@@ -401,58 +452,84 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         let lastProgressPaint = -PROGRESS_UPDATE_MS;
         let lastZoom = Number.NaN;
 
+        const failPlayback = (cause: unknown) => {
+          if (cancelled) return;
+          if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+          frameRef.current = null;
+          try {
+            controlledApp.stop?.();
+          } catch {
+          }
+          const message = cause instanceof Error ? cause.message : 'Shot preview could not continue.';
+          setError(message);
+          setStatus('error');
+          onError?.(message);
+        };
+
         const tick = (now: number) => {
           if (cancelled) return;
-          const elapsed = Math.min(shot.durationMs, Math.max(0, now - startedAt));
-          let dirty = false;
 
-          const directPose = directCameraAt(elapsed);
-          if (directPose) {
-            copyPose(productionCamera, directPose);
-            dirty = true;
-          }
+          try {
+            const elapsed = Math.min(shot.durationMs, Math.max(0, now - startedAt));
+            let dirty = false;
 
-          if (zoomBeats.length > 0) {
-            const nextZoom = clamp(zoomAt(elapsed, initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM);
-            if (!Number.isFinite(lastZoom) || Math.abs(nextZoom - lastZoom) > 0.0005) {
-              app.setZoom(nextZoom);
-              lastZoom = nextZoom;
+            const directPose = directCameraAt(elapsed);
+            if (directPose) {
+              copyPose(productionCamera, directPose);
               dirty = true;
             }
-          }
 
-          cameraReferences.forEach((item, index) => {
-            if (elapsed >= item.beat.atMs && executeCameraCue(index)) dirty = true;
-          });
-
-          executable.forEach(beat => {
-            const index = beats.indexOf(beat);
-            if (elapsed >= beat.atMs && executeBeat(beat, index)) dirty = true;
-          });
-
-          if (dirty) app.requestRender();
-
-          if (elapsed - lastProgressPaint >= PROGRESS_UPDATE_MS || elapsed >= shot.durationMs) {
-            lastProgressPaint = elapsed;
-            if (progressBarRef.current) {
-              const progress = shot.durationMs > 0 ? elapsed / shot.durationMs : 1;
-              progressBarRef.current.style.transform = `scaleX(${clamp(progress, 0, 1)})`;
+            if (zoomBeats.length > 0) {
+              const nextZoom = clamp(zoomAt(elapsed, initialCameraPose.zoom), MIN_ZOOM, MAX_ZOOM);
+              if (!Number.isFinite(lastZoom) || Math.abs(nextZoom - lastZoom) > 0.0005) {
+                app.setZoom(nextZoom);
+                lastZoom = nextZoom;
+                dirty = true;
+              }
             }
-          }
 
-          if (elapsed >= shot.durationMs) {
-            if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(1)';
-            completeTimerRef.current = window.setTimeout(() => {
-              if (cancelled) return;
-              releaseRuntime();
+            cameraReferences.forEach((item, index) => {
+              if (elapsed >= item.beat.atMs && executeCameraCue(index)) dirty = true;
+            });
+
+            executable.forEach(beat => {
+              const index = beats.indexOf(beat);
+              if (elapsed >= beat.atMs && executeBeat(beat, index)) dirty = true;
+            });
+
+            flowBeats.forEach((beat, index) => {
+              if (elapsed < beat.atMs) return;
+              const flow = getRuntimeFlow(beat.flowName);
+              if (!flow) throw new Error(`Runtime flow “${beat.flowName}” is not registered.`);
+              if (flowExecutor(flow, elapsed - beat.atMs, executedFlowSteps, `${index}:${flow.name}`)) dirty = true;
+            });
+
+            if (dirty) app.requestRender();
+
+            if (elapsed - lastProgressPaint >= PROGRESS_UPDATE_MS || elapsed >= shot.durationMs) {
+              lastProgressPaint = elapsed;
+              if (progressBarRef.current) {
+                const progress = shot.durationMs > 0 ? elapsed / shot.durationMs : 1;
+                progressBarRef.current.style.transform = `scaleX(${clamp(progress, 0, 1)})`;
+              }
+            }
+
+            if (elapsed >= shot.durationMs) {
+              if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(1)';
               completeTimerRef.current = window.setTimeout(() => {
-                if (!cancelled) onComplete();
-              }, PREVIEW_TEARDOWN_GRACE_MS);
-            }, FINAL_FRAME_HOLD_MS);
-            return;
-          }
+                if (cancelled) return;
+                releaseRuntime();
+                completeTimerRef.current = window.setTimeout(() => {
+                  if (!cancelled) onComplete();
+                }, PREVIEW_TEARDOWN_GRACE_MS);
+              }, FINAL_FRAME_HOLD_MS);
+              return;
+            }
 
-          frameRef.current = requestAnimationFrame(tick);
+            frameRef.current = requestAnimationFrame(tick);
+          } catch (cause) {
+            failPlayback(cause);
+          }
         };
 
         frameRef.current = requestAnimationFrame(tick);
