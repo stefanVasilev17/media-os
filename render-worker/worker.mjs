@@ -1,22 +1,29 @@
-import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
-const CHROMIUM_PATH = process.env.CHROMIUM_PATH || [
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-  '/usr/bin/google-chrome'
-].find(existsSync) || '/usr/bin/chromium';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
 const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 92);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function resolveChromiumPath() {
+  if (process.env.CHROMIUM_PATH?.trim()) return process.env.CHROMIUM_PATH.trim();
+  for (const candidate of ['/usr/bin/chromium-browser', '/usr/bin/chromium']) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+    }
+  }
+  return '/usr/bin/chromium-browser';
 }
 
 async function requestJson(url, options = {}) {
@@ -67,21 +74,6 @@ async function upload(renderId, filePath) {
   }
 }
 
-function runProcess(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], ...options });
-    let stdout = '';
-    let stderr = '';
-    child.stdout?.on('data', chunk => { stdout += chunk.toString(); });
-    child.stderr?.on('data', chunk => { stderr += chunk.toString(); });
-    child.on('error', reject);
-    child.on('close', code => {
-      if (code === 0) resolve({ stdout, stderr });
-      else reject(new Error(`${command} exited ${code}: ${stderr.slice(-3000)}`));
-    });
-  });
-}
-
 function selectFrames(frames, fps, durationMs) {
   if (frames.length === 0) throw new Error('Chromium produced no video frames.');
   const count = Math.max(1, Math.round(durationMs / 1000 * fps));
@@ -104,32 +96,59 @@ function selectFrames(frames, fps, durationMs) {
 }
 
 async function encodeFrames(frames, workDir, fps) {
-  const frameDir = path.join(workDir, 'frames');
-  await fs.mkdir(frameDir, { recursive: true });
-
-  const writes = frames.map((buffer, index) => {
-    const file = path.join(frameDir, `frame-${String(index + 1).padStart(6, '0')}.jpg`);
-    return fs.writeFile(file, buffer);
-  });
-  await Promise.all(writes);
-
   const output = path.join(workDir, 'preview.mp4');
-  await runProcess('ffmpeg', [
-    '-hide_banner', '-loglevel', 'error', '-y',
+  const args = [
+    '-hide_banner', '-loglevel', 'warning', '-y',
+    '-f', 'image2pipe',
     '-framerate', String(fps),
-    '-i', path.join(frameDir, 'frame-%06d.jpg'),
+    '-vcodec', 'mjpeg',
+    '-i', 'pipe:0',
+    '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', '18',
     '-pix_fmt', 'yuv420p',
+    '-threads', '1',
+    '-filter_threads', '1',
     '-movflags', '+faststart',
-    '-an',
     output
-  ]);
+  ];
+
+  const child = spawn('ffmpeg', args, { stdio: ['pipe', 'ignore', 'pipe'] });
+  let stderr = '';
+  child.stderr.on('data', chunk => {
+    stderr += chunk.toString();
+    if (stderr.length > 12000) stderr = stderr.slice(-12000);
+  });
+
+  const completion = new Promise((resolve, reject) => {
+    child.on('error', reject);
+    child.on('close', (code, signal) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-5000)}`));
+    });
+  });
+
+  try {
+    for (const frame of frames) {
+      if (!child.stdin.write(frame)) await once(child.stdin, 'drain');
+    }
+    child.stdin.end();
+    await completion;
+  } catch (error) {
+    if (!child.killed) child.kill('SIGKILL');
+    throw error;
+  }
+
+  const stat = await fs.stat(output);
+  if (stat.size < 1024) throw new Error(`ffmpeg created an invalid MP4 (${stat.size} bytes).`);
   return output;
 }
 
-async function render(job) {
+async function render(job, chromiumPath) {
   const width = Number(job.width || 1920);
   const height = Number(job.height || 1080);
   const fps = Number(job.fps || 30);
@@ -140,7 +159,7 @@ async function render(job) {
 
   try {
     browser = await puppeteer.launch({
-      executablePath: CHROMIUM_PATH,
+      executablePath: chromiumPath,
       headless: true,
       defaultViewport: { width, height, deviceScaleFactor: 1 },
       args: [
@@ -148,9 +167,9 @@ async function render(job) {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--enable-webgl',
-        '--enable-unsafe-swiftshader',
         '--ignore-gpu-blocklist',
         '--use-gl=swiftshader',
+        '--use-angle=swiftshader',
         '--window-size=' + width + ',' + height,
         '--autoplay-policy=no-user-gesture-required'
       ]
@@ -206,6 +225,7 @@ async function render(job) {
     await sleep(150);
 
     const selected = selectFrames(frames, fps, durationMs);
+    console.log(`Captured ${frames.length} source frames; encoding ${selected.length} frames for ${job.renderId}`);
     const mp4 = await encodeFrames(selected, workDir, fps);
     await upload(job.renderId, mp4);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${selected.length} frames -> ${job.renderId}`);
@@ -216,9 +236,10 @@ async function render(job) {
 }
 
 async function main() {
+  const chromiumPath = await resolveChromiumPath();
   console.log(`Media OS render worker online: ${WORKER_ID}`);
   console.log(`Backend: ${BACKEND_URL}`);
-  console.log(`Chromium: ${CHROMIUM_PATH}`);
+  console.log(`Chromium: ${chromiumPath}`);
 
   while (true) {
     let job = null;
@@ -229,7 +250,7 @@ async function main() {
         continue;
       }
       console.log(`Claimed render ${job.renderId} for ${job.shotKey} r${job.revision}`);
-      await render(job);
+      await render(job, chromiumPath);
     } catch (error) {
       console.error('Render worker error:', error);
       if (job?.renderId) await fail(job.renderId, error);
