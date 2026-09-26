@@ -38,8 +38,9 @@ const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
 const MIN_ZOOM = 0.05;
 const MAX_ZOOM = 4;
 const FINAL_FRAME_HOLD_MS = 320;
-const TARGET_PREVIEW_PIXELS = 1920 * 1080;
-const MAX_PREVIEW_SCALE = 2.6;
+const TARGET_PREVIEW_SHORT_EDGE = 1080;
+const MAX_PREVIEW_PIXELS = 2_650_000;
+const MAX_PREVIEW_SCALE = 3;
 const PROGRESS_UPDATE_MS = 48;
 
 function clamp(value: number, min: number, max: number) {
@@ -150,9 +151,15 @@ function previewSize() {
   const cssWidth = Math.max(1, window.visualViewport?.width ?? window.innerWidth);
   const cssHeight = Math.max(1, window.visualViewport?.height ?? window.innerHeight);
   const cssPixels = cssWidth * cssHeight;
-  const targetScale = Math.sqrt(TARGET_PREVIEW_PIXELS / cssPixels);
+  const shortEdge = Math.max(1, Math.min(cssWidth, cssHeight));
+  const desired1080Scale = TARGET_PREVIEW_SHORT_EDGE / shortEdge;
+  const pixelBudgetScale = Math.sqrt(MAX_PREVIEW_PIXELS / cssPixels);
   const deviceScale = Math.max(1, window.devicePixelRatio || 1);
-  const scale = clamp(Math.min(deviceScale, targetScale), 1, MAX_PREVIEW_SCALE);
+  const scale = clamp(
+    Math.min(deviceScale, desired1080Scale, pixelBudgetScale, MAX_PREVIEW_SCALE),
+    1,
+    MAX_PREVIEW_SCALE
+  );
   return {
     width: Math.max(1, Math.round(cssWidth * scale)),
     height: Math.max(1, Math.round(cssHeight * scale))
@@ -447,7 +454,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       {status === 'loading' && (
         <div className="shot-preview-center-status">
           <LoaderCircle size={30} className="spin" />
-          <strong>Preparing 1080p-class shot preview…</strong>
+          <strong>Preparing 1080p shot preview…</strong>
         </div>
       )}
 
