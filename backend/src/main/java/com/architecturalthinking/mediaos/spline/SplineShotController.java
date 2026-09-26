@@ -272,7 +272,7 @@ public class SplineShotController {
         Integer current = jdbc.sql("""
                 select coalesce(max(
                     case
-                      when payload ? 'shotSequence' and (payload->>'shotSequence') ~ '^[0-9]+$'
+                      when (payload->>'shotSequence') ~ '^[0-9]+$'
                       then (payload->>'shotSequence')::int
                       else 0
                     end
