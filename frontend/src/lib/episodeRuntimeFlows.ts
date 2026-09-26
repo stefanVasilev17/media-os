@@ -203,10 +203,6 @@ export function createRuntimeFlowExecutor(app: Application) {
       const stepKey = `${executionKey}:${index}`;
       if (executedSteps.has(stepKey)) continue;
 
-      if (applyFlowFocus(controlledApp, step)) {
-        dirty = true;
-      }
-
       if (step.eventName) {
         const target = resolveFlowTarget(controlledApp, step);
         if (!target?.uuid) {
@@ -215,6 +211,10 @@ export function createRuntimeFlowExecutor(app: Application) {
         }
 
         app.emitEvent(step.eventName as never, target.uuid);
+        dirty = true;
+      }
+
+      if (applyFlowFocus(controlledApp, step)) {
         dirty = true;
       }
 
