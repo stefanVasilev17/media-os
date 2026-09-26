@@ -1,12 +1,15 @@
 import type { Application } from '@splinetool/runtime';
+import { runtimeVisualCenter } from './runtimeObjectFocus';
 import type { RuntimeObject } from './runtimeSceneProof';
 
 export type RuntimeFlowStep = {
   atMs: number;
-  eventName: string;
+  eventName?: string;
   targetNames?: string[];
   targetTokens?: string[];
   excludedTokens?: string[];
+  focusTargetName?: string;
+  focusZoom?: number;
 };
 
 export type RuntimeFlowDefinition = {
@@ -19,7 +22,10 @@ type RuntimeLookupApplication = Application & {
   findObjectByName?: (name: string) => unknown;
   getAllObjects?: () => unknown[];
   getSplineEvents?: () => unknown;
+  requestRender?: () => void;
 };
+
+const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
 
 const FLOWS: Record<string, RuntimeFlowDefinition> = {
   EP001_LOGIN_FLOW: {
@@ -37,7 +43,9 @@ const FLOWS: Record<string, RuntimeFlowDefinition> = {
           'PHONE_DEVICE'
         ],
         targetTokens: ['login', 'submit'],
-        excludedTokens: ['text', 'label', 'icon', 'body', 'border']
+        excludedTokens: ['text', 'label', 'icon', 'body', 'border'],
+        focusTargetName: 'PHONE_DEVICE',
+        focusZoom: 0.42
       }
     ]
   }
@@ -146,6 +154,25 @@ function resolveFlowTarget(app: RuntimeLookupApplication, step: RuntimeFlowStep)
   return null;
 }
 
+function applyFlowFocus(app: RuntimeLookupApplication, step: RuntimeFlowStep) {
+  if (!step.focusTargetName?.trim() || typeof app.findObjectByName !== 'function') return false;
+
+  const camera = app.findObjectByName(CAMERA_RIG_NAME) as RuntimeObject | undefined;
+  const target = app.findObjectByName(step.focusTargetName.trim()) as RuntimeObject | undefined;
+  if (!camera?.position || !camera.rotation || !target?.position) {
+    throw new Error(`Runtime flow focus target “${step.focusTargetName}” is not available.`);
+  }
+
+  const center = runtimeVisualCenter(target);
+  camera.position.x = center.x;
+  camera.position.y = center.y;
+  if (Number.isFinite(Number(step.focusZoom))) {
+    app.setZoom(Number(step.focusZoom));
+  }
+  app.requestRender?.();
+  return true;
+}
+
 export function registerRuntimeFlow(flow: RuntimeFlowDefinition) {
   FLOWS[flow.name.trim().toUpperCase()] = flow;
 }
@@ -176,15 +203,22 @@ export function createRuntimeFlowExecutor(app: Application) {
       const stepKey = `${executionKey}:${index}`;
       if (executedSteps.has(stepKey)) continue;
 
-      const target = resolveFlowTarget(controlledApp, step);
-      if (!target?.uuid) {
-        const hints = [...(step.targetNames ?? []), ...(step.targetTokens ?? [])].join(', ');
-        throw new Error(`Runtime flow “${flow.name}” could not resolve its ${step.eventName} target${hints ? ` (${hints})` : ''}.`);
+      if (applyFlowFocus(controlledApp, step)) {
+        dirty = true;
       }
 
-      app.emitEvent(step.eventName as never, target.uuid);
+      if (step.eventName) {
+        const target = resolveFlowTarget(controlledApp, step);
+        if (!target?.uuid) {
+          const hints = [...(step.targetNames ?? []), ...(step.targetTokens ?? [])].join(', ');
+          throw new Error(`Runtime flow “${flow.name}” could not resolve its ${step.eventName} target${hints ? ` (${hints})` : ''}.`);
+        }
+
+        app.emitEvent(step.eventName as never, target.uuid);
+        dirty = true;
+      }
+
       executedSteps.add(stepKey);
-      dirty = true;
     }
 
     return dirty;
