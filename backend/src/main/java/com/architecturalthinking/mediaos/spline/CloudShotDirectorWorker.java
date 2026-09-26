@@ -25,9 +25,11 @@ import java.util.regex.Pattern;
 @Component
 public class CloudShotDirectorWorker {
 
+    private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String AGENT_KEY = "SPLINE_SHOT_AGENT";
     private static final String TASK_TYPE = "CREATE_RUNTIME_SHOT_V1";
     private static final String WORKER_ID = "RAILWAY-CLOUD-SHOT-DIRECTOR";
+    private static final String LOGIN_FLOW = "EP001_LOGIN_FLOW";
     private static final Pattern DURATION_PATTERN = Pattern.compile(
             "(?iu)(\\d+(?:[\\.,]\\d+)?)\\s*(?:seconds?|secs?|sec\\.?|секунди|секунда|сек\\.?)"
     );
@@ -166,11 +168,42 @@ public class CloudShotDirectorWorker {
                 .param("workerId", WORKER_ID)
                 .update();
 
+        rememberAppliedCorrection(job);
+
         jdbc.sql("update task set status='COMPLETED', updated_at=now() where id=:taskId")
                 .param("taskId", job.taskId())
                 .update();
         jdbc.sql("update job set status='COMPLETED', progress=100, updated_at=now() where id=:jobId")
                 .param("jobId", job.orchestrationJobId())
+                .update();
+    }
+
+    private void rememberAppliedCorrection(ClaimedJob job) {
+        String previousShotId = stringValue(job.payload().get("previousShotId")).trim();
+        String feedback = stringValue(job.payload().get("creatorMessage")).trim();
+        String shotKey = stringValue(job.payload().get("shotKey")).trim();
+        if (previousShotId.isBlank() || feedback.isBlank() || shotKey.isBlank()) {
+            return;
+        }
+
+        UUID sourceJobId;
+        try {
+            sourceJobId = UUID.fromString(previousShotId);
+        } catch (IllegalArgumentException ignored) {
+            return;
+        }
+
+        jdbc.sql("""
+                insert into spline_director_memory(
+                    id, project_id, scope, shot_key, source_production_job_id, feedback
+                )
+                values (:id, :projectId, 'SHOT', :shotKey, :sourceJobId, :feedback)
+                """)
+                .param("id", UUID.randomUUID())
+                .param("projectId", PROJECT_ID)
+                .param("shotKey", shotKey)
+                .param("sourceJobId", sourceJobId)
+                .param("feedback", feedback)
                 .update();
     }
 
@@ -244,7 +277,7 @@ public class CloudShotDirectorWorker {
                     "client boundary", "client reveal", "request assembly", "клиент", "request", "assembly");
 
             if (wantsLogin && wantsClient) {
-                beats.add(cameraBeat(0, "CAM_LOGIN", 0, "easeInOut"));
+                beats.add(flowBeat(0, LOGIN_FLOW));
                 int transitionMs = preferredTransitionMs(durationMs, normalized, memory);
                 int holdMs = explicitHoldMs(message).orElse(Math.max(2500, Math.round(durationMs * 0.40f)));
                 holdMs = Math.min(holdMs, Math.max(0, durationMs - transitionMs - 1000));
@@ -252,12 +285,13 @@ public class CloudShotDirectorWorker {
             } else if (wantsClient) {
                 beats.add(cameraBeat(0, "CAM_CLIENT_REVEAL", 0, "easeInOut"));
             } else if (wantsLogin) {
-                beats.add(cameraBeat(0, "CAM_LOGIN", 0, "easeInOut"));
+                beats.add(flowBeat(0, LOGIN_FLOW));
             } else {
                 beats.add(cameraBeat(0, "MEDIA_OS_CAMERA", 0, "easeInOut"));
             }
         }
 
+        beats.sort((a, b) -> Integer.compare(number(a.get("atMs"), 0), number(b.get("atMs"), 0)));
         Map<String, Object> spec = new LinkedHashMap<>();
         spec.put("schemaVersion", 1);
         spec.put("name", shotName(message, shotKey, beats));
@@ -279,16 +313,17 @@ public class CloudShotDirectorWorker {
         }
 
         List<Map<String, Object>> beats = beatList(spec.get("beats"));
-        List<Map<String, Object>> cameraBeats = beats.stream()
-                .filter(beat -> "CAMERA".equalsIgnoreCase(stringValue(beat.get("type"))))
-                .toList();
+        migrateLegacyLoginOpening(beats, stringValue(spec.get("name")));
 
+        List<Map<String, Object>> cameraBeats = cameraBeats(beats);
         Optional<Integer> extraHoldMs = additionalHoldMs(message);
-        if (extraHoldMs.isPresent() && cameraBeats.size() >= 2) {
-            Map<String, Object> second = cameraBeats.get(1);
-            second.put("atMs", number(second.get("atMs"), 0) + extraHoldMs.get());
-            if (explicitDuration.isEmpty()) {
-                durationMs += extraHoldMs.get();
+        if (extraHoldMs.isPresent()) {
+            Map<String, Object> clientBeat = findCameraBeat(cameraBeats, "CAM_CLIENT_REVEAL");
+            if (clientBeat != null) {
+                clientBeat.put("atMs", number(clientBeat.get("atMs"), 0) + extraHoldMs.get());
+                if (explicitDuration.isEmpty()) {
+                    durationMs += extraHoldMs.get();
+                }
             }
         }
 
@@ -317,12 +352,28 @@ public class CloudShotDirectorWorker {
             replaceCameraSequence(beats, exactCameras, durationMs, normalized, memory);
         } else {
             boolean mentionsLogin = containsAny(normalized, "login", "phone", "логин", "телефон");
-            boolean mentionsClient = containsAny(normalized, "client boundary", "client reveal", "request assembly", "клиент", "request");
-            if (mentionsLogin && !cameraBeats.isEmpty() && containsAny(normalized, "start", "begin", "започ", "начал")) {
-                cameraBeats.get(0).put("targetName", "CAM_LOGIN");
+            boolean mentionsClient = containsAny(normalized,
+                    "client boundary", "client reveal", "request assembly", "клиент", "request", "assembly", "втори кадър", "втория кадър");
+            boolean framingCorrection = containsAny(normalized,
+                    "focus", "фокус", "frame", "framing", "кадър", "позицион", "center", "centre", "център", "центри");
+            boolean openingCorrection = containsAny(normalized,
+                    "first", "opening", "start", "begin", "първ", "начал", "започ", "phone", "login", "телефон", "логин");
+            boolean secondCorrection = containsAny(normalized,
+                    "second", "втори", "втория", "client", "request assembly", "клиент", "request");
+
+            if ((mentionsLogin && containsAny(normalized, "start", "begin", "започ", "начал")) || (framingCorrection && openingCorrection)) {
+                ensureLoginFlow(beats);
             }
+
+            cameraBeats = cameraBeats(beats);
             if (mentionsClient && !cameraBeats.isEmpty() && containsAny(normalized, "end", "finish", "накрая", "крайн", "завърш")) {
                 cameraBeats.get(cameraBeats.size() - 1).put("targetName", "CAM_CLIENT_REVEAL");
+            }
+
+            if (framingCorrection && secondCorrection && findCameraBeat(cameraBeats, "CAM_CLIENT_REVEAL") == null) {
+                int transitionMs = preferredTransitionMs(durationMs, normalized, memory);
+                int atMs = Math.max(2500, Math.min(durationMs - transitionMs - 500, Math.round(durationMs * 0.40f)));
+                beats.add(cameraBeat(atMs, "CAM_CLIENT_REVEAL", transitionMs, "easeInOut"));
             }
         }
 
@@ -340,7 +391,47 @@ public class CloudShotDirectorWorker {
         spec.put("schemaVersion", 1);
         spec.put("durationMs", durationMs);
         spec.put("beats", beats);
+
+        if (spec.equals(previous)) {
+            throw new IllegalArgumentException(
+                    "The director correction did not change the ShotSpec. Describe the concrete framing, timing, camera target, flow, state, or event change you want."
+            );
+        }
         return spec;
+    }
+
+    private void migrateLegacyLoginOpening(List<Map<String, Object>> beats, String shotName) {
+        boolean hadLoginCamera = beats.removeIf(beat ->
+                "CAMERA".equalsIgnoreCase(stringValue(beat.get("type")))
+                        && "CAM_LOGIN".equalsIgnoreCase(stringValue(beat.get("targetName")))
+        );
+        boolean loginShot = hadLoginCamera || normalize(shotName).contains("login");
+        if (loginShot) {
+            ensureLoginFlow(beats);
+        }
+    }
+
+    private void ensureLoginFlow(List<Map<String, Object>> beats) {
+        boolean exists = beats.stream().anyMatch(beat ->
+                "FLOW".equalsIgnoreCase(stringValue(beat.get("type")))
+                        && LOGIN_FLOW.equalsIgnoreCase(stringValue(beat.get("flowName")))
+        );
+        if (!exists) {
+            beats.add(flowBeat(0, LOGIN_FLOW));
+        }
+    }
+
+    private List<Map<String, Object>> cameraBeats(List<Map<String, Object>> beats) {
+        return beats.stream()
+                .filter(beat -> "CAMERA".equalsIgnoreCase(stringValue(beat.get("type"))))
+                .toList();
+    }
+
+    private Map<String, Object> findCameraBeat(List<Map<String, Object>> cameraBeats, String targetName) {
+        return cameraBeats.stream()
+                .filter(beat -> targetName.equalsIgnoreCase(stringValue(beat.get("targetName"))))
+                .findFirst()
+                .orElse(null);
     }
 
     private void addExactCameraSequence(
@@ -406,7 +497,7 @@ public class CloudShotDirectorWorker {
     private Optional<Integer> additionalHoldMs(String message) {
         String normalized = normalize(message);
         boolean additional = containsAny(normalized, "още", "another", "additional", "допълнително");
-        boolean hold = containsAny(normalized, "hold", "stay", "задръж", "остани", "стой", "phone", "login");
+        boolean hold = containsAny(normalized, "hold", "stay", "задръж", "остани", "стой", "phone", "login", "телефон", "логин");
         if (!additional || !hold) {
             return Optional.empty();
         }
@@ -455,8 +546,19 @@ public class CloudShotDirectorWorker {
         return beat;
     }
 
+    private Map<String, Object> flowBeat(int atMs, String flowName) {
+        Map<String, Object> beat = new LinkedHashMap<>();
+        beat.put("type", "FLOW");
+        beat.put("atMs", Math.max(0, atMs));
+        beat.put("flowName", flowName);
+        return beat;
+    }
+
     private String shotName(String message, String shotKey, List<Map<String, Object>> beats) {
-        boolean login = beats.stream().anyMatch(beat -> "CAM_LOGIN".equals(beat.get("targetName")));
+        boolean login = beats.stream().anyMatch(beat ->
+                "CAM_LOGIN".equals(beat.get("targetName"))
+                        || ("FLOW".equals(beat.get("type")) && LOGIN_FLOW.equals(beat.get("flowName")))
+        );
         boolean client = beats.stream().anyMatch(beat -> "CAM_CLIENT_REVEAL".equals(beat.get("targetName")));
         if (login && client) {
             return "Login to Client Boundary";
