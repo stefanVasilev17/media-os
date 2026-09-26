@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Clock3, HeartPulse, LoaderCircle, Play, RefreshCw, Send, X } from 'lucide-react';
 import { AgentWorkspaceFrame } from '../components/AgentWorkspaceFrame';
-import { ShotPreviewOverlay } from '../components/ShotPreviewOverlay';
+import { ShotVideoPreviewOverlay } from '../components/ShotVideoPreviewOverlay';
 import { SplineRuntimeComposer } from '../components/SplineRuntimeComposer';
 import {
   createSplineChatCommand,
@@ -17,9 +17,12 @@ import {
 } from '../api/mediaOsApi';
 import {
   createSplineShotCommand,
+  ensureSplineShotRender,
   loadLatestSplineShot,
+  loadLatestSplineShotRender,
   loadSplineDirectorMemorySummary,
-  type SplineShot
+  type SplineShot,
+  type SplineShotRender
 } from '../api/splineShotApi';
 import '../styles/splineShotDirector.css';
 
@@ -34,8 +37,8 @@ const CAPABILITIES = [
   { label: 'Create', description: 'Build temporary episode objects from reusable templates.' },
   { label: 'Edit', description: 'Rename, move and adjust live runtime objects.' },
   { label: 'Animate', description: 'Set states and trigger authored animations.' },
-  { label: 'Frame', description: 'Adjust the live browser framing for the shot.' },
-  { label: 'Export', description: 'Save frames or record the temporary scene.' }
+  { label: 'Frame', description: 'Direct camera framing and timing from chat.' },
+  { label: 'Render', description: 'Generate a 1920×1080 MP4 director preview in the cloud.' }
 ];
 
 const SHOT_TASK_TYPE = 'CREATE_RUNTIME_SHOT_V1';
@@ -70,7 +73,7 @@ function activityForStatus(
       case 'RUNNING':
         return { tone: 'working', label: 'Building the shot', detail: 'Camera beats, authored events and timing are being assembled without changing the master Spline file.', spinning: true };
       case 'SUCCEEDED':
-        return { tone: 'success', label: 'Shot ready to preview', detail: 'Review the result full-screen, then return here with your correction.' };
+        return { tone: 'success', label: 'Shot plan ready', detail: 'Media OS will render the 1920×1080 director preview in the cloud.' };
       case 'FAILED':
         return { tone: 'error', label: 'Shot could not be prepared', detail: error?.trim() || 'Open Advanced & health for the execution error.' };
       default:
@@ -80,50 +83,19 @@ function activityForStatus(
 
   switch (status) {
     case 'WAITING_APPROVAL':
-      return {
-        tone: 'waiting',
-        label: 'Ready for your approval',
-        detail: 'Review the prepared change below, then approve it or ask for another version.'
-      };
+      return { tone: 'waiting', label: 'Ready for your approval', detail: 'Review the prepared change below, then approve it or ask for another version.' };
     case 'QUEUED':
-      return {
-        tone: 'working',
-        label: 'Approved and waiting',
-        detail: 'Spline Agent will start the approved change as soon as the editing connection is available.',
-        spinning: true
-      };
+      return { tone: 'working', label: 'Approved and waiting', detail: 'Spline Agent will start the approved change as soon as the editing connection is available.', spinning: true };
     case 'CLAIMED':
-      return {
-        tone: 'working',
-        label: 'Spline Agent picked up the request',
-        detail: 'The requested change is being prepared now.',
-        spinning: true
-      };
+      return { tone: 'working', label: 'Spline Agent picked up the request', detail: 'The requested change is being prepared now.', spinning: true };
     case 'RUNNING':
-      return {
-        tone: 'working',
-        label: 'Spline Agent is working',
-        detail: 'The approved scene change is being applied now.',
-        spinning: true
-      };
+      return { tone: 'working', label: 'Spline Agent is working', detail: 'The approved scene change is being applied now.', spinning: true };
     case 'SUCCEEDED':
-      return {
-        tone: 'success',
-        label: 'Change completed',
-        detail: 'Spline Agent completed the requested change.'
-      };
+      return { tone: 'success', label: 'Change completed', detail: 'Spline Agent completed the requested change.' };
     case 'FAILED':
-      return {
-        tone: 'error',
-        label: 'Change could not be completed',
-        detail: error?.trim() || 'Open Advanced & health for technical details before retrying.'
-      };
+      return { tone: 'error', label: 'Change could not be completed', detail: error?.trim() || 'Open Advanced & health for technical details before retrying.' };
     case 'CHANGES_REQUESTED':
-      return {
-        tone: 'cancelled',
-        label: 'Change cancelled',
-        detail: 'The prepared change was not applied.'
-      };
+      return { tone: 'cancelled', label: 'Change cancelled', detail: 'The prepared change was not applied.' };
     default:
       return null;
   }
@@ -135,7 +107,9 @@ export function SplineWorkspacePage() {
   const [latestExecution, setLatestExecution] = useState<LatestSplineJob | null>(null);
   const [runner, setRunner] = useState<RunnerStatus | null>(null);
   const [latestShot, setLatestShot] = useState<SplineShot | null>(null);
+  const [latestRender, setLatestRender] = useState<SplineShotRender | null>(null);
   const [previewShot, setPreviewShot] = useState<SplineShot | null>(null);
+  const [previewRender, setPreviewRender] = useState<SplineShotRender | null>(null);
   const [revisionShotId, setRevisionShotId] = useState<string | null>(null);
   const [shotJobId, setShotJobId] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState(0);
@@ -156,11 +130,20 @@ export function SplineWorkspacePage() {
       loadSplineDirectorMemorySummary().catch(() => ({ count: 0, recent: [] }))
     ]);
 
+    let render: SplineShotRender | null = null;
+    if (shot) {
+      render = await loadLatestSplineShotRender(shot.id).catch(() => null);
+      if (!render) {
+        render = await ensureSplineShotRender(shot.id).catch(() => null);
+      }
+    }
+
     setMessages(chat);
     setApprovals(pending.filter(item => item.taskType.startsWith('CREATOR_SPLINE_COMMAND_')));
     setLatestExecution(latest);
     setRunner(runnerStatus);
     setLatestShot(shot);
+    setLatestRender(render);
     setMemoryCount(memory.count);
   }, []);
 
@@ -177,24 +160,24 @@ export function SplineWorkspacePage() {
     latestExecution?.taskType === SHOT_TASK_TYPE ||
     (shotJobId && latestCommand?.productionJobId === shotJobId)
   );
-  const commandInFlight = Boolean(
-    latestStatus && ['WAITING_APPROVAL', 'QUEUED', 'CLAIMED', 'RUNNING'].includes(latestStatus)
-  );
+  const commandInFlight = Boolean(latestStatus && ['WAITING_APPROVAL', 'QUEUED', 'CLAIMED', 'RUNNING'].includes(latestStatus));
+  const renderInFlight = Boolean(latestRender && ['QUEUED', 'RENDERING'].includes(latestRender.status));
   const commandActivity = transientActivity ?? activityForStatus(latestStatus, latestCommand?.error, isShotExecution);
   const previewReady = Boolean(
     latestShot &&
-    latestCommand?.status === 'SUCCEEDED' &&
-    latestCommand.productionJobId === latestShot.productionJobId
+    latestRender?.status === 'READY' &&
+    latestRender.shotId === latestShot.id &&
+    latestRender.videoUrl
   );
   const shotDirectorMode = Boolean(latestShot || revisionShotId || isShotExecution);
 
   useEffect(() => {
-    if (!latestStatus || !['QUEUED', 'CLAIMED', 'RUNNING'].includes(latestStatus)) return;
+    if (!commandInFlight && !renderInFlight) return;
     const timer = window.setInterval(() => {
       refresh().catch(() => undefined);
     }, 2500);
     return () => window.clearInterval(timer);
-  }, [latestStatus, refresh]);
+  }, [commandInFlight, renderInFlight, refresh]);
 
   async function sendCommand() {
     const text = message.trim();
@@ -220,6 +203,7 @@ export function SplineWorkspacePage() {
       if (createShot) {
         const result = await createSplineShotCommand(text, continueShot ? revisionShotId : null);
         setShotJobId(result.productionJobId);
+        setLatestRender(null);
         if (!continueShot) setRevisionShotId(null);
       } else {
         await createSplineChatCommand(text);
@@ -261,17 +245,17 @@ export function SplineWorkspacePage() {
   }
 
   function startPreview() {
-    if (!latestShot) return;
+    if (!latestShot || !latestRender || latestRender.status !== 'READY' || !latestRender.videoUrl) return;
     const fullscreen = document.documentElement.requestFullscreen;
-    if (typeof fullscreen === 'function') {
-      fullscreen.call(document.documentElement).catch(() => undefined);
-    }
+    if (typeof fullscreen === 'function') fullscreen.call(document.documentElement).catch(() => undefined);
     setPreviewShot(latestShot);
+    setPreviewRender(latestRender);
   }
 
   function returnFromPreview() {
     const completedShot = previewShot;
     setPreviewShot(null);
+    setPreviewRender(null);
     if (completedShot) setRevisionShotId(completedShot.id);
 
     if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
@@ -285,21 +269,15 @@ export function SplineWorkspacePage() {
     }, 80);
   }
 
-  if (previewShot) {
-    return (
-      <ShotPreviewOverlay
-        shot={previewShot}
-        onComplete={returnFromPreview}
-        onError={message => setFlash(message)}
-      />
-    );
+  if (previewShot && previewRender) {
+    return <ShotVideoPreviewOverlay shot={previewShot} render={previewRender} onComplete={returnFromPreview} />;
   }
 
   return (
     <AgentWorkspaceFrame
       agentName="Spline Agent"
-      description="Build the temporary episode scene, direct runtime shots in natural language, preview them full-screen and revise them from the same conversation."
-      statusLabel="Browser workspace"
+      description="Direct shots in natural language, render 1080p previews in the cloud, review them as video and revise them from the same conversation."
+      statusLabel="Director workspace"
       statusTone="ready"
       capabilities={CAPABILITIES}
     >
@@ -310,8 +288,8 @@ export function SplineWorkspacePage() {
       <section className="agent-chat-section" ref={chatSectionRef}>
         <div className="agent-chat-section-header">
           <span>AGENT CHAT</span>
-          <strong>Direct the shot. Review it. Correct it.</strong>
-          <p>Describe the result you want in normal language. Shot directions become temporary runtime ShotSpecs; they do not change the master Spline file.</p>
+          <strong>Direct the shot. Render it. Review it. Correct it.</strong>
+          <p>Describe the result you want in normal language. Media OS builds a temporary ShotSpec, renders a 1920×1080 MP4 in the cloud and returns the video here for review.</p>
         </div>
 
         <div className="spline-director-memory-strip">
@@ -337,6 +315,20 @@ export function SplineWorkspacePage() {
           </div>
         )}
 
+        {latestRender && latestRender.status !== 'READY' && (
+          <div className={`spline-command-activity ${latestRender.status === 'FAILED' ? 'error' : 'working'}`}>
+            <div className="spline-command-activity-icon">
+              {latestRender.status === 'FAILED' ? <X size={17} /> : <RefreshCw size={17} className="spin" />}
+            </div>
+            <div>
+              <strong>{latestRender.status === 'FAILED' ? '1080p render failed' : 'Rendering 1920×1080 preview'}</strong>
+              <span>{latestRender.status === 'FAILED'
+                ? latestRender.error || 'The render worker could not create the preview.'
+                : 'Spline runs in the cloud. Your phone will receive only the finished MP4.'}</span>
+            </div>
+          </div>
+        )}
+
         <div className="spline-chat-history">
           {messages.length === 0 ? (
             <div className="spline-chat-empty">
@@ -352,14 +344,17 @@ export function SplineWorkspacePage() {
           )}
         </div>
 
-        {previewReady && latestShot && (
+        {latestShot && latestCommand?.status === 'SUCCEEDED' && latestCommand.productionJobId === latestShot.productionJobId && (
           <div className="spline-shot-ready-card">
             <div>
               <span>{latestShot.shotKey} · REVISION {latestShot.revision}</span>
               <strong>{latestShot.name}</strong>
-              <small>{(latestShot.durationMs / 1000).toFixed(1)}s · temporary browser-runtime shot</small>
+              <small>{(latestShot.durationMs / 1000).toFixed(1)}s · 1920×1080 · 30 fps · MP4 director preview</small>
             </div>
-            <button type="button" onClick={startPreview}><Play size={17} /> Preview shot</button>
+            <button type="button" disabled={!previewReady} onClick={startPreview}>
+              {previewReady ? <Play size={17} /> : <LoaderCircle size={17} className="spin" />}
+              {previewReady ? 'Preview shot' : 'Rendering…'}
+            </button>
           </div>
         )}
 
@@ -414,9 +409,7 @@ export function SplineWorkspacePage() {
           </button>
         </div>
 
-        {pendingApproval && (
-          <small className="spline-chat-note">Approve or revise the current request before sending another.</small>
-        )}
+        {pendingApproval && <small className="spline-chat-note">Approve or revise the current request before sending another.</small>}
       </section>
 
       <details className="agent-health-details">
