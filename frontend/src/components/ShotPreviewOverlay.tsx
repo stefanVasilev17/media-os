@@ -32,6 +32,7 @@ type RuntimeLookupApplication = Application & {
   findObjectByName?: (name: string) => unknown;
   pauseGameControls?: () => void;
   setSize?: (width: number, height: number) => void;
+  stop?: () => void;
 };
 
 const CAMERA_RIG_NAME = 'MEDIA_OS_CAMERA';
@@ -42,6 +43,8 @@ const TARGET_PREVIEW_SHORT_EDGE = 1080;
 const MAX_PREVIEW_PIXELS = 2_650_000;
 const MAX_PREVIEW_SCALE = 3;
 const PROGRESS_UPDATE_MS = 48;
+const PREVIEW_BOOT_GRACE_MS = 420;
+const PREVIEW_TEARDOWN_GRACE_MS = 480;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -170,10 +173,18 @@ function nextFrame() {
   return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 }
 
+function delay(ms: number) {
+  return new Promise<void>(resolve => window.setTimeout(resolve, ms));
+}
+
 function cameraTriggerName(cameraName: string) {
   const normalized = cameraName.trim().toUpperCase();
   if (!normalized.startsWith('CAM_') || normalized.startsWith('CAM_TRG_')) return null;
   return `CAM_TRG_${normalized.slice(4)}`;
+}
+
+function isPreviewUiControl(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest('.shot-preview-topbar button, .shot-preview-error button'));
 }
 
 export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOverlayProps) {
@@ -193,11 +204,42 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onComplete();
     };
+
+    const blockSceneInput = (event: Event) => {
+      if (isPreviewUiControl(event.target)) return;
+      if (event.cancelable) event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    const blockedEvents = [
+      'pointerdown',
+      'pointermove',
+      'pointerup',
+      'pointercancel',
+      'touchstart',
+      'touchmove',
+      'touchend',
+      'touchcancel',
+      'mousedown',
+      'mousemove',
+      'mouseup',
+      'click',
+      'dblclick',
+      'contextmenu',
+      'wheel'
+    ];
+
     window.addEventListener('keydown', escape);
+    blockedEvents.forEach(eventName => {
+      window.addEventListener(eventName, blockSceneInput as EventListener, { capture: true, passive: false });
+    });
 
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', escape);
+      blockedEvents.forEach(eventName => {
+        window.removeEventListener(eventName, blockSceneInput as EventListener, true);
+      });
     };
   }, [onComplete]);
 
@@ -206,6 +248,23 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     const canvas = canvasRef.current;
     if (!canvas) return;
     const previewCanvas: HTMLCanvasElement = canvas;
+
+    const releaseRuntime = () => {
+      const activeApp = appRef.current as RuntimeLookupApplication | null;
+      if (activeApp) {
+        try {
+          activeApp.stop?.();
+        } catch {
+        }
+        try {
+          activeApp.dispose();
+        } catch {
+        }
+      }
+      appRef.current = null;
+      previewCanvas.width = 1;
+      previewCanvas.height = 1;
+    };
 
     setStatus('loading');
     setError('');
@@ -231,6 +290,9 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           if (!cancelled) throw new Error('No browser runtime scene is configured for shot preview.');
           return;
         }
+
+        await delay(PREVIEW_BOOT_GRACE_MS);
+        if (cancelled) return;
 
         const app = new Application(previewCanvas, { renderMode: 'auto', htmlContentMode: 'none' });
         appRef.current = app;
@@ -404,7 +466,11 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           if (elapsed >= shot.durationMs) {
             if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(1)';
             completeTimerRef.current = window.setTimeout(() => {
-              if (!cancelled) onComplete();
+              if (cancelled) return;
+              releaseRuntime();
+              completeTimerRef.current = window.setTimeout(() => {
+                if (!cancelled) onComplete();
+              }, PREVIEW_TEARDOWN_GRACE_MS);
             }, FINAL_FRAME_HOLD_MS);
             return;
           }
@@ -432,14 +498,13 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       if (completeTimerRef.current !== null) window.clearTimeout(completeTimerRef.current);
       frameRef.current = null;
       completeTimerRef.current = null;
-      appRef.current?.dispose();
-      appRef.current = null;
+      releaseRuntime();
     };
   }, [shot, runToken, onComplete, onError]);
 
   return (
     <div className="shot-preview-overlay" role="dialog" aria-modal="true" aria-label={`Preview ${shot.name}`}>
-      <canvas ref={canvasRef} className="shot-preview-canvas" />
+      <canvas ref={canvasRef} className="shot-preview-canvas" aria-hidden="true" />
 
       <div className="shot-preview-topbar">
         <div>
