@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,11 @@ import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
-const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser';
+const CHROMIUM_PATH = process.env.CHROMIUM_PATH || [
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
+  '/usr/bin/google-chrome'
+].find(existsSync) || '/usr/bin/chromium';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
 const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 92);
 
@@ -143,6 +148,7 @@ async function render(job) {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--enable-webgl',
+        '--enable-unsafe-swiftshader',
         '--ignore-gpu-blocklist',
         '--use-gl=swiftshader',
         '--window-size=' + width + ',' + height,
