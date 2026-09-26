@@ -284,6 +284,16 @@ export function SplineWorkspacePage() {
     }, 80);
   }
 
+  if (previewShot) {
+    return (
+      <ShotPreviewOverlay
+        shot={previewShot}
+        onComplete={returnFromPreview}
+        onError={message => setFlash(message)}
+      />
+    );
+  }
+
   return (
     <AgentWorkspaceFrame
       agentName="Spline Agent"
@@ -292,14 +302,6 @@ export function SplineWorkspacePage() {
       statusTone="ready"
       capabilities={CAPABILITIES}
     >
-      {previewShot && (
-        <ShotPreviewOverlay
-          shot={previewShot}
-          onComplete={returnFromPreview}
-          onError={message => setFlash(message)}
-        />
-      )}
-
       {flash && <div className="spline-agent-flash">{flash}</div>}
 
       <SplineRuntimeComposer />
