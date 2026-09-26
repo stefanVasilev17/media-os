@@ -222,8 +222,9 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
 
   useEffect(() => {
     let cancelled = false;
-    const previewCanvas = canvasRef.current;
-    if (!previewCanvas) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const previewCanvas: HTMLCanvasElement = canvas;
 
     const releaseRuntime = () => {
       const activeApp = appRef.current as RuntimeLookupApplication | null;
