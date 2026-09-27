@@ -14,7 +14,8 @@ python3 -m py_compile /app/handler.py
 python3 /app/test_handler.py
 
 chromium --version
-ffmpeg -version | head -n 1
+FFMPEG_VERSION="$(ffmpeg -version 2>&1)"
+printf '%s\n' "${FFMPEG_VERSION%%$'\n'*}"
 python3 --version
 node --version
 
@@ -30,10 +31,14 @@ if ! grep -Fq -- "delete env.DBUS_SESSION_BUS_ADDRESS" /app/render.mjs; then
   echo "Chromium DBus environment sanitization is missing." >&2
   exit 1
 fi
-if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -Eq 'libx264|h264_nvenc'; then
+
+FFMPEG_ENCODERS="$(ffmpeg -hide_banner -encoders 2>&1)"
+if ! grep -Eq 'libx264|h264_nvenc' <<<"$FFMPEG_ENCODERS"; then
   echo "No H.264 encoder is available in ffmpeg." >&2
+  printf '%s\n' "$FFMPEG_ENCODERS" | grep -Ei '264|nvenc' || true
   exit 1
 fi
+printf '%s\n' "$FFMPEG_ENCODERS" | grep -Ei 'libx264|h264_nvenc' || true
 
 Xvfb "${DISPLAY}" -screen 0 1920x1080x24 -ac -nolisten tcp +extension GLX +render -noreset >/tmp/xvfb-ci.log 2>&1 &
 XVFB_PID=$!
