@@ -52,12 +52,13 @@ def mark_started(backend_url: str, render_id: str, callback_token: str):
 
 def mark_failed(backend_url: str, render_id: str, callback_token: str, message: str):
     try:
-        requests.post(
+        response = requests.post(
             f"{backend_url}/api/v1/spline/gpu-renders/{render_id}/fail",
             headers={**worker_headers(callback_token), "Content-Type": "application/json"},
             data=json.dumps({"error": message[:1800]}),
             timeout=REQUEST_TIMEOUT,
         )
+        response.raise_for_status()
     except Exception as callback_error:
         print(f"Could not report GPU render failure: {callback_error}", flush=True)
 
@@ -72,6 +73,20 @@ def upload_video(backend_url: str, render_id: str, callback_token: str, video_pa
         )
     response.raise_for_status()
     return response.json()
+
+
+def compact_process_error(process: subprocess.CompletedProcess) -> str:
+    stderr = (process.stderr or "").strip()
+    stdout = (process.stdout or "").strip()
+    details = []
+    if stderr:
+        details.append(f"stderr: {stderr[-1450:]}")
+    if stdout:
+        details.append(f"stdout: {stdout[-250:]}")
+    suffix = " | ".join(details)
+    if suffix:
+        return f"GPU browser render failed with exit code {process.returncode}. {suffix}"
+    return f"GPU browser render failed with exit code {process.returncode}. No renderer output was captured."
 
 
 def render_video(backend_url: str, work: dict, output_path: Path):
@@ -90,7 +105,7 @@ def render_video(backend_url: str, work: dict, output_path: Path):
     if process.stderr:
         print(process.stderr, flush=True)
     if process.returncode != 0:
-        raise RuntimeError(f"GPU browser render failed with exit code {process.returncode}.")
+        raise RuntimeError(compact_process_error(process))
     if not output_path.exists() or output_path.stat().st_size < 50_000:
         raise RuntimeError("GPU renderer did not produce a valid MP4 file.")
 
