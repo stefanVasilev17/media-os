@@ -23,25 +23,28 @@ public class RunpodGpuRenderDispatcher {
     private final HttpClient httpClient;
     private final String endpointId;
     private final String apiKey;
+    private final String publicUrl;
 
     public RunpodGpuRenderDispatcher(
             ObjectMapper objectMapper,
             @Value("${RUNPOD_RENDER_ENDPOINT_ID:}") String endpointId,
-            @Value("${RUNPOD_API_KEY:}") String apiKey
+            @Value("${RUNPOD_API_KEY:}") String apiKey,
+            @Value("${MEDIA_OS_PUBLIC_URL:}") String publicUrl
     ) {
         this.objectMapper = objectMapper;
         this.endpointId = endpointId == null ? "" : endpointId.trim();
         this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.publicUrl = publicUrl == null ? "" : publicUrl.trim().replaceAll("/+$", "");
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     public boolean isConfigured() {
-        return !endpointId.isBlank() && !apiKey.isBlank();
+        return !endpointId.isBlank() && !apiKey.isBlank() && !publicUrl.isBlank();
     }
 
-    public String dispatch(UUID renderId) {
+    public String dispatch(UUID renderId, String callbackToken) {
         if (!isConfigured()) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
@@ -50,8 +53,13 @@ public class RunpodGpuRenderDispatcher {
         }
 
         try {
+            Map<String, Object> input = new LinkedHashMap<>();
+            input.put("renderId", renderId.toString());
+            input.put("callbackToken", callbackToken);
+            input.put("backendUrl", publicUrl);
+
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("input", Map.of("renderId", renderId.toString()));
+            body.put("input", input);
             body.put("policy", Map.of(
                     "executionTimeout", 300_000,
                     "ttl", 900_000
