@@ -2,11 +2,13 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
+const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 94);
 const DISPLAY = process.env.DISPLAY || ':99';
 
 function sleep(ms) {
@@ -73,17 +75,28 @@ async function upload(renderId, filePath) {
   }
 }
 
-async function recordDisplay(output, fps, durationMs, width, height) {
-  const durationSeconds = Math.max(0.1, durationMs / 1000);
-  const input = `${DISPLAY}.0+0,0`;
+function selectFrames(frames, fps, durationMs) {
+  if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
+  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
+  if (count === 1) return [frames[0].buffer];
+  const result = [];
+  const maxSourceIndex = frames.length - 1;
+  const maxOutputIndex = count - 1;
+
+  for (let index = 0; index < count; index += 1) {
+    const sourceIndex = Math.min(maxSourceIndex, Math.round(index * maxSourceIndex / maxOutputIndex));
+    result.push(frames[sourceIndex].buffer);
+  }
+  return result;
+}
+
+async function encodeFrames(frames, output, fps) {
   const args = [
     '-hide_banner', '-loglevel', 'warning', '-y',
-    '-f', 'x11grab',
-    '-draw_mouse', '0',
+    '-f', 'image2pipe',
     '-framerate', String(fps),
-    '-video_size', `${width}x${height}`,
-    '-i', input,
-    '-t', durationSeconds.toFixed(3),
+    '-vcodec', 'mjpeg',
+    '-i', 'pipe:0',
     '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -95,33 +108,123 @@ async function recordDisplay(output, fps, durationMs, width, height) {
     output
   ];
 
-  const child = spawn('ffmpeg', args, {
-    stdio: ['ignore', 'ignore', 'pipe'],
-    env: { ...process.env, DISPLAY }
-  });
-
+  const child = spawn('ffmpeg', args, { stdio: ['pipe', 'ignore', 'pipe'] });
   let stderr = '';
   child.stderr.on('data', chunk => {
     stderr += chunk.toString();
     if (stderr.length > 16000) stderr = stderr.slice(-16000);
   });
 
-  await new Promise((resolve, reject) => {
+  const completion = new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code, signal) => {
       if (code === 0) {
         resolve();
         return;
       }
-      reject(new Error(`x11grab ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-6000)}`));
+      reject(new Error(`ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-6000)}`));
     });
   });
 
+  try {
+    for (const frame of frames) {
+      if (!child.stdin.write(frame)) await once(child.stdin, 'drain');
+    }
+    child.stdin.end();
+    await completion;
+  } catch (error) {
+    if (!child.killed) child.kill('SIGKILL');
+    throw error;
+  }
+
   const stat = await fs.stat(output);
   if (stat.size < 200000) {
-    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${width}x${height}).`);
+    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes).`);
   }
   return stat.size;
+}
+
+async function startCompositorPulse(page) {
+  return page.evaluate(() => {
+    const existing = document.querySelector('[data-media-os-render-pulse="true"]');
+    if (existing) existing.remove();
+
+    const pulse = document.createElement('div');
+    pulse.setAttribute('data-media-os-render-pulse', 'true');
+    pulse.style.position = 'fixed';
+    pulse.style.right = '0';
+    pulse.style.bottom = '0';
+    pulse.style.width = '2px';
+    pulse.style.height = '2px';
+    pulse.style.background = '#050913';
+    pulse.style.opacity = '0.01';
+    pulse.style.pointerEvents = 'none';
+    pulse.style.willChange = 'transform';
+    pulse.style.zIndex = '2147483647';
+    document.body.appendChild(pulse);
+
+    let frames = 0;
+    let running = true;
+    const startedAt = performance.now();
+    const tick = () => {
+      if (!running) return;
+      frames += 1;
+      pulse.style.transform = frames % 2 === 0 ? 'translateX(0px)' : 'translateX(-1px)';
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+
+    window.__mediaOsStopRenderPulse = () => {
+      running = false;
+      pulse.remove();
+      return { frames, elapsedMs: performance.now() - startedAt };
+    };
+
+    return { visibility: document.visibilityState };
+  });
+}
+
+async function stopCompositorPulse(page) {
+  return page.evaluate(() => {
+    if (typeof window.__mediaOsStopRenderPulse !== 'function') return null;
+    return window.__mediaOsStopRenderPulse();
+  }).catch(() => null);
+}
+
+async function captureScreencast(page, fps, durationMs, width, height) {
+  const client = await page.target().createCDPSession();
+  const frames = [];
+  let captureStopped = false;
+
+  client.on('Page.screencastFrame', async event => {
+    if (captureStopped) return;
+    frames.push({
+      timestamp: Number(event.metadata?.timestamp),
+      buffer: Buffer.from(event.data, 'base64')
+    });
+    try {
+      await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
+    } catch {
+    }
+  });
+
+  await client.send('Page.startScreencast', {
+    format: 'jpeg',
+    quality: Math.max(70, Math.min(100, QUALITY)),
+    maxWidth: width,
+    maxHeight: height,
+    everyNthFrame: 1
+  });
+
+  await sleep(durationMs + 350);
+  captureStopped = true;
+  await client.send('Page.stopScreencast').catch(() => undefined);
+  await sleep(120);
+  await client.detach().catch(() => undefined);
+
+  const selected = selectFrames(frames, fps, durationMs);
+  const totalBytes = frames.reduce((sum, frame) => sum + frame.buffer.length, 0);
+  return { frames, selected, totalBytes };
 }
 
 async function render(job, chromiumPath) {
@@ -215,9 +318,26 @@ async function render(job, chromiumPath) {
     await page.bringToFront();
     await sleep(80);
 
+    const screenshotProbe = await page.screenshot({ type: 'jpeg', quality: 90, fullPage: false });
+    console.log(`Chromium screenshot probe: ${Buffer.from(screenshotProbe).length} JPEG bytes`);
+
+    const pulseProbe = await startCompositorPulse(page);
+    console.log(`Compositor pulse started, visibility=${pulseProbe.visibility}`);
+
+    const capture = await captureScreencast(page, fps, durationMs, width, height);
+    const pulseResult = await stopCompositorPulse(page);
+    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
+
+    if (capture.frames.length < Math.max(30, Math.floor(durationMs / 1000 * 5))) {
+      throw new Error(`Screencast produced only ${capture.frames.length} source frames for ${durationMs}ms.`);
+    }
+
+    if (capture.totalBytes < 1000000) {
+      throw new Error(`Screencast appears visually empty (${capture.totalBytes} JPEG bytes across ${capture.frames.length} frames).`);
+    }
+
     const output = path.join(workDir, 'preview.mp4');
-    console.log(`Recording Xvfb display ${DISPLAY} at ${width}x${height} ${fps}fps for ${durationMs}ms`);
-    const outputBytes = await recordDisplay(output, fps, durationMs, width, height);
+    const outputBytes = await encodeFrames(capture.selected, output, fps);
     await upload(job.renderId, output);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
   } finally {
