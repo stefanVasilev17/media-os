@@ -1,6 +1,5 @@
 package com.architecturalthinking.mediaos.spline;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,16 +16,12 @@ public class SplineGpuRenderController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final int MAX_VIDEO_BYTES = 96 * 1024 * 1024;
+    private static final String TOKEN_PREFIX = "GPU_TOKEN:";
 
     private final JdbcClient jdbc;
-    private final String workerToken;
 
-    public SplineGpuRenderController(
-            JdbcClient jdbc,
-            @Value("${MEDIA_OS_GPU_WORKER_TOKEN:}") String workerToken
-    ) {
+    public SplineGpuRenderController(JdbcClient jdbc) {
         this.jdbc = jdbc;
-        this.workerToken = workerToken == null ? "" : workerToken.trim();
     }
 
     public record RenderFailure(String error) {}
@@ -36,7 +31,7 @@ public class SplineGpuRenderController {
             @PathVariable UUID renderId,
             @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token
     ) {
-        requireToken(token);
+        requireToken(renderId, token);
         return jdbc.sql("""
                 select id, shot_id, shot_key, revision, status, width, height, fps, duration_ms
                 from spline_shot_render
@@ -66,19 +61,17 @@ public class SplineGpuRenderController {
     @Transactional
     public Map<String, Object> start(
             @PathVariable UUID renderId,
-            @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token,
-            @RequestHeader(value = "X-Media-OS-GPU-Worker", defaultValue = "RUNPOD_GPU") String workerId
+            @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token
     ) {
-        requireToken(token);
+        requireToken(renderId, token);
         int updated = jdbc.sql("""
                 update spline_shot_render
-                set status='RUNNING', progress=5, worker_id=:workerId,
+                set status='RUNNING', progress=5,
                     claimed_at=coalesce(claimed_at, now()),
                     started_at=coalesce(started_at, now()),
                     error=null, updated_at=now()
                 where id=:id and project_id=:projectId and status in ('QUEUED', 'RUNNING')
                 """)
-                .param("workerId", workerId)
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
                 .update();
@@ -93,10 +86,9 @@ public class SplineGpuRenderController {
     public Map<String, Object> complete(
             @PathVariable UUID renderId,
             @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token,
-            @RequestHeader(value = "X-Media-OS-GPU-Worker", defaultValue = "RUNPOD_GPU") String workerId,
             @RequestBody byte[] video
     ) {
-        requireToken(token);
+        requireToken(renderId, token);
         if (video.length == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rendered video is empty.");
         }
@@ -107,13 +99,11 @@ public class SplineGpuRenderController {
         int updated = jdbc.sql("""
                 update spline_shot_render
                 set status='SUCCEEDED', progress=100, media_type='video/mp4', video_data=:video,
-                    size_bytes=:sizeBytes, worker_id=:workerId, error=null,
-                    finished_at=now(), updated_at=now()
+                    size_bytes=:sizeBytes, error=null, finished_at=now(), updated_at=now()
                 where id=:id and project_id=:projectId and status='RUNNING'
                 """)
                 .param("video", video)
                 .param("sizeBytes", video.length)
-                .param("workerId", workerId)
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
                 .update();
@@ -128,10 +118,9 @@ public class SplineGpuRenderController {
     public Map<String, Object> fail(
             @PathVariable UUID renderId,
             @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token,
-            @RequestHeader(value = "X-Media-OS-GPU-Worker", defaultValue = "RUNPOD_GPU") String workerId,
             @RequestBody RenderFailure failure
     ) {
-        requireToken(token);
+        requireToken(renderId, token);
         String error = failure.error() == null || failure.error().isBlank()
                 ? "GPU render failed."
                 : failure.error().trim();
@@ -139,11 +128,10 @@ public class SplineGpuRenderController {
 
         jdbc.sql("""
                 update spline_shot_render
-                set status='FAILED', progress=0, worker_id=:workerId, error=:error,
+                set status='FAILED', progress=0, error=:error,
                     finished_at=now(), updated_at=now()
                 where id=:id and project_id=:projectId
                 """)
-                .param("workerId", workerId)
                 .param("error", error)
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
@@ -151,12 +139,24 @@ public class SplineGpuRenderController {
         return Map.of("renderId", renderId, "status", "FAILED", "error", error);
     }
 
-    private void requireToken(String token) {
-        if (workerToken.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GPU worker authentication is not configured.");
+    private void requireToken(UUID renderId, String token) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing GPU render callback token.");
         }
-        if (token == null || !constantTimeEquals(workerToken, token.trim())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid GPU worker token.");
+        String expected = jdbc.sql("""
+                select coalesce(worker_id, '')
+                from spline_shot_render
+                where id=:id and project_id=:projectId
+                """)
+                .param("id", renderId)
+                .param("projectId", PROJECT_ID)
+                .query(String.class)
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "GPU render job was not found."));
+
+        String actual = TOKEN_PREFIX + token.trim();
+        if (!constantTimeEquals(expected, actual)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid GPU render callback token.");
         }
     }
 
