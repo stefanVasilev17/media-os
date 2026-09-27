@@ -100,16 +100,19 @@ public class SplineShotRenderController {
 
     @GetMapping("/shots/{shotId}/latest")
     public Map<String, Object> latestForShot(@PathVariable UUID shotId) {
+        ShotSource source = loadShotSource(shotId);
+        String renderHash = renderHash(source.spec());
         return jdbc.sql("""
                 select id, shot_id, shot_key, revision, status, width, height, fps, duration_ms,
                        progress, size_bytes, error, created_at, finished_at
                 from spline_shot_render
-                where project_id=:projectId and shot_id=:shotId
+                where project_id=:projectId and shot_id=:shotId and render_hash=:renderHash
                 order by created_at desc
                 limit 1
                 """)
                 .param("projectId", PROJECT_ID)
                 .param("shotId", shotId)
+                .param("renderHash", renderHash)
                 .query(this::mapRenderRow)
                 .optional()
                 .map(this::response)
@@ -299,7 +302,7 @@ public class SplineShotRenderController {
 
     private String renderHash(Map<String, Object> spec) {
         try {
-            String material = runtimeUrl + "\n" + objectMapper.writeValueAsString(spec) + "\n" + WIDTH + "x" + HEIGHT + "@" + FPS + "-h264-x11-software-composite-v4";
+            String material = runtimeUrl + "\n" + objectMapper.writeValueAsString(spec) + "\n" + WIDTH + "x" + HEIGHT + "@" + FPS + "-native30-viewport-safe-framing-v5";
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(material.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (Exception ex) {
