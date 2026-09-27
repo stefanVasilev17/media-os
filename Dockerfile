@@ -27,5 +27,6 @@ COPY --from=render-worker-build /render-worker /app/render-worker
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/docker-entrypoint.sh /app/chromium-software-webgl.sh
+ENV CHROMIUM_PATH=/app/chromium-software-webgl.sh
 EXPOSE 8080
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
