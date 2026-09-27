@@ -21,12 +21,15 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN apk add --no-cache nodejs chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates
+RUN apk add --no-cache nodejs chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium
 COPY --from=backend-build /backend/target/media-os-0.1.0-SNAPSHOT.jar app.jar
 COPY --from=render-worker-build /render-worker /app/render-worker
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/docker-entrypoint.sh /app/chromium-software-webgl.sh
 ENV CHROMIUM_PATH=/app/chromium-software-webgl.sh
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV GALLIUM_DRIVER=llvmpipe
+ENV MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
 EXPOSE 8080
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
