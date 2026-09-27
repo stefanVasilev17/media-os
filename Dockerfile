@@ -21,7 +21,7 @@ RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN apk add --no-cache nodejs chromium ffmpeg nss freetype harfbuzz ttf-freefont ca-certificates
+RUN apk add --no-cache nodejs chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates
 COPY --from=backend-build /backend/target/media-os-0.1.0-SNAPSHOT.jar app.jar
 COPY --from=render-worker-build /render-worker /app/render-worker
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
