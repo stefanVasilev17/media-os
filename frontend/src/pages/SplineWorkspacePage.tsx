@@ -63,7 +63,9 @@ export function SplineWorkspacePage() {
     refresh().catch(() => undefined);
   }, [refresh]);
 
-  const renderInFlight = Boolean(latestRender && ['QUEUED', 'RENDERING'].includes(latestRender.status));
+  const renderInFlight = Boolean(
+    renderActivated && latestRender && ['QUEUED', 'RENDERING'].includes(latestRender.status)
+  );
 
   useEffect(() => {
     if (!pendingShotJobId && !renderInFlight) return;
@@ -106,6 +108,7 @@ export function SplineWorkspacePage() {
       const render = await ensureSplineShotRender(latestShot.id);
       setLatestRender(render);
     } catch (error) {
+      setRenderActivated(false);
       appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not start the render.');
     } finally {
       setBusy(false);
@@ -137,8 +140,10 @@ export function SplineWorkspacePage() {
     return <ShotVideoPreviewOverlay shot={previewShot} render={previewRender} onComplete={returnFromPreview} />;
   }
 
-  const previewReady = Boolean(renderActivated && latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId);
-  const renderFailed = latestRender?.status === 'FAILED';
+  const previewReady = Boolean(
+    renderActivated && latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId
+  );
+  const renderFailed = Boolean(renderActivated && latestRender?.status === 'FAILED');
   const preparing = Boolean(pendingShotJobId || renderInFlight || busy);
   const manualRenderReady = Boolean(latestShot && !pendingShotJobId && !renderInFlight && !renderActivated);
 
@@ -193,7 +198,7 @@ export function SplineWorkspacePage() {
         disabled={preparing || (!manualRenderReady && !previewReady && !renderFailed)}
         onClick={() => renderFailed || manualRenderReady ? void startRender() : startPreview()}
       >
-        {renderFailed || manualRenderReady
+        {renderFailed
           ? <RefreshCw size={18} />
           : preparing
             ? <LoaderCircle size={18} className="spin" />
