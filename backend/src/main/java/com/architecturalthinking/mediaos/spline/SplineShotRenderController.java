@@ -26,6 +26,7 @@ public class SplineShotRenderController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String SHOT_TASK_TYPE = "CREATE_RUNTIME_SHOT_V1";
+    private static final String TOKEN_PREFIX = "GPU_TOKEN:";
     private static final int WIDTH = 1920;
     private static final int HEIGHT = 1080;
     private static final int FPS = 60;
@@ -60,28 +61,31 @@ public class SplineShotRenderController {
                 return response(row);
             }
             requireGpuConfigured();
+            String callbackToken = newCallbackToken();
             jdbc.sql("""
                     update spline_shot_render
-                    set status='QUEUED', progress=0, worker_id=null, error=null,
+                    set status='QUEUED', progress=0, worker_id=:workerId, error=null,
                         claimed_at=null, started_at=null, finished_at=null, updated_at=now()
                     where id=:id
                     """)
+                    .param("workerId", TOKEN_PREFIX + callbackToken)
                     .param("id", row.id())
                     .update();
-            dispatchOrFail(row.id());
+            dispatchOrFail(row.id(), callbackToken);
             return response(findById(row.id()).orElseThrow());
         }
 
         requireGpuConfigured();
         UUID renderId = UUID.randomUUID();
+        String callbackToken = newCallbackToken();
         jdbc.sql("""
                 insert into spline_shot_render(
                     id, project_id, shot_id, shot_key, revision, render_hash, status,
-                    width, height, fps, duration_ms, progress
+                    width, height, fps, duration_ms, progress, worker_id
                 )
                 values (
                     :id, :projectId, :shotId, :shotKey, :revision, :renderHash, 'QUEUED',
-                    :width, :height, :fps, :durationMs, 0
+                    :width, :height, :fps, :durationMs, 0, :workerId
                 )
                 """)
                 .param("id", renderId)
@@ -94,9 +98,10 @@ public class SplineShotRenderController {
                 .param("height", HEIGHT)
                 .param("fps", FPS)
                 .param("durationMs", source.durationMs())
+                .param("workerId", TOKEN_PREFIX + callbackToken)
                 .update();
 
-        dispatchOrFail(renderId);
+        dispatchOrFail(renderId, callbackToken);
         return response(findById(renderId).orElseThrow());
     }
 
@@ -181,17 +186,14 @@ public class SplineShotRenderController {
         }
     }
 
-    private void dispatchOrFail(UUID renderId) {
+    private String newCallbackToken() {
+        return UUID.randomUUID().toString().replace("-", "")
+                + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private void dispatchOrFail(UUID renderId, String callbackToken) {
         try {
-            String runpodJobId = gpuDispatcher.dispatch(renderId);
-            jdbc.sql("""
-                    update spline_shot_render
-                    set worker_id=:workerId, progress=1, updated_at=now()
-                    where id=:id and status='QUEUED' and worker_id is null
-                    """)
-                    .param("workerId", "RUNPOD_JOB:" + runpodJobId)
-                    .param("id", renderId)
-                    .update();
+            gpuDispatcher.dispatch(renderId, callbackToken);
         } catch (RuntimeException ex) {
             String message = ex.getMessage() == null || ex.getMessage().isBlank()
                     ? "Could not dispatch the GPU render job."
