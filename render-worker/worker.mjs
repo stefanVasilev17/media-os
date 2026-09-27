@@ -9,6 +9,7 @@ const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
 const DISPLAY = process.env.DISPLAY || ':99';
 const INTERNAL_MAX_WIDTH = Number(process.env.MEDIA_OS_RENDER_INTERNAL_WIDTH || 1600);
+const CAPTURE_FPS = Math.max(8, Math.min(15, Number(process.env.MEDIA_OS_RENDER_CAPTURE_FPS || 12)));
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -85,35 +86,7 @@ async function upload(renderId, filePath) {
   }
 }
 
-async function recordDisplay(output, fps, durationMs, captureWidth, captureHeight, outputWidth, outputHeight) {
-  const durationSeconds = Math.max(0.1, durationMs / 1000);
-  const input = `${DISPLAY}.0+0,0`;
-  const args = [
-    '-hide_banner', '-loglevel', 'warning', '-y',
-    '-f', 'x11grab',
-    '-draw_mouse', '0',
-    '-framerate', String(fps),
-    '-video_size', `${captureWidth}x${captureHeight}`,
-    '-i', input,
-    '-t', durationSeconds.toFixed(3),
-    '-an'
-  ];
-
-  if (captureWidth !== outputWidth || captureHeight !== outputHeight) {
-    args.push('-vf', `scale=${outputWidth}:${outputHeight}:flags=bicubic`);
-  }
-
-  args.push(
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-crf', '18',
-    '-pix_fmt', 'yuv420p',
-    '-threads', '1',
-    '-filter_threads', '1',
-    '-movflags', '+faststart',
-    output
-  );
-
+async function runFfmpeg(args, label) {
   const child = spawn('ffmpeg', args, {
     stdio: ['ignore', 'ignore', 'pipe'],
     env: { ...process.env, DISPLAY }
@@ -122,7 +95,7 @@ async function recordDisplay(output, fps, durationMs, captureWidth, captureHeigh
   let stderr = '';
   child.stderr.on('data', chunk => {
     stderr += chunk.toString();
-    if (stderr.length > 16000) stderr = stderr.slice(-16000);
+    if (stderr.length > 20000) stderr = stderr.slice(-20000);
   });
 
   await new Promise((resolve, reject) => {
@@ -132,14 +105,89 @@ async function recordDisplay(output, fps, durationMs, captureWidth, captureHeigh
         resolve();
         return;
       }
-      reject(new Error(`x11grab ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-6000)}`));
+      reject(new Error(`${label} exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-7000)}`));
     });
   });
+}
 
+async function recordDisplay(output, durationMs, captureWidth, captureHeight) {
+  const durationSeconds = Math.max(0.1, durationMs / 1000);
+  const input = `${DISPLAY}.0+0,0`;
+  const args = [
+    '-hide_banner', '-loglevel', 'warning', '-y',
+    '-f', 'x11grab',
+    '-draw_mouse', '0',
+    '-framerate', String(CAPTURE_FPS),
+    '-video_size', `${captureWidth}x${captureHeight}`,
+    '-i', input,
+    '-t', durationSeconds.toFixed(3),
+    '-an',
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',
+    '-tune', 'zerolatency',
+    '-crf', '16',
+    '-pix_fmt', 'yuv420p',
+    '-threads', '1',
+    '-movflags', '+faststart',
+    output
+  ];
+
+  const startedAt = Date.now();
+  await runFfmpeg(args, 'x11grab ffmpeg');
+  const wallMs = Date.now() - startedAt;
   const stat = await fs.stat(output);
-  if (stat.size < 200000) {
-    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${outputWidth}x${outputHeight}).`);
+  if (stat.size < 40000) {
+    throw new Error(`Captured source appears visually empty (${stat.size} bytes for ${durationMs}ms at ${captureWidth}x${captureHeight}).`);
   }
+  console.log(`Captured ${captureWidth}x${captureHeight} at ${CAPTURE_FPS}fps: ${stat.size} bytes in ${wallMs}ms wall time`);
+  if (wallMs > durationMs * 1.20 + 1500) {
+    console.warn(`Capture ran slower than real time: requested=${durationMs}ms wall=${wallMs}ms`);
+  }
+  return stat.size;
+}
+
+async function smoothAndScale(input, output, fps, durationMs, captureWidth, captureHeight, outputWidth, outputHeight) {
+  const durationSeconds = Math.max(0.1, durationMs / 1000);
+  const scale = captureWidth === outputWidth && captureHeight === outputHeight
+    ? ''
+    : `,scale=${outputWidth}:${outputHeight}:flags=lanczos`;
+  const mciFilter = `minterpolate=fps=${fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1${scale}`;
+  const blendFilter = `minterpolate=fps=${fps}:mi_mode=blend${scale}`;
+
+  const encode = async filter => {
+    const args = [
+      '-hide_banner', '-loglevel', 'warning', '-y',
+      '-i', input,
+      '-t', durationSeconds.toFixed(3),
+      '-an',
+      '-vf', filter,
+      '-r', String(fps),
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-crf', '18',
+      '-pix_fmt', 'yuv420p',
+      '-threads', '2',
+      '-filter_threads', '2',
+      '-movflags', '+faststart',
+      output
+    ];
+    await runFfmpeg(args, 'smoothing ffmpeg');
+  };
+
+  const startedAt = Date.now();
+  try {
+    await encode(mciFilter);
+  } catch (error) {
+    console.warn(`Motion-compensated interpolation failed; falling back to blend interpolation: ${error instanceof Error ? error.message : String(error)}`);
+    await encode(blendFilter);
+  }
+
+  const wallMs = Date.now() - startedAt;
+  const stat = await fs.stat(output);
+  if (stat.size < 50000) {
+    throw new Error(`Smoothed MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${outputWidth}x${outputHeight}).`);
+  }
+  console.log(`Smoothed ${CAPTURE_FPS}fps capture -> ${fps}fps ${outputWidth}x${outputHeight}: ${stat.size} bytes in ${wallMs}ms`);
   return stat.size;
 }
 
@@ -267,9 +315,10 @@ async function render(job, chromiumPath) {
       throw new Error(pageCrashError || 'Chromium page closed before capture.');
     }
 
+    const source = path.join(workDir, 'capture.mp4');
     const output = path.join(workDir, 'preview.mp4');
-    console.log(`Recording Xvfb ${capture.width}x${capture.height} -> ${width}x${height} at ${fps}fps for ${durationMs}ms`);
-    const outputBytes = await recordDisplay(output, fps, durationMs, capture.width, capture.height, width, height);
+    console.log(`Recording Xvfb ${capture.width}x${capture.height} at ${CAPTURE_FPS}fps for ${durationMs}ms before ${fps}fps smoothing`);
+    await recordDisplay(source, durationMs, capture.width, capture.height);
 
     if (pageCrashError || page.isClosed()) {
       throw new Error(pageCrashError || 'Chromium page closed during capture.');
@@ -284,6 +333,20 @@ async function render(job, chromiumPath) {
     if (finalState.state === 'error') {
       throw new Error(`Spline runtime preview failed during capture: ${finalState.error || 'unknown preview error'}`);
     }
+
+    await browser.close().catch(() => undefined);
+    browser = null;
+
+    const outputBytes = await smoothAndScale(
+      source,
+      output,
+      fps,
+      durationMs,
+      capture.width,
+      capture.height,
+      width,
+      height
+    );
 
     await upload(job.renderId, output);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
@@ -300,6 +363,7 @@ async function main() {
   console.log(`Chromium: ${chromiumPath}`);
   console.log(`Display: ${DISPLAY}`);
   console.log(`Internal render width: ${INTERNAL_MAX_WIDTH}`);
+  console.log(`Capture cadence: ${CAPTURE_FPS}fps -> smoothed output cadence`);
 
   while (true) {
     let job = null;
