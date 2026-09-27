@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, gpu-dev]
 
 jobs:
   frontend:
@@ -31,6 +31,15 @@ jobs:
           java-version: '21'
           cache: maven
       - run: mvn -B test
+
+  gpu-worker-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production GPU worker image
+        run: docker build -f gpu-render-worker/Dockerfile -t media-os-gpu-worker:preflight .
+      - name: Run container preflight suite
+        run: docker run --rm --entrypoint /bin/bash media-os-gpu-worker:preflight -lc /app/ci-preflight.sh
 
   windows-worker:
     runs-on: windows-latest
