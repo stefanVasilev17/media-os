@@ -164,13 +164,17 @@
   opacity: 0.34;
 }
 
-.spline-minimal-preview {
+.spline-minimal-media-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.spline-minimal-preview,
+.spline-minimal-download {
   width: 100%;
   min-height: 56px;
-  border: 1px solid rgba(82, 222, 181, 0.34);
   border-radius: 16px;
-  background: rgba(28, 132, 109, 0.13);
-  color: #dffff3;
   font-size: 15px;
   font-weight: 780;
   display: inline-flex;
@@ -180,11 +184,28 @@
   transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
 }
 
+.spline-minimal-preview {
+  border: 1px solid rgba(82, 222, 181, 0.34);
+  background: rgba(28, 132, 109, 0.13);
+  color: #dffff3;
+}
+
 .spline-minimal-preview:not(:disabled):active {
   background: rgba(28, 132, 109, 0.22);
 }
 
-.spline-minimal-preview:disabled {
+.spline-minimal-download {
+  border: 1px solid rgba(87, 184, 239, 0.32);
+  background: rgba(40, 107, 160, 0.13);
+  color: #d9f2ff;
+}
+
+.spline-minimal-download:not(:disabled):active {
+  background: rgba(40, 107, 160, 0.23);
+}
+
+.spline-minimal-preview:disabled,
+.spline-minimal-download:disabled {
   opacity: 0.48;
 }
 
@@ -215,5 +236,9 @@
   .spline-minimal-composer textarea {
     min-height: 104px;
     font-size: 14px;
+  }
+
+  .spline-minimal-media-actions {
+    grid-template-columns: 1fr;
   }
 }
