@@ -96,8 +96,8 @@ function runtimeZoom(object: RuntimeObject, fallback: number) {
 
 function cameraZoomFallback(cameraName: string, fallback: number) {
   const normalized = cameraName.trim().toUpperCase();
-  if (normalized === 'CAM_LOGIN') return 0.42;
-  if (normalized === 'CAM_CLIENT_REVEAL') return 0.30;
+  if (normalized === 'CAM_LOGIN') return 0.18;
+  if (normalized === 'CAM_CLIENT_REVEAL') return 0.16;
   return fallback;
 }
 
@@ -232,6 +232,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     const canvas = canvasRef.current;
     if (!canvas) return;
     const previewCanvas = canvas;
+    const runtimeWidth = Math.max(640, Math.round(window.innerWidth || PREVIEW_WIDTH));
+    const runtimeHeight = Math.max(360, Math.round(window.innerHeight || PREVIEW_HEIGHT));
 
     const releaseRuntime = () => {
       const activeApp = appRef.current as RuntimeLookupApplication | null;
@@ -247,8 +249,8 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
     setStatus('loading');
     setError('');
     previewCanvas.style.visibility = 'hidden';
-    previewCanvas.width = PREVIEW_WIDTH;
-    previewCanvas.height = PREVIEW_HEIGHT;
+    previewCanvas.width = runtimeWidth;
+    previewCanvas.height = runtimeHeight;
     if (progressBarRef.current) progressBarRef.current.style.transform = 'scaleX(0)';
 
     async function run() {
@@ -269,7 +271,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
         if (cancelled) return;
 
         const controlledApp = app as RuntimeLookupApplication;
-        controlledApp.setSize?.(PREVIEW_WIDTH, PREVIEW_HEIGHT);
+        controlledApp.setSize?.(runtimeWidth, runtimeHeight);
         controlledApp.pauseGameControls?.();
         app.play();
         await nextFrame();
@@ -541,7 +543,7 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
       {status === 'loading' && (
         <div className="shot-preview-center-status">
           <LoaderCircle size={30} className="spin" />
-          <strong>Calibrating 1920×1080 shot cameras…</strong>
+          <strong>Calibrating shot cameras…</strong>
         </div>
       )}
       {status === 'error' && (
