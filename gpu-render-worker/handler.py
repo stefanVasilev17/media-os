@@ -89,6 +89,30 @@ def compact_process_error(process: subprocess.CompletedProcess) -> str:
     return f"GPU browser render failed with exit code {process.returncode}. No renderer output was captured."
 
 
+def run_gpu_preflight():
+    process = subprocess.run(
+        ["node", "/app/gpu-preflight.mjs"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if process.stdout:
+        print(process.stdout, flush=True)
+    if process.stderr:
+        print(process.stderr, flush=True)
+    if process.returncode != 0:
+        stderr = (process.stderr or "").strip()
+        stdout = (process.stdout or "").strip()
+        details = stderr[-1600:] or stdout[-1600:] or "No GPU preflight output was captured."
+        raise RuntimeError(f"GPU preflight failed with exit code {process.returncode}. {details}")
+
+    marker = "MEDIA_OS_GPU_PREFLIGHT="
+    for line in reversed((process.stdout or "").splitlines()):
+        if line.startswith(marker):
+            return json.loads(line[len(marker):])
+    raise RuntimeError("GPU preflight completed without a result marker.")
+
+
 def render_video(backend_url: str, work: dict, output_path: Path):
     payload = dict(work)
     payload["backendUrl"] = backend_url
@@ -112,6 +136,13 @@ def render_video(backend_url: str, work: dict, output_path: Path):
 
 def handler(job):
     input_data = job.get("input") or {}
+    mode = str(input_data.get("mode") or "render").strip().lower()
+
+    if mode == "preflight":
+        gpu = ensure_gpu_available()
+        result = run_gpu_preflight()
+        return {**result, "gpu": gpu}
+
     render_id = str(input_data.get("renderId") or "").strip()
     callback_token = str(input_data.get("callbackToken") or "").strip()
     backend_url = str(input_data.get("backendUrl") or "").strip().rstrip("/")
@@ -146,4 +177,5 @@ def handler(job):
         raise
 
 
-runpod.serverless.start({"handler": handler})
+if __name__ == "__main__":
+    runpod.serverless.start({"handler": handler})
