@@ -2,13 +2,12 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { once } from 'node:events';
 import puppeteer from 'puppeteer-core';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
-const QUALITY = Number(process.env.MEDIA_OS_RENDER_JPEG_QUALITY || 94);
+const DISPLAY = process.env.DISPLAY || ':99';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -74,28 +73,17 @@ async function upload(renderId, filePath) {
   }
 }
 
-function selectFrames(frames, fps, durationMs) {
-  if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
-  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
-  if (count === 1) return [frames[0].buffer];
-  const result = [];
-  const maxSourceIndex = frames.length - 1;
-  const maxOutputIndex = count - 1;
-
-  for (let index = 0; index < count; index += 1) {
-    const sourceIndex = Math.min(maxSourceIndex, Math.round(index * maxSourceIndex / maxOutputIndex));
-    result.push(frames[sourceIndex].buffer);
-  }
-  return result;
-}
-
-async function encodeFrames(frames, output, fps) {
+async function recordDisplay(output, fps, durationMs, width, height) {
+  const durationSeconds = Math.max(0.1, durationMs / 1000);
+  const input = `${DISPLAY}.0+0,0`;
   const args = [
     '-hide_banner', '-loglevel', 'warning', '-y',
-    '-f', 'image2pipe',
+    '-f', 'x11grab',
+    '-draw_mouse', '0',
     '-framerate', String(fps),
-    '-vcodec', 'mjpeg',
-    '-i', 'pipe:0',
+    '-video_size', `${width}x${height}`,
+    '-i', input,
+    '-t', durationSeconds.toFixed(3),
     '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -107,118 +95,33 @@ async function encodeFrames(frames, output, fps) {
     output
   ];
 
-  const child = spawn('ffmpeg', args, { stdio: ['pipe', 'ignore', 'pipe'] });
+  const child = spawn('ffmpeg', args, {
+    stdio: ['ignore', 'ignore', 'pipe'],
+    env: { ...process.env, DISPLAY }
+  });
+
   let stderr = '';
   child.stderr.on('data', chunk => {
     stderr += chunk.toString();
-    if (stderr.length > 12000) stderr = stderr.slice(-12000);
+    if (stderr.length > 16000) stderr = stderr.slice(-16000);
   });
 
-  const completion = new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     child.on('error', reject);
     child.on('close', (code, signal) => {
       if (code === 0) {
         resolve();
         return;
       }
-      reject(new Error(`ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-5000)}`));
+      reject(new Error(`x11grab ffmpeg exited code=${code ?? 'null'} signal=${signal ?? 'none'}: ${stderr.slice(-6000)}`));
     });
   });
-
-  try {
-    for (const frame of frames) {
-      if (!child.stdin.write(frame)) await once(child.stdin, 'drain');
-    }
-    child.stdin.end();
-    await completion;
-  } catch (error) {
-    if (!child.killed) child.kill('SIGKILL');
-    throw error;
-  }
 
   const stat = await fs.stat(output);
-  if (stat.size < 1024) throw new Error(`ffmpeg created an invalid MP4 (${stat.size} bytes).`);
+  if (stat.size < 200000) {
+    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${width}x${height}).`);
+  }
   return stat.size;
-}
-
-async function startCompositorPulse(page) {
-  return page.evaluate(async () => {
-    const pulse = document.createElement('div');
-    pulse.setAttribute('data-media-os-render-pulse', 'true');
-    pulse.style.position = 'fixed';
-    pulse.style.right = '0';
-    pulse.style.bottom = '0';
-    pulse.style.width = '2px';
-    pulse.style.height = '2px';
-    pulse.style.background = '#050913';
-    pulse.style.opacity = '0.01';
-    pulse.style.pointerEvents = 'none';
-    pulse.style.willChange = 'transform';
-    pulse.style.zIndex = '2147483647';
-    document.body.appendChild(pulse);
-
-    let frames = 0;
-    let running = true;
-    const startedAt = performance.now();
-    const tick = () => {
-      if (!running) return;
-      frames += 1;
-      pulse.style.transform = frames % 2 === 0 ? 'translateX(0px)' : 'translateX(-1px)';
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-
-    window.__mediaOsStopRenderPulse = () => {
-      running = false;
-      pulse.remove();
-      return { frames, elapsedMs: performance.now() - startedAt };
-    };
-
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { frames, visibility: document.visibilityState };
-  });
-}
-
-async function stopCompositorPulse(page) {
-  return page.evaluate(() => {
-    if (typeof window.__mediaOsStopRenderPulse !== 'function') return null;
-    return window.__mediaOsStopRenderPulse();
-  }).catch(() => null);
-}
-
-async function captureScreencast(page, fps, durationMs, width, height) {
-  const client = await page.target().createCDPSession();
-  const frames = [];
-  let captureStopped = false;
-
-  client.on('Page.screencastFrame', async event => {
-    if (captureStopped) return;
-    frames.push({
-      timestamp: Number(event.metadata?.timestamp),
-      buffer: Buffer.from(event.data, 'base64')
-    });
-    try {
-      await client.send('Page.screencastFrameAck', { sessionId: event.sessionId });
-    } catch {
-    }
-  });
-
-  await client.send('Page.startScreencast', {
-    format: 'jpeg',
-    quality: Math.max(70, Math.min(100, QUALITY)),
-    maxWidth: width,
-    maxHeight: height,
-    everyNthFrame: 1
-  });
-
-  await sleep(durationMs + 350);
-  captureStopped = true;
-  await client.send('Page.stopScreencast').catch(() => undefined);
-  await sleep(120);
-
-  const selected = selectFrames(frames, fps, durationMs);
-  const totalBytes = frames.reduce((sum, frame) => sum + frame.buffer.length, 0);
-  return { frames, selected, totalBytes };
 }
 
 async function render(job, chromiumPath) {
@@ -249,17 +152,24 @@ async function render(job, chromiumPath) {
         '--ignore-gpu-blocklist',
         '--use-gl=angle',
         '--use-angle=swiftshader',
-        '--window-size=' + width + ',' + height,
+        '--window-position=0,0',
+        `--window-size=${width},${height}`,
+        '--force-device-scale-factor=1',
+        '--kiosk',
+        '--hide-scrollbars',
         '--autoplay-policy=no-user-gesture-required'
-      ]
+      ],
+      env: { ...process.env, DISPLAY }
     });
 
-    const page = await browser.newPage();
+    const pages = await browser.pages();
+    const page = pages[0] ?? await browser.newPage();
     await page.setViewport({ width, height, deviceScaleFactor: 1 });
     await page.bringToFront();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 90_000 });
 
     await page.addStyleTag({ content: `
+      html, body, #root { width: 100vw !important; height: 100vh !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #050913 !important; }
       .shot-preview-topbar,
       .shot-preview-center-status,
       .shot-preview-error,
@@ -274,31 +184,14 @@ async function render(job, chromiumPath) {
       if (!(canvas instanceof HTMLCanvasElement)) return false;
       const style = getComputedStyle(canvas);
       return style.visibility !== 'hidden' && canvas.width > 100 && canvas.height > 100;
-    }, { timeout: 90_000 });
+    }, { timeout: 90_000, polling: 16 });
 
-    const pulseProbe = await startCompositorPulse(page);
-    console.log(`Compositor pulse probe: ${pulseProbe.frames} rAF frames / 500ms, visibility=${pulseProbe.visibility}`);
-
-    const capture = await captureScreencast(page, fps, durationMs, width, height);
-    const pulseResult = await stopCompositorPulse(page);
-    const selectedBytes = capture.selected.reduce((sum, frame) => sum + frame.length, 0);
-    const avgSelectedBytes = capture.selected.length > 0 ? Math.round(selectedBytes / capture.selected.length) : 0;
-    const minSelectedBytes = capture.selected.length > 0 ? Math.min(...capture.selected.map(frame => frame.length)) : 0;
-    const maxSelectedBytes = capture.selected.length > 0 ? Math.max(...capture.selected.map(frame => frame.length)) : 0;
-    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, avgSelected=${avgSelectedBytes}, minSelected=${minSelectedBytes}, maxSelected=${maxSelectedBytes}, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
-
-    if (capture.frames.length < Math.max(10, Math.floor(durationMs / 1000))) {
-      throw new Error(`Screencast produced only ${capture.frames.length} source frames for ${durationMs}ms.`);
-    }
-    if (width >= 1280 && height >= 720 && avgSelectedBytes < 24000) {
-      throw new Error(`Spline WebGL capture appears blank (${avgSelectedBytes} average JPEG bytes at ${width}x${height}).`);
-    }
+    await page.bringToFront();
+    await sleep(80);
 
     const output = path.join(workDir, 'preview.mp4');
-    const outputBytes = await encodeFrames(capture.selected, output, fps);
-    if (width >= 1280 && height >= 720 && durationMs >= 5000 && outputBytes < 200000) {
-      throw new Error(`Rendered MP4 appears visually empty (${outputBytes} bytes for ${durationMs}ms at ${width}x${height}).`);
-    }
+    console.log(`Recording Xvfb display ${DISPLAY} at ${width}x${height} ${fps}fps for ${durationMs}ms`);
+    const outputBytes = await recordDisplay(output, fps, durationMs, width, height);
     await upload(job.renderId, output);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
   } finally {
@@ -312,7 +205,7 @@ async function main() {
   console.log(`Media OS render worker online: ${WORKER_ID}`);
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${chromiumPath}`);
-  console.log(`Display: ${process.env.DISPLAY || 'none'}`);
+  console.log(`Display: ${DISPLAY}`);
 
   while (true) {
     let job = null;
