@@ -32,7 +32,11 @@ RUN pip3 install --break-system-packages --no-cache-dir -r /app/requirements.txt
 
 COPY gpu-render-worker/handler.py /app/handler.py
 COPY gpu-render-worker/render.mjs /app/render.mjs
+COPY gpu-render-worker/gpu-preflight.mjs /app/gpu-preflight.mjs
+COPY gpu-render-worker/ci-browser-smoke.mjs /app/ci-browser-smoke.mjs
+COPY gpu-render-worker/ci-preflight.sh /app/ci-preflight.sh
+COPY gpu-render-worker/test_handler.py /app/test_handler.py
 COPY gpu-render-worker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh /app/ci-preflight.sh
 
 ENTRYPOINT ["/app/entrypoint.sh"]
