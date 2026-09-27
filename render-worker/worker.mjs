@@ -8,9 +8,21 @@ const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backe
 const WORKER_ID = process.env.RAILWAY_SERVICE_NAME || 'media-os-render-worker';
 const POLL_MS = Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500);
 const DISPLAY = process.env.DISPLAY || ':99';
+const INTERNAL_MAX_WIDTH = Number(process.env.MEDIA_OS_RENDER_INTERNAL_WIDTH || 1600);
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function even(value) {
+  const rounded = Math.max(2, Math.round(value));
+  return rounded % 2 === 0 ? rounded : rounded - 1;
+}
+
+function internalSize(outputWidth, outputHeight) {
+  const width = even(Math.min(outputWidth, INTERNAL_MAX_WIDTH));
+  const height = even(width * outputHeight / outputWidth);
+  return { width, height };
 }
 
 async function resolveChromiumPath() {
@@ -73,7 +85,7 @@ async function upload(renderId, filePath) {
   }
 }
 
-async function recordDisplay(output, fps, durationMs, width, height) {
+async function recordDisplay(output, fps, durationMs, captureWidth, captureHeight, outputWidth, outputHeight) {
   const durationSeconds = Math.max(0.1, durationMs / 1000);
   const input = `${DISPLAY}.0+0,0`;
   const args = [
@@ -81,10 +93,17 @@ async function recordDisplay(output, fps, durationMs, width, height) {
     '-f', 'x11grab',
     '-draw_mouse', '0',
     '-framerate', String(fps),
-    '-video_size', `${width}x${height}`,
+    '-video_size', `${captureWidth}x${captureHeight}`,
     '-i', input,
     '-t', durationSeconds.toFixed(3),
-    '-an',
+    '-an'
+  ];
+
+  if (captureWidth !== outputWidth || captureHeight !== outputHeight) {
+    args.push('-vf', `scale=${outputWidth}:${outputHeight}:flags=bicubic`);
+  }
+
+  args.push(
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-crf', '18',
@@ -93,7 +112,7 @@ async function recordDisplay(output, fps, durationMs, width, height) {
     '-filter_threads', '1',
     '-movflags', '+faststart',
     output
-  ];
+  );
 
   const child = spawn('ffmpeg', args, {
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -119,7 +138,7 @@ async function recordDisplay(output, fps, durationMs, width, height) {
 
   const stat = await fs.stat(output);
   if (stat.size < 200000) {
-    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${width}x${height}).`);
+    throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes for ${durationMs}ms at ${outputWidth}x${outputHeight}).`);
   }
   return stat.size;
 }
@@ -129,6 +148,7 @@ async function render(job, chromiumPath) {
   const height = Number(job.height || 1080);
   const fps = Number(job.fps || 30);
   const durationMs = Number(job.durationMs || 8000);
+  const capture = internalSize(width, height);
   const url = `${BACKEND_URL}${job.renderPagePath}`;
   const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `media-os-${job.renderId}-`));
   let browser;
@@ -138,7 +158,8 @@ async function render(job, chromiumPath) {
       executablePath: chromiumPath,
       headless: false,
       dumpio: true,
-      defaultViewport: { width, height, deviceScaleFactor: 1 },
+      ignoreDefaultArgs: ['--enable-automation'],
+      defaultViewport: { width: capture.width, height: capture.height, deviceScaleFactor: 1 },
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -154,8 +175,10 @@ async function render(job, chromiumPath) {
         '--use-gl=angle',
         '--use-angle=gl',
         '--ozone-platform=x11',
+        '--test-type',
+        '--disable-infobars',
         '--window-position=0,0',
-        `--window-size=${width},${height}`,
+        `--window-size=${capture.width},${capture.height}`,
         '--force-device-scale-factor=1',
         '--kiosk',
         '--hide-scrollbars',
@@ -172,6 +195,11 @@ async function render(job, chromiumPath) {
 
     const pages = await browser.pages();
     const page = pages[0] ?? await browser.newPage();
+    let pageCrashError = '';
+    page.on('error', error => {
+      pageCrashError = error?.message || 'Chromium page crashed.';
+      console.error(`Browser page crashed: ${pageCrashError}`);
+    });
     page.on('pageerror', error => console.error(`Browser page error: ${error.message}`));
     page.on('console', message => {
       if (message.type() === 'error' || message.type() === 'warning') {
@@ -179,7 +207,7 @@ async function render(job, chromiumPath) {
       }
     });
 
-    await page.setViewport({ width, height, deviceScaleFactor: 1 });
+    await page.setViewport({ width: capture.width, height: capture.height, deviceScaleFactor: 1 });
     await page.bringToFront();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 90_000 });
 
@@ -219,7 +247,6 @@ async function render(job, chromiumPath) {
     }, { timeout: 90_000, polling: 16 });
 
     await page.bringToFront();
-    await sleep(250);
 
     const renderState = await page.evaluate(() => ({
       state: document.documentElement.dataset.mediaOsRenderState || '',
@@ -232,13 +259,32 @@ async function render(job, chromiumPath) {
     const screenshotProbe = await page.screenshot({ type: 'jpeg', quality: 90, fullPage: false });
     const screenshotBytes = Buffer.from(screenshotProbe).length;
     console.log(`Chromium screenshot probe: ${screenshotBytes} JPEG bytes; renderState=${renderState.state || 'unknown'}`);
-    if (screenshotBytes < 25000) {
+    if (screenshotBytes < 20000) {
       throw new Error(`Chromium compositor is still visually empty (${screenshotBytes} JPEG bytes).`);
     }
 
+    if (pageCrashError || page.isClosed()) {
+      throw new Error(pageCrashError || 'Chromium page closed before capture.');
+    }
+
     const output = path.join(workDir, 'preview.mp4');
-    console.log(`Recording Xvfb display ${DISPLAY} at ${width}x${height} ${fps}fps for ${durationMs}ms`);
-    const outputBytes = await recordDisplay(output, fps, durationMs, width, height);
+    console.log(`Recording Xvfb ${capture.width}x${capture.height} -> ${width}x${height} at ${fps}fps for ${durationMs}ms`);
+    const outputBytes = await recordDisplay(output, fps, durationMs, capture.width, capture.height, width, height);
+
+    if (pageCrashError || page.isClosed()) {
+      throw new Error(pageCrashError || 'Chromium page closed during capture.');
+    }
+
+    const finalState = await page.evaluate(() => ({
+      state: document.documentElement.dataset.mediaOsRenderState || '',
+      error: document.documentElement.dataset.mediaOsRenderError || ''
+    })).catch(error => {
+      throw new Error(`Could not validate Chromium after capture: ${error.message}`);
+    });
+    if (finalState.state === 'error') {
+      throw new Error(`Spline runtime preview failed during capture: ${finalState.error || 'unknown preview error'}`);
+    }
+
     await upload(job.renderId, output);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
   } finally {
@@ -253,6 +299,7 @@ async function main() {
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${chromiumPath}`);
   console.log(`Display: ${DISPLAY}`);
+  console.log(`Internal render width: ${INTERNAL_MAX_WIDTH}`);
 
   while (true) {
     let job = null;
