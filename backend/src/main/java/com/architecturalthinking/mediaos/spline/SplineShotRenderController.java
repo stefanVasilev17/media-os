@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -29,27 +28,26 @@ public class SplineShotRenderController {
     private static final String SHOT_TASK_TYPE = "CREATE_RUNTIME_SHOT_V1";
     private static final int WIDTH = 1920;
     private static final int HEIGHT = 1080;
-    private static final int FPS = 30;
-    private static final int MAX_VIDEO_BYTES = 64 * 1024 * 1024;
+    private static final int FPS = 60;
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final RunpodGpuRenderDispatcher gpuDispatcher;
     private final String runtimeUrl;
 
     public SplineShotRenderController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
+            RunpodGpuRenderDispatcher gpuDispatcher,
             @Value("${MEDIA_OS_SPLINE_RUNTIME_URL:}") String runtimeUrl
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.gpuDispatcher = gpuDispatcher;
         this.runtimeUrl = runtimeUrl == null ? "" : runtimeUrl.trim();
     }
 
-    public record RenderFailure(String error) {}
-
     @PostMapping("/shots/{shotId}")
-    @Transactional
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, Object> ensureRender(@PathVariable UUID shotId) {
         ShotSource source = loadShotSource(shotId);
@@ -58,20 +56,23 @@ public class SplineShotRenderController {
         Optional<RenderRow> existing = findByShotAndHash(shotId, renderHash);
         if (existing.isPresent()) {
             RenderRow row = existing.get();
-            if ("FAILED".equals(row.status())) {
-                jdbc.sql("""
-                        update spline_shot_render
-                        set status='QUEUED', progress=0, worker_id=null, error=null,
-                            claimed_at=null, started_at=null, finished_at=null, updated_at=now()
-                        where id=:id
-                        """)
-                        .param("id", row.id())
-                        .update();
-                return response(findById(row.id()).orElseThrow());
+            if (!"FAILED".equals(row.status())) {
+                return response(row);
             }
-            return response(row);
+            requireGpuConfigured();
+            jdbc.sql("""
+                    update spline_shot_render
+                    set status='QUEUED', progress=0, worker_id=null, error=null,
+                        claimed_at=null, started_at=null, finished_at=null, updated_at=now()
+                    where id=:id
+                    """)
+                    .param("id", row.id())
+                    .update();
+            dispatchOrFail(row.id());
+            return response(findById(row.id()).orElseThrow());
         }
 
+        requireGpuConfigured();
         UUID renderId = UUID.randomUUID();
         jdbc.sql("""
                 insert into spline_shot_render(
@@ -95,6 +96,7 @@ public class SplineShotRenderController {
                 .param("durationMs", source.durationMs())
                 .update();
 
+        dispatchOrFail(renderId);
         return response(findById(renderId).orElseThrow());
     }
 
@@ -119,94 +121,15 @@ public class SplineShotRenderController {
                 .orElseGet(() -> Map.of("status", "EMPTY", "shotId", shotId));
     }
 
-    @PostMapping("/worker/claim")
-    @Transactional
-    public ResponseEntity<Map<String, Object>> claim(@RequestHeader(value = "X-Media-OS-Worker", defaultValue = "CLOUD-RENDER-WORKER") String workerId) {
-        Optional<RenderRow> claimed = jdbc.sql("""
-                with candidate as (
-                  select id
-                  from spline_shot_render
-                  where status='QUEUED'
-                  order by created_at
-                  for update skip locked
-                  limit 1
-                )
-                update spline_shot_render r
-                set status='RUNNING', progress=5, worker_id=:workerId,
-                    claimed_at=coalesce(r.claimed_at, now()),
-                    started_at=coalesce(r.started_at, now()),
-                    updated_at=now()
-                from candidate c
-                where r.id=c.id
-                returning r.id, r.shot_id, r.shot_key, r.revision, r.status,
-                          r.width, r.height, r.fps, r.duration_ms, r.progress,
-                          r.size_bytes, r.error, r.created_at, r.finished_at
-                """)
-                .param("workerId", workerId)
-                .query(this::mapRenderRow)
-                .optional();
-
-        if (claimed.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
-
-        RenderRow row = claimed.get();
-        Map<String, Object> body = new LinkedHashMap<>(response(row));
-        body.put("renderPagePath", "/#/render/spline-shot/" + row.shotId());
-        return ResponseEntity.ok(body);
-    }
-
-    @PutMapping(value = "/worker/{renderId}/complete", consumes = "video/mp4")
-    @Transactional
-    public Map<String, Object> complete(
-            @PathVariable UUID renderId,
-            @RequestHeader(value = "X-Media-OS-Worker", defaultValue = "CLOUD-RENDER-WORKER") String workerId,
-            @RequestBody byte[] video
-    ) {
-        if (video.length == 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rendered video is empty.");
-        }
-        if (video.length > MAX_VIDEO_BYTES) {
-            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Rendered preview is larger than 64 MB.");
-        }
-
-        int updated = jdbc.sql("""
-                update spline_shot_render
-                set status='SUCCEEDED', progress=100, media_type='video/mp4', video_data=:video,
-                    size_bytes=:sizeBytes, error=null, finished_at=now(), updated_at=now()
-                where id=:id and status='RUNNING' and worker_id=:workerId
-                """)
-                .param("video", video)
-                .param("sizeBytes", video.length)
-                .param("id", renderId)
-                .param("workerId", workerId)
-                .update();
-
-        if (updated == 0) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Render is not owned by this worker.");
-        }
-        return response(findById(renderId).orElseThrow());
-    }
-
-    @PostMapping("/worker/{renderId}/fail")
-    @Transactional
-    public Map<String, Object> fail(
-            @PathVariable UUID renderId,
-            @RequestHeader(value = "X-Media-OS-Worker", defaultValue = "CLOUD-RENDER-WORKER") String workerId,
-            @RequestBody RenderFailure failure
-    ) {
-        String error = failure.error() == null || failure.error().isBlank() ? "Cloud render failed." : failure.error().trim();
-        if (error.length() > 1800) error = error.substring(0, 1800);
-        jdbc.sql("""
-                update spline_shot_render
-                set status='FAILED', error=:error, finished_at=now(), updated_at=now()
-                where id=:id and worker_id=:workerId
-                """)
-                .param("error", error)
-                .param("id", renderId)
-                .param("workerId", workerId)
-                .update();
-        return response(findById(renderId).orElseThrow());
+    @GetMapping("/gpu-status")
+    public Map<String, Object> gpuStatus() {
+        return Map.of(
+                "configured", gpuDispatcher.isConfigured(),
+                "engine", "RUNPOD_SERVERLESS_GPU",
+                "width", WIDTH,
+                "height", HEIGHT,
+                "fps", FPS
+        );
     }
 
     @GetMapping("/{renderId}/video")
@@ -247,6 +170,43 @@ public class SplineShotRenderController {
         headers.setContentLength(slice.length);
         headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + bytes.length);
         return new ResponseEntity<>(slice, headers, HttpStatus.PARTIAL_CONTENT);
+    }
+
+    private void requireGpuConfigured() {
+        if (!gpuDispatcher.isConfigured()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Cloud GPU rendering is not configured yet."
+            );
+        }
+    }
+
+    private void dispatchOrFail(UUID renderId) {
+        try {
+            String runpodJobId = gpuDispatcher.dispatch(renderId);
+            jdbc.sql("""
+                    update spline_shot_render
+                    set worker_id=:workerId, progress=1, updated_at=now()
+                    where id=:id and status='QUEUED' and worker_id is null
+                    """)
+                    .param("workerId", "RUNPOD_JOB:" + runpodJobId)
+                    .param("id", renderId)
+                    .update();
+        } catch (RuntimeException ex) {
+            String message = ex.getMessage() == null || ex.getMessage().isBlank()
+                    ? "Could not dispatch the GPU render job."
+                    : ex.getMessage();
+            if (message.length() > 1800) message = message.substring(0, 1800);
+            jdbc.sql("""
+                    update spline_shot_render
+                    set status='FAILED', progress=0, error=:error, finished_at=now(), updated_at=now()
+                    where id=:id
+                    """)
+                    .param("error", message)
+                    .param("id", renderId)
+                    .update();
+            throw ex;
+        }
     }
 
     private long[] parseRange(String range, int length) {
@@ -302,7 +262,10 @@ public class SplineShotRenderController {
 
     private String renderHash(Map<String, Object> spec) {
         try {
-            String material = runtimeUrl + "\n" + objectMapper.writeValueAsString(spec) + "\n" + WIDTH + "x" + HEIGHT + "@" + FPS + "-native30-viewport-safe-framing-v5";
+            String material = runtimeUrl + "\n"
+                    + objectMapper.writeValueAsString(spec) + "\n"
+                    + WIDTH + "x" + HEIGHT + "@" + FPS
+                    + "-runpod-gpu-safe-group-centering-v6";
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(material.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (Exception ex) {
