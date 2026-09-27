@@ -11,6 +11,7 @@ import type {
   ZoomShotBeat
 } from '../api/splineShotApi';
 import { createRuntimeFlowExecutor, getRuntimeFlow } from '../lib/episodeRuntimeFlows';
+import { runtimeWorldPosition } from '../lib/runtimeObjectFocus';
 import type { RuntimeObject } from '../lib/runtimeSceneProof';
 import '../styles/shotPreview.css';
 
@@ -113,10 +114,11 @@ function pose(object: RuntimeObject, fallbackZoom: number): CameraPose {
 }
 
 function referencePose(reference: RuntimeObject, beat: CameraShotBeat, baseline: CameraPose): CameraPose {
+  const world = runtimeWorldPosition(reference);
   const zoom = beat.zoom ?? runtimeZoom(reference, cameraZoomFallback(beat.targetName, baseline.zoom));
   return {
-    x: finite(reference.position?.x, baseline.x),
-    y: finite(reference.position?.y, baseline.y),
+    x: finite(world.x, baseline.x),
+    y: finite(world.y, baseline.y),
     z: baseline.z,
     rx: baseline.rx,
     ry: baseline.ry,
