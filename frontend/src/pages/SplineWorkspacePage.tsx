@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Box, LoaderCircle, Play, RefreshCw, Send } from 'lucide-react';
+import { Box, Download, LoaderCircle, Play, RefreshCw, Send } from 'lucide-react';
 import { ShotVideoPreviewOverlay } from '../components/ShotVideoPreviewOverlay';
 import { SplineDirectorSceneView } from '../components/SplineDirectorSceneView';
 import {
@@ -23,6 +23,18 @@ function explicitlyStartsNewShot(value: string) {
   return /\bnew shot\b|\bnext shot\b|\bshot\s*0?\d+\b|нова сцена|следваща сцена|нов шот|следващ шот/.test(text);
 }
 
+function safeFilePart(value: string) {
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'SHOT';
+}
+
+function downloadFileName(shot: SplineShot, render: SplineShotRender) {
+  const shotKey = safeFilePart(shot.shotKey || 'SHOT');
+  return `${shotKey}_r${shot.revision}_${render.width}x${render.height}.mp4`;
+}
+
 export function SplineWorkspacePage() {
   const [latestShot, setLatestShot] = useState<SplineShot | null>(null);
   const [latestRender, setLatestRender] = useState<SplineShotRender | null>(null);
@@ -34,6 +46,7 @@ export function SplineWorkspacePage() {
   const [message, setMessage] = useState('');
   const [sessionMessages, setSessionMessages] = useState<SessionMessage[]>([]);
   const [busy, setBusy] = useState(false);
+  const [downloadBusy, setDownloadBusy] = useState(false);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const messageSequenceRef = useRef(0);
 
@@ -117,10 +130,31 @@ export function SplineWorkspacePage() {
 
   function startPreview() {
     if (!latestShot || !latestRender || latestRender.status !== 'READY' || !latestRender.videoUrl) return;
-    const fullscreen = document.documentElement.requestFullscreen;
-    if (typeof fullscreen === 'function') fullscreen.call(document.documentElement).catch(() => undefined);
     setPreviewShot(latestShot);
     setPreviewRender(latestRender);
+  }
+
+  async function downloadShot() {
+    if (!latestShot || !latestRender?.videoUrl || latestRender.status !== 'READY' || downloadBusy) return;
+    setDownloadBusy(true);
+    try {
+      const response = await fetch(latestRender.videoUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Shot video is not available for download.');
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = downloadFileName(latestShot, latestRender);
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+    } catch (error) {
+      appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not download the shot.');
+    } finally {
+      setDownloadBusy(false);
+    }
   }
 
   function returnFromPreview() {
@@ -128,11 +162,6 @@ export function SplineWorkspacePage() {
     setPreviewShot(null);
     setPreviewRender(null);
     if (completedShot) setRevisionShotId(completedShot.id);
-
-    if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
-      document.exitFullscreen().catch(() => undefined);
-    }
-
     window.setTimeout(() => composerRef.current?.focus(), 80);
   }
 
@@ -140,12 +169,12 @@ export function SplineWorkspacePage() {
     return <ShotVideoPreviewOverlay shot={previewShot} render={previewRender} onComplete={returnFromPreview} />;
   }
 
-  const previewReady = Boolean(
-    renderActivated && latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId
+  const mediaReady = Boolean(
+    latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId
   );
   const renderFailed = Boolean(renderActivated && latestRender?.status === 'FAILED');
   const preparing = Boolean(pendingShotJobId || renderInFlight || busy);
-  const manualRenderReady = Boolean(latestShot && !pendingShotJobId && !renderInFlight && !renderActivated);
+  const manualRenderReady = Boolean(latestShot && !pendingShotJobId && !renderInFlight && !mediaReady);
 
   return (
     <main className="spline-minimal-page">
@@ -192,25 +221,41 @@ export function SplineWorkspacePage() {
         </div>
       </section>
 
-      <button
-        type="button"
-        className={`spline-minimal-preview ${renderFailed ? 'failed' : ''}`}
-        disabled={preparing || (!manualRenderReady && !previewReady && !renderFailed)}
-        onClick={() => renderFailed || manualRenderReady ? void startRender() : startPreview()}
-      >
-        {renderFailed
-          ? <RefreshCw size={18} />
-          : preparing
-            ? <LoaderCircle size={18} className="spin" />
-            : <Play size={18} />}
-        {renderFailed
-          ? 'Retry render'
-          : manualRenderReady
-            ? 'Render shot'
+      {mediaReady ? (
+        <div className="spline-minimal-media-actions" aria-label="Shot video actions">
+          <button type="button" className="spline-minimal-preview" onClick={startPreview}>
+            <Play size={18} />
+            Preview shot
+          </button>
+          <button
+            type="button"
+            className="spline-minimal-download"
+            onClick={() => void downloadShot()}
+            disabled={downloadBusy}
+          >
+            {downloadBusy ? <LoaderCircle size={18} className="spin" /> : <Download size={18} />}
+            {downloadBusy ? 'Preparing download…' : 'Download shot'}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={`spline-minimal-preview ${renderFailed ? 'failed' : ''}`}
+          disabled={preparing || (!manualRenderReady && !renderFailed)}
+          onClick={() => void startRender()}
+        >
+          {renderFailed
+            ? <RefreshCw size={18} />
+            : preparing
+              ? <LoaderCircle size={18} className="spin" />
+              : <Play size={18} />}
+          {renderFailed
+            ? 'Retry render'
             : preparing
               ? 'Rendering…'
-              : 'Preview shot'}
-      </button>
+              : 'Render shot'}
+        </button>
+      )}
     </main>
   );
 }
