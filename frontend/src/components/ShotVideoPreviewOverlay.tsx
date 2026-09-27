@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { LoaderCircle, X } from 'lucide-react';
 import type { SplineShot, SplineShotRender } from '../api/splineShotApi';
 import '../styles/shotVideoPreview.css';
 
@@ -19,6 +19,8 @@ function formatTime(seconds: number) {
 export function ShotVideoPreviewOverlay({ shot, render, onComplete }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [time, setTime] = useState(0);
+  const [localVideoUrl, setLocalVideoUrl] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -34,13 +36,42 @@ export function ShotVideoPreviewOverlay({ shot, render, onComplete }: Props) {
   }, [onComplete]);
 
   useEffect(() => {
+    if (!render.videoUrl) return;
+    const controller = new AbortController();
+    let objectUrl = '';
+    setLocalVideoUrl('');
+    setLoadError('');
+    setTime(0);
+
+    fetch(render.videoUrl, { cache: 'no-store', signal: controller.signal })
+      .then(response => {
+        if (!response.ok) throw new Error('Shot video could not be loaded.');
+        return response.blob();
+      })
+      .then(blob => {
+        if (controller.signal.aborted) return;
+        objectUrl = URL.createObjectURL(blob);
+        setLocalVideoUrl(objectUrl);
+      })
+      .catch(error => {
+        if (controller.signal.aborted) return;
+        setLoadError(error instanceof Error ? error.message : 'Shot video could not be loaded.');
+      });
+
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [render.videoUrl]);
+
+  useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !localVideoUrl) return;
     const play = () => video.play().catch(() => undefined);
-    if (video.readyState >= 2) play();
+    if (video.readyState >= 3) play();
     else video.addEventListener('canplay', play, { once: true });
     return () => video.removeEventListener('canplay', play);
-  }, [render.videoUrl]);
+  }, [localVideoUrl]);
 
   return (
     <div className="shot-video-preview-overlay" role="dialog" aria-modal="true" aria-label={`Preview ${shot.name}`}>
@@ -53,16 +84,24 @@ export function ShotVideoPreviewOverlay({ shot, render, onComplete }: Props) {
       </div>
 
       <div className="shot-video-preview-stage">
-        <video
-          ref={videoRef}
-          src={render.videoUrl}
-          playsInline
-          muted
-          controls
-          preload="auto"
-          onTimeUpdate={event => setTime(event.currentTarget.currentTime)}
-          onEnded={onComplete}
-        />
+        {!localVideoUrl && !loadError && (
+          <div className="shot-video-preview-loading">
+            <LoaderCircle size={24} className="spin" />
+            <span>Loading full shot…</span>
+          </div>
+        )}
+        {loadError && <div className="shot-video-preview-error">{loadError}</div>}
+        {localVideoUrl && (
+          <video
+            ref={videoRef}
+            src={localVideoUrl}
+            playsInline
+            muted
+            controls
+            preload="auto"
+            onTimeUpdate={event => setTime(event.currentTarget.currentTime)}
+          />
+        )}
       </div>
 
       <div className="shot-video-preview-timecode">
