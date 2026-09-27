@@ -53,10 +53,28 @@ function hasNvenc() {
   return result.status === 0 && `${result.stdout}\n${result.stderr}`.includes('h264_nvenc');
 }
 
+function chromiumEnvironment() {
+  const env = {
+    ...process.env,
+    DISPLAY,
+    HOME: process.env.HOME || '/tmp/chromium-home',
+    XDG_RUNTIME_DIR: '/tmp/chromium-runtime',
+    NO_AT_BRIDGE: '1',
+    NVIDIA_VISIBLE_DEVICES: process.env.NVIDIA_VISIBLE_DEVICES || 'all',
+    NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'all'
+  };
+  delete env.DBUS_SESSION_BUS_ADDRESS;
+  delete env.DBUS_SYSTEM_BUS_ADDRESS;
+  return env;
+}
+
 async function launchHardwareBrowser(width, height) {
+  await fs.mkdir('/tmp/chromium-home', { recursive: true });
+  await fs.mkdir('/tmp/chromium-runtime', { recursive: true, mode: 0o700 });
+
   const launchAttempts = [
     { label: 'chromium-default-gl', gpuFlags: [] },
-    { label: 'angle-default', gpuFlags: ['--use-gl=angle'] }
+    { label: 'angle-default', gpuFlags: ['--use-gl=angle', '--use-angle=default'] }
   ];
 
   let lastError = null;
@@ -67,7 +85,7 @@ async function launchHardwareBrowser(width, height) {
       browser = await puppeteer.launch({
         executablePath: CHROMIUM_PATH,
         headless: false,
-        dumpio: true,
+        dumpio: false,
         ignoreDefaultArgs: ['--enable-automation'],
         defaultViewport: { width, height, deviceScaleFactor: 1 },
         args: [
@@ -94,12 +112,7 @@ async function launchHardwareBrowser(width, height) {
           '--autoplay-policy=no-user-gesture-required',
           ...attempt.gpuFlags
         ],
-        env: {
-          ...process.env,
-          DISPLAY,
-          NVIDIA_VISIBLE_DEVICES: process.env.NVIDIA_VISIBLE_DEVICES || 'all',
-          NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'all'
-        }
+        env: chromiumEnvironment()
       });
 
       const pages = await browser.pages();
@@ -132,7 +145,7 @@ async function launchHardwareBrowser(width, height) {
     } catch (error) {
       lastError = error;
       if (browser) await browser.close().catch(() => undefined);
-      console.error(`GPU browser launch attempt failed mode=${attempt.label}: ${error.message}`);
+      console.error(`GPU browser launch attempt failed mode=${attempt.label}: ${error instanceof Error ? error.message : String(error)}`);
       await sleep(250);
     }
   }
