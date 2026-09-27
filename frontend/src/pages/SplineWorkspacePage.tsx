@@ -30,6 +30,7 @@ export function SplineWorkspacePage() {
   const [previewRender, setPreviewRender] = useState<SplineShotRender | null>(null);
   const [revisionShotId, setRevisionShotId] = useState<string | null>(null);
   const [pendingShotJobId, setPendingShotJobId] = useState<string | null>(null);
+  const [renderActivated, setRenderActivated] = useState(false);
   const [message, setMessage] = useState('');
   const [sessionMessages, setSessionMessages] = useState<SessionMessage[]>([]);
   const [busy, setBusy] = useState(false);
@@ -41,27 +42,25 @@ export function SplineWorkspacePage() {
     setSessionMessages(current => [...current, { id: messageSequenceRef.current, role, text }]);
   }, []);
 
-  const refresh = useCallback(async (ensureCurrentRender = false) => {
+  const refresh = useCallback(async () => {
     const shot = await loadLatestSplineShot().catch(() => null);
     if (!shot) return;
 
-    setLatestShot(shot);
+    setLatestShot(current => {
+      if (current && current.id !== shot.id) setRenderActivated(false);
+      return shot;
+    });
     setPendingShotJobId(current => current && shot.productionJobId === current ? null : current);
 
-    let render = ensureCurrentRender
-      ? await ensureSplineShotRender(shot.id).catch(() => null)
-      : await loadLatestSplineShotRender(shot.id).catch(() => null);
-
-    if (!render) {
-      render = await ensureSplineShotRender(shot.id).catch(() => null);
-    }
+    const render = await loadLatestSplineShotRender(shot.id).catch(() => null);
     setLatestRender(render);
   }, []);
 
   useEffect(() => {
     setSessionMessages([]);
     setMessage('');
-    refresh(true).catch(() => undefined);
+    setRenderActivated(false);
+    refresh().catch(() => undefined);
   }, [refresh]);
 
   const renderInFlight = Boolean(latestRender && ['QUEUED', 'RENDERING'].includes(latestRender.status));
@@ -69,7 +68,7 @@ export function SplineWorkspacePage() {
   useEffect(() => {
     if (!pendingShotJobId && !renderInFlight) return;
     const timer = window.setInterval(() => {
-      refresh(false).catch(() => undefined);
+      refresh().catch(() => undefined);
     }, 2500);
     return () => window.clearInterval(timer);
   }, [pendingShotJobId, renderInFlight, refresh]);
@@ -87,9 +86,10 @@ export function SplineWorkspacePage() {
       const result = await createSplineShotCommand(text, continueShot ? revisionShotId : null);
       setPendingShotJobId(result.productionJobId);
       setLatestRender(null);
+      setRenderActivated(false);
       if (!continueShot) setRevisionShotId(null);
       appendSessionMessage('agent', continueShot ? 'Revision is being prepared.' : 'Shot is being prepared.');
-      await refresh(false);
+      await refresh();
     } catch (error) {
       appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not prepare the shot.');
     } finally {
@@ -98,14 +98,15 @@ export function SplineWorkspacePage() {
     }
   }
 
-  async function retryRender() {
+  async function startRender() {
     if (!latestShot || busy) return;
     setBusy(true);
+    setRenderActivated(true);
     try {
       const render = await ensureSplineShotRender(latestShot.id);
       setLatestRender(render);
     } catch (error) {
-      appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not restart the render.');
+      appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not start the render.');
     } finally {
       setBusy(false);
     }
@@ -136,9 +137,10 @@ export function SplineWorkspacePage() {
     return <ShotVideoPreviewOverlay shot={previewShot} render={previewRender} onComplete={returnFromPreview} />;
   }
 
-  const previewReady = Boolean(latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId);
+  const previewReady = Boolean(renderActivated && latestShot && latestRender?.status === 'READY' && latestRender.videoUrl && !pendingShotJobId);
   const renderFailed = latestRender?.status === 'FAILED';
   const preparing = Boolean(pendingShotJobId || renderInFlight || busy);
+  const manualRenderReady = Boolean(latestShot && !pendingShotJobId && !renderInFlight && !renderActivated);
 
   return (
     <main className="spline-minimal-page">
@@ -188,11 +190,21 @@ export function SplineWorkspacePage() {
       <button
         type="button"
         className={`spline-minimal-preview ${renderFailed ? 'failed' : ''}`}
-        disabled={!previewReady && !renderFailed}
-        onClick={() => renderFailed ? void retryRender() : startPreview()}
+        disabled={preparing || (!manualRenderReady && !previewReady && !renderFailed)}
+        onClick={() => renderFailed || manualRenderReady ? void startRender() : startPreview()}
       >
-        {renderFailed ? <RefreshCw size={18} /> : preparing ? <LoaderCircle size={18} className="spin" /> : <Play size={18} />}
-        {renderFailed ? 'Retry render' : preparing ? 'Rendering…' : 'Preview shot'}
+        {renderFailed || manualRenderReady
+          ? <RefreshCw size={18} />
+          : preparing
+            ? <LoaderCircle size={18} className="spin" />
+            : <Play size={18} />}
+        {renderFailed
+          ? 'Retry render'
+          : manualRenderReady
+            ? 'Render shot'
+            : preparing
+              ? 'Rendering…'
+              : 'Preview shot'}
       </button>
     </main>
   );
