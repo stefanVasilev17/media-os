@@ -137,6 +137,7 @@ async function render(job, chromiumPath) {
     browser = await puppeteer.launch({
       executablePath: chromiumPath,
       headless: false,
+      dumpio: true,
       defaultViewport: { width, height, deviceScaleFactor: 1 },
       args: [
         '--no-sandbox',
@@ -151,7 +152,8 @@ async function render(job, chromiumPath) {
         '--disable-gpu-sandbox',
         '--ignore-gpu-blocklist',
         '--use-gl=angle',
-        '--use-angle=swiftshader',
+        '--use-angle=swiftshader-webgl',
+        '--enable-unsafe-swiftshader',
         '--window-position=0,0',
         `--window-size=${width},${height}`,
         '--force-device-scale-factor=1',
@@ -178,6 +180,19 @@ async function render(job, chromiumPath) {
       .shot-preview-stage { width: 100vw !important; height: 100vh !important; inset: 0 !important; padding: 0 !important; margin: 0 !important; background: #050913 !important; }
       .shot-preview-canvas { width: 100vw !important; height: 100vh !important; max-width: none !important; max-height: none !important; }
     ` });
+
+    const gpuInfo = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!gl) return { available: false, renderer: 'none', vendor: 'none' };
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return {
+        available: true,
+        renderer: ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER)),
+        vendor: ext ? String(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)) : String(gl.getParameter(gl.VENDOR))
+      };
+    });
+    console.log(`WebGL available=${gpuInfo.available} vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
 
     await page.waitForFunction(() => {
       const canvas = document.querySelector('.shot-preview-canvas');
