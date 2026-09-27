@@ -51,7 +51,7 @@ const FINAL_FRAME_HOLD_MS = 320;
 const PROGRESS_UPDATE_MS = 48;
 const PREVIEW_BOOT_GRACE_MS = 650;
 const PREVIEW_TEARDOWN_GRACE_MS = 900;
-const CAMERA_CALIBRATION_TIMEOUT_MS = 12000;
+const CAMERA_CALIBRATION_TIMEOUT_MS = 2500;
 const CAMERA_CALIBRATION_SAMPLE_MS = 80;
 const CAMERA_CALIBRATION_STABLE_MS = 480;
 const cameraCalibrationCache = new Map<string, CameraPose>();
@@ -342,6 +342,10 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
           const cached = cameraCalibrationCache.get(cacheKey);
           if (cached) return { ...cached, zoom: clamp(beat.zoom ?? cached.zoom, MIN_ZOOM, MAX_ZOOM) };
 
+          const reference = resolve(beat.targetName);
+          const fallbackReference = reference?.position
+            ? referencePose(reference, beat, initialCameraPose)
+            : null;
           const triggerName = cameraTriggerName(beat.targetName);
           const trigger = triggerName ? resolve(triggerName) : null;
           if (trigger?.uuid) {
@@ -355,16 +359,23 @@ export function ShotPreviewOverlay({ shot, onComplete, onError }: ShotPreviewOve
             app.setZoom(initialCameraPose.zoom);
             app.requestRender();
             await nextFrame();
-            if (!calibrated) throw new Error(`Authored camera cue “${triggerName}” did not produce a stable camera pose.`);
-            cameraCalibrationCache.set(cacheKey, calibrated);
-            return calibrated;
+            if (calibrated) {
+              cameraCalibrationCache.set(cacheKey, calibrated);
+              return calibrated;
+            }
+            if (fallbackReference) {
+              console.warn(`Authored camera cue “${triggerName}” did not settle; using camera reference “${beat.targetName}” instead.`);
+              cameraCalibrationCache.set(cacheKey, fallbackReference);
+              return fallbackReference;
+            }
+            throw new Error(`Authored camera cue “${triggerName}” did not produce a stable camera pose and no fallback reference was available.`);
           }
 
-          const reference = resolve(beat.targetName);
-          if (!reference?.position || !reference.rotation) {
+          if (!fallbackReference) {
             throw new Error(`Shot camera reference “${beat.targetName}” is not available in the runtime scene.`);
           }
-          return referencePose(reference, beat, initialCameraPose);
+          cameraCalibrationCache.set(cacheKey, fallbackReference);
+          return fallbackReference;
         }
 
         const cameraReferences: CameraReference[] = [];
