@@ -48,9 +48,9 @@ export function SplineWorkspacePage() {
     setLatestShot(shot);
     setPendingShotJobId(current => current && shot.productionJobId === current ? null : current);
 
-    let render = await loadLatestSplineShotRender(shot.id).catch(() => null);
+    let render = await ensureSplineShotRender(shot.id).catch(() => null);
     if (!render) {
-      render = await ensureSplineShotRender(shot.id).catch(() => null);
+      render = await loadLatestSplineShotRender(shot.id).catch(() => null);
     }
     setLatestRender(render);
   }, []);
