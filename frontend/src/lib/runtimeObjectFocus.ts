@@ -51,7 +51,7 @@ function rotateXYZ(point: RuntimeFocusPoint, rotation: Vector3Like | null | unde
   return { x, y, z };
 }
 
-export function runtimeWorldPosition(object: RuntimeObject): RuntimeFocusPoint {
+function rawRuntimeWorldPosition(object: RuntimeObject): RuntimeFocusPoint {
   const nativeObject = object as RuntimeObject & {
     getWorldPosition?: (target: { x: number; y: number; z: number }) => { x: number; y: number; z: number };
     updateWorldMatrix?: (updateParents: boolean, updateChildren: boolean) => void;
@@ -120,6 +120,62 @@ export function runtimeWorldPosition(object: RuntimeObject): RuntimeFocusPoint {
   return point;
 }
 
+function isCameraHelper(node: RuntimeObject) {
+  const name = String(node.name ?? '').trim().toUpperCase();
+  return name === 'MEDIA_OS_CAMERA'
+    || name.startsWith('CAM_')
+    || name.startsWith('CAMTRG_')
+    || name.startsWith('CAM_TRG_');
+}
+
+function visualCenterOfGroup(root: RuntimeObject): RuntimeFocusPoint | null {
+  const points: RuntimeFocusPoint[] = [];
+  const visited = new Set<string>();
+
+  function visit(node: RuntimeObject, depth: number) {
+    if (depth > 20 || visited.has(node.uuid)) return;
+    visited.add(node.uuid);
+    if (node.visible === false || isCameraHelper(node)) return;
+
+    const children = Array.isArray(node.children)
+      ? node.children.filter(child => child && child.visible !== false)
+      : [];
+
+    if (children.length === 0) {
+      points.push(rawRuntimeWorldPosition(node));
+      return;
+    }
+
+    children.forEach(child => visit(child, depth + 1));
+  }
+
+  const children = Array.isArray(root.children) ? root.children : [];
+  children.forEach(child => visit(child, 0));
+  if (points.length < 2) return null;
+
+  const xs = points.map(point => point.x).sort((a, b) => a - b);
+  const ys = points.map(point => point.y).sort((a, b) => a - b);
+  const zs = points.map(point => point.z).sort((a, b) => a - b);
+  const trim = points.length >= 20 ? Math.floor(points.length * 0.03) : 0;
+  const left = Math.min(trim, Math.floor((points.length - 1) / 2));
+  const right = Math.max(left, points.length - 1 - left);
+
+  return {
+    x: (xs[left] + xs[right]) / 2,
+    y: (ys[left] + ys[right]) / 2,
+    z: (zs[left] + zs[right]) / 2
+  };
+}
+
+export function runtimeWorldPosition(object: RuntimeObject): RuntimeFocusPoint {
+  const name = String(object.name ?? '').trim().toUpperCase();
+  if (name.startsWith('CAM_') && object.parent) {
+    const groupCenter = visualCenterOfGroup(object.parent);
+    if (groupCenter) return groupCenter;
+  }
+  return rawRuntimeWorldPosition(object);
+}
+
 export function runtimeVisualCenter(object: RuntimeObject): RuntimeFocusPoint {
   const points: RuntimeFocusPoint[] = [];
   const visited = new Set<string>();
@@ -129,11 +185,11 @@ export function runtimeVisualCenter(object: RuntimeObject): RuntimeFocusPoint {
     visited.add(node.uuid);
 
     const children = Array.isArray(node.children)
-      ? node.children.filter(child => child && child.position && child.visible !== false)
+      ? node.children.filter(child => child && child.position && child.visible !== false && !isCameraHelper(child))
       : [];
 
     if (children.length === 0) {
-      points.push(runtimeWorldPosition(node));
+      if (!isCameraHelper(node)) points.push(rawRuntimeWorldPosition(node));
       return;
     }
 
@@ -141,7 +197,7 @@ export function runtimeVisualCenter(object: RuntimeObject): RuntimeFocusPoint {
   }
 
   visit(object, 0);
-  if (points.length === 0) return runtimeWorldPosition(object);
+  if (points.length === 0) return rawRuntimeWorldPosition(object);
 
   let minX = points[0].x;
   let maxX = points[0].x;
