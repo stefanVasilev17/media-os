@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.spline;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +16,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/spline/gpu-renders")
 public class SplineGpuRenderController {
 
+    private static final Logger log = LoggerFactory.getLogger(SplineGpuRenderController.class);
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final int MAX_VIDEO_BYTES = 96 * 1024 * 1024;
     private static final String TOKEN_PREFIX = "GPU_TOKEN:";
@@ -32,7 +35,7 @@ public class SplineGpuRenderController {
             @RequestHeader(value = "X-Media-OS-GPU-Token", required = false) String token
     ) {
         requireToken(renderId, token);
-        return jdbc.sql("""
+        Map<String, Object> result = jdbc.sql("""
                 select id, shot_id, shot_key, revision, status, width, height, fps, duration_ms
                 from spline_shot_render
                 where id=:id and project_id=:projectId
@@ -40,21 +43,30 @@ public class SplineGpuRenderController {
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
                 .query((rs, rowNum) -> {
-                    Map<String, Object> result = new LinkedHashMap<>();
-                    result.put("renderId", rs.getObject("id", UUID.class));
-                    result.put("shotId", rs.getObject("shot_id", UUID.class));
-                    result.put("shotKey", rs.getString("shot_key"));
-                    result.put("revision", rs.getInt("revision"));
-                    result.put("status", rs.getString("status"));
-                    result.put("width", rs.getInt("width"));
-                    result.put("height", rs.getInt("height"));
-                    result.put("fps", rs.getInt("fps"));
-                    result.put("durationMs", rs.getInt("duration_ms"));
-                    result.put("renderPagePath", "/#/render/spline-shot/" + rs.getObject("shot_id", UUID.class));
-                    return result;
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("renderId", rs.getObject("id", UUID.class));
+                    row.put("shotId", rs.getObject("shot_id", UUID.class));
+                    row.put("shotKey", rs.getString("shot_key"));
+                    row.put("revision", rs.getInt("revision"));
+                    row.put("status", rs.getString("status"));
+                    row.put("width", rs.getInt("width"));
+                    row.put("height", rs.getInt("height"));
+                    row.put("fps", rs.getInt("fps"));
+                    row.put("durationMs", rs.getInt("duration_ms"));
+                    row.put("renderPagePath", "/#/render/spline-shot/" + rs.getObject("shot_id", UUID.class));
+                    return row;
                 })
                 .optional()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "GPU render job was not found."));
+        log.info("GPU render work fetched renderId={} shotKey={} revision={} size={}x{} fps={} durationMs={}",
+                renderId,
+                result.get("shotKey"),
+                result.get("revision"),
+                result.get("width"),
+                result.get("height"),
+                result.get("fps"),
+                result.get("durationMs"));
+        return result;
     }
 
     @PostMapping("/{renderId}/start")
@@ -78,6 +90,7 @@ public class SplineGpuRenderController {
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "GPU render is not available to start.");
         }
+        log.info("GPU render started renderId={}", renderId);
         return Map.of("renderId", renderId, "status", "RUNNING");
     }
 
@@ -110,6 +123,7 @@ public class SplineGpuRenderController {
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "GPU render is not in RUNNING state.");
         }
+        log.info("GPU render completed renderId={} sizeBytes={}", renderId, video.length);
         return Map.of("renderId", renderId, "status", "READY", "sizeBytes", video.length);
     }
 
@@ -136,6 +150,7 @@ public class SplineGpuRenderController {
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
                 .update();
+        log.error("GPU render failed renderId={} error={}", renderId, error);
         return Map.of("renderId", renderId, "status", "FAILED", "error", error);
     }
 
