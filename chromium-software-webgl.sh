@@ -1,3 +1,6 @@
 #!/bin/sh
 set -eu
-exec /usr/bin/chromium-browser "$@" --use-gl=swiftshader-webgl --enable-unsafe-swiftshader
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=llvmpipe
+export MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+exec /usr/bin/chromium-browser "$@" --use-gl=angle --use-angle=gl --use-cmd-decoder=passthrough --ignore-gpu-blocklist --disable-gpu-driver-bug-workarounds --disable-gpu-sandbox
