@@ -299,7 +299,7 @@ public class SplineShotRenderController {
 
     private String renderHash(Map<String, Object> spec) {
         try {
-            String material = runtimeUrl + "\n" + objectMapper.writeValueAsString(spec) + "\n" + WIDTH + "x" + HEIGHT + "@" + FPS + "-h264-x11-software-composite-v3";
+            String material = runtimeUrl + "\n" + objectMapper.writeValueAsString(spec) + "\n" + WIDTH + "x" + HEIGHT + "@" + FPS + "-h264-x11-software-composite-v4";
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(material.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (Exception ex) {
