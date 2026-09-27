@@ -151,9 +151,10 @@ async function render(job, chromiumPath) {
         '--enable-gpu-rasterization',
         '--disable-gpu-sandbox',
         '--ignore-gpu-blocklist',
+        '--disable-gpu-driver-bug-workarounds',
         '--use-gl=angle',
-        '--use-angle=swiftshader-webgl',
-        '--enable-unsafe-swiftshader',
+        '--use-angle=gl',
+        '--use-cmd-decoder=passthrough',
         '--window-position=0,0',
         `--window-size=${width},${height}`,
         '--force-device-scale-factor=1',
@@ -161,7 +162,13 @@ async function render(job, chromiumPath) {
         '--hide-scrollbars',
         '--autoplay-policy=no-user-gesture-required'
       ],
-      env: { ...process.env, DISPLAY }
+      env: {
+        ...process.env,
+        DISPLAY,
+        LIBGL_ALWAYS_SOFTWARE: '1',
+        GALLIUM_DRIVER: 'llvmpipe',
+        MESA_LOADER_DRIVER_OVERRIDE: 'llvmpipe'
+      }
     });
 
     const pages = await browser.pages();
@@ -193,6 +200,10 @@ async function render(job, chromiumPath) {
       };
     });
     console.log(`WebGL available=${gpuInfo.available} vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
+
+    if (!gpuInfo.available) {
+      throw new Error('WebGL is unavailable in the render worker.');
+    }
 
     await page.waitForFunction(() => {
       const canvas = document.querySelector('.shot-preview-canvas');
