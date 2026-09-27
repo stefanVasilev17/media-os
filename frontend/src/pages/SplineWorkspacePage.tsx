@@ -41,16 +41,19 @@ export function SplineWorkspacePage() {
     setSessionMessages(current => [...current, { id: messageSequenceRef.current, role, text }]);
   }, []);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (ensureCurrentRender = false) => {
     const shot = await loadLatestSplineShot().catch(() => null);
     if (!shot) return;
 
     setLatestShot(shot);
     setPendingShotJobId(current => current && shot.productionJobId === current ? null : current);
 
-    let render = await ensureSplineShotRender(shot.id).catch(() => null);
+    let render = ensureCurrentRender
+      ? await ensureSplineShotRender(shot.id).catch(() => null)
+      : await loadLatestSplineShotRender(shot.id).catch(() => null);
+
     if (!render) {
-      render = await loadLatestSplineShotRender(shot.id).catch(() => null);
+      render = await ensureSplineShotRender(shot.id).catch(() => null);
     }
     setLatestRender(render);
   }, []);
@@ -58,7 +61,7 @@ export function SplineWorkspacePage() {
   useEffect(() => {
     setSessionMessages([]);
     setMessage('');
-    refresh().catch(() => undefined);
+    refresh(true).catch(() => undefined);
   }, [refresh]);
 
   const renderInFlight = Boolean(latestRender && ['QUEUED', 'RENDERING'].includes(latestRender.status));
@@ -66,7 +69,7 @@ export function SplineWorkspacePage() {
   useEffect(() => {
     if (!pendingShotJobId && !renderInFlight) return;
     const timer = window.setInterval(() => {
-      refresh().catch(() => undefined);
+      refresh(false).catch(() => undefined);
     }, 2500);
     return () => window.clearInterval(timer);
   }, [pendingShotJobId, renderInFlight, refresh]);
@@ -86,7 +89,7 @@ export function SplineWorkspacePage() {
       setLatestRender(null);
       if (!continueShot) setRevisionShotId(null);
       appendSessionMessage('agent', continueShot ? 'Revision is being prepared.' : 'Shot is being prepared.');
-      await refresh();
+      await refresh(false);
     } catch (error) {
       appendSessionMessage('agent', error instanceof Error ? error.message : 'Could not prepare the shot.');
     } finally {
