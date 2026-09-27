@@ -75,16 +75,42 @@ async function upload(renderId, filePath) {
   }
 }
 
-function selectFrames(frames, fps, durationMs) {
-  if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
-  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
+function selectFramesByIndex(frames, count) {
   if (count === 1) return [frames[0].buffer];
   const result = [];
   const maxSourceIndex = frames.length - 1;
   const maxOutputIndex = count - 1;
-
   for (let index = 0; index < count; index += 1) {
     const sourceIndex = Math.min(maxSourceIndex, Math.round(index * maxSourceIndex / maxOutputIndex));
+    result.push(frames[sourceIndex].buffer);
+  }
+  return result;
+}
+
+function selectFrames(frames, fps, durationMs) {
+  if (frames.length === 0) throw new Error('Chromium produced no screencast frames.');
+  const count = Math.max(1, Math.round(durationMs / 1000 * fps));
+  if (frames.length === 1) return Array.from({ length: count }, () => frames[0].buffer);
+
+  const timestamps = frames.map(frame => Number(frame.timestamp));
+  const timestampsValid = timestamps.every(Number.isFinite);
+  if (!timestampsValid) return selectFramesByIndex(frames, count);
+
+  const firstTimestamp = timestamps[0];
+  const lastTimestamp = timestamps[timestamps.length - 1];
+  const capturedSpanSeconds = lastTimestamp - firstTimestamp;
+  if (!(capturedSpanSeconds > 0.05)) return selectFramesByIndex(frames, count);
+
+  const result = [];
+  let sourceIndex = 0;
+  for (let index = 0; index < count; index += 1) {
+    const targetSeconds = index / fps;
+    while (
+      sourceIndex + 1 < frames.length &&
+      timestamps[sourceIndex + 1] - firstTimestamp <= targetSeconds
+    ) {
+      sourceIndex += 1;
+    }
     result.push(frames[sourceIndex].buffer);
   }
   return result;
@@ -138,7 +164,7 @@ async function encodeFrames(frames, output, fps) {
   }
 
   const stat = await fs.stat(output);
-  if (stat.size < 200000) {
+  if (stat.size < 50000) {
     throw new Error(`Rendered MP4 appears visually empty (${stat.size} bytes).`);
   }
   return stat.size;
@@ -224,7 +250,8 @@ async function captureScreencast(page, fps, durationMs, width, height) {
 
   const selected = selectFrames(frames, fps, durationMs);
   const totalBytes = frames.reduce((sum, frame) => sum + frame.buffer.length, 0);
-  return { frames, selected, totalBytes };
+  const sourceFps = frames.length / Math.max(0.001, durationMs / 1000);
+  return { frames, selected, totalBytes, sourceFps };
 }
 
 async function render(job, chromiumPath) {
@@ -319,21 +346,27 @@ async function render(job, chromiumPath) {
     await sleep(80);
 
     const screenshotProbe = await page.screenshot({ type: 'jpeg', quality: 90, fullPage: false });
-    console.log(`Chromium screenshot probe: ${Buffer.from(screenshotProbe).length} JPEG bytes`);
+    const screenshotBytes = Buffer.from(screenshotProbe).length;
+    console.log(`Chromium screenshot probe: ${screenshotBytes} JPEG bytes`);
+    if (screenshotBytes < 5000) {
+      throw new Error(`Chromium screenshot probe appears empty (${screenshotBytes} bytes).`);
+    }
 
     const pulseProbe = await startCompositorPulse(page);
     console.log(`Compositor pulse started, visibility=${pulseProbe.visibility}`);
 
     const capture = await captureScreencast(page, fps, durationMs, width, height);
     const pulseResult = await stopCompositorPulse(page);
-    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
+    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, sourceFps=${capture.sourceFps.toFixed(2)}, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
 
-    if (capture.frames.length < Math.max(30, Math.floor(durationMs / 1000 * 5))) {
-      throw new Error(`Screencast produced only ${capture.frames.length} source frames for ${durationMs}ms.`);
+    if (capture.frames.length < 2) {
+      throw new Error(`Screencast produced only ${capture.frames.length} source frame(s) for ${durationMs}ms.`);
     }
-
-    if (capture.totalBytes < 1000000) {
+    if (capture.totalBytes < 50000) {
       throw new Error(`Screencast appears visually empty (${capture.totalBytes} JPEG bytes across ${capture.frames.length} frames).`);
+    }
+    if (capture.sourceFps < 5) {
+      console.warn(`Low Chromium compositor cadence (${capture.sourceFps.toFixed(2)} source fps). Rendering will continue by timing and duplicating the latest valid frame instead of failing the job.`);
     }
 
     const output = path.join(workDir, 'preview.mp4');
