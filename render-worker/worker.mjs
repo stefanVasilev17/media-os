@@ -233,7 +233,7 @@ async function render(job, chromiumPath) {
   try {
     browser = await puppeteer.launch({
       executablePath: chromiumPath,
-      headless: true,
+      headless: false,
       defaultViewport: { width, height, deviceScaleFactor: 1 },
       args: [
         '--no-sandbox',
@@ -244,8 +244,10 @@ async function render(job, chromiumPath) {
         '--disable-renderer-backgrounding',
         '--disable-features=CalculateNativeWinOcclusion',
         '--enable-webgl',
+        '--enable-gpu-rasterization',
+        '--disable-gpu-sandbox',
         '--ignore-gpu-blocklist',
-        '--use-gl=swiftshader',
+        '--use-gl=angle',
         '--use-angle=swiftshader',
         '--window-size=' + width + ',' + height,
         '--autoplay-policy=no-user-gesture-required'
@@ -279,14 +281,24 @@ async function render(job, chromiumPath) {
 
     const capture = await captureScreencast(page, fps, durationMs, width, height);
     const pulseResult = await stopCompositorPulse(page);
-    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
+    const selectedBytes = capture.selected.reduce((sum, frame) => sum + frame.length, 0);
+    const avgSelectedBytes = capture.selected.length > 0 ? Math.round(selectedBytes / capture.selected.length) : 0;
+    const minSelectedBytes = capture.selected.length > 0 ? Math.min(...capture.selected.map(frame => frame.length)) : 0;
+    const maxSelectedBytes = capture.selected.length > 0 ? Math.max(...capture.selected.map(frame => frame.length)) : 0;
+    console.log(`Screencast capture: ${capture.frames.length} source frames, ${capture.selected.length} selected, ${capture.totalBytes} JPEG bytes, avgSelected=${avgSelectedBytes}, minSelected=${minSelectedBytes}, maxSelected=${maxSelectedBytes}, pulseFrames=${pulseResult?.frames ?? 'unknown'}`);
 
     if (capture.frames.length < Math.max(10, Math.floor(durationMs / 1000))) {
       throw new Error(`Screencast produced only ${capture.frames.length} source frames for ${durationMs}ms.`);
     }
+    if (width >= 1280 && height >= 720 && avgSelectedBytes < 24000) {
+      throw new Error(`Spline WebGL capture appears blank (${avgSelectedBytes} average JPEG bytes at ${width}x${height}).`);
+    }
 
     const output = path.join(workDir, 'preview.mp4');
     const outputBytes = await encodeFrames(capture.selected, output, fps);
+    if (width >= 1280 && height >= 720 && durationMs >= 5000 && outputBytes < 200000) {
+      throw new Error(`Rendered MP4 appears visually empty (${outputBytes} bytes for ${durationMs}ms at ${width}x${height}).`);
+    }
     await upload(job.renderId, output);
     console.log(`Rendered ${job.shotKey} r${job.revision}: ${outputBytes} byte MP4 -> ${job.renderId}`);
   } finally {
@@ -300,6 +312,7 @@ async function main() {
   console.log(`Media OS render worker online: ${WORKER_ID}`);
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${chromiumPath}`);
+  console.log(`Display: ${process.env.DISPLAY || 'none'}`);
 
   while (true) {
     let job = null;
