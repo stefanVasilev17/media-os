@@ -54,15 +54,16 @@ function hasNvenc() {
 }
 
 async function launchHardwareBrowser(width, height) {
-  const flagSets = [
-    ['--use-gl=angle', '--use-angle=gl-egl'],
-    ['--use-gl=egl']
+  const launchAttempts = [
+    { label: 'chromium-default-gl', gpuFlags: [] },
+    { label: 'angle-default', gpuFlags: ['--use-gl=angle'] }
   ];
 
   let lastError = null;
-  for (const gpuFlags of flagSets) {
+  for (const attempt of launchAttempts) {
     let browser = null;
     try {
+      console.log(`Launching Chromium GPU mode=${attempt.label} flags=${attempt.gpuFlags.join(' ') || '(default)'}`);
       browser = await puppeteer.launch({
         executablePath: CHROMIUM_PATH,
         headless: false,
@@ -91,7 +92,7 @@ async function launchHardwareBrowser(width, height) {
           '--kiosk',
           '--hide-scrollbars',
           '--autoplay-policy=no-user-gesture-required',
-          ...gpuFlags
+          ...attempt.gpuFlags
         ],
         env: {
           ...process.env,
@@ -126,12 +127,12 @@ async function launchHardwareBrowser(width, height) {
         throw new Error(`Hardware WebGL validation failed: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
       }
 
-      console.log(`Hardware WebGL ready: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
+      console.log(`Hardware WebGL ready mode=${attempt.label}: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
       return { browser, page };
     } catch (error) {
       lastError = error;
       if (browser) await browser.close().catch(() => undefined);
-      console.error(`GPU browser launch attempt failed (${gpuFlags.join(' ')}): ${error.message}`);
+      console.error(`GPU browser launch attempt failed mode=${attempt.label}: ${error.message}`);
       await sleep(250);
     }
   }
