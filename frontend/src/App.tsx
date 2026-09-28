@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
 import { ActivityPage } from './pages/ActivityPage';
+import { DirectorRoomPage } from './pages/DirectorRoomPage';
 import { HomePage } from './pages/HomePage';
 import { SettingsPage } from './pages/SettingsPage';
 import './styles/episodeSceneCompositor.css';
@@ -74,8 +75,10 @@ export function App() {
     page = <ActivityPage />;
   } else if (hash.startsWith('#/settings')) {
     page = <SettingsPage />;
-  } else {
+  } else if (hash.startsWith('#/home')) {
     page = <HomePage />;
+  } else {
+    page = <DirectorRoomPage />;
   }
 
   return (
