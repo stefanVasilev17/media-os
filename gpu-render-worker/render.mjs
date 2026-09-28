@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { spawn, spawnSync } from 'node:child_process';
 import puppeteer from 'puppeteer-core';
@@ -61,11 +62,33 @@ function chromiumEnvironment() {
     XDG_RUNTIME_DIR: '/tmp/chromium-runtime',
     NO_AT_BRIDGE: '1',
     NVIDIA_VISIBLE_DEVICES: process.env.NVIDIA_VISIBLE_DEVICES || 'all',
-    NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'all'
+    NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'compute,utility,graphics,video,display',
+    __GLX_VENDOR_LIBRARY_NAME: 'nvidia'
   };
+  if (existsSync('/usr/share/glvnd/egl_vendor.d/10_nvidia.json')) {
+    env.__EGL_VENDOR_LIBRARY_FILENAMES = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json';
+  }
+  if (existsSync('/usr/share/vulkan/icd.d/nvidia_icd.json')) {
+    env.VK_ICD_FILENAMES = '/usr/share/vulkan/icd.d/nvidia_icd.json';
+  }
   delete env.DBUS_SESSION_BUS_ADDRESS;
   delete env.DBUS_SYSTEM_BUS_ADDRESS;
   return env;
+}
+
+async function inspectWebGl(page) {
+  return page.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (!gl) return { available: false, renderer: 'none', vendor: 'none', version: 'none' };
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    return {
+      available: true,
+      renderer: ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER)),
+      vendor: ext ? String(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)) : String(gl.getParameter(gl.VENDOR)),
+      version: String(gl.getParameter(gl.VERSION))
+    };
+  });
 }
 
 async function launchHardwareBrowser(width, height) {
@@ -73,15 +96,26 @@ async function launchHardwareBrowser(width, height) {
   await fs.mkdir('/tmp/chromium-runtime', { recursive: true, mode: 0o700 });
 
   const launchAttempts = [
-    { label: 'chromium-default-gl', gpuFlags: [] },
-    { label: 'angle-default', gpuFlags: ['--use-gl=angle', '--use-angle=default'] }
+    {
+      label: 'x11-vulkan-nvidia',
+      gpuFlags: [
+        '--ozone-platform=x11',
+        '--use-angle=vulkan',
+        '--enable-features=Vulkan',
+        '--enable-unsafe-webgpu'
+      ]
+    },
+    {
+      label: 'x11-angle-default',
+      gpuFlags: ['--ozone-platform=x11', '--use-gl=angle', '--use-angle=default']
+    }
   ];
 
   let lastError = null;
   for (const attempt of launchAttempts) {
     let browser = null;
     try {
-      console.log(`Launching Chromium GPU mode=${attempt.label} flags=${attempt.gpuFlags.join(' ') || '(default)'}`);
+      console.log(`Launching Chromium GPU mode=${attempt.label} flags=${attempt.gpuFlags.join(' ')}`);
       browser = await puppeteer.launch({
         executablePath: CHROMIUM_PATH,
         headless: false,
@@ -97,11 +131,11 @@ async function launchHardwareBrowser(width, height) {
           '--disable-renderer-backgrounding',
           '--disable-features=CalculateNativeWinOcclusion',
           '--ignore-gpu-blocklist',
+          '--enable-gpu',
           '--enable-gpu-rasterization',
           '--enable-zero-copy',
           '--disable-software-rasterizer',
           '--disable-gpu-sandbox',
-          '--ozone-platform=x11',
           '--test-type',
           '--disable-infobars',
           '--window-position=0,0',
@@ -120,18 +154,7 @@ async function launchHardwareBrowser(width, height) {
       await page.setViewport({ width, height, deviceScaleFactor: 1 });
       await page.bringToFront();
 
-      const gpuInfo = await page.evaluate(() => {
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-        if (!gl) return { available: false, renderer: 'none', vendor: 'none' };
-        const ext = gl.getExtension('WEBGL_debug_renderer_info');
-        return {
-          available: true,
-          renderer: ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER)),
-          vendor: ext ? String(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)) : String(gl.getParameter(gl.VENDOR))
-        };
-      });
-
+      const gpuInfo = await inspectWebGl(page);
       const identity = `${gpuInfo.vendor} ${gpuInfo.renderer}`.toLowerCase();
       const software = identity.includes('swiftshader')
         || identity.includes('llvmpipe')
@@ -140,8 +163,8 @@ async function launchHardwareBrowser(width, height) {
         throw new Error(`Hardware WebGL validation failed: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
       }
 
-      console.log(`Hardware WebGL ready mode=${attempt.label}: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
-      return { browser, page };
+      console.log(`Hardware WebGL ready mode=${attempt.label}: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer} version=${gpuInfo.version}`);
+      return { browser, page, gpuMode: attempt.label, gpuInfo };
     } catch (error) {
       lastError = error;
       if (browser) await browser.close().catch(() => undefined);
@@ -150,7 +173,7 @@ async function launchHardwareBrowser(width, height) {
     }
   }
 
-  throw lastError ?? new Error('Could not launch Chromium with hardware WebGL.');
+  throw lastError ?? new Error('Could not launch Chromium with NVIDIA hardware WebGL.');
 }
 
 async function captureDisplay(outputPath, width, height, fps, durationMs) {
@@ -215,6 +238,8 @@ async function main() {
     browser = launched.browser;
     const page = launched.page;
     let pageCrashError = '';
+
+    console.log(`Production render GPU mode=${launched.gpuMode} vendor=${launched.gpuInfo.vendor} renderer=${launched.gpuInfo.renderer}`);
 
     page.on('error', error => {
       pageCrashError = error?.message || 'Chromium page crashed.';
