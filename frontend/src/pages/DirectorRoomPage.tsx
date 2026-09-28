@@ -147,9 +147,14 @@ export function DirectorRoomPage() {
       const result = await sendDirectorMessage(text, mode);
       setRoom(result.room);
     } catch (cause) {
+      const failure = cause instanceof Error ? cause.message : 'Director could not answer.';
       setMessage(text);
-      setError(cause instanceof Error ? cause.message : 'Director could not answer.');
-      await refresh();
+      try {
+        setRoom(await loadDirectorRoom());
+      } catch {
+        // Preserve the original send error; the current room remains usable.
+      }
+      setError(failure);
     } finally {
       setBusy(false);
       window.setTimeout(() => composerRef.current?.focus(), 80);
