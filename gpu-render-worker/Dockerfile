@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DISPLAY=:99 \
     CHROMIUM_PATH=/usr/bin/chromium \
     NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,video,display \
     PYTHONUNBUFFERED=1
 
 RUN apt-get update \
@@ -20,6 +20,12 @@ RUN apt-get update \
         curl \
         procps \
         pciutils \
+        libglvnd0 \
+        libegl1 \
+        libgl1 \
+        libgles2 \
+        libvulkan1 \
+        vulkan-tools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
