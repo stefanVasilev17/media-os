@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, Box, Home, Settings } from 'lucide-react';
+import { Activity, Box, BrainCircuit, Settings } from 'lucide-react';
 
 type NavItem = {
   label: string;
@@ -10,10 +10,10 @@ type NavItem = {
 
 const items: NavItem[] = [
   {
-    label: 'Home',
+    label: 'Director',
     hash: '#/',
-    icon: <Home size={19} />,
-    match: hash => hash === '#/' || hash === ''
+    icon: <BrainCircuit size={19} />,
+    match: hash => hash === '#/' || hash === '' || hash.startsWith('#/director')
   },
   {
     label: 'Spline',
