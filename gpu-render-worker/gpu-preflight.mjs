@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import puppeteer from 'puppeteer-core';
 
@@ -13,16 +14,36 @@ function commandVersion(command, args) {
   return (result.stdout || result.stderr || '').trim().split('\n')[0];
 }
 
-function chromiumEnvironment() {
+function probe(command, args, maxLength = 1200) {
+  const result = spawnSync(command, args, { encoding: 'utf8', timeout: 20_000 });
+  const text = `${result.stdout || ''}\n${result.stderr || ''}`.trim();
+  return {
+    status: result.status,
+    output: text.length > maxLength ? text.slice(-maxLength) : text
+  };
+}
+
+function chromiumEnvironment(useDisplay) {
   const env = {
     ...process.env,
-    DISPLAY,
     HOME: process.env.HOME || '/tmp/chromium-home',
     XDG_RUNTIME_DIR: '/tmp/chromium-runtime',
     NO_AT_BRIDGE: '1',
     NVIDIA_VISIBLE_DEVICES: process.env.NVIDIA_VISIBLE_DEVICES || 'all',
-    NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'all'
+    NVIDIA_DRIVER_CAPABILITIES: process.env.NVIDIA_DRIVER_CAPABILITIES || 'compute,utility,graphics,video,display',
+    __GLX_VENDOR_LIBRARY_NAME: 'nvidia'
   };
+
+  if (useDisplay) env.DISPLAY = DISPLAY;
+  else delete env.DISPLAY;
+
+  if (existsSync('/usr/share/glvnd/egl_vendor.d/10_nvidia.json')) {
+    env.__EGL_VENDOR_LIBRARY_FILENAMES = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json';
+  }
+  if (existsSync('/usr/share/vulkan/icd.d/nvidia_icd.json')) {
+    env.VK_ICD_FILENAMES = '/usr/share/vulkan/icd.d/nvidia_icd.json';
+  }
+
   delete env.DBUS_SESSION_BUS_ADDRESS;
   delete env.DBUS_SYSTEM_BUS_ADDRESS;
   return env;
@@ -43,12 +64,12 @@ async function inspectWebGl(page) {
   });
 }
 
-async function launchAttempt(label, gpuFlags) {
+async function launchAttempt(attempt) {
   let browser = null;
   try {
     browser = await puppeteer.launch({
       executablePath: CHROMIUM_PATH,
-      headless: false,
+      headless: attempt.headless,
       dumpio: false,
       defaultViewport: { width: 640, height: 360, deviceScaleFactor: 1 },
       args: [
@@ -56,16 +77,16 @@ async function launchAttempt(label, gpuFlags) {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--ignore-gpu-blocklist',
+        '--enable-gpu',
         '--enable-gpu-rasterization',
         '--enable-zero-copy',
         '--disable-software-rasterizer',
         '--disable-gpu-sandbox',
-        '--ozone-platform=x11',
         '--window-size=640,360',
         '--force-device-scale-factor=1',
-        ...gpuFlags
+        ...attempt.gpuFlags
       ],
-      env: chromiumEnvironment()
+      env: chromiumEnvironment(attempt.useDisplay)
     });
     const pages = await browser.pages();
     const page = pages[0] ?? await browser.newPage();
@@ -75,33 +96,82 @@ async function launchAttempt(label, gpuFlags) {
     if (!gpuInfo.available || software || !identity.includes('nvidia')) {
       throw new Error(`Hardware WebGL validation failed: vendor=${gpuInfo.vendor} renderer=${gpuInfo.renderer}`);
     }
-    return { label, gpuFlags, gpuInfo };
+    return {
+      label: attempt.label,
+      headless: attempt.headless,
+      useDisplay: attempt.useDisplay,
+      gpuFlags: attempt.gpuFlags,
+      gpuInfo
+    };
   } finally {
     if (browser) await browser.close().catch(() => undefined);
   }
+}
+
+function runtimeDiagnostics() {
+  const vulkan = probe('vulkaninfo', ['--summary'], 900);
+  const egl = probe('sh', ['-lc', 'ls -1 /usr/share/glvnd/egl_vendor.d 2>/dev/null || true'], 300);
+  const vulkanIcd = probe('sh', ['-lc', 'ls -1 /usr/share/vulkan/icd.d 2>/dev/null || true'], 400);
+  const devices = probe('sh', ['-lc', 'ls -l /dev/nvidia* /dev/dri/* 2>/dev/null || true'], 500);
+  return { vulkan, eglVendors: egl, vulkanIcd, devices };
 }
 
 async function main() {
   await fs.mkdir('/tmp/chromium-home', { recursive: true });
   await fs.mkdir('/tmp/chromium-runtime', { recursive: true, mode: 0o700 });
 
+  const diagnostics = runtimeDiagnostics();
   const attempts = [
-    { label: 'chromium-default-gl', gpuFlags: [] },
-    { label: 'angle-default', gpuFlags: ['--use-gl=angle', '--use-angle=default'] }
+    {
+      label: 'x11-vulkan-nvidia',
+      headless: false,
+      useDisplay: true,
+      gpuFlags: [
+        '--ozone-platform=x11',
+        '--use-angle=vulkan',
+        '--enable-features=Vulkan',
+        '--enable-unsafe-webgpu'
+      ]
+    },
+    {
+      label: 'headless-vulkan-nvidia',
+      headless: true,
+      useDisplay: false,
+      gpuFlags: [
+        '--use-angle=vulkan',
+        '--enable-features=Vulkan',
+        '--disable-vulkan-surface',
+        '--enable-unsafe-webgpu'
+      ]
+    },
+    {
+      label: 'x11-angle-default',
+      headless: false,
+      useDisplay: true,
+      gpuFlags: ['--ozone-platform=x11', '--use-gl=angle', '--use-angle=default']
+    }
   ];
 
   let selected = null;
   const failures = [];
   for (const attempt of attempts) {
     try {
-      selected = await launchAttempt(attempt.label, attempt.gpuFlags);
+      selected = await launchAttempt(attempt);
       break;
     } catch (error) {
       failures.push({ label: attempt.label, error: error instanceof Error ? error.message : String(error) });
     }
   }
   if (!selected) {
-    throw new Error(`No hardware WebGL launch mode succeeded: ${JSON.stringify(failures)}`);
+    const compact = {
+      failures,
+      vulkanStatus: diagnostics.vulkan.status,
+      vulkan: diagnostics.vulkan.output,
+      eglVendors: diagnostics.eglVendors.output,
+      vulkanIcd: diagnostics.vulkanIcd.output,
+      devices: diagnostics.devices.output
+    };
+    throw new Error(`No NVIDIA hardware WebGL launch mode succeeded: ${JSON.stringify(compact)}`);
   }
 
   const nvencProbe = spawnSync('ffmpeg', ['-hide_banner', '-encoders'], { encoding: 'utf8' });
@@ -113,9 +183,10 @@ async function main() {
     nvenc: nvencProbe.status === 0 && encoders.includes('h264_nvenc'),
     display: DISPLAY,
     mode: selected.label,
+    headless: selected.headless,
     gpuFlags: selected.gpuFlags,
     webgl: selected.gpuInfo,
-    failures
+    diagnostics
   };
   console.log(`MEDIA_OS_GPU_PREFLIGHT=${JSON.stringify(result)}`);
 }
