@@ -2,6 +2,8 @@ package com.architecturalthinking.mediaos.director;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,9 @@ import java.util.Map;
 @Component
 public class DirectorAgentClient {
 
+    private static final Logger log = LoggerFactory.getLogger(DirectorAgentClient.class);
+    private static final String DEFAULT_MODEL = "gpt-5.6-sol";
+
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final String apiKey;
@@ -26,11 +31,11 @@ public class DirectorAgentClient {
     public DirectorAgentClient(
             ObjectMapper objectMapper,
             @Value("${OPENAI_API_KEY:}") String apiKey,
-            @Value("${MEDIA_OS_DIRECTOR_MODEL:gpt-6-astra}") String model
+            @Value("${MEDIA_OS_DIRECTOR_MODEL:gpt-5.6-sol}") String model
     ) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.model = model == null || model.isBlank() ? "gpt-6-astra" : model.trim();
+        this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(20))
                 .build();
@@ -79,13 +84,17 @@ public class DirectorAgentClient {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Director model request failed with HTTP " + response.statusCode() + ".");
+                String upstreamMessage = extractUpstreamError(response.body());
+                log.warn("Director OpenAI request failed status={} model={} message={}", response.statusCode(), model, upstreamMessage);
+                throw new IllegalStateException(humanReadableUpstreamError(response.statusCode(), upstreamMessage));
             }
 
             JsonNode root = objectMapper.readTree(response.body());
             String outputText = extractOutputText(root);
             if (outputText.isBlank()) {
-                throw new IllegalStateException("Director model returned no usable text output.");
+                String responseId = root.path("id").asText("unknown");
+                log.warn("Director OpenAI response contained no usable text model={} responseId={}", model, responseId);
+                throw new IllegalStateException("The Director model answered, but returned no usable structured response. Please retry once.");
             }
             return objectMapper.readValue(outputText, DirectorReply.class);
         } catch (InterruptedException ex) {
@@ -93,8 +102,55 @@ public class DirectorAgentClient {
             throw new IllegalStateException("Director model request was interrupted.", ex);
         } catch (Exception ex) {
             if (ex instanceof IllegalStateException state) throw state;
+            log.warn("Director model request failed model={} error={}", model, ex.toString());
             throw new IllegalStateException("Director model request failed: " + ex.getMessage(), ex);
         }
+    }
+
+    private String humanReadableUpstreamError(int status, String upstreamMessage) {
+        String normalized = upstreamMessage == null ? "" : upstreamMessage.toLowerCase();
+        if (status == 401 || status == 403) {
+            return "OpenAI rejected the Director API credential or project permission. Verify OPENAI_API_KEY and its project permissions.";
+        }
+        if (status == 429) {
+            if (normalized.contains("quota") || normalized.contains("billing") || normalized.contains("credit")) {
+                return "OpenAI API quota or billing is not active for this API project. Enable API billing or add credits, then retry.";
+            }
+            return "OpenAI is rate-limiting the Director request. Wait briefly and retry.";
+        }
+        if ((status == 400 || status == 404) && normalized.contains("model")) {
+            return "The configured Director model is not available to this API project. Current model: " + model + ".";
+        }
+        if (status >= 500) {
+            return "OpenAI returned a temporary upstream error. Retry the Director message in a moment.";
+        }
+        if (upstreamMessage != null && !upstreamMessage.isBlank()) {
+            return "OpenAI rejected the Director request: " + upstreamMessage;
+        }
+        return "Director model request failed with HTTP " + status + ".";
+    }
+
+    private String extractUpstreamError(String body) {
+        if (body == null || body.isBlank()) return "No error details returned.";
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode error = root.path("error");
+            String message = error.path("message").asText("");
+            String code = error.path("code").asText("");
+            String type = error.path("type").asText("");
+            StringBuilder result = new StringBuilder();
+            if (!message.isBlank()) result.append(message);
+            if (!type.isBlank()) result.append(result.isEmpty() ? "" : " | ").append("type=").append(type);
+            if (!code.isBlank()) result.append(result.isEmpty() ? "" : " | ").append("code=").append(code);
+            if (!result.isEmpty()) return truncate(result.toString(), 900);
+        } catch (Exception ignored) {
+        }
+        return truncate(body.replaceAll("\\s+", " ").trim(), 900);
+    }
+
+    private String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) return value;
+        return value.substring(0, maxLength) + "…";
     }
 
     private String instructions(String mode, Map<String, Object> context) throws Exception {
