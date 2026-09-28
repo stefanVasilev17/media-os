@@ -103,8 +103,13 @@ def run_gpu_preflight():
     if process.returncode != 0:
         stderr = (process.stderr or "").strip()
         stdout = (process.stdout or "").strip()
-        details = stderr[-1600:] or stdout[-1600:] or "No GPU preflight output was captured."
-        raise RuntimeError(f"GPU preflight failed with exit code {process.returncode}. {details}")
+        details = []
+        if stderr:
+            details.append(f"stderr: {stderr[-1200:]}")
+        if stdout:
+            details.append(f"stdout: {stdout[-500:]}")
+        suffix = " | ".join(details) or "No GPU preflight output was captured."
+        raise RuntimeError(f"GPU preflight failed with exit code {process.returncode}. {suffix}")
 
     marker = "MEDIA_OS_GPU_PREFLIGHT="
     for line in reversed((process.stdout or "").splitlines()):
