@@ -31,6 +31,18 @@ if ! grep -Fq -- "delete env.DBUS_SESSION_BUS_ADDRESS" /app/render.mjs; then
   echo "Chromium DBus environment sanitization is missing." >&2
   exit 1
 fi
+if ! grep -Fq -- "x11-vulkan-nvidia" /app/render.mjs; then
+  echo "Production renderer is missing the validated x11-vulkan-nvidia mode." >&2
+  exit 1
+fi
+if ! grep -Fq -- "--use-angle=vulkan" /app/render.mjs; then
+  echo "Production renderer is missing the validated ANGLE Vulkan flag." >&2
+  exit 1
+fi
+if ! grep -Fq -- "__GLX_VENDOR_LIBRARY_NAME: 'nvidia'" /app/render.mjs; then
+  echo "Production renderer is missing NVIDIA GLX vendor selection." >&2
+  exit 1
+fi
 
 FFMPEG_ENCODERS="$(ffmpeg -hide_banner -encoders 2>&1)"
 if ! grep -Eq 'libx264|h264_nvenc' <<<"$FFMPEG_ENCODERS"; then
