@@ -18,7 +18,11 @@ def worker_headers(callback_token: str):
 
 def ensure_gpu_available():
     result = subprocess.run(
-        ["nvidia-smi", "--query-gpu=name,driver_version", "--format=csv,noheader"],
+        [
+            "nvidia-smi",
+            "--query-gpu=name,memory.total,driver_version,uuid",
+            "--format=csv,noheader",
+        ],
         capture_output=True,
         text=True,
         timeout=20,
@@ -28,6 +32,16 @@ def ensure_gpu_available():
     value = result.stdout.strip()
     if not value:
         raise RuntimeError("NVIDIA GPU is unavailable: nvidia-smi returned no GPU.")
+
+    topology = subprocess.run(
+        ["nvidia-smi", "-L"],
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    topology_value = topology.stdout.strip() if topology.returncode == 0 else topology.stderr.strip()
+    if topology_value:
+        return f"{value} | nvidia-smi -L: {topology_value}"
     return value
 
 
@@ -145,7 +159,11 @@ def handler(job):
 
     if mode == "preflight":
         gpu = ensure_gpu_available()
-        result = run_gpu_preflight()
+        print(f"GPU preflight target: {gpu}", flush=True)
+        try:
+            result = run_gpu_preflight()
+        except Exception as error:
+            raise RuntimeError(f"{error} | GPU target: {gpu}") from error
         return {**result, "gpu": gpu}
 
     render_id = str(input_data.get("renderId") or "").strip()
