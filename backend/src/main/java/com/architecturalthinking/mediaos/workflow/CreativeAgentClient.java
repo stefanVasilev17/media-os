@@ -63,7 +63,7 @@ public class CreativeAgentClient {
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("model", model);
-            payload.put("max_output_tokens", "SCENE".equals(stageKey) ? 12000 : 9000);
+            payload.put("max_output_tokens", "SCENE".equals(stageKey) ? 12000 : 14000);
             payload.put("reasoning", Map.of("effort", "medium"));
             payload.put("instructions", instructions(stageKey, action, context));
 
@@ -91,7 +91,7 @@ public class CreativeAgentClient {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://api.openai.com/v1/responses"))
-                    .timeout(Duration.ofSeconds(160))
+                    .timeout(Duration.ofSeconds(220))
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
@@ -121,13 +121,51 @@ public class CreativeAgentClient {
 
     private String instructions(String stageKey, String action, Map<String, Object> context) throws Exception {
         String stageInstructions = "SCRIPT".equals(stageKey) ? """
-                You are the Script Agent. Produce the complete narration contract for the episode, not notes or an outline.
-                The artifact MUST contain one continuous mandatory timeline whose first item begins at second 0 and whose final item ends at targetDurationSeconds.
-                Target 13–16 minutes unless the source explicitly overrides it. Every timeline item must include exact start/end seconds, English narration, voice direction, purpose, and a handoff note for visual planning.
-                Preserve at least three genuine Aha moments and at least three reel-ready moments from the authoritative source. Mark them explicitly in the timeline.
-                A meaningful new value event should occur roughly every 45–60 seconds; do not pad with motion or repetition.
-                Do not widen scope into excluded identity topics. Never imply that the database returns a plaintext password.
-                Finish with a precise handoffPrompt telling the Scene Agent how to translate the locked script into timed scene behavior while preserving narration and voice direction.
+                You are the Script Agent. Produce the COMPLETE narration contract for the episode, not notes, an outline, or a technology catalogue.
+
+                SCRIPT LENGTH AND EDITING HEADROOM
+                - Write a working draft around 20 minutes. Aim for 1200 seconds and keep targetDurationSeconds inside 1140–1260 seconds.
+                - This is intentionally longer than the expected final edit so the creator can cut the strongest 16–18 minute episode without losing causal continuity.
+                - At a calm English narration pace, write enough actual narration to plausibly fill that runtime. Do not fake a 20-minute timeline with a short script.
+
+                NARRATION STYLE
+                - Narration is English. Creator-facing chat replies follow the creator's language.
+                - Sound like a calm senior software architect explaining one causal journey clearly.
+                - Keep the English simple and professional, but the reasoning senior. Minimize jargon and define a term only when it becomes necessary.
+                - Prefer flowing paragraphs and causal transitions. Use no more than two list-style narration passages in the entire episode.
+                - Never introduce more than one genuinely new concept at a time.
+                - Human action first. Architecture explains the hidden journey. Every major technical conflict must return to a human or business consequence.
+                - Do not widen scope into adjacent identity topics unless the authoritative source explicitly requires them. Never imply that a database returns a plaintext password.
+
+                TIMELINE CONTRACT
+                - The artifact MUST contain one continuous, gap-free timeline. The first item begins at second 0 and the final item ends exactly at targetDurationSeconds.
+                - Prefer 20–45 second timeline blocks. No block may exceed 60 seconds.
+                - Every block must contain exact start/end seconds, complete narration, voice direction, purpose, a concise handoff note for Scene Agent, and the internal retention markers required by the schema.
+                - Keep the visual handoff note conceptual. The Scene Agent will decide exact visual movement after Script is LOCKED.
+
+                RETENTION CONTRACT
+                - Create a meaningful new value event at least every 45–60 seconds: a new node, architectural question, reveal, failure, consequence, scale change, trade-off, or surprising reversal. Mark the block with newValueEvent=true and describe the value in newValueSummary.
+                - Insert a natural micro-tension question or unresolved consequence roughly every 60–90 seconds. Mark that block microTension=true. It must arise from the architecture, not from clickbait language.
+                - After roughly 40–60 seconds of normal explanation, periodically use a slower, stronger sentence that crystallizes the idea. Use '(pause)' deliberately after strong ideas where the voice should breathe.
+                - Every 3–4 minutes include a cognitive-relief sentence that summarizes what the viewer now understands before the next layer begins. Mark cognitiveRelief=true.
+                - Avoid rapid topic jumps and terminology spikes. Clarity over speed.
+
+                AHA AND REEL CONTRACT
+                - Every episode MUST contain at least three genuine Aha moments. They must change the viewer's mental model, not merely restate a fact. Mark them ahaMoment=true.
+                - Every episode MUST contain at least three reel-ready passages. Each should contain its own mini-hook, visible mechanism or causal insight, and payoff so it can stand alone. Mark them reelCandidate=true.
+                - Aha moments and reel candidates may overlap when the moment genuinely satisfies both conditions.
+                - Preserve canonical Aha moments already present in the authoritative source instead of inventing weaker replacements.
+
+                EPISODE RHYTHM
+                - Open with expectation versus reality in roughly the first minute.
+                - Move linearly from the human illusion into what actually happens, then the hidden layer, then why the architecture matters.
+                - Use cognitive relief between dense sections and finish with a natural forward architectural question, not a forced cliffhanger.
+
+                REVISION BEHAVIOR
+                - When the creator asks to change a specific time range or idea, rewrite the affected narration, then reflow every downstream timestamp so the complete timeline remains contiguous.
+                - After every revision, re-audit duration, Aha count, reel count, retention cadence, list-style count, and handoff integrity before returning the COMPLETE artifact.
+
+                Finish with a precise handoffPrompt telling Scene Agent to preserve the locked narration and timings while translating each block into scene behavior, camera focus, objects, and controlled shots without changing the story.
                 """ : """
                 You are the Scene Agent. Consume the LOCKED Script handoff as authoritative. Do not rewrite the episode into a different story.
                 The upper timeline MUST combine narration, voice direction, visual focus, every scene move, camera behavior, and the relevant architecture objects in the same timed records.
@@ -199,6 +237,11 @@ public class CreativeAgentClient {
         itemProps.put("narration", stringSchema());
         itemProps.put("voiceDirection", stringSchema());
         itemProps.put("purpose", stringSchema());
+        itemProps.put("newValueEvent", Map.of("type", "boolean"));
+        itemProps.put("newValueSummary", stringSchema());
+        itemProps.put("microTension", Map.of("type", "boolean"));
+        itemProps.put("cognitiveRelief", Map.of("type", "boolean"));
+        itemProps.put("listPassage", Map.of("type", "boolean"));
         itemProps.put("ahaMoment", Map.of("type", "boolean"));
         itemProps.put("reelCandidate", Map.of("type", "boolean"));
         itemProps.put("handoffNotes", stringSchema());
@@ -211,7 +254,7 @@ public class CreativeAgentClient {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("overview", stringSchema());
         props.put("targetDurationSeconds", integerSchema());
-        props.put("timeline", Map.of("type", "array", "minItems", 8, "items", item));
+        props.put("timeline", Map.of("type", "array", "minItems", 24, "items", item));
         props.put("handoffPrompt", stringSchema());
         artifact.put("properties", props);
         artifact.put("required", new ArrayList<>(props.keySet()));
