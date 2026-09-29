@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.director;
 
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -24,16 +25,19 @@ public class DirectorAgentClient {
     private static final String DEFAULT_MODEL = "gpt-5.6-sol";
 
     private final ObjectMapper objectMapper;
+    private final ProductionOverviewService overviewService;
     private final HttpClient httpClient;
     private final String apiKey;
     private final String model;
 
     public DirectorAgentClient(
             ObjectMapper objectMapper,
+            ProductionOverviewService overviewService,
             @Value("${OPENAI_API_KEY:}") String apiKey,
             @Value("${MEDIA_OS_DIRECTOR_MODEL:gpt-5.6-sol}") String model
     ) {
         this.objectMapper = objectMapper;
+        this.overviewService = overviewService;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
         this.httpClient = HttpClient.newBuilder()
@@ -55,10 +59,13 @@ public class DirectorAgentClient {
         }
 
         try {
+            Map<String, Object> enrichedContext = new LinkedHashMap<>(context);
+            enrichedContext.put("productionOverview", overviewService.overview());
+
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("model", model);
-            payload.put("max_output_tokens", 2200);
-            payload.put("instructions", instructions(mode, context));
+            payload.put("max_output_tokens", 3000);
+            payload.put("instructions", instructions(mode, enrichedContext));
 
             List<Map<String, Object>> input = new ArrayList<>();
             for (TranscriptMessage message : transcript) {
@@ -163,6 +170,7 @@ public class DirectorAgentClient {
                 - Discussion never changes production state by itself.
                 - Proposals must be explicit and remain reviewable until the creator locks them.
                 - Never claim that a downstream scene, shot, asset, Spline object, render, or contract changed unless the production system actually reports that change.
+                - Treat productionOverview as the authoritative cross-agent status summary. Use it to answer what is done, what remains, where the episode is now, and what should improve.
                 - Every implementation path must be cloud-first and must NOT require a Windows machine. Railway, server-side services, browser runtime, and on-demand GPU rendering are allowed. Do not propose a Windows runner dependency.
                 - Preserve locked decisions and source-of-truth constraints. If an idea conflicts with them, explain the conflict clearly.
                 - Prefer deterministic handoffs: exact object names, exact timing, exact contract fields, explicit dependencies, explicit risks.
