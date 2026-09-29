@@ -349,19 +349,32 @@ public class CreativeWorkflowController {
     private List<String> validateScript(Map<String, Object> artifact) {
         List<String> missing = new ArrayList<>();
         int duration = number(artifact.get("targetDurationSeconds"));
-        if (duration < 780 || duration > 960) {
-            missing.add("Target duration must stay inside 13–16 minutes (780–960 seconds). ");
+        if (duration < 1140 || duration > 1260) {
+            missing.add("Working Script duration must stay around 20 minutes (1140–1260 seconds). ");
         }
+
         List<Map<String, Object>> timeline = mapList(artifact.get("timeline"));
-        if (timeline.size() < 8) {
-            missing.add("The mandatory Script timeline is incomplete. ");
+        if (timeline.size() < 24) {
+            missing.add("The mandatory Script timeline needs enough timed blocks to control a 20-minute narration. ");
             return missing;
         }
 
         int expectedStart = 0;
         int aha = 0;
         int reels = 0;
+        int cognitiveRelief = 0;
+        int listPassages = 0;
+        int narrationWords = 0;
+        int deliberatePauses = 0;
+        int lastNewValueSecond = 0;
+        int lastMicroTensionSecond = 0;
+        int lastReliefSecond = 0;
         boolean contentMissing = false;
+        boolean blockTooLong = false;
+        boolean newValueCadenceBroken = false;
+        boolean microTensionCadenceBroken = false;
+        boolean reliefCadenceBroken = false;
+
         for (Map<String, Object> item : timeline) {
             int start = number(item.get("startSecond"));
             int end = number(item.get("endSecond"));
@@ -370,14 +383,53 @@ public class CreativeWorkflowController {
                 break;
             }
             expectedStart = end;
-            if (blank(item.get("narration")) || blank(item.get("voiceDirection")) || blank(item.get("purpose"))) contentMissing = true;
+            if (end - start > 60) blockTooLong = true;
+
+            String narration = String.valueOf(item.getOrDefault("narration", ""));
+            narrationWords += wordCount(narration);
+            deliberatePauses += occurrences(narration.toLowerCase(Locale.ROOT), "(pause)");
+
+            boolean newValue = Boolean.TRUE.equals(item.get("newValueEvent"));
+            boolean microTension = Boolean.TRUE.equals(item.get("microTension"));
+            boolean relief = Boolean.TRUE.equals(item.get("cognitiveRelief"));
+
+            if (blank(item.get("narration")) || blank(item.get("voiceDirection")) || blank(item.get("purpose"))
+                    || blank(item.get("handoffNotes")) || (newValue && blank(item.get("newValueSummary")))) {
+                contentMissing = true;
+            }
+
+            if (newValue) {
+                if (end - lastNewValueSecond > 65) newValueCadenceBroken = true;
+                lastNewValueSecond = end;
+            }
+            if (microTension) {
+                if (end - lastMicroTensionSecond > 105) microTensionCadenceBroken = true;
+                lastMicroTensionSecond = end;
+            }
+            if (relief) {
+                if (end - lastReliefSecond > 300) reliefCadenceBroken = true;
+                lastReliefSecond = end;
+                cognitiveRelief++;
+            }
+            if (Boolean.TRUE.equals(item.get("listPassage"))) listPassages++;
             if (Boolean.TRUE.equals(item.get("ahaMoment"))) aha++;
             if (Boolean.TRUE.equals(item.get("reelCandidate"))) reels++;
         }
+
         if (expectedStart != duration) missing.add("The final Script timeline timestamp must equal targetDurationSeconds. ");
-        if (contentMissing) missing.add("Every Script timeline item needs narration, voice direction, and purpose. ");
+        if (blockTooLong) missing.add("Keep Script timeline blocks at 60 seconds or less; prefer 20–45 seconds. ");
+        if (contentMissing) missing.add("Every Script block needs narration, voice direction, purpose, Scene handoff notes, and retention metadata. ");
+        if (duration > 0 && duration - lastNewValueSecond > 65) newValueCadenceBroken = true;
+        if (duration > 0 && duration - lastMicroTensionSecond > 105) microTensionCadenceBroken = true;
+        if (duration > 0 && duration - lastReliefSecond > 300) reliefCadenceBroken = true;
+        if (newValueCadenceBroken) missing.add("Add meaningful new viewer value at least every 45–60 seconds. ");
+        if (microTensionCadenceBroken) missing.add("Restore a natural micro-tension beat roughly every 60–90 seconds. ");
+        if (cognitiveRelief < 3 || reliefCadenceBroken) missing.add("Include cognitive-relief summaries throughout the episode, at least three and roughly every 3–4 minutes. ");
+        if (listPassages > 2) missing.add("Narration may use no more than two list-style passages. ");
         if (aha < 3) missing.add("Preserve at least three explicit Aha moments. ");
         if (reels < 3) missing.add("Preserve at least three reel-ready moments. ");
+        if (narrationWords < 2200 || narrationWords > 3300) missing.add("Narration word count must plausibly support the 20-minute working draft (about 2200–3300 words). ");
+        if (deliberatePauses < 3) missing.add("Mark deliberate '(pause)' beats after at least three strong ideas. ");
         if (blank(artifact.get("handoffPrompt"))) missing.add("Add the complete handoff prompt for Scene Agent. ");
         return dedupe(missing);
     }
@@ -625,6 +677,22 @@ public class CreativeWorkflowController {
         } catch (Exception ex) {
             return 0;
         }
+    }
+
+    private int wordCount(String value) {
+        if (value == null || value.isBlank()) return 0;
+        return value.trim().split("\\s+").length;
+    }
+
+    private int occurrences(String value, String needle) {
+        if (value == null || value.isBlank() || needle == null || needle.isBlank()) return 0;
+        int count = 0;
+        int cursor = 0;
+        while ((cursor = value.indexOf(needle, cursor)) >= 0) {
+            count++;
+            cursor += needle.length();
+        }
+        return count;
     }
 
     private boolean blank(Object value) {
