@@ -15,6 +15,11 @@ export type ScriptTimelineItem = {
   narration: string;
   voiceDirection: string;
   purpose: string;
+  newValueEvent: boolean;
+  newValueSummary: string;
+  microTension: boolean;
+  cognitiveRelief: boolean;
+  listPassage: boolean;
   ahaMoment: boolean;
   reelCandidate: boolean;
   handoffNotes: string;

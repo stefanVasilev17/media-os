@@ -40,7 +40,7 @@ function ScriptView({ artifact }: { artifact: ScriptArtifact }) {
       <section className="creative-section creative-overview">
         <h2>Script</h2>
         <p>{artifact.overview}</p>
-        <strong>{clock(artifact.targetDurationSeconds)} total narration</strong>
+        <strong>{clock(artifact.targetDurationSeconds)} working narration</strong>
       </section>
 
       <section className="creative-section">
@@ -138,6 +138,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const [pendingMessage, setPendingMessage] = useState('');
   const [error, setError] = useState('');
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
+  const automaticScriptAttempted = useRef(false);
 
   async function load() {
     try {
@@ -151,7 +152,9 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   }
 
   useEffect(() => {
+    automaticScriptAttempted.current = false;
     setLoading(true);
+    setState(null);
     void load();
   }, [stageKey]);
 
@@ -160,6 +163,23 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
     if (!history) return;
     history.scrollTop = history.scrollHeight;
   }, [state?.messages.length, busy, pendingMessage]);
+
+  useEffect(() => {
+    if (
+      stageKey !== 'SCRIPT' ||
+      loading ||
+      busy ||
+      !state ||
+      state.artifact ||
+      state.locked ||
+      !state.upstreamReady ||
+      !state.agentConfigured ||
+      automaticScriptAttempted.current
+    ) return;
+
+    automaticScriptAttempted.current = true;
+    void generate();
+  }, [stageKey, loading, busy, state]);
 
   async function generate() {
     if (busy) return;
@@ -242,11 +262,17 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
         </section>
       ) : !state.artifact ? (
         <section className="creative-empty">
-          <h2>{stageKey === 'SCRIPT' ? 'Create the episode script.' : 'Create the complete scene plan.'}</h2>
-          <button type="button" disabled={busy || !state.agentConfigured} onClick={() => void generate()}>
-            {busy ? <LoaderCircle size={16} className="spin" /> : null}
-            {stageKey === 'SCRIPT' ? 'Create Script' : 'Create Scene Plan'}
-          </button>
+          <h2>{stageKey === 'SCRIPT' ? (busy ? 'Writing the complete episode script…' : 'The Script Agent is ready to write the episode.') : 'Create the complete scene plan.'}</h2>
+          {busy ? (
+            <ThinkingDots />
+          ) : (
+            <button type="button" disabled={!state.agentConfigured} onClick={() => {
+              if (stageKey === 'SCRIPT') automaticScriptAttempted.current = true;
+              void generate();
+            }}>
+              {stageKey === 'SCRIPT' ? 'Retry Script' : 'Create Scene Plan'}
+            </button>
+          )}
         </section>
       ) : (
         <>
