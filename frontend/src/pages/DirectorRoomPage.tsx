@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowUp, Check, LoaderCircle, LockKeyhole, X } from 'lucide-react';
+import { ArrowRight, ArrowUp, LoaderCircle, LockKeyhole, X } from 'lucide-react';
 import {
   dismissDirectorProposal,
   loadDirectorRoom,
@@ -155,7 +155,7 @@ export function DirectorRoomPage() {
           <h1>{overview.episode.title}</h1>
           <p>{overview.currentFocus}</p>
         </div>
-        <div className="director-progress">
+        <div className="director-progress" aria-label={`Episode progress ${overview.progressPercent}%`}>
           <strong>{overview.progressPercent}%</strong>
           <div><i style={{ width: `${overview.progressPercent}%` }} /></div>
         </div>
@@ -181,9 +181,8 @@ export function DirectorRoomPage() {
                     <span className={`director-stage-dot ${stage.status.toLowerCase().replaceAll('_', '-')}`} />
                     <div>
                       <strong>{stage.displayName}</strong>
-                      <p>{stage.summary}</p>
+                      {stage.summary && <p>{stage.summary}</p>}
                     </div>
-                    <span className="director-stage-status">{stage.status.replaceAll('_', ' ')}</span>
                     {clickable && <ArrowRight size={15} />}
                   </button>
                 );
@@ -192,22 +191,10 @@ export function DirectorRoomPage() {
           </section>
 
           <div className="director-summary-grid">
-            <SummaryList title="Done" items={overview.completed} empty="Nothing is locked yet." />
-            <SummaryList title="Next" items={overview.nextActions} empty="No pending production action." />
-            <SummaryList title="Improve" items={overview.improvements} empty="No current improvement blocker." />
+            <SummaryList title="Done" items={overview.completed} empty="Nothing locked yet." />
+            <SummaryList title="Next" items={overview.nextActions} empty="No pending action." />
+            <SummaryList title="Improve" items={overview.improvements} empty="Nothing blocking the episode." />
           </div>
-
-          {room.decisions.length > 0 && (
-            <section className="director-locked-decisions">
-              <h2>Locked decisions</h2>
-              {room.decisions.map(decision => (
-                <article key={decision.id}>
-                  <Check size={14} />
-                  <div><strong>{decision.title}</strong><p>{decision.summary}</p></div>
-                </article>
-              ))}
-            </section>
-          )}
         </div>
 
         <aside className="director-conversation">
@@ -245,7 +232,7 @@ export function DirectorRoomPage() {
 
           {room.proposals.length > 0 && (
             <section className="director-proposals">
-              <h2>Decisions to review</h2>
+              <h2>Review</h2>
               {room.proposals.map(proposal => (
                 <Proposal
                   key={proposal.id}
