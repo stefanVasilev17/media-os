@@ -57,6 +57,10 @@ public class ProductionOverviewService {
                     improvements.add(name + ": " + text);
                 }
             }
+            for (Object improvement : asList(readiness.get("improvements"))) {
+                String text = String.valueOf(improvement);
+                if (!text.isBlank()) improvements.add(name + ": " + text);
+            }
             score += statusScore(status);
         }
 
@@ -83,7 +87,7 @@ public class ProductionOverviewService {
         result.put("completed", completed);
         result.put("nextActions", nextActions);
         result.put("improvements", dedupe(improvements));
-        result.put("stages", stages);
+        result.put("stages", publicStages(stages));
         result.put("live", live);
         result.put("source", sourceSnapshot());
         return result;
@@ -191,6 +195,16 @@ public class ProductionOverviewService {
         result.put("rendersReady", rendersReady);
         result.put("rendersActive", rendersActive);
         result.put("rendersFailed", rendersFailed);
+        return result;
+    }
+
+    private List<Map<String, Object>> publicStages(List<Map<String, Object>> stages) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> stage : stages) {
+            Map<String, Object> compact = new LinkedHashMap<>(stage);
+            compact.remove("artifact");
+            result.add(compact);
+        }
         return result;
     }
 
