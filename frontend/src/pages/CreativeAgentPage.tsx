@@ -24,6 +24,16 @@ function TimelineRange({ start, end }: { start: number; end: number }) {
   return <div className="creative-time">{clock(start)}–{clock(end)}</div>;
 }
 
+function ThinkingDots() {
+  return (
+    <div className="creative-thinking" aria-label="Agent is thinking">
+      <span />
+      <span />
+      <span />
+    </div>
+  );
+}
+
 function ScriptView({ artifact }: { artifact: ScriptArtifact }) {
   return (
     <>
@@ -125,8 +135,9 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [pendingMessage, setPendingMessage] = useState('');
   const [error, setError] = useState('');
-  const chatEnd = useRef<HTMLDivElement | null>(null);
+  const chatHistoryRef = useRef<HTMLDivElement | null>(null);
 
   async function load() {
     try {
@@ -145,8 +156,10 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   }, [stageKey]);
 
   useEffect(() => {
-    chatEnd.current?.scrollIntoView({ block: 'end' });
-  }, [state?.messages.length]);
+    const history = chatHistoryRef.current;
+    if (!history) return;
+    history.scrollTop = history.scrollHeight;
+  }, [state?.messages.length, busy, pendingMessage]);
 
   async function generate() {
     if (busy) return;
@@ -167,12 +180,17 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
     setBusy(true);
     setError('');
     setMessage('');
+    setPendingMessage(text);
     try {
       setState(await sendCreativeMessage<Artifact>(stageKey, text));
     } catch (cause) {
-      setMessage(text);
       setError(cause instanceof Error ? cause.message : 'Could not revise the production artifact.');
+      try {
+        setState(await loadCreativeStage<Artifact>(stageKey));
+      } catch {
+      }
     } finally {
+      setPendingMessage('');
       setBusy(false);
     }
   }
@@ -241,7 +259,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
             <aside className="creative-review-column">
               <section className="creative-chat">
                 <h2>Corrections</h2>
-                <div className="creative-chat-history">
+                <div className="creative-chat-history" ref={chatHistoryRef}>
                   {state.messages.length === 0 && <p className="creative-chat-empty">Ask for a change after reviewing the work.</p>}
                   {state.messages.map(item => (
                     <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
@@ -249,8 +267,13 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
                       <p>{item.content}</p>
                     </article>
                   ))}
-                  {busy && <div className="creative-thinking"><LoaderCircle size={15} className="spin" /></div>}
-                  <div ref={chatEnd} />
+                  {pendingMessage && (
+                    <article className="creator pending">
+                      <strong>You</strong>
+                      <p>{pendingMessage}</p>
+                    </article>
+                  )}
+                  {busy && <ThinkingDots />}
                 </div>
                 {!state.locked && (
                   <div className="creative-chat-input">
@@ -267,7 +290,9 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
                         }
                       }}
                     />
-                    <button type="button" disabled={busy || !message.trim()} onClick={() => void send()} aria-label="Send correction"><Send size={16} /></button>
+                    <button type="button" disabled={busy || !message.trim()} onClick={() => void send()} aria-label="Send correction">
+                      {busy ? <ThinkingDots /> : <Send size={16} />}
+                    </button>
                   </div>
                 )}
               </section>
