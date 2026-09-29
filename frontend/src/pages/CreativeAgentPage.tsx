@@ -26,11 +26,11 @@ function TimelineRange({ start, end }: { start: number; end: number }) {
 
 function ThinkingDots() {
   return (
-    <div className="creative-thinking" aria-label="Agent is thinking">
+    <span className="creative-thinking" aria-label="Agent is thinking">
       <span />
       <span />
       <span />
-    </div>
+    </span>
   );
 }
 
