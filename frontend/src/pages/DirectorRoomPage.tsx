@@ -39,11 +39,11 @@ function Proposal({
 
 function ThinkingDots() {
   return (
-    <div className="director-thinking" aria-label="Director is thinking">
+    <span className="director-thinking" aria-label="Director is thinking">
       <span />
       <span />
       <span />
-    </div>
+    </span>
   );
 }
 
