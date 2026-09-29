@@ -37,12 +37,13 @@ function Proposal({
   );
 }
 
-function SummaryList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
+function ThinkingDots() {
   return (
-    <section className="director-summary-block">
-      <h2>{title}</h2>
-      {items.length === 0 ? <p className="director-summary-empty">{empty}</p> : items.map(item => <p key={item}>{item}</p>)}
-    </section>
+    <div className="director-thinking" aria-label="Director is thinking">
+      <span />
+      <span />
+      <span />
+    </div>
   );
 }
 
@@ -54,8 +55,8 @@ export function DirectorRoomPage() {
   const [proposalBusy, setProposalBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
-  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const [pendingMessage, setPendingMessage] = useState('');
+  const chatHistoryRef = useRef<HTMLDivElement | null>(null);
 
   async function refresh(clearError = true) {
     if (clearError) setError('');
@@ -75,13 +76,16 @@ export function DirectorRoomPage() {
   }, []);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ block: 'end' });
-  }, [room?.messages.length]);
+    const history = chatHistoryRef.current;
+    if (!history) return;
+    history.scrollTop = history.scrollHeight;
+  }, [room?.messages.length, busy, pendingMessage]);
 
   async function send() {
     const text = message.trim();
     if (!text || busy) return;
     setMessage('');
+    setPendingMessage(text);
     setBusy(true);
     setError('');
     try {
@@ -90,7 +94,6 @@ export function DirectorRoomPage() {
       setOverview(await loadProductionOverview());
     } catch (cause) {
       const failure = cause instanceof Error ? cause.message : 'Director could not answer.';
-      setMessage(text);
       try {
         const [nextRoom, nextOverview] = await Promise.all([loadDirectorRoom(), loadProductionOverview()]);
         setRoom(nextRoom);
@@ -99,8 +102,8 @@ export function DirectorRoomPage() {
       }
       setError(failure);
     } finally {
+      setPendingMessage('');
       setBusy(false);
-      window.setTimeout(() => composerRef.current?.focus(), 80);
     }
   }
 
@@ -189,30 +192,28 @@ export function DirectorRoomPage() {
               })}
             </div>
           </section>
-
-          <div className="director-summary-grid">
-            <SummaryList title="Done" items={overview.completed} empty="Nothing locked yet." />
-            <SummaryList title="Next" items={overview.nextActions} empty="No pending action." />
-            <SummaryList title="Improve" items={overview.improvements} empty="Nothing blocking the episode." />
-          </div>
         </div>
 
         <aside className="director-conversation">
           <h2>Director</h2>
-          <div className="director-chat-history">
+          <div className="director-chat-history" ref={chatHistoryRef}>
             {visibleMessages.map(item => (
               <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
                 <strong>{item.sender === 'USER' ? 'You' : 'Director'}</strong>
                 <p>{item.content}</p>
               </article>
             ))}
-            {busy && <div className="director-thinking"><LoaderCircle size={15} className="spin" /></div>}
-            <div ref={chatEndRef} />
+            {pendingMessage && (
+              <article className="creator pending">
+                <strong>You</strong>
+                <p>{pendingMessage}</p>
+              </article>
+            )}
+            {busy && <ThinkingDots />}
           </div>
 
           <div className="director-composer">
             <textarea
-              ref={composerRef}
               value={message}
               onChange={event => setMessage(event.target.value)}
               rows={4}
@@ -226,7 +227,7 @@ export function DirectorRoomPage() {
               }}
             />
             <button type="button" disabled={busy || !room.agent.configured || !message.trim()} onClick={() => void send()} aria-label="Send">
-              {busy ? <LoaderCircle size={17} className="spin" /> : <ArrowUp size={17} />}
+              {busy ? <ThinkingDots /> : <ArrowUp size={17} />}
             </button>
           </div>
 
