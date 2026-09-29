@@ -3,6 +3,8 @@ import { AppBottomNav } from './components/AppBottomNav';
 import { ActivityPage } from './pages/ActivityPage';
 import { DirectorRoomPage } from './pages/DirectorRoomPage';
 import { HomePage } from './pages/HomePage';
+import { SceneAgentPage } from './pages/SceneAgentPage';
+import { ScriptAgentPage } from './pages/ScriptAgentPage';
 import { SettingsPage } from './pages/SettingsPage';
 import './styles/episodeSceneCompositor.css';
 
@@ -65,7 +67,11 @@ export function App() {
 
   let page: ReactNode;
 
-  if (hash.startsWith('#/agents/spline')) {
+  if (hash.startsWith('#/agents/script')) {
+    page = <ScriptAgentPage />;
+  } else if (hash.startsWith('#/agents/scene')) {
+    page = <SceneAgentPage />;
+  } else if (hash.startsWith('#/agents/spline')) {
     page = (
       <Suspense fallback={<AgentLoading />}>
         <SplineWorkspacePage />
