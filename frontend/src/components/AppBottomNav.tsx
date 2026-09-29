@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, Box, BrainCircuit, Settings } from 'lucide-react';
+import { Activity, Box, BrainCircuit, Clapperboard, FileText, Settings } from 'lucide-react';
 
 type NavItem = {
   label: string;
@@ -14,6 +14,18 @@ const items: NavItem[] = [
     hash: '#/',
     icon: <BrainCircuit size={19} />,
     match: hash => hash === '#/' || hash === '' || hash.startsWith('#/director')
+  },
+  {
+    label: 'Script',
+    hash: '#/agents/script',
+    icon: <FileText size={19} />,
+    match: hash => hash.startsWith('#/agents/script')
+  },
+  {
+    label: 'Scene',
+    hash: '#/agents/scene',
+    icon: <Clapperboard size={19} />,
+    match: hash => hash.startsWith('#/agents/scene')
   },
   {
     label: 'Spline',
