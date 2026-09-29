@@ -74,7 +74,6 @@ where agent_key='SCRIPT_AGENT';
 update production_stage
 set artifact=null,
     artifact_schema_version='SCRIPT_CONTRACT_V2',
-    current_revision=0,
     summary='The Script Agent will automatically create the complete timecoded working narration from the locked episode truth.',
     next_action='Review the automatic ~20-minute working script, correct it in chat, then LOCK it for Scene Agent.',
     readiness='{"ready":false,"remainingTasks":["Generate and review the complete timecoded working script contract."]}'::jsonb,
