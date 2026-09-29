@@ -302,20 +302,23 @@ public class CreativeWorkflowController {
     }
 
     private void assertUpstreamReady(String key) {
-        if (!upstreamReady(key)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Lock the Script contract before generating or revising Scene work.");
-        }
+        if (upstreamReady(key)) return;
+        String message = "SCRIPT".equals(key)
+                ? "Lock the episode Research & Truth contract before generating or revising Script work."
+                : "Lock the Script contract before generating or revising Scene work.";
+        throw new ResponseStatusException(HttpStatus.CONFLICT, message);
     }
 
     private boolean upstreamReady(String key) {
-        if ("SCRIPT".equals(key)) return true;
+        String requiredStage = "SCRIPT".equals(key) ? "RESEARCH" : "SCRIPT";
         return jdbc.sql("""
                 select exists(
                   select 1 from production_stage
-                  where episode_id=:episodeId and stage_key='SCRIPT' and status='LOCKED'
+                  where episode_id=:episodeId and stage_key=:requiredStage and status='LOCKED'
                 )
                 """)
                 .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("requiredStage", requiredStage)
                 .query(Boolean.class)
                 .single();
     }
