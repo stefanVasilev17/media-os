@@ -349,12 +349,13 @@ public class CreativeWorkflowController {
     private List<String> validateScript(Map<String, Object> artifact) {
         List<String> missing = new ArrayList<>();
         int duration = number(artifact.get("targetDurationSeconds"));
-        if (duration < 780 || duration > 960) {
-            missing.add("Target duration must stay inside 13–16 minutes (780–960 seconds). ");
+        if (duration < 1080 || duration > 1200) {
+            missing.add("The production Script draft must stay inside 18–20 minutes (1080–1200 seconds). ");
         }
+
         List<Map<String, Object>> timeline = mapList(artifact.get("timeline"));
-        if (timeline.size() < 8) {
-            missing.add("The mandatory Script timeline is incomplete. ");
+        if (timeline.size() < 18) {
+            missing.add("The mandatory Script timeline needs enough value beats to sustain an 18–20 minute draft. ");
             return missing;
         }
 
@@ -362,22 +363,39 @@ public class CreativeWorkflowController {
         int aha = 0;
         int reels = 0;
         boolean contentMissing = false;
+        boolean valueCadenceTooSlow = false;
+        boolean reelDurationInvalid = false;
+
         for (Map<String, Object> item : timeline) {
             int start = number(item.get("startSecond"));
             int end = number(item.get("endSecond"));
+            int beatDuration = end - start;
             if (start != expectedStart || end <= start) {
                 missing.add("Script timeline must be contiguous, ordered, and gap-free from second 0. ");
                 break;
             }
             expectedStart = end;
-            if (blank(item.get("narration")) || blank(item.get("voiceDirection")) || blank(item.get("purpose"))) contentMissing = true;
-            if (Boolean.TRUE.equals(item.get("ahaMoment"))) aha++;
-            if (Boolean.TRUE.equals(item.get("reelCandidate"))) reels++;
+
+            if (blank(item.get("narration")) || blank(item.get("voiceDirection")) || blank(item.get("purpose")) || blank(item.get("handoffNotes"))) {
+                contentMissing = true;
+            }
+            if (beatDuration > 65) valueCadenceTooSlow = true;
+
+            boolean ahaMoment = Boolean.TRUE.equals(item.get("ahaMoment"));
+            boolean reelCandidate = Boolean.TRUE.equals(item.get("reelCandidate"));
+            if (ahaMoment) aha++;
+            if (reelCandidate) {
+                reels++;
+                if (beatDuration < 15 || beatDuration > 35) reelDurationInvalid = true;
+            }
         }
+
         if (expectedStart != duration) missing.add("The final Script timeline timestamp must equal targetDurationSeconds. ");
-        if (contentMissing) missing.add("Every Script timeline item needs narration, voice direction, and purpose. ");
-        if (aha < 3) missing.add("Preserve at least three explicit Aha moments. ");
-        if (reels < 3) missing.add("Preserve at least three reel-ready moments. ");
+        if (contentMissing) missing.add("Every Script beat needs narration, voice direction, a meaningful viewer-value purpose, and Scene handoff notes. ");
+        if (valueCadenceTooSlow) missing.add("No Script value beat may run longer than 65 seconds; introduce new meaningful value roughly every 45–60 seconds. ");
+        if (aha < 3) missing.add("Preserve at least three explicit Aha moments that change the viewer's mental model. ");
+        if (reels < 3) missing.add("Preserve at least three standalone reel-ready moments. ");
+        if (reelDurationInvalid) missing.add("Each reel-ready Script beat must be 15–35 seconds so it can stand alone cleanly. ");
         if (blank(artifact.get("handoffPrompt"))) missing.add("Add the complete handoff prompt for Scene Agent. ");
         return dedupe(missing);
     }
