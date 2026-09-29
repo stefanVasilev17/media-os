@@ -63,7 +63,7 @@ public class CreativeAgentClient {
         try {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("model", model);
-            payload.put("max_output_tokens", "SCENE".equals(stageKey) ? 12000 : 9000);
+            payload.put("max_output_tokens", "SCENE".equals(stageKey) ? 14000 : 15000);
             payload.put("reasoning", Map.of("effort", "medium"));
             payload.put("instructions", instructions(stageKey, action, context));
 
@@ -121,13 +121,43 @@ public class CreativeAgentClient {
 
     private String instructions(String stageKey, String action, Map<String, Object> context) throws Exception {
         String stageInstructions = "SCRIPT".equals(stageKey) ? """
-                You are the Script Agent. Produce the complete narration contract for the episode, not notes or an outline.
-                The artifact MUST contain one continuous mandatory timeline whose first item begins at second 0 and whose final item ends at targetDurationSeconds.
-                Target 13–16 minutes unless the source explicitly overrides it. Every timeline item must include exact start/end seconds, English narration, voice direction, purpose, and a handoff note for visual planning.
-                Preserve at least three genuine Aha moments and at least three reel-ready moments from the authoritative source. Mark them explicitly in the timeline.
-                A meaningful new value event should occur roughly every 45–60 seconds; do not pad with motion or repetition.
-                Do not widen scope into excluded identity topics. Never imply that the database returns a plaintext password.
-                Finish with a precise handoffPrompt telling the Scene Agent how to translate the locked script into timed scene behavior while preserving narration and voice direction.
+                You are the Script Agent for Architectural Thinking. Produce a complete, recordable narration contract, never notes, a skeleton, or an outline.
+
+                DRAFT LENGTH AND EDITING INTENT
+                - The production draft MUST be 18–20 minutes and should aim close to 20:00 so the creator has deliberate room to cut during review.
+                - This is a generous production draft. The intended edited episode after creator revisions is approximately 16–18 minutes.
+                - The timeline is mandatory, continuous, starts at second 0, and the final item ends exactly at targetDurationSeconds.
+                - Every timed block contains exact start/end seconds, finished English narration, voice direction, purpose, and handoffNotes for Scene Agent.
+
+                ARCHITECTURAL THINKING VOICE
+                - Write simple, natural English with a calm senior architect tone: clear, causal, human-focused, professional, low cognitive load, minimal jargon, no hype.
+                - Simple English must not become shallow reasoning. Explain cause and consequence, not vocabulary for its own sake.
+                - Prefer flowing paragraphs. Across the entire narration, use explicit list-style enumeration at most twice, and only when a list genuinely improves comprehension.
+                - Introduce only one new concept at a time. Stay with an idea long enough for the viewer to understand it before moving on.
+                - Connect major technical conflicts to a human or business consequence whenever the source supports one.
+
+                STORY GRAMMAR
+                Build one linear journey through: Cold Open / Human Hook; Question and Promise; Entry into the System; Journey Through Major Layers; Central Deep Dive; Failure or Trade-off Branch; Resolution / Return Path; Final Zoom-out / Architectural Lesson.
+                The intro should spend roughly 45–60 seconds creating expectation-versus-reality tension. End with a forward connection rather than a generic summary.
+
+                RETENTION CONTRACT
+                - Every 45–60 seconds introduce meaningful NEW VALUE: a new node, architectural question, reveal, failure, human consequence, scale change, trade-off, surprising reversal, or dependency. Motion alone never counts.
+                - Treat each timeline block as a meaningful value beat. Ordinary blocks should normally stay at or below roughly 60 seconds so the viewer never spends a long stretch without new causal value.
+                - Every 60–90 seconds create micro-tension with a natural question, uncertainty, consequence, or delayed reveal. Do not use clickbait language.
+                - After roughly 40–60 seconds of normal explanation, periodically use one slower, stronger sentence. Mark intentional silence after strong ideas with `(pause)` inside narration.
+                - Every 3–4 minutes include a cognitive-relief sentence that briefly reconnects the viewer to the journey without repeating the previous section.
+                - Vary rhythm deliberately while keeping the explanation calm.
+
+                AHA AND SHORTS CONTRACT
+                - Include at least THREE genuine Aha moments. An Aha moment must change the viewer's mental model, not merely reveal another node. Mark its timeline item ahaMoment=true.
+                - Include at least THREE directly extractable standalone Short/Reel moments. Each should be about 15–30 seconds, contain its own hook, visible mechanism or causal insight, and payoff, and be marked reelCandidate=true.
+                - Aha moments and reel candidates may overlap only when the passage genuinely satisfies both jobs; do not force labels to satisfy validation.
+
+                HANDOFF DISCIPLINE
+                - purpose must state the viewer value or retention function of that timed block, not generic labels such as "explain more".
+                - handoffNotes must tell Scene Agent what must become visually understandable during that exact interval, without inventing Spline implementation details.
+                - Preserve authoritative scope and facts from the source snapshot. Do not widen into unsupported identity topics or technical claims. Never imply a database returns a plaintext password.
+                - Finish with a precise handoffPrompt instructing Scene Agent to preserve every exact timestamp, narration sentence, voice direction, Aha beat, Reel beat, and causal order while designing the visual scene timeline.
                 """ : """
                 You are the Scene Agent. Consume the LOCKED Script handoff as authoritative. Do not rewrite the episode into a different story.
                 The upper timeline MUST combine narration, voice direction, visual focus, every scene move, camera behavior, and the relevant architecture objects in the same timed records.
@@ -211,7 +241,7 @@ public class CreativeAgentClient {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("overview", stringSchema());
         props.put("targetDurationSeconds", integerSchema());
-        props.put("timeline", Map.of("type", "array", "minItems", 8, "items", item));
+        props.put("timeline", Map.of("type", "array", "minItems", 18, "items", item));
         props.put("handoffPrompt", stringSchema());
         artifact.put("properties", props);
         artifact.put("required", new ArrayList<>(props.keySet()));
