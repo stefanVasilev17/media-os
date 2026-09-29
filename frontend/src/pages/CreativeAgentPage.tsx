@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check, LoaderCircle, LockKeyhole, Send } from 'lucide-react';
+import { ArrowRight, LoaderCircle, LockKeyhole, Send } from 'lucide-react';
 import {
   generateCreativeStage,
   loadCreativeStage,
@@ -202,6 +202,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const script = stageKey === 'SCRIPT' ? state.artifact as ScriptArtifact | null : null;
   const scene = stageKey === 'SCENE' ? state.artifact as SceneArtifact | null : null;
   const lockLabel = stageKey === 'SCRIPT' ? 'LOCK SCRIPT → SCENE' : 'LOCK SCENES → SPLINE';
+  const nextAgentLabel = stageKey === 'SCRIPT' ? 'SCENE AGENT' : 'SPLINE AGENT';
 
   return (
     <main className="creative-agent-page">
@@ -230,70 +231,65 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
           </button>
         </section>
       ) : (
-        <div className="creative-workspace">
-          <div className="creative-artifact-column">
-            {script && <ScriptView artifact={script} />}
-            {scene && <SceneView artifact={scene} />}
+        <>
+          <div className="creative-workspace">
+            <div className="creative-artifact-column">
+              {script && <ScriptView artifact={script} />}
+              {scene && <SceneView artifact={scene} />}
+            </div>
+
+            <aside className="creative-review-column">
+              <section className="creative-chat">
+                <h2>Corrections</h2>
+                <div className="creative-chat-history">
+                  {state.messages.length === 0 && <p className="creative-chat-empty">Ask for a change after reviewing the work.</p>}
+                  {state.messages.map(item => (
+                    <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
+                      <strong>{item.sender === 'USER' ? 'You' : state.displayName}</strong>
+                      <p>{item.content}</p>
+                    </article>
+                  ))}
+                  {busy && <div className="creative-thinking"><LoaderCircle size={15} className="spin" /></div>}
+                  <div ref={chatEnd} />
+                </div>
+                {!state.locked && (
+                  <div className="creative-chat-input">
+                    <textarea
+                      value={message}
+                      onChange={event => setMessage(event.target.value)}
+                      placeholder="What should change?"
+                      rows={4}
+                      disabled={busy}
+                      onKeyDown={event => {
+                        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                          event.preventDefault();
+                          void send();
+                        }
+                      }}
+                    />
+                    <button type="button" disabled={busy || !message.trim()} onClick={() => void send()} aria-label="Send correction"><Send size={16} /></button>
+                  </div>
+                )}
+              </section>
+            </aside>
           </div>
 
-          <aside className="creative-review-column">
-            <section className="creative-chat">
-              <h2>Corrections</h2>
-              <div className="creative-chat-history">
-                {state.messages.length === 0 && <p className="creative-chat-empty">Ask for a change after reviewing the work.</p>}
-                {state.messages.map(item => (
-                  <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
-                    <strong>{item.sender === 'USER' ? 'You' : state.displayName}</strong>
-                    <p>{item.content}</p>
-                  </article>
-                ))}
-                {busy && <div className="creative-thinking"><LoaderCircle size={15} className="spin" /></div>}
-                <div ref={chatEnd} />
+          <section className={`creative-stage-gate ${state.locked ? 'is-locked' : ''}`}>
+            {!state.locked && state.remainingTasks.length > 0 && (
+              <div className="creative-remaining">
+                {state.remainingTasks.map(item => <p key={item}>{item}</p>)}
               </div>
-              {!state.locked && (
-                <div className="creative-chat-input">
-                  <textarea
-                    value={message}
-                    onChange={event => setMessage(event.target.value)}
-                    placeholder="What should change?"
-                    rows={4}
-                    disabled={busy}
-                    onKeyDown={event => {
-                      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                        event.preventDefault();
-                        void send();
-                      }
-                    }}
-                  />
-                  <button type="button" disabled={busy || !message.trim()} onClick={() => void send()} aria-label="Send correction"><Send size={16} /></button>
-                </div>
-              )}
-            </section>
-
-            <section className="creative-lock-panel">
-              {state.locked ? (
-                <>
-                  <div className="creative-locked"><Check size={17} /> LOCKED</div>
-                  <button type="button" className="creative-lock-button locked" onClick={() => void lock()}>
-                    Open {stageKey === 'SCRIPT' ? 'Scene Agent' : 'Spline Agent'} <ArrowRight size={16} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  {state.remainingTasks.length > 0 && (
-                    <div className="creative-remaining">
-                      <strong>Before lock</strong>
-                      {state.remainingTasks.map(item => <p key={item}>{item}</p>)}
-                    </div>
-                  )}
-                  <button type="button" className="creative-lock-button" disabled={busy || !state.readyToLock} onClick={() => void lock()}>
-                    <LockKeyhole size={16} /> {lockLabel}
-                  </button>
-                </>
-              )}
-            </section>
-          </aside>
-        </div>
+            )}
+            <button
+              type="button"
+              className={`creative-lock-button ${state.locked ? 'locked' : ''}`}
+              disabled={busy || (!state.locked && !state.readyToLock)}
+              onClick={() => void lock()}
+            >
+              {state.locked ? <>LOCKED — OPEN {nextAgentLabel} <ArrowRight size={16} /></> : <><LockKeyhole size={16} /> {lockLabel}</>}
+            </button>
+          </section>
+        </>
       )}
     </main>
   );
