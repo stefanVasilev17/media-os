@@ -129,18 +129,29 @@ public class AiRuntimePolicyService {
                 .update();
     }
 
-    public void recordUsage(UUID callId, int inputTokens, int outputTokens, int totalTokens) {
+    public void recordUsage(
+            UUID callId,
+            int inputTokens,
+            int outputTokens,
+            int totalTokens,
+            int cachedInputTokens,
+            int reasoningTokens
+    ) {
         jdbc.sql("""
                 update ai_call_ledger
                 set input_tokens = :inputTokens,
                     output_tokens = :outputTokens,
-                    total_tokens = :totalTokens
+                    total_tokens = :totalTokens,
+                    cached_input_tokens = :cachedInputTokens,
+                    reasoning_tokens = :reasoningTokens
                 where id = :id
                 """)
                 .param("id", callId)
                 .param("inputTokens", Math.max(0, inputTokens))
                 .param("outputTokens", Math.max(0, outputTokens))
                 .param("totalTokens", Math.max(0, totalTokens))
+                .param("cachedInputTokens", Math.max(0, cachedInputTokens))
+                .param("reasoningTokens", Math.max(0, reasoningTokens))
                 .update();
     }
 
@@ -151,7 +162,7 @@ public class AiRuntimePolicyService {
         result.put("autoRepairEnabled", current.autoRepairEnabled());
         result.put("updatedAt", current.updatedAt());
         result.put("safetyMode", current.paidAiEnabled() ? "PAID_AI_ON" : "ZERO_SPEND");
-        result.put("tokenUsageCaptured", false);
+        result.put("tokenUsageCaptured", true);
         result.put("month", monthSummary());
         result.put("recentCalls", recentCalls());
         return result;
@@ -163,7 +174,11 @@ public class AiRuntimePolicyService {
                        count(*) filter (where status = 'SUCCEEDED') as succeeded,
                        count(*) filter (where status = 'FAILED') as failed,
                        count(*) filter (where status = 'BLOCKED') as blocked,
-                       coalesce(sum(total_tokens), 0) as total_tokens
+                       coalesce(sum(input_tokens), 0) as input_tokens,
+                       coalesce(sum(output_tokens), 0) as output_tokens,
+                       coalesce(sum(total_tokens), 0) as total_tokens,
+                       coalesce(sum(cached_input_tokens), 0) as cached_input_tokens,
+                       coalesce(sum(reasoning_tokens), 0) as reasoning_tokens
                 from ai_call_ledger
                 where started_at >= date_trunc('month', now())
                 """)
@@ -173,7 +188,11 @@ public class AiRuntimePolicyService {
                     summary.put("succeeded", rs.getLong("succeeded"));
                     summary.put("failed", rs.getLong("failed"));
                     summary.put("blocked", rs.getLong("blocked"));
+                    summary.put("inputTokens", rs.getLong("input_tokens"));
+                    summary.put("outputTokens", rs.getLong("output_tokens"));
                     summary.put("totalTokens", rs.getLong("total_tokens"));
+                    summary.put("cachedInputTokens", rs.getLong("cached_input_tokens"));
+                    summary.put("reasoningTokens", rs.getLong("reasoning_tokens"));
                     return summary;
                 })
                 .single();
@@ -183,7 +202,7 @@ public class AiRuntimePolicyService {
         return jdbc.sql("""
                 select id, agent_key, operation, model, requested_output_token_limit,
                        status, blocked_reason, failure_message,
-                       input_tokens, output_tokens, total_tokens,
+                       input_tokens, output_tokens, total_tokens, cached_input_tokens, reasoning_tokens,
                        started_at, completed_at
                 from ai_call_ledger
                 order by started_at desc
@@ -202,6 +221,8 @@ public class AiRuntimePolicyService {
                     item.put("inputTokens", rs.getObject("input_tokens"));
                     item.put("outputTokens", rs.getObject("output_tokens"));
                     item.put("totalTokens", rs.getObject("total_tokens"));
+                    item.put("cachedInputTokens", rs.getObject("cached_input_tokens"));
+                    item.put("reasoningTokens", rs.getObject("reasoning_tokens"));
                     item.put("startedAt", rs.getObject("started_at", OffsetDateTime.class));
                     item.put("completedAt", rs.getObject("completed_at", OffsetDateTime.class));
                     return item;
