@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.director;
 
+import com.architecturalthinking.mediaos.system.AiUsageCapture;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -97,6 +98,7 @@ public class DirectorAgentClient {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
+            AiUsageCapture.capture(root);
             String outputText = extractOutputText(root);
             if (outputText.isBlank()) {
                 String responseId = root.path("id").asText("unknown");
