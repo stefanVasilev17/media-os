@@ -10,6 +10,11 @@ function formatDate(value: string | undefined | null) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+function formatTokens(value: number | undefined | null) {
+  if (value == null) return '—';
+  return new Intl.NumberFormat().format(value);
+}
+
 export function SettingsPage() {
   const [system, setSystem] = useState<SystemVersionInfo | null>(null);
   const [aiControl, setAiControl] = useState<AiControlState | null>(null);
@@ -133,7 +138,7 @@ export function SettingsPage() {
           <div className="media-os-card-heading">
             <div>
               <span>AI CALL LEDGER · THIS MONTH</span>
-              <strong>{aiControl.month.succeeded} successful paid calls</strong>
+              <strong>{formatTokens(aiControl.month.totalTokens)} exact tokens</strong>
             </div>
             <button disabled={aiBusy} onClick={() => void refreshAiControl()}>
               <RefreshCw size={16} className={aiBusy ? 'spin' : ''} />
@@ -142,10 +147,10 @@ export function SettingsPage() {
           </div>
 
           <dl className="media-os-settings-grid">
-            <div><dt>Attempts</dt><dd>{aiControl.month.attempts}</dd></div>
+            <div><dt>Paid calls</dt><dd>{aiControl.month.succeeded}</dd></div>
+            <div><dt>Input tokens</dt><dd>{formatTokens(aiControl.month.inputTokens)}</dd></div>
+            <div><dt>Output tokens</dt><dd>{formatTokens(aiControl.month.outputTokens)}</dd></div>
             <div><dt>Blocked before spend</dt><dd>{aiControl.month.blocked}</dd></div>
-            <div><dt>Failed upstream</dt><dd>{aiControl.month.failed}</dd></div>
-            <div><dt>Safety mode</dt><dd>{aiControl.safetyMode === 'ZERO_SPEND' ? 'Zero spend' : 'Paid AI on'}</dd></div>
           </dl>
 
           {aiControl.recentCalls.length > 0 && (
@@ -155,7 +160,7 @@ export function SettingsPage() {
                 {aiControl.recentCalls.slice(0, 6).map(call => (
                   <div key={call.id}>
                     <dt>{call.agentKey} · {call.operation}</dt>
-                    <dd>{call.status.toLowerCase()} · {formatDate(call.startedAt)}</dd>
+                    <dd>{call.status.toLowerCase()} · {formatTokens(call.totalTokens)} tokens · {formatDate(call.startedAt)}</dd>
                   </div>
                 ))}
               </dl>
