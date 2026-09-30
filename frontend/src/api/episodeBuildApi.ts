@@ -61,6 +61,28 @@ export type EpisodeBuildState = {
   canStartCurrentEpisode: boolean;
 };
 
+export type EpisodeBuildPreviewCall = {
+  agent: string;
+  operation: string;
+  model: string;
+  maxOutputTokens: number;
+};
+
+export type EpisodeBuildPreview = {
+  zeroTokenPreview: boolean;
+  apiConfigured: boolean;
+  paidAiEnabled: boolean;
+  autoRepairEnabled: boolean;
+  canStartCurrentEpisode: boolean;
+  plannedPaidCalls: number;
+  maximumAutomaticCalls: number;
+  plannedCalls: EpisodeBuildPreviewCall[];
+  automaticRepairCalls: EpisodeBuildPreviewCall[];
+  handoffUsesPaidAi: boolean;
+  nothingLocksAutomatically: boolean;
+  note: string;
+};
+
 async function readError(response: Response) {
   const text = await response.text();
   if (!text) return `Request failed with HTTP ${response.status}.`;
@@ -74,6 +96,12 @@ async function readError(response: Response) {
 
 export async function loadEpisodeBuildState(): Promise<EpisodeBuildState> {
   const response = await fetch('/api/v1/director/build', { cache: 'no-store' });
+  if (!response.ok) throw new Error(await readError(response));
+  return response.json();
+}
+
+export async function previewEpisodeBuild(): Promise<EpisodeBuildPreview> {
+  const response = await fetch('/api/v1/director/build/preview', { cache: 'no-store' });
   if (!response.ok) throw new Error(await readError(response));
   return response.json();
 }
