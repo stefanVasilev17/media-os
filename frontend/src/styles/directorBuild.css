@@ -1,0 +1,338 @@
+.director-topic-section {
+  margin-bottom: 30px;
+}
+
+.director-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.director-section-head h2 {
+  margin: 0;
+  color: #eff5fc;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.director-quiet-action,
+.director-discuss-topic,
+.director-build-start button,
+.director-build-actions button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(100,220,255,.18);
+  border-radius: 9px;
+  color: #dff7ff;
+  background: rgba(100,220,255,.055);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.director-quiet-action {
+  padding: 0 11px;
+}
+
+.director-quiet-action:disabled,
+.director-build-start button:disabled,
+.director-build-actions button:disabled {
+  opacity: .35;
+}
+
+.director-topic-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 14px 0 10px;
+  scrollbar-width: thin;
+}
+
+.director-topic-tabs button {
+  flex: 0 0 auto;
+  max-width: 260px;
+  min-height: 36px;
+  padding: 0 11px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 9px;
+  color: #8998aa;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.director-topic-tabs button.selected {
+  color: #dff8ff;
+  border-color: rgba(101,221,255,.22);
+  background: rgba(101,221,255,.06);
+}
+
+.director-topic-detail {
+  padding: 20px 0 4px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.director-topic-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.director-topic-title-row span,
+.director-topic-title-row small {
+  color: #6f8095;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.director-topic-title-row h3 {
+  margin: 5px 0 0;
+  max-width: 760px;
+  color: #edf4fb;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.15;
+  letter-spacing: -.03em;
+}
+
+.director-topic-question {
+  margin: 16px 0 0;
+  max-width: 930px;
+  color: #c7d3e1;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.director-topic-promise {
+  margin: 8px 0 0;
+  max-width: 930px;
+  color: #90a0b3;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.director-topic-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0 28px;
+  margin-top: 17px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.director-topic-detail-grid > div {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,.055);
+}
+
+.director-topic-detail-grid strong,
+.director-topic-aha > strong {
+  color: #9dacbe;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.director-topic-detail-grid p,
+.director-topic-aha p {
+  margin: 6px 0 0;
+  color: #c2cddb;
+  font-size: 11px;
+  line-height: 1.62;
+}
+
+.director-topic-aha {
+  padding: 15px 0 4px;
+}
+
+.director-topic-aha p {
+  position: relative;
+  padding-left: 13px;
+}
+
+.director-topic-aha p::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: .67em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #62dfff;
+}
+
+.director-discuss-topic {
+  margin-top: 13px;
+  padding: 0 12px;
+}
+
+.director-build-start {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 92px auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 20px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.director-build-start > div > strong {
+  display: block;
+  color: #e8f1fa;
+  font-size: 12px;
+}
+
+.director-build-start > div > p {
+  margin: 5px 0 0;
+  color: #8291a4;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.director-build-start select {
+  width: 92px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  outline: 0;
+  color: #dce6f1;
+  background: #080e17;
+  font-size: 11px;
+}
+
+.director-build-start button {
+  padding: 0 13px;
+  color: #061018;
+  background: #64dcff;
+  border-color: transparent;
+}
+
+.director-build-run {
+  margin-top: 20px;
+  padding: 16px 0 4px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.director-build-run-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.director-build-run-head h3 {
+  margin: 0;
+  color: #eaf2fb;
+  font-size: 14px;
+}
+
+.director-build-run-head p {
+  margin: 5px 0 0;
+  max-width: 720px;
+  color: #8998aa;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.director-build-run-head > strong {
+  color: #dff7ff;
+  font-size: 12px;
+}
+
+.director-build-progress {
+  height: 3px;
+  margin: 13px 0 12px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(255,255,255,.06);
+}
+
+.director-build-progress i {
+  display: block;
+  height: 100%;
+  background: #61dfff;
+}
+
+.director-build-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px;
+}
+
+.director-build-step {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 8px minmax(0,1fr);
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.director-build-step > span {
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #39465a;
+}
+
+.director-build-step.complete > span {
+  background: #59dca0;
+}
+
+.director-build-step.running > span {
+  background: #62dfff;
+  box-shadow: 0 0 9px rgba(98,223,255,.35);
+}
+
+.director-build-step.failed > span,
+.director-build-step.needs-review > span {
+  background: #ff9da3;
+}
+
+.director-build-step strong {
+  display: block;
+  color: #bac6d4;
+  font-size: 10px;
+}
+
+.director-build-step p {
+  margin: 4px 0 0;
+  color: #718095;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.director-build-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.director-build-actions button {
+  padding: 0 12px;
+}
+
+@media (max-width: 760px) {
+  .director-topic-title-row,
+  .director-section-head {
+    align-items: flex-start;
+  }
+
+  .director-topic-detail-grid,
+  .director-build-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .director-build-start {
+    grid-template-columns: 1fr;
+  }
+
+  .director-build-start select {
+    width: 100%;
+  }
+}
