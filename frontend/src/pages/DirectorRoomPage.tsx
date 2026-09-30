@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ArrowUp, LoaderCircle, LockKeyhole, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { loadAiControl, type AiControlState } from '../api/aiControlApi';
 import {
   dismissDirectorProposal,
   loadDirectorRoom,
@@ -12,8 +13,10 @@ import { loadProductionOverview, type ProductionOverview } from '../api/creative
 import {
   generateTopicCandidates,
   loadEpisodeBuildState,
+  previewEpisodeBuild,
   retryEpisodeBuild,
   startCurrentEpisodeBuild,
+  type EpisodeBuildPreview,
   type EpisodeBuildRun,
   type EpisodeBuildState,
   type TopicCandidate
@@ -153,6 +156,8 @@ export function DirectorRoomPage() {
   const [room, setRoom] = useState<DirectorRoom | null>(null);
   const [overview, setOverview] = useState<ProductionOverview | null>(null);
   const [buildState, setBuildState] = useState<EpisodeBuildState | null>(null);
+  const [aiControl, setAiControl] = useState<AiControlState | null>(null);
+  const [buildPreview, setBuildPreview] = useState<EpisodeBuildPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [buildBusy, setBuildBusy] = useState(false);
@@ -167,14 +172,17 @@ export function DirectorRoomPage() {
   async function refresh(clearError = true) {
     if (clearError) setError('');
     try {
-      const [nextRoom, nextOverview, nextBuildState] = await Promise.all([
+      const [nextRoom, nextOverview, nextBuildState, nextAiControl] = await Promise.all([
         loadDirectorRoom(),
         loadProductionOverview(),
-        loadEpisodeBuildState()
+        loadEpisodeBuildState(),
+        loadAiControl()
       ]);
       setRoom(nextRoom);
       setOverview(nextOverview);
       setBuildState(nextBuildState);
+      setAiControl(nextAiControl);
+      setBuildPreview(null);
       if (!selectedTopicId) {
         const firstFuture = nextBuildState.topics.find(topic => topic.status === 'READY')
           || nextBuildState.topics.find(topic => topic.status !== 'CURRENT');
@@ -223,7 +231,7 @@ export function DirectorRoomPage() {
 
   async function send() {
     const text = message.trim();
-    if (!text || busy) return;
+    if (!text || busy || !aiControl?.paidAiEnabled) return;
     setMessage('');
     setPendingMessage(text);
     setBusy(true);
@@ -248,7 +256,7 @@ export function DirectorRoomPage() {
   }
 
   async function findTopics() {
-    if (buildBusy) return;
+    if (buildBusy || !aiControl?.paidAiEnabled) return;
     setBuildBusy(true);
     setError('');
     try {
@@ -263,14 +271,47 @@ export function DirectorRoomPage() {
     }
   }
 
+  async function previewBuild() {
+    if (buildBusy) return;
+    setBuildBusy(true);
+    setError('');
+    try {
+      const preview = await previewEpisodeBuild();
+      setBuildPreview(preview);
+      setAiControl(current => current ? {
+        ...current,
+        paidAiEnabled: preview.paidAiEnabled,
+        autoRepairEnabled: preview.autoRepairEnabled,
+        safetyMode: preview.paidAiEnabled ? 'PAID_AI_ON' : 'ZERO_SPEND'
+      } : current);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not preview the episode build.');
+    } finally {
+      setBuildBusy(false);
+    }
+  }
+
   async function startBuild() {
     if (buildBusy) return;
+    if (!buildPreview) {
+      await previewBuild();
+      return;
+    }
+    if (!buildPreview.paidAiEnabled) {
+      setError('Paid AI is OFF. Open Settings and enable it only when you are ready to spend API credits.');
+      return;
+    }
+    if (!buildPreview.apiConfigured) {
+      setError('OpenAI API is not configured. Add the API key before starting a paid build.');
+      return;
+    }
     setBuildBusy(true);
     setError('');
     try {
       const next = await startCurrentEpisodeBuild(budgetMinutes);
       setBuildState(next);
       setOverview(await loadProductionOverview());
+      setBuildPreview(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not start the autonomous episode build.');
     } finally {
@@ -318,11 +359,11 @@ export function DirectorRoomPage() {
     }
   }
 
-  if (loading && (!room || !overview || !buildState)) {
+  if (loading && (!room || !overview || !buildState || !aiControl)) {
     return <main className="director-room-loading"><LoaderCircle size={22} className="spin" /></main>;
   }
 
-  if (!room || !overview || !buildState) {
+  if (!room || !overview || !buildState || !aiControl) {
     return (
       <main className="director-room-loading">
         <strong>Director Room is unavailable.</strong>
@@ -339,6 +380,7 @@ export function DirectorRoomPage() {
     || null;
   const nextAction = overview.nextActions[0] || primaryStage?.nextAction || overview.currentFocus || 'Review the current episode state.';
   const canStartBuild = Boolean(currentTopic && buildState.canStartCurrentEpisode && !latestRun);
+  const paidAiOn = aiControl.paidAiEnabled;
 
   return (
     <main className="director-room-page">
@@ -361,6 +403,11 @@ export function DirectorRoomPage() {
           <span className="director-eyebrow">Now</span>
           <h2>{nextAction}</h2>
           <p>Director shows only the next useful action here. Detailed episode context is available below when you need it.</p>
+          {canStartBuild && buildPreview && (
+            <p>
+              <strong>Zero-token preview:</strong> {buildPreview.plannedPaidCalls} planned paid calls · automatic repair {buildPreview.autoRepairEnabled ? 'ON' : 'OFF'} · nothing locks automatically.
+            </p>
+          )}
         </div>
         <div className="director-now-actions">
           {latestRun?.status === 'COMPLETE' && (
@@ -368,10 +415,21 @@ export function DirectorRoomPage() {
               Review Script <ArrowRight size={15} />
             </button>
           )}
-          {canStartBuild && (
-            <button type="button" className="primary" disabled={buildBusy || !buildState.configured} onClick={() => void startBuild()}>
+          {canStartBuild && !buildPreview && (
+            <button type="button" className="primary" disabled={buildBusy} onClick={() => void previewBuild()}>
               {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
-              Build initial episode
+              Preview build · 0 tokens
+            </button>
+          )}
+          {canStartBuild && buildPreview && buildPreview.paidAiEnabled && buildPreview.apiConfigured && (
+            <button type="button" className="primary" disabled={buildBusy} onClick={() => void startBuild()}>
+              {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
+              Start {buildPreview.maximumAutomaticCalls === buildPreview.plannedPaidCalls ? `${buildPreview.plannedPaidCalls}-call build` : `build · max ${buildPreview.maximumAutomaticCalls} calls`}
+            </button>
+          )}
+          {canStartBuild && buildPreview && !buildPreview.paidAiEnabled && (
+            <button type="button" onClick={() => { window.location.hash = '#/settings'; }}>
+              Paid AI is off · Open Settings <ArrowRight size={15} />
             </button>
           )}
           {primaryStage?.route && latestRun?.status !== 'COMPLETE' && (
@@ -392,7 +450,7 @@ export function DirectorRoomPage() {
                 <option value={30}>30 min</option>
               </select>
             </label>
-            <small>Truth audit → Script → Scene plan → review package. Nothing is locked automatically.</small>
+            <small>Truth audit → Script → Scene plan → review package. Preview costs 0 tokens. Nothing is locked automatically.</small>
           </details>
         )}
       </section>
@@ -461,10 +519,10 @@ export function DirectorRoomPage() {
           </summary>
           <div className="director-panel-body">
             <div className="director-panel-toolbar">
-              <p>Keep future ideas out of the main production view until you need them.</p>
-              <button type="button" disabled={buildBusy || !buildState.configured} onClick={() => void findTopics()}>
+              <p>{paidAiOn ? 'Keep future ideas out of the main production view until you need them.' : 'Paid AI is off. Existing ideas stay readable without spending tokens.'}</p>
+              <button type="button" disabled={buildBusy || !buildState.configured || !paidAiOn} onClick={() => void findTopics()}>
                 {buildBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}
-                Generate ideas
+                {paidAiOn ? 'Generate ideas' : 'Paid AI off'}
               </button>
             </div>
 
@@ -487,9 +545,10 @@ export function DirectorRoomPage() {
                   <button
                     type="button"
                     className="director-discuss-topic"
+                    disabled={!paidAiOn}
                     onClick={() => setMessage(`I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`)}
                   >
-                    Put this idea into Director chat
+                    {paidAiOn ? 'Put this idea into Director chat' : 'Paid AI is off'}
                   </button>
                 )}
               </>
@@ -502,7 +561,7 @@ export function DirectorRoomPage() {
         <details className="director-panel">
           <summary>
             <span>Ask Director</span>
-            <small>Use chat only when a production decision needs discussion</small>
+            <small>{paidAiOn ? 'Use chat only when a production decision needs discussion' : 'Paid AI is off; chat cannot spend tokens'}</small>
           </summary>
           <div className="director-panel-body">
             <div className="director-chat-history" ref={chatHistoryRef}>
@@ -526,8 +585,8 @@ export function DirectorRoomPage() {
                 value={message}
                 onChange={event => setMessage(event.target.value)}
                 rows={4}
-                disabled={busy || !room.agent.configured}
-                placeholder="Ask about one episode decision, risk, idea, or trade-off…"
+                disabled={busy || !room.agent.configured || !paidAiOn}
+                placeholder={paidAiOn ? 'Ask about one episode decision, risk, idea, or trade-off…' : 'Paid AI is off in Settings.'}
                 onKeyDown={event => {
                   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                     event.preventDefault();
@@ -535,7 +594,7 @@ export function DirectorRoomPage() {
                   }
                 }}
               />
-              <button type="button" disabled={busy || !room.agent.configured || !message.trim()} onClick={() => void send()} aria-label="Send">
+              <button type="button" disabled={busy || !room.agent.configured || !paidAiOn || !message.trim()} onClick={() => void send()} aria-label="Send">
                 {busy ? <ThinkingDots /> : <ArrowUp size={17} />}
               </button>
             </div>
