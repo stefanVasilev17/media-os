@@ -1,3 +1,5 @@
+@import './directorBuild.css';
+
 .director-room-page {
   width: min(1500px, 100%);
   margin: 0 auto;

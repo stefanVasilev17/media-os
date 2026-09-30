@@ -138,7 +138,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const [pendingMessage, setPendingMessage] = useState('');
   const [error, setError] = useState('');
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
-  const automaticScriptAttempted = useRef(false);
+  const automaticGenerationAttempted = useRef(false);
 
   async function load() {
     try {
@@ -152,7 +152,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   }
 
   useEffect(() => {
-    automaticScriptAttempted.current = false;
+    automaticGenerationAttempted.current = false;
     setLoading(true);
     setState(null);
     void load();
@@ -166,18 +166,18 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
 
   useEffect(() => {
     if (
-      stageKey !== 'SCRIPT' ||
       loading ||
       busy ||
       !state ||
+      state.status !== 'ACTIVE' ||
       state.artifact ||
       state.locked ||
       !state.upstreamReady ||
       !state.agentConfigured ||
-      automaticScriptAttempted.current
+      automaticGenerationAttempted.current
     ) return;
 
-    automaticScriptAttempted.current = true;
+    automaticGenerationAttempted.current = true;
     void generate();
   }, [stageKey, loading, busy, state]);
 
@@ -241,6 +241,7 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const scene = stageKey === 'SCENE' ? state.artifact as SceneArtifact | null : null;
   const lockLabel = stageKey === 'SCRIPT' ? 'LOCK SCRIPT → SCENE' : 'LOCK SCENES → SPLINE';
   const nextAgentLabel = stageKey === 'SCRIPT' ? 'SCENE AGENT' : 'SPLINE AGENT';
+  const autonomousBuildRunning = state.status === 'BUILDING';
 
   return (
     <main className="creative-agent-page">
@@ -255,22 +256,27 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
 
       {error && <div className="creative-error">{error}</div>}
 
-      {!state.upstreamReady ? (
+      {autonomousBuildRunning && !state.artifact ? (
+        <section className="creative-empty">
+          <h2>Initial episode build is preparing this agent's first complete draft.</h2>
+          <ThinkingDots />
+        </section>
+      ) : !state.upstreamReady ? (
         <section className="creative-empty">
           <h2>Script must be locked first.</h2>
           <button type="button" onClick={() => { window.location.hash = '#/agents/script'; }}>Open Script Agent <ArrowRight size={15} /></button>
         </section>
       ) : !state.artifact ? (
         <section className="creative-empty">
-          <h2>{stageKey === 'SCRIPT' ? (busy ? 'Writing the complete episode script…' : 'The Script Agent is ready to write the episode.') : 'Create the complete scene plan.'}</h2>
+          <h2>{busy ? `Creating the complete ${stageKey.toLowerCase()} draft…` : `${state.displayName} Agent is ready.`}</h2>
           {busy ? (
             <ThinkingDots />
           ) : (
             <button type="button" disabled={!state.agentConfigured} onClick={() => {
-              if (stageKey === 'SCRIPT') automaticScriptAttempted.current = true;
+              automaticGenerationAttempted.current = true;
               void generate();
             }}>
-              {stageKey === 'SCRIPT' ? 'Retry Script' : 'Create Scene Plan'}
+              Retry {stageKey === 'SCRIPT' ? 'Script' : 'Scene Plan'}
             </button>
           )}
         </section>
