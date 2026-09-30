@@ -10,6 +10,8 @@ export type AiCallLedgerItem = {
   inputTokens?: number | null;
   outputTokens?: number | null;
   totalTokens?: number | null;
+  cachedInputTokens?: number | null;
+  reasoningTokens?: number | null;
   startedAt: string;
   completedAt?: string | null;
 };
@@ -25,7 +27,11 @@ export type AiControlState = {
     succeeded: number;
     failed: number;
     blocked: number;
+    inputTokens: number;
+    outputTokens: number;
     totalTokens: number;
+    cachedInputTokens: number;
+    reasoningTokens: number;
   };
   recentCalls: AiCallLedgerItem[];
 };

@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.workflow;
 
+import com.architecturalthinking.mediaos.system.AiUsageCapture;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -105,6 +106,7 @@ public class CreativeAgentClient {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
+            AiUsageCapture.capture(root);
             String outputText = extractOutputText(root);
             if (outputText.isBlank()) {
                 throw new IllegalStateException("The creative agent answered, but returned no usable structured artifact. Please retry once.");

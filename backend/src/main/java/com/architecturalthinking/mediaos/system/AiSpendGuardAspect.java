@@ -87,13 +87,31 @@ public class AiSpendGuardAspect {
         }
 
         UUID callId = policyService.beginCall(agentKey, operation, model, requestedOutputTokenLimit);
+        AiUsageCapture.clear();
         try {
             Object result = joinPoint.proceed();
+            persistUsage(callId);
             policyService.completeSuccess(callId);
             return result;
         } catch (Throwable failure) {
+            persistUsage(callId);
             policyService.completeFailure(callId, failure.getMessage());
             throw failure;
+        } finally {
+            AiUsageCapture.clear();
         }
+    }
+
+    private void persistUsage(UUID callId) {
+        AiUsageCapture.Usage usage = AiUsageCapture.take();
+        if (usage == null) return;
+        policyService.recordUsage(
+                callId,
+                usage.inputTokens(),
+                usage.outputTokens(),
+                usage.totalTokens(),
+                usage.cachedInputTokens(),
+                usage.reasoningTokens()
+        );
     }
 }
