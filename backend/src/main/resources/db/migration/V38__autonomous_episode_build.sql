@@ -66,6 +66,38 @@ create table episode_build_step (
 create index idx_episode_build_step_run_sequence
   on episode_build_step(run_id, sequence_no);
 
+alter table production_stage_revision
+  add column source_build_run_id uuid references episode_build_run(id) on delete set null;
+
+create unique index idx_stage_revision_source_build
+  on production_stage_revision(production_stage_id, source_build_run_id)
+  where source_build_run_id is not null;
+
+create or replace function mediaos_invalidate_scene_after_script_revision()
+returns trigger as $$
+begin
+  if new.stage_key = 'SCRIPT'
+     and new.current_revision is distinct from old.current_revision
+     and new.current_revision > 0 then
+    update production_stage
+    set artifact=null,
+        status=case when status='LOCKED' then status else 'WAITING' end,
+        summary=case when status='LOCKED' then summary else 'Script changed; the Scene draft must be regenerated from the new narration.' end,
+        next_action=case when status='LOCKED' then next_action else 'Regenerate Scene from the latest Script revision.' end,
+        readiness=case when status='LOCKED' then readiness else '{"ready":false,"remainingTasks":["Script changed. Regenerate the complete Scene plan from the latest Script revision."]}'::jsonb end,
+        updated_at=case when status='LOCKED' then updated_at else now() end
+    where episode_id=new.episode_id
+      and stage_key='SCENE';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger trg_mediaos_invalidate_scene_after_script_revision
+after update of current_revision on production_stage
+for each row
+execute function mediaos_invalidate_scene_after_script_revision();
+
 insert into project_creative_policy(project_id, version, payload)
 values (
   '11111111-1111-1111-1111-111111111111',
