@@ -56,6 +56,7 @@ create table episode_build_step (
   sequence_no int not null,
   status varchar(40) not null,
   summary text not null default '',
+  artifact jsonb,
   error_message text,
   started_at timestamptz,
   completed_at timestamptz,
@@ -111,7 +112,7 @@ values (
       "Every topic needs one concrete central question, a visible human or business consequence, and a natural Entry to Bridge to Depth series path.",
       "Prefer system design, backend architecture, scalability, distributed systems, cloud cost, high-load systems, database performance, reliability, payments, trust, failure, and correctness when the human entry remains broad.",
       "Reject a sequel that is weak on its own merely because it fits a cluster.",
-      "Prefer topics that can reuse the Living Architecture World while still adding a distinct engineering lesson."
+      "Prefer topics that can reuse the Living Architecture World while still adding a distinct new lesson."
     ],
     "qualityRules":[
       "Simple English, calm architect tone, low cognitive load, minimal jargon, linear causal progression.",
@@ -136,6 +137,35 @@ on conflict (project_id) do update
 set version=excluded.version,
     payload=excluded.payload,
     updated_at=now();
+
+insert into episode_topic_candidate(
+  id, project_id, title, central_question, viewer_promise, evergreen_reason, mass_entry,
+  senior_lesson, system_boundary, core_tension, aha_candidates, failure_tradeoff,
+  reuse_plan, new_assets, series_path, thumbnail_idea, estimated_complexity,
+  recommended_build_minutes, status
+)
+values (
+  '99999999-aaaa-4444-8888-000000000001',
+  '11111111-1111-1111-1111-111111111111',
+  'What Really Happens When You Click Login?',
+  'How does a system turn submitted credentials into trusted, remembered authentication state?',
+  'Follow one familiar Login click through the hidden architecture that turns a human claim into trusted system state.',
+  'Login is a durable human action with long-term search value and naturally exposes client boundaries, backend dependencies, state, failure, and trust.',
+  'Everyone recognizes the Login button and expects it to be instant.',
+  'A healthy-looking local service does not guarantee end-to-end health, and correct credentials still require remembered authentication state.',
+  'Phone and client boundary through network entry, routing, Auth Service, User Database, authentication state, response, and logged-in UI.',
+  'The user experiences one simple click while a distributed system must validate identity, survive dependencies, and create future proof of authentication.',
+  '["The request may still be inside the client after Login is clicked.","The Auth Service can be healthy while login is broken because a dependency is slow.","Correct credentials are not enough; the system must issue or create remembered authentication state."]'::jsonb,
+  'A slow User Database consumes the request time budget while Auth Service itself remains locally operational, proving that local health is not end-to-end health.',
+  'Reuses the Phone, client boundary, architecture nodes, paths, camera grammar, failure motion patterns, and return-response patterns already central to the Living Architecture World.',
+  '[]'::jsonb,
+  'Entry: Login journey. Bridge: remembered identity/session state. Depth: authentication at scale, failure, new-device trust, and revocation.',
+  'A simple Login button in the foreground with the hidden architecture expanding behind it.',
+  'MEDIUM',
+  20,
+  'CURRENT'
+)
+on conflict (id) do nothing;
 
 insert into agent_profile(id, agent_key, name, instructions_version, permission_level, enabled)
 values (
