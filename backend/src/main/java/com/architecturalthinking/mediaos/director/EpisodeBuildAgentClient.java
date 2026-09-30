@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.director;
 
+import com.architecturalthinking.mediaos.system.AiUsageCapture;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -106,6 +107,7 @@ public class EpisodeBuildAgentClient {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
+            AiUsageCapture.capture(root);
             String outputText = extractOutputText(root);
             if (outputText.isBlank()) {
                 throw new IllegalStateException("The episode build model answered, but returned no usable structured result. Please retry once.");
