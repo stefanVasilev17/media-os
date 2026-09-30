@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.director;
 
+import com.architecturalthinking.mediaos.system.AiRuntimePolicyService;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,6 +38,7 @@ public class EpisodeBuildService {
     private final EpisodeBuildAgentClient buildAgent;
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
+    private final AiRuntimePolicyService aiPolicy;
     private final AtomicBoolean workerBusy = new AtomicBoolean(false);
 
     public EpisodeBuildService(
@@ -44,13 +46,15 @@ public class EpisodeBuildService {
             ObjectMapper objectMapper,
             EpisodeBuildAgentClient buildAgent,
             CreativeAgentClient creativeAgent,
-            ProductionOverviewService overviewService
+            ProductionOverviewService overviewService,
+            AiRuntimePolicyService aiPolicy
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.buildAgent = buildAgent;
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
+        this.aiPolicy = aiPolicy;
     }
 
     public Map<String, Object> state() {
@@ -246,8 +250,8 @@ public class EpisodeBuildService {
     }
 
     private void runScript(UUID runId) {
-        if (stageRevisionExists(runId, "SCRIPT")) {
-            completeStep(runId, "SCRIPT", "Script draft already persisted for this build run.");
+        if (stageRevisionReady(runId, "SCRIPT")) {
+            completeStep(runId, "SCRIPT", "Script draft already persisted and validated for this build run.");
             advance(runId, "SCENE", 55);
             return;
         }
@@ -260,6 +264,11 @@ public class EpisodeBuildService {
 
         CreativeAgentClient.AgentReply reply = creativeAgent.generate("SCRIPT", "GENERATE", List.of(), context);
         List<String> failures = validateScriptDraft(reply.artifact());
+        if (!failures.isEmpty() && !aiPolicy.autoRepairEnabled()) {
+            saveCreativeStage(runId, "SCRIPT", reply, failures);
+            failRun(runId, "SCRIPT", validationReviewMessage("Script", failures, false), true);
+            return;
+        }
         if (!failures.isEmpty()) {
             Map<String, Object> repairContext = new LinkedHashMap<>(context);
             repairContext.put("currentArtifact", reply.artifact());
@@ -269,7 +278,9 @@ public class EpisodeBuildService {
             failures = validateScriptDraft(reply.artifact());
         }
         if (!failures.isEmpty()) {
-            throw new IllegalStateException("Script draft failed production validation after automatic repair: " + String.join(" ", failures));
+            saveCreativeStage(runId, "SCRIPT", reply, failures);
+            failRun(runId, "SCRIPT", validationReviewMessage("Script", failures, true), true);
+            return;
         }
 
         saveCreativeStage(runId, "SCRIPT", reply, List.of());
@@ -278,8 +289,8 @@ public class EpisodeBuildService {
     }
 
     private void runScene(UUID runId) {
-        if (stageRevisionExists(runId, "SCENE")) {
-            completeStep(runId, "SCENE", "Scene draft already persisted for this build run.");
+        if (stageRevisionReady(runId, "SCENE")) {
+            completeStep(runId, "SCENE", "Scene draft already persisted and validated for this build run.");
             advance(runId, "HANDOFF", 90);
             return;
         }
@@ -301,6 +312,11 @@ public class EpisodeBuildService {
 
         CreativeAgentClient.AgentReply reply = creativeAgent.generate("SCENE", "GENERATE", List.of(), context);
         List<String> failures = validateSceneDraft(reply.artifact(), number(scriptArtifact.get("targetDurationSeconds")));
+        if (!failures.isEmpty() && !aiPolicy.autoRepairEnabled()) {
+            saveCreativeStage(runId, "SCENE", reply, failures);
+            failRun(runId, "SCENE", validationReviewMessage("Scene", failures, false), true);
+            return;
+        }
         if (!failures.isEmpty()) {
             Map<String, Object> repairContext = new LinkedHashMap<>(context);
             repairContext.put("currentArtifact", reply.artifact());
@@ -310,7 +326,9 @@ public class EpisodeBuildService {
             failures = validateSceneDraft(reply.artifact(), number(scriptArtifact.get("targetDurationSeconds")));
         }
         if (!failures.isEmpty()) {
-            throw new IllegalStateException("Scene draft failed production validation after automatic repair: " + String.join(" ", failures));
+            saveCreativeStage(runId, "SCENE", reply, failures);
+            failRun(runId, "SCENE", validationReviewMessage("Scene", failures, true), true);
+            return;
         }
 
         saveCreativeStage(runId, "SCENE", reply, List.of());
@@ -482,6 +500,13 @@ public class EpisodeBuildService {
         return dedupe(failures);
     }
 
+    private String validationReviewMessage(String stage, List<String> failures, boolean repairAttempted) {
+        String spendNote = repairAttempted
+                ? "One automatic repair call was already used; MediaOS made no further AI call."
+                : "Automatic repair is OFF; MediaOS made no additional AI call.";
+        return stage + " validation found " + failures.size() + " issue(s). " + spendNote + " Review the saved draft before spending again: " + String.join(" ", failures);
+    }
+
     private void createStep(UUID runId, String key, int sequence) {
         jdbc.sql("""
                 insert into episode_build_step(id, run_id, step_key, sequence_no, status)
@@ -591,7 +616,7 @@ public class EpisodeBuildService {
                 .orElse(false);
     }
 
-    private boolean stageRevisionExists(UUID runId, String stageKey) {
+    private boolean stageRevisionReady(UUID runId, String stageKey) {
         return jdbc.sql("""
                 select exists(
                   select 1
@@ -599,6 +624,7 @@ public class EpisodeBuildService {
                   join production_stage s on s.id=r.production_stage_id
                   where s.episode_id=:episodeId and s.stage_key=:stageKey
                     and r.source_build_run_id=:runId
+                    and coalesce((s.readiness->>'ready')::boolean, false)
                 )
                 """)
                 .param("episodeId", EPISODE_ID)
