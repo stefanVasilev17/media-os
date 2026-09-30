@@ -33,14 +33,18 @@ function Proposal({
 }) {
   return (
     <article className="director-decision">
-      <strong>{proposal.title}</strong>
-      <p>{proposal.summary}</p>
       <div>
+        <strong>{proposal.title}</strong>
+        <p>{proposal.summary}</p>
+      </div>
+      <div className="director-decision-actions">
         <button type="button" disabled={busy} onClick={onLock}>
           {busy ? <LoaderCircle size={14} className="spin" /> : <LockKeyhole size={14} />}
           Lock
         </button>
-        <button type="button" className="director-dismiss" disabled={busy} onClick={onDismiss} aria-label="Dismiss"><X size={14} /></button>
+        <button type="button" className="director-dismiss" disabled={busy} onClick={onDismiss} aria-label="Dismiss proposal">
+          <X size={14} />
+        </button>
       </div>
     </article>
   );
@@ -60,50 +64,64 @@ function hasRun(run: EpisodeBuildState['latestRun']): run is EpisodeBuildRun {
   return Boolean(run && 'id' in run && run.id);
 }
 
-function TopicDetail({ topic }: { topic: TopicCandidate }) {
+function topicStatusLabel(topic: TopicCandidate) {
+  return topic.status === 'CURRENT' ? 'Current episode' : 'Future idea';
+}
+
+function TopicSummary({ topic }: { topic: TopicCandidate }) {
   return (
-    <article className="director-topic-detail">
+    <article className="director-topic-summary">
       <div className="director-topic-title-row">
         <div>
-          <span>{topic.status === 'CURRENT' ? 'Current episode' : 'Episode idea'}</span>
+          <span>{topicStatusLabel(topic)}</span>
           <h3>{topic.title}</h3>
         </div>
-        <small>{topic.estimatedComplexity.toLowerCase()} production complexity</small>
+        <small>{topic.estimatedComplexity.toLowerCase()} complexity</small>
       </div>
 
       <p className="director-topic-question">{topic.centralQuestion}</p>
       <p className="director-topic-promise">{topic.viewerPromise}</p>
 
-      <div className="director-topic-detail-grid">
-        <div><strong>Why it lasts</strong><p>{topic.evergreenReason}</p></div>
-        <div><strong>Human entry</strong><p>{topic.massEntry}</p></div>
-        <div><strong>Engineering depth</strong><p>{topic.seniorLesson}</p></div>
-        <div><strong>Core tension</strong><p>{topic.coreTension}</p></div>
-        <div><strong>System boundary</strong><p>{topic.systemBoundary}</p></div>
-        <div><strong>Failure / trade-off</strong><p>{topic.failureTradeoff}</p></div>
-        <div><strong>World reuse</strong><p>{topic.reusePlan}</p></div>
-        <div><strong>Series path</strong><p>{topic.seriesPath}</p></div>
-      </div>
-
-      {topic.ahaCandidates.length > 0 && (
-        <div className="director-topic-aha">
-          <strong>Possible Aha moments</strong>
-          {topic.ahaCandidates.slice(0, 3).map((aha, index) => <p key={`${topic.id}-aha-${index}`}>{aha}</p>)}
+      <details className="director-topic-more">
+        <summary>Show episode strategy</summary>
+        <div className="director-topic-detail-grid">
+          <div><strong>Human entry</strong><p>{topic.massEntry}</p></div>
+          <div><strong>Senior lesson</strong><p>{topic.seniorLesson}</p></div>
+          <div><strong>Core tension</strong><p>{topic.coreTension}</p></div>
+          <div><strong>Failure / trade-off</strong><p>{topic.failureTradeoff}</p></div>
+          <div><strong>System boundary</strong><p>{topic.systemBoundary}</p></div>
+          <div><strong>World reuse</strong><p>{topic.reusePlan}</p></div>
+          <div><strong>Series path</strong><p>{topic.seriesPath}</p></div>
+          <div><strong>Why it lasts</strong><p>{topic.evergreenReason}</p></div>
         </div>
-      )}
+        {topic.ahaCandidates.length > 0 && (
+          <div className="director-topic-aha">
+            <strong>Possible Aha moments</strong>
+            {topic.ahaCandidates.slice(0, 3).map((aha, index) => <p key={`${topic.id}-aha-${index}`}>{aha}</p>)}
+          </div>
+        )}
+      </details>
     </article>
   );
+}
+
+function buildStepLabel(stepKey: string) {
+  if (stepKey === 'TRUTH') return 'Truth';
+  if (stepKey === 'HANDOFF') return 'Review package';
+  return stepKey.charAt(0) + stepKey.slice(1).toLowerCase();
 }
 
 function BuildRun({ run, onRetry }: { run: EpisodeBuildRun; onRetry: () => void }) {
   const retryable = run.status === 'FAILED' || run.status === 'NEEDS_REVIEW';
   const complete = run.status === 'COMPLETE';
+
   return (
     <section className="director-build-run">
       <div className="director-build-run-head">
         <div>
-          <h3>{complete ? 'Initial version ready' : retryable ? 'Initial build needs attention' : 'Building initial version'}</h3>
-          <p>{complete ? 'Review Script first, then Scene, then continue to Spline.' : run.errorMessage || `Working through ${run.currentStep.toLowerCase()}.`}</p>
+          <span className="director-eyebrow">Autonomous build</span>
+          <h2>{complete ? 'Initial episode draft is ready' : retryable ? 'Build needs attention' : 'Building the initial episode draft'}</h2>
+          <p>{complete ? 'Review the Script first. Nothing was locked automatically.' : run.errorMessage || `Working on ${buildStepLabel(run.currentStep)}.`}</p>
         </div>
         <strong>{run.progressPercent}%</strong>
       </div>
@@ -113,8 +131,8 @@ function BuildRun({ run, onRetry }: { run: EpisodeBuildRun; onRetry: () => void 
           <div key={step.stepKey} className={`director-build-step ${step.status.toLowerCase().replaceAll('_', '-')}`}>
             <span />
             <div>
-              <strong>{step.stepKey === 'TRUTH' ? 'Truth' : step.stepKey === 'HANDOFF' ? 'Review package' : step.stepKey.charAt(0) + step.stepKey.slice(1).toLowerCase()}</strong>
-              {step.summary && <p>{step.summary}</p>}
+              <strong>{buildStepLabel(step.stepKey)}</strong>
+              <small>{step.status.toLowerCase().replaceAll('_', ' ')}</small>
             </div>
           </div>
         ))}
@@ -125,6 +143,10 @@ function BuildRun({ run, onRetry }: { run: EpisodeBuildRun; onRetry: () => void 
       </div>
     </section>
   );
+}
+
+function stageStatusLabel(status: string) {
+  return status.toLowerCase().replaceAll('_', ' ');
 }
 
 export function DirectorRoomPage() {
@@ -154,8 +176,9 @@ export function DirectorRoomPage() {
       setOverview(nextOverview);
       setBuildState(nextBuildState);
       if (!selectedTopicId) {
-        const current = nextBuildState.topics.find(topic => topic.status === 'CURRENT') || nextBuildState.topics[0];
-        if (current) setSelectedTopicId(current.id);
+        const firstFuture = nextBuildState.topics.find(topic => topic.status === 'READY')
+          || nextBuildState.topics.find(topic => topic.status !== 'CURRENT');
+        if (firstFuture) setSelectedTopicId(firstFuture.id);
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load Director Room.');
@@ -190,13 +213,13 @@ export function DirectorRoomPage() {
     return () => window.clearInterval(timer);
   }, [buildIsRunning]);
 
+  const futureTopics = useMemo(() => {
+    return buildState?.topics.filter(topic => topic.status !== 'CURRENT') || [];
+  }, [buildState]);
+
   const selectedTopic = useMemo(() => {
-    if (!buildState) return null;
-    return buildState.topics.find(topic => topic.id === selectedTopicId)
-      || buildState.topics.find(topic => topic.status === 'CURRENT')
-      || buildState.topics[0]
-      || null;
-  }, [buildState, selectedTopicId]);
+    return futureTopics.find(topic => topic.id === selectedTopicId) || futureTopics[0] || null;
+  }, [futureTopics, selectedTopicId]);
 
   async function send() {
     const text = message.trim();
@@ -311,12 +334,17 @@ export function DirectorRoomPage() {
 
   const visibleMessages = room.messages.filter(item => item.sender !== 'SYSTEM');
   const currentTopic = buildState.topics.find(topic => topic.status === 'CURRENT') || null;
+  const primaryStage = overview.stages.find(stage => stage.stageKey === overview.episode.currentStage && stage.route)
+    || overview.stages.find(stage => stage.route && !['LOCKED', 'COMPLETE', 'PUBLISHED'].includes(stage.status.toUpperCase()))
+    || null;
+  const nextAction = overview.nextActions[0] || primaryStage?.nextAction || overview.currentFocus || 'Review the current episode state.';
+  const canStartBuild = Boolean(currentTopic && buildState.canStartCurrentEpisode && !latestRun);
 
   return (
     <main className="director-room-page">
       <header className="director-room-header">
         <div>
-          <span>{overview.episode.episodeNumber}</span>
+          <span>{overview.episode.episodeNumber} · Director</span>
           <h1>{overview.episode.title}</h1>
           <p>{overview.currentFocus}</p>
         </div>
@@ -328,142 +356,191 @@ export function DirectorRoomPage() {
 
       {error && <div className="director-error">{error}</div>}
 
-      <div className="director-command-grid">
-        <div className="director-episode-column">
-          <section className="director-topic-section">
-            <div className="director-section-head">
-              <h2>Topic direction</h2>
-              <button type="button" className="director-quiet-action" disabled={buildBusy || !buildState.configured} onClick={() => void findTopics()}>
-                {buildBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}
-                Find next topics
-              </button>
-            </div>
+      <section className="director-now-card">
+        <div className="director-now-copy">
+          <span className="director-eyebrow">Now</span>
+          <h2>{nextAction}</h2>
+          <p>Director shows only the next useful action here. Detailed episode context is available below when you need it.</p>
+        </div>
+        <div className="director-now-actions">
+          {latestRun?.status === 'COMPLETE' && (
+            <button type="button" className="primary" onClick={() => { window.location.hash = '#/agents/script'; }}>
+              Review Script <ArrowRight size={15} />
+            </button>
+          )}
+          {canStartBuild && (
+            <button type="button" className="primary" disabled={buildBusy || !buildState.configured} onClick={() => void startBuild()}>
+              {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
+              Build initial episode
+            </button>
+          )}
+          {primaryStage?.route && latestRun?.status !== 'COMPLETE' && (
+            <button type="button" onClick={() => { if (primaryStage.route) window.location.hash = primaryStage.route; }}>
+              Open {primaryStage.displayName} <ArrowRight size={15} />
+            </button>
+          )}
+        </div>
+        {canStartBuild && (
+          <details className="director-build-options">
+            <summary>Build options</summary>
+            <label>
+              Work budget
+              <select value={budgetMinutes} onChange={event => setBudgetMinutes(Number(event.target.value))} aria-label="Build work budget">
+                <option value={15}>15 min</option>
+                <option value={20}>20 min</option>
+                <option value={25}>25 min</option>
+                <option value={30}>30 min</option>
+              </select>
+            </label>
+            <small>Truth audit → Script → Scene plan → review package. Nothing is locked automatically.</small>
+          </details>
+        )}
+      </section>
 
-            <div className="director-topic-tabs">
-              {buildState.topics.map(topic => (
-                <button
-                  type="button"
-                  key={topic.id}
-                  className={topic.id === selectedTopic?.id ? 'selected' : ''}
-                  onClick={() => setSelectedTopicId(topic.id)}
-                >
-                  {topic.title}
-                </button>
-              ))}
-            </div>
+      {latestRun && <BuildRun run={latestRun} onRetry={() => void retryBuild()} />}
 
-            {selectedTopic && <TopicDetail topic={selectedTopic} />}
+      {room.proposals.length > 0 && (
+        <section className="director-review-card">
+          <div className="director-section-title">
+            <span className="director-eyebrow">Needs your decision</span>
+            <h2>{room.proposals.length === 1 ? 'One proposal is waiting' : `${room.proposals.length} proposals are waiting`}</h2>
+          </div>
+          {room.proposals.map(proposal => (
+            <Proposal
+              key={proposal.id}
+              proposal={proposal}
+              busy={proposalBusy === proposal.id}
+              onLock={() => void lockProposal(proposal.id)}
+              onDismiss={() => void dismissProposal(proposal.id)}
+            />
+          ))}
+        </section>
+      )}
 
-            {selectedTopic?.status === 'READY' && (
+      <section className="director-pipeline">
+        <div className="director-section-title">
+          <span className="director-eyebrow">Episode path</span>
+          <h2>Where the episode is now</h2>
+        </div>
+        <div className="director-stage-list">
+          {overview.stages.map(stage => {
+            const clickable = Boolean(stage.route);
+            return (
               <button
                 type="button"
-                className="director-discuss-topic"
-                onClick={() => setMessage(`I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`)}
+                key={stage.stageKey}
+                className="director-stage"
+                disabled={!clickable}
+                onClick={() => { if (stage.route) window.location.hash = stage.route; }}
               >
-                Discuss this idea with Director
+                <span className={`director-stage-dot ${stage.status.toLowerCase().replaceAll('_', '-')}`} />
+                <strong>{stage.displayName}</strong>
+                <small>{stageStatusLabel(stage.status)}</small>
+                {clickable && <ArrowRight size={14} />}
               </button>
-            )}
+            );
+          })}
+        </div>
+      </section>
 
-            {currentTopic && buildState.canStartCurrentEpisode && !latestRun && (
-              <div className="director-build-start">
-                <div>
-                  <strong>Build the first complete EP001 version</strong>
-                  <p>Truth audit → Script → Scene plan → shot prompts. Nothing is locked automatically.</p>
+      <div className="director-details-stack">
+        <details className="director-panel" open>
+          <summary>
+            <span>Current episode context</span>
+            <small>The important idea, question and promise</small>
+          </summary>
+          <div className="director-panel-body">
+            {currentTopic ? <TopicSummary topic={currentTopic} /> : <p className="director-empty">No current topic snapshot is available.</p>}
+          </div>
+        </details>
+
+        <details className="director-panel">
+          <summary>
+            <span>Future topic ideas</span>
+            <small>Open only when planning the next episode</small>
+          </summary>
+          <div className="director-panel-body">
+            <div className="director-panel-toolbar">
+              <p>Keep future ideas out of the main production view until you need them.</p>
+              <button type="button" disabled={buildBusy || !buildState.configured} onClick={() => void findTopics()}>
+                {buildBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}
+                Generate ideas
+              </button>
+            </div>
+
+            {futureTopics.length > 0 ? (
+              <>
+                <div className="director-topic-tabs">
+                  {futureTopics.map(topic => (
+                    <button
+                      type="button"
+                      key={topic.id}
+                      className={topic.id === selectedTopic?.id ? 'selected' : ''}
+                      onClick={() => setSelectedTopicId(topic.id)}
+                    >
+                      {topic.title}
+                    </button>
+                  ))}
                 </div>
-                <select value={budgetMinutes} onChange={event => setBudgetMinutes(Number(event.target.value))} aria-label="Build work budget">
-                  <option value={15}>15 min</option>
-                  <option value={20}>20 min</option>
-                  <option value={25}>25 min</option>
-                  <option value={30}>30 min</option>
-                </select>
-                <button type="button" disabled={buildBusy || !buildState.configured} onClick={() => void startBuild()}>
-                  {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
-                  Build initial episode
-                </button>
-              </div>
-            )}
-
-            {latestRun && <BuildRun run={latestRun} onRetry={() => void retryBuild()} />}
-          </section>
-
-          <section className="director-stage-section">
-            <h2>Episode</h2>
-            <div className="director-stage-list">
-              {overview.stages.map(stage => {
-                const clickable = Boolean(stage.route);
-                return (
+                {selectedTopic && <TopicSummary topic={selectedTopic} />}
+                {selectedTopic?.status === 'READY' && (
                   <button
                     type="button"
-                    key={stage.stageKey}
-                    className="director-stage"
-                    disabled={!clickable}
-                    onClick={() => { if (stage.route) window.location.hash = stage.route; }}
+                    className="director-discuss-topic"
+                    onClick={() => setMessage(`I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`)}
                   >
-                    <span className={`director-stage-dot ${stage.status.toLowerCase().replaceAll('_', '-')}`} />
-                    <div>
-                      <strong>{stage.displayName}</strong>
-                      {stage.summary && <p>{stage.summary}</p>}
-                    </div>
-                    {clickable && <ArrowRight size={15} />}
+                    Put this idea into Director chat
                   </button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        <aside className="director-conversation">
-          <h2>Director</h2>
-          <div className="director-chat-history" ref={chatHistoryRef}>
-            {visibleMessages.map(item => (
-              <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
-                <strong>{item.sender === 'USER' ? 'You' : 'Director'}</strong>
-                <p>{item.content}</p>
-              </article>
-            ))}
-            {pendingMessage && (
-              <article className="creator pending">
-                <strong>You</strong>
-                <p>{pendingMessage}</p>
-              </article>
+                )}
+              </>
+            ) : (
+              <p className="director-empty">No future topic ideas yet.</p>
             )}
-            {busy && <ThinkingDots />}
           </div>
+        </details>
 
-          <div className="director-composer">
-            <textarea
-              value={message}
-              onChange={event => setMessage(event.target.value)}
-              rows={4}
-              disabled={busy || !room.agent.configured}
-              placeholder="Ask about the episode, an idea, a risk, or a production decision…"
-              onKeyDown={event => {
-                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                  event.preventDefault();
-                  void send();
-                }
-              }}
-            />
-            <button type="button" disabled={busy || !room.agent.configured || !message.trim()} onClick={() => void send()} aria-label="Send">
-              {busy ? <ThinkingDots /> : <ArrowUp size={17} />}
-            </button>
-          </div>
-
-          {room.proposals.length > 0 && (
-            <section className="director-proposals">
-              <h2>Review</h2>
-              {room.proposals.map(proposal => (
-                <Proposal
-                  key={proposal.id}
-                  proposal={proposal}
-                  busy={proposalBusy === proposal.id}
-                  onLock={() => void lockProposal(proposal.id)}
-                  onDismiss={() => void dismissProposal(proposal.id)}
-                />
+        <details className="director-panel">
+          <summary>
+            <span>Ask Director</span>
+            <small>Use chat only when a production decision needs discussion</small>
+          </summary>
+          <div className="director-panel-body">
+            <div className="director-chat-history" ref={chatHistoryRef}>
+              {visibleMessages.map(item => (
+                <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
+                  <strong>{item.sender === 'USER' ? 'You' : 'Director'}</strong>
+                  <p>{item.content}</p>
+                </article>
               ))}
-            </section>
-          )}
-        </aside>
+              {pendingMessage && (
+                <article className="creator pending">
+                  <strong>You</strong>
+                  <p>{pendingMessage}</p>
+                </article>
+              )}
+              {busy && <ThinkingDots />}
+            </div>
+
+            <div className="director-composer">
+              <textarea
+                value={message}
+                onChange={event => setMessage(event.target.value)}
+                rows={4}
+                disabled={busy || !room.agent.configured}
+                placeholder="Ask about one episode decision, risk, idea, or trade-off…"
+                onKeyDown={event => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                    event.preventDefault();
+                    void send();
+                  }
+                }}
+              />
+              <button type="button" disabled={busy || !room.agent.configured || !message.trim()} onClick={() => void send()} aria-label="Send">
+                {busy ? <ThinkingDots /> : <ArrowUp size={17} />}
+              </button>
+            </div>
+          </div>
+        </details>
       </div>
     </main>
   );
