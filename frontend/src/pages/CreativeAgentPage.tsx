@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, LoaderCircle, LockKeyhole, Send } from 'lucide-react';
+import { ArrowRight, Eye, LoaderCircle, LockKeyhole, Send } from 'lucide-react';
+import { previewCreativeAction, type AgentActionPreview } from '../api/agentPreviewApi';
 import {
   generateCreativeStage,
   loadCreativeStage,
@@ -10,9 +11,11 @@ import {
   type SceneArtifact,
   type ScriptArtifact
 } from '../api/creativeApi';
+import { AgentActionPreviewCard } from '../components/AgentActionPreviewCard';
 import '../styles/creativeAgent.css';
 
 type Artifact = ScriptArtifact | SceneArtifact;
+type PreviewIntent = 'GENERATE' | 'REVISE';
 
 function clock(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -134,11 +137,14 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   const [state, setState] = useState<CreativeStageState<Artifact> | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [pendingMessage, setPendingMessage] = useState('');
   const [error, setError] = useState('');
+  const [actionPreview, setActionPreview] = useState<AgentActionPreview | null>(null);
+  const [previewIntent, setPreviewIntent] = useState<PreviewIntent | null>(null);
+  const [previewMessage, setPreviewMessage] = useState('');
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
-  const automaticGenerationAttempted = useRef(false);
 
   async function load() {
     try {
@@ -152,9 +158,11 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   }
 
   useEffect(() => {
-    automaticGenerationAttempted.current = false;
     setLoading(true);
     setState(null);
+    setActionPreview(null);
+    setPreviewIntent(null);
+    setPreviewMessage('');
     void load();
   }, [stageKey]);
 
@@ -164,29 +172,30 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
     history.scrollTop = history.scrollHeight;
   }, [state?.messages.length, busy, pendingMessage]);
 
-  useEffect(() => {
-    if (
-      loading ||
-      busy ||
-      !state ||
-      state.status !== 'ACTIVE' ||
-      state.artifact ||
-      state.locked ||
-      !state.upstreamReady ||
-      !state.agentConfigured ||
-      automaticGenerationAttempted.current
-    ) return;
-
-    automaticGenerationAttempted.current = true;
-    void generate();
-  }, [stageKey, loading, busy, state]);
+  async function preview(action: PreviewIntent, text = '') {
+    if (busy || previewBusy) return;
+    setPreviewBusy(true);
+    setError('');
+    try {
+      const next = await previewCreativeAction(stageKey, action, text);
+      setActionPreview(next);
+      setPreviewIntent(action);
+      setPreviewMessage(text.trim());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not preview this agent action.');
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
 
   async function generate() {
-    if (busy) return;
+    if (busy || previewIntent !== 'GENERATE' || !actionPreview?.canRun) return;
     setBusy(true);
     setError('');
     try {
       setState(await generateCreativeStage<Artifact>(stageKey));
+      setActionPreview(null);
+      setPreviewIntent(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not create the production artifact.');
     } finally {
@@ -195,14 +204,17 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
   }
 
   async function send() {
-    const text = message.trim();
-    if (!text || busy) return;
+    const text = previewMessage.trim();
+    if (!text || busy || previewIntent !== 'REVISE' || !actionPreview?.canRun) return;
     setBusy(true);
     setError('');
     setMessage('');
     setPendingMessage(text);
     try {
       setState(await sendCreativeMessage<Artifact>(stageKey, text));
+      setActionPreview(null);
+      setPreviewIntent(null);
+      setPreviewMessage('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not revise the production artifact.');
       try {
@@ -272,12 +284,19 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
           {busy ? (
             <ThinkingDots />
           ) : (
-            <button type="button" disabled={!state.agentConfigured} onClick={() => {
-              automaticGenerationAttempted.current = true;
-              void generate();
-            }}>
-              Retry {stageKey === 'SCRIPT' ? 'Script' : 'Scene Plan'}
+            <button type="button" disabled={previewBusy || !state.agentConfigured} onClick={() => void preview('GENERATE')}>
+              {previewBusy ? <LoaderCircle size={15} className="spin" /> : <Eye size={15} />}
+              Preview {stageKey === 'SCRIPT' ? 'Script' : 'Scene Plan'} · 0 tokens
             </button>
+          )}
+          {actionPreview && previewIntent === 'GENERATE' && (
+            <AgentActionPreviewCard
+              preview={actionPreview}
+              confirmLabel={`Run ${state.displayName} Agent · 1 paid call`}
+              busy={busy}
+              onConfirm={() => void generate()}
+              onCancel={() => { setActionPreview(null); setPreviewIntent(null); }}
+            />
           )}
         </section>
       ) : (
@@ -308,24 +327,43 @@ export function CreativeAgentPage({ stageKey }: { stageKey: CreativeStageKey }) 
                   {busy && <ThinkingDots />}
                 </div>
                 {!state.locked && (
-                  <div className="creative-chat-input">
-                    <textarea
-                      value={message}
-                      onChange={event => setMessage(event.target.value)}
-                      placeholder="What should change?"
-                      rows={4}
-                      disabled={busy}
-                      onKeyDown={event => {
-                        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-                          event.preventDefault();
-                          void send();
-                        }
-                      }}
-                    />
-                    <button type="button" disabled={busy || !message.trim()} onClick={() => void send()} aria-label="Send correction">
-                      {busy ? <ThinkingDots /> : <Send size={16} />}
-                    </button>
-                  </div>
+                  <>
+                    <div className="creative-chat-input">
+                      <textarea
+                        value={message}
+                        onChange={event => {
+                          const next = event.target.value;
+                          setMessage(next);
+                          if (previewIntent === 'REVISE' && next.trim() !== previewMessage) {
+                            setActionPreview(null);
+                            setPreviewIntent(null);
+                            setPreviewMessage('');
+                          }
+                        }}
+                        placeholder="What should change?"
+                        rows={4}
+                        disabled={busy}
+                        onKeyDown={event => {
+                          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                            event.preventDefault();
+                            if (message.trim()) void preview('REVISE', message);
+                          }
+                        }}
+                      />
+                      <button type="button" disabled={busy || previewBusy || !message.trim()} onClick={() => void preview('REVISE', message)} aria-label="Preview correction without spending tokens">
+                        {previewBusy ? <ThinkingDots /> : <Send size={16} />}
+                      </button>
+                    </div>
+                    {actionPreview && previewIntent === 'REVISE' && previewMessage === message.trim() && (
+                      <AgentActionPreviewCard
+                        preview={actionPreview}
+                        confirmLabel="Send correction · 1 paid call"
+                        busy={busy}
+                        onConfirm={() => void send()}
+                        onCancel={() => { setActionPreview(null); setPreviewIntent(null); setPreviewMessage(''); }}
+                      />
+                    )}
+                  </>
                 )}
               </section>
             </aside>
