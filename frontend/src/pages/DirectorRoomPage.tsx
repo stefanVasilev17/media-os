@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ArrowUp, LoaderCircle, LockKeyhole, Play, RefreshCw, Sparkles, X } from 'lucide-react';
+import { ArrowRight, ArrowUp, Eye, LoaderCircle, LockKeyhole, Play, RefreshCw, Sparkles, X } from 'lucide-react';
 import { loadAiControl, type AiControlState } from '../api/aiControlApi';
+import { previewDirectorAction, previewTopicGeneration, type AgentActionPreview } from '../api/agentPreviewApi';
 import {
   dismissDirectorProposal,
   loadDirectorRoom,
@@ -21,6 +22,7 @@ import {
   type EpisodeBuildState,
   type TopicCandidate
 } from '../api/episodeBuildApi';
+import { AgentActionPreviewCard } from '../components/AgentActionPreviewCard';
 import '../styles/directorRoom.css';
 
 function Proposal({
@@ -158,6 +160,10 @@ export function DirectorRoomPage() {
   const [buildState, setBuildState] = useState<EpisodeBuildState | null>(null);
   const [aiControl, setAiControl] = useState<AiControlState | null>(null);
   const [buildPreview, setBuildPreview] = useState<EpisodeBuildPreview | null>(null);
+  const [directorPreview, setDirectorPreview] = useState<AgentActionPreview | null>(null);
+  const [directorPreviewMessage, setDirectorPreviewMessage] = useState('');
+  const [topicPreview, setTopicPreview] = useState<AgentActionPreview | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [buildBusy, setBuildBusy] = useState(false);
@@ -183,6 +189,9 @@ export function DirectorRoomPage() {
       setBuildState(nextBuildState);
       setAiControl(nextAiControl);
       setBuildPreview(null);
+      setDirectorPreview(null);
+      setDirectorPreviewMessage('');
+      setTopicPreview(null);
       if (!selectedTopicId) {
         const firstFuture = nextBuildState.topics.find(topic => topic.status === 'READY')
           || nextBuildState.topics.find(topic => topic.status !== 'CURRENT');
@@ -229,9 +238,24 @@ export function DirectorRoomPage() {
     return futureTopics.find(topic => topic.id === selectedTopicId) || futureTopics[0] || null;
   }, [futureTopics, selectedTopicId]);
 
-  async function send() {
+  async function previewDirector() {
     const text = message.trim();
-    if (!text || busy || !aiControl?.paidAiEnabled) return;
+    if (!text || busy || previewBusy) return;
+    setPreviewBusy(true);
+    setError('');
+    try {
+      setDirectorPreview(await previewDirectorAction(text, 'DISCUSS'));
+      setDirectorPreviewMessage(text);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not preview the Director call.');
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
+  async function send() {
+    const text = directorPreviewMessage.trim();
+    if (!text || busy || !directorPreview?.canRun || text !== message.trim()) return;
     setMessage('');
     setPendingMessage(text);
     setBusy(true);
@@ -240,6 +264,8 @@ export function DirectorRoomPage() {
       const result = await sendDirectorMessage(text, 'DISCUSS');
       setRoom(result.room);
       setOverview(await loadProductionOverview());
+      setDirectorPreview(null);
+      setDirectorPreviewMessage('');
     } catch (cause) {
       const failure = cause instanceof Error ? cause.message : 'Director could not answer.';
       try {
@@ -255,13 +281,27 @@ export function DirectorRoomPage() {
     }
   }
 
+  async function previewTopics() {
+    if (buildBusy || previewBusy) return;
+    setPreviewBusy(true);
+    setError('');
+    try {
+      setTopicPreview(await previewTopicGeneration());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not preview Topic Agent.');
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
   async function findTopics() {
-    if (buildBusy || !aiControl?.paidAiEnabled) return;
+    if (buildBusy || !topicPreview?.canRun) return;
     setBuildBusy(true);
     setError('');
     try {
       const next = await generateTopicCandidates();
       setBuildState(next);
+      setTopicPreview(null);
       const firstFuture = next.topics.find(topic => topic.status === 'READY');
       if (firstFuture) setSelectedTopicId(firstFuture.id);
     } catch (cause) {
@@ -519,12 +559,22 @@ export function DirectorRoomPage() {
           </summary>
           <div className="director-panel-body">
             <div className="director-panel-toolbar">
-              <p>{paidAiOn ? 'Keep future ideas out of the main production view until you need them.' : 'Paid AI is off. Existing ideas stay readable without spending tokens.'}</p>
-              <button type="button" disabled={buildBusy || !buildState.configured || !paidAiOn} onClick={() => void findTopics()}>
-                {buildBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}
-                {paidAiOn ? 'Generate ideas' : 'Paid AI off'}
+              <p>{paidAiOn ? 'Keep future ideas out of the main production view until you need them.' : 'Paid AI is off. You can still preview exactly what Topic Agent would do.'}</p>
+              <button type="button" disabled={buildBusy || previewBusy || !buildState.configured} onClick={() => void previewTopics()}>
+                {previewBusy ? <LoaderCircle size={14} className="spin" /> : <Eye size={14} />}
+                Preview topic generation · 0 tokens
               </button>
             </div>
+
+            {topicPreview && (
+              <AgentActionPreviewCard
+                preview={topicPreview}
+                confirmLabel="Generate 6 ideas · 1 paid call"
+                busy={buildBusy}
+                onConfirm={() => void findTopics()}
+                onCancel={() => setTopicPreview(null)}
+              />
+            )}
 
             {futureTopics.length > 0 ? (
               <>
@@ -545,10 +595,14 @@ export function DirectorRoomPage() {
                   <button
                     type="button"
                     className="director-discuss-topic"
-                    disabled={!paidAiOn}
-                    onClick={() => setMessage(`I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`)}
+                    onClick={() => {
+                      const next = `I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`;
+                      setMessage(next);
+                      setDirectorPreview(null);
+                      setDirectorPreviewMessage('');
+                    }}
                   >
-                    {paidAiOn ? 'Put this idea into Director chat' : 'Paid AI is off'}
+                    Put this idea into Director chat
                   </button>
                 )}
               </>
@@ -561,7 +615,7 @@ export function DirectorRoomPage() {
         <details className="director-panel">
           <summary>
             <span>Ask Director</span>
-            <small>{paidAiOn ? 'Use chat only when a production decision needs discussion' : 'Paid AI is off; chat cannot spend tokens'}</small>
+            <small>Every message requires a zero-token preview before one paid call can run</small>
           </summary>
           <div className="director-panel-body">
             <div className="director-chat-history" ref={chatHistoryRef}>
@@ -583,21 +637,38 @@ export function DirectorRoomPage() {
             <div className="director-composer">
               <textarea
                 value={message}
-                onChange={event => setMessage(event.target.value)}
+                onChange={event => {
+                  const next = event.target.value;
+                  setMessage(next);
+                  if (next.trim() !== directorPreviewMessage) {
+                    setDirectorPreview(null);
+                    setDirectorPreviewMessage('');
+                  }
+                }}
                 rows={4}
-                disabled={busy || !room.agent.configured || !paidAiOn}
-                placeholder={paidAiOn ? 'Ask about one episode decision, risk, idea, or trade-off…' : 'Paid AI is off in Settings.'}
+                disabled={busy}
+                placeholder="Ask about one episode decision, risk, idea, or trade-off… Preview costs 0 tokens."
                 onKeyDown={event => {
                   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                     event.preventDefault();
-                    void send();
+                    void previewDirector();
                   }
                 }}
               />
-              <button type="button" disabled={busy || !room.agent.configured || !paidAiOn || !message.trim()} onClick={() => void send()} aria-label="Send">
-                {busy ? <ThinkingDots /> : <ArrowUp size={17} />}
+              <button type="button" disabled={busy || previewBusy || !message.trim()} onClick={() => void previewDirector()} aria-label="Preview Director call without spending tokens">
+                {previewBusy ? <ThinkingDots /> : <ArrowUp size={17} />}
               </button>
             </div>
+
+            {directorPreview && directorPreviewMessage === message.trim() && (
+              <AgentActionPreviewCard
+                preview={directorPreview}
+                confirmLabel="Send to Director · 1 paid call"
+                busy={busy}
+                onConfirm={() => void send()}
+                onCancel={() => { setDirectorPreview(null); setDirectorPreviewMessage(''); }}
+              />
+            )}
           </div>
         </details>
       </div>
