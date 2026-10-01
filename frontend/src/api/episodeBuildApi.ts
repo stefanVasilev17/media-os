@@ -1,3 +1,5 @@
+import { takePreviewAuthorization } from './agentPreviewApi';
+
 export type TopicCandidate = {
   id: string;
   title: string;
@@ -80,8 +82,13 @@ export type EpisodeBuildPreview = {
   automaticRepairCalls: EpisodeBuildPreviewCall[];
   handoffUsesPaidAi: boolean;
   nothingLocksAutomatically: boolean;
+  authorizationToken?: string | null;
+  authorizationExpiresAt?: string | null;
+  authorizationSingleUse?: boolean;
   note: string;
 };
+
+let episodeBuildAuthorization = '';
 
 async function readError(response: Response) {
   const text = await response.text();
@@ -103,19 +110,29 @@ export async function loadEpisodeBuildState(): Promise<EpisodeBuildState> {
 export async function previewEpisodeBuild(): Promise<EpisodeBuildPreview> {
   const response = await fetch('/api/v1/director/build/preview', { cache: 'no-store' });
   if (!response.ok) throw new Error(await readError(response));
-  return response.json();
+  const preview = await response.json() as EpisodeBuildPreview;
+  episodeBuildAuthorization = preview.authorizationToken || '';
+  return preview;
 }
 
 export async function generateTopicCandidates(): Promise<EpisodeBuildState> {
-  const response = await fetch('/api/v1/director/build/topics/generate', { method: 'POST' });
+  const response = await fetch('/api/v1/director/build/topics/generate', {
+    method: 'POST',
+    headers: { 'X-MediaOS-Preview-Authorization': takePreviewAuthorization('TOPIC_CANDIDATES') }
+  });
   if (!response.ok) throw new Error(await readError(response));
   return response.json();
 }
 
 export async function startCurrentEpisodeBuild(budgetMinutes = 20): Promise<EpisodeBuildState> {
+  const previewAuthorization = episodeBuildAuthorization;
+  episodeBuildAuthorization = '';
   const response = await fetch('/api/v1/director/build/start', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-MediaOS-Preview-Authorization': previewAuthorization
+    },
     body: JSON.stringify({ budgetMinutes })
   });
   if (!response.ok) throw new Error(await readError(response));
