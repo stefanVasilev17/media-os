@@ -1,3 +1,5 @@
+import { takePreviewAuthorization } from './agentPreviewApi';
+
 export type DirectorMode = 'DISCUSS' | 'CHALLENGE' | 'IMPROVE' | 'IMPACT';
 
 export type DirectorEpisode = {
@@ -90,7 +92,8 @@ export async function loadDirectorRoom(): Promise<DirectorRoom> {
   return response.json();
 }
 
-export async function sendDirectorMessage(message: string, mode: DirectorMode, previewAuthorization: string): Promise<DirectorMessageResult> {
+export async function sendDirectorMessage(message: string, mode: DirectorMode): Promise<DirectorMessageResult> {
+  const previewAuthorization = takePreviewAuthorization(`DIRECTOR_${mode}`);
   const response = await fetch('/api/v1/director/messages', {
     method: 'POST',
     headers: {
