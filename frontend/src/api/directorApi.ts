@@ -1,3 +1,5 @@
+import { takePreviewAuthorization } from './agentPreviewApi';
+
 export type DirectorMode = 'DISCUSS' | 'CHALLENGE' | 'IMPROVE' | 'IMPACT';
 
 export type DirectorEpisode = {
@@ -91,9 +93,13 @@ export async function loadDirectorRoom(): Promise<DirectorRoom> {
 }
 
 export async function sendDirectorMessage(message: string, mode: DirectorMode): Promise<DirectorMessageResult> {
+  const previewAuthorization = takePreviewAuthorization(`DIRECTOR_${mode}`);
   const response = await fetch('/api/v1/director/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-MediaOS-Preview-Authorization': previewAuthorization
+    },
     body: JSON.stringify({ message, mode })
   });
   if (!response.ok) throw new Error(await readError(response));

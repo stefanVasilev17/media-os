@@ -1,3 +1,5 @@
+import { takePreviewAuthorization } from './agentPreviewApi';
+
 export type CreativeStageKey = 'SCRIPT' | 'SCENE';
 
 export type CreativeMessage = {
@@ -163,13 +165,21 @@ export function loadCreativeStage<TArtifact>(stageKey: CreativeStageKey) {
 }
 
 export function generateCreativeStage<TArtifact>(stageKey: CreativeStageKey) {
-  return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/generate`, { method: 'POST' });
+  const operation = `${stageKey}_GENERATE`;
+  return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/generate`, {
+    method: 'POST',
+    headers: { 'X-MediaOS-Preview-Authorization': takePreviewAuthorization(operation) }
+  });
 }
 
 export function sendCreativeMessage<TArtifact>(stageKey: CreativeStageKey, message: string) {
+  const operation = `${stageKey}_REVISE`;
   return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-MediaOS-Preview-Authorization': takePreviewAuthorization(operation)
+    },
     body: JSON.stringify({ message })
   });
 }
