@@ -101,8 +101,12 @@ public class PreviewAuthorizationService {
         return "TOPIC_CANDIDATES";
     }
 
-    public String episodeBuildPayload(int budgetMinutes) {
-        return "EPISODE_BUILD_START|" + budgetMinutes;
+    public String episodeBuildPayload() {
+        return "EPISODE_BUILD_START";
+    }
+
+    public String episodeBuildRetryPayload() {
+        return "EPISODE_BUILD_RETRY";
     }
 
     private ResponseStatusException previewRequired() {
