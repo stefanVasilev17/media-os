@@ -28,6 +28,7 @@ public class AgentActionPreviewController {
 
     private final JdbcClient jdbc;
     private final AiRuntimePolicyService aiPolicy;
+    private final PreviewAuthorizationService previewAuthorization;
     private final DirectorAgentClient directorAgent;
     private final EpisodeBuildAgentClient buildAgent;
     private final CreativeAgentClient creativeAgent;
@@ -35,12 +36,14 @@ public class AgentActionPreviewController {
     public AgentActionPreviewController(
             JdbcClient jdbc,
             AiRuntimePolicyService aiPolicy,
+            PreviewAuthorizationService previewAuthorization,
             DirectorAgentClient directorAgent,
             EpisodeBuildAgentClient buildAgent,
             CreativeAgentClient creativeAgent
     ) {
         this.jdbc = jdbc;
         this.aiPolicy = aiPolicy;
+        this.previewAuthorization = previewAuthorization;
         this.directorAgent = directorAgent;
         this.buildAgent = buildAgent;
         this.creativeAgent = creativeAgent;
@@ -60,6 +63,7 @@ public class AgentActionPreviewController {
     public Map<String, Object> director(@Valid @RequestBody(required = false) DirectorPreviewRequest request) {
         String message = clean(request == null ? null : request.message());
         String mode = normalizeDirectorMode(request == null ? null : request.mode());
+        String operation = "DIRECTOR_" + mode;
         AiRuntimePolicyService.Policy policy = aiPolicy.policy();
 
         List<String> blockers = new ArrayList<>();
@@ -70,7 +74,7 @@ public class AgentActionPreviewController {
         Map<String, Object> result = basePreview(
                 "DIRECTOR",
                 "Director discussion",
-                "DIRECTOR_" + mode,
+                operation,
                 directorAgent.model(),
                 3000,
                 policy,
@@ -92,6 +96,7 @@ public class AgentActionPreviewController {
                 "Does not spend anything during this preview."
         ));
         result.put("locksAutomatically", false);
+        attachAuthorization(result, blockers, operation, previewAuthorization.directorPayload(mode, message));
         return result;
     }
 
@@ -103,6 +108,7 @@ public class AgentActionPreviewController {
         String key = normalizeCreativeStage(stageKey);
         String action = normalizeCreativeAction(request == null ? null : request.action());
         String message = clean(request == null ? null : request.message());
+        String operation = key + "_" + action;
         AiRuntimePolicyService.Policy policy = aiPolicy.policy();
         Map<String, Object> stage = stageSnapshot(key);
         boolean upstreamReady = upstreamReady(key);
@@ -119,7 +125,7 @@ public class AgentActionPreviewController {
         Map<String, Object> result = basePreview(
                 key,
                 stage.get("displayName") + " Agent",
-                key + "_" + action,
+                operation,
                 creativeAgent.model(),
                 outputLimit,
                 policy,
@@ -140,11 +146,13 @@ public class AgentActionPreviewController {
                 "Does not lock the stage automatically."
         ));
         result.put("locksAutomatically", false);
+        attachAuthorization(result, blockers, operation, previewAuthorization.creativePayload(key, action, message));
         return result;
     }
 
     @GetMapping("/topics")
     public Map<String, Object> topics() {
+        String operation = "TOPIC_CANDIDATES";
         AiRuntimePolicyService.Policy policy = aiPolicy.policy();
         List<String> blockers = new ArrayList<>();
         if (!buildAgent.configured()) blockers.add("OpenAI API is not configured for Topic Agent.");
@@ -153,7 +161,7 @@ public class AgentActionPreviewController {
         Map<String, Object> result = basePreview(
                 "TOPIC",
                 "Topic Agent",
-                "TOPIC_CANDIDATES",
+                operation,
                 buildAgent.model(),
                 9000,
                 policy,
@@ -173,7 +181,25 @@ public class AgentActionPreviewController {
                 "Does not change the current episode or lock a decision."
         ));
         result.put("locksAutomatically", false);
+        attachAuthorization(result, blockers, operation, previewAuthorization.topicPayload());
         return result;
+    }
+
+    private void attachAuthorization(
+            Map<String, Object> result,
+            List<String> blockers,
+            String operation,
+            String payload
+    ) {
+        if (!blockers.isEmpty()) {
+            result.put("authorizationToken", null);
+            result.put("authorizationExpiresAt", null);
+            return;
+        }
+        PreviewAuthorizationService.IssuedAuthorization authorization = previewAuthorization.issue(operation, payload);
+        result.put("authorizationToken", authorization.token());
+        result.put("authorizationExpiresAt", authorization.expiresAt());
+        result.put("authorizationSingleUse", true);
     }
 
     private Map<String, Object> basePreview(
