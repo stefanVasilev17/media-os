@@ -162,14 +162,20 @@ export function loadCreativeStage<TArtifact>(stageKey: CreativeStageKey) {
   return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}`);
 }
 
-export function generateCreativeStage<TArtifact>(stageKey: CreativeStageKey) {
-  return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/generate`, { method: 'POST' });
+export function generateCreativeStage<TArtifact>(stageKey: CreativeStageKey, previewAuthorization: string) {
+  return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/generate`, {
+    method: 'POST',
+    headers: { 'X-MediaOS-Preview-Authorization': previewAuthorization }
+  });
 }
 
-export function sendCreativeMessage<TArtifact>(stageKey: CreativeStageKey, message: string) {
+export function sendCreativeMessage<TArtifact>(stageKey: CreativeStageKey, message: string, previewAuthorization: string) {
   return request<CreativeStageState<TArtifact>>(`/api/v1/creative/${stageKey.toLowerCase()}/messages`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-MediaOS-Preview-Authorization': previewAuthorization
+    },
     body: JSON.stringify({ message })
   });
 }
