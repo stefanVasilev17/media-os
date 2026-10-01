@@ -30,6 +30,23 @@ export type AgentActionPreview = {
   mode?: string;
 };
 
+const previewAuthorizations = new Map<string, string>();
+
+function rememberAuthorization(preview: AgentActionPreview) {
+  previewAuthorizations.delete(preview.operation);
+  if (preview.canRun && preview.authorizationToken) {
+    previewAuthorizations.set(preview.operation, preview.authorizationToken);
+  }
+  return preview;
+}
+
+export function takePreviewAuthorization(operation: string) {
+  const key = operation.toUpperCase();
+  const token = previewAuthorizations.get(key) || '';
+  previewAuthorizations.delete(key);
+  return token;
+}
+
 async function readError(response: Response) {
   const text = await response.text();
   if (!text) return `Request failed with HTTP ${response.status}.`;
@@ -47,22 +64,22 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json();
 }
 
-export function previewDirectorAction(message: string, mode: DirectorMode = 'DISCUSS') {
-  return request<AgentActionPreview>('/api/v1/previews/director', {
+export async function previewDirectorAction(message: string, mode: DirectorMode = 'DISCUSS') {
+  return rememberAuthorization(await request<AgentActionPreview>('/api/v1/previews/director', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, mode })
-  });
+  }));
 }
 
-export function previewCreativeAction(stageKey: CreativeStageKey, action: 'GENERATE' | 'REVISE', message = '') {
-  return request<AgentActionPreview>(`/api/v1/previews/creative/${stageKey.toLowerCase()}`, {
+export async function previewCreativeAction(stageKey: CreativeStageKey, action: 'GENERATE' | 'REVISE', message = '') {
+  return rememberAuthorization(await request<AgentActionPreview>(`/api/v1/previews/creative/${stageKey.toLowerCase()}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, message })
-  });
+  }));
 }
 
-export function previewTopicGeneration() {
-  return request<AgentActionPreview>('/api/v1/previews/topics');
+export async function previewTopicGeneration() {
+  return rememberAuthorization(await request<AgentActionPreview>('/api/v1/previews/topics'));
 }
