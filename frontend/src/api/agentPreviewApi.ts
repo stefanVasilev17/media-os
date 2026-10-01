@@ -19,6 +19,9 @@ export type AgentActionPreview = {
   contextSources: string[];
   onSuccess: string[];
   locksAutomatically: boolean;
+  authorizationToken?: string | null;
+  authorizationExpiresAt?: string | null;
+  authorizationSingleUse?: boolean;
   messageCharacters?: number;
   currentRevision?: number;
   hasArtifact?: boolean;
