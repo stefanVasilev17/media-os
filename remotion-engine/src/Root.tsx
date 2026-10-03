@@ -14,7 +14,7 @@ export const Root: React.FC = () => {
       height={1080}
       schema={verticalSliceSchema}
       defaultProps={{
-        showDebugLabels: true,
+        showDebugLabels: false,
       }}
     />
   );
