@@ -1,10 +1,6 @@
 import {ThreeCanvas} from '@remotion/three';
 import React, {useMemo} from 'react';
-import {
-  AbsoluteFill,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {OrthographicCamera} from 'three';
 import {z} from 'zod';
 import {PhoneShell} from '../../../components/phone/PhoneShell';
@@ -28,20 +24,45 @@ const labelStyle: React.CSSProperties = {
   transform: 'translate(-50%, -50%)',
   color: COLORS.primaryText,
   fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-  fontSize: 25,
+  fontSize: 21,
   fontWeight: 600,
-  letterSpacing: '0.06em',
+  letterSpacing: '0.045em',
   textTransform: 'uppercase',
-  textShadow: '0 2px 16px rgba(0,0,0,0.65)',
+  textShadow: '0 3px 18px rgba(0,0,0,0.78)',
   whiteSpace: 'nowrap',
 };
 
-const statePill: React.CSSProperties = {
+const stateLabel: React.CSSProperties = {
   marginTop: 7,
-  fontSize: 14,
-  letterSpacing: '0.12em',
+  fontSize: 11,
+  letterSpacing: '0.15em',
   fontWeight: 600,
 };
+
+const FocusGlow: React.FC<{
+  x: number;
+  y: number;
+  color: string;
+  opacity: number;
+  size: number;
+}> = ({x, y, color, opacity, size}) => (
+  <div
+    style={{
+      position: 'absolute',
+      left: x,
+      top: y,
+      width: size,
+      height: size,
+      transform: 'translate(-50%, -50%)',
+      borderRadius: '50%',
+      background: `radial-gradient(circle, ${color}${Math.round(opacity * 255)
+        .toString(16)
+        .padStart(2, '0')} 0%, transparent 68%)`,
+      filter: 'blur(10px)',
+      pointerEvents: 'none',
+    }}
+  />
+);
 
 export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
   const frame = useCurrentFrame();
@@ -61,57 +82,79 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
 
   const runtime = getVerticalSliceState(frame);
   const databaseSlow = runtime.userDatabase.operational === 'SLOW';
-  const spinnerRotation = (frame / 18) * Math.PI * 2;
+  const spinnerRotation = (frame / 22) * Math.PI * 2;
 
   const authScreen = projectWorldToScreen(
-    [WORLD.authService[0], WORLD.authService[1] - 1.0, 0.6],
+    [WORLD.authService[0], WORLD.authService[1] - 1.15, 0.68],
     camera,
     width,
     height,
   );
   const dbScreen = projectWorldToScreen(
-    [WORLD.userDatabase[0], WORLD.userDatabase[1] - 1.1, 0.6],
+    [WORLD.userDatabase[0], WORLD.userDatabase[1] - 1.2, 0.68],
     camera,
     width,
     height,
   );
   const phoneScreen = projectWorldToScreen(
-    [WORLD.phone[0], WORLD.phone[1] - 1.7, 0.5],
+    [WORLD.phone[0], WORLD.phone[1] - 1.9, 0.55],
+    camera,
+    width,
+    height,
+  );
+  const authGlow = projectWorldToScreen(
+    [WORLD.authService[0], WORLD.authService[1], 0],
+    camera,
+    width,
+    height,
+  );
+  const dbGlow = projectWorldToScreen(
+    [WORLD.userDatabase[0], WORLD.userDatabase[1], 0],
     camera,
     width,
     height,
   );
 
   return (
-    <AbsoluteFill style={{backgroundColor: COLORS.background, overflow: 'hidden'}}>
-      <ThreeCanvas
-        width={width}
-        height={height}
-        camera={camera}
-        gl={{antialias: true}}
-      >
-        <color attach="background" args={[COLORS.background]} />
-        <ambientLight intensity={0.7} color="#8EB8D6" />
-        <directionalLight position={[-6, -4, 12]} intensity={2.4} color="#8ED7FF" />
-        <pointLight position={[1, 1, 7]} intensity={14} color="#596BFF" distance={18} />
+    <AbsoluteFill
+      style={{
+        background: 'radial-gradient(circle at 56% 43%, #0B1B2D 0%, #07111F 46%, #050C16 100%)',
+        overflow: 'hidden',
+      }}
+    >
+      <FocusGlow
+        x={authGlow.x}
+        y={authGlow.y}
+        color={COLORS.authAccent}
+        opacity={databaseSlow ? 0.07 : 0.11}
+        size={430}
+      />
+      <FocusGlow
+        x={dbGlow.x}
+        y={dbGlow.y}
+        color={databaseSlow ? COLORS.waiting : COLORS.databaseAccent}
+        opacity={databaseSlow ? 0.11 : 0.08}
+        size={460}
+      />
+
+      <ThreeCanvas width={width} height={height} camera={camera} gl={{antialias: true, alpha: true}}>
+        <ambientLight intensity={0.42} color="#87AFCB" />
+        <directionalLight position={[-5, -5, 13]} intensity={2.8} color="#8ED7FF" />
+        <pointLight position={[-0.6, -0.2, 6]} intensity={11} color={COLORS.authAccent} distance={13} />
         <pointLight
-          position={[4.5, 2, 5]}
-          intensity={databaseSlow ? 18 : 10}
+          position={[4.0, 1.8, 5.5]}
+          intensity={databaseSlow ? 16 : 9}
           color={databaseSlow ? COLORS.waiting : COLORS.databaseAccent}
           distance={12}
         />
 
         <gridHelper
-          args={[32, 32, '#15283D', '#102033']}
-          position={[0, 0, -0.16]}
+          args={[30, 30, '#102236', '#0C1A2A']}
+          position={[0, 0, -0.24]}
           rotation={[Math.PI / 2, 0, 0]}
         />
 
-        <ConnectionPath
-          from={WORLD.authService}
-          to={WORLD.userDatabase}
-          state={runtime.dependencyPath}
-        />
+        <ConnectionPath from={WORLD.authService} to={WORLD.userDatabase} state={runtime.dependencyPath} />
 
         <AuthService
           position={WORLD.authService}
@@ -155,7 +198,7 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
         <div>Auth Service</div>
         <div
           style={{
-            ...statePill,
+            ...stateLabel,
             color: databaseSlow ? COLORS.success : COLORS.secondaryText,
           }}
         >
@@ -167,7 +210,7 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
         <div>User Database</div>
         <div
           style={{
-            ...statePill,
+            ...stateLabel,
             color: databaseSlow ? COLORS.waiting : COLORS.secondaryText,
           }}
         >
@@ -184,8 +227,8 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
             opacity: runtime.phoneReveal,
           }}
         >
-          <div style={{fontSize: 18, color: COLORS.secondaryText}}>Phone</div>
-          <div style={{...statePill, color: COLORS.phoneAccent}}>WAITING</div>
+          <div style={{fontSize: 15, color: COLORS.secondaryText}}>Phone</div>
+          <div style={{...stateLabel, color: COLORS.phoneAccent}}>WAITING</div>
         </div>
       ) : null}
 
@@ -193,45 +236,54 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
         <div
           style={{
             position: 'absolute',
-            top: 62,
-            right: 72,
-            width: 270,
+            top: 52,
+            right: 62,
+            width: 230,
             fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
             color: COLORS.secondaryText,
-            fontSize: 14,
-            letterSpacing: '0.08em',
+            fontSize: 11,
+            letterSpacing: '0.11em',
             textTransform: 'uppercase',
+            opacity: 0.82,
           }}
         >
-          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 10}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 9}}>
             <span>Login time budget</span>
             <span>{Math.round(runtime.timeBudget * 100)}%</span>
           </div>
-          <div style={{height: 4, background: '#172A3F', borderRadius: 99, overflow: 'hidden'}}>
+          <div style={{height: 3, background: '#14263A', borderRadius: 99, overflow: 'hidden'}}>
             <div
               style={{
                 width: `${runtime.timeBudget * 100}%`,
                 height: '100%',
                 background: COLORS.waiting,
+                boxShadow: `0 0 10px ${COLORS.waiting}55`,
               }}
             />
           </div>
         </div>
       ) : null}
 
+      <AbsoluteFill
+        style={{
+          pointerEvents: 'none',
+          boxShadow: 'inset 0 0 190px rgba(1, 5, 10, 0.58)',
+        }}
+      />
+
       {showDebugLabels ? (
         <div
           style={{
             position: 'absolute',
-            left: 38,
-            bottom: 30,
+            left: 32,
+            bottom: 26,
             fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-            color: '#526B84',
-            fontSize: 13,
+            color: '#3C566F',
+            fontSize: 11,
             lineHeight: 1.45,
           }}
         >
-          <div>AT VISUAL ENGINE v0.1</div>
+          <div>AT VISUAL ENGINE v0.2</div>
           <div>EP001 · 09:09–10:13 PROVISIONAL</div>
           <div>frame {frame}</div>
         </div>
