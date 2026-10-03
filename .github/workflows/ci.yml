@@ -61,7 +61,6 @@ jobs:
       - name: Render EP001 vertical slice preview
         run: >-
           npx remotion render EP001-VerticalSlice out/ep001-vertical-slice-ci.mp4
-          --scale=0.6666666667
           --codec=h264
           --crf=22
           --x264-preset=veryfast
