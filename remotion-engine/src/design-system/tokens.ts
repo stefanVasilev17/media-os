@@ -15,7 +15,7 @@ export const COLORS = {
 } as const;
 
 export const WORLD = {
-  phone: [-5.4, -2.8, 0] as const,
-  authService: [0, 0, 0] as const,
-  userDatabase: [4.6, 1.8, 0] as const,
+  phone: [-4.25, -2.2, 0] as const,
+  authService: [-0.35, -0.05, 0] as const,
+  userDatabase: [3.85, 1.5, 0] as const,
 } as const;
