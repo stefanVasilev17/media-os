@@ -33,11 +33,14 @@ WORKDIR /app
 COPY gpu-render-worker/package.json /app/package.json
 RUN npm install --omit=dev --no-audit --no-fund
 
+COPY remotion-engine /app/remotion-engine
+
 COPY gpu-render-worker/requirements.txt /app/requirements.txt
 RUN pip3 install --break-system-packages --no-cache-dir -r /app/requirements.txt
 
 COPY gpu-render-worker/handler.py /app/handler.py
 COPY gpu-render-worker/render.mjs /app/render.mjs
+COPY gpu-render-worker/render-remotion.mjs /app/render-remotion.mjs
 COPY gpu-render-worker/gpu-preflight.mjs /app/gpu-preflight.mjs
 COPY gpu-render-worker/ci-browser-smoke.mjs /app/ci-browser-smoke.mjs
 COPY gpu-render-worker/ci-preflight.sh /app/ci-preflight.sh
