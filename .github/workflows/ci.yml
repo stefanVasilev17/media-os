@@ -65,7 +65,7 @@ jobs:
           --crf=22
           --x264-preset=veryfast
           --concurrency=50%
-          --props='{"showDebugLabels":true}'
+          --props='{"showDebugLabels":false}'
       - uses: actions/upload-artifact@v4
         with:
           name: ep001-remotion-vertical-slice
