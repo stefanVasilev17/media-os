@@ -1,0 +1,29 @@
+{
+  "name": "architectural-thinking-remotion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Architectural Thinking Visual Engine v0.1 — EP001 vertical slice",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "render:slice": "remotion render EP001-VerticalSlice out/ep001-vertical-slice.mp4",
+    "still:slice": "remotion still EP001-VerticalSlice out/ep001-vertical-slice.png --frame=1200",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "9.2.0",
+    "@remotion/cli": "4.0.532",
+    "@remotion/three": "4.0.532",
+    "@remotion/zod-types": "4.0.532",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.532",
+    "three": "0.178.0",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "@types/three": "0.170.0",
+    "typescript": "5.9.3"
+  }
+}
