@@ -32,12 +32,28 @@ jobs:
           cache: maven
       - run: mvn -B test
 
+  remotion-engine:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: remotion-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run build
+
   gpu-worker-preflight:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build production GPU worker image
         run: docker build -f gpu-render-worker/Dockerfile -t media-os-gpu-worker:preflight .
+      - name: Validate Remotion renderer entrypoint syntax
+        run: docker run --rm --entrypoint node media-os-gpu-worker:preflight --check /app/render-remotion.mjs
       - name: Run container preflight suite
         run: docker run --rm --entrypoint /bin/bash media-os-gpu-worker:preflight -lc /app/ci-preflight.sh
 
