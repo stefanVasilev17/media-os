@@ -114,6 +114,12 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
     width,
     height,
   );
+  const phoneGlow = projectWorldToScreen(
+    [WORLD.phone[0], WORLD.phone[1], 0],
+    camera,
+    width,
+    height,
+  );
 
   return (
     <AbsoluteFill
@@ -127,25 +133,40 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
         y={authGlow.y}
         color={COLORS.authAccent}
         opacity={databaseSlow ? 0.07 : 0.11}
-        size={430}
+        size={500}
       />
       <FocusGlow
         x={dbGlow.x}
         y={dbGlow.y}
         color={databaseSlow ? COLORS.waiting : COLORS.databaseAccent}
-        opacity={databaseSlow ? 0.11 : 0.08}
-        size={460}
+        opacity={databaseSlow ? 0.12 : 0.09}
+        size={530}
       />
+      {runtime.phoneVisible ? (
+        <FocusGlow
+          x={phoneGlow.x}
+          y={phoneGlow.y}
+          color={COLORS.phoneAccent}
+          opacity={0.08 * runtime.phoneReveal}
+          size={390}
+        />
+      ) : null}
 
       <ThreeCanvas width={width} height={height} camera={camera} gl={{antialias: true, alpha: true}}>
         <ambientLight intensity={0.42} color="#87AFCB" />
         <directionalLight position={[-5, -5, 13]} intensity={2.8} color="#8ED7FF" />
-        <pointLight position={[-0.6, -0.2, 6]} intensity={11} color={COLORS.authAccent} distance={13} />
+        <pointLight position={[WORLD.authService[0], WORLD.authService[1], 6]} intensity={11} color={COLORS.authAccent} distance={13} />
         <pointLight
-          position={[4.0, 1.8, 5.5]}
+          position={[WORLD.userDatabase[0], WORLD.userDatabase[1], 5.5]}
           intensity={databaseSlow ? 16 : 9}
           color={databaseSlow ? COLORS.waiting : COLORS.databaseAccent}
           distance={12}
+        />
+        <pointLight
+          position={[WORLD.phone[0], WORLD.phone[1], 4.6]}
+          intensity={runtime.phoneVisible ? 8 * runtime.phoneReveal : 0}
+          color={COLORS.phoneAccent}
+          distance={9}
         />
 
         <gridHelper
@@ -283,7 +304,7 @@ export const VerticalSlice: React.FC<Props> = ({showDebugLabels}) => {
             lineHeight: 1.45,
           }}
         >
-          <div>AT VISUAL ENGINE v0.2</div>
+          <div>AT VISUAL ENGINE v0.3</div>
           <div>EP001 · 09:09–10:13 PROVISIONAL</div>
           <div>frame {frame}</div>
         </div>
