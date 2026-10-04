@@ -106,20 +106,20 @@ const HeroButton: React.FC<{frame: number; localUi: number}> = ({frame, localUi}
   const shineX = interpolate(shineP, [0, 1], [-130, 460]);
 
   return (
-    <div style={{position: 'relative', width: '100%', height: 108}}>
+    <div style={{position: 'relative', width: '100%', height: 110}}>
       <div
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: 31,
           background: localUi > 0.15
-            ? 'linear-gradient(180deg,#0C6E6D 0%,#095552 100%)'
-            : 'linear-gradient(135deg,#17E1D2 0%,#12BDAF 42%,#0A8E87 100%)',
-          border: `2px solid rgba(91,255,239,${0.52 - disabled * 0.22})`,
+            ? 'linear-gradient(180deg,#0D7371 0%,#07504E 100%)'
+            : 'linear-gradient(135deg,#21E8D9 0%,#13C9B9 43%,#078D86 100%)',
+          border: `4px solid rgba(109,255,242,${0.78 - disabled * 0.20})`,
           boxShadow: localUi > 0.15
-            ? '0 14px 34px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.10)'
-            : `0 ${18 - press * 8}px ${48 - press * 12}px rgba(4,203,187,.28), 0 0 42px rgba(28,226,211,.16), inset 0 2px 0 rgba(255,255,255,.24), inset 0 -12px 24px rgba(3,72,70,.18)`,
-          transform: `translateY(${press * 6}px) scale(${1 - press * 0.035})`,
+            ? '0 15px 36px rgba(0,0,0,.34),0 0 20px rgba(40,214,196,.13),inset 0 2px 0 rgba(255,255,255,.13),inset 0 0 0 1px rgba(5,44,43,.45)'
+            : `0 ${18 - press * 8}px ${48 - press * 12}px rgba(4,203,187,.30),0 0 48px rgba(28,226,211,.20),inset 0 2px 0 rgba(255,255,255,.28),inset 0 -12px 24px rgba(3,72,70,.18)`,
+          transform: `translateY(${press * 7}px) scale(${1 - press * 0.036})`,
           overflow: 'hidden',
         }}
       >
@@ -132,7 +132,7 @@ const HeroButton: React.FC<{frame: number; localUi: number}> = ({frame, localUi}
               width: 120,
               height: 170,
               transform: 'rotate(18deg)',
-              background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.26),transparent)',
+              background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent)',
               filter: 'blur(4px)',
               opacity: shineP > 0 && shineP < 1 ? 1 : 0,
             }}
@@ -187,9 +187,11 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
   const passwordFocus = out(frame, 95, 111) * (1 - out(frame, 158, 172));
   const cursorBlink = Math.floor(frame / 14) % 2 === 0;
   const localUi = out(frame, SHOT01.localUiState.start, SHOT01.localUiState.revealEnd);
-  const heroScale = 1.08 + (0.64 - 1.08) * revealP;
-  const heroTop = 360 + (1510 - 360) * revealP;
-  const heroGlow = 1 - revealP * 0.58;
+  const credentialP = ease(frame, SHOT01.credentialInput.start, SHOT01.credentialInput.revealEnd);
+  const uiP = ease(frame, SHOT01.localUiState.start, SHOT01.localUiState.revealEnd);
+  const heroScale = 1.08 + (0.78 - 1.08) * revealP + (0.70 - 0.78) * credentialP + (0.64 - 0.70) * uiP;
+  const heroTop = 360 + (710 - 360) * revealP + (1110 - 710) * credentialP + (1510 - 1110) * uiP;
+  const heroGlow = 1 - revealP * 0.48;
 
   return (
     <div
@@ -209,9 +211,10 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
           position: 'absolute',
           inset: 0,
           borderRadius: 118,
-          padding: 14,
-          background: 'linear-gradient(145deg,#5576A6 0%,#1C365B 16%,#0B1524 48%,#315A8D 82%,#6D8FBD 100%)',
-          boxShadow: `0 44px 105px rgba(0,0,0,.62),0 0 ${60 + heroGlow * 70}px rgba(44,122,255,${0.12 + heroGlow * 0.12}), inset 0 1px 0 rgba(255,255,255,.18)`,
+          padding: 17,
+          background: 'linear-gradient(145deg,#76A8E7 0%,#315D99 12%,#10294A 34%,#081321 52%,#244E84 76%,#8ABAF1 100%)',
+          border: '2px solid rgba(153,205,255,.72)',
+          boxShadow: `0 44px 105px rgba(0,0,0,.62),0 0 ${72 + heroGlow * 72}px rgba(44,132,255,${0.16 + heroGlow * 0.12}),0 0 0 3px rgba(68,145,238,.22),inset 0 2px 0 rgba(255,255,255,.26)`,
         }}
       >
         <div
@@ -219,11 +222,11 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
             position: 'relative',
             width: '100%',
             height: '100%',
-            borderRadius: 105,
+            borderRadius: 101,
             overflow: 'hidden',
             background: 'radial-gradient(circle at 50% 17%,#0B2237 0%,#071725 40%,#040C15 100%)',
-            border: '2px solid rgba(123,164,222,.30)',
-            boxShadow: 'inset 0 0 90px rgba(9,43,74,.34)',
+            border: '3px solid rgba(146,192,255,.48)',
+            boxShadow: 'inset 0 0 90px rgba(9,43,74,.34),inset 0 0 0 1px rgba(255,255,255,.05)',
           }}
         >
           <div style={{position: 'absolute', top: 31, left: 47, fontSize: 27, fontWeight: 650, color: '#F7FAFF'}}>10:28</div>
@@ -246,7 +249,7 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
             <div style={{position: 'absolute', right: 23, top: 24, width: 12, height: 12, borderRadius: '50%', background: '#0D1A32', boxShadow: '0 0 7px rgba(55,77,180,.7)'}}/>
           </div>
 
-          <div style={{position: 'absolute', left: 76, right: 76, top: 174}}>
+          <div style={{position: 'absolute', left: 76, right: 76, top: 174, bottom: 78}}>
             <div style={{width: 76, height: 76, borderRadius: 24, background: 'linear-gradient(145deg,#172F52,#0A1729)', border: '1px solid rgba(109,169,255,.32)', display: 'grid', placeItems: 'center', boxShadow: '0 0 30px rgba(55,123,230,.16)'}}>
               <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
                 <path d="M9 12.5C9 9.46 11.46 7 14.5 7h7C24.54 7 27 9.46 27 12.5V16" stroke="#75B7FF" strokeWidth="3.2" strokeLinecap="round"/>
@@ -262,11 +265,10 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
               <InputField label="Password" value={'•'.repeat(passwordDots)} focused={passwordFocus} cursor={passwordFocus > 0.25 && cursorBlink} masked/>
             </div>
 
-            <div style={{marginTop: 58}}>
+            <div style={{position: 'absolute', left: 0, right: 0, bottom: 88}}>
               <HeroButton frame={frame} localUi={localUi}/>
+              <div style={{marginTop: 28, textAlign: 'center', color: 'rgba(169,192,220,.50)', fontSize: 22}}>Secure authentication</div>
             </div>
-
-            <div style={{marginTop: 34, textAlign: 'center', color: 'rgba(169,192,220,.50)', fontSize: 22}}>Secure authentication</div>
           </div>
         </div>
       </div>
@@ -303,8 +305,8 @@ const MiniPill: React.FC<{label: string; progress: number; activity: number; wid
   <div
     style={{
       width,
-      height: 70,
-      borderRadius: 22,
+      height: 68,
+      borderRadius: 21,
       border: `3px solid rgba(29,220,153,${0.64 + activity * 0.34})`,
       background: `linear-gradient(180deg,rgba(10,54,39,${0.62 + activity * 0.28}) 0%,rgba(5,23,18,.98) 100%)`,
       boxShadow: `0 0 ${18 + activity * 28}px rgba(31,236,157,${0.06 + activity * 0.25}), inset 0 0 18px rgba(27,176,119,${0.08 + activity * 0.12})`,
@@ -331,22 +333,22 @@ const Section: React.FC<{
   activityB: number;
   labels: [string,string];
 }> = ({title, icon, progress, activityA, activityB, labels}) => (
-  <div style={{height: 315, padding: '30px 42px 28px', opacity: progress, transform: `translateY(${(1 - progress) * 18}px)`}}>
+  <div style={{height: 286, padding: '27px 42px 24px', opacity: progress, transform: `translateY(${(1 - progress) * 18}px)`}}>
     <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
       <div style={{width: 64, height: 64, borderRadius: 18, background: '#070F1B', border: '1px solid rgba(148,101,255,.22)', display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 18px rgba(113,73,220,.10)'}}>
         <SmallIcon type={icon}/>
       </div>
       <div style={{fontSize: 39, fontWeight: 720, letterSpacing: '-0.028em', color: '#F8F9FF'}}>{title}</div>
     </div>
-    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 28}}>
+    <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 30, marginTop: 25}}>
       <MiniPill label={labels[0]} progress={progress} activity={activityA} width={title === 'Local UI State' ? 270 : 235}/>
       <MiniPill label={labels[1]} progress={progress} activity={activityB} width={205}/>
     </div>
-    <div style={{height: 3, borderRadius: 999, marginTop: 34, background: 'linear-gradient(90deg,transparent,#7F33E9 12%,#B25CFF 50%,#7F33E9 88%,transparent)', opacity: 0.63, boxShadow: '0 0 18px rgba(178,92,255,.21)'}}/>
+    <div style={{height: 3, borderRadius: 999, marginTop: 30, background: 'linear-gradient(90deg,transparent,#7F33E9 12%,#B25CFF 50%,#7F33E9 88%,transparent)', opacity: 0.63, boxShadow: '0 0 18px rgba(178,92,255,.21)'}}/>
   </div>
 );
 
-const SecondaryStack: React.FC<{frame: number; revealP: number}> = ({frame, revealP}) => {
+const SecondaryStack: React.FC<{frame: number}> = ({frame}) => {
   const intentP = out(frame, SHOT01.loginIntent.start, SHOT01.loginIntent.panelRevealEnd);
   const credentialP = out(frame, SHOT01.credentialInput.start, SHOT01.credentialInput.revealEnd);
   const uiP = out(frame, SHOT01.localUiState.start, SHOT01.localUiState.revealEnd);
@@ -356,7 +358,7 @@ const SecondaryStack: React.FC<{frame: number; revealP: number}> = ({frame, reve
   const secret = pulse(frame, SHOT01.credentialInput.secretGlowStart, SHOT01.credentialInput.secretGlowEnd, 10);
   const submitting = pulse(frame, SHOT01.localUiState.submittingStart, SHOT01.localUiState.submittingEnd, 10);
   const waiting = out(frame, SHOT01.localUiState.waitingStart, SHOT01.localUiState.waitingFull);
-  const panelHeight = 350 + credentialP * 315 + uiP * 315;
+  const panelHeight = 316 + credentialP * 286 + uiP * 286;
   const borderGlow = 0.68 + Math.max(intentP, credentialP, uiP) * 0.32;
 
   return (
@@ -366,12 +368,12 @@ const SecondaryStack: React.FC<{frame: number; revealP: number}> = ({frame, reve
           position: 'absolute',
           left: '50%',
           top: 126,
-          width: 850,
+          width: 760,
           height: panelHeight,
           transform: `translateX(-50%) scale(${0.96 + intentP * 0.04})`,
           transformOrigin: '50% 0%',
-          borderRadius: 54,
-          padding: 10,
+          borderRadius: 50,
+          padding: 9,
           background: 'linear-gradient(145deg,#7328D9 0%,#A446FF 46%,#6120C7 100%)',
           boxShadow: `0 24px 72px rgba(32,4,73,.56),0 0 52px rgba(157,66,255,${0.12 + borderGlow * 0.12})`,
           opacity: intentP,
@@ -379,7 +381,7 @@ const SecondaryStack: React.FC<{frame: number; revealP: number}> = ({frame, reve
           zIndex: 4,
         }}
       >
-        <div style={{width: '100%', height: '100%', borderRadius: 45, overflow: 'hidden', background: 'linear-gradient(180deg,#071524 0%,#06111E 100%)', border: '2px solid rgba(201,137,255,.34)', boxShadow: 'inset 0 0 60px rgba(37,57,95,.18)'}}>
+        <div style={{width: '100%', height: '100%', borderRadius: 42, overflow: 'hidden', background: 'linear-gradient(180deg,#071524 0%,#06111E 100%)', border: '2px solid rgba(201,137,255,.34)', boxShadow: 'inset 0 0 60px rgba(37,57,95,.18)'}}>
           <Section title="Login Intent" icon="login" progress={intentP} activityA={validate} activityB={submit} labels={['Validate','Submit']}/>
           <Section title="Credential Input" icon="key" progress={credentialP} activityA={identifier} activityB={secret} labels={['Identifier','Secret']}/>
           <Section title="Local UI State" icon="device" progress={uiP} activityA={submitting} activityB={waiting} labels={['Submitting','Waiting']}/>
@@ -391,7 +393,7 @@ const SecondaryStack: React.FC<{frame: number; revealP: number}> = ({frame, reve
           left: '50%',
           top: 126 + panelHeight - 2,
           width: 8,
-          height: Math.max(0, 1510 - (126 + panelHeight) + 55),
+          height: 210,
           transform: 'translateX(-50%)',
           borderRadius: 99,
           background: 'linear-gradient(180deg,#8E3AFF 0%,#4C2B92 46%,#173B5A 100%)',
@@ -417,7 +419,7 @@ export const PhoneFirstPreview: React.FC<Props> = ({showGuides}) => {
       <div style={{position: 'absolute', left: '50%', top: 50, width: 1100, height: 1200, transform: 'translateX(-50%)', borderRadius: '50%', background: 'radial-gradient(circle,rgba(137,62,255,.10) 0%,transparent 69%)', filter: 'blur(28px)', opacity: revealP * 0.9}}/>
 
       <div style={{opacity: intro}}>
-        <SecondaryStack frame={frame} revealP={revealP}/>
+        <SecondaryStack frame={frame}/>
         <PremiumPhone frame={frame} revealP={revealP}/>
       </div>
 
