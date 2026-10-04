@@ -58,19 +58,18 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Render EP001 phone-first cinematic preview
+      - name: Render EP001 native YouTube widescreen preview
         run: >-
-          npx remotion render EP001-PhoneFirst-Preview out/ep001-phone-first-preview.mp4
+          npx remotion render EP001-PhoneFirst-Youtube out/ep001-phone-first-youtube.mp4
           --codec=h264
-          --crf=22
+          --crf=20
           --x264-preset=veryfast
           --concurrency=50%
-          --scale=0.5
           --props='{"showGuides":false}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ep001-phone-first-preview
-          path: remotion-engine/out/ep001-phone-first-preview.mp4
+          name: ep001-phone-first-youtube
+          path: remotion-engine/out/ep001-phone-first-youtube.mp4
           if-no-files-found: error
           retention-days: 7
 
