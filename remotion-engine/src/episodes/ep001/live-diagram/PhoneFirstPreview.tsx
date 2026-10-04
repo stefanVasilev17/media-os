@@ -101,8 +101,7 @@ const HeroButton: React.FC<{frame: number; localUi: number}> = ({frame, localUi}
   const waiting = out(frame, SHOT01.localUiState.waitingStart, SHOT01.localUiState.waitingFull);
   const spinner = out(frame, SHOT01.localUiState.spinnerStart, SHOT01.localUiState.spinnerStart + 14);
   const disabled = localUi * 0.76;
-  const shineStart = SHOT01.phone.pressStart - 8;
-  const shineP = out(frame, shineStart, SHOT01.phone.pressEnd + 8);
+  const shineP = out(frame, SHOT01.phone.pressStart - 8, SHOT01.phone.pressEnd + 8);
   const shineX = interpolate(shineP, [0, 1], [-130, 460]);
 
   return (
@@ -124,33 +123,11 @@ const HeroButton: React.FC<{frame: number; localUi: number}> = ({frame, localUi}
         }}
       >
         {localUi < 0.15 ? (
-          <div
-            style={{
-              position: 'absolute',
-              top: -25,
-              left: shineX,
-              width: 120,
-              height: 170,
-              transform: 'rotate(18deg)',
-              background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent)',
-              filter: 'blur(4px)',
-              opacity: shineP > 0 && shineP < 1 ? 1 : 0,
-            }}
-          />
+          <div style={{position: 'absolute', top: -25, left: shineX, width: 120, height: 170, transform: 'rotate(18deg)', background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent)', filter: 'blur(4px)', opacity: shineP > 0 && shineP < 1 ? 1 : 0}} />
         ) : null}
         <div style={{position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18}}>
           {localUi > 0.15 ? (
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                border: '4px solid rgba(255,255,255,.22)',
-                borderTopColor: 'rgba(255,255,255,.95)',
-                opacity: spinner,
-                transform: `rotate(${frame * 12}deg)`,
-              }}
-            />
+            <div style={{width: 28, height: 28, borderRadius: '50%', border: '4px solid rgba(255,255,255,.22)', borderTopColor: 'rgba(255,255,255,.95)', opacity: spinner, transform: `rotate(${frame * 12}deg)`}} />
           ) : null}
           <span style={{fontSize: 29, fontWeight: 760, letterSpacing: '0.11em', color: '#F8FFFE', textShadow: '0 2px 8px rgba(0,0,0,.16)'}}>
             {waiting > 0.5 ? 'WAITING' : localUi > 0.15 ? 'SUBMITTING' : 'LOG IN'}
@@ -233,34 +210,15 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
           <div style={{position: 'absolute', top: 31, right: 47, display: 'flex', alignItems: 'center', gap: 18}}>
             <SignalIcon/><WifiIcon/><BatteryIcon/>
           </div>
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: 24,
-              width: 230,
-              height: 64,
-              transform: 'translateX(-50%)',
-              borderRadius: 34,
-              background: '#02070D',
-              boxShadow: 'inset 0 0 10px rgba(255,255,255,.02),0 3px 13px rgba(0,0,0,.45)',
-            }}
-          >
+          <div style={{position: 'absolute', left: '50%', top: 24, width: 230, height: 64, transform: 'translateX(-50%)', borderRadius: 34, background: '#02070D', boxShadow: 'inset 0 0 10px rgba(255,255,255,.02),0 3px 13px rgba(0,0,0,.45)'}}>
             <div style={{position: 'absolute', right: 23, top: 24, width: 12, height: 12, borderRadius: '50%', background: '#0D1A32', boxShadow: '0 0 7px rgba(55,77,180,.7)'}}/>
           </div>
 
           <div style={{position: 'absolute', left: 76, right: 76, top: 174, bottom: 78}}>
-            <div style={{width: 76, height: 76, borderRadius: 24, background: 'linear-gradient(145deg,#172F52,#0A1729)', border: '1px solid rgba(109,169,255,.32)', display: 'grid', placeItems: 'center', boxShadow: '0 0 30px rgba(55,123,230,.16)'}}>
-              <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
-                <path d="M9 12.5C9 9.46 11.46 7 14.5 7h7C24.54 7 27 9.46 27 12.5V16" stroke="#75B7FF" strokeWidth="3.2" strokeLinecap="round"/>
-                <path d="M16 20h16M26 14l6 6-6 6" stroke="#6EF0DD" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M27 24v3.5A5.5 5.5 0 0121.5 33h-7A5.5 5.5 0 019 27.5V20" stroke="#75B7FF" strokeWidth="3.2" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div style={{marginTop: 38, fontSize: 70, fontWeight: 720, letterSpacing: '-0.045em', color: '#F7FAFF'}}>Welcome back</div>
-            <div style={{marginTop: 14, fontSize: 27, color: 'rgba(198,216,238,.68)', lineHeight: 1.4}}>Sign in to continue to your account.</div>
+            <div style={{marginTop: 82, textAlign: 'center', fontSize: 70, fontWeight: 720, letterSpacing: '-0.045em', color: '#F7FAFF'}}>Log in</div>
+            <div style={{marginTop: 14, textAlign: 'center', fontSize: 27, color: 'rgba(198,216,238,.68)', lineHeight: 1.4}}>Sign in to continue to your account.</div>
 
-            <div style={{marginTop: 72, display: 'flex', flexDirection: 'column', gap: 34}}>
+            <div style={{marginTop: 66, display: 'flex', flexDirection: 'column', gap: 34}}>
               <InputField label="Email" value={emailValue} focused={emailFocus} cursor={emailFocus > 0.25 && cursorBlink}/>
               <InputField label="Password" value={'•'.repeat(passwordDots)} focused={passwordFocus} cursor={passwordFocus > 0.25 && cursorBlink} masked/>
             </div>
@@ -334,11 +292,11 @@ const Section: React.FC<{
   labels: [string,string];
 }> = ({title, icon, progress, activityA, activityB, labels}) => (
   <div style={{height: 286, padding: '27px 42px 24px', opacity: progress, transform: `translateY(${(1 - progress) * 18}px)`}}>
-    <div style={{display: 'flex', alignItems: 'center', gap: 20}}>
-      <div style={{width: 64, height: 64, borderRadius: 18, background: '#070F1B', border: '1px solid rgba(148,101,255,.22)', display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 18px rgba(113,73,220,.10)'}}>
+    <div style={{position: 'relative', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+      <div style={{position: 'absolute', left: 0, top: 0, width: 64, height: 64, borderRadius: 18, background: '#070F1B', border: '1px solid rgba(148,101,255,.22)', display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 18px rgba(113,73,220,.10)'}}>
         <SmallIcon type={icon}/>
       </div>
-      <div style={{fontSize: 39, fontWeight: 720, letterSpacing: '-0.028em', color: '#F8F9FF'}}>{title}</div>
+      <div style={{width: '100%', textAlign: 'center', fontSize: 39, fontWeight: 720, letterSpacing: '-0.028em', color: '#F8F9FF'}}>{title}</div>
     </div>
     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 30, marginTop: 25}}>
       <MiniPill label={labels[0]} progress={progress} activity={activityA} width={title === 'Local UI State' ? 270 : 235}/>
