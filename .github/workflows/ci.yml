@@ -58,18 +58,18 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Render EP001 tall Client Login World
+      - name: Render EP001 phone-first cinematic preview
         run: >-
-          npx remotion render EP001-LoginIntent-ClientWorld out/ep001-login-intent-client-world.mp4
+          npx remotion render EP001-PhoneFirst-Preview out/ep001-phone-first-preview.mp4
           --codec=h264
           --crf=22
           --x264-preset=veryfast
           --concurrency=50%
-          --props='{"showGuides":false,"viewMode":"world"}'
+          --props='{"showGuides":false}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ep001-login-intent-client-world
-          path: remotion-engine/out/ep001-login-intent-client-world.mp4
+          name: ep001-phone-first-preview
+          path: remotion-engine/out/ep001-phone-first-preview.mp4
           if-no-files-found: error
           retention-days: 7
 
