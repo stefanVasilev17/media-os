@@ -30,6 +30,20 @@ export const Root: React.FC = () => {
         schema={loginIntentLiveSceneSchema}
         defaultProps={{
           showGuides: false,
+          viewMode: 'shot',
+        }}
+      />
+      <Composition
+        id="EP001-LoginIntent-ClientWorld"
+        component={LoginIntentLiveScene}
+        durationInFrames={SHOT01_DURATION_FRAMES}
+        fps={SHOT01_FPS}
+        width={1440}
+        height={2560}
+        schema={loginIntentLiveSceneSchema}
+        defaultProps={{
+          showGuides: false,
+          viewMode: 'world',
         }}
       />
     </>
