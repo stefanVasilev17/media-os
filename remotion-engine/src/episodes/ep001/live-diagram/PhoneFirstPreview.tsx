@@ -234,31 +234,6 @@ const PremiumPhone: React.FC<{frame: number; revealP: number}> = ({frame, reveal
   );
 };
 
-const SmallIcon: React.FC<{type: 'login'|'key'|'device'}> = ({type}) => {
-  if (type === 'login') {
-    return (
-      <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
-        <path d="M18 10H11a5 5 0 00-5 5v16a5 5 0 005 5h7" stroke="#DAA4FF" strokeWidth="3" strokeLinecap="round"/>
-        <path d="M18 23h21M32 16l7 7-7 7" stroke="#FFCDFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    );
-  }
-  if (type === 'key') {
-    return (
-      <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
-        <circle cx="17" cy="16" r="8" stroke="#E7E7FF" strokeWidth="3"/>
-        <path d="M23 22l16 16M31 30l5-5" stroke="#E7E7FF" strokeWidth="3" strokeLinecap="round"/>
-      </svg>
-    );
-  }
-  return (
-    <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
-      <rect x="11" y="6" width="24" height="34" rx="4" stroke="#E7E7FF" strokeWidth="3"/>
-      <path d="M17 12h12M18 34h10" stroke="#E7E7FF" strokeWidth="2.5" strokeLinecap="round"/>
-    </svg>
-  );
-};
-
 const MiniPill: React.FC<{label: string; progress: number; activity: number; width?: number}> = ({label, progress, activity, width = 210}) => (
   <div
     style={{
@@ -285,24 +260,21 @@ const MiniPill: React.FC<{label: string; progress: number; activity: number; wid
 
 const Section: React.FC<{
   title: string;
-  icon: 'login'|'key'|'device';
   progress: number;
   activityA: number;
   activityB: number;
   labels: [string,string];
-}> = ({title, icon, progress, activityA, activityB, labels}) => (
+  dividerProgress: number;
+}> = ({title, progress, activityA, activityB, labels, dividerProgress}) => (
   <div style={{height: 286, padding: '27px 42px 24px', opacity: progress, transform: `translateY(${(1 - progress) * 18}px)`}}>
-    <div style={{position: 'relative', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-      <div style={{position: 'absolute', left: 0, top: 0, width: 64, height: 64, borderRadius: 18, background: '#070F1B', border: '1px solid rgba(148,101,255,.22)', display: 'grid', placeItems: 'center', boxShadow: 'inset 0 0 18px rgba(113,73,220,.10)'}}>
-        <SmallIcon type={icon}/>
-      </div>
+    <div style={{height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
       <div style={{width: '100%', textAlign: 'center', fontSize: 39, fontWeight: 720, letterSpacing: '-0.028em', color: '#F8F9FF'}}>{title}</div>
     </div>
     <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 30, marginTop: 25}}>
       <MiniPill label={labels[0]} progress={progress} activity={activityA} width={title === 'Local UI State' ? 270 : 235}/>
       <MiniPill label={labels[1]} progress={progress} activity={activityB} width={205}/>
     </div>
-    <div style={{height: 3, borderRadius: 999, marginTop: 30, background: 'linear-gradient(90deg,transparent,#7F33E9 12%,#B25CFF 50%,#7F33E9 88%,transparent)', opacity: 0.63, boxShadow: '0 0 18px rgba(178,92,255,.21)'}}/>
+    <div style={{height: 3, borderRadius: 999, marginTop: 30, background: 'linear-gradient(90deg,transparent,#7F33E9 12%,#B25CFF 50%,#7F33E9 88%,transparent)', opacity: 0.63 * dividerProgress, boxShadow: '0 0 18px rgba(178,92,255,.21)', transform: `scaleX(${0.92 + dividerProgress * 0.08})`}}/>
   </div>
 );
 
@@ -318,6 +290,7 @@ const SecondaryStack: React.FC<{frame: number}> = ({frame}) => {
   const waiting = out(frame, SHOT01.localUiState.waitingStart, SHOT01.localUiState.waitingFull);
   const panelHeight = 316 + credentialP * 286 + uiP * 286;
   const borderGlow = 0.68 + Math.max(intentP, credentialP, uiP) * 0.32;
+  const connectorHeight = 300 + credentialP * 120 + uiP * 120;
 
   return (
     <>
@@ -340,9 +313,9 @@ const SecondaryStack: React.FC<{frame: number}> = ({frame}) => {
         }}
       >
         <div style={{width: '100%', height: '100%', borderRadius: 42, overflow: 'hidden', background: 'linear-gradient(180deg,#071524 0%,#06111E 100%)', border: '2px solid rgba(201,137,255,.34)', boxShadow: 'inset 0 0 60px rgba(37,57,95,.18)'}}>
-          <Section title="Login Intent" icon="login" progress={intentP} activityA={validate} activityB={submit} labels={['Validate','Submit']}/>
-          <Section title="Credential Input" icon="key" progress={credentialP} activityA={identifier} activityB={secret} labels={['Identifier','Secret']}/>
-          <Section title="Local UI State" icon="device" progress={uiP} activityA={submitting} activityB={waiting} labels={['Submitting','Waiting']}/>
+          <Section title="Login Intent" progress={intentP} activityA={validate} activityB={submit} labels={['Validate','Submit']} dividerProgress={credentialP}/>
+          <Section title="Credential Input" progress={credentialP} activityA={identifier} activityB={secret} labels={['Identifier','Secret']} dividerProgress={uiP}/>
+          <Section title="Local UI State" progress={uiP} activityA={submitting} activityB={waiting} labels={['Submitting','Waiting']} dividerProgress={uiP}/>
         </div>
       </div>
       <div
@@ -351,7 +324,7 @@ const SecondaryStack: React.FC<{frame: number}> = ({frame}) => {
           left: '50%',
           top: 126 + panelHeight - 2,
           width: 8,
-          height: 210,
+          height: connectorHeight,
           transform: 'translateX(-50%)',
           borderRadius: 99,
           background: 'linear-gradient(180deg,#8E3AFF 0%,#4C2B92 46%,#173B5A 100%)',
