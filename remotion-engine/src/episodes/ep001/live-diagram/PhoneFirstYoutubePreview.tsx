@@ -53,8 +53,8 @@ const LoginButton: React.FC<{frame:number;localUi:number}> = ({frame,localUi}) =
     <div style={{height:70,borderRadius:19,border:`2px solid rgba(154,255,248,${working?.68:.96})`,background:working?'linear-gradient(180deg,#078A84,#075D59)':'linear-gradient(135deg,#34EEE2 0%,#15D2CA 47%,#099FA1 100%)',boxShadow:working?'0 15px 32px rgba(0,0,0,.35),0 0 20px rgba(37,221,207,.14)':'0 19px 40px rgba(0,226,211,.30),0 0 42px rgba(42,236,224,.25),inset 0 2px 0 rgba(255,255,255,.34)',transform:`translateY(${press*5}px) scale(${1-press*.032})`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',left:24,right:24,top:1,height:1,background:'linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent)',opacity:working?.20:.76}}/>
       {working?<div style={{width:18,height:18,marginRight:10,borderRadius:'50%',border:'2.4px solid rgba(255,255,255,.24)',borderTopColor:'#fff',opacity:spinner,transform:`rotate(${frame*12}deg)`}}/>:null}
-      <span style={{fontFamily:FONT,fontSize:17,fontWeight:700,letterSpacing:working?'.08em':'-.01em',color:'#FAFFFF'}}>{waiting>.5?'Waiting':working?'Logging in...':'Log in'}</span>
-      {!working?<span style={{position:'absolute',right:22,fontFamily:FONT,fontSize:30,fontWeight:300,lineHeight:1,color:'#FAFFFF',opacity:.94}}>→</span>:null}
+      <span style={{fontFamily:FONT,fontSize:working?18:22,fontWeight:working?760:860,letterSpacing:working?'.07em':'-.025em',color:'#FAFFFF'}}>{waiting>.5?'Waiting':working?'Logging in...':'Log in'}</span>
+      {!working?<span style={{position:'absolute',right:22,fontFamily:FONT,fontSize:32,fontWeight:400,lineHeight:1,color:'#FAFFFF',opacity:.96}}>→</span>:null}
     </div>
   );
 };
@@ -100,14 +100,24 @@ const Iphone: React.FC<{frame:number;reveal:number;credential:number;ui:number}>
   );
 };
 
-const Pill: React.FC<{label:string;activity:number}> = ({label,activity}) => (
-  <div style={{width:182,height:52,borderRadius:16,border:`2px solid rgba(30,237,166,${.78+activity*.20})`,background:`linear-gradient(180deg,rgba(8,65,45,${.76+activity*.18}),rgba(3,21,16,.99))`,boxShadow:`0 0 ${12+activity*24}px rgba(29,242,172,${.08+activity*.24}),inset 0 1px 0 rgba(255,255,255,.05)`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FONT,fontSize:22,fontWeight:activity>.3?700:560,letterSpacing:'-.015em',color:'#F6FFFC'}}>{label}</div>
-);
+const Pill: React.FC<{label:string;activity:number;frame:number}> = ({label,activity,frame}) => {
+  const runner = ((frame*7)%310)-100;
+  const breathing = .88+Math.sin(frame*.16)*.12;
+  const scale = 1+activity*.035*breathing;
+  return (
+    <div style={{width:182,height:52,borderRadius:16,border:`2px solid rgba(30,237,166,${.78+activity*.22})`,background:`linear-gradient(180deg,rgba(8,65,45,${.76+activity*.18}),rgba(3,21,16,.99))`,boxShadow:`0 0 ${12+activity*32}px rgba(29,242,172,${.08+activity*.34}),inset 0 1px 0 rgba(255,255,255,.05)`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FONT,fontSize:22,fontWeight:activity>.3?760:560,letterSpacing:'-.015em',color:'#F6FFFC',position:'relative',overflow:'hidden',transform:`scale(${scale})`}}>
+      <div style={{position:'absolute',left:runner,top:-18,width:76,height:88,transform:'rotate(18deg)',background:'linear-gradient(90deg,transparent,rgba(135,255,217,.78),transparent)',filter:'blur(7px)',opacity:activity*.95}}/>
+      <div style={{position:'absolute',left:runner+10,top:0,width:38,height:'100%',background:'linear-gradient(90deg,transparent,rgba(183,255,233,.30),transparent)',opacity:activity*.90}}/>
+      <div style={{position:'absolute',left:8,right:8,top:3,height:1,borderRadius:99,background:'linear-gradient(90deg,transparent,rgba(180,255,236,.72),transparent)',opacity:.30+activity*.58}}/>
+      <span style={{position:'relative',zIndex:2,textShadow:activity>.2?'0 0 11px rgba(201,255,239,.24)':'none'}}>{label}</span>
+    </div>
+  );
+};
 
-const Section: React.FC<{title:string;a:string;b:string;activityA:number;activityB:number;divider:number}> = ({title,a,b,activityA,activityB,divider}) => (
+const Section: React.FC<{title:string;a:string;b:string;activityA:number;activityB:number;divider:number;frame:number}> = ({title,a,b,activityA,activityB,divider,frame}) => (
   <div style={{height:180,padding:'24px 38px 0'}}>
     <div style={{textAlign:'center',fontFamily:FONT,fontSize:29,fontWeight:720,letterSpacing:'-.035em',color:'#F8F9FD'}}>{title}</div>
-    <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:19}}><Pill label={a} activity={activityA}/><Pill label={b} activity={activityB}/></div>
+    <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:19}}><Pill label={a} activity={activityA} frame={frame}/><Pill label={b} activity={activityB} frame={frame}/></div>
     <div style={{height:2,marginTop:22,borderRadius:999,background:'linear-gradient(90deg,transparent,#7230D4 17%,#B34FFF 50%,#7230D4 83%,transparent)',opacity:.64*divider,boxShadow:'0 0 13px rgba(179,79,255,.18)'}}/>
   </div>
 );
@@ -130,9 +140,9 @@ const Stack: React.FC<{frame:number}> = ({frame}) => {
   return <>
     <div style={{position:'absolute',left:'50%',top:panelTop,width:650,height:h,transform:`translateX(-50%) scale(${.965+intent*.035})`,transformOrigin:'50% 0%',borderRadius:35,padding:5,background:'linear-gradient(145deg,#691AD4 0%,#A943FF 48%,#5413C0 100%)',boxShadow:'0 24px 68px rgba(30,3,75,.58),0 0 44px rgba(160,58,255,.25)',opacity:intent,zIndex:4,overflow:'hidden'}}>
       <div style={{width:'100%',height:'100%',borderRadius:30,overflow:'hidden',background:'linear-gradient(180deg,rgba(5,18,31,.995),rgba(3,11,21,.995))',border:'1px solid rgba(207,145,255,.32)',boxShadow:'inset 0 1px 0 rgba(255,255,255,.03)'}}>
-        <Section title="Login Intent" a="Validate" b="Submit" activityA={validate} activityB={submit} divider={credential}/>
-        <div style={{opacity:credential,transform:`translateY(${(1-credential)*12}px)`}}><Section title="Credential Input" a="Identifier" b="Secret" activityA={identifier} activityB={secret} divider={ui}/></div>
-        <div style={{opacity:ui,transform:`translateY(${(1-ui)*12}px)`}}><Section title="Local UI State" a="Submitting" b="Waiting" activityA={submitting} activityB={waiting} divider={0}/></div>
+        <Section title="Login Intent" a="Validate" b="Submit" activityA={validate} activityB={submit} divider={credential} frame={frame}/>
+        <div style={{opacity:credential,transform:`translateY(${(1-credential)*12}px)`}}><Section title="Credential Input" a="Identifier" b="Secret" activityA={identifier} activityB={secret} divider={ui} frame={frame}/></div>
+        <div style={{opacity:ui,transform:`translateY(${(1-ui)*12}px)`}}><Section title="Local UI State" a="Submitting" b="Waiting" activityA={submitting} activityB={waiting} divider={0} frame={frame}/></div>
       </div>
     </div>
     <div style={{position:'absolute',left:'50%',top:panelTop+h-1,width:3,height:connectorHeight+17,transform:'translateX(-50%)',borderRadius:999,background:'linear-gradient(180deg,#9235FF 0%,#59218F 52%,#1B4166 100%)',opacity:intent*.66,boxShadow:'0 0 12px rgba(146,53,255,.22)',zIndex:2}}/>
