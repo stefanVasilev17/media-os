@@ -65,6 +65,7 @@ jobs:
           --crf=22
           --x264-preset=veryfast
           --concurrency=50%
+          --scale=0.5
           --props='{"showGuides":false}'
       - uses: actions/upload-artifact@v4
         with:
