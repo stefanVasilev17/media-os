@@ -58,18 +58,18 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
-      - name: Render EP001 vertical slice preview
+      - name: Render EP001 Login Intent live diagram reconstruction
         run: >-
-          npx remotion render EP001-VerticalSlice out/ep001-vertical-slice-ci.mp4
+          npx remotion render EP001-LoginIntent-LiveDiagram out/ep001-login-intent-live-diagram.mp4
           --codec=h264
           --crf=22
           --x264-preset=veryfast
           --concurrency=50%
-          --props='{"showDebugLabels":false}'
+          --props='{"showGuides":false}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ep001-remotion-vertical-slice
-          path: remotion-engine/out/ep001-vertical-slice-ci.mp4
+          name: ep001-login-intent-live-diagram
+          path: remotion-engine/out/ep001-login-intent-live-diagram.mp4
           if-no-files-found: error
           retention-days: 7
 
