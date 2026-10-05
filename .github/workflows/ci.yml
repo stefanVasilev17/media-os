@@ -86,9 +86,12 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run build
+      - name: Write Remotion props file
+        shell: powershell
+        run: Set-Content -Path props.json -Value '{"showGuides":false}' -Encoding utf8
       - name: Render EP001 locked Shot 01 regression preview
         shell: powershell
-        run: npx remotion render EP001-PhoneFirst-Youtube out/ep001-phone-first-youtube-windows.mp4 --codec=h264 --crf=20 --x264-preset=veryfast --concurrency=50% --props='{"showGuides":false}'
+        run: npx remotion render EP001-PhoneFirst-Youtube out/ep001-phone-first-youtube-windows.mp4 --codec=h264 --crf=20 --x264-preset=veryfast --concurrency=50% --props=props.json
       - uses: actions/upload-artifact@v4
         with:
           name: ep001-phone-first-youtube-windows
