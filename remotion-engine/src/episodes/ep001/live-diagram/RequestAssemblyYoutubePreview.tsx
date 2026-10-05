@@ -29,6 +29,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const submit=pulse(frame,SHOT02.validateSubmit.submitActiveStart,SHOT02.validateSubmit.submitActiveEnd,12);
   const legacyWaiting=1-out(frame,0,24);
   const legacyShift=ease(frame,SHOT02.camera.legacyShiftStart,SHOT02.camera.legacyShiftEnd);
+  const requestHintCarry=1-out(frame,0,48);
 
   const requestReveal=out(frame,SHOT02.requestAssembly.revealStart,SHOT02.requestAssembly.revealEnd);
   const requestFocus=ease(frame,SHOT02.camera.requestFocusStart,SHOT02.camera.requestFocusEnd);
@@ -95,6 +96,8 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           spinner={1}
         />
       </ATCameraRig>
+
+      <div style={{position:'absolute',right:84,bottom:58,opacity:requestHintCarry*.20,fontFamily:AT_FONT,fontSize:17,fontWeight:650,letterSpacing:'.06em',color:'#8AA9C8',zIndex:4}}>REQUEST ASSEMBLY →</div>
 
       <ATCameraRig scale={requestScale} zIndex={6}>
         <ATPrimaryNode
