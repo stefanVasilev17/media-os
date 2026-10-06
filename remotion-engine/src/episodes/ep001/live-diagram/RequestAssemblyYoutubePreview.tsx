@@ -12,6 +12,7 @@ import {
   ATSecondaryStack,
   AT_FONT,
 } from '../../../components/architectural-thinking';
+import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 import {SHOT02} from './shot02Timing';
 
 export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean()});
@@ -24,6 +25,7 @@ const pulse=(frame:number,start:number,end:number,fade=10)=>Math.min(out(frame,s
 
 export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const frame=useCurrentFrame();
+  const continuationFrame=SHOT01_DURATION_FRAMES+frame;
 
   const validate=pulse(frame,SHOT02.validateSubmit.validateActiveStart,SHOT02.validateSubmit.validateActiveEnd,12);
   const submit=pulse(frame,SHOT02.validateSubmit.submitActiveStart,SHOT02.validateSubmit.submitActiveEnd,12);
@@ -70,7 +72,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
     <ATBackground>
       <ATCameraRig x={-540*legacyShift} y={92*legacyShift} scale={legacyScale} opacity={legacyOpacity} zIndex={3}>
         <ATSecondaryStack
-          frame={frame}
+          frame={continuationFrame}
           intent={1}
           height={565}
           panelTop={30}
@@ -82,7 +84,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           ]}
         />
         <ATPhone
-          frame={frame}
+          frame={continuationFrame}
           reveal={1}
           credential={1}
           ui={1}
