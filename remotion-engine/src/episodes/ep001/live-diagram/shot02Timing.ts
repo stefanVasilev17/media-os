@@ -5,19 +5,21 @@ export const SHOT02_DURATION_FRAMES = SHOT02_FPS * SHOT02_DURATION_SECONDS;
 const f = (seconds: number) => Math.round(seconds * SHOT02_FPS);
 
 export const SHOT02 = {
-  validateSubmit: {
-    start: f(0),
-    validateActiveStart: f(0.8),
-    validateActiveEnd: f(5.0),
-    submitActiveStart: f(5.2),
-    submitActiveEnd: f(11.2),
-    handoffStart: f(9.5),
-    handoffEnd: f(12),
+  handoff: {
+    contextQuietStart: f(0.25),
+    contextQuietEnd: f(2.6),
+    phoneShiftStart: f(0.35),
+    phoneShiftEnd: f(3.0),
+    flowStart: f(1.0),
+    flowEnd: f(2.2),
+    hintEnd: f(1.6),
   },
   requestAssembly: {
-    revealStart: f(10.5),
-    revealEnd: f(14.5),
-    heroStart: f(12),
+    revealStart: f(1.25),
+    revealEnd: f(2.8),
+    settleStart: f(1.25),
+    settleEnd: f(3.2),
+    heroStart: f(3),
     heroEnd: f(22),
   },
   payload: {
@@ -58,10 +60,6 @@ export const SHOT02 = {
     readyEnd: f(74),
   },
   camera: {
-    legacyShiftStart: f(8.8),
-    legacyShiftEnd: f(15),
-    requestFocusStart: f(12),
-    requestFocusEnd: f(18),
     overviewStart: f(61.5),
     overviewEnd: f(66),
   },

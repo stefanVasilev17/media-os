@@ -27,25 +27,32 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const frame=useCurrentFrame();
   const continuationFrame=SHOT01_DURATION_FRAMES+frame;
 
-  const validate=pulse(frame,SHOT02.validateSubmit.validateActiveStart,SHOT02.validateSubmit.validateActiveEnd,12);
-  const submit=pulse(frame,SHOT02.validateSubmit.submitActiveStart,SHOT02.validateSubmit.submitActiveEnd,12);
-  const legacyWaiting=1-out(frame,0,24);
-  const legacyShift=ease(frame,SHOT02.camera.legacyShiftStart,SHOT02.camera.legacyShiftEnd);
-  const requestHintCarry=1-out(frame,0,48);
-  const flowReveal=out(frame,SHOT02.validateSubmit.handoffStart,SHOT02.validateSubmit.handoffEnd);
-  const flowActivity=.35+(1-out(frame,SHOT02.payload.start,SHOT02.payload.start+120))*.65;
-
+  const contextQuiet=ease(frame,SHOT02.handoff.contextQuietStart,SHOT02.handoff.contextQuietEnd);
+  const phoneShift=ease(frame,SHOT02.handoff.phoneShiftStart,SHOT02.handoff.phoneShiftEnd);
+  const legacyWaiting=.12+.88*(1-out(frame,0,18));
+  const requestHintCarry=1-out(frame,0,SHOT02.handoff.hintEnd);
+  const flowReveal=out(frame,SHOT02.handoff.flowStart,SHOT02.handoff.flowEnd);
   const requestReveal=out(frame,SHOT02.requestAssembly.revealStart,SHOT02.requestAssembly.revealEnd);
-  const requestFocus=ease(frame,SHOT02.camera.requestFocusStart,SHOT02.camera.requestFocusEnd);
+  const requestSettle=ease(frame,SHOT02.requestAssembly.settleStart,SHOT02.requestAssembly.settleEnd);
   const overview=ease(frame,SHOT02.camera.overviewStart,SHOT02.camera.overviewEnd);
-  const requestLeft=1160-requestFocus*170;
-  const requestTop=148-overview*8;
-  const requestWidth=610;
-  const requestHeight=505;
-  const flowStartX=880-360*legacyShift;
-  const flowStartY=785-60*legacyShift;
+
+  const requestLeft=860+(1-requestSettle)*64;
+  const requestTop=718;
+  const requestWidth=230;
+  const requestHeight=210;
+
+  const phoneRigX=-500*phoneShift;
+  const phoneRigY=18*phoneShift;
+  const phoneRigScale=1-.10*phoneShift;
+  const stackRigX=-520*contextQuiet;
+  const stackRigY=22*contextQuiet;
+  const stackRigScale=1-.28*contextQuiet;
+  const stackOpacity=1-.78*contextQuiet;
+
+  const flowStartX=565;
+  const flowStartY=823;
   const flowEndX=requestLeft-requestWidth/2-10;
-  const flowEndY=requestTop+requestHeight*.58;
+  const flowEndY=requestTop+requestHeight*.5;
 
   const payloadReveal=out(frame,SHOT02.payload.start,SHOT02.payload.revealEnd);
   const headersReveal=out(frame,SHOT02.headers.start,SHOT02.headers.revealEnd);
@@ -69,14 +76,11 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const settle=ease(frame,SHOT02.assembly.settleStart,SHOT02.assembly.settleEnd);
   const ready=out(frame,SHOT02.assembly.readyStart,SHOT02.assembly.readyEnd);
   const networkReveal=ready;
-
-  const legacyScale=1-legacyShift*.24;
-  const legacyOpacity=1-legacyShift*.62;
-  const requestScale=1-overview*.025;
+  const requestScale=1-overview*.015;
 
   return (
     <ATBackground>
-      <ATCameraRig x={-540*legacyShift} y={92*legacyShift} scale={legacyScale} opacity={legacyOpacity} zIndex={3}>
+      <ATCameraRig x={stackRigX} y={stackRigY} scale={stackRigScale} opacity={stackOpacity} zIndex={3}>
         <ATSecondaryStack
           frame={continuationFrame}
           intent={1}
@@ -84,11 +88,14 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           panelTop={30}
           connectorHeight={20}
           sections={[
-            {title:'Login Intent',items:[{label:'Validate',activity:validate},{label:'Submit',activity:submit}],reveal:1,divider:1},
+            {title:'Login Intent',items:[{label:'Validate',activity:0},{label:'Submit',activity:0}],reveal:1,divider:1},
             {title:'Credential Input',items:[{label:'Identifier',activity:0},{label:'Secret',activity:0}],reveal:1,divider:1},
             {title:'Local UI State',items:[{label:'Submitting',activity:0},{label:'Waiting',activity:legacyWaiting}],reveal:1,divider:0},
           ]}
         />
+      </ATCameraRig>
+
+      <ATCameraRig x={phoneRigX} y={phoneRigY} scale={phoneRigScale} opacity={1} zIndex={4}>
         <ATPhone
           frame={continuationFrame}
           reveal={1}
@@ -107,57 +114,71 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
 
       <div style={{position:'absolute',right:84,bottom:58,opacity:requestHintCarry*.20,fontFamily:AT_FONT,fontSize:17,fontWeight:650,letterSpacing:'.06em',color:'#8AA9C8',zIndex:4}}>REQUEST ASSEMBLY →</div>
 
-      <ATFlowArrow frame={continuationFrame} reveal={flowReveal} activity={flowActivity} startX={flowStartX} startY={flowStartY} endX={flowEndX} endY={flowEndY}/>
+      <ATFlowArrow
+        frame={continuationFrame}
+        reveal={flowReveal}
+        activity={.82}
+        startX={flowStartX}
+        startY={flowStartY}
+        endX={flowEndX}
+        endY={flowEndY}
+      />
 
       <ATCameraRig scale={requestScale} zIndex={6}>
         <ATPrimaryNode
           title="Request Assembly"
-          subtitle="Separate client-side inputs become one structured message"
           reveal={requestReveal}
-          active={.48+ready*.52}
+          active={.42+ready*.58}
           left={requestLeft}
           top={requestTop}
           width={requestWidth}
           height={requestHeight}
-          compact
+          micro
         >
-          <div style={{display:'flex',flexDirection:'column',gap:9,opacity:1,transform:`scale(${1-settle*.008})`,transformOrigin:'50% 50%'}}>
+          <div style={{display:'flex',flexDirection:'column',gap:5,opacity:1,transform:`scale(${1-settle*.006})`,transformOrigin:'50% 50%'}}>
             <ATMiniWorld
               title="Payload"
               reveal={payloadReveal}
               activity={payloadActivity}
               tags={['JSON','Form']}
-              compact
+              micro
               items={[
-                {label:'Identity',detail:EMAIL,activity:identity},
-                {label:'Secret',detail:'••••••••',activity:secret},
+                {label:'Identity',activity:identity},
+                {label:'Secret',activity:secret},
               ]}
             />
             <ATMiniWorld
               title="Headers"
               reveal={headersReveal}
               activity={headersActivity}
-              compact
+              micro
               items={[
-                {label:'User-Agent',detail:'Browser / App',activity:userAgent},
-                {label:'Accept',detail:'Response type',activity:accept},
+                {label:'User-Agent',activity:userAgent},
+                {label:'Accept',activity:accept},
               ]}
             />
             <ATMiniWorld
               title="Request Context"
               reveal={contextReveal}
               activity={contextActivity}
-              compact
+              micro
               items={[
-                {label:'Timestamp',detail:'When created',activity:timestamp},
-                {label:'Source',detail:'Phone / Login UI',activity:source},
+                {label:'Timestamp',activity:timestamp},
+                {label:'Source',activity:source},
               ]}
             />
           </div>
         </ATPrimaryNode>
       </ATCameraRig>
 
-      <ATConnectionPath reveal={networkReveal} left={requestLeft+requestWidth/2-4} top={requestTop+requestHeight*.5-54} width={500} label="NETWORK" nodeOpacity={.34}/>
+      <ATConnectionPath
+        reveal={networkReveal}
+        left={requestLeft+requestWidth/2-4}
+        top={requestTop+requestHeight*.5-54}
+        width={650}
+        label="NETWORK"
+        nodeOpacity={.34}
+      />
 
       <div style={{position:'absolute',right:70,bottom:48,opacity:networkReveal*.55,fontFamily:AT_FONT,fontSize:13,fontWeight:720,letterSpacing:'.11em',color:'rgba(128,162,192,.62)'}}>READY ≠ SENT</div>
       {showGuides?<div style={{position:'absolute',inset:40,border:'1px dashed rgba(255,255,255,.20)',pointerEvents:'none',zIndex:30}}/>:null}
