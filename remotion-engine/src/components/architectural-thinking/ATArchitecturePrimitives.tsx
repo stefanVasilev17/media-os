@@ -68,9 +68,9 @@ export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,i
   if(micro){
     return (
       <div style={{borderRadius:11,padding:'5px 6px 5px',border:`1.25px solid rgba(80,150,224,${.20+activity*.48})`,background:'linear-gradient(180deg,rgba(8,25,42,.96),rgba(4,14,26,.985))',boxShadow:`0 8px 20px rgba(0,0,0,.18),0 0 ${6+activity*12}px rgba(47,145,255,${activity*.12})`,opacity:reveal,transform:`translateY(${(1-reveal)*5}px)`,fontFamily:AT_FONT}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-          <div style={{fontSize:10.5,fontWeight:740,letterSpacing:'-.02em',color:'#F5F9FF'}}>{title}</div>
-          {tags.length?<div style={{display:'flex',gap:3}}>{tags.map((tag)=><div key={tag} style={{padding:'2px 4px',borderRadius:999,border:'1px solid rgba(96,162,230,.24)',background:'rgba(11,31,51,.72)',fontSize:6.8,fontWeight:700,letterSpacing:'.025em',color:'rgba(175,207,238,.76)'}}>{tag}</div>)}</div>:null}
+        <div style={{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',minHeight:14}}>
+          <div style={{fontSize:10.5,fontWeight:740,letterSpacing:'-.02em',color:'#F5F9FF',textAlign:'center'}}>{title}</div>
+          {tags.length?<div style={{position:'absolute',right:0,display:'flex',gap:3}}>{tags.map((tag)=><div key={tag} style={{padding:'2px 4px',borderRadius:999,border:'1px solid rgba(96,162,230,.24)',background:'rgba(11,31,51,.72)',fontSize:6.8,fontWeight:700,letterSpacing:'.025em',color:'rgba(175,207,238,.76)'}}>{tag}</div>)}</div>:null}
         </div>
         <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(2,Math.max(1,items.length))},minmax(0,1fr))`,gap:4,marginTop:4}}>
           {items.map((item)=>{
