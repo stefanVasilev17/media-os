@@ -35,23 +35,27 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const requestReveal=out(frame,SHOT02.requestAssembly.revealStart,SHOT02.requestAssembly.revealEnd);
   const requestSettle=ease(frame,SHOT02.requestAssembly.settleStart,SHOT02.requestAssembly.settleEnd);
   const overview=ease(frame,SHOT02.camera.overviewStart,SHOT02.camera.overviewEnd);
+  const requestQuiet=ease(frame,SHOT02.requestAssembly.defocusStart,SHOT02.requestAssembly.defocusEnd);
 
   const requestLeft=860+(1-requestSettle)*64;
   const requestTop=703;
   const requestWidth=270;
   const requestHeight=240;
+  const requestVisualScale=1.333-requestQuiet*.333;
 
   const phoneRigX=-500*phoneShift;
   const phoneRigY=18*phoneShift;
-  const phoneRigScale=1-.10*phoneShift;
+  const phoneRigScale=1-.26*phoneShift;
   const stackRigX=-520*contextQuiet;
   const stackRigY=22*contextQuiet;
   const stackRigScale=1-.28*contextQuiet;
   const stackOpacity=1-.78*contextQuiet;
 
-  const flowStartX=565;
+  const phoneCenterX=460;
+  const phoneVisibleHalfWidth=250*.53*phoneRigScale;
+  const flowStartX=phoneCenterX+phoneVisibleHalfWidth;
   const flowStartY=823;
-  const flowEndX=requestLeft-requestWidth/2-10;
+  const flowEndX=requestLeft-(requestWidth*requestVisualScale)/2-8;
   const flowEndY=requestTop+requestHeight*.5;
 
   const payloadReveal=out(frame,SHOT02.payload.start,SHOT02.payload.revealEnd);
@@ -75,8 +79,9 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
 
   const settle=ease(frame,SHOT02.assembly.settleStart,SHOT02.assembly.settleEnd);
   const ready=out(frame,SHOT02.assembly.readyStart,SHOT02.assembly.readyEnd);
-  const networkReveal=ready;
+  const networkReveal=Math.max(ready,requestQuiet*.78);
   const requestScale=1-overview*.015;
+  const requestActive=.62*(1-requestQuiet)+.08;
 
   return (
     <ATBackground>
@@ -128,11 +133,13 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
         <ATPrimaryNode
           title="Request Assembly"
           reveal={requestReveal}
-          active={.42+ready*.58}
+          active={requestActive}
           left={requestLeft}
           top={requestTop}
           width={requestWidth}
           height={requestHeight}
+          visualScale={requestVisualScale}
+          quiet={requestQuiet}
           micro
         >
           <div style={{display:'flex',flexDirection:'column',gap:5,opacity:1,transform:`scale(${1-settle*.006})`,transformOrigin:'50% 50%'}}>
@@ -175,7 +182,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
         reveal={networkReveal}
         left={requestLeft+requestWidth/2-4}
         top={requestTop+requestHeight*.5-54}
-        width={650}
+        width={650-requestQuiet*40}
         label="NETWORK"
         nodeOpacity={.34}
       />
