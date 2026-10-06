@@ -37,9 +37,9 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const overview=ease(frame,SHOT02.camera.overviewStart,SHOT02.camera.overviewEnd);
 
   const requestLeft=860+(1-requestSettle)*64;
-  const requestTop=718;
-  const requestWidth=230;
-  const requestHeight=210;
+  const requestTop=703;
+  const requestWidth=270;
+  const requestHeight=240;
 
   const phoneRigX=-500*phoneShift;
   const phoneRigY=18*phoneShift;
