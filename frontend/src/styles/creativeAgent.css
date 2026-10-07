@@ -469,3 +469,362 @@
     max-height: 400px;
   }
 }
+
+
+/* Script Agent — locked recording mode */
+.script-recording-page {
+  max-width: 1180px;
+}
+
+.script-recording-header {
+  margin-bottom: 22px;
+}
+
+.script-recording-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.script-locked-badge {
+  min-height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 11px;
+  border: 1px solid rgba(86,220,155,.24);
+  color: #bdf2d6;
+  background: rgba(86,220,155,.07);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .07em;
+}
+
+.script-recording-progress {
+  padding: 16px 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(16,24,38,.94), rgba(9,15,25,.96));
+}
+
+.script-recording-progress-copy {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.script-recording-progress-copy span {
+  color: #72dfff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.script-recording-progress-copy strong {
+  color: #dfe8f5;
+  font-size: 11px;
+}
+
+.script-recording-progress-bar {
+  height: 5px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+}
+
+.script-recording-progress-bar > div {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4a82ff, #55d9ff, #56dc9b);
+  box-shadow: 0 0 16px rgba(85,217,255,.28);
+  transition: width .24s ease;
+}
+
+.script-shot-strip {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(42px, 1fr));
+  gap: 7px;
+  margin: 14px 0 26px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+.script-shot-strip button {
+  min-width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 10px;
+  color: #77869b;
+  background: #0a1019;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.script-shot-strip button.recorded {
+  color: #91e5bb;
+  border-color: rgba(86,220,155,.2);
+  background: rgba(86,220,155,.055);
+}
+
+.script-shot-strip button.current {
+  color: #eaf8ff;
+  border-color: rgba(85,217,255,.42);
+  background: rgba(85,217,255,.1);
+  box-shadow: 0 0 18px rgba(85,217,255,.09);
+}
+
+.script-recording-complete {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding: 13px 15px;
+  border: 1px solid rgba(86,220,155,.22);
+  border-radius: 14px;
+  color: #75dfaa;
+  background: rgba(86,220,155,.055);
+}
+
+.script-recording-complete strong,
+.script-recording-complete span {
+  display: block;
+}
+
+.script-recording-complete strong {
+  font-size: 12px;
+}
+
+.script-recording-complete span {
+  margin-top: 3px;
+  color: #88a79a;
+  font-size: 10px;
+}
+
+.script-recording-card {
+  padding: clamp(24px, 4vw, 48px);
+  border: 1px solid rgba(85,217,255,.16);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(56,128,210,.09), transparent 42%),
+    linear-gradient(180deg, #0c1420, #080e17);
+  box-shadow: 0 24px 70px rgba(0,0,0,.24);
+}
+
+.script-recording-card.is-recorded {
+  border-color: rgba(86,220,155,.15);
+}
+
+.script-recording-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.script-recording-card-top span {
+  display: block;
+  color: #6fdfff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.script-recording-card-top h2 {
+  margin: 7px 0 0;
+  color: #f3f7fc;
+  font-size: clamp(23px, 3vw, 34px);
+  letter-spacing: -.035em;
+}
+
+.script-recording-time {
+  flex: 0 0 auto;
+  color: #8da2bc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.script-recording-status {
+  width: fit-content;
+  margin: 22px 0 0;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  color: #79dfff;
+  background: rgba(85,217,255,.06);
+  border: 1px solid rgba(85,217,255,.14);
+}
+
+.script-recording-status span {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.script-recording-card.is-recorded .script-recording-status {
+  color: #79dfa9;
+  border-color: rgba(86,220,155,.18);
+  background: rgba(86,220,155,.055);
+}
+
+.script-recording-narration {
+  max-width: 900px;
+  margin: 30px auto 0;
+}
+
+.script-recording-narration p {
+  margin: 0 0 22px;
+  color: #eef3fa;
+  font-size: clamp(19px, 2.05vw, 27px);
+  line-height: 1.72;
+  letter-spacing: -.015em;
+}
+
+.script-recording-narration p:last-child {
+  margin-bottom: 0;
+}
+
+.script-recording-narration .script-recording-missing {
+  color: #d3a1a7;
+  font-size: 14px;
+}
+
+.script-recording-voice {
+  max-width: 900px;
+  margin: 32px auto 0;
+  padding: 16px 18px;
+  border-left: 2px solid rgba(85,217,255,.28);
+  background: rgba(85,217,255,.025);
+}
+
+.script-recording-voice span {
+  color: #72dfff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .11em;
+}
+
+.script-recording-voice p {
+  margin: 7px 0 0;
+  color: #99aabd;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.script-recording-actions {
+  display: grid;
+  grid-template-columns: 150px minmax(220px, 1fr) 150px;
+  gap: 10px;
+  max-width: 760px;
+  margin: 34px auto 0;
+}
+
+.script-recording-actions button {
+  min-height: 50px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.script-recording-nav,
+.script-rerecord-button {
+  border: 1px solid rgba(255,255,255,.08);
+  color: #aebbcf;
+  background: #0b121c;
+}
+
+.script-recording-nav:disabled {
+  opacity: .28;
+  cursor: default;
+}
+
+.script-recorded-button {
+  border: 1px solid rgba(86,220,155,.32);
+  color: #f5fffa;
+  background: linear-gradient(135deg, #16845d, #2caf7c);
+  box-shadow: 0 12px 28px rgba(23,133,94,.15);
+}
+
+.script-rerecord-button {
+  color: #d7e0ec;
+}
+
+.script-recording-note {
+  margin: 14px 0 0;
+  color: #66768d;
+  font-size: 9px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .script-shot-strip {
+    grid-template-columns: repeat(16, 44px);
+  }
+
+  .script-recording-actions {
+    grid-template-columns: 1fr 1.3fr 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .script-recording-header {
+    display: block;
+  }
+
+  .script-recording-header-actions {
+    margin-top: 14px;
+    justify-content: space-between;
+  }
+
+  .script-recording-progress-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .script-recording-card {
+    padding: 22px 16px;
+    border-radius: 18px;
+  }
+
+  .script-recording-card-top {
+    display: block;
+  }
+
+  .script-recording-time {
+    margin-top: 10px;
+  }
+
+  .script-recording-narration p {
+    font-size: 19px;
+    line-height: 1.68;
+  }
+
+  .script-recording-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .script-recorded-button,
+  .script-rerecord-button {
+    grid-row: 1;
+  }
+
+  .script-recording-nav {
+    min-height: 44px !important;
+  }
+}
