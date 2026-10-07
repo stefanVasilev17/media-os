@@ -16,12 +16,17 @@ import {
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   alignVoiceShot,
+  approveGeneratedVoiceShot,
   autoAlignVoiceShot,
+  generateVoiceShot,
+  generatedVoiceAudioUrl,
   loadAlignmentProvider,
+  loadTtsProvider,
   loadVoiceShots,
   markVoiceShotRemotionSynced,
   saveVoiceShot,
   type AlignmentProviderStatus,
+  type TtsProviderStatus,
   type VoiceShotState
 } from '../api/voiceApi';
 import { CreativeAgentPage } from './CreativeAgentPage';
@@ -112,6 +117,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
   const [error, setError] = useState('');
   const [alignmentText, setAlignmentText] = useState(alignmentTemplate('SHOT 01'));
   const [provider, setProvider] = useState<AlignmentProviderStatus | null>(null);
+  const [ttsProvider, setTtsProvider] = useState<TtsProviderStatus | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
 
   async function refreshWorkflow() {
@@ -135,11 +141,15 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
     loadAlignmentProvider()
       .then(setProvider)
       .catch(() => setProvider(null));
+    loadTtsProvider()
+      .then(setTtsProvider)
+      .catch(() => setTtsProvider(null));
   }, [state.revision]);
 
   const currentShot = shots[currentIndex];
   const currentState = workflow[currentShot?.key];
-  const recordedCount = shots.filter(shot => workflow[shot.key]?.recorded).length;
+  const generatedCount = shots.filter(shot => workflow[shot.key]?.voiceGenerated).length;
+  const approvedCount = shots.filter(shot => workflow[shot.key]?.voiceApproved || workflow[shot.key]?.recorded).length;
   const alignedCount = shots.filter(shot => workflow[shot.key]?.aligned).length;
   const syncReadyCount = shots.filter(shot => workflow[shot.key]?.visualSyncReady).length;
   const remotionCount = shots.filter(shot => workflow[shot.key]?.remotionSynced).length;
@@ -159,6 +169,56 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
       setAlignmentText(alignmentTemplate(currentShot.key));
     }
   }, [currentIndex, currentShot?.key, workflow]);
+
+  async function ensureShotRow(recorded = false) {
+    if (!currentShot) throw new Error('No current shot.');
+    return saveVoiceShot(currentShot.key, {
+      scriptRevision: state.revision,
+      title: currentShot.title,
+      startSecond: currentShot.startSecond,
+      endSecond: currentShot.endSecond,
+      narration: currentShot.narration,
+      voiceDirection: currentShot.voiceDirection,
+      recorded
+    });
+  }
+
+  async function generateCloneVoice() {
+    if (!currentShot || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      await ensureShotRow(false);
+      const previousText = currentIndex > 0 ? shots[currentIndex - 1].narration : undefined;
+      const nextText = currentIndex < shots.length - 1 ? shots[currentIndex + 1].narration : undefined;
+      const row = await generateVoiceShot(currentShot.key, {
+        scriptRevision: state.revision,
+        previousText,
+        nextText
+      });
+      setWorkflow(current => ({ ...current, [currentShot.key]: row }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not generate ElevenLabs voice.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function approveCloneVoice() {
+    if (!currentShot || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      const row = await approveGeneratedVoiceShot(currentShot.key, state.revision);
+      setWorkflow(current => ({ ...current, [currentShot.key]: row }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not approve generated voice.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function persistRecorded(recorded: boolean) {
     if (!currentShot || busy) return;
@@ -279,7 +339,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
       {error && <div className="creative-error">{error}</div>}
 
       <section className="script-recording-progress voice-production-progress">
-        <div className="voice-stage-metric"><span>RECORDED</span><strong>{recordedCount}/{shots.length}</strong></div>
+        <div className="voice-stage-metric"><span>GENERATED</span><strong>{generatedCount}/{shots.length}</strong></div>
+        <div className="voice-stage-metric"><span>APPROVED</span><strong>{approvedCount}/{shots.length}</strong></div>
         <div className="voice-stage-metric"><span>ALIGNED</span><strong>{alignedCount}/{shots.length}</strong></div>
         <div className="voice-stage-metric"><span>VISUAL SYNC READY</span><strong>{syncReadyCount}/{shots.length}</strong></div>
         <div className="voice-stage-metric"><span>REMOTION SYNCED</span><strong>{remotionCount}/{shots.length}</strong></div>
@@ -290,7 +351,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
           const shotState = workflow[shot.key];
           const isCurrent = index === currentIndex;
           const classes = [
-            shotState?.recorded ? 'recorded' : '',
+            shotState?.voiceGenerated ? 'generated' : '',
+            (shotState?.voiceApproved || shotState?.recorded) ? 'recorded' : '',
             shotState?.visualSyncReady ? 'sync-ready' : '',
             shotState?.remotionSynced ? 'remotion-synced' : '',
             isCurrent ? 'current' : ''
@@ -306,7 +368,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
               title={shot.key + ' · ' + shot.title}
             >
               <span>{String(index + 1).padStart(2, '0')}</span>
-              {shotState?.remotionSynced ? <Sparkles size={12} /> : shotState?.recorded ? <Check size={12} /> : null}
+              {shotState?.remotionSynced ? <Sparkles size={12} /> : (shotState?.voiceApproved || shotState?.recorded) ? <Check size={12} /> : null}
             </button>
           );
         })}
@@ -325,7 +387,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
           </div>
 
           <div className="voice-status-row">
-            <div className={currentState?.recorded ? 'done' : ''}><Mic2 size={14} /> Recorded</div>
+            <div className={currentState?.voiceGenerated ? 'done' : ''}><Mic2 size={14} /> Generated</div>
+            <div className={(currentState?.voiceApproved || currentState?.recorded) ? 'done' : ''}><Check size={14} /> Approved</div>
             <div className={currentState?.aligned ? 'done' : ''}><Check size={14} /> Aligned</div>
             <div className={currentState?.visualSyncReady ? 'done' : ''}><FileCode2 size={14} /> Visual Sync</div>
             <div className={currentState?.remotionSynced ? 'done' : ''}><Sparkles size={14} /> Remotion</div>
@@ -343,13 +406,63 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
           )}
 
           {!currentState?.recorded ? (
-            <div className="voice-primary-action">
-              <button type="button" className="script-recorded-button" disabled={busy} onClick={() => void persistRecorded(true)}>
-                <Check size={17} /> Recorded
-              </button>
-            </div>
+            <section className="voice-generation-panel">
+              <div className="voice-panel-heading">
+                <div>
+                  <span>STEP 1</span>
+                  <strong>Generate narration with your ElevenLabs clone</strong>
+                </div>
+                <small>
+                  {ttsProvider?.configured
+                    ? ttsProvider.modelId + ' · ' + ttsProvider.outputFormat
+                    : 'Waiting for ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.'}
+                </small>
+              </div>
+
+              {!currentState?.voiceGenerated ? (
+                <button
+                  type="button"
+                  className="voice-generate-button"
+                  disabled={busy || !ttsProvider?.configured}
+                  onClick={() => void generateCloneVoice()}
+                >
+                  {busy ? <LoaderCircle className="spin" size={16} /> : <Mic2 size={16} />}
+                  Generate Voice
+                </button>
+              ) : (
+                <div className="voice-generated-review">
+                  <audio
+                    key={currentState.generationRevision}
+                    controls
+                    preload="metadata"
+                    src={generatedVoiceAudioUrl(currentShot.key, state.revision, currentState.generationRevision)}
+                  />
+                  <div className="voice-generated-meta">
+                    <span>{currentState.generatedAudioFileName}</span>
+                    <span>Generation {currentState.generationRevision} · {currentState.generatedModelId}</span>
+                  </div>
+                  <div className="voice-generation-actions">
+                    <button type="button" className="voice-secondary-button" disabled={busy} onClick={() => void generateCloneVoice()}>
+                      <RotateCcw size={15} /> Regenerate
+                    </button>
+                    <button type="button" className="voice-primary-button" disabled={busy} onClick={() => void approveCloneVoice()}>
+                      <Check size={15} /> Approve Voice
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <details className="voice-manual-fallback">
+                <summary>Manual recording fallback</summary>
+                <p>If you record this shot yourself instead of using clone TTS, mark it ready and upload that audio in the next step.</p>
+                <button type="button" className="voice-secondary-button" disabled={busy} onClick={() => void persistRecorded(true)}>
+                  <Mic2 size={15} /> Manual audio recorded
+                </button>
+              </details>
+            </section>
           ) : (
             <>
+              {!currentState?.visualSyncReady && (
               <section className="voice-alignment-panel">
                 <div className="voice-panel-heading">
                   <div>
@@ -400,6 +513,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
                   </button>
                 </details>
               </section>
+              )}
 
               {currentState?.visualSyncReady && (
                 <section className="voice-sync-output">

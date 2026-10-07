@@ -17,6 +17,16 @@ export type VoiceShotState = {
   visualSyncReadyAt?: string | null;
   remotionSynced: boolean;
   remotionSyncedAt?: string | null;
+  voiceGenerated: boolean;
+  voiceGeneratedAt?: string | null;
+  voiceApproved: boolean;
+  voiceApprovedAt?: string | null;
+  generatedAudioContentType?: string | null;
+  generatedAudioFileName?: string | null;
+  generatedAlignment: Record<string, unknown>;
+  generatedVoiceId?: string | null;
+  generatedModelId?: string | null;
+  generationRevision: number;
   updatedAt?: string | null;
 };
 
@@ -103,4 +113,48 @@ export function autoAlignVoiceShot(shotKey: string, scriptRevision: number, file
     '/api/v1/voice/shots/' + encodeURIComponent(shotKey) + '/auto-align?scriptRevision=' + scriptRevision,
     { method: 'POST', body }
   );
+}
+
+
+export type TtsProviderStatus = {
+  provider: string;
+  apiConfigured: boolean;
+  voiceConfigured: boolean;
+  configured: boolean;
+  voiceId: string;
+  modelId: string;
+  outputFormat: string;
+};
+
+export function loadTtsProvider() {
+  return request<TtsProviderStatus>('/api/v1/voice/tts-provider');
+}
+
+export function generateVoiceShot(
+  shotKey: string,
+  payload: {
+    scriptRevision: number;
+    previousText?: string;
+    nextText?: string;
+  }
+) {
+  return request<VoiceShotState>('/api/v1/voice/shots/' + encodeURIComponent(shotKey) + '/generate-voice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
+export function approveGeneratedVoiceShot(shotKey: string, scriptRevision: number) {
+  return request<VoiceShotState>('/api/v1/voice/shots/' + encodeURIComponent(shotKey) + '/approve-generated-voice', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scriptRevision })
+  });
+}
+
+export function generatedVoiceAudioUrl(shotKey: string, scriptRevision: number, generationRevision: number) {
+  return '/api/v1/voice/shots/' + encodeURIComponent(shotKey)
+    + '/generated-audio?scriptRevision=' + scriptRevision
+    + '&v=' + generationRevision;
 }
