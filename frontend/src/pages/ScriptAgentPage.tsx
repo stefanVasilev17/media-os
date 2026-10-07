@@ -1,6 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, LoaderCircle, LockKeyhole, Mic2, RotateCcw } from 'lucide-react';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  FileCode2,
+  LoaderCircle,
+  LockKeyhole,
+  Mic2,
+  RotateCcw,
+  Sparkles
+} from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
+import {
+  alignVoiceShot,
+  loadVoiceShots,
+  markVoiceShotRemotionSynced,
+  saveVoiceShot,
+  type VoiceShotState
+} from '../api/voiceApi';
 import { CreativeAgentPage } from './CreativeAgentPage';
 import '../styles/creativeAgent.css';
 
@@ -35,14 +54,22 @@ const EP001_SHOTS: ShotDefinition[] = [
   { key: 'SHOT 16', title: 'The Next Request', startSecond: 1155, endSecond: 1200 }
 ];
 
+function alignmentTemplate(shotKey: string) {
+  return [
+    '{',
+    '  "audioFileName": "EP001_' + shotKey.replace(' ', '') + '_final.wav",',
+    '  "durationSeconds": 31.0,',
+    '  "anchors": {',
+    '    "SEMANTIC_ANCHOR": 4.82',
+    '  }',
+    '}'
+  ].join('\n');
+}
+
 function clock(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = Math.max(0, totalSeconds % 60);
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
-
-function progressStorageKey(state: CreativeStageState<ScriptArtifact>) {
-  return `mediaos:recording-progress:${state.episode.id}:script-r${state.revision}`;
+  return minutes + ':' + String(seconds).padStart(2, '0');
 }
 
 function buildRecordingShots(artifact: ScriptArtifact): RecordingShot[] {
@@ -51,90 +78,170 @@ function buildRecordingShots(artifact: ScriptArtifact): RecordingShot[] {
       item => item.endSecond > shot.startSecond && item.startSecond < shot.endSecond
     );
 
-    const narration = blocks
-      .map(item => item.narration.trim())
-      .filter(Boolean)
-      .join('\n\n');
-
-    const voiceDirections = Array.from(
-      new Set(blocks.map(item => item.voiceDirection.trim()).filter(Boolean))
-    );
-
     return {
       ...shot,
-      narration,
-      voiceDirection: voiceDirections.join(' ')
+      narration: blocks.map(item => item.narration.trim()).filter(Boolean).join('\n\n'),
+      voiceDirection: Array.from(new Set(blocks.map(item => item.voiceDirection.trim()).filter(Boolean))).join(' ')
     };
   });
 }
 
-function readProgress(key: string, validKeys: Set<string>) {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((value): value is string => typeof value === 'string' && validKeys.has(value));
-  } catch {
-    return [];
-  }
+function downloadText(fileName: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 function LockedScriptRecordingMode({ state }: { state: CreativeStageState<ScriptArtifact> }) {
-  const artifact = state.artifact;
-  const shots = useMemo(() => buildRecordingShots(artifact!), [artifact]);
-  const storageKey = useMemo(() => progressStorageKey(state), [state.episode.id, state.revision]);
-  const validShotKeys = useMemo(() => new Set(shots.map(shot => shot.key)), [shots]);
-  const [recordedKeys, setRecordedKeys] = useState<string[]>(() => readProgress(storageKey, validShotKeys));
+  const artifact = state.artifact!;
+  const shots = useMemo(() => buildRecordingShots(artifact), [artifact]);
+  const [workflow, setWorkflow] = useState<Record<string, VoiceShotState>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadingWorkflow, setLoadingWorkflow] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [alignmentText, setAlignmentText] = useState(alignmentTemplate('SHOT 01'));
+
+  async function refreshWorkflow() {
+    setLoadingWorkflow(true);
+    setError('');
+    try {
+      const rows = await loadVoiceShots(state.revision);
+      const next = Object.fromEntries(rows.map(row => [row.shotKey, row]));
+      setWorkflow(next);
+      const firstPending = shots.findIndex(shot => !next[shot.key]?.recorded);
+      setCurrentIndex(firstPending === -1 ? Math.max(0, shots.length - 1) : firstPending);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load voice workflow.');
+    } finally {
+      setLoadingWorkflow(false);
+    }
+  }
 
   useEffect(() => {
-    const saved = readProgress(storageKey, validShotKeys);
-    setRecordedKeys(saved);
-    const firstPending = shots.findIndex(shot => !saved.includes(shot.key));
-    setCurrentIndex(firstPending === -1 ? Math.max(0, shots.length - 1) : firstPending);
-  }, [storageKey, shots, validShotKeys]);
+    void refreshWorkflow();
+  }, [state.revision]);
 
-  const recordedSet = useMemo(() => new Set(recordedKeys), [recordedKeys]);
   const currentShot = shots[currentIndex];
-  const recordedCount = recordedKeys.length;
-  const allRecorded = recordedCount === shots.length;
-  const currentRecorded = currentShot ? recordedSet.has(currentShot.key) : false;
+  const currentState = workflow[currentShot?.key];
+  const recordedCount = shots.filter(shot => workflow[shot.key]?.recorded).length;
+  const alignedCount = shots.filter(shot => workflow[shot.key]?.aligned).length;
+  const syncReadyCount = shots.filter(shot => workflow[shot.key]?.visualSyncReady).length;
+  const remotionCount = shots.filter(shot => workflow[shot.key]?.remotionSynced).length;
 
-  function persist(next: string[]) {
-    setRecordedKeys(next);
-    window.localStorage.setItem(storageKey, JSON.stringify(next));
-  }
-
-  function markRecorded() {
+  useEffect(() => {
     if (!currentShot) return;
-    const next = currentRecorded ? recordedKeys : [...recordedKeys, currentShot.key];
-    persist(next);
-
-    const nextPendingAfterCurrent = shots.findIndex(
-      (shot, index) => index > currentIndex && !next.includes(shot.key)
-    );
-    if (nextPendingAfterCurrent !== -1) {
-      setCurrentIndex(nextPendingAfterCurrent);
-      return;
+    const existing = workflow[currentShot.key];
+    const alignment = existing?.alignment as { durationSeconds?: number; anchors?: Record<string, number> } | undefined;
+    if (existing?.audioFileName && alignment?.durationSeconds && alignment?.anchors) {
+      setAlignmentText(JSON.stringify({
+        audioFileName: existing.audioFileName,
+        durationSeconds: alignment.durationSeconds,
+        anchors: alignment.anchors
+      }, null, 2));
+    } else {
+      setAlignmentText(alignmentTemplate(currentShot.key));
     }
+  }, [currentIndex, currentShot?.key, workflow]);
 
-    const firstPending = shots.findIndex(shot => !next.includes(shot.key));
-    if (firstPending !== -1) setCurrentIndex(firstPending);
+  async function persistRecorded(recorded: boolean) {
+    if (!currentShot || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      const row = await saveVoiceShot(currentShot.key, {
+        scriptRevision: state.revision,
+        title: currentShot.title,
+        startSecond: currentShot.startSecond,
+        endSecond: currentShot.endSecond,
+        narration: currentShot.narration,
+        voiceDirection: currentShot.voiceDirection,
+        recorded
+      });
+
+      const nextWorkflow = { ...workflow, [currentShot.key]: row };
+      setWorkflow(nextWorkflow);
+
+      if (recorded) {
+        const nextIndex = shots.findIndex((shot, index) => index > currentIndex && !nextWorkflow[shot.key]?.recorded);
+        if (nextIndex !== -1) setCurrentIndex(nextIndex);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not update recording state.');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function markForRerecord() {
-    if (!currentShot) return;
-    persist(recordedKeys.filter(key => key !== currentShot.key));
+  async function createAlignment() {
+    if (!currentShot || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      const parsed = JSON.parse(alignmentText) as {
+        audioFileName?: string;
+        durationSeconds?: number;
+        anchors?: Record<string, number>;
+      };
+
+      if (!parsed.audioFileName || !parsed.durationSeconds || !parsed.anchors) {
+        throw new Error('Alignment JSON needs audioFileName, durationSeconds, and anchors.');
+      }
+
+      const row = await alignVoiceShot(currentShot.key, {
+        scriptRevision: state.revision,
+        audioFileName: parsed.audioFileName,
+        durationSeconds: parsed.durationSeconds,
+        anchors: parsed.anchors
+      });
+
+      setWorkflow(current => ({ ...current, [currentShot.key]: row }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not create Visual Sync Spec.');
+    } finally {
+      setBusy(false);
+    }
   }
 
-  if (!artifact || !currentShot) {
+  async function toggleRemotionSynced() {
+    if (!currentShot || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      const row = await markVoiceShotRemotionSynced(
+        currentShot.key,
+        state.revision,
+        !currentState?.remotionSynced
+      );
+      setWorkflow(current => ({ ...current, [currentShot.key]: row }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not update Remotion sync state.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!currentShot) {
     return <main className="creative-agent-page"><div className="creative-error">Locked script is unavailable.</div></main>;
   }
+
+  const fileStem = 'EP001_' + currentShot.key.replace(' ', '_') + '_VisualSyncSpec';
+  const specJson = currentState?.visualSyncReady ? JSON.stringify(currentState.visualSyncSpec, null, 2) : '';
 
   return (
     <main className="creative-agent-page script-recording-page">
       <header className="creative-agent-header script-recording-header">
         <div>
-          <span>{state.episode.episodeNumber} · RECORDING MODE</span>
+          <span>{state.episode.episodeNumber} · VOICE PRODUCTION</span>
           <h1>Script Agent</h1>
           <p>{state.episode.title}</p>
         </div>
@@ -144,109 +251,158 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
         </div>
       </header>
 
-      <section className="script-recording-progress">
-        <div className="script-recording-progress-copy">
-          <span>VOICE RECORDING PROGRESS</span>
-          <strong>{recordedCount} / {shots.length} shots recorded</strong>
-        </div>
-        <div className="script-recording-progress-bar" aria-label={`${recordedCount} of ${shots.length} shots recorded`}>
-          <div style={{ width: `${(recordedCount / shots.length) * 100}%` }} />
-        </div>
+      {error && <div className="creative-error">{error}</div>}
+
+      <section className="script-recording-progress voice-production-progress">
+        <div className="voice-stage-metric"><span>RECORDED</span><strong>{recordedCount}/{shots.length}</strong></div>
+        <div className="voice-stage-metric"><span>ALIGNED</span><strong>{alignedCount}/{shots.length}</strong></div>
+        <div className="voice-stage-metric"><span>VISUAL SYNC READY</span><strong>{syncReadyCount}/{shots.length}</strong></div>
+        <div className="voice-stage-metric"><span>REMOTION SYNCED</span><strong>{remotionCount}/{shots.length}</strong></div>
       </section>
 
       <nav className="script-shot-strip" aria-label="Episode recording shots">
         {shots.map((shot, index) => {
-          const isRecorded = recordedSet.has(shot.key);
+          const shotState = workflow[shot.key];
           const isCurrent = index === currentIndex;
+          const classes = [
+            shotState?.recorded ? 'recorded' : '',
+            shotState?.visualSyncReady ? 'sync-ready' : '',
+            shotState?.remotionSynced ? 'remotion-synced' : '',
+            isCurrent ? 'current' : ''
+          ].filter(Boolean).join(' ');
+
           return (
             <button
               type="button"
               key={shot.key}
-              className={`${isRecorded ? 'recorded' : ''} ${isCurrent ? 'current' : ''}`}
+              className={classes}
               onClick={() => setCurrentIndex(index)}
               aria-current={isCurrent ? 'step' : undefined}
+              title={shot.key + ' · ' + shot.title}
             >
               <span>{String(index + 1).padStart(2, '0')}</span>
-              {isRecorded && <Check size={12} />}
+              {shotState?.remotionSynced ? <Sparkles size={12} /> : shotState?.recorded ? <Check size={12} /> : null}
             </button>
           );
         })}
       </nav>
 
-      {allRecorded && (
-        <section className="script-recording-complete">
-          <Check size={18} />
-          <div>
-            <strong>All {shots.length} shots are marked Recorded.</strong>
-            <span>You can still open any shot and mark it for re-recording.</span>
+      {loadingWorkflow ? (
+        <div className="creative-loading"><LoaderCircle className="spin" size={22} /></div>
+      ) : (
+        <section className={'script-recording-card ' + (currentState?.recorded ? 'is-recorded' : '')}>
+          <div className="script-recording-card-top">
+            <div>
+              <span>{currentShot.key}</span>
+              <h2>{currentShot.title}</h2>
+            </div>
+            <div className="script-recording-time">{clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}</div>
+          </div>
+
+          <div className="voice-status-row">
+            <div className={currentState?.recorded ? 'done' : ''}><Mic2 size={14} /> Recorded</div>
+            <div className={currentState?.aligned ? 'done' : ''}><Check size={14} /> Aligned</div>
+            <div className={currentState?.visualSyncReady ? 'done' : ''}><FileCode2 size={14} /> Visual Sync</div>
+            <div className={currentState?.remotionSynced ? 'done' : ''}><Sparkles size={14} /> Remotion</div>
+          </div>
+
+          <div className="script-recording-narration">
+            {currentShot.narration.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+          </div>
+
+          {currentShot.voiceDirection && (
+            <div className="script-recording-voice">
+              <span>VOICE DIRECTION</span>
+              <p>{currentShot.voiceDirection}</p>
+            </div>
+          )}
+
+          {!currentState?.recorded ? (
+            <div className="voice-primary-action">
+              <button type="button" className="script-recorded-button" disabled={busy} onClick={() => void persistRecorded(true)}>
+                <Check size={17} /> Recorded
+              </button>
+            </div>
+          ) : (
+            <>
+              <section className="voice-alignment-panel">
+                <div className="voice-panel-heading">
+                  <div>
+                    <span>STEP 2</span>
+                    <strong>Alignment → Visual Sync Spec</strong>
+                  </div>
+                  <small>Paste semantic anchors now. ElevenLabs alignment will automate this later.</small>
+                </div>
+                <textarea value={alignmentText} onChange={event => setAlignmentText(event.target.value)} spellCheck={false} />
+                <div className="voice-alignment-actions">
+                  <button type="button" className="voice-secondary-button" disabled={busy} onClick={() => void persistRecorded(false)}>
+                    <RotateCcw size={15} /> Re-record
+                  </button>
+                  <button type="button" className="voice-primary-button" disabled={busy} onClick={() => void createAlignment()}>
+                    <Sparkles size={15} /> Generate Visual Sync Spec
+                  </button>
+                </div>
+              </section>
+
+              {currentState?.visualSyncReady && (
+                <section className="voice-sync-output">
+                  <div className="voice-panel-heading">
+                    <div>
+                      <span>STEP 3</span>
+                      <strong>Visual Sync Spec Ready</strong>
+                    </div>
+                    <small>{currentState.audioFileName}</small>
+                  </div>
+                  <div className="voice-file-actions">
+                    <button type="button" onClick={() => downloadText(fileStem + '.json', specJson, 'application/json')}>
+                      <Download size={15} /> JSON
+                    </button>
+                    <button type="button" onClick={() => downloadText(fileStem + '.md', currentState.visualSyncMarkdown || '', 'text/markdown')}>
+                      <Download size={15} /> Markdown
+                    </button>
+                    <button type="button" onClick={() => void navigator.clipboard.writeText(currentState.visualSyncMarkdown || '')}>
+                      <Copy size={15} /> Copy MD
+                    </button>
+                  </div>
+                  <pre>{currentState.visualSyncMarkdown}</pre>
+                  <button
+                    type="button"
+                    className={'voice-remotion-button ' + (currentState.remotionSynced ? 'done' : '')}
+                    disabled={busy}
+                    onClick={() => void toggleRemotionSynced()}
+                  >
+                    <Sparkles size={16} />
+                    {currentState.remotionSynced ? 'Remotion Synced ✓' : 'Mark Remotion Synced'}
+                  </button>
+                </section>
+              )}
+            </>
+          )}
+
+          <div className="script-recording-actions compact-nav">
+            <button
+              type="button"
+              className="script-recording-nav"
+              disabled={currentIndex === 0}
+              onClick={() => setCurrentIndex(index => Math.max(0, index - 1))}
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+            <div />
+            <button
+              type="button"
+              className="script-recording-nav"
+              disabled={currentIndex === shots.length - 1}
+              onClick={() => setCurrentIndex(index => Math.min(shots.length - 1, index + 1))}
+            >
+              Next <ChevronRight size={16} />
+            </button>
           </div>
         </section>
       )}
 
-      <section className={`script-recording-card ${currentRecorded ? 'is-recorded' : ''}`}>
-        <div className="script-recording-card-top">
-          <div>
-            <span>{currentShot.key}</span>
-            <h2>{currentShot.title}</h2>
-          </div>
-          <div className="script-recording-time">
-            {clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}
-          </div>
-        </div>
-
-        <div className="script-recording-status">
-          <Mic2 size={16} />
-          <span>{currentRecorded ? 'RECORDED' : 'RECORD THIS SHOT'}</span>
-        </div>
-
-        <div className="script-recording-narration">
-          {currentShot.narration ? (
-            currentShot.narration.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph}</p>)
-          ) : (
-            <p className="script-recording-missing">No narration block was found inside this shot boundary.</p>
-          )}
-        </div>
-
-        {currentShot.voiceDirection && (
-          <div className="script-recording-voice">
-            <span>VOICE DIRECTION</span>
-            <p>{currentShot.voiceDirection}</p>
-          </div>
-        )}
-
-        <div className="script-recording-actions">
-          <button
-            type="button"
-            className="script-recording-nav"
-            disabled={currentIndex === 0}
-            onClick={() => setCurrentIndex(index => Math.max(0, index - 1))}
-          >
-            <ChevronLeft size={16} /> Previous
-          </button>
-
-          {currentRecorded ? (
-            <button type="button" className="script-rerecord-button" onClick={markForRerecord}>
-              <RotateCcw size={16} /> Mark for re-recording
-            </button>
-          ) : (
-            <button type="button" className="script-recorded-button" onClick={markRecorded}>
-              <Check size={17} /> Recorded
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="script-recording-nav"
-            disabled={currentIndex === shots.length - 1}
-            onClick={() => setCurrentIndex(index => Math.min(shots.length - 1, index + 1))}
-          >
-            Next <ChevronRight size={16} />
-          </button>
-        </div>
-      </section>
-
       <p className="script-recording-note">
-        Recording progress is saved for this locked Script revision. A new Script revision starts a fresh recording checklist automatically.
+        Voice state is persisted in MediaOS backend per locked Script revision. Re-recording clears downstream alignment and sync state for that shot.
       </p>
     </main>
   );
@@ -259,28 +415,17 @@ export function ScriptAgentPage() {
   useEffect(() => {
     let active = true;
     loadCreativeStage<ScriptArtifact>('SCRIPT')
-      .then(next => {
-        if (active) setState(next);
-      })
-      .catch(() => {
-        if (active) setState(null);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      .then(next => { if (active) setState(next); })
+      .catch(() => { if (active) setState(null); })
+      .finally(() => { if (active) setLoading(false); });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   if (loading) {
     return <main className="creative-agent-page"><div className="creative-loading"><LoaderCircle className="spin" size={22} /></div></main>;
   }
 
-  if (state?.locked && state.artifact) {
-    return <LockedScriptRecordingMode state={state} />;
-  }
-
+  if (state?.locked && state.artifact) return <LockedScriptRecordingMode state={state} />;
   return <CreativeAgentPage stageKey="SCRIPT" />;
 }

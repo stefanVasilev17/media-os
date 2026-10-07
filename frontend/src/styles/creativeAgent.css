@@ -828,3 +828,75 @@
     min-height: 44px !important;
   }
 }
+
+
+/* Voice Production / Visual Sync */
+.voice-production-progress {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:1px;
+  overflow:hidden;
+  padding:0;
+}
+.voice-stage-metric { padding:14px 16px; background:rgba(8,14,23,.72); }
+.voice-stage-metric span,.voice-stage-metric strong { display:block; }
+.voice-stage-metric span { color:#6f829a; font-size:8px; font-weight:900; letter-spacing:.11em; }
+.voice-stage-metric strong { margin-top:5px; color:#e4edf8; font-size:15px; }
+.script-shot-strip button.sync-ready { border-color:rgba(85,217,255,.28); }
+.script-shot-strip button.remotion-synced { color:#a6f2cd; border-color:rgba(86,220,155,.38); background:rgba(86,220,155,.09); }
+
+.voice-status-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+.voice-status-row > div {
+  min-height:30px; padding:0 9px; display:flex; align-items:center; gap:6px;
+  border-radius:999px; border:1px solid rgba(255,255,255,.07);
+  color:#6f7f94; background:rgba(255,255,255,.025); font-size:9px; font-weight:850;
+}
+.voice-status-row > div.done { color:#80e1b2; border-color:rgba(86,220,155,.2); background:rgba(86,220,155,.055); }
+
+.voice-primary-action { max-width:460px; margin:32px auto 0; }
+.voice-primary-action .script-recorded-button { width:100%; }
+
+.voice-alignment-panel,.voice-sync-output {
+  max-width:900px; margin:32px auto 0; padding:18px; border-radius:16px;
+  border:1px solid rgba(85,217,255,.13); background:rgba(5,11,19,.56);
+}
+.voice-panel-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.voice-panel-heading span,.voice-panel-heading strong,.voice-panel-heading small { display:block; }
+.voice-panel-heading span { color:#6fdfff; font-size:8px; font-weight:900; letter-spacing:.12em; }
+.voice-panel-heading strong { margin-top:4px; color:#e8f1fb; font-size:14px; }
+.voice-panel-heading small { max-width:380px; color:#71839a; font-size:9px; line-height:1.5; text-align:right; }
+
+.voice-alignment-panel textarea {
+  width:100%; min-height:210px; margin-top:14px; resize:vertical;
+  border:1px solid rgba(255,255,255,.08); border-radius:12px; outline:none;
+  padding:13px; color:#dce9f7; background:#050a11;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:11px; line-height:1.6;
+}
+.voice-alignment-panel textarea:focus { border-color:rgba(85,217,255,.28); }
+
+.voice-alignment-actions,.voice-file-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+.voice-alignment-actions button,.voice-file-actions button,.voice-remotion-button {
+  min-height:40px; padding:0 12px; display:flex; align-items:center; justify-content:center; gap:7px;
+  border-radius:10px; font-size:10px; font-weight:850;
+}
+.voice-secondary-button,.voice-file-actions button { border:1px solid rgba(255,255,255,.08); color:#aebbd0; background:#0b121c; }
+.voice-primary-button { border:1px solid rgba(85,217,255,.25); color:white; background:linear-gradient(135deg,#315fe7,#31abc7); }
+
+.voice-sync-output { border-color:rgba(86,220,155,.16); }
+.voice-sync-output pre {
+  max-height:430px; margin:14px 0 0; overflow:auto; white-space:pre-wrap;
+  border-radius:12px; padding:14px; color:#afbed0; background:#050a10;
+  border:1px solid rgba(255,255,255,.06);
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; line-height:1.58;
+}
+.voice-remotion-button { width:100%; margin-top:12px; border:1px solid rgba(85,217,255,.23); color:#e9f8ff; background:rgba(85,217,255,.075); }
+.voice-remotion-button.done { color:#bff3d9; border-color:rgba(86,220,155,.24); background:rgba(86,220,155,.07); }
+.compact-nav { grid-template-columns:150px 1fr 150px; max-width:900px; }
+
+@media (max-width:720px) {
+  .voice-production-progress { grid-template-columns:1fr 1fr; }
+  .voice-panel-heading { display:block; }
+  .voice-panel-heading small { margin-top:7px; text-align:left; }
+  .voice-alignment-actions,.voice-file-actions { flex-wrap:wrap; }
+  .voice-alignment-actions button,.voice-file-actions button { flex:1 1 180px; }
+}
