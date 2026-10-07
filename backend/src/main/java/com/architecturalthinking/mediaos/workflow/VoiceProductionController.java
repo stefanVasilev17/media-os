@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,12 +18,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,10 +40,16 @@ public class VoiceProductionController {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final ElevenLabsForcedAlignmentService elevenLabsAlignment;
 
-    public VoiceProductionController(JdbcClient jdbc, ObjectMapper objectMapper) {
+    public VoiceProductionController(
+            JdbcClient jdbc,
+            ObjectMapper objectMapper,
+            ElevenLabsForcedAlignmentService elevenLabsAlignment
+    ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.elevenLabsAlignment = elevenLabsAlignment;
     }
 
     public record ShotRequest(
@@ -177,6 +187,115 @@ public class VoiceProductionController {
         return shotState(request.scriptRevision(), key);
     }
 
+    @GetMapping("/alignment-provider")
+    public Map<String, Object> alignmentProvider() {
+        return Map.of(
+                "provider", "ELEVENLABS_FORCED_ALIGNMENT",
+                "configured", elevenLabsAlignment.configured(),
+                "mode", "AUDIO_PLUS_LOCKED_TRANSCRIPT",
+                "semanticAnchorCatalog", "EP001_V1"
+        );
+    }
+
+    @PostMapping(value = "/shots/{shotKey}/auto-align", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, Object> autoAlign(
+            @PathVariable String shotKey,
+            @RequestParam int scriptRevision,
+            @RequestPart("file") MultipartFile file
+    ) {
+        assertLockedScriptRevision(scriptRevision);
+        String key = normalizeShotKey(shotKey);
+        Map<String, Object> shot = shotState(scriptRevision, key);
+
+        if (!Boolean.TRUE.equals(shot.get("recorded"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Mark the shot Recorded before uploading audio for alignment.");
+        }
+        if (!elevenLabsAlignment.configured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "ELEVENLABS_API_KEY is not configured in MediaOS.");
+        }
+
+        Map<String, Object> providerResponse;
+        try {
+            providerResponse = elevenLabsAlignment.align(file, String.valueOf(shot.get("narration")));
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, ex.getMessage(), ex);
+        }
+
+        List<Map<String, Object>> words = wordRows(providerResponse.get("words"));
+        double durationSeconds = words.stream()
+                .map(row -> numberValue(row.get("end")))
+                .filter(value -> value >= 0)
+                .max(Double::compareTo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ElevenLabs returned no usable word timings."));
+
+        LinkedHashMap<String, String> anchorPhrases = Ep001SemanticAnchorCatalog.anchorsFor(key);
+        LinkedHashMap<String, Double> anchors = resolveSemanticAnchors(words, anchorPhrases);
+        LinkedHashMap<String, String> unresolved = new LinkedHashMap<>();
+        anchorPhrases.forEach((anchor, phrase) -> {
+            if (!anchors.containsKey(anchor)) unresolved.put(anchor, phrase);
+        });
+
+        if (anchors.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Alignment succeeded, but no EP001 semantic anchors could be matched.");
+        }
+
+        String audioFileName = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
+                ? key.replace(' ', '_') + "_audio"
+                : file.getOriginalFilename();
+
+        AlignmentRequest generated = new AlignmentRequest(scriptRevision, durationSeconds, audioFileName, anchors);
+        Map<String, Object> spec = new LinkedHashMap<>(buildVisualSyncSpec(shot, generated, anchors));
+        spec.put("alignmentProvider", "ELEVENLABS_FORCED_ALIGNMENT");
+        spec.put("anchorPhrases", anchorPhrases);
+        spec.put("unresolvedAnchors", unresolved);
+        spec.put("alignmentLoss", providerResponse.get("loss"));
+
+        String markdown = buildVisualSyncMarkdown(shot, generated, anchors);
+        if (!unresolved.isEmpty()) {
+            StringBuilder warnings = new StringBuilder(markdown);
+            warnings.append("\n## Alignment warnings\n\n");
+            warnings.append("The following semantic anchors were not matched automatically and should be reviewed before Remotion sync:\n\n");
+            unresolved.forEach((anchor, phrase) ->
+                    warnings.append("- ").append(anchor).append(" → expected phrase: ").append(phrase).append("\n")
+            );
+            markdown = warnings.toString();
+        }
+
+        Map<String, Object> alignmentPayload = new LinkedHashMap<>();
+        alignmentPayload.put("provider", "ELEVENLABS_FORCED_ALIGNMENT");
+        alignmentPayload.put("durationSeconds", round3(durationSeconds));
+        alignmentPayload.put("loss", providerResponse.get("loss"));
+        alignmentPayload.put("words", words);
+        alignmentPayload.put("anchors", anchors);
+        alignmentPayload.put("anchorPhrases", anchorPhrases);
+        alignmentPayload.put("unresolvedAnchors", unresolved);
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set audio_file_name=:audioFileName,
+                    alignment=cast(:alignment as jsonb),
+                    aligned_at=now(),
+                    visual_sync_spec=cast(:spec as jsonb),
+                    visual_sync_markdown=:markdown,
+                    visual_sync_ready_at=now(),
+                    remotion_synced_at=null,
+                    updated_at=now()
+                where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
+                """)
+                .param("audioFileName", audioFileName)
+                .param("alignment", writeJson(alignmentPayload))
+                .param("spec", writeJson(spec))
+                .param("markdown", markdown)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("scriptRevision", scriptRevision)
+                .param("shotKey", key)
+                .update();
+
+        return shotState(scriptRevision, key);
+    }
+
     @PostMapping("/shots/{shotKey}/remotion-synced")
     public Map<String, Object> remotionSynced(@PathVariable String shotKey, @Valid @RequestBody RemotionSyncRequest request) {
         assertLockedScriptRevision(request.scriptRevision());
@@ -300,6 +419,76 @@ public class VoiceProductionController {
         md.append("## Remotion handoff rule\n\n");
         md.append("Bind visual events to the semantic anchors above. Camera preparation may begin shortly before an anchor, but the visible semantic activation should land on the spoken concept. Preserve already LOCKED visual decisions unless explicitly unlocked.\n");
         return md.toString();
+    }
+
+    private record TimedToken(String token, double start, double end) {}
+
+    private List<Map<String, Object>> wordRows(Object value) {
+        if (!(value instanceof List<?> list)) return List.of();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                map.forEach((key, val) -> row.put(String.valueOf(key), val));
+                result.add(row);
+            }
+        }
+        return result;
+    }
+
+    private LinkedHashMap<String, Double> resolveSemanticAnchors(
+            List<Map<String, Object>> words,
+            LinkedHashMap<String, String> anchorPhrases
+    ) {
+        List<TimedToken> tokens = new ArrayList<>();
+        for (Map<String, Object> word : words) {
+            String text = String.valueOf(word.getOrDefault("text", ""));
+            double start = numberValue(word.get("start"));
+            double end = numberValue(word.get("end"));
+            for (String part : normalizedTokens(text)) {
+                tokens.add(new TimedToken(part, start, end));
+            }
+        }
+
+        LinkedHashMap<String, Double> resolved = new LinkedHashMap<>();
+        for (Map.Entry<String, String> definition : anchorPhrases.entrySet()) {
+            List<String> phrase = normalizedTokens(definition.getValue());
+            if (phrase.isEmpty()) continue;
+
+            for (int startIndex = 0; startIndex <= tokens.size() - phrase.size(); startIndex++) {
+                boolean matches = true;
+                for (int offset = 0; offset < phrase.size(); offset++) {
+                    if (!tokens.get(startIndex + offset).token().equals(phrase.get(offset))) {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches) {
+                    resolved.put(definition.getKey(), round3(tokens.get(startIndex).start()));
+                    break;
+                }
+            }
+        }
+        return resolved;
+    }
+
+    private List<String> normalizedTokens(String value) {
+        if (value == null || value.isBlank()) return List.of();
+        String normalized = value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
+        if (normalized.isBlank()) return List.of();
+        return List.of(normalized.split("\\s+"));
+    }
+
+    private double numberValue(Object value) {
+        if (value instanceof Number number) return number.doubleValue();
+        if (value == null) return -1.0d;
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return -1.0d;
+        }
     }
 
     private void assertLockedScriptRevision(int requestedRevision) {
