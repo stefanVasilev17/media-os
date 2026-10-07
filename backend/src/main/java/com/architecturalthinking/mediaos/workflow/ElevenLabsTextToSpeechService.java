@@ -128,8 +128,9 @@ public class ElevenLabsTextToSpeechService {
                     requestId == null ? "" : requestId,
                     alignment
             );
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            throw ex;
         } catch (Exception ex) {
-            if (ex instanceof IllegalStateException || ex instanceof IllegalArgumentException) throw ex;
             throw new IllegalStateException("ElevenLabs TTS generation failed: " + ex.getMessage(), ex);
         }
     }
