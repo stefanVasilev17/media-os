@@ -900,3 +900,45 @@
   .voice-alignment-actions,.voice-file-actions { flex-wrap:wrap; }
   .voice-alignment-actions button,.voice-file-actions button { flex:1 1 180px; }
 }
+
+
+.voice-audio-drop {
+  margin-top:16px;
+  min-height:92px;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border:1px dashed rgba(85,217,255,.22);
+  border-radius:14px;
+  color:#7edfff;
+  background:rgba(85,217,255,.035);
+  cursor:pointer;
+}
+.voice-audio-drop:hover { border-color:rgba(85,217,255,.42); background:rgba(85,217,255,.055); }
+.voice-audio-drop.has-file { border-style:solid; border-color:rgba(86,220,155,.28); color:#80e1b2; background:rgba(86,220,155,.045); }
+.voice-audio-drop input { display:none; }
+.voice-audio-drop div { min-width:0; }
+.voice-audio-drop strong,.voice-audio-drop span { display:block; }
+.voice-audio-drop strong { color:#edf5ff; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.voice-audio-drop span { margin-top:5px; color:#73869e; font-size:9px; line-height:1.4; }
+
+.voice-manual-fallback {
+  margin-top:14px;
+  border-top:1px solid rgba(255,255,255,.055);
+  padding-top:12px;
+}
+.voice-manual-fallback summary {
+  color:#71839a;
+  font-size:9px;
+  font-weight:800;
+  cursor:pointer;
+}
+.voice-manual-fallback p {
+  margin:8px 0 0;
+  color:#617288;
+  font-size:9px;
+  line-height:1.5;
+}
+.voice-manual-fallback textarea { min-height:160px; }
+.voice-manual-fallback button { margin-top:8px; min-height:36px; padding:0 10px; border-radius:9px; }

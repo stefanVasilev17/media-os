@@ -10,14 +10,18 @@ import {
   LockKeyhole,
   Mic2,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  UploadCloud
 } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   alignVoiceShot,
+  autoAlignVoiceShot,
+  loadAlignmentProvider,
   loadVoiceShots,
   markVoiceShotRemotionSynced,
   saveVoiceShot,
+  type AlignmentProviderStatus,
   type VoiceShotState
 } from '../api/voiceApi';
 import { CreativeAgentPage } from './CreativeAgentPage';
@@ -107,6 +111,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [alignmentText, setAlignmentText] = useState(alignmentTemplate('SHOT 01'));
+  const [provider, setProvider] = useState<AlignmentProviderStatus | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   async function refreshWorkflow() {
     setLoadingWorkflow(true);
@@ -126,6 +132,9 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
 
   useEffect(() => {
     void refreshWorkflow();
+    loadAlignmentProvider()
+      .then(setProvider)
+      .catch(() => setProvider(null));
   }, [state.revision]);
 
   const currentShot = shots[currentIndex];
@@ -136,6 +145,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
   const remotionCount = shots.filter(shot => workflow[shot.key]?.remotionSynced).length;
 
   useEffect(() => {
+    setAudioFile(null);
     if (!currentShot) return;
     const existing = workflow[currentShot.key];
     const alignment = existing?.alignment as { durationSeconds?: number; anchors?: Record<string, number> } | undefined;
@@ -175,6 +185,21 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not update recording state.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runAutoAlignment() {
+    if (!currentShot || !audioFile || busy) return;
+    setBusy(true);
+    setError('');
+
+    try {
+      const row = await autoAlignVoiceShot(currentShot.key, state.revision, audioFile);
+      setWorkflow(current => ({ ...current, [currentShot.key]: row }));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Automatic ElevenLabs alignment failed.');
     } finally {
       setBusy(false);
     }
@@ -329,19 +354,51 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
                 <div className="voice-panel-heading">
                   <div>
                     <span>STEP 2</span>
-                    <strong>Alignment → Visual Sync Spec</strong>
+                    <strong>Audio → ElevenLabs Alignment → Visual Sync Spec</strong>
                   </div>
-                  <small>Paste semantic anchors now. ElevenLabs alignment will automate this later.</small>
+                  <small>
+                    {provider?.configured
+                      ? 'ElevenLabs Forced Alignment is connected. Upload the final audio for this shot.'
+                      : 'ElevenLabs is not configured yet. Add ELEVENLABS_API_KEY to MediaOS to enable automatic alignment.'}
+                  </small>
                 </div>
-                <textarea value={alignmentText} onChange={event => setAlignmentText(event.target.value)} spellCheck={false} />
+
+                <label className={'voice-audio-drop ' + (audioFile ? 'has-file' : '')}>
+                  <input
+                    type="file"
+                    accept="audio/*,.wav,.mp3,.m4a,.aac,.flac,.ogg"
+                    onChange={event => setAudioFile(event.target.files?.[0] || null)}
+                  />
+                  <UploadCloud size={22} />
+                  <div>
+                    <strong>{audioFile ? audioFile.name : 'Choose final shot audio'}</strong>
+                    <span>{audioFile ? Math.max(1, Math.round(audioFile.size / 1024)) + ' KB selected' : 'WAV, MP3, M4A, FLAC and other major audio formats'}</span>
+                  </div>
+                </label>
+
                 <div className="voice-alignment-actions">
                   <button type="button" className="voice-secondary-button" disabled={busy} onClick={() => void persistRecorded(false)}>
                     <RotateCcw size={15} /> Re-record
                   </button>
-                  <button type="button" className="voice-primary-button" disabled={busy} onClick={() => void createAlignment()}>
-                    <Sparkles size={15} /> Generate Visual Sync Spec
+                  <button
+                    type="button"
+                    className="voice-primary-button"
+                    disabled={busy || !audioFile || !provider?.configured}
+                    onClick={() => void runAutoAlignment()}
+                  >
+                    {busy ? <LoaderCircle className="spin" size={15} /> : <Sparkles size={15} />}
+                    Upload Audio & Align
                   </button>
                 </div>
+
+                <details className="voice-manual-fallback">
+                  <summary>Manual alignment fallback</summary>
+                  <p>Use this only if the ElevenLabs provider is unavailable or an anchor needs manual correction.</p>
+                  <textarea value={alignmentText} onChange={event => setAlignmentText(event.target.value)} spellCheck={false} />
+                  <button type="button" className="voice-secondary-button" disabled={busy} onClick={() => void createAlignment()}>
+                    Generate from manual anchors
+                  </button>
+                </details>
               </section>
 
               {currentState?.visualSyncReady && (

@@ -83,3 +83,24 @@ export function markVoiceShotRemotionSynced(shotKey: string, scriptRevision: num
     body: JSON.stringify({ scriptRevision, synced })
   });
 }
+
+
+export type AlignmentProviderStatus = {
+  provider: string;
+  configured: boolean;
+  mode: string;
+  semanticAnchorCatalog: string;
+};
+
+export function loadAlignmentProvider() {
+  return request<AlignmentProviderStatus>('/api/v1/voice/alignment-provider');
+}
+
+export function autoAlignVoiceShot(shotKey: string, scriptRevision: number, file: File) {
+  const body = new FormData();
+  body.append('file', file);
+  return request<VoiceShotState>(
+    '/api/v1/voice/shots/' + encodeURIComponent(shotKey) + '/auto-align?scriptRevision=' + scriptRevision,
+    { method: 'POST', body }
+  );
+}
