@@ -9,7 +9,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,15 +43,18 @@ public class VoiceProductionController {
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final ElevenLabsForcedAlignmentService elevenLabsAlignment;
+    private final ElevenLabsTextToSpeechService elevenLabsTts;
 
     public VoiceProductionController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
-            ElevenLabsForcedAlignmentService elevenLabsAlignment
+            ElevenLabsForcedAlignmentService elevenLabsAlignment,
+            ElevenLabsTextToSpeechService elevenLabsTts
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.elevenLabsAlignment = elevenLabsAlignment;
+        this.elevenLabsTts = elevenLabsTts;
     }
 
     public record ShotRequest(
@@ -69,6 +74,14 @@ public class VoiceProductionController {
             @NotNull Map<String, Double> anchors
     ) {}
 
+    public record GenerateVoiceRequest(
+            @Positive int scriptRevision,
+            String previousText,
+            String nextText
+    ) {}
+
+    public record ApproveVoiceRequest(@Positive int scriptRevision) {}
+
     public record RemotionSyncRequest(@Positive int scriptRevision, boolean synced) {}
 
     @GetMapping("/shots")
@@ -78,7 +91,10 @@ public class VoiceProductionController {
                 select shot_key, shot_title, start_second, end_second, narration, voice_direction,
                        recorded_at, audio_file_name, alignment::text, aligned_at,
                        visual_sync_spec::text, visual_sync_markdown, visual_sync_ready_at,
-                       remotion_synced_at, updated_at
+                       remotion_synced_at, generated_audio is not null as voice_generated,
+                       generated_audio_content_type, generated_audio_file_name,
+                       generated_alignment::text, generated_voice_id, generated_model_id,
+                       generation_revision, voice_generated_at, voice_approved_at, updated_at
                 from voice_shot_workflow
                 where episode_id=:episodeId and script_revision=:scriptRevision
                 order by start_second, shot_key
@@ -177,6 +193,214 @@ public class VoiceProductionController {
                 """)
                 .param("audioFileName", request.audioFileName().trim())
                 .param("alignment", writeJson(Map.of("durationSeconds", request.durationSeconds(), "anchors", anchors)))
+                .param("spec", writeJson(spec))
+                .param("markdown", markdown)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("scriptRevision", request.scriptRevision())
+                .param("shotKey", key)
+                .update();
+
+        return shotState(request.scriptRevision(), key);
+    }
+
+    @GetMapping("/tts-provider")
+    public Map<String, Object> ttsProvider() {
+        return Map.of(
+                "provider", "ELEVENLABS_TTS_WITH_TIMESTAMPS",
+                "apiConfigured", elevenLabsTts.apiConfigured(),
+                "voiceConfigured", !elevenLabsTts.voiceId().isBlank(),
+                "configured", elevenLabsTts.configured(),
+                "voiceId", elevenLabsTts.voiceId(),
+                "modelId", elevenLabsTts.modelId(),
+                "outputFormat", elevenLabsTts.outputFormat()
+        );
+    }
+
+    @PostMapping("/shots/{shotKey}/generate-voice")
+    public Map<String, Object> generateVoice(
+            @PathVariable String shotKey,
+            @Valid @RequestBody GenerateVoiceRequest request
+    ) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String key = normalizeShotKey(shotKey);
+        Map<String, Object> shot = shotState(request.scriptRevision(), key);
+
+        if (!elevenLabsTts.configured()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "ElevenLabs TTS needs ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID."
+            );
+        }
+
+        ElevenLabsTextToSpeechService.GenerationResult generated;
+        try {
+            generated = elevenLabsTts.generate(
+                    key,
+                    String.valueOf(shot.get("narration")),
+                    request.previousText(),
+                    request.nextText()
+            );
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        } catch (IllegalStateException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, ex.getMessage(), ex);
+        }
+
+        Map<String, Object> generatedAlignment = new LinkedHashMap<>(generated.alignmentResponse());
+        generatedAlignment.put("provider", "ELEVENLABS_TTS_WITH_TIMESTAMPS");
+        generatedAlignment.put("requestId", generated.requestId());
+        generatedAlignment.put("outputFormat", generated.outputFormat());
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set generated_audio=:audio,
+                    generated_audio_content_type=:contentType,
+                    generated_audio_file_name=:fileName,
+                    generated_alignment=cast(:generatedAlignment as jsonb),
+                    generated_voice_id=:voiceId,
+                    generated_model_id=:modelId,
+                    generation_revision=generation_revision + 1,
+                    voice_generated_at=now(),
+                    voice_approved_at=null,
+                    recorded_at=null,
+                    audio_file_name=null,
+                    alignment=null,
+                    aligned_at=null,
+                    visual_sync_spec=null,
+                    visual_sync_markdown=null,
+                    visual_sync_ready_at=null,
+                    remotion_synced_at=null,
+                    updated_at=now()
+                where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
+                """)
+                .param("audio", generated.audio())
+                .param("contentType", generated.contentType())
+                .param("fileName", generated.fileName())
+                .param("generatedAlignment", writeJson(generatedAlignment))
+                .param("voiceId", generated.voiceId())
+                .param("modelId", generated.modelId())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("scriptRevision", request.scriptRevision())
+                .param("shotKey", key)
+                .update();
+
+        return shotState(request.scriptRevision(), key);
+    }
+
+    @GetMapping("/shots/{shotKey}/generated-audio")
+    public ResponseEntity<byte[]> generatedAudio(
+            @PathVariable String shotKey,
+            @RequestParam int scriptRevision
+    ) {
+        assertLockedScriptRevision(scriptRevision);
+        String key = normalizeShotKey(shotKey);
+
+        return jdbc.sql("""
+                select generated_audio, generated_audio_content_type, generated_audio_file_name
+                from voice_shot_workflow
+                where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("scriptRevision", scriptRevision)
+                .param("shotKey", key)
+                .query((rs, rowNum) -> {
+                    byte[] audio = rs.getBytes("generated_audio");
+                    if (audio == null || audio.length == 0) {
+                        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Generated voice audio not found.");
+                    }
+                    String contentType = rs.getString("generated_audio_content_type");
+                    String fileName = rs.getString("generated_audio_file_name");
+                    MediaType mediaType;
+                    try {
+                        mediaType = MediaType.parseMediaType(contentType == null ? "audio/mpeg" : contentType);
+                    } catch (Exception ignored) {
+                        mediaType = MediaType.APPLICATION_OCTET_STREAM;
+                    }
+                    return ResponseEntity.ok()
+                            .contentType(mediaType)
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + (fileName == null ? "voice.mp3" : fileName) + "\"")
+                            .body(audio);
+                })
+                .single();
+    }
+
+    @PostMapping("/shots/{shotKey}/approve-generated-voice")
+    public Map<String, Object> approveGeneratedVoice(
+            @PathVariable String shotKey,
+            @Valid @RequestBody ApproveVoiceRequest request
+    ) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String key = normalizeShotKey(shotKey);
+        Map<String, Object> shot = shotState(request.scriptRevision(), key);
+        Map<String, Object> generatedAlignment = asMap(shot.get("generatedAlignment"));
+
+        if (!Boolean.TRUE.equals(shot.get("voiceGenerated")) || generatedAlignment.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Generate voice audio before approving it.");
+        }
+
+        List<Map<String, Object>> words = wordRowsFromTtsAlignment(generatedAlignment);
+        double durationSeconds = words.stream()
+                .map(row -> numberValue(row.get("end")))
+                .filter(value -> value >= 0)
+                .max(Double::compareTo)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Generated TTS timing data is incomplete."));
+
+        LinkedHashMap<String, String> anchorPhrases = Ep001SemanticAnchorCatalog.anchorsFor(key);
+        LinkedHashMap<String, Double> anchors = resolveSemanticAnchors(words, anchorPhrases);
+        LinkedHashMap<String, String> unresolved = new LinkedHashMap<>();
+        anchorPhrases.forEach((anchor, phrase) -> {
+            if (!anchors.containsKey(anchor)) unresolved.put(anchor, phrase);
+        });
+
+        if (anchors.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Generated speech has timing data, but no semantic anchors could be matched.");
+        }
+
+        String audioFileName = String.valueOf(shot.getOrDefault("generatedAudioFileName", key.replace(' ', '_') + "_voice.mp3"));
+        AlignmentRequest generated = new AlignmentRequest(request.scriptRevision(), durationSeconds, audioFileName, anchors);
+        Map<String, Object> spec = new LinkedHashMap<>(buildVisualSyncSpec(shot, generated, anchors));
+        spec.put("alignmentProvider", "ELEVENLABS_TTS_WITH_TIMESTAMPS");
+        spec.put("anchorPhrases", anchorPhrases);
+        spec.put("unresolvedAnchors", unresolved);
+        spec.put("generationRevision", shot.get("generationRevision"));
+        spec.put("voiceId", shot.get("generatedVoiceId"));
+        spec.put("modelId", shot.get("generatedModelId"));
+
+        String markdown = buildVisualSyncMarkdown(shot, generated, anchors);
+        if (!unresolved.isEmpty()) {
+            StringBuilder warnings = new StringBuilder(markdown);
+            warnings.append("\n## Alignment warnings\n\n");
+            warnings.append("These semantic anchors were not matched automatically and should be reviewed before Remotion sync:\n\n");
+            unresolved.forEach((anchor, phrase) ->
+                    warnings.append("- ").append(anchor).append(" → expected phrase: ").append(phrase).append("\n")
+            );
+            markdown = warnings.toString();
+        }
+
+        Map<String, Object> alignmentPayload = new LinkedHashMap<>();
+        alignmentPayload.put("provider", "ELEVENLABS_TTS_WITH_TIMESTAMPS");
+        alignmentPayload.put("durationSeconds", round3(durationSeconds));
+        alignmentPayload.put("words", words);
+        alignmentPayload.put("anchors", anchors);
+        alignmentPayload.put("anchorPhrases", anchorPhrases);
+        alignmentPayload.put("unresolvedAnchors", unresolved);
+        alignmentPayload.put("generationRevision", shot.get("generationRevision"));
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set voice_approved_at=now(),
+                    recorded_at=now(),
+                    audio_file_name=generated_audio_file_name,
+                    alignment=cast(:alignment as jsonb),
+                    aligned_at=now(),
+                    visual_sync_spec=cast(:spec as jsonb),
+                    visual_sync_markdown=:markdown,
+                    visual_sync_ready_at=now(),
+                    remotion_synced_at=null,
+                    updated_at=now()
+                where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
+                """)
+                .param("alignment", writeJson(alignmentPayload))
                 .param("spec", writeJson(spec))
                 .param("markdown", markdown)
                 .param("episodeId", ProductionOverviewService.EPISODE_ID)
@@ -325,7 +549,10 @@ public class VoiceProductionController {
                 select shot_key, shot_title, start_second, end_second, narration, voice_direction,
                        recorded_at, audio_file_name, alignment::text, aligned_at,
                        visual_sync_spec::text, visual_sync_markdown, visual_sync_ready_at,
-                       remotion_synced_at, updated_at
+                       remotion_synced_at, generated_audio is not null as voice_generated,
+                       generated_audio_content_type, generated_audio_file_name,
+                       generated_alignment::text, generated_voice_id, generated_model_id,
+                       generation_revision, voice_generated_at, voice_approved_at, updated_at
                 from voice_shot_workflow
                 where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
                 """)
@@ -361,6 +588,18 @@ public class VoiceProductionController {
         row.put("visualSyncReadyAt", visualSyncReadyAt);
         row.put("remotionSynced", remotionSyncedAt != null);
         row.put("remotionSyncedAt", remotionSyncedAt);
+        OffsetDateTime voiceGeneratedAt = rs.getObject("voice_generated_at", OffsetDateTime.class);
+        OffsetDateTime voiceApprovedAt = rs.getObject("voice_approved_at", OffsetDateTime.class);
+        row.put("voiceGenerated", rs.getBoolean("voice_generated"));
+        row.put("voiceGeneratedAt", voiceGeneratedAt);
+        row.put("voiceApproved", voiceApprovedAt != null);
+        row.put("voiceApprovedAt", voiceApprovedAt);
+        row.put("generatedAudioContentType", rs.getString("generated_audio_content_type"));
+        row.put("generatedAudioFileName", rs.getString("generated_audio_file_name"));
+        row.put("generatedAlignment", readMap(rs.getString("generated_alignment")));
+        row.put("generatedVoiceId", rs.getString("generated_voice_id"));
+        row.put("generatedModelId", rs.getString("generated_model_id"));
+        row.put("generationRevision", rs.getInt("generation_revision"));
         row.put("updatedAt", rs.getObject("updated_at", OffsetDateTime.class));
         return row;
     }
@@ -419,6 +658,56 @@ public class VoiceProductionController {
         md.append("## Remotion handoff rule\n\n");
         md.append("Bind visual events to the semantic anchors above. Camera preparation may begin shortly before an anchor, but the visible semantic activation should land on the spoken concept. Preserve already LOCKED visual decisions unless explicitly unlocked.\n");
         return md.toString();
+    }
+
+    private Map<String, Object> asMap(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            map.forEach((key, val) -> result.put(String.valueOf(key), val));
+            return result;
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private List<Map<String, Object>> wordRowsFromTtsAlignment(Map<String, Object> generatedAlignment) {
+        Map<String, Object> normalized = asMap(generatedAlignment.get("normalized_alignment"));
+        Map<String, Object> alignment = normalized.isEmpty()
+                ? asMap(generatedAlignment.get("alignment"))
+                : normalized;
+
+        List<?> characters = alignment.get("characters") instanceof List<?> list ? list : List.of();
+        List<?> starts = alignment.get("character_start_times_seconds") instanceof List<?> list ? list : List.of();
+        List<?> ends = alignment.get("character_end_times_seconds") instanceof List<?> list ? list : List.of();
+        int count = Math.min(characters.size(), Math.min(starts.size(), ends.size()));
+        if (count == 0) return List.of();
+
+        List<Map<String, Object>> words = new ArrayList<>();
+        StringBuilder token = new StringBuilder();
+        double tokenStart = -1.0d;
+        double tokenEnd = -1.0d;
+
+        for (int i = 0; i < count; i++) {
+            String character = String.valueOf(characters.get(i));
+            double start = numberValue(starts.get(i));
+            double end = numberValue(ends.get(i));
+            boolean wordChar = character.matches("[A-Za-z0-9']");
+
+            if (wordChar) {
+                if (token.length() == 0) tokenStart = start;
+                token.append(character);
+                tokenEnd = end;
+            } else if (token.length() > 0) {
+                words.add(Map.of("text", token.toString(), "start", tokenStart, "end", tokenEnd));
+                token.setLength(0);
+                tokenStart = -1.0d;
+                tokenEnd = -1.0d;
+            }
+        }
+
+        if (token.length() > 0) {
+            words.add(Map.of("text", token.toString(), "start", tokenStart, "end", tokenEnd));
+        }
+        return words;
     }
 
     private record TimedToken(String token, double start, double end) {}
