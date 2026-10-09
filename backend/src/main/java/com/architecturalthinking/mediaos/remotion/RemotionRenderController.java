@@ -28,7 +28,6 @@ public class RemotionRenderController {
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String ENGINE_VERSION = "AT_REMOTION_V0_1";
-    private static final String TOKEN_PREFIX = "REMOTION_GPU_TOKEN:";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.of(
             "EP001-VerticalSlice",
@@ -43,16 +42,13 @@ public class RemotionRenderController {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
-    private final RemotionRunpodRenderDispatcher dispatcher;
 
     public RemotionRenderController(
             JdbcClient jdbc,
-            ObjectMapper objectMapper,
-            RemotionRunpodRenderDispatcher dispatcher
+            ObjectMapper objectMapper
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
-        this.dispatcher = dispatcher;
     }
 
     public record RenderRequest(String profile, Map<String, Object> inputProps) {}
@@ -81,24 +77,18 @@ public class RemotionRenderController {
             if (!"FAILED".equals(row.status())) {
                 return response(row);
             }
-            requireProviderConfigured();
-            String callbackToken = newCallbackToken();
             jdbc.sql("""
                     update remotion_render
-                    set status='QUEUED', progress=0, worker_id=:workerId, error=null,
+                    set status='QUEUED', progress=0, worker_id=null, error=null,
                         claimed_at=null, started_at=null, finished_at=null, updated_at=now()
                     where id=:id
                     """)
-                    .param("workerId", TOKEN_PREFIX + callbackToken)
                     .param("id", row.id())
                     .update();
-            dispatchOrFail(row.id(), callbackToken);
             return response(findById(row.id()).orElseThrow());
         }
 
-        requireProviderConfigured();
         UUID renderId = UUID.randomUUID();
-        String callbackToken = newCallbackToken();
         String inputPropsJson = writeJson(inputProps);
 
         jdbc.sql("""
@@ -110,7 +100,7 @@ public class RemotionRenderController {
                 values (
                     :id, :projectId, :episodeId, :compositionId, :renderKey, :engineVersion,
                     cast(:inputProps as jsonb), :renderHash, :profile, 'QUEUED', :width, :height, :fps,
-                    :durationInFrames, 0, :workerId
+                    :durationInFrames, 0, null
                 )
                 """)
                 .param("id", renderId)
@@ -126,10 +116,7 @@ public class RemotionRenderController {
                 .param("height", output.height())
                 .param("fps", composition.fps())
                 .param("durationInFrames", durationInFrames)
-                .param("workerId", TOKEN_PREFIX + callbackToken)
                 .update();
-
-        dispatchOrFail(renderId, callbackToken);
         return response(findById(renderId).orElseThrow());
     }
 
@@ -173,8 +160,9 @@ public class RemotionRenderController {
     @GetMapping("/provider-status")
     public Map<String, Object> providerStatus() {
         return Map.of(
-                "configured", dispatcher.isConfigured(),
-                "engine", "REMOTION_RUNPOD_V0_1",
+                "configured", true,
+                "provider", "CPU_QUEUE",
+                "engine", "REMOTION_CPU_V1",
                 "engineVersion", ENGINE_VERSION,
                 "compositions", COMPOSITIONS.keySet(),
                 "profiles", Arrays.asList("FAST_PREVIEW", "REVIEW")
@@ -257,40 +245,6 @@ public class RemotionRenderController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dynamic Remotion duration is invalid.");
         }
         return value;
-    }
-
-    private void requireProviderConfigured() {
-        if (!dispatcher.isConfigured()) {
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Remotion cloud rendering is not configured yet."
-            );
-        }
-    }
-
-    private String newCallbackToken() {
-        return UUID.randomUUID().toString().replace("-", "")
-                + UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private void dispatchOrFail(UUID renderId, String callbackToken) {
-        try {
-            dispatcher.dispatch(renderId, callbackToken);
-        } catch (RuntimeException ex) {
-            String message = ex.getMessage() == null || ex.getMessage().isBlank()
-                    ? "Could not dispatch the Remotion render job."
-                    : ex.getMessage();
-            if (message.length() > 1800) message = message.substring(0, 1800);
-            jdbc.sql("""
-                    update remotion_render
-                    set status='FAILED', progress=0, error=:error, finished_at=now(), updated_at=now()
-                    where id=:id
-                    """)
-                    .param("error", message)
-                    .param("id", renderId)
-                    .update();
-            throw ex;
-        }
     }
 
     private String renderHash(
