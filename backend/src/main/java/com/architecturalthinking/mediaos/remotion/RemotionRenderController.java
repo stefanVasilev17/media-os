@@ -32,14 +32,13 @@ public class RemotionRenderController {
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.of(
             "EP001-VerticalSlice",
-            new CompositionProfile(
-                    "EP001_VERTICAL_SLICE",
-                    EP001_ID,
-                    1920,
-                    1080,
-                    30,
-                    1920
-            )
+            new CompositionProfile("EP001_VERTICAL_SLICE", EP001_ID, 1920, 1080, 30, 1920, false),
+            "EP001-Shot01-VoiceSynced",
+            new CompositionProfile("EP001_SHOT01_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 930, true),
+            "EP001-Shot02-VoiceSynced",
+            new CompositionProfile("EP001_SHOT02_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2220, true),
+            "EP001-Voice-CurrentPreview",
+            new CompositionProfile("EP001_VOICE_CURRENT_PREVIEW", EP001_ID, 1920, 1080, 30, 1, true)
     );
 
     private final JdbcClient jdbc;
@@ -72,6 +71,8 @@ public class RemotionRenderController {
         Map<String, Object> inputProps = request == null || request.inputProps() == null
                 ? Map.of()
                 : new LinkedHashMap<>(request.inputProps());
+        int durationInFrames = resolveDurationInFrames(composition, inputProps);
+        inputProps.put("durationInFrames", durationInFrames);
         String renderHash = renderHash(compositionId, profileName, output, inputProps);
 
         Optional<RenderRow> existing = findByHash(renderHash);
@@ -124,7 +125,7 @@ public class RemotionRenderController {
                 .param("width", output.width())
                 .param("height", output.height())
                 .param("fps", composition.fps())
-                .param("durationInFrames", composition.durationInFrames())
+                .param("durationInFrames", durationInFrames)
                 .param("workerId", TOKEN_PREFIX + callbackToken)
                 .update();
 
@@ -237,6 +238,25 @@ public class RemotionRenderController {
                     "Remotion Engine v0.1 supports FAST_PREVIEW and REVIEW profiles only."
             );
         };
+    }
+
+    private int resolveDurationInFrames(CompositionProfile composition, Map<String, Object> inputProps) {
+        if (!composition.dynamicDuration()) return composition.durationInFrames();
+        Object raw = inputProps.get("durationInFrames");
+        int value;
+        if (raw instanceof Number number) {
+            value = number.intValue();
+        } else {
+            try {
+                value = Integer.parseInt(String.valueOf(raw));
+            } catch (Exception ignored) {
+                value = composition.durationInFrames();
+            }
+        }
+        if (value <= 0 || value > 60 * 60 * composition.fps()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dynamic Remotion duration is invalid.");
+        }
+        return value;
     }
 
     private void requireProviderConfigured() {
@@ -401,7 +421,8 @@ public class RemotionRenderController {
             int width,
             int height,
             int fps,
-            int durationInFrames
+            int durationInFrames,
+            boolean dynamicDuration
     ) {}
 
     private record OutputProfile(int width, int height) {}
