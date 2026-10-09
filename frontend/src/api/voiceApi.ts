@@ -27,6 +27,10 @@ export type VoiceShotState = {
   generatedVoiceId?: string | null;
   generatedModelId?: string | null;
   generationRevision: number;
+  remotionRenderId?: string | null;
+  renderedGenerationRevision?: number | null;
+  rendered: boolean;
+  renderedAt?: string | null;
   updatedAt?: string | null;
 };
 
@@ -157,4 +161,43 @@ export function generatedVoiceAudioUrl(shotKey: string, scriptRevision: number, 
   return '/api/v1/voice/shots/' + encodeURIComponent(shotKey)
     + '/generated-audio?scriptRevision=' + scriptRevision
     + '&v=' + generationRevision;
+}
+
+
+export type RemotionRenderState = {
+  renderId: string;
+  compositionId: string;
+  renderKey: string;
+  engineVersion: string;
+  profile: string;
+  status: 'EMPTY' | 'QUEUED' | 'RENDERING' | 'READY' | 'FAILED';
+  width: number;
+  height: number;
+  fps: number;
+  durationInFrames: number;
+  durationMs: number;
+  progress: number;
+  sizeBytes?: number | null;
+  error?: string | null;
+  videoUrl?: string;
+};
+
+export function startRemotionRender(
+  compositionId: string,
+  inputProps: Record<string, unknown>,
+  profile: 'FAST_PREVIEW' | 'REVIEW' = 'REVIEW'
+) {
+  return request<RemotionRenderState>('/api/v1/remotion/renders/compositions/' + encodeURIComponent(compositionId), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ profile, inputProps })
+  });
+}
+
+export function loadRemotionRender(renderId: string) {
+  return request<RemotionRenderState>('/api/v1/remotion/renders/' + encodeURIComponent(renderId));
+}
+
+export function remotionRenderVideoUrl(renderId: string) {
+  return '/api/v1/remotion/renders/' + encodeURIComponent(renderId) + '/video';
 }

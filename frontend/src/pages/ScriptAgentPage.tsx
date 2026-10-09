@@ -21,11 +21,15 @@ import {
   generateVoiceShot,
   generatedVoiceAudioUrl,
   loadAlignmentProvider,
+  loadRemotionRender,
   loadTtsProvider,
   loadVoiceShots,
   markVoiceShotRemotionSynced,
+  remotionRenderVideoUrl,
   saveVoiceShot,
+  startRemotionRender,
   type AlignmentProviderStatus,
+  type RemotionRenderState,
   type TtsProviderStatus,
   type VoiceShotState
 } from '../api/voiceApi';
@@ -119,6 +123,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
   const [provider, setProvider] = useState<AlignmentProviderStatus | null>(null);
   const [ttsProvider, setTtsProvider] = useState<TtsProviderStatus | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [shotRender, setShotRender] = useState<RemotionRenderState | null>(null);
+  const [episodePreview, setEpisodePreview] = useState<RemotionRenderState | null>(null);
 
   async function refreshWorkflow() {
     setLoadingWorkflow(true);
@@ -156,6 +162,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
 
   useEffect(() => {
     setAudioFile(null);
+    setShotRender(null);
     if (!currentShot) return;
     const existing = workflow[currentShot.key];
     const alignment = existing?.alignment as { durationSeconds?: number; anchors?: Record<string, number> } | undefined;
@@ -169,6 +176,41 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
       setAlignmentText(alignmentTemplate(currentShot.key));
     }
   }, [currentIndex, currentShot?.key, workflow]);
+
+  useEffect(() => {
+    const renderId = currentState?.remotionRenderId;
+    if (!renderId) {
+      setShotRender(null);
+      return;
+    }
+    let active = true;
+    let timer = 0;
+
+    const poll = async () => {
+      try {
+        const result = await loadRemotionRender(renderId);
+        if (!active) return;
+        setShotRender(result);
+        if (result.status === 'QUEUED' || result.status === 'RENDERING') {
+          timer = window.setTimeout(() => void poll(), 2000);
+        }
+      } catch {
+        if (active) setShotRender(null);
+      }
+    };
+
+    void poll();
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [currentState?.remotionRenderId]);
+
+  const compositionForShot = (shotKey: string) => {
+    if (shotKey === 'SHOT 01') return 'EP001-Shot01-VoiceSynced';
+    if (shotKey === 'SHOT 02') return 'EP001-Shot02-VoiceSynced';
+    return '';
+  };
 
   async function ensureShotRow(recorded = false) {
     if (!currentShot) throw new Error('No current shot.');
@@ -296,6 +338,114 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
     }
   }
 
+  async function renderSyncedShot() {
+    if (!currentShot || !currentState?.voiceApproved || !currentState?.voiceGenerated || busy) return;
+    const compositionId = compositionForShot(currentShot.key);
+    if (!compositionId) {
+      setError('This shot does not have a LOCKED Remotion composition yet.');
+      return;
+    }
+
+    const alignment = currentState.alignment as {
+      durationSeconds?: number;
+      anchors?: Record<string, number>;
+    };
+    const durationSeconds = Number(alignment?.durationSeconds || 0);
+    if (!durationSeconds || !alignment?.anchors) {
+      setError('Approved voice alignment is missing duration or semantic anchors.');
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+    try {
+      const audioUrl = window.location.origin + generatedVoiceAudioUrl(
+        currentShot.key,
+        state.revision,
+        currentState.generationRevision
+      );
+      const result = await startRemotionRender(compositionId, {
+        shotKey: currentShot.key,
+        scriptRevision: state.revision,
+        generationRevision: currentState.generationRevision,
+        audioUrl,
+        durationInFrames: Math.max(1, Math.ceil(durationSeconds * 30)),
+        anchors: alignment.anchors
+      }, 'REVIEW');
+      setShotRender(result);
+
+      const poll = async (renderId: string) => {
+        for (let attempt = 0; attempt < 180; attempt++) {
+          await new Promise(resolve => window.setTimeout(resolve, 2000));
+          const next = await loadRemotionRender(renderId);
+          setShotRender(next);
+          if (next.status === 'READY' || next.status === 'FAILED') {
+            await refreshWorkflow();
+            return;
+          }
+        }
+      };
+      void poll(result.renderId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not start synced Remotion render.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function buildEpisodePreview() {
+    if (busy) return;
+    const readyShots = shots
+      .map(shot => ({ shot, state: workflow[shot.key] }))
+      .filter(item => item.state?.rendered && item.state?.remotionRenderId)
+      .sort((a, b) => a.shot.startSecond - b.shot.startSecond);
+
+    const contiguous: typeof readyShots = [];
+    for (const item of readyShots) {
+      if (item.shot.key !== 'SHOT ' + String(contiguous.length + 1).padStart(2, '0')) break;
+      contiguous.push(item);
+    }
+
+    if (contiguous.length === 0) {
+      setError('Render Shot 01 before building the current episode preview.');
+      return;
+    }
+
+    setBusy(true);
+    setError('');
+    try {
+      const segments = contiguous.map(item => {
+        const alignment = item.state.alignment as { durationSeconds?: number };
+        const durationInFrames = Math.max(1, Math.ceil(Number(alignment?.durationSeconds || 0) * 30));
+        return {
+          shotKey: item.shot.key,
+          durationInFrames,
+          videoUrl: window.location.origin + remotionRenderVideoUrl(item.state.remotionRenderId!)
+        };
+      });
+      const durationInFrames = segments.reduce((total, segment) => total + segment.durationInFrames, 0);
+      const result = await startRemotionRender('EP001-Voice-CurrentPreview', {
+        durationInFrames,
+        segments
+      }, 'REVIEW');
+      setEpisodePreview(result);
+
+      const poll = async (renderId: string) => {
+        for (let attempt = 0; attempt < 240; attempt++) {
+          await new Promise(resolve => window.setTimeout(resolve, 2000));
+          const next = await loadRemotionRender(renderId);
+          setEpisodePreview(next);
+          if (next.status === 'READY' || next.status === 'FAILED') return;
+        }
+      };
+      void poll(result.renderId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not build current episode preview.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function toggleRemotionSynced() {
     if (!currentShot || busy) return;
     setBusy(true);
@@ -345,6 +495,26 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
         <div className="voice-stage-metric"><span>VISUAL SYNC READY</span><strong>{syncReadyCount}/{shots.length}</strong></div>
         <div className="voice-stage-metric"><span>REMOTION SYNCED</span><strong>{remotionCount}/{shots.length}</strong></div>
       </section>
+
+      <section className="voice-episode-preview-bar">
+        <div>
+          <span>CURRENT EPISODE PREVIEW</span>
+          <strong>Assemble every contiguous rendered shot from Shot 01 onward.</strong>
+        </div>
+        <button type="button" disabled={busy || !workflow['SHOT 01']?.rendered} onClick={() => void buildEpisodePreview()}>
+          <Sparkles size={15} /> Update Episode Preview
+        </button>
+      </section>
+
+      {episodePreview?.status === 'READY' && (
+        <section className="voice-episode-preview-player">
+          <video controls preload="metadata" src={remotionRenderVideoUrl(episodePreview.renderId)} />
+          <div>
+            <span>READY</span>
+            <strong>{Math.round(episodePreview.durationMs / 1000)}s · {episodePreview.width}×{episodePreview.height}</strong>
+          </div>
+        </section>
+      )}
 
       <nav className="script-shot-strip" aria-label="Episode recording shots">
         {shots.map((shot, index) => {
@@ -536,15 +706,49 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
                     </button>
                   </div>
                   <pre>{currentState.visualSyncMarkdown}</pre>
-                  <button
-                    type="button"
-                    className={'voice-remotion-button ' + (currentState.remotionSynced ? 'done' : '')}
-                    disabled={busy}
-                    onClick={() => void toggleRemotionSynced()}
-                  >
-                    <Sparkles size={16} />
-                    {currentState.remotionSynced ? 'Remotion Synced ✓' : 'Mark Remotion Synced'}
-                  </button>
+                  {compositionForShot(currentShot.key) && currentState.voiceGenerated && currentState.voiceApproved ? (
+                    <div className="voice-render-panel">
+                      <button
+                        type="button"
+                        className={'voice-remotion-button ' + (currentState.rendered ? 'done' : '')}
+                        disabled={busy || shotRender?.status === 'QUEUED' || shotRender?.status === 'RENDERING'}
+                        onClick={() => void renderSyncedShot()}
+                      >
+                        <Sparkles size={16} />
+                        {shotRender?.status === 'QUEUED' || shotRender?.status === 'RENDERING'
+                          ? 'Rendering ' + Math.max(0, shotRender.progress || 0) + '%'
+                          : currentState.rendered
+                            ? 'Re-render Synced Shot'
+                            : 'Render Synced Shot'}
+                      </button>
+
+                      {(shotRender?.status === 'READY' || currentState.rendered) && currentState.remotionRenderId && (
+                        <div className="voice-shot-render-result">
+                          <video controls preload="metadata" src={remotionRenderVideoUrl(currentState.remotionRenderId)} />
+                          <div>
+                            <span>VIDEO + APPROVED VOICE</span>
+                            <strong>{currentShot.key} · Generation {currentState.renderedGenerationRevision}</strong>
+                          </div>
+                        </div>
+                      )}
+
+                      {shotRender?.status === 'FAILED' && (
+                        <div className="creative-error">{shotRender.error || 'Remotion render failed.'}</div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={'voice-remotion-button ' + (currentState.remotionSynced ? 'done' : '')}
+                      disabled={busy}
+                      onClick={() => void toggleRemotionSynced()}
+                    >
+                      <Sparkles size={16} />
+                      {compositionForShot(currentShot.key)
+                        ? (currentState.remotionSynced ? 'Remotion Synced ✓' : 'Mark Remotion Synced')
+                        : 'Remotion composition pending'}
+                    </button>
+                  )}
                 </section>
               )}
             </>
