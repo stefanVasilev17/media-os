@@ -9,7 +9,7 @@ const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
 const WORKER_ID = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1';
+const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_1';
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
