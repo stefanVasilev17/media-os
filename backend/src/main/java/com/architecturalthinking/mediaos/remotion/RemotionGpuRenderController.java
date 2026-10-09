@@ -136,6 +136,7 @@ public class RemotionGpuRenderController {
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Remotion render is not in RUNNING state.");
         }
+        linkVoiceWorkflowRender(renderId);
         log.info("Remotion render completed renderId={} sizeBytes={}", renderId, video.length);
         return Map.of("renderId", renderId, "status", "READY", "sizeBytes", video.length);
     }
@@ -165,6 +166,52 @@ public class RemotionGpuRenderController {
                 .update();
         log.error("Remotion render failed renderId={} error={}", renderId, error);
         return Map.of("renderId", renderId, "status", "FAILED", "error", error);
+    }
+
+    private void linkVoiceWorkflowRender(UUID renderId) {
+        jdbc.sql("""
+                select input_props::text
+                from remotion_render
+                where id=:id and project_id=:projectId
+                """)
+                .param("id", renderId)
+                .param("projectId", PROJECT_ID)
+                .query(String.class)
+                .optional()
+                .ifPresent(json -> {
+                    Map<String, Object> props = readMap(json);
+                    String shotKey = String.valueOf(props.getOrDefault("shotKey", "")).trim();
+                    int scriptRevision = intValue(props.get("scriptRevision"), 0);
+                    int generationRevision = intValue(props.get("generationRevision"), 0);
+                    if (shotKey.isBlank() || scriptRevision <= 0) return;
+
+                    jdbc.sql("""
+                            update voice_shot_workflow
+                            set remotion_render_id=:renderId,
+                                rendered_generation_revision=:generationRevision,
+                                rendered_at=now(),
+                                remotion_synced_at=coalesce(remotion_synced_at, now()),
+                                updated_at=now()
+                            where episode_id=:episodeId
+                              and script_revision=:scriptRevision
+                              and shot_key=:shotKey
+                            """)
+                            .param("renderId", renderId)
+                            .param("generationRevision", generationRevision)
+                            .param("episodeId", UUID.fromString("22222222-2222-2222-2222-222222222222"))
+                            .param("scriptRevision", scriptRevision)
+                            .param("shotKey", shotKey)
+                            .update();
+                });
+    }
+
+    private int intValue(Object value, int fallback) {
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (Exception ignored) {
+            return fallback;
+        }
     }
 
     private void requireToken(UUID renderId, String token) {

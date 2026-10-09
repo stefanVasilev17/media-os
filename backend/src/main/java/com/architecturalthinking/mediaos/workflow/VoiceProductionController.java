@@ -94,7 +94,8 @@ public class VoiceProductionController {
                        remotion_synced_at, generated_audio is not null as voice_generated,
                        generated_audio_content_type, generated_audio_file_name,
                        generated_alignment::text, generated_voice_id, generated_model_id,
-                       generation_revision, voice_generated_at, voice_approved_at, updated_at
+                       generation_revision, voice_generated_at, voice_approved_at,
+                       remotion_render_id, rendered_generation_revision, rendered_at, updated_at
                 from voice_shot_workflow
                 where episode_id=:episodeId and script_revision=:scriptRevision
                 order by start_second, shot_key
@@ -188,6 +189,9 @@ public class VoiceProductionController {
                     visual_sync_markdown=:markdown,
                     visual_sync_ready_at=now(),
                     remotion_synced_at=null,
+                    remotion_render_id=null,
+                    rendered_generation_revision=null,
+                    rendered_at=null,
                     updated_at=now()
                 where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
                 """)
@@ -552,7 +556,8 @@ public class VoiceProductionController {
                        remotion_synced_at, generated_audio is not null as voice_generated,
                        generated_audio_content_type, generated_audio_file_name,
                        generated_alignment::text, generated_voice_id, generated_model_id,
-                       generation_revision, voice_generated_at, voice_approved_at, updated_at
+                       generation_revision, voice_generated_at, voice_approved_at,
+                       remotion_render_id, rendered_generation_revision, rendered_at, updated_at
                 from voice_shot_workflow
                 where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
                 """)
@@ -600,6 +605,12 @@ public class VoiceProductionController {
         row.put("generatedVoiceId", rs.getString("generated_voice_id"));
         row.put("generatedModelId", rs.getString("generated_model_id"));
         row.put("generationRevision", rs.getInt("generation_revision"));
+        UUID remotionRenderId = rs.getObject("remotion_render_id", UUID.class);
+        OffsetDateTime renderedAt = rs.getObject("rendered_at", OffsetDateTime.class);
+        row.put("remotionRenderId", remotionRenderId);
+        row.put("renderedGenerationRevision", rs.getObject("rendered_generation_revision"));
+        row.put("rendered", remotionRenderId != null && renderedAt != null);
+        row.put("renderedAt", renderedAt);
         row.put("updatedAt", rs.getObject("updated_at", OffsetDateTime.class));
         return row;
     }
