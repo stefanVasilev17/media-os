@@ -45,9 +45,15 @@ def ensure_gpu_available():
     return value
 
 
-def get_work(backend_url: str, render_id: str, callback_token: str):
+def api_prefix(render_mode: str) -> str:
+    if render_mode == "remotion":
+        return "/api/v1/remotion/gpu-renders"
+    return "/api/v1/spline/gpu-renders"
+
+
+def get_work(backend_url: str, render_id: str, callback_token: str, render_mode: str):
     response = requests.get(
-        f"{backend_url}/api/v1/spline/gpu-renders/{render_id}/work",
+        f"{backend_url}{api_prefix(render_mode)}/{render_id}/work",
         headers=worker_headers(callback_token),
         timeout=REQUEST_TIMEOUT,
     )
@@ -55,32 +61,44 @@ def get_work(backend_url: str, render_id: str, callback_token: str):
     return response.json()
 
 
-def mark_started(backend_url: str, render_id: str, callback_token: str):
+def mark_started(backend_url: str, render_id: str, callback_token: str, render_mode: str):
     response = requests.post(
-        f"{backend_url}/api/v1/spline/gpu-renders/{render_id}/start",
+        f"{backend_url}{api_prefix(render_mode)}/{render_id}/start",
         headers=worker_headers(callback_token),
         timeout=REQUEST_TIMEOUT,
     )
     response.raise_for_status()
 
 
-def mark_failed(backend_url: str, render_id: str, callback_token: str, message: str):
+def mark_failed(
+    backend_url: str,
+    render_id: str,
+    callback_token: str,
+    message: str,
+    render_mode: str,
+):
     try:
         response = requests.post(
-            f"{backend_url}/api/v1/spline/gpu-renders/{render_id}/fail",
+            f"{backend_url}{api_prefix(render_mode)}/{render_id}/fail",
             headers={**worker_headers(callback_token), "Content-Type": "application/json"},
             data=json.dumps({"error": message[:1800]}),
             timeout=REQUEST_TIMEOUT,
         )
         response.raise_for_status()
     except Exception as callback_error:
-        print(f"Could not report GPU render failure: {callback_error}", flush=True)
+        print(f"Could not report {render_mode} render failure: {callback_error}", flush=True)
 
 
-def upload_video(backend_url: str, render_id: str, callback_token: str, video_path: Path):
+def upload_video(
+    backend_url: str,
+    render_id: str,
+    callback_token: str,
+    video_path: Path,
+    render_mode: str,
+):
     with video_path.open("rb") as video:
         response = requests.put(
-            f"{backend_url}/api/v1/spline/gpu-renders/{render_id}/complete",
+            f"{backend_url}{api_prefix(render_mode)}/{render_id}/complete",
             headers={**worker_headers(callback_token), "Content-Type": "video/mp4"},
             data=video,
             timeout=max(REQUEST_TIMEOUT, 180),
@@ -89,18 +107,18 @@ def upload_video(backend_url: str, render_id: str, callback_token: str, video_pa
     return response.json()
 
 
-def compact_process_error(process: subprocess.CompletedProcess) -> str:
+def compact_process_error(process: subprocess.CompletedProcess, label: str) -> str:
     stderr = (process.stderr or "").strip()
     stdout = (process.stdout or "").strip()
     details = []
     if stderr:
         details.append(f"stderr: {stderr[-1450:]}")
     if stdout:
-        details.append(f"stdout: {stdout[-250:]}")
+        details.append(f"stdout: {stdout[-500:]}")
     suffix = " | ".join(details)
     if suffix:
-        return f"GPU browser render failed with exit code {process.returncode}. {suffix}"
-    return f"GPU browser render failed with exit code {process.returncode}. No renderer output was captured."
+        return f"{label} failed with exit code {process.returncode}. {suffix}"
+    return f"{label} failed with exit code {process.returncode}. No renderer output was captured."
 
 
 def run_gpu_preflight():
@@ -132,7 +150,7 @@ def run_gpu_preflight():
     raise RuntimeError("GPU preflight completed without a result marker.")
 
 
-def render_video(backend_url: str, work: dict, output_path: Path):
+def render_spline_video(backend_url: str, work: dict, output_path: Path):
     payload = dict(work)
     payload["backendUrl"] = backend_url
     payload["outputPath"] = str(output_path)
@@ -148,9 +166,34 @@ def render_video(backend_url: str, work: dict, output_path: Path):
     if process.stderr:
         print(process.stderr, flush=True)
     if process.returncode != 0:
-        raise RuntimeError(compact_process_error(process))
+        raise RuntimeError(compact_process_error(process, "GPU browser render"))
     if not output_path.exists() or output_path.stat().st_size < 50_000:
-        raise RuntimeError("GPU renderer did not produce a valid MP4 file.")
+        raise RuntimeError("GPU browser renderer did not produce a valid MP4 file.")
+
+
+def render_remotion_video(work: dict, output_path: Path):
+    payload = dict(work)
+    payload["outputPath"] = str(output_path)
+    duration_seconds = max(
+        1,
+        int(work.get("durationInFrames", 1)) / max(1, int(work.get("fps", 30))),
+    )
+    timeout_seconds = max(300, min(840, int(duration_seconds * 8 + 180)))
+
+    process = subprocess.run(
+        ["node", "/app/render-remotion.mjs", json.dumps(payload, separators=(",", ":"))],
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if process.stdout:
+        print(process.stdout, flush=True)
+    if process.stderr:
+        print(process.stderr, flush=True)
+    if process.returncode != 0:
+        raise RuntimeError(compact_process_error(process, "Remotion render"))
+    if not output_path.exists() or output_path.stat().st_size < 50_000:
+        raise RuntimeError("Remotion renderer did not produce a valid MP4 file.")
 
 
 def handler(job):
@@ -166,6 +209,7 @@ def handler(job):
             raise RuntimeError(f"{error} | GPU target: {gpu}") from error
         return {**result, "gpu": gpu}
 
+    render_mode = "remotion" if mode == "remotion" else "spline"
     render_id = str(input_data.get("renderId") or "").strip()
     callback_token = str(input_data.get("callbackToken") or "").strip()
     backend_url = str(input_data.get("backendUrl") or "").strip().rstrip("/")
@@ -179,24 +223,35 @@ def handler(job):
 
     try:
         gpu = ensure_gpu_available()
-        print(f"GPU ready: {gpu}", flush=True)
-        work = get_work(backend_url, render_id, callback_token)
-        mark_started(backend_url, render_id, callback_token)
+        print(f"GPU ready renderMode={render_mode}: {gpu}", flush=True)
+        work = get_work(backend_url, render_id, callback_token, render_mode)
+        mark_started(backend_url, render_id, callback_token, render_mode)
 
-        with tempfile.TemporaryDirectory(prefix=f"media-os-{render_id}-") as directory:
-            output_path = Path(directory) / "shot.mp4"
-            render_video(backend_url, work, output_path)
-            result = upload_video(backend_url, render_id, callback_token, output_path)
+        with tempfile.TemporaryDirectory(prefix=f"media-os-{render_mode}-{render_id}-") as directory:
+            output_path = Path(directory) / ("preview.mp4" if render_mode == "remotion" else "shot.mp4")
+            if render_mode == "remotion":
+                render_remotion_video(work, output_path)
+            else:
+                render_spline_video(backend_url, work, output_path)
+
+            result = upload_video(
+                backend_url,
+                render_id,
+                callback_token,
+                output_path,
+                render_mode,
+            )
             return {
                 "renderId": render_id,
+                "renderMode": render_mode,
                 "status": "READY",
                 "sizeBytes": output_path.stat().st_size,
                 "backend": result,
             }
     except Exception as error:
         message = str(error) or error.__class__.__name__
-        print(f"GPU render failed: {message}", flush=True)
-        mark_failed(backend_url, render_id, callback_token, message)
+        print(f"{render_mode} render failed: {message}", flush=True)
+        mark_failed(backend_url, render_id, callback_token, message, render_mode)
         raise
 
 
