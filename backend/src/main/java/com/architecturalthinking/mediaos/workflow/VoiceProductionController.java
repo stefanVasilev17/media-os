@@ -136,6 +136,9 @@ public class VoiceProductionController {
                     visual_sync_markdown=case when :recorded then voice_shot_workflow.visual_sync_markdown else null end,
                     visual_sync_ready_at=case when :recorded then voice_shot_workflow.visual_sync_ready_at else null end,
                     remotion_synced_at=case when :recorded then voice_shot_workflow.remotion_synced_at else null end,
+                    remotion_render_id=case when :recorded then voice_shot_workflow.remotion_render_id else null end,
+                    rendered_generation_revision=case when :recorded then voice_shot_workflow.rendered_generation_revision else null end,
+                    rendered_at=case when :recorded then voice_shot_workflow.rendered_at else null end,
                     updated_at=now()
                 """)
                 .param("id", UUID.randomUUID())
@@ -274,6 +277,9 @@ public class VoiceProductionController {
                     visual_sync_markdown=null,
                     visual_sync_ready_at=null,
                     remotion_synced_at=null,
+                    remotion_render_id=null,
+                    rendered_generation_revision=null,
+                    rendered_at=null,
                     updated_at=now()
                 where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
                 """)
@@ -294,7 +300,8 @@ public class VoiceProductionController {
     @GetMapping("/shots/{shotKey}/generated-audio")
     public ResponseEntity<byte[]> generatedAudio(
             @PathVariable String shotKey,
-            @RequestParam int scriptRevision
+            @RequestParam int scriptRevision,
+            @RequestHeader(value = HttpHeaders.RANGE, required = false) String range
     ) {
         assertLockedScriptRevision(scriptRevision);
         String key = normalizeShotKey(shotKey);
@@ -320,10 +327,25 @@ public class VoiceProductionController {
                     } catch (Exception ignored) {
                         mediaType = MediaType.APPLICATION_OCTET_STREAM;
                     }
-                    return ResponseEntity.ok()
-                            .contentType(mediaType)
-                            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + (fileName == null ? "voice.mp3" : fileName) + "\"")
-                            .body(audio);
+
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentType(mediaType);
+                    headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
+                    headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + (fileName == null ? "voice.mp3" : fileName) + "\"");
+                    headers.setCacheControl("private, max-age=31536000, immutable");
+
+                    if (range == null || !range.startsWith("bytes=")) {
+                        headers.setContentLength(audio.length);
+                        return new ResponseEntity<>(audio, headers, HttpStatus.OK);
+                    }
+
+                    long[] parsed = parseByteRange(range, audio.length);
+                    int start = (int) parsed[0];
+                    int end = (int) parsed[1];
+                    byte[] slice = java.util.Arrays.copyOfRange(audio, start, end + 1);
+                    headers.setContentLength(slice.length);
+                    headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + audio.length);
+                    return new ResponseEntity<>(slice, headers, HttpStatus.PARTIAL_CONTENT);
                 })
                 .single();
     }
@@ -817,6 +839,20 @@ public class VoiceProductionController {
                 .param("episodeId", ProductionOverviewService.EPISODE_ID)
                 .query(Integer.class)
                 .single();
+    }
+
+    private long[] parseByteRange(String range, int length) {
+        try {
+            String value = range.substring("bytes=".length()).split(",", 2)[0].trim();
+            String[] parts = value.split("-", 2);
+            long start = parts[0].isBlank() ? 0 : Long.parseLong(parts[0]);
+            long end = parts.length < 2 || parts[1].isBlank() ? length - 1L : Long.parseLong(parts[1]);
+            start = Math.max(0, Math.min(start, length - 1L));
+            end = Math.max(start, Math.min(end, length - 1L));
+            return new long[]{start, end};
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE, "Invalid audio range.");
+        }
     }
 
     private String normalizeShotKey(String value) {

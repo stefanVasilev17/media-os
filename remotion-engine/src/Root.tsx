@@ -13,7 +13,10 @@ import {FPS, VERTICAL_SLICE_FRAMES} from './episodes/ep001/vertical-slice/timeli
 
 export const Root: React.FC = () => {
   const input = getInputProps() as {durationInFrames?: number};
-  const dynamicDuration = Math.max(1, Math.round(Number(input?.durationInFrames || 1)));
+  const requestedDuration = Number(input?.durationInFrames);
+  const dynamicDuration = Number.isFinite(requestedDuration) && requestedDuration > 0
+    ? Math.round(requestedDuration)
+    : null;
 
   return (
     <>
@@ -94,7 +97,7 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot01-VoiceSynced"
         component={Shot01VoiceSynced}
-        durationInFrames={dynamicDuration || SHOT01_DURATION_FRAMES}
+        durationInFrames={dynamicDuration ?? SHOT01_DURATION_FRAMES}
         fps={SHOT01_FPS}
         width={1920}
         height={1080}
@@ -108,7 +111,7 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot02-VoiceSynced"
         component={Shot02VoiceSynced}
-        durationInFrames={dynamicDuration || SHOT02_DURATION_FRAMES}
+        durationInFrames={dynamicDuration ?? SHOT02_DURATION_FRAMES}
         fps={SHOT02_FPS}
         width={1920}
         height={1080}
@@ -122,7 +125,7 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Voice-CurrentPreview"
         component={CurrentEpisodePreview}
-        durationInFrames={dynamicDuration}
+        durationInFrames={dynamicDuration ?? 1}
         fps={30}
         width={1920}
         height={1080}

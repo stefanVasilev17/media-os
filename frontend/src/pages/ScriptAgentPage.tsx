@@ -380,7 +380,8 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
           const next = await loadRemotionRender(renderId);
           setShotRender(next);
           if (next.status === 'READY' || next.status === 'FAILED') {
-            await refreshWorkflow();
+            const rows = await loadVoiceShots(state.revision);
+            setWorkflow(Object.fromEntries(rows.map(row => [row.shotKey, row])));
             return;
           }
         }
