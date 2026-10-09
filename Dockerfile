@@ -11,6 +11,12 @@ COPY render-worker/package*.json ./
 RUN npm install --omit=dev
 COPY render-worker/ ./
 
+FROM node:22-alpine AS remotion-engine-build
+WORKDIR /remotion-engine
+COPY remotion-engine/package*.json ./
+RUN npm install --omit=dev
+COPY remotion-engine/ ./
+
 FROM maven:3.9-eclipse-temurin-21 AS backend-build
 WORKDIR /backend
 COPY backend/pom.xml ./
@@ -24,6 +30,7 @@ WORKDIR /app
 RUN apk add --no-cache nodejs chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium
 COPY --from=backend-build /backend/target/media-os-0.1.0-SNAPSHOT.jar app.jar
 COPY --from=render-worker-build /render-worker /app/render-worker
+COPY --from=remotion-engine-build /remotion-engine /app/remotion-engine
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/docker-entrypoint.sh /app/chromium-software-webgl.sh
