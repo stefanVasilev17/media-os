@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
