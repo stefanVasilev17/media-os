@@ -16,6 +16,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -42,13 +43,16 @@ public class RemotionRenderController {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final ProductionMemoryService productionMemory;
 
     public RemotionRenderController(
             JdbcClient jdbc,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ProductionMemoryService productionMemory
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.productionMemory = productionMemory;
     }
 
     public record RenderRequest(String profile, Map<String, Object> inputProps) {}
@@ -60,6 +64,10 @@ public class RemotionRenderController {
             @RequestBody(required = false) RenderRequest request
     ) {
         CompositionProfile composition = requireComposition(compositionId);
+        productionMemory.preflight(
+                "VISUAL",
+                "REMOTION_RENDER_" + compositionId.replaceAll("[^A-Za-z0-9]+", "_").toUpperCase(Locale.ROOT)
+        );
         String profileName = request == null || request.profile() == null || request.profile().isBlank()
                 ? "FAST_PREVIEW"
                 : request.profile().trim().toUpperCase();
