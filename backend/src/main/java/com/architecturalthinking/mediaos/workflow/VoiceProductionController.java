@@ -92,12 +92,22 @@ public class VoiceProductionController {
                 select shot_key, shot_title, start_second, end_second, narration, voice_direction,
                        recorded_at, audio_file_name, alignment::text, aligned_at,
                        visual_sync_spec::text, visual_sync_markdown, visual_sync_ready_at,
-                       remotion_synced_at, generated_audio is not null as voice_generated,
+                       remotion_synced_at,
+                       (
+                         generated_audio is not null
+                         or exists (
+                           select 1 from voice_clip_workflow c
+                           where c.episode_id=v.episode_id
+                             and c.script_revision=v.script_revision
+                             and c.shot_key=v.shot_key
+                             and c.generated_audio is not null
+                         )
+                       ) as voice_generated,
                        generated_audio_content_type, generated_audio_file_name,
                        generated_alignment::text, generated_voice_id, generated_model_id,
                        generation_revision, voice_generated_at, voice_approved_at,
                        remotion_render_id, rendered_generation_revision, rendered_at, updated_at
-                from voice_shot_workflow
+                from voice_shot_workflow v
                 where episode_id=:episodeId and script_revision=:scriptRevision
                 order by start_second, shot_key
                 """)
@@ -578,12 +588,22 @@ public class VoiceProductionController {
                 select shot_key, shot_title, start_second, end_second, narration, voice_direction,
                        recorded_at, audio_file_name, alignment::text, aligned_at,
                        visual_sync_spec::text, visual_sync_markdown, visual_sync_ready_at,
-                       remotion_synced_at, generated_audio is not null as voice_generated,
+                       remotion_synced_at,
+                       (
+                         generated_audio is not null
+                         or exists (
+                           select 1 from voice_clip_workflow c
+                           where c.episode_id=v.episode_id
+                             and c.script_revision=v.script_revision
+                             and c.shot_key=v.shot_key
+                             and c.generated_audio is not null
+                         )
+                       ) as voice_generated,
                        generated_audio_content_type, generated_audio_file_name,
                        generated_alignment::text, generated_voice_id, generated_model_id,
                        generation_revision, voice_generated_at, voice_approved_at,
                        remotion_render_id, rendered_generation_revision, rendered_at, updated_at
-                from voice_shot_workflow
+                from voice_shot_workflow v
                 where episode_id=:episodeId and script_revision=:scriptRevision and shot_key=:shotKey
                 """)
                 .param("episodeId", ProductionOverviewService.EPISODE_ID)
