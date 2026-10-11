@@ -141,7 +141,18 @@ public class ProductionFlowController {
         result.put("voice", voice);
         result.put("visualQaPassed", qaPassed);
         result.put("preview", preview);
-        result.put("memoryRuleCount", memory.rulesFor("ALL").size());
+        long memoryRuleCount = jdbc.sql("""
+                select count(*)
+                from production_memory_rule
+                where project_id=:projectId
+                  and active=true
+                  and (episode_id is null or episode_id=:episodeId)
+                """)
+                .param("projectId", ProductionOverviewService.PROJECT_ID)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .query(Long.class)
+                .single();
+        result.put("memoryRuleCount", memoryRuleCount);
         return result;
     }
 

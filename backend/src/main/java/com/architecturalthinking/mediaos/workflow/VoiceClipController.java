@@ -155,6 +155,24 @@ public class VoiceClipController {
                         .param("voiceDirection", safe(clip.voiceDirection()))
                         .update();
             }
+
+            Map<String, Long> clipProgress = jdbc.sql("""
+                    select count(*) total,
+                           count(*) filter (where voice_approved_at is not null) approved
+                    from voice_clip_workflow
+                    where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                    """)
+                    .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                    .param("revision", request.scriptRevision())
+                    .param("shotKey", shotKey)
+                    .query((rs, rowNum) -> Map.of(
+                            "total", rs.getLong("total"),
+                            "approved", rs.getLong("approved")
+                    ))
+                    .single();
+            if (clipProgress.get("total") > clipProgress.get("approved")) {
+                invalidateShotAggregate(request.scriptRevision(), shotKey);
+            }
         }
         return clips(request.scriptRevision());
     }
