@@ -1,0 +1,301 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
+import { loadTtsProvider, loadVoiceShots, type TtsProviderStatus, type VoiceShotState } from '../api/voiceApi';
+import {
+  approveVoiceClip,
+  generateVoiceClip,
+  loadVoiceClips,
+  syncVoiceClips,
+  voiceClipAudioUrl,
+  type VoiceClipState,
+  type VoiceSettings
+} from '../api/voiceClipApi';
+import { loadProductionMemory, type ProductionMemoryRule } from '../api/productionMemoryApi';
+import { buildVoiceShotBundles, clock } from '../lib/ep001Production';
+import '../styles/productionFlow.css';
+
+function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
+  return {
+    speed: provider?.voiceSettings.speed ?? 0.9,
+    stability: provider?.voiceSettings.stability ?? 0.5,
+    similarityBoost: provider?.voiceSettings.similarityBoost ?? 0.8,
+    style: provider?.voiceSettings.style ?? 0,
+    useSpeakerBoost: provider?.voiceSettings.useSpeakerBoost ?? true
+  };
+}
+
+export function VoiceAgentPage() {
+  const [script, setScript] = useState<CreativeStageState<ScriptArtifact> | null>(null);
+  const [clips, setClips] = useState<VoiceClipState[]>([]);
+  const [shotState, setShotState] = useState<Record<string, VoiceShotState>>({});
+  const [provider, setProvider] = useState<TtsProviderStatus | null>(null);
+  const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
+  const [shotIndex, setShotIndex] = useState(0);
+  const [clipIndex, setClipIndex] = useState(0);
+  const [settings, setSettings] = useState<VoiceSettings>(defaultSettings(null));
+  const [correction, setCorrection] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
+  const currentShot = bundles[shotIndex];
+  const shotClips = useMemo(
+    () => clips.filter(clip => clip.shotKey === currentShot?.key).sort((a, b) => a.sequence - b.sequence),
+    [clips, currentShot?.key]
+  );
+  const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
+  const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
+
+  async function refreshVoice(revision: number) {
+    const [nextClips, nextShots] = await Promise.all([loadVoiceClips(revision), loadVoiceShots(revision)]);
+    setClips(nextClips);
+    setShotState(Object.fromEntries(nextShots.map(row => [row.shotKey, row])));
+  }
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [scriptState, tts, rules] = await Promise.all([
+          loadCreativeStage<ScriptArtifact>('SCRIPT'),
+          loadTtsProvider(),
+          loadProductionMemory('VOICE')
+        ]);
+        if (!active) return;
+        if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Voice Agent.');
+        setScript(scriptState);
+        setProvider(tts);
+        setSettings(defaultSettings(tts));
+        setMemory(rules);
+        const bundles = buildVoiceShotBundles(scriptState.artifact);
+        const synced = await syncVoiceClips(scriptState.revision, bundles);
+        if (!active) return;
+        setClips(synced);
+        const shots = await loadVoiceShots(scriptState.revision);
+        if (!active) return;
+        setShotState(Object.fromEntries(shots.map(row => [row.shotKey, row])));
+        const firstPendingShot = bundles.findIndex(bundle => {
+          const related = synced.filter(clip => clip.shotKey === bundle.key);
+          return related.length === 0 || related.some(clip => !clip.approved);
+        });
+        setShotIndex(firstPendingShot === -1 ? 0 : firstPendingShot);
+      } catch (cause) {
+        if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Voice Agent.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    setClipIndex(0);
+    setCorrection('');
+  }, [shotIndex]);
+
+  async function generate() {
+    if (!script || !currentClip || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const globalIndex = flatClips.findIndex(item => item.clipKey === currentClip.clipKey);
+      const row = await generateVoiceClip(currentClip.clipKey, {
+        scriptRevision: script.revision,
+        previousText: globalIndex > 0 ? flatClips[globalIndex - 1].narration : undefined,
+        nextText: globalIndex >= 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
+        voiceSettings: settings,
+        correction: correction.trim() || undefined
+      });
+      setClips(current => current.map(item => item.clipKey === row.clipKey ? row : item));
+      setCorrection('');
+      await refreshVoice(script.revision);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Voice generation failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function approve() {
+    if (!script || !currentClip || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const row = await approveVoiceClip(currentClip.clipKey, script.revision);
+      setClips(current => current.map(item => item.clipKey === row.clipKey ? row : item));
+      await refreshVoice(script.revision);
+      const index = shotClips.findIndex(item => item.clipKey === currentClip.clipKey);
+      if (index >= 0 && index < shotClips.length - 1) setClipIndex(index + 1);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not approve voice clip.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
+  if (!script || !script.artifact || !currentShot) return <main className="production-loading"><strong>{error || 'Voice Agent unavailable.'}</strong></main>;
+
+  const approvedInShot = shotClips.filter(clip => clip.approved).length;
+  const shotReady = Boolean(shotState[currentShot.key]?.visualSyncReady);
+  const totalApproved = clips.filter(clip => clip.approved).length;
+
+  return (
+    <main className="production-page">
+      <header className="production-header">
+        <div>
+          <span>{script.episode.episodeNumber} · VOICE AGENT</span>
+          <h1>Voice Production</h1>
+          <p>{script.episode.title}</p>
+        </div>
+        <div className="memory-preflight-badge">{memory.length} MEMORY RULES LOADED</div>
+      </header>
+
+      {error && <div className="production-error">{error}</div>}
+
+      <section className="production-summary">
+        <div><span>PROVIDER</span><strong>{provider?.configured ? 'ElevenLabs PVC · connected' : 'Not configured'}</strong></div>
+        <div><span>APPROVED CLIPS</span><strong>{totalApproved}/{clips.length}</strong></div>
+        <div><span>BASELINE</span><strong>{provider ? provider.modelId + ' · speed ' + provider.voiceSettings.speed.toFixed(2) : '—'}</strong></div>
+      </section>
+
+      <nav className="production-shot-rail" aria-label="Voice shots">
+        {bundles.map((shot, index) => {
+          const related = clips.filter(clip => clip.shotKey === shot.key);
+          const approved = related.length > 0 && related.every(clip => clip.approved);
+          return (
+            <button
+              type="button"
+              key={shot.key}
+              className={(index === shotIndex ? 'active ' : '') + (approved ? 'done' : '')}
+              onClick={() => setShotIndex(index)}
+              title={shot.key + ' · ' + shot.title}
+            >
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              {approved && <Check size={11} />}
+            </button>
+          );
+        })}
+      </nav>
+
+      <section className="voice-workspace">
+        <div className="voice-shot-context">
+          <div className="production-section-head">
+            <div>
+              <span>{currentShot.key} · {clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}</span>
+              <h2>{currentShot.title}</h2>
+            </div>
+            <strong className={shotReady ? 'status-ready' : ''}>{shotReady ? 'SHOT VOICE READY' : approvedInShot + '/' + shotClips.length + ' clips approved'}</strong>
+          </div>
+
+          <div className="voice-clip-tabs">
+            {shotClips.map((clip, index) => (
+              <button
+                type="button"
+                key={clip.clipKey}
+                className={(index === clipIndex ? 'active ' : '') + (clip.approved ? 'done' : '')}
+                onClick={() => setClipIndex(index)}
+              >
+                Clip {index + 1} · {clock(clip.startSecond)}–{clock(clip.endSecond)}
+                {clip.approved && <Check size={12} />}
+              </button>
+            ))}
+          </div>
+
+          {currentClip && (
+            <article className="voice-clip-editor">
+              <div className="voice-clip-script">
+                <span>LOCKED NARRATION</span>
+                <p>{currentClip.narration}</p>
+              </div>
+              <div className="voice-clip-direction">
+                <span>VOICE / INTONATION</span>
+                <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
+              </div>
+
+              <details className="voice-advanced">
+                <summary><SlidersHorizontal size={14} /> Advanced voice controls</summary>
+                <div className="voice-slider-grid">
+                  {[
+                    ['Speed', 'speed', 0.7, 1.2, 0.01],
+                    ['Stability', 'stability', 0, 1, 0.01],
+                    ['Similarity', 'similarityBoost', 0, 1, 0.01],
+                    ['Style', 'style', 0, 1, 0.01]
+                  ].map(([label, key, min, max, step]) => (
+                    <label key={String(key)}>
+                      <span>{String(label)} <strong>{Number(settings[key as keyof VoiceSettings]).toFixed(2)}</strong></span>
+                      <input
+                        type="range"
+                        min={Number(min)}
+                        max={Number(max)}
+                        step={Number(step)}
+                        value={Number(settings[key as keyof VoiceSettings])}
+                        onChange={event => setSettings(current => ({ ...current, [String(key)]: Number(event.target.value) }))}
+                      />
+                    </label>
+                  ))}
+                  <label className="voice-toggle">
+                    <input
+                      type="checkbox"
+                      checked={settings.useSpeakerBoost}
+                      onChange={event => setSettings(current => ({ ...current, useSpeakerBoost: event.target.checked }))}
+                    />
+                    <span>Speaker boost</span>
+                  </label>
+                </div>
+              </details>
+
+              {currentClip.generated && (
+                <audio
+                  key={currentClip.clipKey + '-' + currentClip.generationRevision}
+                  controls
+                  preload="metadata"
+                  src={voiceClipAudioUrl(currentClip.clipKey, script.revision, currentClip.generationRevision)}
+                />
+              )}
+
+              <div className="voice-correction">
+                <label htmlFor="voice-correction">Correction to remember on regenerate <small>optional</small></label>
+                <textarea
+                  id="voice-correction"
+                  value={correction}
+                  onChange={event => setCorrection(event.target.value)}
+                  placeholder="Example: Leave a longer pause before the Aha line. This becomes a durable Voice memory rule."
+                  rows={3}
+                />
+              </div>
+
+              <div className="voice-primary-actions">
+                <button type="button" className="secondary" disabled={busy || !provider?.configured} onClick={() => void generate()}>
+                  {busy ? <LoaderCircle className="spin" size={15} /> : currentClip.generated ? <RotateCcw size={15} /> : <Mic2 size={15} />}
+                  {currentClip.generated ? 'Regenerate Clip' : 'Generate Clip'}
+                </button>
+                <button type="button" className="primary" disabled={busy || !currentClip.generated || currentClip.approved} onClick={() => void approve()}>
+                  <Check size={15} /> {currentClip.approved ? 'Approved' : 'Approve Clip'}
+                </button>
+              </div>
+            </article>
+          )}
+        </div>
+      </section>
+
+      <section className="production-next">
+        <div>
+          <span>VOICE → VISUAL</span>
+          <strong>{shotReady ? currentShot.key + ' has approved timing and semantic anchors.' : 'Approve every clip in the shot first.'}</strong>
+          <p>Visual Agent uses the aggregated clip timing; it never asks you to manually place timestamps.</p>
+        </div>
+        <button type="button" disabled={!shotState['SHOT 01']?.visualSyncReady} onClick={() => { window.location.hash = '#/agents/visual'; }}>
+          Continue to Visual Agent <ChevronRight size={16} />
+        </button>
+      </section>
+
+      <div className="production-prev-next">
+        <button type="button" disabled={shotIndex === 0} onClick={() => setShotIndex(index => Math.max(0, index - 1))}><ChevronLeft size={15} /> Previous Shot</button>
+        <button type="button" disabled={shotIndex === bundles.length - 1} onClick={() => setShotIndex(index => Math.min(bundles.length - 1, index + 1))}>Next Shot <ChevronRight size={15} /></button>
+      </div>
+    </main>
+  );
+}
