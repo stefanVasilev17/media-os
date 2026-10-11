@@ -5,9 +5,7 @@ import {
   Eye,
   LoaderCircle,
   Play,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles
+  ShieldCheck
 } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
@@ -23,6 +21,7 @@ import {
   loadVisualState,
   runVisualPostQa,
   runVisualPreflight,
+  type VisualPostQa,
   type VisualPreflight,
   type VisualState
 } from '../api/visualApi';
@@ -57,6 +56,7 @@ export function VisualAgentPage() {
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
+  const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
   const [activeRender, setActiveRender] = useState<RemotionRenderState | null>(null);
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
@@ -108,28 +108,10 @@ export function VisualAgentPage() {
 
   useEffect(() => {
     setPreflight(null);
+    setPostQa(null);
     setActiveRender(null);
     setCorrection('');
   }, [selectedIndex]);
-
-  async function runPreflight() {
-    if (!script || !currentShot || busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      if (correction.trim()) {
-        await rememberProductionCorrection('VISUAL', correction.trim(), 'Visual Agent · ' + currentShot.key);
-        setMemory(await loadProductionMemory('VISUAL'));
-        setCorrection('');
-      }
-      const result = await runVisualPreflight(script.revision, currentShot.key);
-      setPreflight(result);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Visual QA preflight failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function pollRender(renderId: string) {
     for (let attempt = 0; attempt < 240; attempt++) {
@@ -165,37 +147,47 @@ export function VisualAgentPage() {
     await refresh(revision);
   }
 
-  async function renderShot() {
-    if (!script || !currentShot || !preflight?.passed || busy) return;
+  async function produceShot() {
+    if (!script || !currentShot || busy) return;
     const voiceShot = voiceShots[currentShot.key];
-    const compositionId = preflight.compositionId;
-    if (!voiceShot || !compositionId) return;
-
-    const related = clips
-      .filter(clip => clip.shotKey === currentShot.key && clip.approved)
-      .sort((a, b) => a.sequence - b.sequence);
-    if (related.length === 0) {
-      setError('Approved voice clips are missing for this shot.');
-      return;
-    }
-
-    let cursor = 0;
-    const audioClips = related.map(clip => {
-      const fromFrame = Math.round(cursor * 30);
-      const durationInFrames = Math.max(1, Math.ceil(clip.durationSeconds * 30));
-      cursor += clip.durationSeconds;
-      return {
-        src: window.location.origin + voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision),
-        fromFrame,
-        durationInFrames
-      };
-    });
+    if (!voiceShot) return;
 
     setBusy(true);
     setError('');
+    setPostQa(null);
     try {
+      if (correction.trim()) {
+        await rememberProductionCorrection('VISUAL', correction.trim(), 'Visual Agent · ' + currentShot.key);
+        setMemory(await loadProductionMemory('VISUAL'));
+        setCorrection('');
+      }
+
+      const gate = await runVisualPreflight(script.revision, currentShot.key);
+      setPreflight(gate);
+      if (!gate.passed) {
+        setError('Shot creation was blocked before rendering because QA found a production-contract problem.');
+        return;
+      }
+
+      const related = clips
+        .filter(clip => clip.shotKey === currentShot.key && clip.approved)
+        .sort((a, b) => a.sequence - b.sequence);
+      if (related.length === 0) throw new Error('Approved voice clips are missing for this shot.');
+
+      let cursor = 0;
+      const audioClips = related.map(clip => {
+        const fromFrame = Math.round(cursor * 30);
+        const durationInFrames = Math.max(1, Math.ceil(clip.durationSeconds * 30));
+        cursor += clip.durationSeconds;
+        return {
+          src: window.location.origin + voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision),
+          fromFrame,
+          durationInFrames
+        };
+      });
+
       const durationInFrames = Math.max(1, Math.ceil(cursor * 30));
-      const render = await startRemotionRender(compositionId, {
+      const render = await startRemotionRender(gate.compositionId, {
         shotKey: currentShot.key,
         scriptRevision: script.revision,
         generationRevision: voiceShot.generationRevision,
@@ -205,19 +197,22 @@ export function VisualAgentPage() {
         anchors: anchorsOf(voiceShot)
       }, 'REVIEW');
       setActiveRender(render);
+
       const ready = await pollRender(render.renderId);
       if (ready.status === 'FAILED') throw new Error(ready.error || 'Shot render failed.');
 
       const qa = await runVisualPostQa(script.revision, currentShot.key, ready.renderId);
+      setPostQa(qa);
       if (!qa.passed) {
-        setError('Render finished, but post-render QA rejected it. Review the failed checks before retrying.');
+        setError('Render completed, but post-render QA rejected it. The cumulative episode was not changed.');
         await refresh(script.revision);
         return;
       }
+
       await updateCumulativePreview(script.revision);
-      setPreflight(null);
+      setPreflight(gate);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not render and validate the shot.');
+      setError(cause instanceof Error ? cause.message : 'Could not create and validate the shot.');
     } finally {
       setBusy(false);
     }
@@ -335,13 +330,16 @@ export function VisualAgentPage() {
           />
         </div>
 
-        <div className="visual-main-actions">
-          <button type="button" className="secondary" disabled={busy || !currentVisual?.voiceReady} onClick={() => void runPreflight()}>
-            {busy && !rendering ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />} Run QA Preflight
-          </button>
-          <button type="button" className="primary" disabled={busy || !preflight?.passed || currentVisual?.qaStatus === 'PASS'} onClick={() => void renderShot()}>
-            {rendering ? <LoaderCircle className="spin" size={15} /> : <Sparkles size={15} />}
-            {rendering ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%' : 'Render → QA → Update Episode'}
+        <div className="visual-main-actions single">
+          <button type="button" className="primary" disabled={busy || !currentVisual?.voiceReady || currentVisual?.qaStatus === 'PASS'} onClick={() => void produceShot()}>
+            {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
+            {rendering
+              ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
+              : busy
+                ? 'Validating production contract…'
+                : currentVisual?.qaStatus === 'PASS'
+                  ? 'Shot QA Passed'
+                  : 'Create / Validate Shot'}
           </button>
         </div>
 
@@ -349,6 +347,18 @@ export function VisualAgentPage() {
           <div className={'qa-checks ' + (preflight.passed ? 'pass' : 'fail')}>
             <div><strong>{preflight.passed ? 'PRE-FLIGHT PASS' : 'PRE-FLIGHT BLOCKED'}</strong><span>{preflight.memoryPreflight.ruleCount} memory rules checked</span></div>
             {preflight.checks.map(check => (
+              <article key={check.key} className={check.passed ? 'pass' : 'fail'}>
+                {check.passed ? <Check size={14} /> : <span>×</span>}
+                <div><strong>{check.key.replaceAll('_', ' ')}</strong><p>{check.detail}</p></div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {postQa && (
+          <div className={'qa-checks ' + (postQa.passed ? 'pass' : 'fail')}>
+            <div><strong>{postQa.passed ? 'POST-RENDER QA PASS' : 'POST-RENDER QA FAILED'}</strong><span>{postQa.passed ? 'Episode preview updated automatically' : 'Episode preview protected'}</span></div>
+            {postQa.checks.map(check => (
               <article key={check.key} className={check.passed ? 'pass' : 'fail'}>
                 {check.passed ? <Check size={14} /> : <span>×</span>}
                 <div><strong>{check.key.replaceAll('_', ' ')}</strong><p>{check.detail}</p></div>
