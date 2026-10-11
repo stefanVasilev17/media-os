@@ -32,17 +32,20 @@ public class CreativeWorkflowController {
     private final ObjectMapper objectMapper;
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
+    private final ProductionMemoryService productionMemory;
 
     public CreativeWorkflowController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             CreativeAgentClient creativeAgent,
-            ProductionOverviewService overviewService
+            ProductionOverviewService overviewService,
+            ProductionMemoryService productionMemory
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
+        this.productionMemory = productionMemory;
     }
 
     public record MessageRequest(@NotBlank @Size(max = 6000) String message) {}
@@ -63,6 +66,7 @@ public class CreativeWorkflowController {
         Map<String, Object> stage = stageRow(key);
         assertEditable(stage);
         assertUpstreamReady(key);
+        productionMemory.preflight(memoryScope(key), key + "_GENERATE");
 
         CreativeAgentClient.AgentReply reply;
         try {
@@ -88,6 +92,12 @@ public class CreativeWorkflowController {
 
         UUID threadId = threadId(key);
         String creatorMessage = request.message().trim();
+        productionMemory.preflight(memoryScope(key), key + "_REVISE");
+        productionMemory.rememberCorrection(
+                memoryScope(key),
+                creatorMessage,
+                ("SCRIPT".equals(key) ? "Script Agent" : "Legacy Scene Agent") + " creator correction"
+        );
         UUID creatorMessageId = insertMessage(threadId, "USER", creatorMessage);
 
         CreativeAgentClient.AgentReply reply;
@@ -259,6 +269,7 @@ public class CreativeWorkflowController {
         context.put("currentSummary", stage.get("summary"));
         context.put("lockedUpstreamHandoff", latestHandoffFor(key));
         context.put("creatorMemory", memories(key, 30));
+        context.put("productionMemory", productionMemory.rulesFor(memoryScope(key)));
         context.put("productionOverview", overviewService.overview());
         return context;
     }
@@ -267,29 +278,30 @@ public class CreativeWorkflowController {
         if ("SCRIPT".equals(key)) {
             jdbc.sql("""
                     update production_stage
-                    set status='ACTIVE', summary=:summary,
-                        next_action='Generate the combined timed Scene plan, divide it into shots, then review and lock it.',
+                    set status='ACTIVE',
+                        summary=:summary,
+                        next_action='Generate and approve small ElevenLabs voice clips from the LOCKED Script.',
                         updated_at=now()
-                    where episode_id=:episodeId and stage_key='SCENE' and status <> 'LOCKED'
+                    where episode_id=:episodeId and stage_key='VOICE' and status <> 'LOCKED'
                     """)
-                    .param("summary", "Locked Script revision " + revision + " is ready for Scene planning.")
+                    .param("summary", "LOCKED Script revision " + revision + " is ready for Voice production.")
                     .param("episodeId", ProductionOverviewService.EPISODE_ID)
                     .update();
-            jdbc.sql("update agent_thread set status='ACTIVE' where id=:threadId")
-                    .param("threadId", threadId("SCENE"))
-                    .update();
-            jdbc.sql("update episode set current_stage='SCENE_DESIGN' where id=:episodeId")
+            jdbc.sql("update episode set current_stage='VOICE_PRODUCTION' where id=:episodeId")
                     .param("episodeId", ProductionOverviewService.EPISODE_ID)
                     .update();
         } else if ("SCENE".equals(key)) {
             jdbc.sql("""
                     update production_stage
-                    set status='ACTIVE', next_action='Execute the locked Scene shot prompts in the existing Spline workspace.', updated_at=now()
-                    where episode_id=:episodeId and stage_key='SPLINE' and status <> 'LOCKED'
+                    set status='ACTIVE',
+                        summary='Legacy Scene planning is available as reference only. Remotion Visual Agent is the production surface.',
+                        next_action='Continue in Visual Agent.',
+                        updated_at=now()
+                    where episode_id=:episodeId and stage_key='VISUAL' and status <> 'LOCKED'
                     """)
                     .param("episodeId", ProductionOverviewService.EPISODE_ID)
                     .update();
-            jdbc.sql("update episode set current_stage='SPLINE_BUILD' where id=:episodeId")
+            jdbc.sql("update episode set current_stage='VISUAL_PRODUCTION' where id=:episodeId")
                     .param("episodeId", ProductionOverviewService.EPISODE_ID)
                     .update();
         }
@@ -658,11 +670,15 @@ public class CreativeWorkflowController {
     }
 
     private String nextStageKey(String key) {
-        return "SCRIPT".equals(key) ? "SCENE" : "SPLINE";
+        return "SCRIPT".equals(key) ? "VOICE" : "VISUAL";
     }
 
     private String nextRoute(String key) {
-        return "SCRIPT".equals(key) ? "#/agents/scene" : "#/agents/spline";
+        return "SCRIPT".equals(key) ? "#/agents/voice" : "#/agents/visual";
+    }
+
+    private String memoryScope(String key) {
+        return "SCRIPT".equals(key) ? "SCRIPT" : "VISUAL";
     }
 
     private String normalizeStage(String raw) {
