@@ -1,11 +1,10 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
-import { ActivityPage } from './pages/ActivityPage';
 import { DirectorRoomPage } from './pages/DirectorRoomPage';
-import { HomePage } from './pages/HomePage';
 import { SceneAgentPage } from './pages/SceneAgentPage';
 import { ScriptAgentPage } from './pages/ScriptAgentPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { VoiceAgentPage } from './pages/VoiceAgentPage';
+import { VisualAgentPage } from './pages/VisualAgentPage';
 import './styles/episodeSceneCompositor.css';
 
 const SplineWorkspacePage = lazy(async () => {
@@ -28,11 +27,7 @@ function normalizeLegacyRoute(hash: string) {
 }
 
 function AgentLoading() {
-  return (
-    <main className="media-os-page">
-      <div className="loading">Opening Spline Agent…</div>
-    </main>
-  );
+  return <main className="media-os-page"><div className="loading">Opening legacy workspace…</div></main>;
 }
 
 export function App() {
@@ -43,16 +38,11 @@ export function App() {
       const raw = window.location.hash || '#/';
       const normalized = normalizeLegacyRoute(raw);
       if (normalized !== raw) {
-        window.location.replace(`${window.location.pathname}${window.location.search}${normalized}`);
+        window.location.replace(window.location.pathname + window.location.search + normalized);
         return;
       }
       setHash(normalized);
     };
-
-    if (hash !== (window.location.hash || '#/')) {
-      window.location.replace(`${window.location.pathname}${window.location.search}${hash}`);
-    }
-
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
@@ -66,23 +56,16 @@ export function App() {
   }
 
   let page: ReactNode;
-
   if (hash.startsWith('#/agents/script')) {
     page = <ScriptAgentPage />;
+  } else if (hash.startsWith('#/agents/voice')) {
+    page = <VoiceAgentPage />;
+  } else if (hash.startsWith('#/agents/visual')) {
+    page = <VisualAgentPage />;
   } else if (hash.startsWith('#/agents/scene')) {
     page = <SceneAgentPage />;
   } else if (hash.startsWith('#/agents/spline')) {
-    page = (
-      <Suspense fallback={<AgentLoading />}>
-        <SplineWorkspacePage />
-      </Suspense>
-    );
-  } else if (hash.startsWith('#/activity')) {
-    page = <ActivityPage />;
-  } else if (hash.startsWith('#/settings')) {
-    page = <SettingsPage />;
-  } else if (hash.startsWith('#/home')) {
-    page = <HomePage />;
+    page = <Suspense fallback={<AgentLoading />}><SplineWorkspacePage /></Suspense>;
   } else {
     page = <DirectorRoomPage />;
   }

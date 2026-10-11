@@ -1,677 +1,90 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, ArrowUp, Eye, LoaderCircle, LockKeyhole, Play, RefreshCw, Sparkles, X } from 'lucide-react';
-import { loadAiControl, type AiControlState } from '../api/aiControlApi';
-import { previewDirectorAction, previewTopicGeneration, type AgentActionPreview } from '../api/agentPreviewApi';
-import {
-  dismissDirectorProposal,
-  loadDirectorRoom,
-  lockDirectorProposal,
-  sendDirectorMessage,
-  type DirectorProposal,
-  type DirectorRoom
-} from '../api/directorApi';
-import { loadProductionOverview, type ProductionOverview } from '../api/creativeApi';
-import {
-  generateTopicCandidates,
-  loadEpisodeBuildState,
-  previewEpisodeBuild,
-  retryEpisodeBuild,
-  startCurrentEpisodeBuild,
-  type EpisodeBuildPreview,
-  type EpisodeBuildRun,
-  type EpisodeBuildState,
-  type TopicCandidate
-} from '../api/episodeBuildApi';
-import { AgentActionPreviewCard } from '../components/AgentActionPreviewCard';
-import '../styles/directorRoom.css';
-
-function Proposal({
-  proposal,
-  busy,
-  onLock,
-  onDismiss
-}: {
-  proposal: DirectorProposal;
-  busy: boolean;
-  onLock: () => void;
-  onDismiss: () => void;
-}) {
-  return (
-    <article className="director-decision">
-      <div>
-        <strong>{proposal.title}</strong>
-        <p>{proposal.summary}</p>
-      </div>
-      <div className="director-decision-actions">
-        <button type="button" disabled={busy} onClick={onLock}>
-          {busy ? <LoaderCircle size={14} className="spin" /> : <LockKeyhole size={14} />}
-          Lock
-        </button>
-        <button type="button" className="director-dismiss" disabled={busy} onClick={onDismiss} aria-label="Dismiss proposal">
-          <X size={14} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function ThinkingDots() {
-  return (
-    <span className="director-thinking" aria-label="Director is thinking">
-      <span />
-      <span />
-      <span />
-    </span>
-  );
-}
-
-function hasRun(run: EpisodeBuildState['latestRun']): run is EpisodeBuildRun {
-  return Boolean(run && 'id' in run && run.id);
-}
-
-function topicStatusLabel(topic: TopicCandidate) {
-  return topic.status === 'CURRENT' ? 'Current episode' : 'Future idea';
-}
-
-function TopicSummary({ topic }: { topic: TopicCandidate }) {
-  return (
-    <article className="director-topic-summary">
-      <div className="director-topic-title-row">
-        <div>
-          <span>{topicStatusLabel(topic)}</span>
-          <h3>{topic.title}</h3>
-        </div>
-        <small>{topic.estimatedComplexity.toLowerCase()} complexity</small>
-      </div>
-
-      <p className="director-topic-question">{topic.centralQuestion}</p>
-      <p className="director-topic-promise">{topic.viewerPromise}</p>
-
-      <details className="director-topic-more">
-        <summary>Show episode strategy</summary>
-        <div className="director-topic-detail-grid">
-          <div><strong>Human entry</strong><p>{topic.massEntry}</p></div>
-          <div><strong>Senior lesson</strong><p>{topic.seniorLesson}</p></div>
-          <div><strong>Core tension</strong><p>{topic.coreTension}</p></div>
-          <div><strong>Failure / trade-off</strong><p>{topic.failureTradeoff}</p></div>
-          <div><strong>System boundary</strong><p>{topic.systemBoundary}</p></div>
-          <div><strong>World reuse</strong><p>{topic.reusePlan}</p></div>
-          <div><strong>Series path</strong><p>{topic.seriesPath}</p></div>
-          <div><strong>Why it lasts</strong><p>{topic.evergreenReason}</p></div>
-        </div>
-        {topic.ahaCandidates.length > 0 && (
-          <div className="director-topic-aha">
-            <strong>Possible Aha moments</strong>
-            {topic.ahaCandidates.slice(0, 3).map((aha, index) => <p key={`${topic.id}-aha-${index}`}>{aha}</p>)}
-          </div>
-        )}
-      </details>
-    </article>
-  );
-}
-
-function buildStepLabel(stepKey: string) {
-  if (stepKey === 'TRUTH') return 'Truth';
-  if (stepKey === 'HANDOFF') return 'Review package';
-  return stepKey.charAt(0) + stepKey.slice(1).toLowerCase();
-}
-
-function BuildRun({ run, onRetry }: { run: EpisodeBuildRun; onRetry: () => void }) {
-  const retryable = run.status === 'FAILED' || run.status === 'NEEDS_REVIEW';
-  const complete = run.status === 'COMPLETE';
-
-  return (
-    <section className="director-build-run">
-      <div className="director-build-run-head">
-        <div>
-          <span className="director-eyebrow">Autonomous build</span>
-          <h2>{complete ? 'Initial episode draft is ready' : retryable ? 'Build needs attention' : 'Building the initial episode draft'}</h2>
-          <p>{complete ? 'Review the Script first. Nothing was locked automatically.' : run.errorMessage || `Working on ${buildStepLabel(run.currentStep)}.`}</p>
-        </div>
-        <strong>{run.progressPercent}%</strong>
-      </div>
-      <div className="director-build-progress"><i style={{ width: `${run.progressPercent}%` }} /></div>
-      <div className="director-build-steps">
-        {run.steps.map(step => (
-          <div key={step.stepKey} className={`director-build-step ${step.status.toLowerCase().replaceAll('_', '-')}`}>
-            <span />
-            <div>
-              <strong>{buildStepLabel(step.stepKey)}</strong>
-              <small>{step.status.toLowerCase().replaceAll('_', ' ')}</small>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="director-build-actions">
-        {complete && <button type="button" onClick={() => { window.location.hash = '#/agents/script'; }}>Review Script <ArrowRight size={15} /></button>}
-        {retryable && <button type="button" onClick={onRetry}>Retry build <RefreshCw size={14} /></button>}
-      </div>
-    </section>
-  );
-}
-
-function stageStatusLabel(status: string) {
-  return status.toLowerCase().replaceAll('_', ' ');
-}
+import { useEffect, useState } from 'react';
+import { ArrowRight, Check, LoaderCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { loadProductionFlow, type ProductionFlowState } from '../api/productionFlowApi';
+import '../styles/productionFlow.css';
 
 export function DirectorRoomPage() {
-  const [room, setRoom] = useState<DirectorRoom | null>(null);
-  const [overview, setOverview] = useState<ProductionOverview | null>(null);
-  const [buildState, setBuildState] = useState<EpisodeBuildState | null>(null);
-  const [aiControl, setAiControl] = useState<AiControlState | null>(null);
-  const [buildPreview, setBuildPreview] = useState<EpisodeBuildPreview | null>(null);
-  const [directorPreview, setDirectorPreview] = useState<AgentActionPreview | null>(null);
-  const [directorPreviewMessage, setDirectorPreviewMessage] = useState('');
-  const [topicPreview, setTopicPreview] = useState<AgentActionPreview | null>(null);
-  const [previewBusy, setPreviewBusy] = useState(false);
+  const [state, setState] = useState<ProductionFlowState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [buildBusy, setBuildBusy] = useState(false);
-  const [proposalBusy, setProposalBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [pendingMessage, setPendingMessage] = useState('');
-  const [budgetMinutes, setBudgetMinutes] = useState(20);
-  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
-  const chatHistoryRef = useRef<HTMLDivElement | null>(null);
 
-  async function refresh(clearError = true) {
-    if (clearError) setError('');
+  async function load() {
+    setError('');
     try {
-      const [nextRoom, nextOverview, nextBuildState, nextAiControl] = await Promise.all([
-        loadDirectorRoom(),
-        loadProductionOverview(),
-        loadEpisodeBuildState(),
-        loadAiControl()
-      ]);
-      setRoom(nextRoom);
-      setOverview(nextOverview);
-      setBuildState(nextBuildState);
-      setAiControl(nextAiControl);
-      setBuildPreview(null);
-      setDirectorPreview(null);
-      setDirectorPreviewMessage('');
-      setTopicPreview(null);
-      if (!selectedTopicId) {
-        const firstFuture = nextBuildState.topics.find(topic => topic.status === 'READY')
-          || nextBuildState.topics.find(topic => topic.status !== 'CURRENT');
-        if (firstFuture) setSelectedTopicId(firstFuture.id);
-      }
+      setState(await loadProductionFlow());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load Director Room.');
+      setError(cause instanceof Error ? cause.message : 'Could not load Director.');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    void refresh();
-  }, []);
+  useEffect(() => { void load(); }, []);
 
-  useEffect(() => {
-    const history = chatHistoryRef.current;
-    if (!history) return;
-    history.scrollTop = history.scrollHeight;
-  }, [room?.messages.length, busy, pendingMessage]);
-
-  const latestRun = buildState && hasRun(buildState.latestRun) ? buildState.latestRun : null;
-  const buildIsRunning = latestRun?.status === 'QUEUED' || latestRun?.status === 'RUNNING';
-
-  useEffect(() => {
-    if (!buildIsRunning) return;
-    const timer = window.setInterval(async () => {
-      try {
-        const [nextBuild, nextOverview] = await Promise.all([loadEpisodeBuildState(), loadProductionOverview()]);
-        setBuildState(nextBuild);
-        setOverview(nextOverview);
-      } catch {
-      }
-    }, 3000);
-    return () => window.clearInterval(timer);
-  }, [buildIsRunning]);
-
-  const futureTopics = useMemo(() => {
-    return buildState?.topics.filter(topic => topic.status !== 'CURRENT') || [];
-  }, [buildState]);
-
-  const selectedTopic = useMemo(() => {
-    return futureTopics.find(topic => topic.id === selectedTopicId) || futureTopics[0] || null;
-  }, [futureTopics, selectedTopicId]);
-
-  async function previewDirector() {
-    const text = message.trim();
-    if (!text || busy || previewBusy) return;
-    setPreviewBusy(true);
-    setError('');
-    try {
-      setDirectorPreview(await previewDirectorAction(text, 'DISCUSS'));
-      setDirectorPreviewMessage(text);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not preview the Director call.');
-    } finally {
-      setPreviewBusy(false);
-    }
-  }
-
-  async function send() {
-    const text = directorPreviewMessage.trim();
-    if (!text || busy || !directorPreview?.canRun || text !== message.trim()) return;
-    setMessage('');
-    setPendingMessage(text);
-    setBusy(true);
-    setError('');
-    try {
-      const result = await sendDirectorMessage(text, 'DISCUSS');
-      setRoom(result.room);
-      setOverview(await loadProductionOverview());
-      setDirectorPreview(null);
-      setDirectorPreviewMessage('');
-    } catch (cause) {
-      const failure = cause instanceof Error ? cause.message : 'Director could not answer.';
-      try {
-        const [nextRoom, nextOverview] = await Promise.all([loadDirectorRoom(), loadProductionOverview()]);
-        setRoom(nextRoom);
-        setOverview(nextOverview);
-      } catch {
-      }
-      setError(failure);
-    } finally {
-      setPendingMessage('');
-      setBusy(false);
-    }
-  }
-
-  async function previewTopics() {
-    if (buildBusy || previewBusy) return;
-    setPreviewBusy(true);
-    setError('');
-    try {
-      setTopicPreview(await previewTopicGeneration());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not preview Topic Agent.');
-    } finally {
-      setPreviewBusy(false);
-    }
-  }
-
-  async function findTopics() {
-    if (buildBusy || !topicPreview?.canRun) return;
-    setBuildBusy(true);
-    setError('');
-    try {
-      const next = await generateTopicCandidates();
-      setBuildState(next);
-      setTopicPreview(null);
-      const firstFuture = next.topics.find(topic => topic.status === 'READY');
-      if (firstFuture) setSelectedTopicId(firstFuture.id);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not generate episode ideas.');
-    } finally {
-      setBuildBusy(false);
-    }
-  }
-
-  async function previewBuild() {
-    if (buildBusy) return;
-    setBuildBusy(true);
-    setError('');
-    try {
-      const preview = await previewEpisodeBuild();
-      setBuildPreview(preview);
-      setAiControl(current => current ? {
-        ...current,
-        paidAiEnabled: preview.paidAiEnabled,
-        autoRepairEnabled: preview.autoRepairEnabled,
-        safetyMode: preview.paidAiEnabled ? 'PAID_AI_ON' : 'ZERO_SPEND'
-      } : current);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not preview the episode build.');
-    } finally {
-      setBuildBusy(false);
-    }
-  }
-
-  async function startBuild() {
-    if (buildBusy) return;
-    if (!buildPreview) {
-      await previewBuild();
-      return;
-    }
-    if (!buildPreview.paidAiEnabled) {
-      setError('Paid AI is OFF. Open Settings and enable it only when you are ready to spend API credits.');
-      return;
-    }
-    if (!buildPreview.apiConfigured) {
-      setError('OpenAI API is not configured. Add the API key before starting a paid build.');
-      return;
-    }
-    setBuildBusy(true);
-    setError('');
-    try {
-      const next = await startCurrentEpisodeBuild(budgetMinutes);
-      setBuildState(next);
-      setOverview(await loadProductionOverview());
-      setBuildPreview(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not start the autonomous episode build.');
-    } finally {
-      setBuildBusy(false);
-    }
-  }
-
-  async function retryBuild() {
-    if (buildBusy) return;
-    setBuildBusy(true);
-    setError('');
-    try {
-      setBuildState(await retryEpisodeBuild());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not retry the autonomous episode build.');
-    } finally {
-      setBuildBusy(false);
-    }
-  }
-
-  async function lockProposal(id: string) {
-    if (proposalBusy) return;
-    setProposalBusy(id);
-    setError('');
-    try {
-      setRoom(await lockDirectorProposal(id));
-      setOverview(await loadProductionOverview());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not lock the decision.');
-    } finally {
-      setProposalBusy(null);
-    }
-  }
-
-  async function dismissProposal(id: string) {
-    if (proposalBusy) return;
-    setProposalBusy(id);
-    setError('');
-    try {
-      setRoom(await dismissDirectorProposal(id));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not dismiss the proposal.');
-    } finally {
-      setProposalBusy(null);
-    }
-  }
-
-  if (loading && (!room || !overview || !buildState || !aiControl)) {
-    return <main className="director-room-loading"><LoaderCircle size={22} className="spin" /></main>;
-  }
-
-  if (!room || !overview || !buildState || !aiControl) {
-    return (
-      <main className="director-room-loading">
-        <strong>Director Room is unavailable.</strong>
-        <p>{error}</p>
-        <button type="button" onClick={() => { setLoading(true); void refresh(); }}>Retry</button>
-      </main>
-    );
-  }
-
-  const visibleMessages = room.messages.filter(item => item.sender !== 'SYSTEM');
-  const currentTopic = buildState.topics.find(topic => topic.status === 'CURRENT') || null;
-  const primaryStage = overview.stages.find(stage => stage.stageKey === overview.episode.currentStage && stage.route)
-    || overview.stages.find(stage => stage.route && !['LOCKED', 'COMPLETE', 'PUBLISHED'].includes(stage.status.toUpperCase()))
-    || null;
-  const nextAction = overview.nextActions[0] || primaryStage?.nextAction || overview.currentFocus || 'Review the current episode state.';
-  const canStartBuild = Boolean(currentTopic && buildState.canStartCurrentEpisode && !latestRun);
-  const paidAiOn = aiControl.paidAiEnabled;
+  if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
+  if (!state) return <main className="production-loading"><strong>{error || 'Director unavailable.'}</strong></main>;
 
   return (
-    <main className="director-room-page">
-      <header className="director-room-header">
+    <main className="production-page director-focus-page">
+      <header className="production-header">
         <div>
-          <span>{overview.episode.episodeNumber} · Director</span>
-          <h1>{overview.episode.title}</h1>
-          <p>{overview.currentFocus}</p>
+          <span>{state.episode.episodeNumber} · DIRECTOR</span>
+          <h1>{state.episode.title}</h1>
+          <p>One production flow. Only the information needed to make the next decision.</p>
         </div>
-        <div className="director-progress" aria-label={`Episode progress ${overview.progressPercent}%`}>
-          <strong>{overview.progressPercent}%</strong>
-          <div><i style={{ width: `${overview.progressPercent}%` }} /></div>
-        </div>
+        <button type="button" className="icon-button" onClick={() => void load()} aria-label="Refresh Director">
+          <RefreshCw size={16} />
+        </button>
       </header>
 
-      {error && <div className="director-error">{error}</div>}
+      {error && <div className="production-error">{error}</div>}
 
-      <section className="director-now-card">
-        <div className="director-now-copy">
-          <span className="director-eyebrow">Now</span>
-          <h2>{nextAction}</h2>
-          <p>Director shows only the next useful action here. Detailed episode context is available below when you need it.</p>
-          {canStartBuild && buildPreview && (
-            <p>
-              <strong>Zero-token preview:</strong> {buildPreview.plannedPaidCalls} planned paid calls · automatic repair {buildPreview.autoRepairEnabled ? 'ON' : 'OFF'} · nothing locks automatically.
-            </p>
-          )}
+      <section className="director-next-card">
+        <div>
+          <span>NEXT ACTION</span>
+          <h2>{state.nextLabel}</h2>
+          <p>MediaOS will continue from the current LOCKED state; completed upstream work stays protected.</p>
         </div>
-        <div className="director-now-actions">
-          {latestRun?.status === 'COMPLETE' && (
-            <button type="button" className="primary" onClick={() => { window.location.hash = '#/agents/script'; }}>
-              Review Script <ArrowRight size={15} />
-            </button>
-          )}
-          {canStartBuild && !buildPreview && (
-            <button type="button" className="primary" disabled={buildBusy} onClick={() => void previewBuild()}>
-              {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
-              Preview build · 0 tokens
-            </button>
-          )}
-          {canStartBuild && buildPreview && buildPreview.paidAiEnabled && buildPreview.apiConfigured && (
-            <button type="button" className="primary" disabled={buildBusy} onClick={() => void startBuild()}>
-              {buildBusy ? <LoaderCircle size={15} className="spin" /> : <Play size={15} />}
-              Start {buildPreview.maximumAutomaticCalls === buildPreview.plannedPaidCalls ? `${buildPreview.plannedPaidCalls}-call build` : `build · max ${buildPreview.maximumAutomaticCalls} calls`}
-            </button>
-          )}
-          {canStartBuild && buildPreview && !buildPreview.paidAiEnabled && (
-            <button type="button" onClick={() => { window.location.hash = '#/settings'; }}>
-              Paid AI is off · Open Settings <ArrowRight size={15} />
-            </button>
-          )}
-          {primaryStage?.route && latestRun?.status !== 'COMPLETE' && (
-            <button type="button" onClick={() => { if (primaryStage.route) window.location.hash = primaryStage.route; }}>
-              Open {primaryStage.displayName} <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
-        {canStartBuild && (
-          <details className="director-build-options">
-            <summary>Build options</summary>
-            <label>
-              Work budget
-              <select value={budgetMinutes} onChange={event => setBudgetMinutes(Number(event.target.value))} aria-label="Build work budget">
-                <option value={15}>15 min</option>
-                <option value={20}>20 min</option>
-                <option value={25}>25 min</option>
-                <option value={30}>30 min</option>
-              </select>
-            </label>
-            <small>Truth audit → Script → Scene plan → review package. Preview costs 0 tokens. Nothing is locked automatically.</small>
-          </details>
-        )}
+        <button type="button" onClick={() => { window.location.hash = state.nextRoute; }}>
+          {state.nextLabel} <ArrowRight size={16} />
+        </button>
       </section>
 
-      {latestRun && <BuildRun run={latestRun} onRetry={() => void retryBuild()} />}
-
-      {room.proposals.length > 0 && (
-        <section className="director-review-card">
-          <div className="director-section-title">
-            <span className="director-eyebrow">Needs your decision</span>
-            <h2>{room.proposals.length === 1 ? 'One proposal is waiting' : `${room.proposals.length} proposals are waiting`}</h2>
+      <section className="director-production-flow">
+        <div className="production-section-head">
+          <div>
+            <span>EPISODE PRODUCTION</span>
+            <h2>Director → Script → Voice → Visual</h2>
           </div>
-          {room.proposals.map(proposal => (
-            <Proposal
-              key={proposal.id}
-              proposal={proposal}
-              busy={proposalBusy === proposal.id}
-              onLock={() => void lockProposal(proposal.id)}
-              onDismiss={() => void dismissProposal(proposal.id)}
-            />
+          <div className="memory-preflight-badge">{state.memoryRuleCount} MEMORY RULES</div>
+        </div>
+
+        <div className="director-flow-list">
+          {state.stages.map((stage, index) => (
+            <button
+              type="button"
+              key={stage.key}
+              className={'director-flow-row ' + stage.status.toLowerCase()}
+              onClick={() => { window.location.hash = stage.route; }}
+            >
+              <div className="director-flow-index">{String(index + 1).padStart(2, '0')}</div>
+              <div>
+                <strong>{stage.label}</strong>
+                <p>{stage.detail}</p>
+              </div>
+              <span>{stage.status === 'LOCKED' || stage.status === 'READY' ? <Check size={14} /> : stage.status}</span>
+            </button>
           ))}
-        </section>
-      )}
-
-      <section className="director-pipeline">
-        <div className="director-section-title">
-          <span className="director-eyebrow">Episode path</span>
-          <h2>Where the episode is now</h2>
-        </div>
-        <div className="director-stage-list">
-          {overview.stages.map(stage => {
-            const clickable = Boolean(stage.route);
-            return (
-              <button
-                type="button"
-                key={stage.stageKey}
-                className="director-stage"
-                disabled={!clickable}
-                onClick={() => { if (stage.route) window.location.hash = stage.route; }}
-              >
-                <span className={`director-stage-dot ${stage.status.toLowerCase().replaceAll('_', '-')}`} />
-                <strong>{stage.displayName}</strong>
-                <small>{stageStatusLabel(stage.status)}</small>
-                {clickable && <ArrowRight size={14} />}
-              </button>
-            );
-          })}
         </div>
       </section>
 
-      <div className="director-details-stack">
-        <details className="director-panel" open>
-          <summary>
-            <span>Current episode context</span>
-            <small>The important idea, question and promise</small>
-          </summary>
-          <div className="director-panel-body">
-            {currentTopic ? <TopicSummary topic={currentTopic} /> : <p className="director-empty">No current topic snapshot is available.</p>}
-          </div>
-        </details>
-
-        <details className="director-panel">
-          <summary>
-            <span>Future topic ideas</span>
-            <small>Open only when planning the next episode</small>
-          </summary>
-          <div className="director-panel-body">
-            <div className="director-panel-toolbar">
-              <p>{paidAiOn ? 'Keep future ideas out of the main production view until you need them.' : 'Paid AI is off. You can still preview exactly what Topic Agent would do.'}</p>
-              <button type="button" disabled={buildBusy || previewBusy || !buildState.configured} onClick={() => void previewTopics()}>
-                {previewBusy ? <LoaderCircle size={14} className="spin" /> : <Eye size={14} />}
-                Preview topic generation · 0 tokens
-              </button>
-            </div>
-
-            {topicPreview && (
-              <AgentActionPreviewCard
-                preview={topicPreview}
-                confirmLabel="Generate 6 ideas · 1 paid call"
-                busy={buildBusy}
-                onConfirm={() => void findTopics()}
-                onCancel={() => setTopicPreview(null)}
-              />
-            )}
-
-            {futureTopics.length > 0 ? (
-              <>
-                <div className="director-topic-tabs">
-                  {futureTopics.map(topic => (
-                    <button
-                      type="button"
-                      key={topic.id}
-                      className={topic.id === selectedTopic?.id ? 'selected' : ''}
-                      onClick={() => setSelectedTopicId(topic.id)}
-                    >
-                      {topic.title}
-                    </button>
-                  ))}
-                </div>
-                {selectedTopic && <TopicSummary topic={selectedTopic} />}
-                {selectedTopic?.status === 'READY' && (
-                  <button
-                    type="button"
-                    className="director-discuss-topic"
-                    onClick={() => {
-                      const next = `I want to evaluate this as a future episode: "${selectedTopic.title}". Challenge the idea and tell me what would make the episode stronger before we commit to it.`;
-                      setMessage(next);
-                      setDirectorPreview(null);
-                      setDirectorPreviewMessage('');
-                    }}
-                  >
-                    Put this idea into Director chat
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="director-empty">No future topic ideas yet.</p>
-            )}
-          </div>
-        </details>
-
-        <details className="director-panel">
-          <summary>
-            <span>Ask Director</span>
-            <small>Every message requires a zero-token preview before one paid call can run</small>
-          </summary>
-          <div className="director-panel-body">
-            <div className="director-chat-history" ref={chatHistoryRef}>
-              {visibleMessages.map(item => (
-                <article key={item.id} className={item.sender === 'USER' ? 'creator' : 'agent'}>
-                  <strong>{item.sender === 'USER' ? 'You' : 'Director'}</strong>
-                  <p>{item.content}</p>
-                </article>
-              ))}
-              {pendingMessage && (
-                <article className="creator pending">
-                  <strong>You</strong>
-                  <p>{pendingMessage}</p>
-                </article>
-              )}
-              {busy && <ThinkingDots />}
-            </div>
-
-            <div className="director-composer">
-              <textarea
-                value={message}
-                onChange={event => {
-                  const next = event.target.value;
-                  setMessage(next);
-                  if (next.trim() !== directorPreviewMessage) {
-                    setDirectorPreview(null);
-                    setDirectorPreviewMessage('');
-                  }
-                }}
-                rows={4}
-                disabled={busy}
-                placeholder="Ask about one episode decision, risk, idea, or trade-off… Preview costs 0 tokens."
-                onKeyDown={event => {
-                  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                    event.preventDefault();
-                    void previewDirector();
-                  }
-                }}
-              />
-              <button type="button" disabled={busy || previewBusy || !message.trim()} onClick={() => void previewDirector()} aria-label="Preview Director call without spending tokens">
-                {previewBusy ? <ThinkingDots /> : <ArrowUp size={17} />}
-              </button>
-            </div>
-
-            {directorPreview && directorPreviewMessage === message.trim() && (
-              <AgentActionPreviewCard
-                preview={directorPreview}
-                confirmLabel="Send to Director · 1 paid call"
-                busy={busy}
-                onConfirm={() => void send()}
-                onCancel={() => { setDirectorPreview(null); setDirectorPreviewMessage(''); }}
-              />
-            )}
-          </div>
-        </details>
-      </div>
+      <section className="director-health-card">
+        <ShieldCheck size={18} />
+        <div>
+          <strong>Production Memory is mandatory.</strong>
+          <p>Script, Voice and Visual actions run a memory preflight before work starts. Creator corrections become durable rules for later work instead of disappearing inside one review cycle.</p>
+        </div>
+      </section>
     </main>
   );
 }

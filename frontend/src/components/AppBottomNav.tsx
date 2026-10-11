@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Activity, Box, BrainCircuit, Clapperboard, FileText, Settings } from 'lucide-react';
+import { BrainCircuit, FileText, Mic2, Clapperboard } from 'lucide-react';
 import '../styles/compactBottomNav.css';
 
 type NavItem = {
@@ -13,44 +13,32 @@ const items: NavItem[] = [
   {
     label: 'Director',
     hash: '#/',
-    icon: <BrainCircuit size={16} />,
+    icon: <BrainCircuit size={17} />,
     match: hash => hash === '#/' || hash === '' || hash.startsWith('#/director')
   },
   {
     label: 'Script',
     hash: '#/agents/script',
-    icon: <FileText size={16} />,
+    icon: <FileText size={17} />,
     match: hash => hash.startsWith('#/agents/script')
   },
   {
-    label: 'Scene',
-    hash: '#/agents/scene',
-    icon: <Clapperboard size={16} />,
-    match: hash => hash.startsWith('#/agents/scene')
+    label: 'Voice',
+    hash: '#/agents/voice',
+    icon: <Mic2 size={17} />,
+    match: hash => hash.startsWith('#/agents/voice')
   },
   {
-    label: 'Spline',
-    hash: '#/agents/spline',
-    icon: <Box size={16} />,
-    match: hash => hash.startsWith('#/agents/spline') || hash.startsWith('#/spline-agent') || hash.startsWith('#/diagnostics')
-  },
-  {
-    label: 'Activity',
-    hash: '#/activity',
-    icon: <Activity size={16} />,
-    match: hash => hash.startsWith('#/activity')
-  },
-  {
-    label: 'Settings',
-    hash: '#/settings',
-    icon: <Settings size={16} />,
-    match: hash => hash.startsWith('#/settings')
+    label: 'Visual',
+    hash: '#/agents/visual',
+    icon: <Clapperboard size={17} />,
+    match: hash => hash.startsWith('#/agents/visual')
   }
 ];
 
 export function AppBottomNav({ currentHash }: { currentHash: string }) {
   return (
-    <nav className="media-os-bottom-nav" aria-label="Media OS navigation">
+    <nav className="media-os-bottom-nav" aria-label="MediaOS production navigation">
       {items.map(item => {
         const active = item.match(currentHash);
         return (
