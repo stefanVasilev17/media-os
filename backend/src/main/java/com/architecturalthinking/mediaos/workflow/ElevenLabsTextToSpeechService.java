@@ -84,6 +84,31 @@ public class ElevenLabsTextToSpeechService {
         return settings;
     }
 
+    private static double overrideDouble(Map<String, Object> overrides, String key, double fallback, double min, double max) {
+        if (overrides == null || !overrides.containsKey(key)) return fallback;
+        Object raw = overrides.get(key);
+        double value;
+        if (raw instanceof Number number) value = number.doubleValue();
+        else {
+            try {
+                value = Double.parseDouble(String.valueOf(raw));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException(key + " must be a decimal number.", ex);
+            }
+        }
+        if (!Double.isFinite(value) || value < min || value > max) {
+            throw new IllegalArgumentException(key + " must be between " + min + " and " + max + ".");
+        }
+        return value;
+    }
+
+    private static boolean overrideBoolean(Map<String, Object> overrides, String key, boolean fallback) {
+        if (overrides == null || !overrides.containsKey(key)) return fallback;
+        Object raw = overrides.get(key);
+        if (raw instanceof Boolean bool) return bool;
+        return Boolean.parseBoolean(String.valueOf(raw));
+    }
+
     private static double envDouble(String key, double fallback, double min, double max) {
         String raw = System.getenv().getOrDefault(key, "").trim();
         if (raw.isBlank()) return fallback;
@@ -104,19 +129,35 @@ public class ElevenLabsTextToSpeechService {
             String previousText,
             String nextText
     ) {
+        return generate(shotKey, text, previousText, nextText, Map.of());
+    }
+
+    public GenerationResult generate(
+            String shotKey,
+            String text,
+            String previousText,
+            String nextText,
+            Map<String, Object> overrides
+    ) {
         if (!apiConfigured()) throw new IllegalStateException("ELEVENLABS_API_KEY is not configured.");
         if (!StringUtils.hasText(voiceId)) throw new IllegalStateException("ELEVENLABS_VOICE_ID is not configured.");
         if (!StringUtils.hasText(text)) throw new IllegalArgumentException("Locked narration is required.");
+
+        double resolvedSpeed = overrideDouble(overrides, "speed", speed, 0.7, 1.2);
+        double resolvedStability = overrideDouble(overrides, "stability", stability, 0.0, 1.0);
+        double resolvedSimilarity = overrideDouble(overrides, "similarityBoost", similarityBoost, 0.0, 1.0);
+        double resolvedStyle = overrideDouble(overrides, "style", style, 0.0, 1.0);
+        boolean resolvedSpeakerBoost = overrideBoolean(overrides, "useSpeakerBoost", useSpeakerBoost);
 
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("text", text);
         request.put("model_id", modelId);
         Map<String, Object> voiceSettings = new LinkedHashMap<>();
-        voiceSettings.put("speed", speed);
-        voiceSettings.put("stability", stability);
-        voiceSettings.put("similarity_boost", similarityBoost);
-        voiceSettings.put("style", style);
-        voiceSettings.put("use_speaker_boost", useSpeakerBoost);
+        voiceSettings.put("speed", resolvedSpeed);
+        voiceSettings.put("stability", resolvedStability);
+        voiceSettings.put("similarity_boost", resolvedSimilarity);
+        voiceSettings.put("style", resolvedStyle);
+        voiceSettings.put("use_speaker_boost", resolvedSpeakerBoost);
         request.put("voice_settings", voiceSettings);
         if (StringUtils.hasText(previousText)) request.put("previous_text", previousText);
         if (StringUtils.hasText(nextText)) request.put("next_text", nextText);
