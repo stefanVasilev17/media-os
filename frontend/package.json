@@ -12,7 +12,6 @@
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "vite": "latest",
-    "vite-plugin-pwa": "latest",
     "typescript": "latest",
     "react": "latest",
     "react-dom": "latest",
