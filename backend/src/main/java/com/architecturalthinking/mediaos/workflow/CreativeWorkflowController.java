@@ -93,11 +93,6 @@ public class CreativeWorkflowController {
         UUID threadId = threadId(key);
         String creatorMessage = request.message().trim();
         productionMemory.preflight(memoryScope(key), key + "_REVISE");
-        productionMemory.rememberCorrection(
-                memoryScope(key),
-                creatorMessage,
-                ("SCRIPT".equals(key) ? "Script Agent" : "Legacy Scene Agent") + " creator correction"
-        );
         UUID creatorMessageId = insertMessage(threadId, "USER", creatorMessage);
 
         CreativeAgentClient.AgentReply reply;
@@ -112,6 +107,16 @@ public class CreativeWorkflowController {
         UUID revisionId = saveRevision(key, stageRow(key), reply, "CREATOR_REVIEW");
         String memoryType = inferMemoryType(creatorMessage, reply.memoryType());
         rememberIfUseful(key, creatorMessage, creatorMessageId, revisionId, memoryType, reply.memoryNote());
+        if ("CORRECTION".equals(memoryType) || "PREFERENCE".equals(memoryType)) {
+            String durable = reply.memoryNote() == null || reply.memoryNote().isBlank()
+                    ? creatorMessage
+                    : reply.memoryNote().trim();
+            productionMemory.rememberCorrection(
+                    memoryScope(key),
+                    durable,
+                    ("SCRIPT".equals(key) ? "Script Agent" : "Legacy Scene Agent") + " creator correction"
+            );
+        }
         return stageState(key);
     }
 
