@@ -45,14 +45,14 @@ jobs:
           cache: maven
       - run: mvn -B test
 
-  gpu-worker-preflight:
+  remotion-cpu-worker-preflight:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build production GPU worker image
-        run: docker build -f gpu-render-worker/Dockerfile -t media-os-gpu-worker:preflight .
-      - name: Run container preflight suite
-        run: docker run --rm --entrypoint /bin/bash media-os-gpu-worker:preflight -lc /app/ci-preflight.sh
+      - name: Build Remotion CPU worker image
+        run: docker build -f render-worker/Dockerfile.remotion -t media-os-remotion-cpu:preflight .
+      - name: Validate worker entrypoint
+        run: docker run --rm --entrypoint node media-os-remotion-cpu:preflight --check /app/remotion-engine/cpu-worker.mjs
 
   windows-worker:
     runs-on: windows-latest
