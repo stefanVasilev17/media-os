@@ -104,6 +104,7 @@ export const Root: React.FC = () => {
         schema={voiceSyncedShotSchema}
         defaultProps={{
           audioUrl: '',
+          audioClips: [],
           durationInFrames: SHOT01_DURATION_FRAMES,
           anchors: {},
         }}
@@ -118,6 +119,7 @@ export const Root: React.FC = () => {
         schema={voiceSyncedShotSchema}
         defaultProps={{
           audioUrl: '',
+          audioClips: [],
           durationInFrames: SHOT02_DURATION_FRAMES,
           anchors: {},
         }}

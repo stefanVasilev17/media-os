@@ -1,18 +1,45 @@
 import React from 'react';
-import {Freeze, Html5Audio, useCurrentFrame} from 'remotion';
+import {Freeze, Html5Audio, Sequence, useCurrentFrame} from 'remotion';
 import {z} from 'zod';
 import {PhoneFirstYoutubePreview} from './PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview} from './RequestAssemblyYoutubePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
 
+const voiceClipSchema = z.object({
+  src: z.string(),
+  fromFrame: z.number().int().nonnegative(),
+  durationInFrames: z.number().int().positive(),
+});
+
 export const voiceSyncedShotSchema = z.object({
-  audioUrl: z.string(),
+  audioUrl: z.string().default(''),
+  audioClips: z.array(voiceClipSchema).default([]),
   durationInFrames: z.number().int().positive(),
   anchors: z.record(z.string(), z.number()).default({}),
 });
 
 export type VoiceSyncedShotProps = z.infer<typeof voiceSyncedShotSchema>;
+
+const VoiceAudio: React.FC<Pick<VoiceSyncedShotProps, 'audioUrl' | 'audioClips'>> = ({audioUrl, audioClips}) => {
+  if (audioClips.length > 0) {
+    return (
+      <>
+        {audioClips.map((clip, index) => (
+          <Sequence
+            key={clip.src + '-' + index}
+            from={clip.fromFrame}
+            durationInFrames={clip.durationInFrames}
+            name={'Voice clip ' + (index + 1)}
+          >
+            <Html5Audio src={clip.src} />
+          </Sequence>
+        ))}
+      </>
+    );
+  }
+  return audioUrl ? <Html5Audio src={audioUrl} /> : null;
+};
 
 type AnchorPoint = {
   actual: number;
@@ -43,7 +70,7 @@ const actualFrame = (anchors: Record<string, number>, key: string, fallbackSecon
   return Math.round((Number.isFinite(seconds) ? seconds : fallbackSeconds) * fps);
 };
 
-export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, durationInFrames, anchors}) => {
+export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, audioClips, durationInFrames, anchors}) => {
   const frame = useCurrentFrame();
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
@@ -60,12 +87,12 @@ export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, dur
       <Freeze frame={canonicalFrame}>
         <PhoneFirstYoutubePreview showGuides={false} />
       </Freeze>
-      <Html5Audio src={audioUrl} />
+      <VoiceAudio audioUrl={audioUrl} audioClips={audioClips} />
     </>
   );
 };
 
-export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, durationInFrames, anchors}) => {
+export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, audioClips, durationInFrames, anchors}) => {
   const frame = useCurrentFrame();
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
@@ -82,7 +109,7 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, dur
       <Freeze frame={canonicalFrame}>
         <RequestAssemblyYoutubePreview showGuides={false} />
       </Freeze>
-      <Html5Audio src={audioUrl} />
+      <VoiceAudio audioUrl={audioUrl} audioClips={audioClips} />
     </>
   );
 };
