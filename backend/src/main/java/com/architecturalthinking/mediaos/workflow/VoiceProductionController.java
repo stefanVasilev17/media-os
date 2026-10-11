@@ -220,7 +220,8 @@ public class VoiceProductionController {
                 "configured", elevenLabsTts.configured(),
                 "voiceId", elevenLabsTts.voiceId(),
                 "modelId", elevenLabsTts.modelId(),
-                "outputFormat", elevenLabsTts.outputFormat()
+                "outputFormat", elevenLabsTts.outputFormat(),
+                "voiceSettings", elevenLabsTts.voiceSettings()
         );
     }
 
@@ -258,6 +259,7 @@ public class VoiceProductionController {
         generatedAlignment.put("provider", "ELEVENLABS_TTS_WITH_TIMESTAMPS");
         generatedAlignment.put("requestId", generated.requestId());
         generatedAlignment.put("outputFormat", generated.outputFormat());
+        generatedAlignment.put("voiceSettings", elevenLabsTts.voiceSettings());
 
         jdbc.sql("""
                 update voice_shot_workflow

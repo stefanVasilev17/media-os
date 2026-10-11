@@ -32,14 +32,26 @@ public class ElevenLabsTextToSpeechService {
     private final String voiceId;
     private final String modelId;
     private final String outputFormat;
+    private final double speed;
+    private final double stability;
+    private final double similarityBoost;
+    private final double style;
+    private final boolean useSpeakerBoost;
 
     public ElevenLabsTextToSpeechService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.restClient = RestClient.builder().build();
         this.apiKey = System.getenv().getOrDefault("ELEVENLABS_API_KEY", "").trim();
         this.voiceId = System.getenv().getOrDefault("ELEVENLABS_VOICE_ID", "").trim();
-        this.modelId = System.getenv().getOrDefault("ELEVENLABS_MODEL_ID", "eleven_v4").trim();
+        this.modelId = System.getenv().getOrDefault("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5").trim();
         this.outputFormat = System.getenv().getOrDefault("ELEVENLABS_OUTPUT_FORMAT", "mp3_44100_128").trim();
+        this.speed = envDouble("ELEVENLABS_SPEED", 0.90, 0.7, 1.2);
+        this.stability = envDouble("ELEVENLABS_STABILITY", 0.50, 0.0, 1.0);
+        this.similarityBoost = envDouble("ELEVENLABS_SIMILARITY_BOOST", 0.80, 0.0, 1.0);
+        this.style = envDouble("ELEVENLABS_STYLE", 0.0, 0.0, 1.0);
+        this.useSpeakerBoost = Boolean.parseBoolean(
+                System.getenv().getOrDefault("ELEVENLABS_USE_SPEAKER_BOOST", "true").trim()
+        );
     }
 
     public boolean apiConfigured() {
@@ -62,6 +74,30 @@ public class ElevenLabsTextToSpeechService {
         return outputFormat;
     }
 
+    public Map<String, Object> voiceSettings() {
+        Map<String, Object> settings = new LinkedHashMap<>();
+        settings.put("speed", speed);
+        settings.put("stability", stability);
+        settings.put("similarityBoost", similarityBoost);
+        settings.put("style", style);
+        settings.put("useSpeakerBoost", useSpeakerBoost);
+        return settings;
+    }
+
+    private static double envDouble(String key, double fallback, double min, double max) {
+        String raw = System.getenv().getOrDefault(key, "").trim();
+        if (raw.isBlank()) return fallback;
+        try {
+            double value = Double.parseDouble(raw);
+            if (!Double.isFinite(value) || value < min || value > max) {
+                throw new IllegalStateException(key + " must be between " + min + " and " + max + ".");
+            }
+            return value;
+        } catch (NumberFormatException ex) {
+            throw new IllegalStateException(key + " must be a valid decimal number.", ex);
+        }
+    }
+
     public GenerationResult generate(
             String shotKey,
             String text,
@@ -75,6 +111,13 @@ public class ElevenLabsTextToSpeechService {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("text", text);
         request.put("model_id", modelId);
+        Map<String, Object> voiceSettings = new LinkedHashMap<>();
+        voiceSettings.put("speed", speed);
+        voiceSettings.put("stability", stability);
+        voiceSettings.put("similarity_boost", similarityBoost);
+        voiceSettings.put("style", style);
+        voiceSettings.put("use_speaker_boost", useSpeakerBoost);
+        request.put("voice_settings", voiceSettings);
         if (StringUtils.hasText(previousText)) request.put("previous_text", previousText);
         if (StringUtils.hasText(nextText)) request.put("next_text", nextText);
 

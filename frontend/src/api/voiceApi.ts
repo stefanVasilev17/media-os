@@ -128,6 +128,13 @@ export type TtsProviderStatus = {
   voiceId: string;
   modelId: string;
   outputFormat: string;
+  voiceSettings: {
+    speed: number;
+    stability: number;
+    similarityBoost: number;
+    style: number;
+    useSpeakerBoost: boolean;
+  };
 };
 
 export function loadTtsProvider() {

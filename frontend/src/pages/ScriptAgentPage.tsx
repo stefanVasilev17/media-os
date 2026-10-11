@@ -586,6 +586,7 @@ function LockedScriptRecordingMode({ state }: { state: CreativeStageState<Script
                 <small>
                   {ttsProvider?.configured
                     ? ttsProvider.modelId + ' · ' + ttsProvider.outputFormat
+                      + ' · speed ' + ttsProvider.voiceSettings.speed.toFixed(2)
                     : 'Waiting for ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.'}
                 </small>
               </div>
