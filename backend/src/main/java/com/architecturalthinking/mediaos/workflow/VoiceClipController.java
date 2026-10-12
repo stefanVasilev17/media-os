@@ -227,6 +227,9 @@ public class VoiceClipController {
         assertLockedScriptRevision(request.scriptRevision());
         String key = normalizeClipKey(clipKey);
         Map<String, Object> clip = clipState(request.scriptRevision(), key);
+        if (Boolean.TRUE.equals(clip.get("approved"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This voice clip is LOCKED. Approved audio cannot be regenerated.");
+        }
         memory.preflight("VOICE", "GENERATE_CLIP");
         if (request.correction() != null && !request.correction().isBlank()) {
             memory.rememberCorrection("VOICE", request.correction().trim(), "Voice Agent · " + key);
