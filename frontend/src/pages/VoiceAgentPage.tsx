@@ -394,26 +394,21 @@ export function VoiceAgentPage() {
 
   const approvedInShot = shotClips.filter(clip => clip.approved).length;
   const shotReady = Boolean(currentShot && shotState[currentShot.key]?.visualSyncReady);
-  const totalApproved = clips.filter(clip => clip.approved).length;
-
   return (
-    <main className="production-page">
-      <header className="production-header">
+    <main className="production-page voice-agent-clean">
+      <header className="production-header voice-clean-header">
         <div>
           <span>{script.episode.episodeNumber} · VOICE AGENT</span>
           <h1>Voice Production</h1>
           <p>{script.episode.title}</p>
         </div>
-        <div className="memory-preflight-badge">{memory.length} MEMORY RULES LOADED</div>
+        <div className="voice-provider-status">
+          <span>{provider?.configured ? 'ElevenLabs v4 · READY' : 'TTS NOT READY'}</span>
+          <strong>{approvedInShot}/{shotClips.length || 0} approved</strong>
+        </div>
       </header>
 
       {error && <div className="production-error">{error}</div>}
-
-      <section className="production-summary">
-        <div><span>PROVIDER</span><strong>{provider?.configured ? 'ElevenLabs PVC · ' + provider.modelId : 'Not configured'}</strong></div>
-        <div><span>CLIP SOURCE</span><strong>{contract?.ready ? 'Imported HEAR / VOICE contract' : 'LOCKED Script fallback'}</strong></div>
-        <div><span>APPROVED CLIPS</span><strong>{totalApproved}/{clips.length}</strong></div>
-      </section>
 
       <div className="voice-shot-navigation">
         <nav className="production-shot-rail" aria-label="Active voice shots">
@@ -454,193 +449,220 @@ export function VoiceAgentPage() {
       </div>
 
       {currentShot ? (
-      <section className="voice-workspace">
-        <div className="voice-shot-context">
-          <div className="production-section-head">
-            <div>
-              <span>{currentShot.key} · {clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}</span>
-              <h2>{currentShot.title}</h2>
-            </div>
-            <strong className={shotReady ? 'status-ready' : ''}>{isCurrentShotLocked ? 'LOCKED · READ ONLY' : shotReady ? 'SHOT VOICE READY' : approvedInShot + '/' + shotClips.length + ' clips approved'}</strong>
-          </div>
-
-          <div className="voice-clip-tabs">
-            {shotClips.map((clip, index) => (
-              <button
-                type="button"
-                key={clip.clipKey}
-                className={(index === clipIndex ? 'active ' : '') + (clip.approved ? 'done' : '')}
-                onClick={() => setClipIndex(index)}
-              >
-                Clip {index + 1} · {clock(clip.startSecond)}–{clock(clip.endSecond)}
-                {clip.approved && <Check size={12} />}
-              </button>
-            ))}
-          </div>
-
-          {currentClip && (
-            <article className="voice-clip-editor">
-              <div className="voice-clip-script">
-                <span>LOCKED NARRATION</span>
-                <p>{currentClip.narration}</p>
+        <section className="voice-workspace voice-workspace-clean">
+          <div className="voice-shot-context">
+            <div className="production-section-head voice-clean-shot-head">
+              <div>
+                <span>{currentShot.key} · {clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}</span>
+                <h2>{currentShot.title}</h2>
               </div>
-              <section className="voice-performance-card">
-                <div className="voice-performance-head">
-                  <div>
-                    <span><SlidersHorizontal size={14} /> V4 VOICE PERFORMANCE</span>
-                    <strong>Natural-language direction + minimal fine-tuning</strong>
-                  </div>
-                  <div className="voice-preset-actions">
-                    <button type="button" disabled={isCurrentShotLocked || currentClip.approved} onClick={() => applyV4Preset()}>Architectural Thinking</button>
-                  </div>
-                </div>
+              <strong className={shotReady ? 'status-ready' : ''}>
+                {isCurrentShotLocked ? 'LOCKED' : shotReady ? 'VOICE READY' : approvedInShot + '/' + shotClips.length + ' APPROVED'}
+              </strong>
+            </div>
 
-                <div className="voice-clip-direction">
-                  <span>PRODUCTION CONTRACT · VOICE / INTONATION</span>
-                  <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
-                </div>
+            <div className="voice-clip-tabs">
+              {shotClips.map((clip, index) => (
+                <button
+                  type="button"
+                  key={clip.clipKey}
+                  className={(index === clipIndex ? 'active ' : '') + (clip.approved ? 'done' : '')}
+                  onClick={() => setClipIndex(index)}
+                >
+                  Clip {index + 1}
+                  {clip.approved && <Check size={12} />}
+                </button>
+              ))}
+            </div>
 
-                <div className="voice-performance-prompt">
-                  <label htmlFor="voice-performance-direction">V4 PERFORMANCE DIRECTION <small>production-safe Audio Tag</small></label>
+            {currentClip && (
+              <article className="voice-clip-editor voice-clip-editor-clean">
+                <div className="voice-narration-editor">
+                  <div className="voice-narration-head">
+                    <label htmlFor="voice-narration">WHAT ELEVENLABS WILL SAY</label>
+                    <span>
+                      {currentClip.approved
+                        ? 'LOCKED'
+                        : narrationText.trim() !== currentClip.narration.trim() || currentClip.narrationOverridden
+                          ? 'DIRECTOR EDIT'
+                          : 'EDITABLE'}
+                    </span>
+                  </div>
                   <textarea
-                    id="voice-performance-direction"
-                    value={performanceDirection}
+                    id="voice-narration"
+                    value={narrationText}
                     disabled={isCurrentShotLocked || currentClip.approved}
-                    onChange={event => {
-                      const value = event.target.value;
-                      setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: value }));
-                    }}
-                    rows={3}
+                    onChange={event => setNarrationByClip(current => ({
+                      ...current,
+                      [currentClip.clipKey]: event.target.value
+                    }))}
+                    rows={5}
+                    spellCheck
                   />
-                  {performanceDirection.trim() !== AT_V4_DIRECTION && (
-                    <small>Generation is blocked until this direction matches the tested production-safe tag: {AT_V4_DIRECTION}</small>
+                  {!currentClip.approved && (
+                    <small>Edit freely. MediaOS saves this text when you Generate and sends exactly this narration to ElevenLabs.</small>
                   )}
                 </div>
 
-                <div className="voice-slider-grid voice-slider-grid-v4">
-                  {[
-                    ['Stability', 'stability', 0, 1, 0.01],
-                    ['Similarity', 'similarityBoost', 0, 1, 0.01]
-                  ].map(([label, key, min, max, step]) => (
-                    <label key={String(key)}>
-                      <span>{String(label)} <strong>{Number(settings[key as keyof VoiceSettings]).toFixed(2)}</strong></span>
-                      <input
-                        type="range"
-                        min={Number(min)}
-                        max={Number(max)}
-                        step={Number(step)}
-                        value={Number(settings[key as keyof VoiceSettings])}
+                <div className="voice-primary-actions voice-primary-actions-clean">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || !provider?.configured || currentClip.approved || isCurrentShotLocked || !narrationText.trim()}
+                    onClick={() => void generate()}
+                  >
+                    {busy ? <LoaderCircle className="spin" size={15} /> : currentClip.generated ? <RotateCcw size={15} /> : <Mic2 size={15} />}
+                    {currentClip.generated ? 'Regenerate' : 'Generate'}
+                  </button>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={busy || !currentClip.generated || currentClip.approved}
+                    onClick={() => void approve()}
+                  >
+                    <Check size={15} /> {currentClip.approved ? 'Approved' : 'Approve'}
+                  </button>
+                </div>
+
+                {currentClip.generated && (
+                  <audio
+                    key={currentClip.clipKey + '-' + currentClip.generationRevision}
+                    controls
+                    preload="metadata"
+                    src={voiceClipAudioUrl(currentClip.clipKey, script.revision, currentClip.generationRevision)}
+                    onLoadedMetadata={event => {
+                      const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
+                      if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
+                        event.currentTarget.currentTime = trimStart;
+                      }
+                    }}
+                    onPlay={event => {
+                      const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
+                      if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
+                        event.currentTarget.currentTime = trimStart;
+                      }
+                    }}
+                    onTimeUpdate={event => {
+                      const playbackEnd = Math.max(currentClip.leadingTrimSeconds || 0, currentClip.playbackEndSeconds || 0);
+                      if (playbackEnd > 0 && event.currentTarget.currentTime >= playbackEnd) {
+                        event.currentTarget.pause();
+                      }
+                    }}
+                  />
+                )}
+
+                {!isCurrentShotLocked && currentClip && hasEarlierVoiceClip && (
+                  <section className="voice-continuity-preview voice-continuity-compact">
+                    <div className="voice-continuity-copy">
+                      <span>CONTINUITY PREVIEW · ZERO CREDITS</span>
+                      <strong>
+                        {currentReviewClip
+                          ? 'Full locked history → current review'
+                          : 'Generate this clip to review it in context'}
+                      </strong>
+                    </div>
+                    <div className="voice-continuity-actions">
+                      <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
+                      <button
+                        type="button"
+                        disabled={!currentReviewClip || lockedHistoryClips.length === 0 || continuityClips.length < 2}
+                        onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
+                      >
+                        {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
+                        {continuityPlaying ? 'Stop' : 'Play continuity'}
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                <details className="voice-advanced">
+                  <summary>
+                    <span><SlidersHorizontal size={14} /> Advanced voice settings</span>
+                    <small>0.50 stability · 0.80 similarity · safe v4 tag</small>
+                  </summary>
+                  <div className="voice-advanced-body">
+                    <div className="voice-safe-tag">
+                      <span>PERFORMANCE TAG</span>
+                      <code>[{AT_V4_DIRECTION}]</code>
+                    </div>
+
+                    <div className="voice-slider-grid voice-slider-grid-v4">
+                      {[
+                        ['Stability', 'stability', 0, 1, 0.01],
+                        ['Similarity', 'similarityBoost', 0, 1, 0.01]
+                      ].map(([label, key, min, max, step]) => (
+                        <label key={String(key)}>
+                          <span>{String(label)} <strong>{Number(settings[key as keyof VoiceSettings]).toFixed(2)}</strong></span>
+                          <input
+                            type="range"
+                            min={Number(min)}
+                            max={Number(max)}
+                            step={Number(step)}
+                            value={Number(settings[key as keyof VoiceSettings])}
+                            disabled={isCurrentShotLocked || currentClip.approved}
+                            onChange={event => updateVoiceSetting(key as keyof VoiceSettings, Number(event.target.value) as VoiceSettings[keyof VoiceSettings])}
+                          />
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="voice-advanced-row">
+                      <div>
+                        <span>CONTRACT VOICE NOTE</span>
+                        <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
+                      </div>
+                      <button
+                        type="button"
                         disabled={isCurrentShotLocked || currentClip.approved}
-                        onChange={event => updateVoiceSetting(key as keyof VoiceSettings, Number(event.target.value) as VoiceSettings[keyof VoiceSettings])}
+                        onClick={() => applyV4Preset()}
+                      >
+                        Reset safe preset
+                      </button>
+                    </div>
+
+                    <div className="voice-elevenlabs-preview voice-elevenlabs-preview-compact">
+                      <div className="voice-elevenlabs-preview-head">
+                        <span>EXACT API TEXT</span>
+                        <strong>{provider?.modelId || 'TTS model'}</strong>
+                      </div>
+                      <pre>{exactTtsText}</pre>
+                    </div>
+
+                    <div className="voice-correction">
+                      <label htmlFor="voice-correction">Regeneration note <small>optional · remembered</small></label>
+                      <textarea
+                        id="voice-correction"
+                        value={correction}
+                        disabled={isCurrentShotLocked || currentClip.approved}
+                        onChange={event => setCorrection(event.target.value)}
+                        placeholder="Example: more space before the final phrase"
+                        rows={2}
                       />
-                    </label>
-                  ))}
-                </div>
-                <small className="voice-settings-note">LOCKED narration remains untouched. Production Contract voice notes are reference only; MediaOS never sends them raw to ElevenLabs.</small>
-              </section>
-
-              <section className="voice-elevenlabs-preview">
-                <div className="voice-elevenlabs-preview-head">
-                  <span>EXACT ELEVENLABS TEXT</span>
-                  <strong>{provider?.modelId || 'TTS model'}</strong>
-                </div>
-                <pre>{exactTtsText}</pre>
-                <small>This is the exact <code>text</code> value MediaOS will send for this clip. Previous/next clip context is sent separately and is not part of the spoken script.</small>
-              </section>
-
-              {currentClip.generated && (
-                <audio
-                  key={currentClip.clipKey + '-' + currentClip.generationRevision}
-                  controls
-                  preload="metadata"
-                  src={voiceClipAudioUrl(currentClip.clipKey, script.revision, currentClip.generationRevision)}
-                  onLoadedMetadata={event => {
-                    const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
-                    if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
-                      event.currentTarget.currentTime = trimStart;
-                    }
-                  }}
-                  onPlay={event => {
-                    const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
-                    if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
-                      event.currentTarget.currentTime = trimStart;
-                    }
-                  }}
-                  onTimeUpdate={event => {
-                    const playbackEnd = Math.max(currentClip.leadingTrimSeconds || 0, currentClip.playbackEndSeconds || 0);
-                    if (playbackEnd > 0 && event.currentTarget.currentTime >= playbackEnd) {
-                      event.currentTarget.pause();
-                    }
-                  }}
-                />
-              )}
-
-              {!isCurrentShotLocked && currentClip && hasEarlierVoiceClip && (
-                <section className="voice-continuity-preview">
-                  <div className="voice-continuity-copy">
-                    <span>VOICE CONTINUITY · ZERO CREDITS</span>
-                    <strong>{lockedHistoryClips.length > 0 ? lockedHistoryClips.length + ' LOCKED CLIPS · FULL HISTORY' : 'Locked voice history'} → {currentReviewClip ? currentReviewClip.clipKey + ' · CURRENT · REVIEW' : currentClip.clipKey + ' · CURRENT · NOT GENERATED'}</strong>
-                    <p>{lockedHistoryClips.length > 0
-                      ? 'Plays the complete LOCKED voice history in chronological order, then the CURRENT generated but still UNLOCKED voice you are reviewing. This lets you hear cumulative tone continuity from the beginning up to the exact approval point. Long non-speech pre-roll and trailing non-speech after the final spoken word are skipped automatically from ElevenLabs alignment.'
-                      : 'No earlier LOCKED generated voice clip is available yet. Approve the previous clip first and this comparison becomes available automatically.'}</p>
+                    </div>
                   </div>
-                  <div className="voice-continuity-actions">
-                    <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
-                    <button
-                      type="button"
-                      disabled={!currentReviewClip || lockedHistoryClips.length === 0 || continuityClips.length < 2}
-                      onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
-                    >
-                      {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
-                      {continuityPlaying ? 'Stop Preview' : 'Preview Full Locked History + Current'}
-                    </button>
-                  </div>
-                </section>
-              )}
-
-              <div className="voice-correction">
-                <label htmlFor="voice-correction">Correction to remember on regenerate <small>optional</small></label>
-                <textarea
-                  id="voice-correction"
-                  value={correction}
-                  disabled={isCurrentShotLocked || currentClip.approved}
-                  onChange={event => setCorrection(event.target.value)}
-                  placeholder="Example: Leave a longer pause before the Aha line. This becomes a durable Voice memory rule."
-                  rows={3}
-                />
-              </div>
-
-              <div className="voice-primary-actions">
-                <button type="button" className="secondary" disabled={busy || !provider?.configured || currentClip.approved || isCurrentShotLocked} onClick={() => void generate()}>
-                  {busy ? <LoaderCircle className="spin" size={15} /> : currentClip.generated ? <RotateCcw size={15} /> : <Mic2 size={15} />}
-                  {currentClip.generated ? 'Regenerate Clip' : 'Generate Clip'}
-                </button>
-                <button type="button" className="primary" disabled={busy || !currentClip.generated || currentClip.approved} onClick={() => void approve()}>
-                  <Check size={15} /> {currentClip.approved ? 'Approved' : 'Approve Clip'}
-                </button>
-              </div>
-            </article>
-          )}
-        </div>
-      </section>
+                </details>
+              </article>
+            )}
+          </div>
+        </section>
       ) : (
         <section className="voice-workspace voice-production-complete">
           <Check size={22} />
           <strong>All voice shots are LOCKED.</strong>
-          <p>Approved shots are available from the Locked shots menu for read-only review.</p>
         </section>
       )}
 
-      <section className="production-next">
-        <div>
-          <span>VOICE → VISUAL</span>
-          <strong>{currentShot ? (shotReady ? currentShot.key + ' has approved timing and semantic anchors.' : 'Approve every clip in the shot first.') : 'All voice shots are approved and locked.'}</strong>
-          <p>Visual Agent uses the aggregated clip timing; it never asks you to manually place timestamps.</p>
-        </div>
-        <button type="button" disabled={!shotState['SHOT 01']?.visualSyncReady} onClick={() => { window.location.hash = '#/agents/visual'; }}>
-          Continue to Visual Agent <ChevronRight size={16} />
-        </button>
-      </section>
+      {shotReady && (
+        <section className="production-next voice-next-compact">
+          <div>
+            <span>VOICE READY</span>
+            <strong>{currentShot?.key} has approved timing and semantic anchors.</strong>
+          </div>
+          <button type="button" onClick={() => { window.location.hash = '#/agents/visual'; }}>
+            Continue to Visual Agent <ChevronRight size={16} />
+          </button>
+        </section>
+      )}
 
       {currentShot && !isCurrentShotLocked && (
         <div className="production-prev-next">
