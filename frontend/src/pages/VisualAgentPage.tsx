@@ -21,7 +21,7 @@ import {
   type RemotionRenderState,
   type VoiceShotState
 } from '../api/voiceApi';
-import { loadVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
+import { loadVoiceClips, syncVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
 import {
   loadVisualState,
   runVisualPostQa,
@@ -193,6 +193,7 @@ export function VisualAgentPage() {
         setScript(scriptState);
         setMemory(rules);
         setContract(productionContract);
+        await syncVoiceClips(scriptState.revision, buildVoiceShotBundles(scriptState.artifact));
         const nextVisual = await refresh(scriptState.revision);
         if (!active) return;
         const firstPending = nextVisual.shots.findIndex(shot => shot.qaStatus !== 'PASS');
