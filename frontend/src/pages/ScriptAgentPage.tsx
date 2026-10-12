@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, FileJson2, LockKeyhole, LoaderCircle, Upload } from 'lucide-react';
+import { ArrowRight, Download, FileJson2, LockKeyhole, LoaderCircle, Upload } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   importProductionContract,
@@ -35,6 +35,26 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
       .catch(() => { if (active) setContract(null); });
     return () => { active = false; };
   }, []);
+
+  async function downloadTemplate() {
+    setError('');
+    try {
+      const response = await fetch('/api/v1/production-contract/template', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Could not export the exact LOCKED Script template.');
+      const payload = await response.json();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = state.episode.episodeNumber + '_MediaOS_Production_Contract_TEMPLATE.json';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not export contract template.');
+    }
+  }
 
   async function handleImport(file?: File) {
     if (!file || importing) return;
@@ -91,10 +111,15 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           hidden
           onChange={event => void handleImport(event.target.files?.[0])}
         />
-        <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
-          {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
-          {contract?.ready ? 'Replace Contract' : 'Import Contract'}
-        </button>
+        <div className="contract-import-actions">
+          <button type="button" className="secondary" disabled={importing} onClick={() => void downloadTemplate()}>
+            <Download size={15} /> Exact Template
+          </button>
+          <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
+            {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
+            {contract?.ready ? 'Replace Contract' : 'Import Contract'}
+          </button>
+        </div>
       </section>
 
       <section className="script-contract">

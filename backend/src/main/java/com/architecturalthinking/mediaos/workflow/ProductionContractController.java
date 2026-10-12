@@ -105,6 +105,55 @@ public class ProductionContractController {
                 .orElseGet(() -> Map.of("ready", false, "schemaVersion", SCHEMA_VERSION));
     }
 
+    @GetMapping("/template")
+    public Map<String, Object> template() {
+        Map<String, Object> episode = overview.episode();
+        Map<String, Object> script = lockedScript();
+        int revision = ((Number) script.get("revision")).intValue();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> artifact = (Map<String, Object>) script.get("artifact");
+        List<Map<String, Object>> scriptTimeline = mapList(artifact.get("timeline"));
+
+        List<Map<String, Object>> timeline = new ArrayList<>();
+        Map<String, Integer> clipCounters = new LinkedHashMap<>();
+        for (int index = 0; index < scriptTimeline.size(); index++) {
+            Map<String, Object> item = scriptTimeline.get(index);
+            int start = number(item.get("startSecond"));
+            int end = number(item.get("endSecond"));
+            String shotKey = shotKeyForSecond(start);
+            int clipNo = clipCounters.merge(shotKey, 1, Integer::sum);
+
+            Map<String, Object> visual = new LinkedHashMap<>();
+            visual.put("summary", "FILL_IN_CHATGPT");
+            visual.put("objects", List.of());
+            visual.put("camera", "FILL_IN_CHATGPT");
+            visual.put("attentionCue", "");
+            visual.put("semanticAnchors", List.of());
+            visual.put("effects", List.of());
+            visual.put("notes", "");
+
+            Map<String, Object> segment = new LinkedHashMap<>();
+            segment.put("segmentId", "SEG-" + String.format(Locale.ROOT, "%03d", index + 1));
+            segment.put("shotKey", shotKey);
+            segment.put("clipKey", shotKey + "-C" + String.format(Locale.ROOT, "%02d", clipNo));
+            segment.put("startSecond", start);
+            segment.put("endSecond", end);
+            segment.put("hear", String.valueOf(item.getOrDefault("narration", "")));
+            segment.put("voiceDirection", String.valueOf(item.getOrDefault("voiceDirection", "")));
+            segment.put("visual", visual);
+            timeline.add(segment);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("schemaVersion", SCHEMA_VERSION);
+        result.put("episodeNumber", episode.get("episodeNumber"));
+        result.put("title", episode.get("title"));
+        result.put("scriptRevision", revision);
+        result.put("source", "CHATGPT_IMPORT");
+        result.put("timeline", timeline);
+        return result;
+    }
+
     @PostMapping("/import")
     public Map<String, Object> importContract(@Valid @RequestBody ImportRequest request) {
         Map<String, Object> episode = overview.episode();
@@ -273,6 +322,14 @@ public class ProductionContractController {
             }
             expectedStart = segment.endSecond();
         }
+    }
+
+    private String shotKeyForSecond(int second) {
+        int[] starts = {0,31,105,158,225,305,385,470,560,655,770,850,945,1020,1100,1155};
+        for (int i = starts.length - 1; i >= 0; i--) {
+            if (second >= starts[i]) return "SHOT " + String.format(Locale.ROOT, "%02d", i + 1);
+        }
+        return "SHOT 01";
     }
 
     private int number(Object value) {
