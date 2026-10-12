@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -154,6 +155,7 @@ public class ProductionContractController {
         return result;
     }
 
+    @Transactional
     @PostMapping("/import")
     public Map<String, Object> importContract(@Valid @RequestBody ImportRequest request) {
         Map<String, Object> episode = overview.episode();
