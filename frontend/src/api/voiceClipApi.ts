@@ -38,11 +38,8 @@ export type VoiceClipState = {
 };
 
 export type VoiceSettings = {
-  speed: number;
   stability: number;
   similarityBoost: number;
-  style: number;
-  useSpeakerBoost: boolean;
 };
 
 export function syncVoiceClips(scriptRevision: number, shots: VoiceShotBundle[]) {
@@ -75,6 +72,7 @@ export function generateVoiceClip(
     previousText?: string;
     nextText?: string;
     voiceSettings: VoiceSettings;
+    performanceDirection?: string;
     correction?: string;
   }
 ) {
