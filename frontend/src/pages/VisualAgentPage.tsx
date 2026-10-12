@@ -8,7 +8,11 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
-import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
+import {
+  loadProductionContract,
+  type ProductionContractSegment,
+  type ProductionContractState
+} from '../api/productionContractApi';
 import {
   loadRemotionRender,
   loadVoiceShots,
@@ -33,6 +37,82 @@ import '../styles/productionFlow.css';
 function anchorsOf(row?: VoiceShotState) {
   const alignment = row?.alignment as { anchors?: Record<string, number> } | undefined;
   return alignment?.anchors || {};
+}
+
+
+const VISUAL_FPS = 30;
+
+type ContractPacingWindow = {
+  clip: VoiceClipState;
+  rawStart: number;
+  rawEnd: number;
+  plannedStart: number;
+  plannedEnd: number;
+};
+
+function buildShot01ComprehensionPacing(
+  shotStartSecond: number,
+  shotEndSecond: number,
+  clips: VoiceClipState[],
+  segments: ProductionContractSegment[],
+  rawAnchors: Record<string, number>
+) {
+  if (clips.length === 0 || segments.length === 0) return null;
+
+  const segmentByClip = new Map(segments.map(segment => [segment.clipKey, segment]));
+  let rawCursor = 0;
+  const windows: ContractPacingWindow[] = [];
+
+  for (const clip of clips) {
+    const segment = segmentByClip.get(clip.clipKey);
+    if (!segment || clip.durationSeconds <= 0) return null;
+
+    const plannedStart = Math.max(0, segment.startSecond - shotStartSecond);
+    const plannedEnd = Math.max(plannedStart, segment.endSecond - shotStartSecond);
+    if (plannedStart + clip.durationSeconds > plannedEnd + 0.2) return null;
+
+    windows.push({
+      clip,
+      rawStart: rawCursor,
+      rawEnd: rawCursor + clip.durationSeconds,
+      plannedStart,
+      plannedEnd
+    });
+    rawCursor += clip.durationSeconds;
+  }
+
+  const pacedAnchors = Object.fromEntries(
+    Object.entries(rawAnchors).map(([key, rawSeconds]) => {
+      if (!Number.isFinite(rawSeconds)) return [key, rawSeconds];
+      const window = windows.find((item, index) =>
+        rawSeconds <= item.rawEnd + 0.02 || index === windows.length - 1
+      ) || windows[windows.length - 1];
+      const localSeconds = Math.max(0, Math.min(window.clip.durationSeconds, rawSeconds - window.rawStart));
+      return [key, window.plannedStart + localSeconds];
+    })
+  );
+
+  const comprehensionHolds = windows.slice(0, -1).flatMap((window, index) => {
+    const next = windows[index + 1];
+    const gapStart = window.plannedStart + window.clip.durationSeconds;
+    const gapEnd = next.plannedStart;
+    if (gapEnd - gapStart < 0.45) return [];
+
+    const transitionBuffer = Math.min(0.4, (gapEnd - gapStart) * 0.2);
+    const canonicalSecond = Math.max(0, next.plannedStart - transitionBuffer);
+    return [{
+      fromFrame: Math.max(0, Math.ceil(gapStart * VISUAL_FPS)),
+      toFrame: Math.max(0, Math.floor(gapEnd * VISUAL_FPS)),
+      canonicalFrame: Math.max(0, Math.round(canonicalSecond * VISUAL_FPS))
+    }];
+  });
+
+  return {
+    windows,
+    pacedAnchors,
+    comprehensionHolds,
+    durationInFrames: Math.max(1, Math.round((shotEndSecond - shotStartSecond) * VISUAL_FPS))
+  };
 }
 
 function formatTimecode(seconds: number) {
@@ -199,20 +279,44 @@ export function VisualAgentPage() {
         .sort((a, b) => a.sequence - b.sequence);
       if (related.length === 0) throw new Error('Approved voice clips are missing for this shot.');
 
-      let cursor = 0;
-      const audioClips = related.map(clip => {
-        const fromFrame = Math.round(cursor * 30);
-        const durationInFrames = Math.max(1, Math.ceil(clip.durationSeconds * 30));
-        cursor += clip.durationSeconds;
-        return {
-          src: window.location.origin + voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision),
-          fromFrame,
-          durationInFrames,
-          trimBeforeFrames: Math.max(0, Math.round((clip.leadingTrimSeconds || 0) * 30))
-        };
-      });
+      const rawAnchors = anchorsOf(voiceShot);
+      const pacing = currentShot.key === 'SHOT 01'
+        ? buildShot01ComprehensionPacing(
+            currentShot.startSecond,
+            currentShot.endSecond,
+            related,
+            contractSegments,
+            rawAnchors
+          )
+        : null;
 
-      const durationInFrames = Math.max(1, Math.ceil(cursor * 30));
+      let cursor = 0;
+      const audioClips = pacing
+        ? pacing.windows.map(item => ({
+            src: window.location.origin + voiceClipAudioUrl(
+              item.clip.clipKey,
+              script.revision,
+              item.clip.generationRevision
+            ),
+            fromFrame: Math.round(item.plannedStart * VISUAL_FPS),
+            durationInFrames: Math.max(1, Math.ceil(item.clip.durationSeconds * VISUAL_FPS)),
+            trimBeforeFrames: Math.max(0, Math.round((item.clip.leadingTrimSeconds || 0) * VISUAL_FPS))
+          }))
+        : related.map(clip => {
+            const fromFrame = Math.round(cursor * VISUAL_FPS);
+            const durationInFrames = Math.max(1, Math.ceil(clip.durationSeconds * VISUAL_FPS));
+            cursor += clip.durationSeconds;
+            return {
+              src: window.location.origin + voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision),
+              fromFrame,
+              durationInFrames,
+              trimBeforeFrames: Math.max(0, Math.round((clip.leadingTrimSeconds || 0) * VISUAL_FPS))
+            };
+          });
+
+      const durationInFrames = pacing
+        ? pacing.durationInFrames
+        : Math.max(1, Math.ceil(cursor * VISUAL_FPS));
       const render = await startRemotionRender(gate.compositionId, {
         shotKey: currentShot.key,
         scriptRevision: script.revision,
@@ -220,7 +324,8 @@ export function VisualAgentPage() {
         audioUrl: '',
         audioClips,
         durationInFrames,
-        anchors: anchorsOf(voiceShot),
+        anchors: pacing?.pacedAnchors || rawAnchors,
+        comprehensionHolds: pacing?.comprehensionHolds || [],
         visualContract: contractSegments
       }, 'REVIEW');
       setActiveRender(render);
