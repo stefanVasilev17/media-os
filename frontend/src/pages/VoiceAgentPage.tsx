@@ -13,7 +13,6 @@ import {
   type VoiceClipState,
   type VoiceSettings
 } from '../api/voiceClipApi';
-import { loadProductionMemory, type ProductionMemoryRule } from '../api/productionMemoryApi';
 import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
@@ -66,7 +65,6 @@ export function VoiceAgentPage() {
   const [shotState, setShotState] = useState<Record<string, VoiceShotState>>({});
   const [provider, setProvider] = useState<TtsProviderStatus | null>(null);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
-  const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
   const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
@@ -154,17 +152,15 @@ export function VoiceAgentPage() {
     let active = true;
     (async () => {
       try {
-        const [scriptState, tts, rules, productionContract] = await Promise.all([
+        const [scriptState, tts, productionContract] = await Promise.all([
           loadCreativeStage<ScriptArtifact>('SCRIPT'),
           loadTtsProvider(),
-          loadProductionMemory('VOICE'),
           loadProductionContract()
         ]);
         if (!active) return;
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Voice Agent.');
         setScript(scriptState);
         setProvider(tts);
-        setMemory(rules);
         setContract(productionContract);
         const bundles = productionContract.ready && productionContract.payload
           ? buildVoiceShotBundlesFromContract(productionContract.payload)
