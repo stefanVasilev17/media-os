@@ -102,25 +102,22 @@ export function VoiceAgentPage() {
     [clips, currentShot?.key]
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
-  const previousReferenceClips = useMemo(() => {
-    if (!currentShot) return [];
-    const previousGenerated = clips
-      .filter(clip => clip.generated && clip.startSecond < currentShot.startSecond)
-      .sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence);
-    const lastPrevious = previousGenerated.at(-1);
-    if (!lastPrevious) return [];
-    return previousGenerated.filter(clip => clip.shotKey === lastPrevious.shotKey);
-  }, [clips, currentShot]);
-  const previousReferenceShotKey = previousReferenceClips.at(-1)?.shotKey;
-  const previousReferenceLocked = previousReferenceClips.length > 0 && previousReferenceClips.every(clip => clip.approved);
+  const previousLockedClip = useMemo(() => {
+    if (!currentClip) return undefined;
+    return [...clips]
+      .filter(clip =>
+        clip.generated &&
+        clip.approved &&
+        clip.clipKey !== currentClip.clipKey &&
+        (clip.startSecond < currentClip.startSecond ||
+          (clip.startSecond === currentClip.startSecond && clip.sequence < currentClip.sequence))
+      )
+      .sort((a, b) => b.startSecond - a.startSecond || b.sequence - a.sequence)[0];
+  }, [clips, currentClip]);
   const continuityClips = useMemo(() => {
-    if (!currentClip || previousReferenceClips.length === 0) return [];
-    const currentPosition = shotClips.findIndex(clip => clip.clipKey === currentClip.clipKey);
-    const current = shotClips
-      .slice(0, Math.max(0, currentPosition) + 1)
-      .filter(clip => clip.generated);
-    return [...previousReferenceClips, ...current];
-  }, [currentClip, previousReferenceClips, shotClips]);
+    if (!currentClip?.generated || !previousLockedClip) return [];
+    return [previousLockedClip, currentClip];
+  }, [currentClip, previousLockedClip]);
   const continuityDuration = continuityClips.reduce((total, clip) => total + Math.max(0, clip.durationSeconds || 0), 0);
   const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
   const settings = currentClip
@@ -488,24 +485,24 @@ export function VoiceAgentPage() {
                 />
               )}
 
-              {!isCurrentShotLocked && shotIndex > 0 && (
+              {!isCurrentShotLocked && currentClip && currentClip.sequence > 0 && (
                 <section className="voice-continuity-preview">
                   <div className="voice-continuity-copy">
-                    <span>CONTINUITY PREVIEW · ZERO CREDITS</span>
-                    <strong>{previousReferenceShotKey || 'Previous audio'} → {currentShot.key}</strong>
-                    <p>{previousReferenceClips.length > 0
-                      ? 'Plays the immediately preceding generated shot, then every generated clip in this shot up to the clip you are reviewing. Previous audio status: ' + (previousReferenceLocked ? 'LOCKED' : 'generated reference') + '.'
-                      : 'No previous generated audio was found on the timeline. This preview will activate automatically as soon as previous audio exists.'}</p>
+                    <span>VOICE CONTINUITY · ZERO CREDITS</span>
+                    <strong>{previousLockedClip ? previousLockedClip.shotKey + ' · previous locked clip' : 'Previous locked voice'} → {currentClip.shotKey} · current clip</strong>
+                    <p>{previousLockedClip
+                      ? 'Plays the immediately preceding LOCKED voice clip and then the current generated clip so you can hear changes in tone, pace, energy, and delivery at the exact transition.'
+                      : 'No earlier LOCKED generated voice clip is available yet. Approve the previous clip first and this comparison becomes available automatically.'}</p>
                   </div>
                   <div className="voice-continuity-actions">
                     <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
                     <button
                       type="button"
-                      disabled={!currentClip.generated || previousReferenceClips.length === 0 || continuityClips.length === 0}
+                      disabled={!currentClip.generated || !previousLockedClip || continuityClips.length < 2}
                       onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
                     >
                       {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
-                      {continuityPlaying ? 'Stop Preview' : 'Play Continuity'}
+                      {continuityPlaying ? 'Stop Preview' : 'Play with Previous'}
                     </button>
                   </div>
                 </section>
