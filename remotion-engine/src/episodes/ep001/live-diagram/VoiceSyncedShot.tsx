@@ -95,8 +95,14 @@ export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({
     {actual: actualFrame(anchors, 'PRESS_LOGIN', 5.45, SHOT01_FPS), canonical: Math.round(5.45 * SHOT01_FPS)},
     ...holdPoints,
     {actual: actualFrame(anchors, 'LOGIN_INTENT', 7, SHOT01_FPS), canonical: Math.round(7 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'VALIDATE', 10.3, SHOT01_FPS), canonical: Math.round(10.3 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'SUBMIT', 13.3, SHOT01_FPS), canonical: Math.round(13.3 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'CREDENTIAL_INPUT', 17, SHOT01_FPS), canonical: Math.round(17 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'IDENTIFIER', 19.1, SHOT01_FPS), canonical: Math.round(19.1 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'SECRET', 21.6, SHOT01_FPS), canonical: Math.round(21.6 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'LOCAL_UI_STATE', 24, SHOT01_FPS), canonical: Math.round(24 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'SUBMITTING', 26.1, SHOT01_FPS), canonical: Math.round(26.1 * SHOT01_FPS)},
+    {actual: actualFrame(anchors, 'WAITING', 28.7, SHOT01_FPS), canonical: Math.round(28.7 * SHOT01_FPS)},
     {actual: Math.max(1, durationInFrames - 1), canonical: SHOT01_DURATION_FRAMES - 1},
   ];
   const canonicalFrame = mapFrame(frame, points, SHOT01_DURATION_FRAMES);
