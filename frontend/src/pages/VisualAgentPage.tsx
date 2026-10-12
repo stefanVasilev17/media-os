@@ -59,17 +59,24 @@ function buildShot01ComprehensionPacing(
 ) {
   if (clips.length === 0 || segments.length === 0) return null;
 
+  const MAX_SILENCE_SECONDS = 0.8;
+  const MIN_TRANSITION_SECONDS = 0.25;
   const segmentByClip = new Map(segments.map(segment => [segment.clipKey, segment]));
   let rawCursor = 0;
+  let previousAudioEnd = 0;
   const windows: ContractPacingWindow[] = [];
 
-  for (const clip of clips) {
+  for (const [index, clip] of clips.entries()) {
     const segment = segmentByClip.get(clip.clipKey);
     if (!segment || clip.durationSeconds <= 0) return null;
 
-    const plannedStart = Math.max(0, segment.startSecond - shotStartSecond);
-    const plannedEnd = Math.max(plannedStart, segment.endSecond - shotStartSecond);
-    if (plannedStart + clip.durationSeconds > plannedEnd + 0.2) return null;
+    const contractStart = Math.max(0, segment.startSecond - shotStartSecond);
+    const earliestStart = index === 0 ? contractStart : previousAudioEnd + MIN_TRANSITION_SECONDS;
+    const latestStart = index === 0 ? contractStart : previousAudioEnd + MAX_SILENCE_SECONDS;
+    const plannedStart = index === 0
+      ? contractStart
+      : Math.max(earliestStart, Math.min(contractStart, latestStart));
+    const plannedEnd = plannedStart + clip.durationSeconds;
 
     windows.push({
       clip,
@@ -79,6 +86,7 @@ function buildShot01ComprehensionPacing(
       plannedEnd
     });
     rawCursor += clip.durationSeconds;
+    previousAudioEnd = plannedEnd;
   }
 
   const pacedAnchors = Object.fromEntries(
@@ -94,11 +102,11 @@ function buildShot01ComprehensionPacing(
 
   const comprehensionHolds = windows.slice(0, -1).flatMap((window, index) => {
     const next = windows[index + 1];
-    const gapStart = window.plannedStart + window.clip.durationSeconds;
+    const gapStart = window.plannedEnd;
     const gapEnd = next.plannedStart;
-    if (gapEnd - gapStart < 0.45) return [];
+    if (gapEnd - gapStart < 0.3) return [];
 
-    const transitionBuffer = Math.min(0.4, (gapEnd - gapStart) * 0.2);
+    const transitionBuffer = Math.min(0.22, (gapEnd - gapStart) * 0.25);
     const canonicalSecond = Math.max(0, next.plannedStart - transitionBuffer);
     return [{
       fromFrame: Math.max(0, Math.ceil(gapStart * VISUAL_FPS)),
@@ -107,11 +115,18 @@ function buildShot01ComprehensionPacing(
     }];
   });
 
+  const contractDuration = Math.max(0, shotEndSecond - shotStartSecond);
+  const lastAudioEnd = windows[windows.length - 1].plannedEnd;
+  const pacedDuration = Math.max(
+    lastAudioEnd,
+    Math.min(contractDuration, lastAudioEnd + MAX_SILENCE_SECONDS)
+  );
+
   return {
     windows,
     pacedAnchors,
     comprehensionHolds,
-    durationInFrames: Math.max(1, Math.round((shotEndSecond - shotStartSecond) * VISUAL_FPS))
+    durationInFrames: Math.max(1, Math.round(pacedDuration * VISUAL_FPS))
   };
 }
 
