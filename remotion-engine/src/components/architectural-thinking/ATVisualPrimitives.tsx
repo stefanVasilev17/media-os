@@ -58,7 +58,7 @@ type LoginButtonProps = {
 };
 
 const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner}) => {
-  const working = localUi>.15;
+  const working = spinner>.08 || localUi>.15;
   return (
     <div style={{height:70,borderRadius:19,border:`2px solid rgba(154,255,248,${working?.68:.96})`,background:working?'linear-gradient(180deg,#078A84,#075D59)':'linear-gradient(135deg,#34EEE2 0%,#15D2CA 47%,#099FA1 100%)',boxShadow:working?'0 15px 32px rgba(0,0,0,.35),0 0 20px rgba(37,221,207,.14)':'0 19px 40px rgba(0,226,211,.30),0 0 42px rgba(42,236,224,.25),inset 0 2px 0 rgba(255,255,255,.34)',transform:`translateY(${press*5}px) scale(${1-press*.032})`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',left:24,right:24,top:1,height:1,background:'linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent)',opacity:working?.20:.76}}/>
@@ -125,7 +125,7 @@ export type ATActiveStateProps = {
 };
 
 export const ATActiveState: React.FC<ATActiveStateProps> = ({activity,frame}) => {
-  const runner = ((frame*7)%310)-100;
+  const runner = ((frame*2.35)%330)-110;
   return (
     <>
       <div style={{position:'absolute',left:runner,top:-18,width:76,height:88,transform:'rotate(18deg)',background:'linear-gradient(90deg,transparent,rgba(135,255,217,.78),transparent)',filter:'blur(7px)',opacity:activity*.95}}/>
@@ -142,7 +142,7 @@ export type ATSemanticPillProps = {
 };
 
 export const ATSemanticPill: React.FC<ATSemanticPillProps> = ({label,activity,frame}) => {
-  const breathing = .88+Math.sin(frame*.16)*.12;
+  const breathing = .90+Math.sin(frame*.07)*.10;
   const scale = 1+activity*.035*breathing;
   return (
     <div style={{width:182,height:52,borderRadius:16,border:`2px solid rgba(30,237,166,${.78+activity*.22})`,background:`linear-gradient(180deg,rgba(8,65,45,${.76+activity*.18}),rgba(3,21,16,.99))`,boxShadow:`0 0 ${12+activity*32}px rgba(29,242,172,${.08+activity*.34}),inset 0 1px 0 rgba(255,255,255,.05)`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:AT_FONT,fontSize:22,fontWeight:activity>.3?760:560,letterSpacing:'-.015em',color:'#F6FFFC',position:'relative',overflow:'hidden',transform:`scale(${scale})`}}>
