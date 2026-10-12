@@ -208,6 +208,8 @@ public class VoiceClipController {
                     row.put("generatedAudioFileName", rs.getString("generated_audio_file_name"));
                     Map<String, Object> alignment = readMap(rs.getString("generated_alignment"));
                     row.put("generatedAlignment", alignment);
+                    double leadingTrimSeconds = leadingTrimSeconds(alignment);
+                    row.put("leadingTrimSeconds", leadingTrimSeconds);
                     row.put("durationSeconds", alignmentDuration(alignment));
                     row.put("generatedVoiceId", rs.getString("generated_voice_id"));
                     row.put("generatedModelId", rs.getString("generated_model_id"));
@@ -382,22 +384,25 @@ public class VoiceClipController {
         for (Map<String, Object> clip : shotClips) {
             Map<String, Object> alignment = asMap(clip.get("generatedAlignment"));
             List<Map<String, Object>> localWords = wordRowsFromTtsAlignment(alignment);
+            double trimStart = leadingTrimSeconds(alignment);
             double duration = localWords.stream()
                     .map(word -> numberValue(word.get("end")))
                     .filter(value -> value >= 0)
                     .max(Double::compareTo)
+                    .map(end -> Math.max(0.0d, end - trimStart))
                     .orElse(0.0d);
             for (Map<String, Object> word : localWords) {
                 Map<String, Object> shifted = new LinkedHashMap<>();
                 shifted.put("text", word.get("text"));
-                shifted.put("start", round3(numberValue(word.get("start")) + offset));
-                shifted.put("end", round3(numberValue(word.get("end")) + offset));
+                shifted.put("start", round3(Math.max(0.0d, numberValue(word.get("start")) - trimStart) + offset));
+                shifted.put("end", round3(Math.max(0.0d, numberValue(word.get("end")) - trimStart) + offset));
                 combinedWords.add(shifted);
             }
             Map<String, Object> audio = new LinkedHashMap<>();
             audio.put("clipKey", clip.get("clipKey"));
             audio.put("generationRevision", clip.get("generationRevision"));
             audio.put("startSeconds", round3(offset));
+            audio.put("sourceStartSeconds", round3(trimStart));
             audio.put("durationSeconds", round3(duration));
             audioClips.add(audio);
             offset += duration;
@@ -603,12 +608,23 @@ public class VoiceClipController {
         return normalized.isBlank() ? List.of() : List.of(normalized.split("\\s+"));
     }
 
+    private double leadingTrimSeconds(Map<String, Object> alignment) {
+        double firstWordStart = wordRowsFromTtsAlignment(alignment).stream()
+                .map(word -> numberValue(word.get("start")))
+                .filter(value -> value >= 0)
+                .min(Double::compareTo)
+                .orElse(0.0d);
+        if (firstWordStart <= 0.45d) return 0.0d;
+        return round3(Math.max(0.0d, firstWordStart - 0.12d));
+    }
+
     private double alignmentDuration(Map<String, Object> alignment) {
+        double trimStart = leadingTrimSeconds(alignment);
         return wordRowsFromTtsAlignment(alignment).stream()
                 .map(word -> numberValue(word.get("end")))
                 .filter(value -> value >= 0)
                 .max(Double::compareTo)
-                .map(this::round3)
+                .map(end -> round3(Math.max(0.0d, end - trimStart)))
                 .orElse(0.0d);
     }
 
