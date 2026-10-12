@@ -12,8 +12,14 @@ public final class Ep001SemanticAnchorCatalog {
             case "SHOT 01" -> linked(
                     "PRESS_LOGIN", "press Login",
                     "LOGIN_INTENT", "Login Intent",
+                    "VALIDATE", "Validate",
+                    "SUBMIT", "Submit",
                     "CREDENTIAL_INPUT", "Credential Input",
-                    "LOCAL_UI_STATE", "Local UI State"
+                    "IDENTIFIER", "Identifier",
+                    "SECRET", "Secret",
+                    "LOCAL_UI_STATE", "Local UI State",
+                    "SUBMITTING", "Submitting",
+                    "WAITING", "Waiting"
             );
             case "SHOT 02" -> linked(
                     "VALIDATE", "Validates",
