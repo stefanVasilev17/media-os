@@ -73,7 +73,7 @@ public class ProductionContractController {
             @NotBlank String schemaVersion,
             @NotBlank String episodeNumber,
             @NotBlank String title,
-            @Positive int scriptRevision,
+            Integer scriptRevision,
             @NotBlank String source,
             @NotEmpty List<@Valid TimelineSegment> timeline
     ) {}
@@ -170,7 +170,7 @@ public class ProductionContractController {
 
         Map<String, Object> script = lockedScript();
         int currentRevision = ((Number) script.get("revision")).intValue();
-        if (request.scriptRevision() != currentRevision) {
+        if (request.scriptRevision() != null && request.scriptRevision() > 0 && request.scriptRevision() != currentRevision) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Import targets Script revision " + request.scriptRevision()
                             + ", but the current LOCKED revision is " + currentRevision + ".");
@@ -185,13 +185,15 @@ public class ProductionContractController {
         memory.preflight("VOICE", "IMPORT_PRODUCTION_CONTRACT");
         memory.preflight("VISUAL", "IMPORT_PRODUCTION_CONTRACT");
 
+        List<Map<String, Object>> mergedTimeline = mergeWithActiveContract(currentRevision, request.timeline());
+
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("schemaVersion", request.schemaVersion());
         payload.put("episodeNumber", request.episodeNumber().trim());
         payload.put("title", request.title().trim());
-        payload.put("scriptRevision", request.scriptRevision());
+        payload.put("scriptRevision", currentRevision);
         payload.put("source", request.source().trim());
-        payload.put("timeline", request.timeline());
+        payload.put("timeline", mergedTimeline);
 
         String json = writeJson(payload);
         String sha = sha256(json);
@@ -255,9 +257,10 @@ public class ProductionContractController {
         result.put("schemaVersion", SCHEMA_VERSION);
         result.put("scriptRevision", currentRevision);
         result.put("sha256", sha);
-        result.put("timelineSegments", request.timeline().size());
+        result.put("timelineSegments", mergedTimeline.size());
+        result.put("importedSegments", request.timeline().size());
         result.put("nextRoute", "#/agents/voice");
-        result.put("message", "Production contract validated against the LOCKED Script and activated.");
+        result.put("message", "Production contract segment(s) validated, merged, and activated.");
         return result;
     }
 
@@ -285,32 +288,28 @@ public class ProductionContractController {
             List<TimelineSegment> contract,
             List<Map<String, Object>> script
     ) {
-        if (contract.size() != script.size()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Contract must contain exactly " + script.size()
-                            + " timeline blocks to match the LOCKED Script; received " + contract.size() + ".");
+        Map<String, Map<String, Object>> canonicalByRange = new LinkedHashMap<>();
+        for (Map<String, Object> item : script) {
+            int start = number(item.get("startSecond"));
+            int end = number(item.get("endSecond"));
+            canonicalByRange.put(start + ":" + end, item);
         }
 
-        int expectedStart = 0;
-        for (int i = 0; i < script.size(); i++) {
-            TimelineSegment segment = contract.get(i);
-            Map<String, Object> canonical = script.get(i);
-            int start = number(canonical.get("startSecond"));
-            int end = number(canonical.get("endSecond"));
-            String narration = String.valueOf(canonical.getOrDefault("narration", ""));
-
-            if (segment.startSecond() != start || segment.endSecond() != end) {
+        int previousEnd = -1;
+        for (TimelineSegment segment : contract) {
+            Map<String, Object> canonical = canonicalByRange.get(segment.startSecond() + ":" + segment.endSecond());
+            if (canonical == null) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        segment.segmentId() + " timing does not match LOCKED Script block "
-                                + start + "–" + end + "s.");
+                        segment.segmentId() + " does not match any exact LOCKED Script time block.");
             }
+            String narration = String.valueOf(canonical.getOrDefault("narration", ""));
             if (!normalize(segment.hear()).equals(normalize(narration))) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         segment.segmentId() + " changes LOCKED narration. Import rejected.");
             }
-            if (segment.startSecond() != expectedStart || segment.endSecond() <= segment.startSecond()) {
+            if (previousEnd > segment.startSecond()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Timeline must be contiguous, ordered and gap-free from second 0.");
+                        "Imported timeline blocks must be ordered and may not overlap.");
             }
             if (!segment.shotKey().trim().toUpperCase(Locale.ROOT).matches("SHOT \\d{2}")) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -320,8 +319,44 @@ public class ProductionContractController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         segment.segmentId() + " has invalid clipKey; expected SHOT 01-C01.");
             }
-            expectedStart = segment.endSecond();
+            String expectedShot = shotKeyForSecond(segment.startSecond());
+            if (!expectedShot.equals(segment.shotKey().trim().toUpperCase(Locale.ROOT))) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        segment.segmentId() + " belongs to " + expectedShot + ", not " + segment.shotKey() + ".");
+            }
+            previousEnd = segment.endSecond();
         }
+    }
+
+    private List<Map<String, Object>> mergeWithActiveContract(int revision, List<TimelineSegment> imported) {
+        Map<String, Map<String, Object>> merged = new LinkedHashMap<>();
+
+        jdbc.sql("""
+                select payload::text
+                from episode_production_contract
+                where episode_id=:episodeId and script_revision=:revision and active=true
+                order by created_at desc
+                limit 1
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .query(String.class)
+                .optional()
+                .ifPresent(json -> {
+                    Map<String, Object> payload = readMap(json);
+                    for (Map<String, Object> row : mapList(payload.get("timeline"))) {
+                        merged.put(number(row.get("startSecond")) + ":" + number(row.get("endSecond")), row);
+                    }
+                });
+
+        for (TimelineSegment segment : imported) {
+            Map<String, Object> row = objectMapper.convertValue(segment, new TypeReference<LinkedHashMap<String, Object>>() {});
+            merged.put(segment.startSecond() + ":" + segment.endSecond(), row);
+        }
+
+        return merged.values().stream()
+                .sorted((a, b) -> Integer.compare(number(a.get("startSecond")), number(b.get("startSecond"))))
+                .toList();
     }
 
     private String shotKeyForSecond(int second) {

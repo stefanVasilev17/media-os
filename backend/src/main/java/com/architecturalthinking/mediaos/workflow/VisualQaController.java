@@ -109,20 +109,24 @@ public class VisualQaController {
 
         boolean contractReady = jdbc.sql("""
                 select exists(
-                  select 1 from episode_production_contract
-                  where episode_id=:episodeId
-                    and script_revision=:revision
-                    and active=true
+                  select 1
+                  from episode_production_contract c,
+                       jsonb_array_elements(c.payload->'timeline') segment
+                  where c.episode_id=:episodeId
+                    and c.script_revision=:revision
+                    and c.active=true
+                    and upper(segment->>'shotKey')=:shotKey
                 )
                 """)
                 .param("episodeId", ProductionOverviewService.EPISODE_ID)
                 .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
                 .query(Boolean.class)
                 .single();
         addCheck(checks, "PRODUCTION_CONTRACT", contractReady,
                 contractReady
-                        ? "Validated HEAR / SEE production contract is active."
-                        : "Import the production contract in Script Agent before visual production.");
+                        ? "Validated HEAR / SEE contract is active for " + shotKey + "."
+                        : "Import the HEAR / SEE contract for " + shotKey + " before visual production.");
 
         Map<String, Object> alignment = asMap(shot.get("alignment"));
         Map<String, Object> anchors = asMap(alignment.get("anchors"));

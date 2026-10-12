@@ -154,7 +154,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
       const payload = JSON.parse(raw) as ProductionContractPayload;
       const result = await importProductionContract(payload);
       setContract(await loadProductionContract());
-      setImportMessage(result.message + ' ' + result.timelineSegments + ' timeline blocks are active.');
+      setImportMessage(result.message + ' ' + result.timelineSegments + '/' + artifact.timeline.length + ' timeline blocks are now active.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not import production contract.');
     } finally {
@@ -179,7 +179,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 
       <section className="production-summary">
         <div><span>WORKING TIMELINE</span><strong>{clock(artifact.targetDurationSeconds)}</strong></div>
-        <div><span>CONTRACT</span><strong>{contract?.ready ? 'HEAR + SEE imported' : 'Narration only'}</strong></div>
+        <div><span>CONTRACT</span><strong>{contract?.ready ? (contract.payload?.timeline.length || 0) + '/' + artifact.timeline.length + ' HEAR + SEE blocks' : 'Narration only'}</strong></div>
         <div><span>NEXT</span><strong>Voice Agent</strong></div>
       </section>
 

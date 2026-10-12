@@ -23,7 +23,7 @@ export type ProductionContractPayload = {
   schemaVersion: 'mediaos.production-contract.v1';
   episodeNumber: string;
   title: string;
-  scriptRevision: number;
+  scriptRevision?: number;
   source: string;
   timeline: ProductionContractSegment[];
 };
@@ -46,6 +46,7 @@ export type ProductionContractImportResult = {
   scriptRevision: number;
   sha256: string;
   timelineSegments: number;
+  importedSegments?: number;
   nextRoute: string;
   message: string;
 };
