@@ -122,10 +122,11 @@ export function VoiceAgentPage() {
       )
       .sort((a, b) => b.startSecond - a.startSecond || b.sequence - a.sequence)[0];
   }, [clips, currentClip]);
+  const currentReviewClip = currentClip?.generated && !currentClip.approved ? currentClip : undefined;
   const continuityClips = useMemo(() => {
-    if (!currentClip?.generated || !previousLockedClip) return [];
-    return [previousLockedClip, currentClip];
-  }, [currentClip, previousLockedClip]);
+    if (!currentReviewClip || !previousLockedClip) return [];
+    return [previousLockedClip, currentReviewClip];
+  }, [currentReviewClip, previousLockedClip]);
   const continuityDuration = continuityClips.reduce((total, clip) => total + Math.max(0, clip.durationSeconds || 0), 0);
   const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
   const settings = currentClip
@@ -530,20 +531,20 @@ export function VoiceAgentPage() {
                 <section className="voice-continuity-preview">
                   <div className="voice-continuity-copy">
                     <span>VOICE CONTINUITY · ZERO CREDITS</span>
-                    <strong>{previousLockedClip ? previousLockedClip.shotKey + ' · previous locked clip' : 'Previous locked voice'} → {currentClip.shotKey} · current clip</strong>
+                    <strong>{previousLockedClip ? previousLockedClip.clipKey + ' · PREVIOUS · LOCKED' : 'Previous locked voice'} → {currentReviewClip ? currentReviewClip.clipKey + ' · CURRENT · REVIEW' : currentClip.clipKey + ' · CURRENT · NOT GENERATED'}</strong>
                     <p>{previousLockedClip
-                      ? 'Plays the immediately preceding LOCKED voice clip and then the current generated clip so you can hear changes in tone, pace, energy, and delivery at the exact transition. Long non-speech pre-roll and trailing non-speech after the final spoken word are skipped automatically from ElevenLabs alignment.'
+                      ? 'Plays two records in sequence: the immediately preceding LOCKED voice first, then the CURRENT generated but still UNLOCKED voice you are reviewing. This is the approval preview for the exact transition. Long non-speech pre-roll and trailing non-speech after the final spoken word are skipped automatically from ElevenLabs alignment.'
                       : 'No earlier LOCKED generated voice clip is available yet. Approve the previous clip first and this comparison becomes available automatically.'}</p>
                   </div>
                   <div className="voice-continuity-actions">
                     <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
                     <button
                       type="button"
-                      disabled={!currentClip.generated || !previousLockedClip || continuityClips.length < 2}
+                      disabled={!currentReviewClip || !previousLockedClip || continuityClips.length < 2}
                       onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
                     >
                       {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
-                      {continuityPlaying ? 'Stop Preview' : 'Play with Previous'}
+                      {continuityPlaying ? 'Stop Preview' : 'Preview Locked + Current'}
                     </button>
                   </div>
                 </section>
