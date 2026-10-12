@@ -35,6 +35,16 @@ function anchorsOf(row?: VoiceShotState) {
   return alignment?.anchors || {};
 }
 
+function formatTimecode(seconds: number) {
+  const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+  const minutes = Math.floor(safe / 60);
+  const wholeSeconds = Math.floor(safe % 60);
+  const milliseconds = Math.floor((safe - Math.floor(safe)) * 1000);
+  return String(minutes).padStart(2, '0') + ':' +
+    String(wholeSeconds).padStart(2, '0') + '.' +
+    String(milliseconds).padStart(3, '0');
+}
+
 async function downloadVideo(renderId: string) {
   const response = await fetch(remotionRenderVideoUrl(renderId));
   if (!response.ok) throw new Error('Could not download the current episode preview.');
@@ -64,6 +74,8 @@ export function VisualAgentPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
@@ -120,6 +132,11 @@ export function VisualAgentPage() {
     setActiveRender(null);
     setCorrection('');
   }, [selectedIndex]);
+
+  useEffect(() => {
+    setPreviewCurrentTime(0);
+    setPreviewDuration(0);
+  }, [previewId]);
 
   async function pollRender(renderId: string) {
     for (let attempt = 0; attempt < 240; attempt++) {
@@ -190,7 +207,8 @@ export function VisualAgentPage() {
         return {
           src: window.location.origin + voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision),
           fromFrame,
-          durationInFrames
+          durationInFrames,
+          trimBeforeFrames: Math.max(0, Math.round((clip.leadingTrimSeconds || 0) * 30))
         };
       });
 
@@ -273,13 +291,26 @@ export function VisualAgentPage() {
           </div>
         </div>
         {previewId ? (
-          <video
-            ref={videoRef}
-            controls
-            preload="metadata"
-            playsInline
-            src={remotionRenderVideoUrl(previewId)}
-          />
+          <>
+            <video
+              ref={videoRef}
+              controls
+              preload="metadata"
+              playsInline
+              src={remotionRenderVideoUrl(previewId)}
+              onLoadedMetadata={event => setPreviewDuration(event.currentTarget.duration || 0)}
+              onDurationChange={event => setPreviewDuration(event.currentTarget.duration || 0)}
+              onTimeUpdate={event => setPreviewCurrentTime(event.currentTarget.currentTime || 0)}
+              onSeeked={event => setPreviewCurrentTime(event.currentTarget.currentTime || 0)}
+            />
+            <div className="episode-preview-timecode" aria-live="off">
+              <span>CURRENT</span>
+              <strong>{formatTimecode(previewCurrentTime)}</strong>
+              <span>/</span>
+              <strong>{formatTimecode(previewDuration)}</strong>
+              <small>Approved voice-synced episode time</small>
+            </div>
+          </>
         ) : (
           <div className="preview-empty"><Play size={24} /><strong>No QA-approved episode preview yet.</strong><span>Shot 01 will create the first cumulative preview.</span></div>
         )}
