@@ -24,6 +24,7 @@ export type VoiceClipState = {
   startSecond: number;
   endSecond: number;
   narration: string;
+  narrationOverridden?: boolean;
   voiceDirection: string;
   generated: boolean;
   approved: boolean;
@@ -65,6 +66,17 @@ export function syncVoiceClips(scriptRevision: number, shots: VoiceShotBundle[])
 
 export function loadVoiceClips(scriptRevision: number) {
   return request<VoiceClipState[]>('/api/v1/voice-clips?scriptRevision=' + scriptRevision);
+}
+
+export function updateVoiceClipNarration(
+  clipKey: string,
+  payload: { scriptRevision: number; narration: string }
+) {
+  return request<VoiceClipState>('/api/v1/voice-clips/' + encodeURIComponent(clipKey) + '/narration', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
 }
 
 export function generateVoiceClip(
