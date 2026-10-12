@@ -79,7 +79,21 @@ export function VoiceAgentPage() {
     if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
     return script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
   }, [script, contract]);
-  const currentShot = bundles[shotIndex];
+  const lockedShotIndexes = useMemo(
+    () => bundles
+      .map((shot, index) => {
+        const related = clips.filter(clip => clip.shotKey === shot.key);
+        return related.length > 0 && related.every(clip => clip.approved) ? index : -1;
+      })
+      .filter(index => index >= 0),
+    [bundles, clips]
+  );
+  const activeShotIndexes = useMemo(
+    () => bundles.map((_, index) => index).filter(index => !lockedShotIndexes.includes(index)),
+    [bundles, lockedShotIndexes]
+  );
+  const currentShot = shotIndex >= 0 ? bundles[shotIndex] : undefined;
+  const isCurrentShotLocked = shotIndex >= 0 && lockedShotIndexes.includes(shotIndex);
   const shotClips = useMemo(
     () => clips.filter(clip => clip.shotKey === currentShot?.key).sort((a, b) => a.sequence - b.sequence),
     [clips, currentShot?.key]
@@ -131,7 +145,7 @@ export function VoiceAgentPage() {
           const related = synced.filter(clip => clip.shotKey === bundle.key);
           return related.length === 0 || related.some(clip => !clip.approved);
         });
-        setShotIndex(firstPendingShot === -1 ? 0 : firstPendingShot);
+        setShotIndex(firstPendingShot);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Voice Agent.');
       } finally {
@@ -165,6 +179,10 @@ export function VoiceAgentPage() {
 
   async function generate() {
     if (!script || !currentClip || busy) return;
+    if (currentClip.approved || isCurrentShotLocked) {
+      setError('This voice clip is LOCKED. Approved audio cannot be regenerated.');
+      return;
+    }
     if (performanceDirection.trim() !== AT_V4_DIRECTION) {
       setError('Generation blocked before ElevenLabs: use the tested production-safe V4 direction: ' + AT_V4_DIRECTION);
       return;
@@ -197,10 +215,23 @@ export function VoiceAgentPage() {
     setError('');
     try {
       const row = await approveVoiceClip(currentClip.clipKey, script.revision);
-      setClips(current => current.map(item => item.clipKey === row.clipKey ? row : item));
+      const updatedClips = clips.map(item => item.clipKey === row.clipKey ? row : item);
+      setClips(updatedClips);
       await refreshVoice(script.revision);
       const index = shotClips.findIndex(item => item.clipKey === currentClip.clipKey);
-      if (index >= 0 && index < shotClips.length - 1) setClipIndex(index + 1);
+      if (index >= 0 && index < shotClips.length - 1) {
+        setClipIndex(index + 1);
+      } else {
+        const nextPendingShot = bundles.findIndex((bundle, bundleIndex) =>
+          bundleIndex > shotIndex &&
+          updatedClips.some(clip => clip.shotKey === bundle.key && !clip.approved)
+        );
+        const firstPendingShot = bundles.findIndex(bundle =>
+          updatedClips.some(clip => clip.shotKey === bundle.key && !clip.approved)
+        );
+        setShotIndex(nextPendingShot >= 0 ? nextPendingShot : firstPendingShot);
+        setClipIndex(0);
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not approve voice clip.');
     } finally {
@@ -209,10 +240,10 @@ export function VoiceAgentPage() {
   }
 
   if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
-  if (!script || !script.artifact || !currentShot) return <main className="production-loading"><strong>{error || 'Voice Agent unavailable.'}</strong></main>;
+  if (!script || !script.artifact || bundles.length === 0) return <main className="production-loading"><strong>{error || 'Voice Agent unavailable.'}</strong></main>;
 
   const approvedInShot = shotClips.filter(clip => clip.approved).length;
-  const shotReady = Boolean(shotState[currentShot.key]?.visualSyncReady);
+  const shotReady = Boolean(currentShot && shotState[currentShot.key]?.visualSyncReady);
   const totalApproved = clips.filter(clip => clip.approved).length;
 
   return (
@@ -234,25 +265,45 @@ export function VoiceAgentPage() {
         <div><span>APPROVED CLIPS</span><strong>{totalApproved}/{clips.length}</strong></div>
       </section>
 
-      <nav className="production-shot-rail" aria-label="Voice shots">
-        {bundles.map((shot, index) => {
-          const related = clips.filter(clip => clip.shotKey === shot.key);
-          const approved = related.length > 0 && related.every(clip => clip.approved);
-          return (
-            <button
-              type="button"
-              key={shot.key}
-              className={(index === shotIndex ? 'active ' : '') + (approved ? 'done' : '')}
-              onClick={() => setShotIndex(index)}
-              title={shot.key + ' · ' + shot.title}
-            >
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              {approved && <Check size={11} />}
-            </button>
-          );
-        })}
-      </nav>
+      <div className="voice-shot-navigation">
+        <nav className="production-shot-rail" aria-label="Active voice shots">
+          {activeShotIndexes.map(index => {
+            const shot = bundles[index];
+            return (
+              <button
+                type="button"
+                key={shot.key}
+                className={index === shotIndex ? 'active' : ''}
+                onClick={() => setShotIndex(index)}
+                title={shot.key + ' · ' + shot.title}
+              >
+                <span>{String(index + 1).padStart(2, '0')}</span>
+              </button>
+            );
+          })}
+          {activeShotIndexes.length === 0 && <span className="voice-all-shots-complete">ALL SHOTS LOCKED</span>}
+        </nav>
 
+        {lockedShotIndexes.length > 0 && (
+          <details className="voice-locked-shots">
+            <summary>Locked shots <strong>{lockedShotIndexes.length}</strong></summary>
+            <div>
+              {lockedShotIndexes.map(index => {
+                const shot = bundles[index];
+                return (
+                  <button type="button" key={shot.key} onClick={() => setShotIndex(index)}>
+                    <span>{shot.key}</span>
+                    <small>{shot.title}</small>
+                    <Check size={13} />
+                  </button>
+                );
+              })}
+            </div>
+          </details>
+        )}
+      </div>
+
+      {currentShot ? (
       <section className="voice-workspace">
         <div className="voice-shot-context">
           <div className="production-section-head">
@@ -260,7 +311,7 @@ export function VoiceAgentPage() {
               <span>{currentShot.key} · {clock(currentShot.startSecond)}–{clock(currentShot.endSecond)}</span>
               <h2>{currentShot.title}</h2>
             </div>
-            <strong className={shotReady ? 'status-ready' : ''}>{shotReady ? 'SHOT VOICE READY' : approvedInShot + '/' + shotClips.length + ' clips approved'}</strong>
+            <strong className={shotReady ? 'status-ready' : ''}>{isCurrentShotLocked ? 'LOCKED · READ ONLY' : shotReady ? 'SHOT VOICE READY' : approvedInShot + '/' + shotClips.length + ' clips approved'}</strong>
           </div>
 
           <div className="voice-clip-tabs">
@@ -304,6 +355,7 @@ export function VoiceAgentPage() {
                   <textarea
                     id="voice-performance-direction"
                     value={performanceDirection}
+                    disabled={isCurrentShotLocked || currentClip.approved}
                     onChange={event => {
                       const value = event.target.value;
                       setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: value }));
@@ -328,6 +380,7 @@ export function VoiceAgentPage() {
                         max={Number(max)}
                         step={Number(step)}
                         value={Number(settings[key as keyof VoiceSettings])}
+                        disabled={isCurrentShotLocked || currentClip.approved}
                         onChange={event => updateVoiceSetting(key as keyof VoiceSettings, Number(event.target.value) as VoiceSettings[keyof VoiceSettings])}
                       />
                     </label>
@@ -359,6 +412,7 @@ export function VoiceAgentPage() {
                 <textarea
                   id="voice-correction"
                   value={correction}
+                  disabled={isCurrentShotLocked || currentClip.approved}
                   onChange={event => setCorrection(event.target.value)}
                   placeholder="Example: Leave a longer pause before the Aha line. This becomes a durable Voice memory rule."
                   rows={3}
@@ -366,7 +420,7 @@ export function VoiceAgentPage() {
               </div>
 
               <div className="voice-primary-actions">
-                <button type="button" className="secondary" disabled={busy || !provider?.configured} onClick={() => void generate()}>
+                <button type="button" className="secondary" disabled={busy || !provider?.configured || currentClip.approved || isCurrentShotLocked} onClick={() => void generate()}>
                   {busy ? <LoaderCircle className="spin" size={15} /> : currentClip.generated ? <RotateCcw size={15} /> : <Mic2 size={15} />}
                   {currentClip.generated ? 'Regenerate Clip' : 'Generate Clip'}
                 </button>
@@ -378,11 +432,18 @@ export function VoiceAgentPage() {
           )}
         </div>
       </section>
+      ) : (
+        <section className="voice-workspace voice-production-complete">
+          <Check size={22} />
+          <strong>All voice shots are LOCKED.</strong>
+          <p>Approved shots are available from the Locked shots menu for read-only review.</p>
+        </section>
+      )}
 
       <section className="production-next">
         <div>
           <span>VOICE → VISUAL</span>
-          <strong>{shotReady ? currentShot.key + ' has approved timing and semantic anchors.' : 'Approve every clip in the shot first.'}</strong>
+          <strong>{currentShot ? (shotReady ? currentShot.key + ' has approved timing and semantic anchors.' : 'Approve every clip in the shot first.') : 'All voice shots are approved and locked.'}</strong>
           <p>Visual Agent uses the aggregated clip timing; it never asks you to manually place timestamps.</p>
         </div>
         <button type="button" disabled={!shotState['SHOT 01']?.visualSyncReady} onClick={() => { window.location.hash = '#/agents/visual'; }}>
@@ -390,10 +451,21 @@ export function VoiceAgentPage() {
         </button>
       </section>
 
-      <div className="production-prev-next">
-        <button type="button" disabled={shotIndex === 0} onClick={() => setShotIndex(index => Math.max(0, index - 1))}><ChevronLeft size={15} /> Previous Shot</button>
-        <button type="button" disabled={shotIndex === bundles.length - 1} onClick={() => setShotIndex(index => Math.min(bundles.length - 1, index + 1))}>Next Shot <ChevronRight size={15} /></button>
-      </div>
+      {currentShot && !isCurrentShotLocked && (
+        <div className="production-prev-next">
+          {(() => {
+            const activePosition = activeShotIndexes.indexOf(shotIndex);
+            const previousIndex = activePosition > 0 ? activeShotIndexes[activePosition - 1] : -1;
+            const nextIndex = activePosition >= 0 && activePosition < activeShotIndexes.length - 1 ? activeShotIndexes[activePosition + 1] : -1;
+            return (
+              <>
+                <button type="button" disabled={previousIndex < 0} onClick={() => previousIndex >= 0 && setShotIndex(previousIndex)}><ChevronLeft size={15} /> Previous Shot</button>
+                <button type="button" disabled={nextIndex < 0} onClick={() => nextIndex >= 0 && setShotIndex(nextIndex)}>Next Shot <ChevronRight size={15} /></button>
+              </>
+            );
+          })()}
+        </div>
+      )}
     </main>
   );
 }
