@@ -496,14 +496,14 @@ export function VisualAgentPage() {
         </div>
 
         <div className="visual-main-actions single">
-          <button type="button" className="primary" disabled={busy || !currentVisual?.voiceReady || currentVisual?.qaStatus === 'PASS'} onClick={() => void produceShot()}>
+          <button type="button" className="primary" disabled={busy || !currentVisual?.voiceReady} onClick={() => void produceShot()}>
             {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
             {rendering
               ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
               : busy
                 ? 'Validating production contract…'
                 : currentVisual?.qaStatus === 'PASS'
-                  ? 'Shot QA Passed'
+                  ? 'Recreate / Validate Shot'
                   : 'Create / Validate Shot'}
           </button>
         </div>
