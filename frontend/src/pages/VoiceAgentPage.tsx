@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, Play, RotateCcw, SlidersHorizontal, Square } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
 import { loadTtsProvider, loadVoiceShots, type TtsProviderStatus, type VoiceShotState } from '../api/voiceApi';
@@ -74,6 +74,9 @@ export function VoiceAgentPage() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [continuityPlaying, setContinuityPlaying] = useState(false);
+  const [continuityNow, setContinuityNow] = useState('');
+  const continuityAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const bundles = useMemo(() => {
     if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
@@ -99,6 +102,23 @@ export function VoiceAgentPage() {
     [clips, currentShot?.key]
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
+  const previousLockedShotIndex = useMemo(() => {
+    const previous = lockedShotIndexes.filter(index => index < shotIndex);
+    return previous.length > 0 ? previous[previous.length - 1] : -1;
+  }, [lockedShotIndexes, shotIndex]);
+  const previousLockedShot = previousLockedShotIndex >= 0 ? bundles[previousLockedShotIndex] : undefined;
+  const continuityClips = useMemo(() => {
+    if (!currentClip || previousLockedShotIndex < 0) return [];
+    const previous = clips
+      .filter(clip => clip.shotKey === bundles[previousLockedShotIndex]?.key && clip.approved && clip.generated)
+      .sort((a, b) => a.sequence - b.sequence);
+    const currentPosition = shotClips.findIndex(clip => clip.clipKey === currentClip.clipKey);
+    const current = shotClips
+      .slice(0, Math.max(0, currentPosition) + 1)
+      .filter(clip => clip.generated);
+    return [...previous, ...current];
+  }, [bundles, clips, currentClip, previousLockedShotIndex, shotClips]);
+  const continuityDuration = continuityClips.reduce((total, clip) => total + Math.max(0, clip.durationSeconds || 0), 0);
   const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
   const settings = currentClip
     ? settingsByClip[currentClip.clipKey] ?? settingsForClip(currentClip, provider)
@@ -159,6 +179,64 @@ export function VoiceAgentPage() {
     setClipIndex(0);
     setCorrection('');
   }, [shotIndex]);
+
+  useEffect(() => {
+    stopContinuity();
+  }, [shotIndex, clipIndex, currentClip?.generationRevision]);
+
+  useEffect(() => () => stopContinuity(), []);
+
+  function stopContinuity() {
+    const audio = continuityAudioRef.current;
+    if (audio) {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      continuityAudioRef.current = null;
+    }
+    setContinuityPlaying(false);
+    setContinuityNow('');
+  }
+
+  function playContinuity() {
+    if (!script || continuityClips.length === 0 || continuityPlaying) return;
+    let position = 0;
+    setError('');
+    setContinuityPlaying(true);
+
+    const playNext = () => {
+      if (position >= continuityClips.length) {
+        continuityAudioRef.current = null;
+        setContinuityPlaying(false);
+        setContinuityNow('');
+        return;
+      }
+      const clip = continuityClips[position];
+      const audio = new Audio(voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision));
+      continuityAudioRef.current = audio;
+      setContinuityNow(clip.shotKey + ' · Clip ' + clip.sequence);
+      audio.onended = () => {
+        position += 1;
+        playNext();
+      };
+      audio.onerror = () => {
+        continuityAudioRef.current = null;
+        setContinuityPlaying(false);
+        setContinuityNow('');
+        setError('Continuity Preview could not play ' + clip.clipKey + '.');
+      };
+      void audio.play().catch(cause => {
+        continuityAudioRef.current = null;
+        setContinuityPlaying(false);
+        setContinuityNow('');
+        setError(cause instanceof Error ? cause.message : 'Continuity Preview could not start.');
+      });
+    };
+
+    playNext();
+  }
 
   function updateVoiceSetting<K extends keyof VoiceSettings>(key: K, value: VoiceSettings[K]) {
     if (!currentClip) return;
@@ -405,6 +483,27 @@ export function VoiceAgentPage() {
                   preload="metadata"
                   src={voiceClipAudioUrl(currentClip.clipKey, script.revision, currentClip.generationRevision)}
                 />
+              )}
+
+              {!isCurrentShotLocked && previousLockedShot && (
+                <section className="voice-continuity-preview">
+                  <div className="voice-continuity-copy">
+                    <span>CONTINUITY PREVIEW · ZERO CREDITS</span>
+                    <strong>{previousLockedShot.key} → {currentShot.key}</strong>
+                    <p>Plays the full previous LOCKED shot, then every generated clip in this shot up to the clip you are reviewing.</p>
+                  </div>
+                  <div className="voice-continuity-actions">
+                    <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
+                    <button
+                      type="button"
+                      disabled={!currentClip.generated || continuityClips.length === 0}
+                      onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
+                    >
+                      {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
+                      {continuityPlaying ? 'Stop Preview' : 'Play Continuity'}
+                    </button>
+                  </div>
+                </section>
               )}
 
               <div className="voice-correction">
