@@ -8,6 +8,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
+import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
 import {
   loadRemotionRender,
   loadVoiceShots,
@@ -54,6 +55,7 @@ export function VisualAgentPage() {
   const [voiceShots, setVoiceShots] = useState<Record<string, VoiceShotState>>({});
   const [clips, setClips] = useState<VoiceClipState[]>([]);
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
+  const [contract, setContract] = useState<ProductionContractState | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
   const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
@@ -67,6 +69,10 @@ export function VisualAgentPage() {
   const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
   const currentShot = bundles[selectedIndex];
   const currentVisual = visual?.shots.find(shot => shot.shotKey === currentShot?.key);
+  const contractSegments = useMemo(
+    () => (contract?.payload?.timeline || []).filter(segment => segment.shotKey === currentShot?.key),
+    [contract, currentShot?.key]
+  );
   const previewId = visual?.preview.ready ? visual.preview.renderId : undefined;
 
   async function refresh(revision: number) {
@@ -85,14 +91,16 @@ export function VisualAgentPage() {
     let active = true;
     (async () => {
       try {
-        const [scriptState, rules] = await Promise.all([
+        const [scriptState, rules, productionContract] = await Promise.all([
           loadCreativeStage<ScriptArtifact>('SCRIPT'),
-          loadProductionMemory('VISUAL')
+          loadProductionMemory('VISUAL'),
+          loadProductionContract()
         ]);
         if (!active) return;
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Visual Agent.');
         setScript(scriptState);
         setMemory(rules);
+        setContract(productionContract);
         const nextVisual = await refresh(scriptState.revision);
         if (!active) return;
         const firstPending = nextVisual.shots.findIndex(shot => shot.qaStatus !== 'PASS');
@@ -194,7 +202,8 @@ export function VisualAgentPage() {
         audioUrl: '',
         audioClips,
         durationInFrames,
-        anchors: anchorsOf(voiceShot)
+        anchors: anchorsOf(voiceShot),
+        visualContract: contractSegments
       }, 'REVIEW');
       setActiveRender(render);
 
@@ -314,11 +323,31 @@ export function VisualAgentPage() {
               : 'Visual Agent will not invent a production render until this shot has an approved Remotion composition.'}</p>
           </div>
           <div>
-            <span>ATTENTION / EFFECTS CONTRACT</span>
-            <strong>Semantic focus only</strong>
-            <p>Camera preparation, focus, zoom and emphasis are driven by meaning and semantic anchors. Decorative effects are rejected by QA.</p>
+            <span>IMPORTED VISUAL CONTRACT</span>
+            <strong>{contractSegments.length ? contractSegments.length + ' timeline block(s)' : 'No HEAR / SEE import'}</strong>
+            <p>{contractSegments.length
+              ? 'The instructions below are the shot contract; Remotion implementation must preserve their meaning and timing.'
+              : 'Import a production contract in Script Agent to provide explicit what-you-see direction.'}</p>
           </div>
         </div>
+
+        {contractSegments.length > 0 && (
+          <div className="visual-imported-timeline">
+            {contractSegments.map(segment => (
+              <article key={segment.segmentId}>
+                <div><strong>{clock(segment.startSecond)}–{clock(segment.endSecond)}</strong><span>{segment.clipKey}</span></div>
+                <p>{segment.visual.summary}</p>
+                <small>
+                  {[
+                    segment.visual.camera ? 'Camera: ' + segment.visual.camera : '',
+                    segment.visual.attentionCue ? 'Attention: ' + segment.visual.attentionCue : '',
+                    segment.visual.effects?.length ? 'Effects: ' + segment.visual.effects.join(' · ') : ''
+                  ].filter(Boolean).join(' · ')}
+                </small>
+              </article>
+            ))}
+          </div>
+        )}
 
         <div className="visual-correction">
           <label>Correction to store in Production Memory <small>optional; applied before preflight</small></label>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
+import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
 import { loadTtsProvider, loadVoiceShots, type TtsProviderStatus, type VoiceShotState } from '../api/voiceApi';
 import {
   approveVoiceClip,
@@ -12,7 +13,7 @@ import {
   type VoiceSettings
 } from '../api/voiceClipApi';
 import { loadProductionMemory, type ProductionMemoryRule } from '../api/productionMemoryApi';
-import { buildVoiceShotBundles, clock } from '../lib/ep001Production';
+import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
 function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
@@ -30,6 +31,7 @@ export function VoiceAgentPage() {
   const [clips, setClips] = useState<VoiceClipState[]>([]);
   const [shotState, setShotState] = useState<Record<string, VoiceShotState>>({});
   const [provider, setProvider] = useState<TtsProviderStatus | null>(null);
+  const [contract, setContract] = useState<ProductionContractState | null>(null);
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
@@ -39,7 +41,10 @@ export function VoiceAgentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
+  const bundles = useMemo(() => {
+    if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
+    return script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
+  }, [script, contract]);
   const currentShot = bundles[shotIndex];
   const shotClips = useMemo(
     () => clips.filter(clip => clip.shotKey === currentShot?.key).sort((a, b) => a.sequence - b.sequence),
@@ -58,10 +63,11 @@ export function VoiceAgentPage() {
     let active = true;
     (async () => {
       try {
-        const [scriptState, tts, rules] = await Promise.all([
+        const [scriptState, tts, rules, productionContract] = await Promise.all([
           loadCreativeStage<ScriptArtifact>('SCRIPT'),
           loadTtsProvider(),
-          loadProductionMemory('VOICE')
+          loadProductionMemory('VOICE'),
+          loadProductionContract()
         ]);
         if (!active) return;
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Voice Agent.');
@@ -69,7 +75,10 @@ export function VoiceAgentPage() {
         setProvider(tts);
         setSettings(defaultSettings(tts));
         setMemory(rules);
-        const bundles = buildVoiceShotBundles(scriptState.artifact);
+        setContract(productionContract);
+        const bundles = productionContract.ready && productionContract.payload
+          ? buildVoiceShotBundlesFromContract(productionContract.payload)
+          : buildVoiceShotBundles(scriptState.artifact);
         const synced = await syncVoiceClips(scriptState.revision, bundles);
         if (!active) return;
         setClips(synced);
@@ -157,8 +166,8 @@ export function VoiceAgentPage() {
 
       <section className="production-summary">
         <div><span>PROVIDER</span><strong>{provider?.configured ? 'ElevenLabs PVC · connected' : 'Not configured'}</strong></div>
+        <div><span>CLIP SOURCE</span><strong>{contract?.ready ? 'Imported HEAR / VOICE contract' : 'LOCKED Script fallback'}</strong></div>
         <div><span>APPROVED CLIPS</span><strong>{totalApproved}/{clips.length}</strong></div>
-        <div><span>BASELINE</span><strong>{provider ? provider.modelId + ' · speed ' + provider.voiceSettings.speed.toFixed(2) : '—'}</strong></div>
       </section>
 
       <nav className="production-shot-rail" aria-label="Voice shots">

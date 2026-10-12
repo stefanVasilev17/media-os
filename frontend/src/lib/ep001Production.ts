@@ -1,4 +1,5 @@
 import type { ScriptArtifact, ScriptTimelineItem } from '../api/creativeApi';
+import type { ProductionContractPayload } from '../api/productionContractApi';
 
 export type EpisodeShotDefinition = {
   key: string;
@@ -71,6 +72,32 @@ export function buildVoiceShotBundles(artifact: ScriptArtifact): VoiceShotBundle
       narration: clips.map(clip => clip.narration).join('\n\n'),
       voiceDirection: Array.from(new Set(clips.map(clip => clip.voiceDirection).filter(Boolean))).join(' '),
       clips
+    };
+  });
+}
+
+export function buildVoiceShotBundlesFromContract(contract: ProductionContractPayload): VoiceShotBundle[] {
+  const grouped = new Map<string, typeof contract.timeline>();
+  for (const segment of contract.timeline) {
+    const rows = grouped.get(segment.shotKey) || [];
+    rows.push(segment);
+    grouped.set(segment.shotKey, rows);
+  }
+
+  return EP001_SHOTS.map(shot => {
+    const segments = [...(grouped.get(shot.key) || [])].sort((a, b) => a.startSecond - b.startSecond);
+    return {
+      ...shot,
+      narration: segments.map(segment => segment.hear.trim()).join('\n\n'),
+      voiceDirection: Array.from(new Set(segments.map(segment => segment.voiceDirection.trim()).filter(Boolean))).join(' '),
+      clips: segments.map((segment, index) => ({
+        clipKey: segment.clipKey || shot.key + '-C' + String(index + 1).padStart(2, '0'),
+        sequence: index + 1,
+        startSecond: segment.startSecond,
+        endSecond: segment.endSecond,
+        narration: segment.hear.trim(),
+        voiceDirection: segment.voiceDirection.trim()
+      }))
     };
   });
 }
