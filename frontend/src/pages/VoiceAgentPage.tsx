@@ -39,7 +39,7 @@ const AT_V4_SETTINGS: VoiceSettings = {
   similarityBoost: 0.80
 };
 
-const AT_V4_DIRECTION = 'conversational, lightly curious, confident';
+const AT_V4_DIRECTION = 'calm, conversational, confident';
 
 function performanceDirectionForClip(clip: VoiceClipState | undefined) {
   const stored = clip?.generatedAlignment?.performanceDirection;
@@ -177,7 +177,7 @@ export function VoiceAgentPage() {
       const row = await generateVoiceClip(currentClip.clipKey, {
         scriptRevision: script.revision,
         previousText: globalIndex > 0 ? flatClips[globalIndex - 1].narration : undefined,
-        nextText: globalIndex > 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
+        nextText: globalIndex >= 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
         voiceSettings: settings,
         performanceDirection: performanceDirection.trim() || undefined,
         correction: correction.trim() || undefined
