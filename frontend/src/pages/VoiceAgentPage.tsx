@@ -177,7 +177,7 @@ export function VoiceAgentPage() {
       const row = await generateVoiceClip(currentClip.clipKey, {
         scriptRevision: script.revision,
         previousText: globalIndex > 0 ? flatClips[globalIndex - 1].narration : undefined,
-        nextText: globalIndex >= 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
+        nextText: globalIndex > 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
         voiceSettings: settings,
         performanceDirection: performanceDirection.trim() || undefined,
         correction: correction.trim() || undefined
