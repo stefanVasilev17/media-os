@@ -8,6 +8,7 @@ import {
   generateVoiceClip,
   loadVoiceClips,
   syncVoiceClips,
+  updateVoiceClipNarration,
   voiceClipAudioUrl,
   type VoiceClipState,
   type VoiceSettings
@@ -70,6 +71,7 @@ export function VoiceAgentPage() {
   const [clipIndex, setClipIndex] = useState(0);
   const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
   const [performanceByClip, setPerformanceByClip] = useState<Record<string, string>>({});
+  const [narrationByClip, setNarrationByClip] = useState<Record<string, string>>({});
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,8 +137,11 @@ export function VoiceAgentPage() {
   const performanceDirection = currentClip
     ? performanceByClip[currentClip.clipKey] ?? performanceDirectionForClip(currentClip)
     : AT_V4_DIRECTION;
+  const narrationText = currentClip
+    ? narrationByClip[currentClip.clipKey] ?? currentClip.narration
+    : '';
   const exactTtsText = currentClip
-    ? exactElevenLabsText(currentClip.narration, performanceDirection, provider?.modelId)
+    ? exactElevenLabsText(narrationText, performanceDirection, provider?.modelId)
     : '';
 
   async function refreshVoice(revision: number) {
@@ -310,6 +315,11 @@ export function VoiceAgentPage() {
       setError('This voice clip is LOCKED. Approved audio cannot be regenerated.');
       return;
     }
+    const spokenText = narrationText.trim();
+    if (!spokenText) {
+      setError('Add the text you want ElevenLabs to say.');
+      return;
+    }
     if (performanceDirection.trim() !== AT_V4_DIRECTION) {
       setError('Generation blocked before ElevenLabs: use the tested production-safe V4 direction: ' + AT_V4_DIRECTION);
       return;
@@ -317,16 +327,29 @@ export function VoiceAgentPage() {
     setBusy(true);
     setError('');
     try {
-      const globalIndex = flatClips.findIndex(item => item.clipKey === currentClip.clipKey);
-      const row = await generateVoiceClip(currentClip.clipKey, {
+      let workingClip = currentClip;
+      let workingFlat = flatClips;
+      if (spokenText !== currentClip.narration.trim()) {
+        workingClip = await updateVoiceClipNarration(currentClip.clipKey, {
+          scriptRevision: script.revision,
+          narration: spokenText
+        });
+        workingFlat = flatClips.map(item => item.clipKey === workingClip.clipKey ? workingClip : item);
+        setClips(current => current.map(item => item.clipKey === workingClip.clipKey ? workingClip : item));
+        setNarrationByClip(current => ({ ...current, [workingClip.clipKey]: workingClip.narration }));
+      }
+
+      const globalIndex = workingFlat.findIndex(item => item.clipKey === workingClip.clipKey);
+      const row = await generateVoiceClip(workingClip.clipKey, {
         scriptRevision: script.revision,
-        previousText: globalIndex > 0 ? flatClips[globalIndex - 1].narration : undefined,
-        nextText: globalIndex >= 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
+        previousText: globalIndex > 0 ? workingFlat[globalIndex - 1].narration : undefined,
+        nextText: globalIndex >= 0 && globalIndex < workingFlat.length - 1 ? workingFlat[globalIndex + 1].narration : undefined,
         voiceSettings: settings,
         performanceDirection: performanceDirection.trim() || undefined,
         correction: correction.trim() || undefined
       });
       setClips(current => current.map(item => item.clipKey === row.clipKey ? row : item));
+      setNarrationByClip(current => ({ ...current, [row.clipKey]: row.narration }));
       setCorrection('');
       await refreshVoice(script.revision);
     } catch (cause) {
