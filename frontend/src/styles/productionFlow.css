@@ -111,6 +111,20 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 .voice-slider-grid input[type=range] { width:100%; margin-top:7px; }
 .voice-toggle { display:flex; align-items:center; gap:8px; color:#91a1b5; font-size:9px; }
 .voice-settings-note { display:block; margin-top:11px; color:#64768a; font-size:9px; line-height:1.45; }
+.voice-elevenlabs-preview {
+  margin-top:16px; padding:13px 14px; border:1px solid rgba(103,218,255,.16); border-radius:11px;
+  background:linear-gradient(180deg,rgba(6,14,22,.96),rgba(4,9,15,.98));
+}
+.voice-elevenlabs-preview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:9px; }
+.voice-elevenlabs-preview-head span { color:#8ea3b8; font-size:9px; font-weight:900; letter-spacing:.04em; }
+.voice-elevenlabs-preview-head strong { color:#7fdcff; font-size:9px; font-weight:900; }
+.voice-elevenlabs-preview pre {
+  margin:0; padding:11px 12px; white-space:pre-wrap; overflow-wrap:anywhere; border-radius:8px;
+  background:#03070c; border:1px solid rgba(255,255,255,.05); color:#dce7f2; font:600 11px/1.55 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+}
+.voice-elevenlabs-preview small { display:block; margin-top:8px; color:#64768a; font-size:9px; line-height:1.5; }
+.voice-elevenlabs-preview code { color:#9cdfff; }
+
 .voice-performance-prompt { margin-top:14px; }
 .voice-performance-prompt label { display:block; margin-bottom:7px; color:#8ea3b8; font-size:9px; font-weight:900; letter-spacing:.03em; }
 .voice-performance-prompt label small { color:#607387; font-weight:700; letter-spacing:0; }
