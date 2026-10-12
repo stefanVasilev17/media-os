@@ -31,7 +31,7 @@ import {
   type VisualState
 } from '../api/visualApi';
 import { loadProductionMemory, rememberProductionCorrection, type ProductionMemoryRule } from '../api/productionMemoryApi';
-import { buildVoiceShotBundles, clock } from '../lib/ep001Production';
+import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
 function anchorsOf(row?: VoiceShotState) {
@@ -193,7 +193,10 @@ export function VisualAgentPage() {
         setScript(scriptState);
         setMemory(rules);
         setContract(productionContract);
-        await syncVoiceClips(scriptState.revision, buildVoiceShotBundles(scriptState.artifact));
+        const voiceBundles = productionContract.ready && productionContract.payload
+          ? buildVoiceShotBundlesFromContract(productionContract.payload)
+          : buildVoiceShotBundles(scriptState.artifact);
+        await syncVoiceClips(scriptState.revision, voiceBundles);
         const nextVisual = await refresh(scriptState.revision);
         if (!active) return;
         const firstPending = nextVisual.shots.findIndex(shot => shot.qaStatus !== 'PASS');
@@ -274,7 +277,12 @@ export function VisualAgentPage() {
       const gate = await runVisualPreflight(script.revision, currentShot.key);
       setPreflight(gate);
       if (!gate.passed) {
-        setError('Shot creation was blocked before rendering because QA found a production-contract problem.');
+        const failed = gate.checks.filter(check => !check.passed);
+        setError(
+          failed.length > 0
+            ? 'Preflight blocked: ' + failed.map(check => check.key + ' — ' + check.detail).join(' | ')
+            : 'Shot creation was blocked before rendering because QA found a production-contract problem.'
+        );
         return;
       }
 
