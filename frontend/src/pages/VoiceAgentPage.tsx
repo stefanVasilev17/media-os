@@ -172,7 +172,7 @@ export function VoiceAgentPage() {
   }
 
   function applyV4Preset() {
-    if (!currentClip) return;
+    if (!currentClip || currentClip.approved || isCurrentShotLocked) return;
     setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...AT_V4_SETTINGS } }));
     setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: AT_V4_DIRECTION }));
   }
@@ -341,7 +341,7 @@ export function VoiceAgentPage() {
                     <strong>Natural-language direction + minimal fine-tuning</strong>
                   </div>
                   <div className="voice-preset-actions">
-                    <button type="button" onClick={() => applyV4Preset()}>Architectural Thinking</button>
+                    <button type="button" disabled={isCurrentShotLocked || currentClip.approved} onClick={() => applyV4Preset()}>Architectural Thinking</button>
                   </div>
                 </div>
 
