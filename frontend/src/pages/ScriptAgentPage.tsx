@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Download, FileJson2, LockKeyhole, LoaderCircle, Upload } from 'lucide-react';
+import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, Upload } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   importProductionContract,
@@ -8,9 +8,97 @@ import {
   type ProductionContractSegment,
   type ProductionContractState
 } from '../api/productionContractApi';
+import { importLockedScript, type LockedScriptImportPayload } from '../api/lockedScriptApi';
 import { clock } from '../lib/ep001Production';
 import { CreativeAgentPage } from './CreativeAgentPage';
 import '../styles/productionFlow.css';
+
+function ManualLockedScriptImport({
+  state,
+  onImported,
+  onOpenAiMode
+}: {
+  state: CreativeStageState<ScriptArtifact>;
+  onImported: (next: CreativeStageState<ScriptArtifact>) => void;
+  onOpenAiMode: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleImport(file?: File) {
+    if (!file || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const payload = JSON.parse(await file.text()) as LockedScriptImportPayload;
+      await importLockedScript(payload);
+      onImported(await loadCreativeStage<ScriptArtifact>('SCRIPT'));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not import the LOCKED Script.');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  return (
+    <main className="production-page script-import-page">
+      <header className="production-header">
+        <div>
+          <span>{state.episode.episodeNumber} · SCRIPT AGENT</span>
+          <h1>Add the Locked Script</h1>
+          <p>{state.episode.title}</p>
+        </div>
+      </header>
+
+      {error && <div className="production-error">{error}</div>}
+
+      <section className="manual-script-import-card">
+        <div className="manual-script-import-copy">
+          <span>MANUAL FIRST · NO OPENAI CALL</span>
+          <h2>Import the director-approved canonical narration.</h2>
+          <p>
+            MediaOS validates episode identity, the full 20-minute contiguous timeline, every narration block,
+            and the FULLY_LOCKED declaration. A successful import creates a Script revision and immediately locks it.
+          </p>
+        </div>
+
+        <div className="manual-script-import-flow">
+          <div><strong>1</strong><span>Choose LOCKED Script JSON</span></div>
+          <i>→</i>
+          <div><strong>2</strong><span>Validate + store revision</span></div>
+          <i>→</i>
+          <div><strong>3</strong><span>Open read-only timeline</span></div>
+          <i>→</i>
+          <div><strong>4</strong><span>Voice Agent becomes ready</span></div>
+        </div>
+
+        <input
+          ref={inputRef}
+          hidden
+          type="file"
+          accept=".json,application/json"
+          onChange={event => void handleImport(event.target.files?.[0])}
+        />
+
+        <button type="button" className="manual-script-primary" disabled={busy} onClick={() => inputRef.current?.click()}>
+          {busy ? <LoaderCircle size={16} className="spin" /> : <Upload size={16} />}
+          {busy ? 'Validating and locking…' : 'Import Locked Script'}
+        </button>
+      </section>
+
+      <section className="manual-script-openai">
+        <div>
+          <span>ALTERNATIVE INPUT</span>
+          <strong>MediaOS can still create or revise a Script through the OpenAI Responses API.</strong>
+          <p>We are deliberately not using that path for this first EP001 test.</p>
+        </div>
+        <button type="button" onClick={onOpenAiMode}><Bot size={15} /> OpenAI Agent Mode</button>
+      </section>
+    </main>
+  );
+}
 
 function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) {
   const artifact = state.artifact!;
@@ -194,6 +282,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 export function ScriptAgentPage() {
   const [state, setState] = useState<CreativeStageState<ScriptArtifact> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openAiMode, setOpenAiMode] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -205,8 +294,15 @@ export function ScriptAgentPage() {
   }, []);
 
   if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
-  if (state?.locked && state.artifact) return <LockedScript state={state} />;
+  if (!state) return <main className="production-loading"><strong>Script Agent unavailable.</strong></main>;
+  if (state.locked && state.artifact) return <LockedScript state={state} />;
+  if (openAiMode) return <CreativeAgentPage stageKey="SCRIPT" />;
 
-  // Unlocked episodes keep the existing OpenAI Responses API workflow.
-  return <CreativeAgentPage stageKey="SCRIPT" />;
+  return (
+    <ManualLockedScriptImport
+      state={state}
+      onImported={setState}
+      onOpenAiMode={() => setOpenAiMode(true)}
+    />
+  );
 }
