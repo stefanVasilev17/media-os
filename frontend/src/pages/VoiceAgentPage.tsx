@@ -102,6 +102,14 @@ export function VoiceAgentPage() {
     [clips, currentShot?.key]
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
+  const hasEarlierVoiceClip = useMemo(() => {
+    if (!currentClip) return false;
+    return clips.some(clip =>
+      clip.clipKey !== currentClip.clipKey &&
+      (clip.startSecond < currentClip.startSecond ||
+        (clip.startSecond === currentClip.startSecond && clip.sequence < currentClip.sequence))
+    );
+  }, [clips, currentClip]);
   const previousLockedClip = useMemo(() => {
     if (!currentClip) return undefined;
     return [...clips]
@@ -485,7 +493,7 @@ export function VoiceAgentPage() {
                 />
               )}
 
-              {!isCurrentShotLocked && currentClip && currentClip.sequence > 0 && (
+              {!isCurrentShotLocked && currentClip && hasEarlierVoiceClip && (
                 <section className="voice-continuity-preview">
                   <div className="voice-continuity-copy">
                     <span>VOICE CONTINUITY · ZERO CREDITS</span>
