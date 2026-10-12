@@ -48,6 +48,14 @@ function performanceDirectionForClip(clip: VoiceClipState | undefined) {
   return AT_V4_DIRECTION;
 }
 
+function exactElevenLabsText(narration: string, performanceDirection: string, modelId?: string) {
+  const supportsAudioTags = Boolean(modelId?.startsWith('eleven_v4') || modelId?.startsWith('eleven_v3'));
+  if (!supportsAudioTags || !performanceDirection.trim()) return narration;
+  let direction = performanceDirection.trim().replaceAll('[', '').replaceAll(']', '').replace(/\s+/g, ' ');
+  if (direction.length > 280) direction = direction.slice(0, 280).trim();
+  return '[' + direction + '] ' + narration;
+}
+
 export function VoiceAgentPage() {
   const [script, setScript] = useState<CreativeStageState<ScriptArtifact> | null>(null);
   const [clips, setClips] = useState<VoiceClipState[]>([]);
@@ -81,6 +89,9 @@ export function VoiceAgentPage() {
   const performanceDirection = currentClip
     ? performanceByClip[currentClip.clipKey] ?? performanceDirectionForClip(currentClip)
     : AT_V4_DIRECTION;
+  const exactTtsText = currentClip
+    ? exactElevenLabsText(currentClip.narration, performanceDirection, provider?.modelId)
+    : '';
 
   async function refreshVoice(revision: number) {
     const [nextClips, nextShots] = await Promise.all([loadVoiceClips(revision), loadVoiceShots(revision)]);
@@ -322,6 +333,15 @@ export function VoiceAgentPage() {
                   ))}
                 </div>
                 <small className="voice-settings-note">LOCKED narration remains untouched. The direction above controls delivery only for this clip's next generation.</small>
+              </section>
+
+              <section className="voice-elevenlabs-preview">
+                <div className="voice-elevenlabs-preview-head">
+                  <span>EXACT ELEVENLABS TEXT</span>
+                  <strong>{provider?.modelId || 'TTS model'}</strong>
+                </div>
+                <pre>{exactTtsText}</pre>
+                <small>This is the exact <code>text</code> value MediaOS will send for this clip. Previous/next clip context is sent separately and is not part of the spoken script.</small>
               </section>
 
               {currentClip.generated && (
