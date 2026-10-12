@@ -18,11 +18,8 @@ import '../styles/productionFlow.css';
 
 function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
   return {
-    speed: provider?.voiceSettings.speed ?? 0.9,
-    stability: provider?.voiceSettings.stability ?? 0.5,
-    similarityBoost: provider?.voiceSettings.similarityBoost ?? 0.8,
-    style: provider?.voiceSettings.style ?? 0,
-    useSpeakerBoost: provider?.voiceSettings.useSpeakerBoost ?? true
+    stability: provider?.voiceSettings.stability ?? 0.35,
+    similarityBoost: provider?.voiceSettings.similarityBoost ?? 0.8
   };
 }
 
@@ -32,21 +29,24 @@ function settingsForClip(clip: VoiceClipState | undefined, provider: TtsProvider
   if (!raw || typeof raw !== 'object') return base;
   const stored = raw as Record<string, unknown>;
   return {
-    speed: typeof stored.speed === 'number' ? stored.speed : base.speed,
     stability: typeof stored.stability === 'number' ? stored.stability : base.stability,
-    similarityBoost: typeof stored.similarityBoost === 'number' ? stored.similarityBoost : base.similarityBoost,
-    style: typeof stored.style === 'number' ? stored.style : base.style,
-    useSpeakerBoost: typeof stored.useSpeakerBoost === 'boolean' ? stored.useSpeakerBoost : base.useSpeakerBoost
+    similarityBoost: typeof stored.similarityBoost === 'number' ? stored.similarityBoost : base.similarityBoost
   };
 }
 
-const ENGAGED_TECHNICAL_SETTINGS: VoiceSettings = {
-  speed: 0.92,
+const AT_V4_SETTINGS: VoiceSettings = {
   stability: 0.35,
-  similarityBoost: 0.80,
-  style: 0.15,
-  useSpeakerBoost: true
+  similarityBoost: 0.80
 };
+
+const AT_V4_DIRECTION = 'calm, natural and conversational; engaged and lightly curious; confident senior technical narrator; subtle emphasis on the key action; controlled energy; no trailer voice, no advertising tone';
+
+function performanceDirectionForClip(clip: VoiceClipState | undefined) {
+  const stored = clip?.generatedAlignment?.performanceDirection;
+  if (typeof stored === 'string' && stored.trim()) return stored.trim();
+  if (clip?.voiceDirection?.trim()) return clip.voiceDirection.trim();
+  return AT_V4_DIRECTION;
+}
 
 export function VoiceAgentPage() {
   const [script, setScript] = useState<CreativeStageState<ScriptArtifact> | null>(null);
@@ -58,6 +58,7 @@ export function VoiceAgentPage() {
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
   const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
+  const [performanceByClip, setPerformanceByClip] = useState<Record<string, string>>({});
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,9 @@ export function VoiceAgentPage() {
   const settings = currentClip
     ? settingsByClip[currentClip.clipKey] ?? settingsForClip(currentClip, provider)
     : defaultSettings(provider);
+  const performanceDirection = currentClip
+    ? performanceByClip[currentClip.clipKey] ?? performanceDirectionForClip(currentClip)
+    : AT_V4_DIRECTION;
 
   async function refreshVoice(revision: number) {
     const [nextClips, nextShots] = await Promise.all([loadVoiceClips(revision), loadVoiceShots(revision)]);
@@ -139,10 +143,18 @@ export function VoiceAgentPage() {
     }));
   }
 
-  function applyVoicePreset(preset: 'engaged' | 'provider') {
+  function applyV4Preset(preset: 'architectural' | 'contract') {
     if (!currentClip) return;
-    const next = preset === 'engaged' ? ENGAGED_TECHNICAL_SETTINGS : defaultSettings(provider);
-    setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...next } }));
+    if (preset === 'architectural') {
+      setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...AT_V4_SETTINGS } }));
+      setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: AT_V4_DIRECTION }));
+      return;
+    }
+    setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...defaultSettings(provider) } }));
+    setPerformanceByClip(current => ({
+      ...current,
+      [currentClip.clipKey]: currentClip.voiceDirection?.trim() || AT_V4_DIRECTION
+    }));
   }
 
   async function generate() {
@@ -156,6 +168,7 @@ export function VoiceAgentPage() {
         previousText: globalIndex > 0 ? flatClips[globalIndex - 1].narration : undefined,
         nextText: globalIndex >= 0 && globalIndex < flatClips.length - 1 ? flatClips[globalIndex + 1].narration : undefined,
         voiceSettings: settings,
+        performanceDirection: performanceDirection.trim() || undefined,
         correction: correction.trim() || undefined
       });
       setClips(current => current.map(item => item.clipKey === row.clipKey ? row : item));
@@ -206,7 +219,7 @@ export function VoiceAgentPage() {
       {error && <div className="production-error">{error}</div>}
 
       <section className="production-summary">
-        <div><span>PROVIDER</span><strong>{provider?.configured ? 'ElevenLabs PVC · connected' : 'Not configured'}</strong></div>
+        <div><span>PROVIDER</span><strong>{provider?.configured ? 'ElevenLabs PVC · ' + provider.modelId : 'Not configured'}</strong></div>
         <div><span>CLIP SOURCE</span><strong>{contract?.ready ? 'Imported HEAR / VOICE contract' : 'LOCKED Script fallback'}</strong></div>
         <div><span>APPROVED CLIPS</span><strong>{totalApproved}/{clips.length}</strong></div>
       </section>
@@ -263,26 +276,37 @@ export function VoiceAgentPage() {
               <section className="voice-performance-card">
                 <div className="voice-performance-head">
                   <div>
-                    <span><SlidersHorizontal size={14} /> VOICE PERFORMANCE</span>
-                    <strong>Clip-level ElevenLabs controls</strong>
+                    <span><SlidersHorizontal size={14} /> V4 VOICE PERFORMANCE</span>
+                    <strong>Natural-language direction + minimal fine-tuning</strong>
                   </div>
                   <div className="voice-preset-actions">
-                    <button type="button" onClick={() => applyVoicePreset('engaged')}>Engaged technical</button>
-                    <button type="button" onClick={() => applyVoicePreset('provider')}>Provider default</button>
+                    <button type="button" onClick={() => applyV4Preset('architectural')}>Architectural Thinking</button>
+                    <button type="button" onClick={() => applyV4Preset('contract')}>Contract direction</button>
                   </div>
                 </div>
 
                 <div className="voice-clip-direction">
-                  <span>VOICE / INTONATION</span>
+                  <span>PRODUCTION CONTRACT · VOICE / INTONATION</span>
                   <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
                 </div>
 
-                <div className="voice-slider-grid">
+                <div className="voice-performance-prompt">
+                  <label htmlFor="voice-performance-direction">V4 PERFORMANCE DIRECTION <small>sent as an Audio Tag; never spoken</small></label>
+                  <textarea
+                    id="voice-performance-direction"
+                    value={performanceDirection}
+                    onChange={event => {
+                      const value = event.target.value;
+                      setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: value }));
+                    }}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="voice-slider-grid voice-slider-grid-v4">
                   {[
-                    ['Speed', 'speed', 0.7, 1.2, 0.01],
                     ['Stability', 'stability', 0, 1, 0.01],
-                    ['Similarity', 'similarityBoost', 0, 1, 0.01],
-                    ['Style', 'style', 0, 1, 0.01]
+                    ['Similarity', 'similarityBoost', 0, 1, 0.01]
                   ].map(([label, key, min, max, step]) => (
                     <label key={String(key)}>
                       <span>{String(label)} <strong>{Number(settings[key as keyof VoiceSettings]).toFixed(2)}</strong></span>
@@ -296,16 +320,8 @@ export function VoiceAgentPage() {
                       />
                     </label>
                   ))}
-                  <label className="voice-toggle">
-                    <input
-                      type="checkbox"
-                      checked={settings.useSpeakerBoost}
-                      onChange={event => updateVoiceSetting('useSpeakerBoost', event.target.checked)}
-                    />
-                    <span>Speaker boost</span>
-                  </label>
                 </div>
-                <small className="voice-settings-note">These values are applied to the next Generate / Regenerate for this clip only.</small>
+                <small className="voice-settings-note">LOCKED narration remains untouched. The direction above controls delivery only for this clip's next generation.</small>
               </section>
 
               {currentClip.generated && (
