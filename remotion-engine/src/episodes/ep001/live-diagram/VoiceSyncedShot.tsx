@@ -13,11 +13,18 @@ const voiceClipSchema = z.object({
   trimBeforeFrames: z.number().int().nonnegative().default(0),
 });
 
+const comprehensionHoldSchema = z.object({
+  fromFrame: z.number().int().nonnegative(),
+  toFrame: z.number().int().nonnegative(),
+  canonicalFrame: z.number().int().nonnegative(),
+});
+
 export const voiceSyncedShotSchema = z.object({
   audioUrl: z.string().default(''),
   audioClips: z.array(voiceClipSchema).default([]),
   durationInFrames: z.number().int().positive(),
   anchors: z.record(z.string(), z.number()).default({}),
+  comprehensionHolds: z.array(comprehensionHoldSchema).default([]),
 });
 
 export type VoiceSyncedShotProps = z.infer<typeof voiceSyncedShotSchema>;
@@ -71,11 +78,22 @@ const actualFrame = (anchors: Record<string, number>, key: string, fallbackSecon
   return Math.round((Number.isFinite(seconds) ? seconds : fallbackSeconds) * fps);
 };
 
-export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, audioClips, durationInFrames, anchors}) => {
+export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({
+  audioUrl,
+  audioClips,
+  durationInFrames,
+  anchors,
+  comprehensionHolds,
+}) => {
   const frame = useCurrentFrame();
+  const holdPoints: AnchorPoint[] = comprehensionHolds.flatMap(hold => [
+    {actual: hold.fromFrame, canonical: hold.canonicalFrame},
+    {actual: hold.toFrame, canonical: hold.canonicalFrame},
+  ]);
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
     {actual: actualFrame(anchors, 'PRESS_LOGIN', 5.45, SHOT01_FPS), canonical: Math.round(5.45 * SHOT01_FPS)},
+    ...holdPoints,
     {actual: actualFrame(anchors, 'LOGIN_INTENT', 7, SHOT01_FPS), canonical: Math.round(7 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'CREDENTIAL_INPUT', 17, SHOT01_FPS), canonical: Math.round(17 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'LOCAL_UI_STATE', 24, SHOT01_FPS), canonical: Math.round(24 * SHOT01_FPS)},
