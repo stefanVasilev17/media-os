@@ -186,10 +186,10 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
       <section className="contract-import-card">
         <div>
           <span>PRODUCTION CONTRACT INPUT</span>
-          <strong>{contract?.ready ? 'Validated ChatGPT / external contract is active.' : 'Import the HEAR / SEE contract created in ChatGPT.'}</strong>
+          <strong>{contract?.ready ? 'Validated HEAR / SEE blocks are active. Add the next shot contract to merge it into the current timeline.' : 'Import the first HEAR / SEE shot contract created in ChatGPT.'}</strong>
           <p>
             Import never changes LOCKED narration. MediaOS rejects the file if timing or spoken text differs from Script revision {state.revision}.
-            The same downstream Voice and Visual functions run regardless of whether the contract came from import or the OpenAI Agent.
+            Shot contracts are merged incrementally: new time blocks are added, and matching time blocks are updated. Existing blocks outside the imported shot stay untouched.
           </p>
         </div>
         <input
@@ -205,7 +205,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           </button>
           <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
             {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
-            {contract?.ready ? 'Replace Contract' : 'Import Contract'}
+            {contract?.ready ? 'Add / Update Shot Contract' : 'Import First Shot Contract'}
           </button>
         </div>
       </section>
