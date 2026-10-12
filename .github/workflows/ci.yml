@@ -72,6 +72,20 @@ jobs:
           path: remotion-engine/out/ep001-phone-first-youtube.mp4
           if-no-files-found: error
           retention-days: 7
+      - name: Render EP001 Scene 02 Request Assembly preview
+        run: >-
+          npx remotion render EP001-RequestAssembly-Youtube out/ep001-request-assembly-youtube.mp4
+          --codec=h264
+          --crf=20
+          --x264-preset=veryfast
+          --concurrency=50%
+          --props='{"showGuides":false}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ep001-request-assembly-youtube
+          path: remotion-engine/out/ep001-request-assembly-youtube.mp4
+          if-no-files-found: error
+          retention-days: 7
 
   remotion-validation-windows:
     runs-on: windows-latest

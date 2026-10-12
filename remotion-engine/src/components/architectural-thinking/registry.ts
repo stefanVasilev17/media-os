@@ -6,6 +6,8 @@ export const AT_COMPONENT_REGISTRY = {
   ATSemanticPill: {version: '1.0.0', status: 'LOCKED', source: 'EP001_SHOT01'},
   ATActiveState: {version: '1.0.0', status: 'LOCKED', source: 'EP001_SHOT01'},
   ATConnector: {version: '1.0.0', status: 'LOCKED', source: 'EP001_SHOT01'},
+  ATRequestAssemblyPanel: {version: '0.1.0', status: 'CANDIDATE', source: 'EP001_SHOT02'},
+  ATRequestPacket: {version: '0.1.0', status: 'CANDIDATE', source: 'EP001_SHOT02'},
 } as const;
 
 export type ATComponentId = keyof typeof AT_COMPONENT_REGISTRY;
