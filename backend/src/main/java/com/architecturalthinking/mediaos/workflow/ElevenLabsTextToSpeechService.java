@@ -43,7 +43,7 @@ public class ElevenLabsTextToSpeechService {
         this.restClient = RestClient.builder().build();
         this.apiKey = System.getenv().getOrDefault("ELEVENLABS_API_KEY", "").trim();
         this.voiceId = System.getenv().getOrDefault("ELEVENLABS_VOICE_ID", "").trim();
-        this.modelId = System.getenv().getOrDefault("ELEVENLABS_MODEL_ID", "eleven_turbo_v2_5").trim();
+        this.modelId = System.getenv().getOrDefault("ELEVENLABS_MODEL_ID", "eleven_v4").trim();
         this.outputFormat = System.getenv().getOrDefault("ELEVENLABS_OUTPUT_FORMAT", "mp3_44100_128").trim();
         this.speed = envDouble("ELEVENLABS_SPEED", 0.90, 0.7, 1.2);
         this.stability = envDouble("ELEVENLABS_STABILITY", 0.50, 0.0, 1.0);
@@ -76,12 +76,32 @@ public class ElevenLabsTextToSpeechService {
 
     public Map<String, Object> voiceSettings() {
         Map<String, Object> settings = new LinkedHashMap<>();
-        settings.put("speed", speed);
         settings.put("stability", stability);
         settings.put("similarityBoost", similarityBoost);
-        settings.put("style", style);
-        settings.put("useSpeakerBoost", useSpeakerBoost);
+        if (!isV4()) {
+            settings.put("speed", speed);
+            settings.put("style", style);
+            settings.put("useSpeakerBoost", useSpeakerBoost);
+        }
         return settings;
+    }
+
+    public boolean supportsAudioTags() {
+        return isV4() || modelId.startsWith("eleven_v3");
+    }
+
+    private boolean isV4() {
+        return modelId.startsWith("eleven_v4");
+    }
+
+    private String promptedText(String narration, String performanceDirection) {
+        if (!supportsAudioTags() || !StringUtils.hasText(performanceDirection)) return narration;
+        String direction = performanceDirection.trim()
+                .replace("[", "")
+                .replace("]", "")
+                .replaceAll("\\s+", " ");
+        if (direction.length() > 280) direction = direction.substring(0, 280).trim();
+        return "[" + direction + "] " + narration;
     }
 
     private static double overrideDouble(Map<String, Object> overrides, String key, double fallback, double min, double max) {
@@ -129,7 +149,7 @@ public class ElevenLabsTextToSpeechService {
             String previousText,
             String nextText
     ) {
-        return generate(shotKey, text, previousText, nextText, Map.of());
+        return generate(shotKey, text, previousText, nextText, Map.of(), "");
     }
 
     public GenerationResult generate(
@@ -139,25 +159,38 @@ public class ElevenLabsTextToSpeechService {
             String nextText,
             Map<String, Object> overrides
     ) {
+        return generate(shotKey, text, previousText, nextText, overrides, "");
+    }
+
+    public GenerationResult generate(
+            String shotKey,
+            String text,
+            String previousText,
+            String nextText,
+            Map<String, Object> overrides,
+            String performanceDirection
+    ) {
         if (!apiConfigured()) throw new IllegalStateException("ELEVENLABS_API_KEY is not configured.");
         if (!StringUtils.hasText(voiceId)) throw new IllegalStateException("ELEVENLABS_VOICE_ID is not configured.");
         if (!StringUtils.hasText(text)) throw new IllegalArgumentException("Locked narration is required.");
 
-        double resolvedSpeed = overrideDouble(overrides, "speed", speed, 0.7, 1.2);
         double resolvedStability = overrideDouble(overrides, "stability", stability, 0.0, 1.0);
         double resolvedSimilarity = overrideDouble(overrides, "similarityBoost", similarityBoost, 0.0, 1.0);
-        double resolvedStyle = overrideDouble(overrides, "style", style, 0.0, 1.0);
-        boolean resolvedSpeakerBoost = overrideBoolean(overrides, "useSpeakerBoost", useSpeakerBoost);
 
         Map<String, Object> request = new LinkedHashMap<>();
-        request.put("text", text);
+        request.put("text", promptedText(text, performanceDirection));
         request.put("model_id", modelId);
         Map<String, Object> voiceSettings = new LinkedHashMap<>();
-        voiceSettings.put("speed", resolvedSpeed);
         voiceSettings.put("stability", resolvedStability);
         voiceSettings.put("similarity_boost", resolvedSimilarity);
-        voiceSettings.put("style", resolvedStyle);
-        voiceSettings.put("use_speaker_boost", resolvedSpeakerBoost);
+        if (!isV4()) {
+            double resolvedSpeed = overrideDouble(overrides, "speed", speed, 0.7, 1.2);
+            double resolvedStyle = overrideDouble(overrides, "style", style, 0.0, 1.0);
+            boolean resolvedSpeakerBoost = overrideBoolean(overrides, "useSpeakerBoost", useSpeakerBoost);
+            voiceSettings.put("speed", resolvedSpeed);
+            voiceSettings.put("style", resolvedStyle);
+            voiceSettings.put("use_speaker_boost", resolvedSpeakerBoost);
+        }
         request.put("voice_settings", voiceSettings);
         if (StringUtils.hasText(previousText)) request.put("previous_text", previousText);
         if (StringUtils.hasText(nextText)) request.put("next_text", nextText);
