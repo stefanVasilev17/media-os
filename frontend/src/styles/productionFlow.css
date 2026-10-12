@@ -80,6 +80,36 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 }
 .production-shot-rail button.active { color:#eaf7ff; border-color:rgba(99,221,255,.27); background:rgba(99,221,255,.065); }
 .production-shot-rail button.done { color:#6ddca5; border-color:rgba(87,220,157,.18); }
+.voice-shot-navigation { display:flex; align-items:flex-start; gap:10px; }
+.voice-shot-navigation .production-shot-rail { flex:1 1 auto; }
+.voice-all-shots-complete { display:flex; align-items:center; min-height:37px; color:#6ddca5; font-size:9px; font-weight:900; letter-spacing:.06em; }
+.voice-locked-shots { position:relative; flex:0 0 auto; }
+.voice-locked-shots summary {
+  min-height:37px; display:flex; align-items:center; gap:8px; padding:0 11px; cursor:pointer; list-style:none;
+  border:1px solid rgba(87,220,157,.18); border-radius:9px; background:rgba(87,220,157,.045); color:#8fdcb3;
+  font-size:9px; font-weight:900;
+}
+.voice-locked-shots summary::-webkit-details-marker { display:none; }
+.voice-locked-shots summary strong {
+  min-width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px;
+  background:rgba(87,220,157,.10); color:#b5f2ce; font-size:8px;
+}
+.voice-locked-shots>div {
+  position:absolute; z-index:20; top:43px; right:0; width:min(330px,82vw); padding:7px;
+  border:1px solid rgba(255,255,255,.08); border-radius:11px; background:#07101a; box-shadow:0 18px 42px rgba(0,0,0,.42);
+}
+.voice-locked-shots>div button {
+  width:100%; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:9px; padding:9px 10px;
+  border:0; border-radius:8px; background:transparent; color:#dce8f2; text-align:left; cursor:pointer;
+}
+.voice-locked-shots>div button:hover { background:rgba(255,255,255,.04); }
+.voice-locked-shots>div button span { color:#78dca8; font-size:9px; font-weight:900; }
+.voice-locked-shots>div button small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#8294a8; font-size:9px; }
+.voice-production-complete {
+  min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#72dca8;
+}
+.voice-production-complete strong { margin-top:9px; color:#e4eef6; font-size:13px; }
+.voice-production-complete p { max-width:520px; margin:6px 0 0; color:#74869a; font-size:10px; line-height:1.55; }
 .voice-workspace,.visual-shot-control { padding:18px; }
 .voice-clip-tabs { display:flex; gap:7px; overflow-x:auto; padding:2px 0 13px; }
 .voice-clip-tabs button {
