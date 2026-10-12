@@ -49,6 +49,18 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
 
+        jdbc.sql("""
+                update remotion_render
+                set status='QUEUED', progress=0, worker_id=null,
+                    error='Recovered stale CPU render after worker heartbeat timeout.',
+                    claimed_at=null, started_at=null, updated_at=now()
+                where project_id=:projectId
+                  and status='RUNNING'
+                  and updated_at < now() - interval '90 seconds'
+                """)
+                .param("projectId", PROJECT_ID)
+                .update();
+
         Map<String, Object> work = jdbc.sql("""
                 select id, composition_id, render_key, engine_version, input_props::text as input_props,
                        profile, width, height, fps, duration_in_frames
