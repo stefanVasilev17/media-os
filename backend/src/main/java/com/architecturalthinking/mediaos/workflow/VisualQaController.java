@@ -44,6 +44,8 @@ public class VisualQaController {
                 select v.shot_key, v.shot_title, v.start_second, v.end_second,
                        v.voice_approved_at, v.visual_sync_ready_at, v.alignment::text,
                        v.remotion_render_id, v.rendered_at,
+                       r.duration_in_frames as render_duration_in_frames,
+                       r.fps as render_fps,
                        (
                          select q.status
                          from visual_shot_qa q
@@ -55,6 +57,7 @@ public class VisualQaController {
                          limit 1
                        ) as qa_status
                 from voice_shot_workflow v
+                left join remotion_render r on r.id=v.remotion_render_id
                 where v.episode_id=:episodeId and v.script_revision=:revision
                 order by v.start_second, v.shot_key
                 """)
@@ -70,7 +73,14 @@ public class VisualQaController {
                             && rs.getObject("visual_sync_ready_at", OffsetDateTime.class) != null);
                     Map<String, Object> alignment = readMap(rs.getString("alignment"));
                     row.put("alignment", alignment);
-                    row.put("durationSeconds", numberValue(alignment.get("durationSeconds")));
+                    double voiceDurationSeconds = numberValue(alignment.get("durationSeconds"));
+                    int renderDurationInFrames = rs.getInt("render_duration_in_frames");
+                    int renderFps = rs.getInt("render_fps");
+                    double reviewDurationSeconds = renderDurationInFrames > 0 && renderFps > 0
+                            ? renderDurationInFrames / (double) renderFps
+                            : voiceDurationSeconds;
+                    row.put("voiceDurationSeconds", voiceDurationSeconds);
+                    row.put("durationSeconds", reviewDurationSeconds);
                     UUID renderId = rs.getObject("remotion_render_id", UUID.class);
                     row.put("renderId", renderId);
                     row.put("rendered", renderId != null && rs.getObject("rendered_at", OffsetDateTime.class) != null);
