@@ -107,6 +107,7 @@ export const Root: React.FC = () => {
           audioClips: [],
           durationInFrames: SHOT01_DURATION_FRAMES,
           anchors: {},
+          comprehensionHolds: [],
         }}
       />
       <Composition
@@ -122,6 +123,7 @@ export const Root: React.FC = () => {
           audioClips: [],
           durationInFrames: SHOT02_DURATION_FRAMES,
           anchors: {},
+          comprehensionHolds: [],
         }}
       />
       <Composition
