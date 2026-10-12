@@ -34,7 +34,7 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
   const localUi = out(frame,SHOT01.localUiState.start,SHOT01.localUiState.revealEnd);
   const press = pulse(frame,SHOT01.phone.pressStart,SHOT01.phone.pressEnd,7);
   const waiting = out(frame,SHOT01.localUiState.waitingStart,SHOT01.localUiState.waitingFull);
-  const spinner = out(frame,SHOT01.localUiState.spinnerStart,SHOT01.localUiState.spinnerStart+12);
+  const spinner = out(frame,SHOT01.phone.pressStart+3,SHOT01.phone.pressStart+13);
 
   const intent = out(frame,SHOT01.loginIntent.start,SHOT01.loginIntent.panelRevealEnd);
   const validate = pulse(frame,SHOT01.loginIntent.validateGlowStart,SHOT01.loginIntent.validateGlowEnd);
