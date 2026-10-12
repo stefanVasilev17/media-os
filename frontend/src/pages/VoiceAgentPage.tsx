@@ -215,34 +215,58 @@ export function VoiceAgentPage() {
     setError('');
     setContinuityPlaying(true);
 
+    const audio = new Audio();
+    audio.preload = 'auto';
+    continuityAudioRef.current = audio;
+
     const playNext = () => {
       if (position >= continuityClips.length) {
+        audio.ontimeupdate = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
         continuityAudioRef.current = null;
         setContinuityPlaying(false);
         setContinuityNow('');
         return;
       }
+
       const clip = continuityClips[position];
-      const audio = new Audio(voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision));
       const trimStart = Math.max(0, clip.leadingTrimSeconds || 0);
       const playbackEnd = Math.max(trimStart, clip.playbackEndSeconds || 0);
-      if (trimStart > 0) {
-        try { audio.currentTime = trimStart; } catch { /* media metadata may not be ready yet */ }
-        audio.addEventListener('loadedmetadata', () => {
-          if (audio.currentTime < trimStart) audio.currentTime = trimStart;
-        }, { once: true });
-      }
-      continuityAudioRef.current = audio;
-      setContinuityNow(clip.shotKey + ' · Clip ' + clip.sequence);
+      const src = voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision);
+
+      setContinuityNow(
+        clip.clipKey +
+        (position === continuityClips.length - 1 ? ' · CURRENT · REVIEW' : ' · LOCKED')
+      );
+
+      let finished = false;
       const finishClip = () => {
+        if (finished) return;
+        finished = true;
         audio.ontimeupdate = null;
         audio.onended = null;
-        audio.pause();
+        audio.onerror = null;
         position += 1;
         playNext();
       };
+
+      audio.pause();
+      audio.src = src;
+      audio.load();
+
+      audio.onloadedmetadata = () => {
+        if (trimStart > 0 && audio.currentTime < trimStart) {
+          audio.currentTime = trimStart;
+        }
+      };
       audio.ontimeupdate = () => {
-        if (playbackEnd > 0 && audio.currentTime >= playbackEnd) finishClip();
+        if (playbackEnd > 0 && audio.currentTime >= playbackEnd) {
+          finishClip();
+        }
       };
       audio.onended = finishClip;
       audio.onerror = () => {
@@ -251,11 +275,12 @@ export function VoiceAgentPage() {
         setContinuityNow('');
         setError('Continuity Preview could not play ' + clip.clipKey + '.');
       };
+
       void audio.play().catch(cause => {
         continuityAudioRef.current = null;
         setContinuityPlaying(false);
         setContinuityNow('');
-        setError(cause instanceof Error ? cause.message : 'Continuity Preview could not start.');
+        setError(cause instanceof Error ? cause.message : 'Continuity Preview could not continue playback.');
       });
     };
 
