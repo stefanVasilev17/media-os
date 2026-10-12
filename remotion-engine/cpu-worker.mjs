@@ -9,7 +9,7 @@ const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
 const WORKER_ID = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_2';
+const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_3';
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
@@ -115,32 +115,37 @@ async function render(job) {
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
   );
 
-  const composition = await selectComposition({
-    serveUrl,
-    id: job.compositionId,
-    inputProps,
-    browserExecutable: CHROMIUM_PATH,
-    timeoutInMilliseconds: 120_000,
-    logLevel: 'warn',
-  });
+  let heartbeatProgress = 5;
+  const heartbeat = setInterval(() => {
+    void progress(job.renderId, heartbeatProgress);
+  }, 15_000);
 
-  if (composition.fps !== Number(job.fps)) {
-    throw new Error(`Composition fps mismatch expected=${job.fps} actual=${composition.fps}`);
-  }
-  if (composition.durationInFrames !== Number(job.durationInFrames)) {
-    throw new Error(
-      `Composition duration mismatch expected=${job.durationInFrames} actual=${composition.durationInFrames}`,
-    );
-  }
-
-  const widthScale = Number(job.width) / composition.width;
-  const heightScale = Number(job.height) / composition.height;
-  if (Math.abs(widthScale - heightScale) > 0.0001) {
-    throw new Error(`Output aspect ratio mismatch target=${job.width}x${job.height} composition=${composition.width}x${composition.height}`);
-  }
-
-  let lastBucket = -1;
   try {
+    const composition = await selectComposition({
+      serveUrl,
+      id: job.compositionId,
+      inputProps,
+      browserExecutable: CHROMIUM_PATH,
+      timeoutInMilliseconds: 120_000,
+      logLevel: 'warn',
+    });
+
+    if (composition.fps !== Number(job.fps)) {
+      throw new Error(`Composition fps mismatch expected=${job.fps} actual=${composition.fps}`);
+    }
+    if (composition.durationInFrames !== Number(job.durationInFrames)) {
+      throw new Error(
+        `Composition duration mismatch expected=${job.durationInFrames} actual=${composition.durationInFrames}`,
+      );
+    }
+
+    const widthScale = Number(job.width) / composition.width;
+    const heightScale = Number(job.height) / composition.height;
+    if (Math.abs(widthScale - heightScale) > 0.0001) {
+      throw new Error(`Output aspect ratio mismatch target=${job.width}x${job.height} composition=${composition.width}x${composition.height}`);
+    }
+
+    let lastBucket = -1;
     await renderMedia({
       composition,
       serveUrl,
@@ -160,6 +165,7 @@ async function render(job) {
       logLevel: 'warn',
       onProgress: ({progress: ratio}) => {
         const percent = Math.max(5, Math.min(99, Math.round(ratio * 100)));
+        heartbeatProgress = percent;
         const bucket = Math.floor(percent / 10);
         if (bucket !== lastBucket) {
           lastBucket = bucket;
@@ -172,6 +178,7 @@ async function render(job) {
     const sizeBytes = await complete(job.renderId, outputPath);
     console.log(`Completed ${job.renderId}: ${sizeBytes} bytes`);
   } finally {
+    clearInterval(heartbeat);
     await fs.rm(outputPath, {force: true}).catch(() => undefined);
   }
 }
