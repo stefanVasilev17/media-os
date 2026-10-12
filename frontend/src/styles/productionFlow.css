@@ -201,3 +201,15 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   .hear-see-grid { grid-template-columns:1fr; }
   .timeline-see { padding-left:0; padding-top:12px; border-left:0; border-top:1px solid rgba(255,255,255,.06); }
 }
+
+.visual-imported-timeline {
+  margin-top:12px; display:grid; gap:7px;
+}
+.visual-imported-timeline article {
+  padding:11px 12px; border:1px solid rgba(255,255,255,.055); border-radius:10px; background:rgba(255,255,255,.012);
+}
+.visual-imported-timeline article>div { display:flex; justify-content:space-between; gap:12px; }
+.visual-imported-timeline strong { color:#6fdfff; font-size:9px; }
+.visual-imported-timeline span { color:#697b90; font-size:8px; font-weight:850; }
+.visual-imported-timeline p { margin:7px 0 0; color:#c5d0dc; font-size:11px; line-height:1.55; }
+.visual-imported-timeline small { display:block; margin-top:6px; color:#74859a; font-size:8px; line-height:1.45; }

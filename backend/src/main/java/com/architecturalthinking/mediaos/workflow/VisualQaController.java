@@ -107,6 +107,23 @@ public class VisualQaController {
                 ? "Approved voice timing is ready."
                 : "Approve every voice clip in this shot first.");
 
+        boolean contractReady = jdbc.sql("""
+                select exists(
+                  select 1 from episode_production_contract
+                  where episode_id=:episodeId
+                    and script_revision=:revision
+                    and active=true
+                )
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .query(Boolean.class)
+                .single();
+        addCheck(checks, "PRODUCTION_CONTRACT", contractReady,
+                contractReady
+                        ? "Validated HEAR / SEE production contract is active."
+                        : "Import the production contract in Script Agent before visual production.");
+
         Map<String, Object> alignment = asMap(shot.get("alignment"));
         Map<String, Object> anchors = asMap(alignment.get("anchors"));
         addCheck(checks, "SEMANTIC_ANCHORS", !anchors.isEmpty(),
