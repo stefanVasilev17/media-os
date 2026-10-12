@@ -35,11 +35,11 @@ function settingsForClip(clip: VoiceClipState | undefined, provider: TtsProvider
 }
 
 const AT_V4_SETTINGS: VoiceSettings = {
-  stability: 0.35,
+  stability: 0.50,
   similarityBoost: 0.80
 };
 
-const AT_V4_DIRECTION = 'calm, natural and conversational; engaged and lightly curious; confident senior technical narrator; subtle emphasis on the key action; controlled energy; no trailer voice, no advertising tone';
+const AT_V4_DIRECTION = 'conversational, lightly curious, confident';
 
 function performanceDirectionForClip(clip: VoiceClipState | undefined) {
   const stored = clip?.generatedAlignment?.performanceDirection;
