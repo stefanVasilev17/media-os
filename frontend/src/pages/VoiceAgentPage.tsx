@@ -223,6 +223,13 @@ export function VoiceAgentPage() {
       }
       const clip = continuityClips[position];
       const audio = new Audio(voiceClipAudioUrl(clip.clipKey, script.revision, clip.generationRevision));
+      const trimStart = Math.max(0, clip.leadingTrimSeconds || 0);
+      if (trimStart > 0) {
+        try { audio.currentTime = trimStart; } catch { /* media metadata may not be ready yet */ }
+        audio.addEventListener('loadedmetadata', () => {
+          if (audio.currentTime < trimStart) audio.currentTime = trimStart;
+        }, { once: true });
+      }
       continuityAudioRef.current = audio;
       setContinuityNow(clip.shotKey + ' · Clip ' + clip.sequence);
       audio.onended = () => {
@@ -490,6 +497,18 @@ export function VoiceAgentPage() {
                   controls
                   preload="metadata"
                   src={voiceClipAudioUrl(currentClip.clipKey, script.revision, currentClip.generationRevision)}
+                  onLoadedMetadata={event => {
+                    const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
+                    if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
+                      event.currentTarget.currentTime = trimStart;
+                    }
+                  }}
+                  onPlay={event => {
+                    const trimStart = Math.max(0, currentClip.leadingTrimSeconds || 0);
+                    if (trimStart > 0 && event.currentTarget.currentTime < trimStart) {
+                      event.currentTarget.currentTime = trimStart;
+                    }
+                  }}
                 />
               )}
 
@@ -499,7 +518,7 @@ export function VoiceAgentPage() {
                     <span>VOICE CONTINUITY · ZERO CREDITS</span>
                     <strong>{previousLockedClip ? previousLockedClip.shotKey + ' · previous locked clip' : 'Previous locked voice'} → {currentClip.shotKey} · current clip</strong>
                     <p>{previousLockedClip
-                      ? 'Plays the immediately preceding LOCKED voice clip and then the current generated clip so you can hear changes in tone, pace, energy, and delivery at the exact transition.'
+                      ? 'Plays the immediately preceding LOCKED voice clip and then the current generated clip so you can hear changes in tone, pace, energy, and delivery at the exact transition. Long non-speech pre-roll is skipped automatically from ElevenLabs alignment.'
                       : 'No earlier LOCKED generated voice clip is available yet. Approve the previous clip first and this comparison becomes available automatically.'}</p>
                   </div>
                   <div className="voice-continuity-actions">
