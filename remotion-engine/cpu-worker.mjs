@@ -9,7 +9,7 @@ const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
 const WORKER_ID = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_3';
+const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_4';
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
@@ -161,6 +161,12 @@ async function render(job) {
       hardwareAcceleration: 'disable',
       overwrite: true,
       concurrency: 1,
+      disallowParallelEncoding: true,
+      ffmpegOverride: ({args}) => {
+        if (args.length === 0) return args;
+        const output = args[args.length - 1];
+        return [...args.slice(0, -1), '-threads', '2', output];
+      },
       timeoutInMilliseconds: 120_000,
       logLevel: 'warn',
       onProgress: ({progress: ratio}) => {
