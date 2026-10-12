@@ -210,6 +210,7 @@ public class VoiceClipController {
                     row.put("generatedAlignment", alignment);
                     double leadingTrimSeconds = leadingTrimSeconds(alignment);
                     row.put("leadingTrimSeconds", leadingTrimSeconds);
+                    row.put("playbackEndSeconds", playbackEndSeconds(alignment));
                     row.put("durationSeconds", alignmentDuration(alignment));
                     row.put("generatedVoiceId", rs.getString("generated_voice_id"));
                     row.put("generatedModelId", rs.getString("generated_model_id"));
@@ -385,12 +386,8 @@ public class VoiceClipController {
             Map<String, Object> alignment = asMap(clip.get("generatedAlignment"));
             List<Map<String, Object>> localWords = wordRowsFromTtsAlignment(alignment);
             double trimStart = leadingTrimSeconds(alignment);
-            double duration = localWords.stream()
-                    .map(word -> numberValue(word.get("end")))
-                    .filter(value -> value >= 0)
-                    .max(Double::compareTo)
-                    .map(end -> Math.max(0.0d, end - trimStart))
-                    .orElse(0.0d);
+            double playbackEnd = playbackEndSeconds(alignment);
+            double duration = Math.max(0.0d, playbackEnd - trimStart);
             for (Map<String, Object> word : localWords) {
                 Map<String, Object> shifted = new LinkedHashMap<>();
                 shifted.put("text", word.get("text"));
@@ -403,6 +400,7 @@ public class VoiceClipController {
             audio.put("generationRevision", clip.get("generationRevision"));
             audio.put("startSeconds", round3(offset));
             audio.put("sourceStartSeconds", round3(trimStart));
+            audio.put("sourceEndSeconds", round3(playbackEnd));
             audio.put("durationSeconds", round3(duration));
             audioClips.add(audio);
             offset += duration;
@@ -618,14 +616,19 @@ public class VoiceClipController {
         return round3(Math.max(0.0d, firstWordStart - 0.12d));
     }
 
-    private double alignmentDuration(Map<String, Object> alignment) {
-        double trimStart = leadingTrimSeconds(alignment);
-        return wordRowsFromTtsAlignment(alignment).stream()
+    private double playbackEndSeconds(Map<String, Object> alignment) {
+        double lastWordEnd = wordRowsFromTtsAlignment(alignment).stream()
                 .map(word -> numberValue(word.get("end")))
                 .filter(value -> value >= 0)
                 .max(Double::compareTo)
-                .map(end -> round3(Math.max(0.0d, end - trimStart)))
                 .orElse(0.0d);
+        if (lastWordEnd <= 0.0d) return 0.0d;
+        return round3(lastWordEnd + 0.18d);
+    }
+
+    private double alignmentDuration(Map<String, Object> alignment) {
+        double trimStart = leadingTrimSeconds(alignment);
+        return round3(Math.max(0.0d, playbackEndSeconds(alignment) - trimStart));
     }
 
     private void assertLockedScriptRevision(int requested) {
