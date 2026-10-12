@@ -10,6 +10,7 @@ const voiceClipSchema = z.object({
   src: z.string(),
   fromFrame: z.number().int().nonnegative(),
   durationInFrames: z.number().int().positive(),
+  trimBeforeFrames: z.number().int().nonnegative().default(0),
 });
 
 export const voiceSyncedShotSchema = z.object({
@@ -32,7 +33,7 @@ const VoiceAudio: React.FC<Pick<VoiceSyncedShotProps, 'audioUrl' | 'audioClips'>
             durationInFrames={clip.durationInFrames}
             name={'Voice clip ' + (index + 1)}
           >
-            <Html5Audio src={clip.src} />
+            <Html5Audio src={clip.src} trimBefore={clip.trimBeforeFrames} />
           </Sequence>
         ))}
       </>
