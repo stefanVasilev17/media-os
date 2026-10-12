@@ -90,15 +90,27 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 .voice-clip-tabs button.done { color:#70dda7; }
 .voice-clip-editor { padding:16px; border:1px solid rgba(255,255,255,.055); border-radius:13px; background:#060c14; }
 .voice-clip-script p { margin:7px 0 0; color:#e2eaf3; font-size:15px; line-height:1.7; }
-.voice-clip-direction { margin-top:14px; }
+.voice-performance-card {
+  margin-top:16px; padding:14px; border:1px solid rgba(103,218,255,.12); border-radius:11px;
+  background:linear-gradient(180deg,rgba(103,218,255,.035),rgba(255,255,255,.012));
+}
+.voice-performance-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.voice-performance-head>div:first-child>span { display:flex; align-items:center; gap:6px; color:#70d9ff; font-size:10px; font-weight:900; letter-spacing:.04em; }
+.voice-performance-head>div:first-child>strong { display:block; margin-top:4px; color:#d9e7f3; font-size:11px; }
+.voice-preset-actions { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
+.voice-preset-actions button {
+  min-height:30px; padding:0 10px; border:1px solid rgba(255,255,255,.08); border-radius:8px;
+  background:#07101a; color:#91a7bc; font-size:9px; font-weight:800; cursor:pointer;
+}
+.voice-preset-actions button:first-child { color:#dff8ff; border-color:rgba(103,218,255,.2); background:rgba(103,218,255,.07); }
+.voice-clip-direction { margin-top:13px; padding-top:12px; border-top:1px solid rgba(255,255,255,.055); }
 .voice-clip-direction>span { color:#aa9eff; }
 .voice-clip-direction p { margin:6px 0 0; color:#98a8bc; font-size:11px; line-height:1.55; }
-.voice-advanced { margin-top:16px; border-top:1px solid rgba(255,255,255,.06); padding-top:12px; }
-.voice-advanced summary { width:fit-content; display:flex; align-items:center; gap:6px; color:#91a2b7; font-size:10px; font-weight:800; cursor:pointer; }
 .voice-slider-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px 18px; margin-top:15px; }
 .voice-slider-grid label span { display:flex; justify-content:space-between; color:#8293a8; font-size:9px; }
 .voice-slider-grid input[type=range] { width:100%; margin-top:7px; }
 .voice-toggle { display:flex; align-items:center; gap:8px; color:#91a1b5; font-size:9px; }
+.voice-settings-note { display:block; margin-top:11px; color:#64768a; font-size:9px; line-height:1.45; }
 .voice-clip-editor audio { width:100%; height:42px; margin-top:15px; }
 .voice-correction,.visual-correction { margin-top:14px; }
 .voice-correction label,.visual-correction label { display:block; margin-bottom:6px; color:#8192a7; font-size:9px; font-weight:800; }
