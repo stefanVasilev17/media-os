@@ -255,7 +255,10 @@ export function VisualAgentPage() {
   async function produceShot() {
     if (!script || !currentShot || busy) return;
     const voiceShot = voiceShots[currentShot.key];
-    if (!voiceShot) return;
+    if (!voiceShot) {
+      setError('Voice shot state is missing. Refresh the Visual Agent and try again.');
+      return;
+    }
 
     setBusy(true);
     setError('');
@@ -496,7 +499,7 @@ export function VisualAgentPage() {
         </div>
 
         <div className="visual-main-actions single">
-          <button type="button" className="primary" disabled={busy || !currentVisual?.voiceReady} onClick={() => void produceShot()}>
+          <button type="button" className="primary" disabled={busy} onClick={() => void produceShot()}>
             {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
             {rendering
               ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
