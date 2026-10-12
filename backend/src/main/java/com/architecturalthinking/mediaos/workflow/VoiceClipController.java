@@ -158,6 +158,33 @@ public class VoiceClipController {
                         .update();
             }
 
+            List<String> expectedClipKeys = shot.clips().stream()
+                    .map(clip -> normalizeClipKey(clip.clipKey()))
+                    .toList();
+            List<String> existingClipKeys = jdbc.sql("""
+                    select clip_key
+                    from voice_clip_workflow
+                    where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                    """)
+                    .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                    .param("revision", request.scriptRevision())
+                    .param("shotKey", shotKey)
+                    .query(String.class)
+                    .list();
+            boolean removedObsoleteClip = false;
+            for (String existingClipKey : existingClipKeys) {
+                if (expectedClipKeys.contains(existingClipKey)) continue;
+                jdbc.sql("""
+                        delete from voice_clip_workflow
+                        where episode_id=:episodeId and script_revision=:revision and clip_key=:clipKey
+                        """)
+                        .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                        .param("revision", request.scriptRevision())
+                        .param("clipKey", existingClipKey)
+                        .update();
+                removedObsoleteClip = true;
+            }
+
             Map<String, Long> clipProgress = jdbc.sql("""
                     select count(*) total,
                            count(*) filter (where voice_approved_at is not null) approved
@@ -172,8 +199,22 @@ public class VoiceClipController {
                             "approved", rs.getLong("approved")
                     ))
                     .single();
+
+            boolean aggregateReady = jdbc.sql("""
+                    select voice_approved_at is not null and visual_sync_ready_at is not null
+                    from voice_shot_workflow
+                    where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                    """)
+                    .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                    .param("revision", request.scriptRevision())
+                    .param("shotKey", shotKey)
+                    .query(Boolean.class)
+                    .single();
+
             if (clipProgress.get("total") > clipProgress.get("approved")) {
                 invalidateShotAggregate(request.scriptRevision(), shotKey);
+            } else if (clipProgress.get("total") > 0 && (removedObsoleteClip || !aggregateReady)) {
+                rebuildShotAggregateIfReady(request.scriptRevision(), shotKey);
             }
         }
         return clips(request.scriptRevision());
