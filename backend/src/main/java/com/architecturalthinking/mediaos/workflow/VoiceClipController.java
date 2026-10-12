@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -73,6 +74,7 @@ public class VoiceClipController {
             String previousText,
             String nextText,
             Map<String, Object> voiceSettings,
+            String performanceDirection,
             String correction
     ) {}
 
@@ -240,7 +242,10 @@ public class VoiceClipController {
                     String.valueOf(clip.get("narration")),
                     request.previousText(),
                     request.nextText(),
-                    request.voiceSettings() == null ? Map.of() : request.voiceSettings()
+                    request.voiceSettings() == null ? Map.of() : request.voiceSettings(),
+                    StringUtils.hasText(request.performanceDirection())
+                            ? request.performanceDirection().trim()
+                            : String.valueOf(clip.getOrDefault("voiceDirection", ""))
             );
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
@@ -255,6 +260,10 @@ public class VoiceClipController {
         alignment.put("voiceSettings", request.voiceSettings() == null || request.voiceSettings().isEmpty()
                 ? tts.voiceSettings()
                 : request.voiceSettings());
+        alignment.put("performanceDirection", StringUtils.hasText(request.performanceDirection())
+                ? request.performanceDirection().trim()
+                : String.valueOf(clip.getOrDefault("voiceDirection", "")));
+        alignment.put("audioTagPrompting", tts.supportsAudioTags());
 
         jdbc.sql("""
                 update voice_clip_workflow
@@ -533,10 +542,24 @@ public class VoiceClipController {
         List<Map<String, Object>> words = new ArrayList<>();
         StringBuilder token = new StringBuilder();
         double tokenStart = -1, tokenEnd = -1;
+        boolean insideAudioTag = false;
         for (int i = 0; i < count; i++) {
             String character = String.valueOf(chars.get(i));
             double start = numberValue(starts.get(i));
             double end = numberValue(ends.get(i));
+            if ("[".equals(character)) {
+                if (token.length() > 0) {
+                    words.add(Map.of("text", token.toString(), "start", tokenStart, "end", tokenEnd));
+                    token.setLength(0);
+                }
+                insideAudioTag = true;
+                continue;
+            }
+            if ("]".equals(character) && insideAudioTag) {
+                insideAudioTag = false;
+                continue;
+            }
+            if (insideAudioTag) continue;
             if (character.matches("[A-Za-z0-9']")) {
                 if (token.length() == 0) tokenStart = start;
                 token.append(character);
