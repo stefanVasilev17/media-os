@@ -102,22 +102,25 @@ export function VoiceAgentPage() {
     [clips, currentShot?.key]
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
-  const previousLockedShotIndex = useMemo(() => {
-    const previous = lockedShotIndexes.filter(index => index < shotIndex);
-    return previous.length > 0 ? previous[previous.length - 1] : -1;
-  }, [lockedShotIndexes, shotIndex]);
-  const previousLockedShot = previousLockedShotIndex >= 0 ? bundles[previousLockedShotIndex] : undefined;
+  const previousReferenceShotIndex = shotIndex > 0 ? shotIndex - 1 : -1;
+  const previousReferenceShot = previousReferenceShotIndex >= 0 ? bundles[previousReferenceShotIndex] : undefined;
+  const previousReferenceClips = useMemo(
+    () => previousReferenceShot
+      ? clips
+          .filter(clip => clip.shotKey === previousReferenceShot.key && clip.generated)
+          .sort((a, b) => a.sequence - b.sequence)
+      : [],
+    [clips, previousReferenceShot]
+  );
+  const previousReferenceLocked = previousReferenceClips.length > 0 && previousReferenceClips.every(clip => clip.approved);
   const continuityClips = useMemo(() => {
-    if (!currentClip || previousLockedShotIndex < 0) return [];
-    const previous = clips
-      .filter(clip => clip.shotKey === bundles[previousLockedShotIndex]?.key && clip.approved && clip.generated)
-      .sort((a, b) => a.sequence - b.sequence);
+    if (!currentClip || previousReferenceClips.length === 0) return [];
     const currentPosition = shotClips.findIndex(clip => clip.clipKey === currentClip.clipKey);
     const current = shotClips
       .slice(0, Math.max(0, currentPosition) + 1)
       .filter(clip => clip.generated);
-    return [...previous, ...current];
-  }, [bundles, clips, currentClip, previousLockedShotIndex, shotClips]);
+    return [...previousReferenceClips, ...current];
+  }, [currentClip, previousReferenceClips, shotClips]);
   const continuityDuration = continuityClips.reduce((total, clip) => total + Math.max(0, clip.durationSeconds || 0), 0);
   const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
   const settings = currentClip
@@ -485,12 +488,12 @@ export function VoiceAgentPage() {
                 />
               )}
 
-              {!isCurrentShotLocked && previousLockedShot && (
+              {!isCurrentShotLocked && previousReferenceShot && previousReferenceClips.length > 0 && (
                 <section className="voice-continuity-preview">
                   <div className="voice-continuity-copy">
                     <span>CONTINUITY PREVIEW · ZERO CREDITS</span>
-                    <strong>{previousLockedShot.key} → {currentShot.key}</strong>
-                    <p>Plays the full previous LOCKED shot, then every generated clip in this shot up to the clip you are reviewing.</p>
+                    <strong>{previousReferenceShot.key} → {currentShot.key}</strong>
+                    <p>Plays the previous shot audio, then every generated clip in this shot up to the clip you are reviewing. Previous shot status: {previousReferenceLocked ? 'LOCKED' : 'generated reference'}.</p>
                   </div>
                   <div className="voice-continuity-actions">
                     <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
