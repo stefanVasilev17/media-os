@@ -29,6 +29,7 @@ export type VoiceClipState = {
   approved: boolean;
   durationSeconds: number;
   leadingTrimSeconds: number;
+  playbackEndSeconds: number;
   generatedAudioFileName?: string | null;
   generatedAlignment: Record<string, unknown>;
   generatedVoiceId?: string | null;
