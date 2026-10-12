@@ -102,16 +102,16 @@ export function VoiceAgentPage() {
     [clips, currentShot?.key]
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
-  const previousReferenceShotIndex = shotIndex > 0 ? shotIndex - 1 : -1;
-  const previousReferenceShot = previousReferenceShotIndex >= 0 ? bundles[previousReferenceShotIndex] : undefined;
-  const previousReferenceClips = useMemo(
-    () => previousReferenceShot
-      ? clips
-          .filter(clip => clip.shotKey === previousReferenceShot.key && clip.generated)
-          .sort((a, b) => a.sequence - b.sequence)
-      : [],
-    [clips, previousReferenceShot]
-  );
+  const previousReferenceClips = useMemo(() => {
+    if (!currentShot) return [];
+    const previousGenerated = clips
+      .filter(clip => clip.generated && clip.startSecond < currentShot.startSecond)
+      .sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence);
+    const lastPrevious = previousGenerated.at(-1);
+    if (!lastPrevious) return [];
+    return previousGenerated.filter(clip => clip.shotKey === lastPrevious.shotKey);
+  }, [clips, currentShot]);
+  const previousReferenceShotKey = previousReferenceClips.at(-1)?.shotKey;
   const previousReferenceLocked = previousReferenceClips.length > 0 && previousReferenceClips.every(clip => clip.approved);
   const continuityClips = useMemo(() => {
     if (!currentClip || previousReferenceClips.length === 0) return [];
@@ -488,18 +488,20 @@ export function VoiceAgentPage() {
                 />
               )}
 
-              {!isCurrentShotLocked && previousReferenceShot && previousReferenceClips.length > 0 && (
+              {!isCurrentShotLocked && shotIndex > 0 && (
                 <section className="voice-continuity-preview">
                   <div className="voice-continuity-copy">
                     <span>CONTINUITY PREVIEW · ZERO CREDITS</span>
-                    <strong>{previousReferenceShot.key} → {currentShot.key}</strong>
-                    <p>Plays the previous shot audio, then every generated clip in this shot up to the clip you are reviewing. Previous shot status: {previousReferenceLocked ? 'LOCKED' : 'generated reference'}.</p>
+                    <strong>{previousReferenceShotKey || 'Previous audio'} → {currentShot.key}</strong>
+                    <p>{previousReferenceClips.length > 0
+                      ? 'Plays the immediately preceding generated shot, then every generated clip in this shot up to the clip you are reviewing. Previous audio status: ' + (previousReferenceLocked ? 'LOCKED' : 'generated reference') + '.'
+                      : 'No previous generated audio was found on the timeline. This preview will activate automatically as soon as previous audio exists.'}</p>
                   </div>
                   <div className="voice-continuity-actions">
                     <small>{continuityPlaying ? 'NOW · ' + continuityNow : continuityClips.length + ' clips · ~' + continuityDuration.toFixed(1) + 's'}</small>
                     <button
                       type="button"
-                      disabled={!currentClip.generated || continuityClips.length === 0}
+                      disabled={!currentClip.generated || previousReferenceClips.length === 0 || continuityClips.length === 0}
                       onClick={() => continuityPlaying ? stopContinuity() : playContinuity()}
                     >
                       {continuityPlaying ? <Square size={14} /> : <Play size={14} />}
