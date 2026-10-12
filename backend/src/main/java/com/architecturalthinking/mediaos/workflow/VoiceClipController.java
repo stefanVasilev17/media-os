@@ -79,6 +79,7 @@ public class VoiceClipController {
     ) {}
 
     public record ApproveRequest(@Positive int scriptRevision) {}
+    public record UpdateNarrationRequest(@Positive int scriptRevision, @NotBlank String narration) {}
 
     @PostMapping("/sync")
     public List<Map<String, Object>> sync(@Valid @RequestBody SyncRequest request) {
@@ -135,12 +136,12 @@ public class VoiceClipController {
                             sequence_no=excluded.sequence_no,
                             start_second=excluded.start_second,
                             end_second=excluded.end_second,
-                            generated_audio=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.generated_audio else null end,
-                            generated_audio_content_type=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.generated_audio_content_type else null end,
-                            generated_audio_file_name=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.generated_audio_file_name else null end,
-                            generated_alignment=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.generated_alignment else null end,
-                            voice_generated_at=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.voice_generated_at else null end,
-                            voice_approved_at=case when voice_clip_workflow.narration=excluded.narration then voice_clip_workflow.voice_approved_at else null end,
+                            generated_audio=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.generated_audio else null end,
+                            generated_audio_content_type=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.generated_audio_content_type else null end,
+                            generated_audio_file_name=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.generated_audio_file_name else null end,
+                            generated_alignment=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.generated_alignment else null end,
+                            voice_generated_at=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.voice_generated_at else null end,
+                            voice_approved_at=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.voice_approved_at else null end,
                             narration=excluded.narration,
                             voice_direction=excluded.voice_direction,
                             updated_at=now()
@@ -185,6 +186,8 @@ public class VoiceClipController {
                 removedObsoleteClip = true;
             }
 
+            refreshShotNarration(request.scriptRevision(), shotKey);
+
             Map<String, Long> clipProgress = jdbc.sql("""
                     select count(*) total,
                            count(*) filter (where voice_approved_at is not null) approved
@@ -224,7 +227,10 @@ public class VoiceClipController {
     public List<Map<String, Object>> clips(@RequestParam int scriptRevision) {
         assertLockedScriptRevision(scriptRevision);
         return jdbc.sql("""
-                select clip_key, shot_key, sequence_no, start_second, end_second, narration, voice_direction,
+                select clip_key, shot_key, sequence_no, start_second, end_second,
+                       coalesce(director_narration_override,narration) as narration,
+                       director_narration_override is not null as narration_overridden,
+                       voice_direction,
                        generated_audio is not null as generated,
                        generated_audio_content_type, generated_audio_file_name,
                        generated_alignment::text, generated_voice_id, generated_model_id,
@@ -244,6 +250,7 @@ public class VoiceClipController {
                     row.put("endSecond", rs.getInt("end_second"));
                     row.put("narration", rs.getString("narration"));
                     row.put("voiceDirection", rs.getString("voice_direction"));
+                    row.put("narrationOverridden", rs.getBoolean("narration_overridden"));
                     row.put("generated", rs.getBoolean("generated"));
                     row.put("generatedAudioContentType", rs.getString("generated_audio_content_type"));
                     row.put("generatedAudioFileName", rs.getString("generated_audio_file_name"));
@@ -264,6 +271,43 @@ public class VoiceClipController {
                     return row;
                 })
                 .list();
+    }
+
+    @PutMapping("/{clipKey}/narration")
+    public Map<String, Object> updateNarration(@PathVariable String clipKey, @Valid @RequestBody UpdateNarrationRequest request) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String key = normalizeClipKey(clipKey);
+        Map<String, Object> clip = clipState(request.scriptRevision(), key);
+        if (Boolean.TRUE.equals(clip.get("approved"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This voice clip is LOCKED. Approved narration cannot be edited.");
+        }
+        String narration = request.narration().trim();
+        if (narration.length() > 5000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Narration is too long for one voice clip.");
+        }
+
+        jdbc.sql("""
+                update voice_clip_workflow
+                set director_narration_override=:narration,
+                    generated_audio=null,
+                    generated_audio_content_type=null,
+                    generated_audio_file_name=null,
+                    generated_alignment=null,
+                    voice_generated_at=null,
+                    voice_approved_at=null,
+                    updated_at=now()
+                where episode_id=:episodeId and script_revision=:revision and clip_key=:clipKey
+                """)
+                .param("narration", narration)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("clipKey", key)
+                .update();
+
+        String shotKey = String.valueOf(clip.get("shotKey"));
+        invalidateShotAggregate(request.scriptRevision(), shotKey);
+        refreshShotNarration(request.scriptRevision(), shotKey);
+        return clipState(request.scriptRevision(), key);
     }
 
     @PostMapping("/{clipKey}/generate")
@@ -392,6 +436,31 @@ public class VoiceClipController {
                         range
                 ))
                 .single();
+    }
+
+    private void refreshShotNarration(int revision, String shotKey) {
+        String narration = jdbc.sql("""
+                select string_agg(coalesce(director_narration_override,narration), E'\n\n' order by sequence_no)
+                from voice_clip_workflow
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("shotKey", shotKey)
+                .query(String.class)
+                .optional()
+                .orElse("");
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set narration=:narration, updated_at=now()
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("narration", narration)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("shotKey", shotKey)
+                .update();
     }
 
     private void invalidateShotAggregate(int revision, String shotKey) {
