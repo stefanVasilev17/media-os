@@ -41,10 +41,13 @@ const AT_V4_SETTINGS: VoiceSettings = {
 
 const AT_V4_DIRECTION = 'calm, conversational, confident';
 
+function safeV4Direction(value: unknown) {
+  return typeof value === 'string' && value.trim() === AT_V4_DIRECTION ? AT_V4_DIRECTION : '';
+}
+
 function performanceDirectionForClip(clip: VoiceClipState | undefined) {
-  const stored = clip?.generatedAlignment?.performanceDirection;
-  if (typeof stored === 'string' && stored.trim()) return stored.trim();
-  if (clip?.voiceDirection?.trim()) return clip.voiceDirection.trim();
+  const stored = safeV4Direction(clip?.generatedAlignment?.performanceDirection);
+  if (stored) return stored;
   return AT_V4_DIRECTION;
 }
 
@@ -154,22 +157,18 @@ export function VoiceAgentPage() {
     }));
   }
 
-  function applyV4Preset(preset: 'architectural' | 'contract') {
+  function applyV4Preset() {
     if (!currentClip) return;
-    if (preset === 'architectural') {
-      setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...AT_V4_SETTINGS } }));
-      setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: AT_V4_DIRECTION }));
-      return;
-    }
-    setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...defaultSettings(provider) } }));
-    setPerformanceByClip(current => ({
-      ...current,
-      [currentClip.clipKey]: currentClip.voiceDirection?.trim() || AT_V4_DIRECTION
-    }));
+    setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...AT_V4_SETTINGS } }));
+    setPerformanceByClip(current => ({ ...current, [currentClip.clipKey]: AT_V4_DIRECTION }));
   }
 
   async function generate() {
     if (!script || !currentClip || busy) return;
+    if (performanceDirection.trim() !== AT_V4_DIRECTION) {
+      setError('Generation blocked before ElevenLabs: use the tested production-safe V4 direction: ' + AT_V4_DIRECTION);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -291,8 +290,7 @@ export function VoiceAgentPage() {
                     <strong>Natural-language direction + minimal fine-tuning</strong>
                   </div>
                   <div className="voice-preset-actions">
-                    <button type="button" onClick={() => applyV4Preset('architectural')}>Architectural Thinking</button>
-                    <button type="button" onClick={() => applyV4Preset('contract')}>Contract direction</button>
+                    <button type="button" onClick={() => applyV4Preset()}>Architectural Thinking</button>
                   </div>
                 </div>
 
@@ -302,7 +300,7 @@ export function VoiceAgentPage() {
                 </div>
 
                 <div className="voice-performance-prompt">
-                  <label htmlFor="voice-performance-direction">V4 PERFORMANCE DIRECTION <small>sent as an Audio Tag; never spoken</small></label>
+                  <label htmlFor="voice-performance-direction">V4 PERFORMANCE DIRECTION <small>production-safe Audio Tag</small></label>
                   <textarea
                     id="voice-performance-direction"
                     value={performanceDirection}
@@ -312,6 +310,9 @@ export function VoiceAgentPage() {
                     }}
                     rows={3}
                   />
+                  {performanceDirection.trim() !== AT_V4_DIRECTION && (
+                    <small>Generation is blocked until this direction matches the tested production-safe tag: {AT_V4_DIRECTION}</small>
+                  )}
                 </div>
 
                 <div className="voice-slider-grid voice-slider-grid-v4">
@@ -332,7 +333,7 @@ export function VoiceAgentPage() {
                     </label>
                   ))}
                 </div>
-                <small className="voice-settings-note">LOCKED narration remains untouched. The direction above controls delivery only for this clip's next generation.</small>
+                <small className="voice-settings-note">LOCKED narration remains untouched. Production Contract voice notes are reference only; MediaOS never sends them raw to ElevenLabs.</small>
               </section>
 
               <section className="voice-elevenlabs-preview">
