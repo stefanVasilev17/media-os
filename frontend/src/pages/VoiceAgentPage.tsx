@@ -26,6 +26,28 @@ function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
   };
 }
 
+function settingsForClip(clip: VoiceClipState | undefined, provider: TtsProviderStatus | null): VoiceSettings {
+  const base = defaultSettings(provider);
+  const raw = clip?.generatedAlignment?.voiceSettings;
+  if (!raw || typeof raw !== 'object') return base;
+  const stored = raw as Record<string, unknown>;
+  return {
+    speed: typeof stored.speed === 'number' ? stored.speed : base.speed,
+    stability: typeof stored.stability === 'number' ? stored.stability : base.stability,
+    similarityBoost: typeof stored.similarityBoost === 'number' ? stored.similarityBoost : base.similarityBoost,
+    style: typeof stored.style === 'number' ? stored.style : base.style,
+    useSpeakerBoost: typeof stored.useSpeakerBoost === 'boolean' ? stored.useSpeakerBoost : base.useSpeakerBoost
+  };
+}
+
+const ENGAGED_TECHNICAL_SETTINGS: VoiceSettings = {
+  speed: 0.92,
+  stability: 0.35,
+  similarityBoost: 0.80,
+  style: 0.15,
+  useSpeakerBoost: true
+};
+
 export function VoiceAgentPage() {
   const [script, setScript] = useState<CreativeStageState<ScriptArtifact> | null>(null);
   const [clips, setClips] = useState<VoiceClipState[]>([]);
@@ -35,7 +57,7 @@ export function VoiceAgentPage() {
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
-  const [settings, setSettings] = useState<VoiceSettings>(defaultSettings(null));
+  const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,6 +74,9 @@ export function VoiceAgentPage() {
   );
   const currentClip = shotClips[Math.min(clipIndex, Math.max(0, shotClips.length - 1))];
   const flatClips = useMemo(() => [...clips].sort((a, b) => a.startSecond - b.startSecond || a.sequence - b.sequence), [clips]);
+  const settings = currentClip
+    ? settingsByClip[currentClip.clipKey] ?? settingsForClip(currentClip, provider)
+    : defaultSettings(provider);
 
   async function refreshVoice(revision: number) {
     const [nextClips, nextShots] = await Promise.all([loadVoiceClips(revision), loadVoiceShots(revision)]);
@@ -73,7 +98,6 @@ export function VoiceAgentPage() {
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Voice Agent.');
         setScript(scriptState);
         setProvider(tts);
-        setSettings(defaultSettings(tts));
         setMemory(rules);
         setContract(productionContract);
         const bundles = productionContract.ready && productionContract.payload
@@ -103,6 +127,23 @@ export function VoiceAgentPage() {
     setClipIndex(0);
     setCorrection('');
   }, [shotIndex]);
+
+  function updateVoiceSetting<K extends keyof VoiceSettings>(key: K, value: VoiceSettings[K]) {
+    if (!currentClip) return;
+    setSettingsByClip(current => ({
+      ...current,
+      [currentClip.clipKey]: {
+        ...settings,
+        [key]: value
+      }
+    }));
+  }
+
+  function applyVoicePreset(preset: 'engaged' | 'provider') {
+    if (!currentClip) return;
+    const next = preset === 'engaged' ? ENGAGED_TECHNICAL_SETTINGS : defaultSettings(provider);
+    setSettingsByClip(current => ({ ...current, [currentClip.clipKey]: { ...next } }));
+  }
 
   async function generate() {
     if (!script || !currentClip || busy) return;
@@ -219,13 +260,23 @@ export function VoiceAgentPage() {
                 <span>LOCKED NARRATION</span>
                 <p>{currentClip.narration}</p>
               </div>
-              <div className="voice-clip-direction">
-                <span>VOICE / INTONATION</span>
-                <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
-              </div>
+              <section className="voice-performance-card">
+                <div className="voice-performance-head">
+                  <div>
+                    <span><SlidersHorizontal size={14} /> VOICE PERFORMANCE</span>
+                    <strong>Clip-level ElevenLabs controls</strong>
+                  </div>
+                  <div className="voice-preset-actions">
+                    <button type="button" onClick={() => applyVoicePreset('engaged')}>Engaged technical</button>
+                    <button type="button" onClick={() => applyVoicePreset('provider')}>Provider default</button>
+                  </div>
+                </div>
 
-              <details className="voice-advanced">
-                <summary><SlidersHorizontal size={14} /> Advanced voice controls</summary>
+                <div className="voice-clip-direction">
+                  <span>VOICE / INTONATION</span>
+                  <p>{currentClip.voiceDirection || 'Use the global calm senior-architect performance direction.'}</p>
+                </div>
+
                 <div className="voice-slider-grid">
                   {[
                     ['Speed', 'speed', 0.7, 1.2, 0.01],
@@ -241,7 +292,7 @@ export function VoiceAgentPage() {
                         max={Number(max)}
                         step={Number(step)}
                         value={Number(settings[key as keyof VoiceSettings])}
-                        onChange={event => setSettings(current => ({ ...current, [String(key)]: Number(event.target.value) }))}
+                        onChange={event => updateVoiceSetting(key as keyof VoiceSettings, Number(event.target.value) as VoiceSettings[keyof VoiceSettings])}
                       />
                     </label>
                   ))}
@@ -249,12 +300,13 @@ export function VoiceAgentPage() {
                     <input
                       type="checkbox"
                       checked={settings.useSpeakerBoost}
-                      onChange={event => setSettings(current => ({ ...current, useSpeakerBoost: event.target.checked }))}
+                      onChange={event => updateVoiceSetting('useSpeakerBoost', event.target.checked)}
                     />
                     <span>Speaker boost</span>
                   </label>
                 </div>
-              </details>
+                <small className="voice-settings-note">These values are applied to the next Generate / Regenerate for this clip only.</small>
+              </section>
 
               {currentClip.generated && (
                 <audio
