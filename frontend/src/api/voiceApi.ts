@@ -129,11 +129,11 @@ export type TtsProviderStatus = {
   modelId: string;
   outputFormat: string;
   voiceSettings: {
-    speed: number;
     stability: number;
     similarityBoost: number;
-    style: number;
-    useSpeakerBoost: boolean;
+    speed?: number;
+    style?: number;
+    useSpeakerBoost?: boolean;
   };
 };
 
