@@ -30,6 +30,9 @@ export type VisualShotState = {
   locked: boolean;
   lockedRenderId?: string | null;
   lockedAt?: string | null;
+  technicalCandidateRenderId?: string | null;
+  technicalCandidateStatus?: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | null;
+  technicalCandidateQaStatus?: 'PASS' | 'FAIL' | null;
   qaStatus: 'PENDING' | 'PASS' | 'FAIL';
   compositionId: string;
 };
@@ -61,11 +64,11 @@ export function loadVisualState(scriptRevision: number) {
   return request<VisualState>('/api/v1/visual/state?scriptRevision=' + scriptRevision);
 }
 
-export function runVisualPreflight(scriptRevision: number, shotKey: string) {
+export function runVisualPreflight(scriptRevision: number, shotKey: string, technicalRerender = false) {
   return request<VisualPreflight>('/api/v1/visual/qa/preflight', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scriptRevision, shotKey })
+    body: JSON.stringify({ scriptRevision, shotKey, technicalRerender })
   });
 }
 
@@ -80,6 +83,14 @@ export function runVisualPostQa(scriptRevision: number, shotKey: string, renderI
 
 export function lockVisualShot(scriptRevision: number, shotKey: string, renderId: string) {
   return request<{ shotKey: string; locked: boolean; renderId: string }>('/api/v1/visual/lock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scriptRevision, shotKey, renderId })
+  });
+}
+
+export function approveVisualTechnicalRerender(scriptRevision: number, shotKey: string, renderId: string) {
+  return request<{ shotKey: string; locked: boolean; renderId: string }>('/api/v1/visual/technical-rerender/approve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scriptRevision, shotKey, renderId })
