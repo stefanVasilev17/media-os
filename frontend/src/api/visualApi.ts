@@ -27,6 +27,9 @@ export type VisualShotState = {
   alignment: Record<string, unknown>;
   renderId?: string | null;
   rendered: boolean;
+  locked: boolean;
+  lockedRenderId?: string | null;
+  lockedAt?: string | null;
   qaStatus: 'PENDING' | 'PASS' | 'FAIL';
   compositionId: string;
 };
@@ -68,6 +71,15 @@ export function runVisualPreflight(scriptRevision: number, shotKey: string) {
 
 export function runVisualPostQa(scriptRevision: number, shotKey: string, renderId: string) {
   return request<VisualPostQa>('/api/v1/visual/qa/post-render', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scriptRevision, shotKey, renderId })
+  });
+}
+
+
+export function lockVisualShot(scriptRevision: number, shotKey: string, renderId: string) {
+  return request<{ shotKey: string; locked: boolean; renderId: string }>('/api/v1/visual/lock', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scriptRevision, shotKey, renderId })
