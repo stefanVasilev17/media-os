@@ -15,7 +15,7 @@ import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 import {SHOT02_DURATION_FRAMES} from './shot02Timing';
 import {SHOT03} from './shot03Timing';
 
-export const readyNotSentYoutubePreviewSchema = z.object({showGuides:z.boolean()});
+export const readyNotSentYoutubePreviewSchema = z.object({showGuides:z.boolean(),anchors:z.record(z.string(),z.number()).optional()});
 type Props = z.infer<typeof readyNotSentYoutubePreviewSchema>;
 
 const ease = (frame:number,from:number,to:number) => interpolate(frame,[from,to],[0,1],{
@@ -48,23 +48,43 @@ const SilentNode:React.FC<SilentNodeProps> = ({title,x,y,width,reveal,note}) => 
   </div>
 );
 
-export const ReadyNotSentYoutubePreview:React.FC<Props> = ({showGuides}) => {
+export const ReadyNotSentYoutubePreview:React.FC<Props> = ({showGuides,anchors={}}) => {
   const frame=useCurrentFrame();
   const continuationFrame=SHOT01_DURATION_FRAMES+SHOT02_DURATION_FRAMES+frame;
-  const overview=ease(frame,SHOT03.camera.widenStart,SHOT03.camera.widenEnd);
+  const at=(key:string,fallbackFrame:number) => Number.isFinite(anchors[key])
+    ? Math.max(0,Math.round(anchors[key]*30)) : fallbackFrame;
+  const cue={
+    request:at('REQUEST_ASSEMBLY',SHOT03.reaffirm.request),
+    payload:at('PAYLOAD',SHOT03.reaffirm.payload),
+    headers:at('HEADERS',SHOT03.reaffirm.headers),
+    context:at('REQUEST_CONTEXT',SHOT03.reaffirm.context),
+    messageReady:at('MESSAGE_READY',SHOT03.insight.readyNotReceived),
+    clientSide:at('YOUR_SIDE',SHOT03.insight.clientSide),
+    spinner:at('SPINNER',SHOT03.insight.spinner),
+    disabled:at('DISABLED',SHOT03.insight.disabled),
+    network:at('NETWORK_TRANSIT',SHOT03.insight.network),
+    gateway:at('API_GATEWAY',SHOT03.insight.gateway),
+    balancer:at('LOAD_BALANCER',SHOT03.insight.balancer),
+    auth:at('AUTH_SERVICE',SHOT03.insight.auth),
+    database:at('USER_DATABASE',SHOT03.insight.database),
+    conclusion:at('READY_NOT_SENT',SHOT03.insight.conclusion),
+  };
+  const zoomStart=Math.max(0,cue.messageReady-(SHOT03.insight.readyNotReceived-SHOT03.camera.widenStart));
+  const zoomEnd=Math.max(zoomStart+1,cue.network);
+  const overview=ease(frame,zoomStart,zoomEnd);
   const cameraScale=1-.18*overview;
   const cameraX=205*(1-overview);
   const cameraY=14*(1-overview);
-  const payloadActivity=focus(frame,SHOT03.reaffirm.payload,50);
-  const headersActivity=focus(frame,SHOT03.reaffirm.headers,50);
-  const contextActivity=focus(frame,SHOT03.reaffirm.context,54);
-  const phoneFocus=focus(frame,SHOT03.insight.spinner,126);
-  const networkReveal=enter(frame,SHOT03.insight.network,SHOT03.insight.network+26);
-  const gatewayReveal=enter(frame,SHOT03.insight.gateway,SHOT03.insight.gateway+19);
-  const balancerReveal=enter(frame,SHOT03.insight.balancer,SHOT03.insight.balancer+19);
-  const authReveal=enter(frame,SHOT03.insight.auth,SHOT03.insight.auth+19);
-  const databaseReveal=enter(frame,SHOT03.insight.database,SHOT03.insight.database+19);
-  const insight=enter(frame,SHOT03.insight.conclusion,SHOT03.insight.conclusion+17);
+  const payloadActivity=focus(frame,cue.payload,50);
+  const headersActivity=focus(frame,cue.headers,50);
+  const contextActivity=focus(frame,cue.context,54);
+  const phoneFocus=focus(frame,cue.spinner,126);
+  const networkReveal=enter(frame,cue.network,cue.network+26);
+  const gatewayReveal=enter(frame,cue.gateway,cue.gateway+19);
+  const balancerReveal=enter(frame,cue.balancer,cue.balancer+19);
+  const authReveal=enter(frame,cue.auth,cue.auth+19);
+  const databaseReveal=enter(frame,cue.database,cue.database+19);
+  const insight=enter(frame,cue.conclusion,cue.conclusion+17);
   const quiet=Math.min(.6,overview*.46);
   const requestActivity=.17+Math.max(payloadActivity,headersActivity,contextActivity)*.28;
 
@@ -137,7 +157,7 @@ export const ReadyNotSentYoutubePreview:React.FC<Props> = ({showGuides}) => {
 
         <div style={{
           position:'absolute',left:961,top:705,width:52,height:48,zIndex:9,
-          opacity:enter(frame,SHOT03.insight.readyNotReceived,SHOT03.insight.readyNotReceived+18),
+          opacity:enter(frame,cue.messageReady,cue.messageReady+18),
           display:'flex',alignItems:'center',justifyContent:'center',
         }}>
           <div style={{
