@@ -35,7 +35,7 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
     journeyHealth:cue(anchors,'JOURNEY_HEALTH',SHOT04.journeyHealth),
   };
 
-  const introduction=progress(frame,0,14);
+  const packetMorph=progress(frame,2,16);
   const dnsIn=progress(frame,Math.max(15,t.dns-33),t.dns+35);
   const focusOut=progress(frame,Math.max(t.jitter+32,t.destinationKnown-100),t.destinationKnown+26);
   const focus=clamp(dnsIn*(1-focusOut));
@@ -45,19 +45,22 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
   const cameraY=(-83+18*latencyPan)*cameraScale*focus-12*focusOut;
   const captionOpacity=1-progress(frame,0,30);
 
-  const release=progress(frame,t.release,Math.max(t.release+16,t.dns+14));
-  const enterNetwork=progress(frame,Math.max(t.network-20,t.cache+20),t.latency+25);
-  const toGateway=progress(frame,Math.max(t.jitter+32,t.destinationKnown-70),t.journeyHealth+15);
-  const packetX=593+41*release+110*enterNetwork+120*toGateway;
-  const packetReplacement=introduction;
-  const packetY=635-12*packetReplacement;
+  const entry=progress(frame,t.release,Math.max(t.release+18,t.dns+12));
+  const rise=progress(frame,t.network,Math.max(t.network+15,t.latency));
+  const traverse=progress(frame,t.latency,Math.max(t.latency+18,t.jitter+14));
+  const exit=progress(frame,Math.max(t.jitter+14,t.destinationKnown-35),t.journeyHealth+15);
+  const packetWorldX=1178+32*entry+300*traverse;
+  const packetWorldY=706-162*rise+162*exit;
+  const traveled=32*entry+162*rise+300*traverse+162*exit;
+  const sceneX=(x:number)=>960+(x-960)*.86-552;
+  const sceneY=(y:number)=>540+(y-540)*.86-48;
   const dnsReveal=progress(frame,t.dns,t.resolve+14);
   const resolve=progress(frame,t.resolve,t.resolve+18);
   const cache=progress(frame,t.cache,t.cache+16);
   const latencyReveal=progress(frame,t.latency,t.latency+22);
   const rtt=progress(frame,t.rtt,t.rtt+12);
   const jitter=progress(frame,t.jitter,t.jitter+12);
-  const networkActive=clamp(Math.max(dnsReveal*.64,enterNetwork*.8,latencyReveal*.9));
+  const networkActive=clamp(Math.max(dnsReveal*.64,traverse*.8,latencyReveal*.9));
 
   const addressNote=progress(frame,t.resolve,t.resolve+22)
     *(1-progress(frame,t.network,t.network+24));
@@ -74,8 +77,9 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           frameOverride={SHOT03_DURATION_FRAMES-1}
           captionOpacity={captionOpacity}
           worldMotion={{
-            packetOffsetX:0,
-            packetReplacement,
+            packetOffsetX:packetWorldX-1178,
+            packetOffsetY:packetWorldY-706,
+            packetMorph,
             focusIntensity:focus,
             networkActive,
             dnsReveal,
@@ -86,32 +90,22 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
             jitter,
           }}
         />
-        <div style={{
-          position:'absolute',left:593,top:623,
-          width:Math.max(0,packetX-593),height:2,borderRadius:99,
-          background:'linear-gradient(90deg,rgba(27,159,128,.08),rgba(66,236,190,.68))',
-          boxShadow:'0 0 10px rgba(45,214,169,.20)',
-          opacity:packetReplacement*(.35+.45*release),zIndex:13,
-        }}/>
-        <div style={{
-          position:'absolute',left:packetX,top:packetY,
-          transform:'translate(-50%,-50%)',width:34,height:34,zIndex:14,
-          opacity:packetReplacement,
-          display:'flex',alignItems:'center',justifyContent:'center',
+        <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
+          position:'absolute',inset:0,zIndex:8,pointerEvents:'none',overflow:'visible',
+          opacity:Math.min(1,.64*entry),
         }}>
-          <div style={{
-            position:'absolute',width:27,height:27,borderRadius:'50%',
-            background:'radial-gradient(circle,rgba(62,242,184,.24),rgba(28,195,151,.07) 59%,transparent 74%)',
-            boxShadow:'0 0 22px rgba(26,227,170,.28)',
-            transform:`scale(${1+.08*Math.sin(frame*.09)})`,
-          }}/>
-          <div style={{
-            position:'relative',width:13,height:13,borderRadius:'50%',
-            background:'radial-gradient(circle at 38% 35%,#C7FFF0 0%,#61ECC3 37%,#13A987 100%)',
-            border:'1px solid rgba(183,255,226,.82)',
-            boxShadow:'0 0 8px rgba(47,236,181,.8),0 0 17px rgba(34,216,173,.30)',
-          }}/>
-        </div>
+          <path
+            d={`M ${sceneX(1178)} ${sceneY(706)} H ${sceneX(1210)} V ${sceneY(544)} H ${sceneX(1510)} V ${sceneY(706)}`}
+            fill="none"
+            stroke="rgba(55,226,174,.73)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            pathLength={656}
+            strokeDasharray={`${Math.max(0,traveled)} 656`}
+            style={{filter:'drop-shadow(0 0 5px rgba(34,229,169,.24))'}}
+          />
+        </svg>
         <div style={{
           position:'absolute',left:756,top:810,width:282,
           transform:'translateX(-50%)',

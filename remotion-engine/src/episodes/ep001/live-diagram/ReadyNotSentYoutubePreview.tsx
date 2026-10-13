@@ -27,7 +27,7 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     rtt:z.number().optional(),
     jitter:z.number().optional(),
     focusIntensity:z.number().optional(),
-    packetReplacement:z.number().optional(),
+    packetMorph:z.number().optional(),
   }).optional(),
 });
 type Props=z.infer<typeof readyNotSentYoutubePreviewSchema>;
@@ -98,6 +98,7 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
   const oldLabelOpacity=1-ease(frame,zoomStart,zoomStart+26);
   const oldNetworkHintOpacity=1-ease(frame,zoomStart,zoomStart+72);
   const packetReveal=enter(frame,cue.messageReady,cue.messageReady+18);
+  const packetMorph=Math.max(0,Math.min(1,worldMotion?.packetMorph??0));
   const networkReveal=enter(frame,cue.network,cue.network+26);
   const insight=enter(frame,cue.conclusion,cue.conclusion+17);
   const extraFocus={
@@ -129,13 +130,25 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
         <div style={{
           position:'absolute',left:1155+(worldMotion?.packetOffsetX??0),top:689+(worldMotion?.packetOffsetY??0),width:46,height:34,
           display:'flex',alignItems:'center',justifyContent:'center',
-          opacity:packetReveal*(1-(worldMotion?.packetReplacement??0)),zIndex:10,
+          opacity:packetReveal,zIndex:worldMotion?13:10,
         }}>
+          {worldMotion&&packetMorph>0?(
+            <div style={{
+              position:'absolute',width:31,height:31,borderRadius:'50%',
+              opacity:packetMorph,
+              background:'radial-gradient(circle,rgba(62,242,184,.24),rgba(28,195,151,.06) 57%,transparent 76%)',
+              boxShadow:'0 0 22px rgba(26,227,170,.21)',
+            }}/>
+          ):null}
           <div style={{
-            width:23,height:16,borderRadius:4,
-            background:worldMotion?.networkActive?'rgba(23,207,157,.93)':'rgba(23,168,138,.85)',
+            position:'relative',
+            width:23-9*packetMorph,height:16-2*packetMorph,
+            borderRadius:4+10*packetMorph,
+            background:worldMotion&&packetMorph>0
+              ?`rgba(${23+Math.round(40*packetMorph)},${168+Math.round(60*packetMorph)},${138+Math.round(41*packetMorph)},.9)`
+              :'rgba(23,168,138,.85)',
             border:'1px solid rgba(104,255,213,.8)',
-            boxShadow:'0 0 16px rgba(25,220,173,.25)',
+            boxShadow:`0 0 ${16+10*packetMorph}px rgba(25,220,173,${.25+.27*packetMorph})`,
           }}/>
         </div>
 
