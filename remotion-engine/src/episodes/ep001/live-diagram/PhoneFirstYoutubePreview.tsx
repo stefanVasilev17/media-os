@@ -1,7 +1,7 @@
 import React from 'react';
 import {Easing, interpolate, spring, useCurrentFrame} from 'remotion';
 import {z} from 'zod';
-import {ATBackground, AT_FONT, ATPhone, ATSecondaryStack} from '../../../components/architectural-thinking';
+import {ATArchitectureRevealBridge, ATBackground, ATControlledRealismLayer, AT_FONT, ATPhone, ATSecondaryStack} from '../../../components/architectural-thinking';
 import {SHOT01, SHOT01_FPS} from './shot01Timing';
 
 export const phoneFirstYoutubePreviewSchema = z.object({showGuides: z.boolean()});
@@ -25,6 +25,15 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
   const ui = ease(frame,SHOT01.localUiState.start,SHOT01.localUiState.revealEnd);
   const intro = spring({frame,fps:SHOT01_FPS,config:{damping:18,stiffness:95,mass:1.05},durationInFrames:42});
   const requestHint = out(frame,SHOT01.requestAssemblyHint.start,SHOT01.requestAssemblyHint.end);
+  const heroPush = ease(frame,0,SHOT01.phone.passwordReady);
+  const architectureBridge = ease(frame,SHOT01.controlledRealism.bridgeStart,SHOT01.controlledRealism.bridgeEnd);
+  const architecturePulse = pulse(frame,SHOT01.controlledRealism.bridgePulseStart,SHOT01.controlledRealism.bridgePulseEnd,10);
+  const realism = Math.max(
+    SHOT01.controlledRealism.minimum,
+    1
+      - ease(frame,SHOT01.controlledRealism.fadeStart,SHOT01.controlledRealism.fadeMid)*.48
+      - ease(frame,SHOT01.controlledRealism.fadeMid,SHOT01.controlledRealism.fadeEnd)*.22
+  );
 
   const emailValue = typed(frame,18,86,EMAIL);
   const passwordP = clamp((frame-SHOT01.phone.passwordStart)/Math.max(1,SHOT01.phone.passwordReady-SHOT01.phone.passwordStart));
@@ -50,6 +59,14 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
 
   return (
     <ATBackground>
+      <ATControlledRealismLayer frame={frame} realism={realism} architectureReveal={intent}/>
+      <ATArchitectureRevealBridge
+        reveal={architectureBridge}
+        pulse={architecturePulse}
+        top={SHOT01.controlledRealism.bridgeTop}
+        bottom={SHOT01.controlledRealism.bridgeBottom}
+        origin="bottom"
+      />
       <div style={{opacity:intro}}>
         <ATSecondaryStack
           frame={frame}
@@ -100,6 +117,8 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
           press={press}
           waiting={waiting}
           spinner={spinner}
+          realism={realism}
+          heroPush={heroPush}
         />
       </div>
       <div style={{position:'absolute',right:84,bottom:58,opacity:requestHint*.20,transform:`translateX(${(1-requestHint)*18}px)`,fontFamily:AT_FONT,fontSize:17,fontWeight:650,letterSpacing:'.06em',color:'#8AA9C8'}}>REQUEST ASSEMBLY →</div>
