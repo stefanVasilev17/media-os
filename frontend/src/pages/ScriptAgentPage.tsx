@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, Upload } from 'lucide-react';
+import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, PencilLine, Save, Upload } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   importProductionContract,
@@ -9,7 +9,8 @@ import {
   type ProductionContractState
 } from '../api/productionContractApi';
 import { importLockedScript, type LockedScriptImportPayload } from '../api/lockedScriptApi';
-import { clock } from '../lib/ep001Production';
+import { loadVoiceClips, syncVoiceClips, updateVoiceClipNarration, type VoiceClipState } from '../api/voiceClipApi';
+import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import { CreativeAgentPage } from './CreativeAgentPage';
 import '../styles/productionFlow.css';
 
@@ -104,6 +105,10 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
   const artifact = state.artifact!;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
+  const [voiceClips, setVoiceClips] = useState<VoiceClipState[]>([]);
+  const [editingClipKey, setEditingClipKey] = useState('');
+  const [draftByClip, setDraftByClip] = useState<Record<string, string>>({});
+  const [savingClipKey, setSavingClipKey] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [importMessage, setImportMessage] = useState('');
@@ -116,13 +121,92 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
     return map;
   }, [contract]);
 
+  const voiceClipByKey = useMemo(
+    () => new Map(voiceClips.map(clip => [clip.clipKey, clip])),
+    [voiceClips]
+  );
+
   useEffect(() => {
     let active = true;
-    loadProductionContract()
-      .then(next => { if (active) setContract(next); })
-      .catch(() => { if (active) setContract(null); });
+    Promise.all([
+      loadProductionContract(),
+      loadVoiceClips(state.revision).catch(() => [] as VoiceClipState[])
+    ])
+      .then(([nextContract, nextClips]) => {
+        if (!active) return;
+        setContract(nextContract);
+        setVoiceClips(nextClips);
+      })
+      .catch(() => {
+        if (!active) return;
+        setContract(null);
+        setVoiceClips([]);
+      });
     return () => { active = false; };
-  }, []);
+  }, [state.revision]);
+
+  function beginNarrationEdit(clipKey: string, narration: string) {
+    setError('');
+    setImportMessage('');
+    setDraftByClip(current => ({ ...current, [clipKey]: narration }));
+    setEditingClipKey(clipKey);
+  }
+
+  async function saveNarrationAndOpenVoice(segment: ProductionContractSegment, narration: string) {
+    if (savingClipKey) return;
+    const nextNarration = narration.trim();
+    if (!nextNarration) {
+      setError('WHAT YOU HEAR cannot be empty.');
+      return;
+    }
+
+    setSavingClipKey(segment.clipKey);
+    setError('');
+    setImportMessage('');
+    try {
+      let availableClips = voiceClips;
+      let existing = availableClips.find(clip => clip.clipKey === segment.clipKey);
+
+      if (!existing) {
+        const bundles = contract?.ready && contract.payload
+          ? buildVoiceShotBundlesFromContract(contract.payload)
+          : buildVoiceShotBundles(artifact);
+        availableClips = await syncVoiceClips(state.revision, bundles);
+        setVoiceClips(availableClips);
+        existing = availableClips.find(clip => clip.clipKey === segment.clipKey);
+      }
+
+      if (existing?.approved) {
+        throw new Error('This voice clip is already LOCKED. Unlock/correct it in the Voice workflow before changing its spoken words.');
+      }
+
+      let saved = existing;
+      if (!existing || nextNarration !== existing.narration.trim()) {
+        saved = await updateVoiceClipNarration(segment.clipKey, {
+          scriptRevision: state.revision,
+          narration: nextNarration
+        });
+      }
+
+      if (!saved) throw new Error('Voice clip could not be initialized for this Script block.');
+
+      setVoiceClips(current => {
+        const found = current.some(clip => clip.clipKey === saved!.clipKey);
+        return found
+          ? current.map(clip => clip.clipKey === saved!.clipKey ? saved! : clip)
+          : [...current, saved!];
+      });
+      setDraftByClip(current => ({ ...current, [segment.clipKey]: saved!.narration }));
+      setEditingClipKey('');
+
+      window.location.hash = '#/agents/voice?shot=' + encodeURIComponent(segment.shotKey)
+        + '&clip=' + encodeURIComponent(segment.clipKey);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not save WHAT YOU HEAR.');
+    } finally {
+      setSavingClipKey('');
+    }
+  }
 
   async function downloadTemplate() {
     setError('');
@@ -188,7 +272,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           <span>PRODUCTION CONTRACT INPUT</span>
           <strong>{contract?.ready ? 'Validated HEAR / SEE blocks are active. Add the next shot contract to merge it into the current timeline.' : 'Import the first HEAR / SEE shot contract created in ChatGPT.'}</strong>
           <p>
-            Import never changes LOCKED narration. MediaOS rejects the file if timing or spoken text differs from Script revision {state.revision}.
+            Contract import preserves the LOCKED Script structure and timing. Director edits made inside WHAT YOU HEAR are stored as the effective downstream narration and are not silently overwritten by a later Voice sync.
             Shot contracts are merged incrementally: new time blocks are added, and matching time blocks are updated. Existing blocks outside the imported shot stay untouched.
           </p>
         </div>
@@ -234,13 +318,86 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
                 <div className="script-contract-copy">
                   <span>{item.sectionTitle}</span>
                   <div className="hear-see-grid">
-                    <div className="timeline-hear">
-                      <h3>WHAT YOU HEAR</h3>
-                      <p>{item.narration}</p>
-                      <div className="script-voice-direction">
-                        <strong>VOICE / INTONATION</strong>
-                        <p>{segment?.voiceDirection || item.voiceDirection}</p>
-                      </div>
+                    <div className="timeline-hear locked-script-copy">
+                      {(() => {
+                        const clip = segment?.clipKey ? voiceClipByKey.get(segment.clipKey) : undefined;
+                        const effectiveNarration = clip?.narration || segment?.hear || item.narration;
+                        const clipKey = segment?.clipKey || '';
+                        const isEditing = Boolean(clipKey) && editingClipKey === clipKey;
+                        const draft = clipKey ? (draftByClip[clipKey] ?? effectiveNarration) : effectiveNarration;
+                        const canEdit = Boolean(segment?.clipKey) && !clip?.approved;
+                        const saving = Boolean(clipKey) && savingClipKey === clipKey;
+                        return (
+                          <>
+                            <div className="locked-hear-head">
+                              <div>
+                                <h3>WHAT YOU HEAR</h3>
+                                <span className="locked-hear-badge"><LockKeyhole size={11} /> LOCKED SCRIPT</span>
+                                {clip?.narrationOverridden && <span className="director-edit-badge">DIRECTOR EDIT</span>}
+                              </div>
+                              {segment?.clipKey && (
+                                clip?.approved
+                                  ? <span className="voice-locked-badge">VOICE LOCKED</span>
+                                  : !isEditing && (
+                                    <button
+                                      type="button"
+                                      className="edit-hear-button"
+                                      disabled={Boolean(savingClipKey)}
+                                      onClick={() => beginNarrationEdit(segment.clipKey, effectiveNarration)}
+                                    >
+                                      <PencilLine size={13} /> Edit words
+                                    </button>
+                                  )
+                              )}
+                            </div>
+
+                            {isEditing && segment ? (
+                              <div className="hear-editor">
+                                <textarea
+                                  autoFocus
+                                  value={draft}
+                                  onChange={event => setDraftByClip(current => ({
+                                    ...current,
+                                    [segment.clipKey]: event.target.value
+                                  }))}
+                                  rows={Math.max(4, Math.min(12, Math.ceil(draft.length / 68)))}
+                                />
+                                <div className="hear-editor-actions">
+                                  <small>Save updates this clip's downstream narration and opens it directly in Voice Generation.</small>
+                                  <div>
+                                    <button
+                                      type="button"
+                                      disabled={saving}
+                                      onClick={() => setEditingClipKey('')}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="primary"
+                                      disabled={saving || !draft.trim()}
+                                      onClick={() => void saveNarrationAndOpenVoice(segment, draft)}
+                                    >
+                                      {saving ? <LoaderCircle className="spin" size={14} /> : <Save size={14} />}
+                                      {saving ? 'Saving…' : 'Save → Voice'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="locked-hear-text">{effectiveNarration}</p>
+                            )}
+
+                            {!segment?.clipKey && (
+                              <small className="hear-edit-unavailable">Import this shot's production contract before routing narration edits to Voice.</small>
+                            )}
+                            <div className="script-voice-direction">
+                              <strong>VOICE / INTONATION</strong>
+                              <p>{segment?.voiceDirection || item.voiceDirection}</p>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="timeline-see">
                       <h3>WHAT YOU SEE</h3>
