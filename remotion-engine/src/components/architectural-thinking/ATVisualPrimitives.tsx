@@ -176,10 +176,14 @@ export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emai
 export type ATActiveStateProps = {
   activity: number;
   frame: number;
+  activationStart: number;
+  activationEnd: number;
 };
 
-export const ATActiveState: React.FC<ATActiveStateProps> = ({activity,frame}) => {
-  const runner = ((frame*2.35)%330)-110;
+export const ATActiveState: React.FC<ATActiveStateProps> = ({activity,frame,activationStart,activationEnd}) => {
+  const duration = Math.max(1,activationEnd-activationStart);
+  const progress = Math.max(0,Math.min(1,(frame-activationStart)/duration));
+  const runner = -104 + progress*310;
   return (
     <>
       <div style={{position:'absolute',left:runner,top:-18,width:76,height:88,transform:'rotate(18deg)',background:'linear-gradient(90deg,transparent,rgba(135,255,217,.78),transparent)',filter:'blur(7px)',opacity:activity*.95}}/>
@@ -193,14 +197,17 @@ export type ATSemanticPillProps = {
   label: string;
   activity: number;
   frame: number;
+  activationStart: number;
+  activationEnd: number;
 };
 
-export const ATSemanticPill: React.FC<ATSemanticPillProps> = ({label,activity,frame}) => {
-  const breathing = .90+Math.sin(frame*.07)*.10;
+export const ATSemanticPill: React.FC<ATSemanticPillProps> = ({label,activity,frame,activationStart,activationEnd}) => {
+  const localFrame = Math.max(0,frame-activationStart);
+  const breathing = .90+Math.sin(localFrame*.07)*.10;
   const scale = 1+activity*.035*breathing;
   return (
     <div style={{width:182,height:52,borderRadius:16,border:`2px solid rgba(30,237,166,${.78+activity*.22})`,background:`linear-gradient(180deg,rgba(8,65,45,${.76+activity*.18}),rgba(3,21,16,.99))`,boxShadow:`0 0 ${12+activity*32}px rgba(29,242,172,${.08+activity*.34}),inset 0 1px 0 rgba(255,255,255,.05)`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:AT_FONT,fontSize:22,fontWeight:activity>.3?760:560,letterSpacing:'-.015em',color:'#F6FFFC',position:'relative',overflow:'hidden',transform:`scale(${scale})`}}>
-      <ATActiveState activity={activity} frame={frame}/>
+      <ATActiveState activity={activity} frame={frame} activationStart={activationStart} activationEnd={activationEnd}/>
       <span style={{position:'relative',zIndex:2,textShadow:activity>.2?'0 0 11px rgba(201,255,239,.24)':'none'}}>{label}</span>
     </div>
   );
@@ -209,6 +216,8 @@ export const ATSemanticPill: React.FC<ATSemanticPillProps> = ({label,activity,fr
 export type ATSecondaryItem = {
   label: string;
   activity: number;
+  activationStart: number;
+  activationEnd: number;
 };
 
 export type ATSecondarySectionProps = {
@@ -221,7 +230,7 @@ export type ATSecondarySectionProps = {
 export const ATSecondarySection: React.FC<ATSecondarySectionProps> = ({title,items,divider,frame}) => (
   <div style={{height:180,padding:'24px 38px 0'}}>
     <div style={{textAlign:'center',fontFamily:AT_FONT,fontSize:29,fontWeight:720,letterSpacing:'-.035em',color:'#F8F9FD'}}>{title}</div>
-    <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:19}}>{items.map((item)=><ATSemanticPill key={item.label} label={item.label} activity={item.activity} frame={frame}/>)}</div>
+    <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:19}}>{items.map((item)=><ATSemanticPill key={item.label} label={item.label} activity={item.activity} frame={frame} activationStart={item.activationStart} activationEnd={item.activationEnd}/>)}</div>
     <div style={{height:2,marginTop:22,borderRadius:999,background:'linear-gradient(90deg,transparent,#7230D4 17%,#B34FFF 50%,#7230D4 83%,transparent)',opacity:.64*divider,boxShadow:'0 0 13px rgba(179,79,255,.18)'}}/>
   </div>
 );
