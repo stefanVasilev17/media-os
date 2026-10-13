@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -285,6 +286,115 @@ public class VisualQaController {
         result.put("status", passed ? "PASS" : "FAIL");
         result.put("checks", checks);
         return result;
+    }
+
+
+    @PostMapping("/technical-rerender/approve")
+    @Transactional
+    public Map<String, Object> approveTechnicalRerender(@Valid @RequestBody RenderQaRequest request) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String shotKey = normalizeShotKey(request.shotKey());
+        if (!"SHOT 01".equals(shotKey) && !"SHOT 02".equals(shotKey)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only SHOT 01 and SHOT 02 support technical re-render approval.");
+        }
+
+        Map<String, Object> approved = jdbc.sql("""
+                select l.render_id as lock_id, v.remotion_render_id as active_id, v.generation_revision
+                from visual_shot_lock l
+                join voice_shot_workflow v on v.episode_id=l.episode_id
+                   and v.script_revision=l.script_revision and v.shot_key=l.shot_key
+                where l.episode_id=:episodeId and l.script_revision=:revision and l.shot_key=:shotKey
+                for update of l, v
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .query((rs, n) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("lockedId", rs.getObject("lock_id", UUID.class));
+                    row.put("activeId", rs.getObject("active_id", UUID.class));
+                    row.put("generation", rs.getInt("generation_revision"));
+                    return row;
+                })
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "The original Director LOCK is missing."));
+
+        if (!approved.get("lockedId").equals(approved.get("activeId"))
+                || approved.get("lockedId").equals(request.renderId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "The original approved render must remain active until replacement.");
+        }
+
+        Map<String, Object> candidate = jdbc.sql("""
+                select status, composition_id, input_props::text
+                from remotion_render
+                where id=:renderId and project_id=:projectId and episode_id=:episodeId
+                """)
+                .param("renderId", request.renderId())
+                .param("projectId", ProductionOverviewService.PROJECT_ID)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .query((rs, n) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("status", rs.getString("status"));
+                    row.put("composition", rs.getString("composition_id"));
+                    row.put("props", readMap(rs.getString("input_props")));
+                    return row;
+                })
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Technical render not found."));
+
+        Map<String, Object> props = asMap(candidate.get("props"));
+        if (!"SUCCEEDED".equals(candidate.get("status"))
+                || !compositionFor(shotKey).equals(candidate.get("composition"))
+                || !Boolean.TRUE.equals(props.get("technicalRerender"))
+                || !shotKey.equals(props.get("shotKey"))
+                || number(props.get("scriptRevision")) != request.scriptRevision()
+                || number(props.get("generationRevision")) != number(approved.get("generation"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Render is not a valid, current, completed technical candidate.");
+        }
+
+        boolean passed = jdbc.sql("""
+                select exists (
+                    select 1 from visual_shot_qa
+                    where episode_id=:episodeId and script_revision=:revision
+                      and shot_key=:shotKey and render_id=:renderId
+                      and phase='POST_RENDER' and status='PASS'
+                )
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .param("renderId", request.renderId())
+                .query(Boolean.class)
+                .single();
+        if (!passed) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Technical candidate must pass post-render QA.");
+        }
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set remotion_render_id=:renderId, rendered_generation_revision=generation_revision,
+                    rendered_at=now(), remotion_synced_at=coalesce(remotion_synced_at,now()), updated_at=now()
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("renderId", request.renderId())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .update();
+
+        jdbc.sql("""
+                update visual_shot_lock
+                set render_id=:renderId, locked_at=now(),
+                    source='Director-approved smooth-motion technical replacement'
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("renderId", request.renderId())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .update();
+
+        return Map.of("shotKey", shotKey, "locked", true, "renderId", request.renderId());
     }
 
     @PostMapping("/lock")
