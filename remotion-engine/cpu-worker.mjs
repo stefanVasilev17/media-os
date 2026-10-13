@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {spawn} from 'node:child_process';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 
@@ -9,7 +10,7 @@ const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
 const WORKER_ID = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
-const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_4';
+const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_5';
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
@@ -88,6 +89,72 @@ async function complete(renderId, outputPath) {
   return bytes.length;
 }
 
+async function runProcess(command, args) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(command, args, {stdio: ['ignore', 'ignore', 'pipe']});
+    let stderr = '';
+    child.stderr.on('data', chunk => {
+      stderr += String(chunk);
+      if (stderr.length > 12000) stderr = stderr.slice(-12000);
+    });
+    child.on('error', reject);
+    child.on('close', code => {
+      if (code === 0) resolve();
+      else reject(new Error(`${command} exited with code ${code}: ${stderr.slice(-6000)}`));
+    });
+  });
+}
+
+async function downloadFile(url, destination) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Could not download preview segment: ${response.status} ${response.statusText}`);
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  await fs.writeFile(destination, bytes);
+  return bytes.length;
+}
+
+async function renderCumulativePreview(job, outputPath, inputProps) {
+  const segments = Array.isArray(inputProps.segments)
+    ? inputProps.segments.filter(segment => segment && typeof segment.videoUrl === 'string' && segment.videoUrl.trim())
+    : [];
+  if (segments.length === 0) throw new Error('Cumulative preview requires at least one rendered shot segment.');
+
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), `media-os-preview-${job.renderId}-`));
+  try {
+    const files = [];
+    for (let index = 0; index < segments.length; index++) {
+      const target = path.join(tmpDir, `segment-${String(index).padStart(3, '0')}.mp4`);
+      await downloadFile(segments[index].videoUrl, target);
+      files.push(target);
+      const percent = Math.max(5, Math.min(70, Math.round(((index + 1) / segments.length) * 60) + 5));
+      await progress(job.renderId, percent);
+    }
+
+    const concatFile = path.join(tmpDir, 'concat.txt');
+    const manifest = files.map(file => `file '${file.replaceAll("'", "'\\''")}'`).join('\n') + '\n';
+    await fs.writeFile(concatFile, manifest, 'utf8');
+    await progress(job.renderId, 75);
+
+    await runProcess('ffmpeg', [
+      '-hide_banner',
+      '-loglevel', 'error',
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', concatFile,
+      '-c', 'copy',
+      '-movflags', '+faststart',
+      '-y',
+      outputPath,
+    ]);
+
+    await progress(job.renderId, 95);
+  } finally {
+    await fs.rm(tmpDir, {recursive: true, force: true}).catch(() => undefined);
+  }
+}
+
 function getServeUrl() {
   if (!serveUrlPromise) {
     serveUrlPromise = bundle({
@@ -109,7 +176,6 @@ function getServeUrl() {
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
-  const serveUrl = await getServeUrl();
 
   console.log(
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
@@ -121,6 +187,15 @@ async function render(job) {
   }, 15_000);
 
   try {
+    if (job.compositionId === 'EP001-Voice-CurrentPreview') {
+      console.log(`Concatenating cumulative preview from ${Array.isArray(inputProps.segments) ? inputProps.segments.length : 0} rendered shot segment(s)`);
+      await renderCumulativePreview(job, outputPath, inputProps);
+      const sizeBytes = await complete(job.renderId, outputPath);
+      console.log(`Completed cumulative preview ${job.renderId}: ${sizeBytes} bytes`);
+      return;
+    }
+
+    const serveUrl = await getServeUrl();
     const composition = await selectComposition({
       serveUrl,
       id: job.compositionId,
