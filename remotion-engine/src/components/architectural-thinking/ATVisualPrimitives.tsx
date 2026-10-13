@@ -102,11 +102,14 @@ type LoginButtonProps = {
 
 const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner}) => {
   const working = spinner>.08 || localUi>.15;
+  const shadowY = 19-press*11;
+  const shadowBlur = 40-press*10;
   return (
-    <div style={{height:70,borderRadius:19,border:`2px solid rgba(154,255,248,${working?.68:.96})`,background:working?'linear-gradient(180deg,#078A84,#075D59)':'linear-gradient(135deg,#34EEE2 0%,#15D2CA 47%,#099FA1 100%)',boxShadow:working?'0 15px 32px rgba(0,0,0,.35),0 0 20px rgba(37,221,207,.14)':'0 19px 40px rgba(0,226,211,.30),0 0 42px rgba(42,236,224,.25),inset 0 2px 0 rgba(255,255,255,.34)',transform:`translateY(${press*5}px) scale(${1-press*.032})`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',left:24,right:24,top:1,height:1,background:'linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent)',opacity:working?.20:.76}}/>
-      {working?<div style={{width:18,height:18,marginRight:10,borderRadius:'50%',border:'2.4px solid rgba(255,255,255,.24)',borderTopColor:'#fff',opacity:spinner,transform:`rotate(${frame*12}deg)`}}/>:null}
-      <span style={{fontFamily:AT_FONT,fontSize:working?18:22,fontWeight:working?760:860,letterSpacing:working?'.07em':'-.025em',color:'#FAFFFF'}}>{waiting>.5?'Waiting':working?'Logging in...':'Log in'}</span>
+    <div style={{height:70,borderRadius:19,border:`2px solid rgba(154,255,248,${working?.68:.96})`,background:working?'linear-gradient(180deg,#078A84,#075D59)':'linear-gradient(135deg,#34EEE2 0%,#15D2CA 47%,#099FA1 100%)',boxShadow:working?`0 ${12-press*5}px ${28-press*6}px rgba(0,0,0,.38),0 0 20px rgba(37,221,207,.14),inset 0 1px 0 rgba(255,255,255,.13)`:`0 ${shadowY}px ${shadowBlur}px rgba(0,226,211,.30),0 0 42px rgba(42,236,224,.25),inset 0 ${2-press*.8}px 0 rgba(255,255,255,${.34-press*.12}),inset 0 -${1+press*2}px 7px rgba(0,67,68,${.12+press*.18})`,transform:`translateY(${press*5}px) scale(${1-press*.028})`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+      <div style={{position:'absolute',left:24,right:24,top:1+press*2,height:1,background:'linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent)',opacity:working?.20:.76-press*.22}}/>
+      <div style={{position:'absolute',inset:0,background:`linear-gradient(180deg,rgba(255,255,255,${.055*(1-press)}) 0%,transparent 34%,rgba(0,49,53,${.11*press}) 100%)`,pointerEvents:'none'}}/>
+      {working?<div style={{width:18,height:18,marginRight:10,borderRadius:'50%',border:'2.4px solid rgba(255,255,255,.24)',borderTopColor:'#fff',opacity:spinner,transform:`rotate(${frame*12}deg)`,filter:'drop-shadow(0 0 5px rgba(255,255,255,.14))'}}/>:null}
+      <span style={{fontFamily:AT_FONT,fontSize:working?18:22,fontWeight:working?760:860,letterSpacing:working?'.07em':'-.025em',color:'#FAFFFF',textShadow:'0 1px 1px rgba(0,20,24,.18)'}}>{waiting>.5?'Waiting':working?'Logging in...':'Log in'}</span>
       {!working?<span style={{position:'absolute',right:22,fontFamily:AT_FONT,fontSize:32,fontWeight:400,lineHeight:1,color:'#FAFFFF',opacity:.96}}>→</span>:null}
     </div>
   );
