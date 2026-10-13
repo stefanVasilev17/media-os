@@ -273,6 +273,133 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 .script-contract-time small { display:block; margin-top:7px; color:#66798e; font-size:8px; line-height:1.5; }
 .hear-see-grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:14px; }
 .timeline-hear,.timeline-see { min-width:0; }
+.locked-script-copy {
+  padding:14px;
+  border:1px solid rgba(87,220,157,.28);
+  border-radius:12px;
+  background:linear-gradient(180deg,rgba(87,220,157,.055),rgba(87,220,157,.018));
+  box-shadow:inset 0 1px 0 rgba(180,255,216,.035);
+}
+.locked-hear-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:9px;
+}
+.locked-hear-head>div:first-child {
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.locked-hear-head h3 { margin:0; }
+.locked-hear-badge,.director-edit-badge,.voice-locked-badge {
+  min-height:21px;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:0 7px;
+  border-radius:999px;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.07em;
+}
+.locked-hear-badge {
+  color:#8ce5b3;
+  border:1px solid rgba(87,220,157,.18);
+  background:rgba(87,220,157,.07);
+}
+.director-edit-badge {
+  color:#78dcff;
+  border:1px solid rgba(103,218,255,.17);
+  background:rgba(103,218,255,.055);
+}
+.voice-locked-badge {
+  flex:0 0 auto;
+  color:#75daa7;
+  border:1px solid rgba(87,220,157,.16);
+  background:rgba(87,220,157,.045);
+}
+.edit-hear-button,.hear-editor-actions button {
+  min-height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 10px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:8px;
+  background:#07101a;
+  color:#a9bacb;
+  font-size:9px;
+  font-weight:850;
+  cursor:pointer;
+}
+.edit-hear-button {
+  flex:0 0 auto;
+  border-color:rgba(87,220,157,.18);
+  color:#8bdcae;
+  background:rgba(87,220,157,.045);
+}
+.locked-hear-text {
+  margin:0;
+  color:#dce7df;
+  font-size:14px;
+  line-height:1.72;
+  overflow-wrap:anywhere;
+}
+.hear-editor textarea {
+  width:100%;
+  box-sizing:border-box;
+  min-height:118px;
+  max-height:50vh;
+  padding:12px 13px;
+  resize:vertical;
+  border:1px solid rgba(103,218,255,.24);
+  border-radius:10px;
+  outline:none;
+  background:#050b12;
+  color:#eef5f8;
+  font:inherit;
+  font-size:14px;
+  line-height:1.65;
+}
+.hear-editor textarea:focus {
+  border-color:rgba(103,218,255,.48);
+  box-shadow:0 0 0 3px rgba(103,218,255,.06);
+}
+.hear-editor-actions {
+  margin-top:9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.hear-editor-actions small {
+  min-width:0;
+  color:#6f8194;
+  font-size:8px;
+  line-height:1.45;
+}
+.hear-editor-actions>div {
+  flex:0 0 auto;
+  display:flex;
+  gap:7px;
+}
+.hear-editor-actions .primary {
+  border-color:rgba(91,215,255,.25);
+  color:#07131b;
+  background:#67dfff;
+}
+.hear-edit-unavailable {
+  display:block;
+  margin-top:8px;
+  color:#6e8194;
+  font-size:8px;
+  line-height:1.45;
+}
 .timeline-see { padding-left:14px; border-left:1px solid rgba(255,255,255,.06); }
 .timeline-see>p { margin:0; color:#c2ceda; font-size:12px; line-height:1.62; }
 .timeline-see dl { display:grid; grid-template-columns:70px 1fr; gap:8px; margin:9px 0 0; }
@@ -285,6 +412,13 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   .contract-import-actions button { flex:1; justify-content:center; }
   .hear-see-grid { grid-template-columns:1fr; }
   .timeline-see { padding-left:0; padding-top:12px; border-left:0; border-top:1px solid rgba(255,255,255,.06); }
+  .locked-script-copy { padding:12px; }
+  .locked-hear-head { align-items:stretch; flex-direction:column; }
+  .edit-hear-button,.voice-locked-badge { align-self:flex-start; }
+  .hear-editor textarea { min-height:150px; font-size:16px; }
+  .hear-editor-actions { align-items:stretch; flex-direction:column; }
+  .hear-editor-actions>div { width:100%; }
+  .hear-editor-actions button { flex:1; min-height:40px; }
 }
 
 .visual-imported-timeline {
