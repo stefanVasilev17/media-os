@@ -115,9 +115,12 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, aud
   const frame = useCurrentFrame();
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
+    {actual: actualFrame(anchors, 'VALIDATE', 2.3, SHOT02_FPS), canonical: Math.round(2.3 * SHOT02_FPS)},
+    {actual: actualFrame(anchors, 'SUBMIT', 7.5, SHOT02_FPS), canonical: Math.round(7.5 * SHOT02_FPS)},
+    {actual: actualFrame(anchors, 'REQUEST_ASSEMBLY', 14.35, SHOT02_FPS), canonical: Math.round(14.35 * SHOT02_FPS)},
     {actual: actualFrame(anchors, 'PAYLOAD', 22, SHOT02_FPS), canonical: Math.round(22 * SHOT02_FPS)},
     {actual: actualFrame(anchors, 'HEADERS', 36, SHOT02_FPS), canonical: Math.round(36 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'REQUEST_CONTEXT', 50, SHOT02_FPS), canonical: Math.round(50 * SHOT02_FPS)},
+    {actual: actualFrame(anchors, 'REQUEST_CONTEXT', 51.2, SHOT02_FPS), canonical: Math.round(51.2 * SHOT02_FPS)},
     {actual: actualFrame(anchors, 'REQUEST_READY', 72.4, SHOT02_FPS), canonical: Math.round(72.4 * SHOT02_FPS)},
     {actual: Math.max(1, durationInFrames - 1), canonical: SHOT02_DURATION_FRAMES - 1},
   ];
