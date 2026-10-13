@@ -41,17 +41,18 @@ export type ATArchitectureRevealBridgeProps = {
   pulse: number;
   top?: number;
   bottom?: number;
+  origin?: 'top' | 'bottom';
 };
 
-export const ATArchitectureRevealBridge: React.FC<ATArchitectureRevealBridgeProps> = ({reveal,pulse,top=245,bottom=760}) => {
+export const ATArchitectureRevealBridge: React.FC<ATArchitectureRevealBridgeProps> = ({reveal,pulse,top=245,bottom=760,origin='top'}) => {
   const r = Math.max(0,Math.min(1,reveal));
   const p = Math.max(0,Math.min(1,pulse));
   const height = Math.max(0,(bottom-top)*r);
   return (
     <div style={{position:'absolute',left:'50%',top,width:160,height:bottom-top,transform:'translateX(-50%)',pointerEvents:'none',zIndex:3,opacity:r}}>
-      <div style={{position:'absolute',left:'50%',top:0,width:2,height,transform:'translateX(-50%)',borderRadius:99,background:'linear-gradient(180deg,rgba(190,151,255,.15),rgba(129,82,255,.75) 44%,rgba(56,220,235,.46) 100%)',boxShadow:`0 0 ${12+22*p}px rgba(130,91,255,${.13+.25*p})`}}/>
-      <div style={{position:'absolute',left:'50%',top:Math.max(0,height-9),width:18,height:18,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'rgba(180,232,255,.94)',boxShadow:`0 0 ${18+30*p}px rgba(101,210,255,${.28+.36*p})`,opacity:r}}/>
-      <div style={{position:'absolute',left:'50%',top:Math.max(0,height-30),width:74,height:74,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'radial-gradient(circle,rgba(92,210,255,.16),transparent 68%)',filter:'blur(5px)',opacity:p}}/>
+      <div style={{position:'absolute',left:'50%',top:origin==='top'?0:undefined,bottom:origin==='bottom'?0:undefined,width:2,height,transform:'translateX(-50%)',borderRadius:99,background:origin==='top'?'linear-gradient(180deg,rgba(190,151,255,.15),rgba(129,82,255,.75) 44%,rgba(56,220,235,.46) 100%)':'linear-gradient(0deg,rgba(56,220,235,.52),rgba(129,82,255,.75) 54%,rgba(190,151,255,.15) 100%)',boxShadow:`0 0 ${12+22*p}px rgba(130,91,255,${.13+.25*p})`}}/>
+      <div style={{position:'absolute',left:'50%',top:origin==='top'?Math.max(0,height-9):Math.max(0,(bottom-top)-height-9),width:18,height:18,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'rgba(180,232,255,.94)',boxShadow:`0 0 ${18+30*p}px rgba(101,210,255,${.28+.36*p})`,opacity:r}}/>
+      <div style={{position:'absolute',left:'50%',top:origin==='top'?Math.max(0,height-30):Math.max(0,(bottom-top)-height-30),width:74,height:74,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'radial-gradient(circle,rgba(92,210,255,.16),transparent 68%)',filter:'blur(5px)',opacity:p}}/>
     </div>
   );
 };
@@ -96,6 +97,7 @@ type LoginButtonProps = {
   press: number;
   waiting: number;
   spinner: number;
+  realism?: number;
 };
 
 const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner}) => {
@@ -125,14 +127,17 @@ export type ATPhoneProps = {
   spinner: number;
 };
 
-export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner}) => {
+export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,realism=1}) => {
   const scale = .91 + (.70-.91)*reveal + (.60-.70)*credential + (.53-.60)*ui;
   const top = 66 + (332-66)*reveal + (468-332)*credential + (592-468)*ui;
   const rotateY = -2.2 + reveal*.8 + credential*.25 + ui*.15;
   const rotateX = .65 - reveal*.28;
+  const material = Math.max(0,Math.min(1,realism));
+  const glassSheen = 18 + Math.sin(frame*.014)*3;
 
   return (
-    <div style={{position:'absolute',left:'50%',top,width:500,height:900,transform:`translateX(-50%) perspective(1600px) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${scale})`,transformOrigin:'50% 0%',zIndex:5}}>
+    <div style={{position:'absolute',left:'50%',top,width:500,height:900,transform:`translateX(-50%) perspective(1600px) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${scale})`,transformOrigin:'50% 0%',zIndex:5,filter:`drop-shadow(0 ${24+material*16}px ${38+material*30}px rgba(0,0,0,${.28+material*.28}))`}}>
+      <div style={{position:'absolute',left:-28,right:-28,top:-34,height:126,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(123,198,255,${.12*material}) 0%,rgba(77,137,204,${.045*material}) 46%,transparent 72%)`,filter:'blur(12px)',pointerEvents:'none'}}/>
       <div style={{position:'absolute',left:-6,top:147,width:6,height:66,borderRadius:'5px 0 0 5px',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
       <div style={{position:'absolute',left:-6,top:242,width:6,height:108,borderRadius:'5px 0 0 5px',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
       <div style={{position:'absolute',right:-6,top:202,width:6,height:142,borderRadius:'0 5px 5px 0',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
@@ -142,6 +147,8 @@ export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emai
           <div style={{position:'absolute',width:620,height:620,left:-305,top:-165,borderRadius:'50%',border:'2px solid rgba(39,117,255,.35)',boxShadow:'0 0 42px rgba(26,91,255,.09)',transform:'rotate(-18deg)'}}/>
           <div style={{position:'absolute',width:570,height:570,right:-380,bottom:-190,borderRadius:'50%',border:'2px solid rgba(10,168,255,.47)',boxShadow:'0 0 42px rgba(20,126,255,.10)'}}/>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(128deg,rgba(28,79,170,.13) 0%,transparent 31%,transparent 68%,rgba(0,127,217,.08) 100%)'}}/>
+          <div style={{position:'absolute',left:`${glassSheen}%`,top:-120,width:148,height:1120,transform:'rotate(15deg)',background:`linear-gradient(90deg,transparent,rgba(220,241,255,${.055*material}),rgba(255,255,255,${.018*material}),transparent)`,filter:'blur(4px)',pointerEvents:'none'}}/>
+          <div style={{position:'absolute',inset:0,borderRadius:63,boxShadow:`inset 10px 0 24px rgba(148,211,255,${.025*material}),inset -12px 0 30px rgba(0,0,0,${.15+.08*material})`,pointerEvents:'none'}}/>
           <StatusBar/>
           <div style={{position:'absolute',left:'50%',top:14,width:116,height:34,transform:'translateX(-50%)',borderRadius:21,background:'#01050A',boxShadow:'0 3px 12px rgba(0,0,0,.58)'}}><div style={{position:'absolute',right:12,top:12,width:7,height:7,borderRadius:'50%',background:'#10213B',boxShadow:'0 0 4px rgba(61,107,190,.35)'}}/></div>
           <div style={{position:'absolute',left:44,right:44,top:124,bottom:46}}>
@@ -155,7 +162,7 @@ export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emai
           </div>
         </div>
       </div>
-      <div style={{position:'absolute',left:'12%',right:'10%',bottom:-24,height:40,borderRadius:'50%',background:'radial-gradient(ellipse,rgba(25,123,255,.30) 0%,rgba(20,82,160,.08) 47%,transparent 75%)',filter:'blur(8px)',transform:'rotateX(68deg)'}}/>
+      <div style={{position:'absolute',left:'10%',right:'8%',bottom:-28,height:50,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(25,123,255,${.18+.16*material}) 0%,rgba(20,82,160,${.05+.05*material}) 47%,transparent 75%)`,filter:`blur(${7+material*4}px)`,transform:'rotateX(68deg)',opacity:.78+material*.22}}/>
     </div>
   );
 };
