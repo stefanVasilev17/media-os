@@ -362,7 +362,7 @@ public class ProductionContractController {
     }
 
     private String shotKeyForSecond(int second) {
-        int[] starts = {0,31,105,158,225,305,385,470,560,655,770,850,945,1020,1100,1155};
+        int[] starts = {0,70,144,197,264,344,424,509,599,694,809,889,984,1059,1139,1194};
         for (int i = starts.length - 1; i >= 0; i--) {
             if (second >= starts[i]) return "SHOT " + String.format(Locale.ROOT, "%02d", i + 1);
         }
