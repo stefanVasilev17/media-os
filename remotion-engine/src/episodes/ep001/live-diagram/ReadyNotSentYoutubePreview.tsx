@@ -162,10 +162,20 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0)):.55}
               active={index===0?(worldMotion?.networkActive??0):0}
               secondaryReveal={index===0?Math.max(worldMotion?.dnsReveal??0,worldMotion?.latencyReveal??0):0}
+              sectionReveals={index===0?{
+                'DNS Resolution':worldMotion?.dnsReveal??0,
+                'Network Latency':worldMotion?.latencyReveal??0,
+              }:undefined}
+              dnsLookup={index===0&&worldMotion?{
+                hostname:'api.example.com',
+                address:'203.0.113.42',
+                reveal:worldMotion.dnsReveal??0,
+                found:worldMotion.resolve??0,
+              }:undefined}
               sections={node.sections.map(section=>({
                 title:section.title,
                 items:section.items.map(item=>({
-                  label:item.label,
+                  label:index===0&&worldMotion&&item.label==='Resolve'?'Find IP Address':item.label,
                   activity:index!==0?0:item.label==='Resolve'?worldMotion?.resolve??0
                     :item.label==='Cache'?worldMotion?.cache??0
                     :item.label==='RTT'?worldMotion?.rtt??0

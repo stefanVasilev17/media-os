@@ -58,8 +58,8 @@ public final class Ep001SemanticAnchorCatalog {
             case "SHOT 04" -> linked(
                     "PREPARED_LOGIN", "prepared login",
                     "WHERE_SENT", "where should this message actually be sent",
-                    "DNS_RESOLUTION", "DNS Resolution",
-                    "RESOLVE", "Resolve",
+                    "DNS_RESOLUTION", "DNS",
+                    "RESOLVE", "finds the address",
                     "CACHE", "Cache",
                     "NETWORK_TRANSIT", "Network Transit",
                     "NETWORK_LATENCY", "Network Latency",

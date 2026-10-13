@@ -76,8 +76,8 @@ const SHOT03_WORD_ANCHORS: Record<string, string[]> = {
 const SHOT04_WORD_ANCHORS:Record<string,string[]> = {
   PREPARED_LOGIN:['prepared login'],
   WHERE_SENT:['where should this message actually be sent'],
-  DNS_RESOLUTION:['dns resolution'],
-  RESOLVE:['resolve'],
+  DNS_RESOLUTION:['dns'],
+  RESOLVE:['finds the address'],
   CACHE:['cache'],
   NETWORK_TRANSIT:['network transit'],
   NETWORK_LATENCY:['network latency'],

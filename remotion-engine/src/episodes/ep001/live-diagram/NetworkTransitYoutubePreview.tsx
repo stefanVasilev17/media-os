@@ -91,14 +91,12 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           opacity:release*.85,zIndex:8,
         }}/>
         <div style={{
-          position:'absolute',left:756,top:803,width:282,
-          transform:'translateX(-50%)',padding:'9px 14px',
-          border:'1px solid rgba(75,155,213,.42)',borderRadius:11,
-          background:'rgba(5,20,35,.94)',fontFamily:AT_FONT,
-          fontSize:16,color:'#C9E3FC',fontWeight:670,
-          textAlign:'center',letterSpacing:'-.02em',
-          opacity:addressNote*.92,zIndex:12,
-        }}>Service name → destination address</div>
+          position:'absolute',left:756,top:810,width:282,
+          transform:'translateX(-50%)',
+          fontFamily:AT_FONT,fontSize:14,color:'#A8D4F1',fontWeight:670,
+          textAlign:'center',letterSpacing:'.01em',
+          opacity:addressNote*.82,zIndex:12,
+        }}>DNS lookup complete · destination found</div>
         <div style={{
           position:'absolute',left:756,top:852,width:270,
           transform:'translateX(-50%)',

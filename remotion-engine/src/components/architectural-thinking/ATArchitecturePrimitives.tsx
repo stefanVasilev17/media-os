@@ -64,9 +64,10 @@ type ATMiniWorldProps = {
   tags?: string[];
   compact?: boolean;
   micro?: boolean;
+  footer?: React.ReactNode;
 };
 
-export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,items,tags=[],compact=false,micro=false}) => {
+export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,items,tags=[],compact=false,micro=false,footer}) => {
   if(micro){
     return (
       <div style={{borderRadius:12,padding:'6px 7px 6px',border:`1.25px solid rgba(80,150,224,${.20+activity*.48})`,background:'linear-gradient(180deg,rgba(8,25,42,.96),rgba(4,14,26,.985))',boxShadow:`0 8px 20px rgba(0,0,0,.18),0 0 ${6+activity*12}px rgba(47,145,255,${activity*.12})`,opacity:reveal,transform:`translateY(${(1-reveal)*5}px)`,fontFamily:AT_FONT}}>
@@ -82,6 +83,7 @@ export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,i
             </div>;
           })}
         </div>
+        {footer?<div style={{marginTop:6}}>{footer}</div>:null}
       </div>
     );
   }
@@ -163,12 +165,14 @@ export type ATBackendNodeProps = {
   active?:number;
   quiet?:number;
   secondaryReveal?:number;
+  sectionReveals?:Record<string,number>;
+  dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
   width?:number;
   height?:number;
 };
 
 export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
-  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,width=270,height=244,
+  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,width=270,height=244,
 }) => (
   <ATPrimaryNode
     title={title} left={x} top={y} width={width} height={height}
@@ -176,13 +180,34 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
   >
     <div style={{
       position:'relative',display:'flex',flexDirection:'column',gap:5,
-      opacity:secondaryReveal>0?secondaryReveal:.20,
     }}>
       {sections.map(section=>(
-        <ATMiniWorld
-          key={section.title} title={section.title} items={section.items}
-          reveal={1} activity={active} micro
-        />
+        <div key={section.title} style={{
+          opacity:.20+.80*Math.max(0,Math.min(1,sectionReveals?.[section.title]??secondaryReveal)),
+        }}>
+          <ATMiniWorld
+            title={section.title} items={section.items}
+            reveal={1} activity={active} micro
+            footer={section.title==='DNS Resolution'&&dnsLookup?(
+              <div style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',gap:4,
+                borderRadius:6,padding:'5px 4px',minHeight:24,
+                background:'rgba(3,15,28,.85)',border:'1px solid rgba(79,140,194,.32)',
+                opacity:Math.max(0,Math.min(1,dnsLookup.reveal)),
+              }}>
+                <span style={{fontSize:9,fontWeight:720,letterSpacing:'-.03em',color:'#C5E3F8',whiteSpace:'nowrap'}}>
+                  {dnsLookup.hostname}
+                </span>
+                <span style={{fontSize:12,color:'#65B5DF'}}>→</span>
+                <span style={{
+                  fontSize:9,fontWeight:740,letterSpacing:'-.04em',whiteSpace:'nowrap',
+                  color:'#77F4CF',opacity:Math.max(0,Math.min(1,dnsLookup.found)),
+                  textShadow:dnsLookup.found>.5?'0 0 9px rgba(75,227,184,.4)':'none',
+                }}>{dnsLookup.address}</span>
+              </div>
+            ):undefined}
+          />
+        </div>
       ))}
     </div>
   </ATPrimaryNode>
