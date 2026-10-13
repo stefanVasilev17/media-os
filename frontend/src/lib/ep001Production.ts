@@ -24,22 +24,22 @@ export type VoiceShotBundle = EpisodeShotDefinition & {
 };
 
 export const EP001_SHOTS: EpisodeShotDefinition[] = [
-  { key: 'SHOT 01', title: 'The Human Action / Login Intent', startSecond: 0, endSecond: 31 },
-  { key: 'SHOT 02', title: 'Request Assembly', startSecond: 31, endSecond: 105 },
-  { key: 'SHOT 03', title: 'Ready Does Not Mean Sent', startSecond: 105, endSecond: 158 },
-  { key: 'SHOT 04', title: 'DNS Resolution / Network Transit', startSecond: 158, endSecond: 225 },
-  { key: 'SHOT 05', title: 'API Gateway / Routing', startSecond: 225, endSecond: 305 },
-  { key: 'SHOT 06', title: 'Load Balancer / Traffic Distribution', startSecond: 305, endSecond: 385 },
-  { key: 'SHOT 07', title: 'Auth Service / Validation Steps', startSecond: 385, endSecond: 470 },
-  { key: 'SHOT 08', title: 'User Database / User Data', startSecond: 470, endSecond: 560 },
-  { key: 'SHOT 09', title: 'Healthy Auth Service, Broken Login', startSecond: 560, endSecond: 655 },
-  { key: 'SHOT 10', title: 'When Trust Breaks Along the Way', startSecond: 655, endSecond: 770 },
-  { key: 'SHOT 11', title: 'Correct Password, But Not Logged In Yet', startSecond: 770, endSecond: 850 },
-  { key: 'SHOT 12', title: 'Authentication State / Session Creation', startSecond: 850, endSecond: 945 },
-  { key: 'SHOT 13', title: 'Route Decision / Logged-In UI', startSecond: 945, endSecond: 1020 },
-  { key: 'SHOT 14', title: 'Session Restore Flow', startSecond: 1020, endSecond: 1100 },
-  { key: 'SHOT 15', title: 'What Really Happened When You Clicked Login', startSecond: 1100, endSecond: 1155 },
-  { key: 'SHOT 16', title: 'The Next Request', startSecond: 1155, endSecond: 1200 }
+  { key: 'SHOT 01', title: 'The Human Action / Login Intent', startSecond: 0, endSecond: 70 },
+  { key: 'SHOT 02', title: 'Request Assembly', startSecond: 70, endSecond: 144 },
+  { key: 'SHOT 03', title: 'Ready Does Not Mean Sent', startSecond: 144, endSecond: 197 },
+  { key: 'SHOT 04', title: 'DNS Resolution / Network Transit', startSecond: 197, endSecond: 264 },
+  { key: 'SHOT 05', title: 'API Gateway / Routing', startSecond: 264, endSecond: 344 },
+  { key: 'SHOT 06', title: 'Load Balancer / Traffic Distribution', startSecond: 344, endSecond: 424 },
+  { key: 'SHOT 07', title: 'Auth Service / Validation Steps', startSecond: 424, endSecond: 509 },
+  { key: 'SHOT 08', title: 'User Database / User Data', startSecond: 509, endSecond: 599 },
+  { key: 'SHOT 09', title: 'Healthy Auth Service, Broken Login', startSecond: 599, endSecond: 694 },
+  { key: 'SHOT 10', title: 'When Trust Breaks Along the Way', startSecond: 694, endSecond: 809 },
+  { key: 'SHOT 11', title: 'Correct Password, But Not Logged In Yet', startSecond: 809, endSecond: 889 },
+  { key: 'SHOT 12', title: 'Authentication State / Session Creation', startSecond: 889, endSecond: 984 },
+  { key: 'SHOT 13', title: 'Route Decision / Logged-In UI', startSecond: 984, endSecond: 1059 },
+  { key: 'SHOT 14', title: 'Session Restore Flow', startSecond: 1059, endSecond: 1139 },
+  { key: 'SHOT 15', title: 'What Really Happened When You Clicked Login', startSecond: 1139, endSecond: 1194 },
+  { key: 'SHOT 16', title: 'The Next Request', startSecond: 1194, endSecond: 1239 }
 ];
 
 export function clock(totalSeconds: number) {
