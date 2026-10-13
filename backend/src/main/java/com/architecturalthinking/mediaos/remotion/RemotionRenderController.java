@@ -30,7 +30,7 @@ public class RemotionRenderController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    private static final String ENGINE_VERSION = "AT_REMOTION_V0_1";
+    private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.of(
             "EP001-VerticalSlice",
@@ -46,6 +46,7 @@ public class RemotionRenderController {
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final ProductionMemoryService productionMemory;
+    private final String engineVersion;
 
     public RemotionRenderController(
             JdbcClient jdbc,
@@ -55,6 +56,14 @@ public class RemotionRenderController {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.productionMemory = productionMemory;
+        this.engineVersion = resolveEngineVersion();
+    }
+
+    private String resolveEngineVersion() {
+        String sha = System.getenv().getOrDefault("RAILWAY_GIT_COMMIT_SHA", "").trim();
+        if (sha.isBlank()) return ENGINE_VERSION_PREFIX + "LOCAL";
+        String shortSha = sha.length() > 12 ? sha.substring(0, 12) : sha;
+        return ENGINE_VERSION_PREFIX + shortSha;
     }
 
     public record RenderRequest(String profile, Map<String, Object> inputProps) {}
@@ -118,7 +127,7 @@ public class RemotionRenderController {
                 .param("episodeId", composition.episodeId())
                 .param("compositionId", compositionId)
                 .param("renderKey", composition.renderKey())
-                .param("engineVersion", ENGINE_VERSION)
+                .param("engineVersion", engineVersion)
                 .param("inputProps", inputPropsJson)
                 .param("renderHash", renderHash)
                 .param("profile", profileName)
@@ -173,7 +182,7 @@ public class RemotionRenderController {
                 "configured", true,
                 "provider", "CPU_QUEUE",
                 "engine", "REMOTION_CPU_V1",
-                "engineVersion", ENGINE_VERSION,
+                "engineVersion", engineVersion,
                 "compositions", COMPOSITIONS.keySet(),
                 "profiles", Arrays.asList("FAST_PREVIEW", "REVIEW")
         );
@@ -264,7 +273,7 @@ public class RemotionRenderController {
             Map<String, Object> inputProps
     ) {
         try {
-            String material = ENGINE_VERSION + "\n"
+            String material = engineVersion + "\n"
                     + compositionId + "\n"
                     + profile + "\n"
                     + output.width() + "x" + output.height() + "\n"
