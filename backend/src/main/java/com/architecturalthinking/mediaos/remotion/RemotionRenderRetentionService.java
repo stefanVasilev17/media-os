@@ -18,6 +18,7 @@ public class RemotionRenderRetentionService {
     private static final int BATCH_SIZE = 8;
 
     private final JdbcClient jdbc;
+    private volatile boolean pausedForStorageExhaustion;
 
     public RemotionRenderRetentionService(JdbcClient jdbc) {
         this.jdbc = jdbc;
@@ -51,6 +52,7 @@ public class RemotionRenderRetentionService {
             fixedDelayString = "${mediaos.render.retention.interval-ms:60000}"
     )
     public void pruneObsoleteRenderVersions() {
+        if (pausedForStorageExhaustion) return;
         logStorageFootprint();
         long reclaimedVideoBytes = 0;
         int removed = 0;
@@ -155,7 +157,8 @@ public class RemotionRenderRetentionService {
                         removed, reclaimedVideoBytes);
             }
         } catch (Exception error) {
-            log.warn("Remotion retention could not clear obsolete MP4 payloads; existing Director LOCKED assets remain protected: {}",
+            pausedForStorageExhaustion = true;
+            log.error("Automatic render retention paused until the backend is restarted after storage recovery. Preserved all Director-LOCKED assets. Database cleanup must not retry on a full PostgreSQL volume: {}",
                     error.getMessage());
         }
     }
