@@ -500,6 +500,24 @@ export function VisualAgentPage() {
     }
   }
 
+  async function validateSmoothCandidate() {
+    if (!script || !currentShot || !currentVisual?.locked || busy || locking) return;
+    const id = currentVisual.technicalCandidateRenderId;
+    if (!id || currentVisual.technicalCandidateStatus !== 'SUCCEEDED') return;
+    setBusy(true);
+    setError('');
+    try {
+      const qa = await runVisualPostQa(script.revision, currentShot.key, id);
+      setPostQa(qa);
+      await refresh(script.revision);
+      if (!qa.passed) setError('The technical candidate did not pass post-render QA. Original LOCKED footage remains active.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Candidate QA could not be resumed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function approveSmoothCandidate() {
     if (!script || !currentShot || !currentVisual?.locked || busy || locking) return;
     const id = currentVisual.technicalCandidateRenderId;
@@ -755,6 +773,17 @@ export function VisualAgentPage() {
               <p>Candidate status: {currentVisual.technicalCandidateStatus || 'UNKNOWN'}. Refresh the page to check progress.</p>
             )}
             <div className="visual-main-actions">
+              {currentVisual.technicalCandidateStatus === 'SUCCEEDED'
+                && currentVisual.technicalCandidateQaStatus !== 'PASS' && (
+                <button
+                  type="button"
+                  disabled={busy || locking}
+                  onClick={() => void validateSmoothCandidate()}
+                >
+                  {busy ? <LoaderCircle className="spin" size={15}/> : <ShieldCheck size={15}/>}
+                  Validate Candidate QA
+                </button>
+              )}
               <button
                 type="button"
                 className="primary"
