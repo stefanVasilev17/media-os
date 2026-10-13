@@ -93,9 +93,18 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           panelTop={30}
           connectorHeight={20}
           sections={[
-            {title:'Login Intent',items:[{label:'Validate',activity:0},{label:'Submit',activity:0}],reveal:1,divider:1},
-            {title:'Credential Input',items:[{label:'Identifier',activity:0},{label:'Secret',activity:0}],reveal:1,divider:1},
-            {title:'Local UI State',items:[{label:'Submitting',activity:0},{label:'Waiting',activity:legacyWaiting}],reveal:1,divider:0},
+            {title:'Login Intent',items:[
+              {label:'Validate',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+              {label:'Submit',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+            ],reveal:1,divider:1},
+            {title:'Credential Input',items:[
+              {label:'Identifier',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+              {label:'Secret',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+            ],reveal:1,divider:1},
+            {title:'Local UI State',items:[
+              {label:'Submitting',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+              {label:'Waiting',activity:legacyWaiting,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+SHOT02.handoff.contextQuietEnd},
+            ],reveal:1,divider:0},
           ]}
         />
       </ATCameraRig>
