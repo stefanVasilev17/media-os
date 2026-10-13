@@ -49,6 +49,9 @@ const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
   REQUEST_CONTEXT: ['request context'],
   TIMESTAMP: ['timestamp'],
   SOURCE: ['source'],
+  WHAT_SENDING: ['what are we sending'],
+  HOW_READ: ['how should it be read'],
+  SYSTEM_KNOW: ['what should the system know'],
   REQUEST_READY: ['structured message ready']
 };
 
