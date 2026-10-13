@@ -129,6 +129,8 @@ export type ATPhoneProps = {
   press: number;
   waiting: number;
   spinner: number;
+  realism?: number;
+  heroPush?: number;
 };
 
 export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,realism=1,heroPush=0}) => {
