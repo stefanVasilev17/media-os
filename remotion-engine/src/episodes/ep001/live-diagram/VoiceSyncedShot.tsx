@@ -1,5 +1,5 @@
 import React from 'react';
-import {Freeze, Html5Audio, Sequence, useCurrentFrame} from 'remotion';
+import {Html5Audio, Sequence, useCurrentFrame} from 'remotion';
 import {z} from 'zod';
 import {PhoneFirstYoutubePreview} from './PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview} from './RequestAssemblyYoutubePreview';
@@ -67,7 +67,7 @@ const mapFrame = (frame: number, points: AnchorPoint[], canonicalEnd: number) =>
     if (frame <= right.actual) {
       const width = Math.max(1, right.actual - left.actual);
       const progress = clamp((frame - left.actual) / width, 0, 1);
-      return Math.round(left.canonical + progress * (right.canonical - left.canonical));
+      return left.canonical + progress * (right.canonical - left.canonical);
     }
   }
 
@@ -104,9 +104,7 @@ export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({
 
   return (
     <>
-      <Freeze frame={canonicalFrame}>
-        <PhoneFirstYoutubePreview showGuides={false} />
-      </Freeze>
+      <PhoneFirstYoutubePreview showGuides={false} frameOverride={canonicalFrame} />
       <VoiceAudio audioUrl={audioUrl} audioClips={audioClips} />
     </>
   );
@@ -147,9 +145,7 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, aud
 
   return (
     <>
-      <Freeze frame={canonicalFrame}>
-        <RequestAssemblyYoutubePreview showGuides={false} recapHighlights={recapHighlights} />
-      </Freeze>
+      <RequestAssemblyYoutubePreview showGuides={false} recapHighlights={recapHighlights} frameOverride={canonicalFrame} />
       <VoiceAudio audioUrl={audioUrl} audioClips={audioClips} />
     </>
   );

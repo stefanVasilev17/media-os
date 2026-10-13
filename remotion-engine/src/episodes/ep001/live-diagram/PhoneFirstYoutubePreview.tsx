@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {ATArchitectureRevealBridge, ATBackground, ATControlledRealismLayer, AT_FONT, ATPhone, ATSecondaryStack} from '../../../components/architectural-thinking';
 import {SHOT01, SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 
-export const phoneFirstYoutubePreviewSchema = z.object({showGuides: z.boolean()});
+export const phoneFirstYoutubePreviewSchema = z.object({showGuides: z.boolean(),frameOverride:z.number().optional()});
 type Props = z.infer<typeof phoneFirstYoutubePreviewSchema>;
 
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
@@ -18,8 +18,9 @@ const typed = (frame: number, start: number, end: number, value: string) => {
   return value.slice(0, Math.floor((1 - Math.pow(1 - p, 1.35)) * value.length));
 };
 
-export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
-  const frame = useCurrentFrame();
+export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides,frameOverride}) => {
+  const compositionFrame = useCurrentFrame();
+  const frame = frameOverride ?? compositionFrame;
   const reveal = ease(frame,SHOT01.camera.worldRevealStart,SHOT01.camera.worldRevealEnd);
   const credential = ease(frame,SHOT01.credentialInput.start,SHOT01.credentialInput.revealEnd);
   const ui = ease(frame,SHOT01.localUiState.start,SHOT01.localUiState.revealEnd);

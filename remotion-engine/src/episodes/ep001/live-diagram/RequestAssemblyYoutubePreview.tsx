@@ -15,7 +15,7 @@ import {
 import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 import {SHOT02} from './shot02Timing';
 
-export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean(),recapHighlights:z.boolean().optional()});
+export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean(),recapHighlights:z.boolean().optional(),frameOverride:z.number().optional()});
 type Props = z.infer<typeof requestAssemblyYoutubePreviewSchema>;
 
 const EMAIL='user@example.com';
@@ -23,8 +23,9 @@ const out=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1
 const ease=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1],{extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic)});
 const pulse=(frame:number,start:number,end:number,fade=10)=>Math.min(out(frame,start,Math.min(start+fade,end)),1-out(frame,Math.max(start,end-fade),end));
 
-export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHighlights=true})=>{
-  const frame=useCurrentFrame();
+export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHighlights=true,frameOverride})=>{
+  const compositionFrame=useCurrentFrame();
+  const frame=frameOverride ?? compositionFrame;
   const continuationFrame=SHOT01_DURATION_FRAMES+frame;
 
   const contextQuiet=ease(frame,SHOT02.handoff.contextQuietStart,SHOT02.handoff.contextQuietEnd);
