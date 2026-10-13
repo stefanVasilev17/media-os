@@ -32,37 +32,35 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const validateActivity=pulse(frame,SHOT02.handoff.validateStart,SHOT02.handoff.validateEnd,10);
   const submitActivity=pulse(frame,SHOT02.handoff.submitStart,SHOT02.handoff.submitEnd,10);
   const legacyWaiting=.12+.88*(1-out(frame,0,18));
-  const requestHintCarry=1-out(frame,0,SHOT02.handoff.hintEnd);
   const flowReveal=out(frame,SHOT02.handoff.flowStart,SHOT02.handoff.flowEnd);
   const requestReveal=out(frame,SHOT02.requestAssembly.revealStart,SHOT02.requestAssembly.revealEnd);
   const requestSettle=ease(frame,SHOT02.requestAssembly.settleStart,SHOT02.requestAssembly.settleEnd);
   const overview=ease(frame,SHOT02.camera.overviewStart,SHOT02.camera.overviewEnd);
   const requestQuiet=ease(frame,SHOT02.requestAssembly.defocusStart,SHOT02.requestAssembly.defocusEnd);
 
-  const requestLeft=930-requestQuiet*70+(1-requestSettle)*64;
-  const requestTop=703;
-  const requestWidth=270;
-  const requestHeight=240;
-  const requestVisualScale=1.80-requestQuiet*.80;
-
-  const phoneRigX=-350*phoneShift;
-  const phoneRigY=16*phoneShift;
-  const phoneRigScale=1-.44*phoneShift;
-  const stackRigX=-555*contextQuiet;
-  const stackRigY=-24*contextQuiet;
-  const stackRigScale=1-.45*contextQuiet;
-  const stackOpacity=1-.80*contextQuiet;
-
-  const phoneCenterX=460;
-  const phoneVisibleHalfWidth=250*.53*phoneRigScale;
-  const flowStartX=960+(phoneCenterX-960)*phoneRigScale+phoneRigX+phoneVisibleHalfWidth;
-  const flowStartY=540+(823-540)*phoneRigScale+phoneRigY;
-  const flowEndX=requestLeft-(requestWidth*requestVisualScale)/2-8;
-  const flowEndY=requestTop+requestHeight*.5;
-
   const payloadReveal=out(frame,SHOT02.payload.start,SHOT02.payload.revealEnd);
   const headersReveal=out(frame,SHOT02.headers.start,SHOT02.headers.revealEnd);
   const contextReveal=out(frame,SHOT02.context.start,SHOT02.context.revealEnd);
+
+  const requestLeft=1065-requestQuiet*40+(1-requestSettle)*32;
+  const requestWidth=270;
+  const requestVisualScale=1.80-requestQuiet*.80;
+  const requestHeight=110+headersReveal*67+contextReveal*67;
+  const requestTop=570+(requestHeight-110)*(requestVisualScale-1)/2;
+
+  const phoneRigX=-400*phoneShift;
+  const phoneRigY=16*phoneShift;
+  const phoneRigScale=1-.32*phoneShift;
+  const stackRigX=-555*contextQuiet;
+  const stackRigY=-24*contextQuiet;
+  const stackRigScale=1-.28*contextQuiet;
+  const stackOpacity=1-.35*contextQuiet;
+
+  const phoneVisibleHalfWidth=250*.53*phoneRigScale;
+  const flowStartX=960+phoneRigX+phoneVisibleHalfWidth+14;
+  const flowStartY=540+(870-540)*phoneRigScale+phoneRigY;
+  const flowEndX=requestLeft-(requestWidth*requestVisualScale)/2-8;
+  const flowEndY=680;
 
   const payloadAssemblyFocus=pulse(frame,SHOT02.assembly.payloadFocusStart,SHOT02.assembly.payloadFocusEnd,10);
   const headersAssemblyFocus=pulse(frame,SHOT02.assembly.headersFocusStart,SHOT02.assembly.headersFocusEnd,10);
@@ -81,7 +79,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
 
   const settle=ease(frame,SHOT02.assembly.settleStart,SHOT02.assembly.settleEnd);
   const ready=out(frame,SHOT02.assembly.readyStart,SHOT02.assembly.readyEnd);
-  const networkReveal=Math.max(ready,requestQuiet*.78,phoneShift*.09);
+  const networkReveal=Math.max(ready,requestQuiet*.78);
   const requestScale=1-overview*.015;
   const requestActive=.62*(1-requestQuiet)+.08;
 
@@ -127,8 +125,6 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           spinner={1}
         />
       </ATCameraRig>
-
-      <div style={{position:'absolute',right:84,bottom:58,opacity:requestHintCarry*.20,fontFamily:AT_FONT,fontSize:17,fontWeight:650,letterSpacing:'.06em',color:'#8AA9C8',zIndex:4}}>REQUEST ASSEMBLY →</div>
 
       <ATFlowArrow
         frame={continuationFrame}
