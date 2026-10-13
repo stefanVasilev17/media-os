@@ -98,6 +98,7 @@ type LoginButtonProps = {
   waiting: number;
   spinner: number;
   realism?: number;
+  heroPush?: number;
 };
 
 const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner}) => {
@@ -130,8 +131,8 @@ export type ATPhoneProps = {
   spinner: number;
 };
 
-export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,realism=1}) => {
-  const scale = .91 + (.70-.91)*reveal + (.60-.70)*credential + (.53-.60)*ui;
+export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,realism=1,heroPush=0}) => {
+  const scale = .91 + heroPush*.016*(1-reveal) + (.70-.91)*reveal + (.60-.70)*credential + (.53-.60)*ui;
   const top = 66 + (332-66)*reveal + (468-332)*credential + (592-468)*ui;
   const rotateY = -2.2 + reveal*.8 + credential*.25 + ui*.15;
   const rotateX = .65 - reveal*.28;
