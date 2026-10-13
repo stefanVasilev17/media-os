@@ -26,6 +26,7 @@ import { loadVoiceClips, syncVoiceClips, voiceClipAudioUrl, type VoiceClipState 
 import {
   loadVisualState,
   lockVisualShot,
+  approveVisualTechnicalRerender,
   runVisualPostQa,
   runVisualPreflight,
   type VisualPostQa,
@@ -353,8 +354,9 @@ export function VisualAgentPage() {
     await refresh(revision);
   }
 
-  async function produceShot() {
-    if (!script || !currentShot || busy) return;
+  async function produceShot(technicalRerender = false) {
+    if (!script || !currentShot || busy || locking) return;
+    if (technicalRerender && (!currentVisual?.locked || !['SHOT 01', 'SHOT 02'].includes(currentShot.key))) return;
     const voiceShot = voiceShots[currentShot.key];
     if (!voiceShot) {
       setError('Voice shot state is missing. Refresh the Visual Agent and try again.');
@@ -365,13 +367,13 @@ export function VisualAgentPage() {
     setError('');
     setPostQa(null);
     try {
-      if (correction.trim()) {
+      if (!technicalRerender && correction.trim()) {
         await rememberProductionCorrection('VISUAL', correction.trim(), 'Visual Agent · ' + currentShot.key);
         setMemory(await loadProductionMemory('VISUAL'));
         setCorrection('');
       }
 
-      const gate = await runVisualPreflight(script.revision, currentShot.key);
+      const gate = await runVisualPreflight(script.revision, currentShot.key, technicalRerender);
       setPreflight(gate);
       if (!gate.passed) {
         const failed = gate.checks.filter(check => !check.passed);
@@ -464,6 +466,7 @@ export function VisualAgentPage() {
         shotKey: currentShot.key,
         scriptRevision: script.revision,
         generationRevision: voiceShot.generationRevision,
+        ...(technicalRerender ? { technicalRerender: true } : {}),
         audioUrl: '',
         audioClips,
         durationInFrames,
@@ -484,12 +487,37 @@ export function VisualAgentPage() {
         return;
       }
 
-      await updateCumulativePreview(script.revision);
+      if (technicalRerender) {
+        await refresh(script.revision);
+      } else {
+        await updateCumulativePreview(script.revision);
+      }
       setPreflight(gate);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not create and validate the shot.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function approveSmoothCandidate() {
+    if (!script || !currentShot || !currentVisual?.locked || busy || locking) return;
+    const id = currentVisual.technicalCandidateRenderId;
+    if (!id || currentVisual.technicalCandidateStatus !== 'SUCCEEDED'
+        || currentVisual.technicalCandidateQaStatus !== 'PASS') {
+      setError('The corrected MP4 must finish rendering and pass QA before approval.');
+      return;
+    }
+    setLocking(true);
+    setError('');
+    try {
+      await approveVisualTechnicalRerender(script.revision, currentShot.key, id);
+      await updateCumulativePreview(script.revision);
+    } catch (cause) {
+      await refresh(script.revision);
+      setError(cause instanceof Error ? cause.message : 'Could not approve technical render.');
+    } finally {
+      setLocking(false);
     }
   }
 
@@ -668,6 +696,18 @@ export function VisualAgentPage() {
         </div>
 
         <div className="visual-main-actions">
+          {currentVisual?.locked && (currentShot.key === 'SHOT 01' || currentShot.key === 'SHOT 02') && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || locking || rendering}
+              onClick={() => void produceShot(true)}
+            >
+              {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
+              {rendering ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
+                : busy ? 'Preparing smooth-motion candidate…' : 'Render Smooth Candidate (keep LOCKED)'}
+            </button>
+          )}
           {!currentVisual?.locked && (
             <button
               type="button"
@@ -698,6 +738,37 @@ export function VisualAgentPage() {
           )}
         </div>
 
+        {currentVisual?.locked && currentVisual.technicalCandidateRenderId && (
+          <section className="visual-technical-review">
+            <strong>SMOOTH-MOTION CANDIDATE · ORIGINAL DIRECTOR LOCK PROTECTED</strong>
+            <p>Review the corrected MP4 before replacing the approved version. The current episode preview stays unchanged until you approve.</p>
+            {currentVisual.technicalCandidateStatus === 'SUCCEEDED' ? (
+              <video
+                key={currentVisual.technicalCandidateRenderId}
+                controls
+                preload="metadata"
+                playsInline
+                style={{width:'100%',maxHeight:480,background:'#030914',borderRadius:12}}
+                src={remotionRenderVideoUrl(currentVisual.technicalCandidateRenderId)}
+              />
+            ) : (
+              <p>Candidate status: {currentVisual.technicalCandidateStatus || 'UNKNOWN'}. Refresh the page to check progress.</p>
+            )}
+            <div className="visual-main-actions">
+              <button
+                type="button"
+                className="primary"
+                disabled={busy || locking || currentVisual.technicalCandidateStatus !== 'SUCCEEDED'
+                  || currentVisual.technicalCandidateQaStatus !== 'PASS'}
+                onClick={() => void approveSmoothCandidate()}
+              >
+                {locking ? <LoaderCircle className="spin" size={15}/> : <Lock size={15}/>}
+                Approve Corrected MP4 and Keep LOCKED
+              </button>
+            </div>
+          </section>
+        )}
+
         {preflight && (
           <div className={'qa-checks ' + (preflight.passed ? 'pass' : 'fail')}>
             <div><strong>{preflight.passed ? 'PRE-FLIGHT PASS' : 'PRE-FLIGHT BLOCKED'}</strong><span>{preflight.memoryPreflight.ruleCount} memory rules checked</span></div>
@@ -712,7 +783,7 @@ export function VisualAgentPage() {
 
         {postQa && (
           <div className={'qa-checks ' + (postQa.passed ? 'pass' : 'fail')}>
-            <div><strong>{postQa.passed ? 'POST-RENDER QA PASS' : 'POST-RENDER QA FAILED'}</strong><span>{postQa.passed ? 'Episode preview updated automatically' : 'Episode preview protected'}</span></div>
+            <div><strong>{postQa.passed ? 'POST-RENDER QA PASS' : 'POST-RENDER QA FAILED'}</strong><span>{postQa.passed ? (currentVisual?.locked ? 'Candidate ready for Director review · preview protected' : 'Episode preview updated automatically') : 'Episode preview protected'}</span></div>
             {postQa.checks.map(check => (
               <article key={check.key} className={check.passed ? 'pass' : 'fail'}>
                 {check.passed ? <Check size={14} /> : <span>×</span>}
