@@ -15,6 +15,47 @@ export const ATBackground: React.FC<ATBackgroundProps> = ({children}) => (
   </AbsoluteFill>
 );
 
+
+export type ATControlledRealismLayerProps = {
+  frame: number;
+  realism: number;
+  architectureReveal: number;
+};
+
+export const ATControlledRealismLayer: React.FC<ATControlledRealismLayerProps> = ({frame,realism,architectureReveal}) => {
+  const r = Math.max(0,Math.min(1,realism));
+  const a = Math.max(0,Math.min(1,architectureReveal));
+  const sheenX = 44 + Math.sin(frame*.018)*4;
+  return (
+    <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:1}}>
+      <div style={{position:'absolute',left:'50%',top:-210,width:980,height:620,transform:'translateX(-50%)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(122,190,255,${.13*r}) 0%,rgba(48,109,174,${.055*r}) 38%,transparent 72%)`,filter:'blur(16px)',opacity:1-a*.48}}/>
+      <div style={{position:'absolute',left:'50%',bottom:-205,width:1040,height:420,transform:'translateX(-50%) perspective(900px) rotateX(68deg)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(49,139,223,${.13*r}) 0%,rgba(13,46,86,${.055*r}) 44%,transparent 73%)`,filter:'blur(18px)',opacity:1-a*.42}}/>
+      <div style={{position:'absolute',inset:0,background:`linear-gradient(115deg,transparent 0%,transparent ${sheenX-8}%,rgba(158,215,255,${.018*r}) ${sheenX}%,transparent ${sheenX+9}%,transparent 100%)`,opacity:1-a*.65}}/>
+      <div style={{position:'absolute',inset:0,background:`radial-gradient(ellipse at center,transparent 43%,rgba(0,2,7,${.14+.14*r}) 100%)`}}/>
+    </div>
+  );
+};
+
+export type ATArchitectureRevealBridgeProps = {
+  reveal: number;
+  pulse: number;
+  top?: number;
+  bottom?: number;
+};
+
+export const ATArchitectureRevealBridge: React.FC<ATArchitectureRevealBridgeProps> = ({reveal,pulse,top=245,bottom=760}) => {
+  const r = Math.max(0,Math.min(1,reveal));
+  const p = Math.max(0,Math.min(1,pulse));
+  const height = Math.max(0,(bottom-top)*r);
+  return (
+    <div style={{position:'absolute',left:'50%',top,width:160,height:bottom-top,transform:'translateX(-50%)',pointerEvents:'none',zIndex:3,opacity:r}}>
+      <div style={{position:'absolute',left:'50%',top:0,width:2,height,transform:'translateX(-50%)',borderRadius:99,background:'linear-gradient(180deg,rgba(190,151,255,.15),rgba(129,82,255,.75) 44%,rgba(56,220,235,.46) 100%)',boxShadow:`0 0 ${12+22*p}px rgba(130,91,255,${.13+.25*p})`}}/>
+      <div style={{position:'absolute',left:'50%',top:Math.max(0,height-9),width:18,height:18,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'rgba(180,232,255,.94)',boxShadow:`0 0 ${18+30*p}px rgba(101,210,255,${.28+.36*p})`,opacity:r}}/>
+      <div style={{position:'absolute',left:'50%',top:Math.max(0,height-30),width:74,height:74,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'radial-gradient(circle,rgba(92,210,255,.16),transparent 68%)',filter:'blur(5px)',opacity:p}}/>
+    </div>
+  );
+};
+
 const StatusBar: React.FC = () => (
   <>
     <div style={{position:'absolute',left:34,top:22,fontSize:17,fontWeight:700,color:'#F7FAFF',letterSpacing:'-.02em'}}>9:41</div>
