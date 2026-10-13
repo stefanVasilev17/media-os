@@ -242,13 +242,20 @@ export function VisualAgentPage() {
   }, [previewId]);
 
   async function pollRender(renderId: string) {
-    for (let attempt = 0; attempt < 240; attempt++) {
+    let transientFailures = 0;
+    for (let attempt = 0; attempt < 3600; attempt++) {
       await new Promise(resolve => window.setTimeout(resolve, 2000));
-      const next = await loadRemotionRender(renderId);
-      setActiveRender(next);
-      if (next.status === 'READY' || next.status === 'FAILED') return next;
+      try {
+        const next = await loadRemotionRender(renderId);
+        transientFailures = 0;
+        setActiveRender(next);
+        if (next.status === 'READY' || next.status === 'FAILED') return next;
+      } catch (cause) {
+        transientFailures += 1;
+        if (transientFailures >= 6) throw cause;
+      }
     }
-    throw new Error('Render polling timed out.');
+    throw new Error('Render is still running after two hours. Refresh Visual Agent to resume status tracking; do not start a duplicate render.');
   }
 
   async function updateCumulativePreview(revision: number) {
@@ -560,7 +567,7 @@ export function VisualAgentPage() {
             <button
               type="button"
               className={currentVisual?.qaStatus === 'PASS' ? '' : 'primary'}
-              disabled={busy || locking}
+              disabled={busy || locking || rendering}
               onClick={() => void produceShot()}
             >
               {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
