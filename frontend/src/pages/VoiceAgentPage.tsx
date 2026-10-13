@@ -574,9 +574,13 @@ export function VoiceAgentPage() {
                 <details className="voice-advanced">
                   <summary>
                     <span><SlidersHorizontal size={14} /> Advanced voice settings</span>
-                    <small>0.50 stability · 0.80 similarity · safe v4 tag</small>
+                    <small>neutral international English · 0.50 stability · 0.80 similarity</small>
                   </summary>
                   <div className="voice-advanced-body">
+                    <div className="voice-safe-tag">
+                      <span>DELIVERY TARGET</span>
+                      <code>Neutral international English · clear · measured</code>
+                    </div>
                     <div className="voice-safe-tag">
                       <span>PERFORMANCE TAG</span>
                       <code>[{AT_V4_DIRECTION}]</code>
