@@ -187,6 +187,7 @@ public class ElevenLabsTextToSpeechService {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("text", promptedText(text, performanceDirection));
         request.put("model_id", modelId);
+        request.put("language_code", "en");
         Map<String, Object> voiceSettings = new LinkedHashMap<>();
         voiceSettings.put("stability", resolvedStability);
         voiceSettings.put("similarity_boost", resolvedSimilarity);
