@@ -13,7 +13,7 @@ import {
   type VoiceClipState,
   type VoiceSettings
 } from '../api/voiceClipApi';
-import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
+import { EP001_SHOTS, buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
 function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
@@ -92,6 +92,11 @@ export function VoiceAgentPage() {
     if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
     return script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
   }, [script, contract]);
+  const pendingContractShots = useMemo(
+    () => EP001_SHOTS.filter(shot => !bundles.some(bundle => bundle.key === shot.key)),
+    [bundles]
+  );
+  const nextContractShot = pendingContractShots[0];
   const lockedShotIndexes = useMemo(
     () => bundles
       .map((shot, index) => {
@@ -442,7 +447,11 @@ export function VoiceAgentPage() {
               </button>
             );
           })}
-          {activeShotIndexes.length === 0 && <span className="voice-all-shots-complete">ALL SHOTS LOCKED</span>}
+          {activeShotIndexes.length === 0 && (
+            <span className="voice-all-shots-complete">
+              {pendingContractShots.length > 0 ? 'ALL IMPORTED SHOTS LOCKED' : 'ALL SHOTS LOCKED'}
+            </span>
+          )}
         </nav>
 
         {lockedShotIndexes.length > 0 && (
@@ -463,6 +472,34 @@ export function VoiceAgentPage() {
           </details>
         )}
       </div>
+
+      {nextContractShot && (
+        <section className="production-next voice-next-compact" style={{marginTop:16}}>
+          <div>
+            <span>NEXT PLANNED SHOT · AWAITING HEAR / SEE CONTRACT</span>
+            <strong>{nextContractShot.key} — {nextContractShot.title}</strong>
+            <p>
+              {clock(nextContractShot.startSecond)}–{clock(nextContractShot.endSecond)} · The LOCKED narration
+              already exists. Import the next HEAR / SEE production segment in Script Agent to activate its
+              voice clips. Previously approved clips stay LOCKED.
+            </p>
+            <details style={{marginTop:10}}>
+              <summary>{pendingContractShots.length} shot(s) awaiting production contract</summary>
+              <div style={{paddingTop:8,display:'flex',flexWrap:'wrap',gap:8}}>
+                {pendingContractShots.map(shot => (
+                  <span key={shot.key} title={shot.title}
+                    style={{border:'1px solid var(--border-color, #30435b)',borderRadius:8,padding:'6px 10px'}}>
+                    {shot.key} · AWAITING CONTRACT
+                  </span>
+                ))}
+              </div>
+            </details>
+          </div>
+          <button type="button" onClick={() => { window.location.hash = '#/agents/script'; }}>
+            Open Script Agent · Import Shot Contract <ChevronRight size={16} />
+          </button>
+        </section>
+      )}
 
       {currentShot ? (
         <section className="voice-workspace voice-workspace-clean">
@@ -668,7 +705,9 @@ export function VoiceAgentPage() {
       ) : (
         <section className="voice-workspace voice-production-complete">
           <Check size={22} />
-          <strong>All voice shots are LOCKED.</strong>
+          <strong>{pendingContractShots.length > 0
+            ? 'All imported voice shots are LOCKED. Import the next shot contract to continue.'
+            : 'All voice shots are LOCKED.'}</strong>
         </section>
       )}
 
