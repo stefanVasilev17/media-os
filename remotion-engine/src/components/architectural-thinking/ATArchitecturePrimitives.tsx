@@ -30,13 +30,14 @@ type ATPrimaryNodeProps = {
   micro?: boolean;
   visualScale?: number;
   quiet?: number;
+  zIndex?: number;
 };
 
-export const ATPrimaryNode: React.FC<ATPrimaryNodeProps> = ({title,subtitle,reveal,active,children,left='50%',top=118,width=820,height=680,compact=false,micro=false,visualScale=1,quiet=0}) => {
+export const ATPrimaryNode: React.FC<ATPrimaryNodeProps> = ({title,subtitle,reveal,active,children,left='50%',top=118,width=820,height=680,compact=false,micro=false,visualScale=1,quiet=0,zIndex=8}) => {
   const glow = .12+active*.3;
   const scale = .965+reveal*.035+active*.012;
   return (
-    <div style={{position:'absolute',left,top,width,height,transform:`translateX(-50%) scale(${scale*visualScale})`,transformOrigin:'50% 50%',opacity:reveal*(1-quiet*.42),filter:`saturate(${1-quiet*.72}) brightness(${1-quiet*.16})`,zIndex:8,borderRadius:micro?18:compact?28:38,padding:micro?2:compact?3:4,background:'linear-gradient(145deg,#163A66 0%,#2A70B3 38%,#6C37D8 68%,#321585 100%)',boxShadow:`0 28px 80px rgba(0,0,0,.46),0 0 ${36+active*34}px rgba(76,145,255,${glow})`}}>
+    <div style={{position:'absolute',left,top,width,height,transform:`translateX(-50%) scale(${scale*visualScale})`,transformOrigin:'50% 50%',opacity:reveal*(1-quiet*.42),filter:`saturate(${1-quiet*.72}) brightness(${1-quiet*.16})`,zIndex,borderRadius:micro?18:compact?28:38,padding:micro?2:compact?3:4,background:'linear-gradient(145deg,#163A66 0%,#2A70B3 38%,#6C37D8 68%,#321585 100%)',boxShadow:`0 28px 80px rgba(0,0,0,.46),0 0 ${36+active*34}px rgba(76,145,255,${glow})`}}>
       <div style={{width:'100%',height:'100%',borderRadius:micro?16:compact?25:34,overflow:'hidden',background:'linear-gradient(180deg,rgba(5,18,31,.995),rgba(3,10,19,.998))',border:'1px solid rgba(155,201,255,.22)',position:'relative'}}>
         <div style={{position:'absolute',inset:0,background:'radial-gradient(circle at 50% 0%,rgba(47,116,207,.17),transparent 48%)'}}/>
         <div style={{position:'relative',padding:micro?'11px 12px 0':compact?'20px 24px 0':'30px 36px 0',textAlign:'center',fontFamily:AT_FONT}}>
@@ -167,16 +168,17 @@ export type ATBackendNodeProps = {
   secondaryReveal?:number;
   sectionReveals?:Record<string,number>;
   dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
+  zIndex?:number;
   width?:number;
   height?:number;
 };
 
 export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
-  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,width=270,height=244,
+  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,zIndex,width=270,height=244,
 }) => (
   <ATPrimaryNode
     title={title} left={x} top={y} width={width} height={height}
-    reveal={reveal} active={active} quiet={quiet} micro
+    reveal={reveal} active={active} quiet={quiet} zIndex={zIndex} micro
   >
     <div style={{
       position:'relative',display:'flex',flexDirection:'column',gap:5,

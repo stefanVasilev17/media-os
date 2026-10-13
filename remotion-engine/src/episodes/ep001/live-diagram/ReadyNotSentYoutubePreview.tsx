@@ -26,6 +26,8 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     cache:z.number().optional(),
     rtt:z.number().optional(),
     jitter:z.number().optional(),
+    focusIntensity:z.number().optional(),
+    packetReplacement:z.number().optional(),
   }).optional(),
 });
 type Props=z.infer<typeof readyNotSentYoutubePreviewSchema>;
@@ -127,7 +129,7 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
         <div style={{
           position:'absolute',left:1155+(worldMotion?.packetOffsetX??0),top:689+(worldMotion?.packetOffsetY??0),width:46,height:34,
           display:'flex',alignItems:'center',justifyContent:'center',
-          opacity:packetReveal,zIndex:10,
+          opacity:packetReveal*(1-(worldMotion?.packetReplacement??0)),zIndex:10,
         }}>
           <div style={{
             width:23,height:16,borderRadius:4,
@@ -142,6 +144,14 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
           borderTop:'2px dashed rgba(78,120,158,.42)',
           opacity:networkReveal*.65,zIndex:3,
         }}/>
+
+        {worldMotion && (worldMotion.focusIntensity??0)>0?(
+          <div style={{
+            position:'absolute',inset:0,zIndex:9,pointerEvents:'none',
+            background:'rgba(1,8,19,.86)',
+            opacity:Math.max(0,Math.min(1,worldMotion.focusIntensity))*0.82,
+          }}/>
+        ):null}
 
         {BACKEND_NODES.map((node,index)=>(
           <React.Fragment key={node.anchor}>
@@ -160,6 +170,7 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               width={270}
               height={244}
               quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0)):.55}
+              zIndex={index===0&&(worldMotion?.focusIntensity??0)>0?11:undefined}
               active={index===0?(worldMotion?.networkActive??0):0}
               secondaryReveal={index===0?Math.max(worldMotion?.dnsReveal??0,worldMotion?.latencyReveal??0):0}
               sectionReveals={index===0?{
