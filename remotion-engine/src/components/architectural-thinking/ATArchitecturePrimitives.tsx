@@ -148,3 +148,52 @@ export const ATFlowArrow: React.FC<ATFlowArrowProps> = ({frame,reveal,activity,s
     </svg>
   );
 };
+
+export type ATBackendMiniWorldSection = {
+  title:string;
+  items:{label:string;detail?:string;activity?:number}[];
+};
+
+export type ATBackendNodeProps = {
+  title:string;
+  x:number;
+  y:number;
+  reveal:number;
+  sections:ATBackendMiniWorldSection[];
+  active?:number;
+  quiet?:number;
+  secondaryReveal?:number;
+  width?:number;
+  height?:number;
+};
+
+export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
+  title,x,y,reveal,sections,active=0,quiet=.94,secondaryReveal=0,width=330,height=222,
+}) => (
+  <ATPrimaryNode
+    title={title} left={x} top={y} width={width} height={height}
+    reveal={reveal} active={active} quiet={quiet} compact
+  >
+    {secondaryReveal>0 ? (
+      <div style={{
+        display:'flex',flexDirection:'column',gap:8,
+        opacity:secondaryReveal,transform:`translateY(${(1-secondaryReveal)*7}px)`,
+      }}>
+        {sections.map(section=>(
+          <ATMiniWorld
+            key={section.title} title={section.title} items={section.items}
+            reveal={secondaryReveal} activity={active} compact
+          />
+        ))}
+      </div>
+    ) : (
+      <div style={{
+        height:58,border:'1px solid rgba(80,150,224,.22)',
+        borderRadius:13,background:'rgba(8,25,42,.65)',
+        display:'flex',alignItems:'center',justifyContent:'center',
+        fontFamily:AT_FONT,fontSize:13,fontWeight:670,
+        letterSpacing:'.09em',color:'rgba(175,207,238,.65)',
+      }}>NO REQUEST RECEIVED</div>
+    )}
+  </ATPrimaryNode>
+);
