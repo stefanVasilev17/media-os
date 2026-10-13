@@ -61,7 +61,7 @@ public final class Ep001SemanticAnchorCatalog {
                     "DNS_RESOLUTION", "DNS",
                     "RESOLVE", "finds the address",
                     "CACHE", "Cache",
-                    "NETWORK_TRANSIT", "Network Transit",
+                    "NETWORK_TRANSIT", "through the network",
                     "NETWORK_LATENCY", "Network Latency",
                     "RTT", "RTT",
                     "JITTER", "Jitter",

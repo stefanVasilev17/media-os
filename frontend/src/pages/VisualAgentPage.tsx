@@ -79,7 +79,7 @@ const SHOT04_WORD_ANCHORS:Record<string,string[]> = {
   DNS_RESOLUTION:['dns'],
   RESOLVE:['finds the address'],
   CACHE:['cache'],
-  NETWORK_TRANSIT:['network transit'],
+  NETWORK_TRANSIT:['through the network','network transit'],
   NETWORK_LATENCY:['network latency'],
   RTT:['rtt'],
   JITTER:['jitter'],
