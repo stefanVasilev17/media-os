@@ -149,7 +149,7 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
           <div style={{
             position:'absolute',inset:0,zIndex:9,pointerEvents:'none',
             background:'rgba(1,8,19,.86)',
-            opacity:Math.max(0,Math.min(1,worldMotion.focusIntensity))*0.82,
+            opacity:Math.max(0,Math.min(1,worldMotion.focusIntensity??0))*0.82,
           }}/>
         ):null}
 
