@@ -34,7 +34,7 @@ public class VisualQaController {
         this.memory = memory;
     }
 
-    public record ShotRequest(@Positive int scriptRevision, @NotBlank String shotKey) {}
+    public record ShotRequest(@Positive int scriptRevision, @NotBlank String shotKey, boolean technicalRerender) {}
     public record RenderQaRequest(@Positive int scriptRevision, @NotBlank String shotKey, @NotNull UUID renderId) {}
     public record VisualLockRequest(@Positive int scriptRevision, @NotBlank String shotKey, @NotNull UUID renderId) {}
 
@@ -49,6 +49,9 @@ public class VisualQaController {
                        r.fps as render_fps,
                        l.render_id as locked_render_id,
                        l.locked_at,
+                       candidate.id as technical_candidate_render_id,
+                       candidate.status as technical_candidate_status,
+                       candidate.qa_status as technical_candidate_qa_status,
                        (
                          select q.status
                          from visual_shot_qa q
@@ -56,6 +59,7 @@ public class VisualQaController {
                            and q.script_revision=v.script_revision
                            and q.shot_key=v.shot_key
                            and q.phase='POST_RENDER'
+                           and q.render_id=coalesce(l.render_id,v.remotion_render_id)
                          order by q.created_at desc
                          limit 1
                        ) as qa_status
@@ -65,6 +69,21 @@ public class VisualQaController {
                   on l.episode_id=v.episode_id
                  and l.script_revision=v.script_revision
                  and l.shot_key=v.shot_key
+                left join lateral (
+                    select rr.id, rr.status, (
+                        select q.status from visual_shot_qa q
+                        where q.episode_id=v.episode_id and q.script_revision=v.script_revision
+                          and q.shot_key=v.shot_key and q.render_id=rr.id and q.phase='POST_RENDER'
+                        order by q.created_at desc limit 1
+                    ) as qa_status
+                    from remotion_render rr
+                    where rr.episode_id=v.episode_id
+                      and rr.input_props->>'shotKey'=v.shot_key
+                      and rr.input_props->>'scriptRevision'=cast(v.script_revision as text)
+                      and rr.input_props->>'technicalRerender'='true'
+                      and rr.id is distinct from l.render_id
+                    order by rr.created_at desc limit 1
+                ) candidate on true
                 where v.episode_id=:episodeId and v.script_revision=:revision
                 order by v.start_second, v.shot_key
                 """)
@@ -95,6 +114,9 @@ public class VisualQaController {
                     row.put("locked", lockedRenderId != null);
                     row.put("lockedRenderId", lockedRenderId);
                     row.put("lockedAt", rs.getObject("locked_at", OffsetDateTime.class));
+                    row.put("technicalCandidateRenderId", rs.getObject("technical_candidate_render_id", UUID.class));
+                    row.put("technicalCandidateStatus", rs.getString("technical_candidate_status"));
+                    row.put("technicalCandidateQaStatus", rs.getString("technical_candidate_qa_status"));
                     String qa = rs.getString("qa_status");
                     row.put("qaStatus", qa == null ? "PENDING" : qa);
                     row.put("compositionId", compositionFor(rs.getString("shot_key")));
@@ -123,9 +145,16 @@ public class VisualQaController {
         boolean locked = isVisualLocked(request.scriptRevision(), shotKey);
         boolean voiceReady = shot.get("voiceApprovedAt") != null && shot.get("visualSyncReadyAt") != null;
         addCheck(checks, "LOCKED_SCRIPT", true, "Visual work is bound to LOCKED Script revision " + request.scriptRevision() + ".");
-        addCheck(checks, "VISUAL_NOT_LOCKED", !locked, locked
-                ? shotKey + " is Director LOCKED and cannot be recreated without an explicit unlock."
+        boolean technical = request.technicalRerender() && ("SHOT 01".equals(shotKey) || "SHOT 02".equals(shotKey)) && locked;
+        addCheck(checks, "VISUAL_NOT_LOCKED", !locked || technical, locked
+                ? technical ? "Motion-only technical candidate; original Director LOCK stays protected."
+                  : shotKey + " is Director LOCKED and requires explicit technical re-render."
                 : "Shot is open for visual production.");
+        if (request.technicalRerender()) {
+            addCheck(checks, "TECHNICAL_RERENDER_SCOPE", technical,
+                    technical ? "Only interpolation correction to SHOT 01 or SHOT 02."
+                              : "Technical re-render requires a locked SHOT 01 or SHOT 02.");
+        }
         addCheck(checks, "MEMORY_PREFLIGHT", ((Number) memoryAudit.get("ruleCount")).intValue() > 0,
                 memoryAudit.get("ruleCount") + " active production-memory rule(s) loaded.");
         addCheck(checks, "VOICE_APPROVED", voiceReady, voiceReady
