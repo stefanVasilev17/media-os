@@ -77,6 +77,7 @@ export function VoiceAgentPage() {
   const [continuityPlaying, setContinuityPlaying] = useState(false);
   const [continuityNow, setContinuityNow] = useState('');
   const continuityAudioRef = useRef<HTMLAudioElement | null>(null);
+  const preserveDeepLinkedClipRef = useRef(false);
 
   const bundles = useMemo(() => {
     if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
@@ -175,7 +176,29 @@ export function VoiceAgentPage() {
           const related = synced.filter(clip => clip.shotKey === bundle.key);
           return related.length === 0 || related.some(clip => !clip.approved);
         });
-        setShotIndex(firstPendingShot);
+
+        const hashQuery = window.location.hash.includes('?')
+          ? window.location.hash.slice(window.location.hash.indexOf('?') + 1)
+          : '';
+        const params = new URLSearchParams(hashQuery);
+        const requestedShot = params.get('shot');
+        const requestedClip = params.get('clip');
+        const requestedShotIndex = requestedShot
+          ? bundles.findIndex(bundle => bundle.key === requestedShot)
+          : -1;
+        const initialShotIndex = requestedShotIndex >= 0 ? requestedShotIndex : firstPendingShot;
+        setShotIndex(initialShotIndex);
+
+        if (initialShotIndex >= 0 && requestedClip) {
+          const related = synced
+            .filter(clip => clip.shotKey === bundles[initialShotIndex]?.key)
+            .sort((a, b) => a.sequence - b.sequence);
+          const requestedClipIndex = related.findIndex(clip => clip.clipKey === requestedClip);
+          if (requestedClipIndex >= 0) {
+            preserveDeepLinkedClipRef.current = true;
+            setClipIndex(requestedClipIndex);
+          }
+        }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Voice Agent.');
       } finally {
@@ -186,6 +209,11 @@ export function VoiceAgentPage() {
   }, []);
 
   useEffect(() => {
+    if (preserveDeepLinkedClipRef.current) {
+      preserveDeepLinkedClipRef.current = false;
+      setCorrection('');
+      return;
+    }
     setClipIndex(0);
     setCorrection('');
   }, [shotIndex]);
