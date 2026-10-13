@@ -4,6 +4,7 @@ import {
   Download,
   Eye,
   LoaderCircle,
+  Lock,
   Play,
   ShieldCheck
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import {
 import { loadVoiceClips, syncVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
 import {
   loadVisualState,
+  lockVisualShot,
   runVisualPostQa,
   runVisualPreflight,
   type VisualPostQa,
@@ -167,6 +169,7 @@ export function VisualAgentPage() {
   const [activeRender, setActiveRender] = useState<RemotionRenderState | null>(null);
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
+  const [locking, setLocking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
@@ -230,6 +233,7 @@ export function VisualAgentPage() {
     setPostQa(null);
     setActiveRender(null);
     setCorrection('');
+    setLocking(false);
   }, [selectedIndex]);
 
   useEffect(() => {
@@ -377,6 +381,26 @@ export function VisualAgentPage() {
     }
   }
 
+  async function lockShot() {
+    if (!script || !currentShot || !currentVisual?.renderId || locking || busy) return;
+    if (currentVisual.qaStatus !== 'PASS') {
+      setError('Shot must pass post-render QA before Director LOCK.');
+      return;
+    }
+    if (currentVisual.locked) return;
+
+    setLocking(true);
+    setError('');
+    try {
+      await lockVisualShot(script.revision, currentShot.key, currentVisual.renderId);
+      await refresh(script.revision);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not lock the current visual shot.');
+    } finally {
+      setLocking(false);
+    }
+  }
+
   async function preview() {
     const video = videoRef.current;
     if (!video) return;
@@ -473,7 +497,13 @@ export function VisualAgentPage() {
             <h2>{currentShot.title}</h2>
           </div>
           <strong className={currentVisual?.qaStatus === 'PASS' ? 'status-ready' : ''}>
-            {currentVisual?.qaStatus === 'PASS' ? 'QA PASSED' : currentVisual?.voiceReady ? 'VOICE READY' : 'WAITING FOR VOICE'}
+            {currentVisual?.locked
+              ? 'DIRECTOR LOCKED'
+              : currentVisual?.qaStatus === 'PASS'
+                ? 'QA PASSED'
+                : currentVisual?.voiceReady
+                  ? 'VOICE READY'
+                  : 'WAITING FOR VOICE'}
           </strong>
         </div>
 
@@ -518,21 +548,42 @@ export function VisualAgentPage() {
             value={correction}
             onChange={event => setCorrection(event.target.value)}
             rows={3}
-            placeholder="Example: Do not zoom while the system is waiting; hold the camera still. This rule will be checked on future visual work."
+            disabled={currentVisual?.locked}
+            placeholder={currentVisual?.locked
+              ? 'Shot is Director LOCKED. An explicit unlock is required before visual corrections.'
+              : 'Example: Do not zoom while the system is waiting; hold the camera still. This rule will be checked on future visual work.'}
           />
         </div>
 
-        <div className="visual-main-actions single">
-          <button type="button" className="primary" disabled={busy} onClick={() => void produceShot()}>
-            {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
-            {rendering
-              ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
-              : busy
-                ? 'Validating production contract…'
-                : currentVisual?.qaStatus === 'PASS'
-                  ? 'Recreate / Validate Shot'
-                  : 'Create / Validate Shot'}
-          </button>
+        <div className="visual-main-actions">
+          {!currentVisual?.locked && (
+            <button
+              type="button"
+              className={currentVisual?.qaStatus === 'PASS' ? '' : 'primary'}
+              disabled={busy || locking}
+              onClick={() => void produceShot()}
+            >
+              {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
+              {rendering
+                ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
+                : busy
+                  ? 'Validating production contract…'
+                  : currentVisual?.qaStatus === 'PASS'
+                    ? 'Recreate / Validate Shot'
+                    : 'Create / Validate Shot'}
+            </button>
+          )}
+          {currentVisual?.qaStatus === 'PASS' && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || locking || currentVisual.locked || !currentVisual.renderId}
+              onClick={() => void lockShot()}
+            >
+              {locking ? <LoaderCircle className="spin" size={15} /> : <Lock size={15} />}
+              {currentVisual.locked ? 'SHOT LOCKED' : locking ? 'Locking approved render…' : 'LOCK SHOT'}
+            </button>
+          )}
         </div>
 
         {preflight && (
