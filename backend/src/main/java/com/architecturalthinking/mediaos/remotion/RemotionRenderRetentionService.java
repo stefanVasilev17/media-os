@@ -1,0 +1,139 @@
+package com.architecturalthinking.mediaos.remotion;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.UUID;
+
+@Component
+public class RemotionRenderRetentionService {
+
+    private static final Logger log = LoggerFactory.getLogger(RemotionRenderRetentionService.class);
+    private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final int MAX_DELETIONS_PER_RUN = 200;
+    private static final int BATCH_SIZE = 8;
+
+    private final JdbcClient jdbc;
+
+    public RemotionRenderRetentionService(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    private record Candidate(UUID id, long sizeBytes) {}
+
+    @Scheduled(
+            initialDelayString = "${mediaos.render.retention.initial-delay-ms:20000}",
+            fixedDelayString = "${mediaos.render.retention.interval-ms:3600000}"
+    )
+    public void pruneObsoleteRenderVersions() {
+        long reclaimedVideoBytes = 0;
+        int removed = 0;
+
+        try {
+            while (removed < MAX_DELETIONS_PER_RUN) {
+                List<Candidate> candidates = jdbc.sql("""
+                        select r.id, coalesce(r.size_bytes, 0) as size_bytes
+                        from remotion_render r
+                        where r.project_id=:projectId
+                          and r.status='SUCCEEDED'
+                          and r.video_data is not null
+                          and not exists (
+                            select 1 from visual_shot_lock l where l.render_id=r.id
+                          )
+                          and not exists (
+                            select 1 from voice_shot_workflow v where v.remotion_render_id=r.id
+                          )
+                          and not exists (
+                            select 1 from remotion_render running
+                            where running.project_id=r.project_id
+                              and running.status in ('QUEUED', 'RUNNING')
+                              and running.input_props::text like ('%' || r.id::text || '%')
+                          )
+                          and exists (
+                            select 1 from remotion_render newer
+                            where newer.project_id=r.project_id
+                              and newer.episode_id is not distinct from r.episode_id
+                              and newer.composition_id=r.composition_id
+                              and newer.status='SUCCEEDED'
+                              and newer.video_data is not null
+                              and (
+                                r.composition_id='EP001-Voice-CurrentPreview'
+                                or newer.input_props->>'shotKey'
+                                  is not distinct from r.input_props->>'shotKey'
+                              )
+                              and (
+                                newer.created_at > r.created_at
+                                or (newer.created_at=r.created_at and newer.id > r.id)
+                              )
+                          )
+                        order by r.created_at, r.id
+                        limit :batchSize
+                        """)
+                        .param("projectId", PROJECT_ID)
+                        .param("batchSize", Math.min(BATCH_SIZE, MAX_DELETIONS_PER_RUN - removed))
+                        .query((rs, index) -> new Candidate(
+                                rs.getObject("id", UUID.class), rs.getLong("size_bytes")
+                        ))
+                        .list();
+
+                if (candidates.isEmpty()) break;
+                for (Candidate candidate : candidates) {
+                    int affected = jdbc.sql("""
+                            delete from remotion_render r
+                            where r.id=:id
+                              and r.project_id=:projectId
+                              and r.status='SUCCEEDED'
+                              and r.video_data is not null
+                              and not exists (
+                                select 1 from visual_shot_lock l where l.render_id=r.id
+                              )
+                              and not exists (
+                                select 1 from voice_shot_workflow v where v.remotion_render_id=r.id
+                              )
+                              and not exists (
+                                select 1 from remotion_render running
+                                where running.project_id=r.project_id
+                                  and running.status in ('QUEUED', 'RUNNING')
+                                  and running.input_props::text like ('%' || r.id::text || '%')
+                              )
+                              and exists (
+                                select 1 from remotion_render newer
+                                where newer.project_id=r.project_id
+                                  and newer.episode_id is not distinct from r.episode_id
+                                  and newer.composition_id=r.composition_id
+                                  and newer.status='SUCCEEDED'
+                                  and newer.video_data is not null
+                                  and (
+                                    r.composition_id='EP001-Voice-CurrentPreview'
+                                    or newer.input_props->>'shotKey'
+                                      is not distinct from r.input_props->>'shotKey'
+                                  )
+                                  and (
+                                    newer.created_at > r.created_at
+                                    or (newer.created_at=r.created_at and newer.id > r.id)
+                                  )
+                              )
+                            """)
+                            .param("id", candidate.id())
+                            .param("projectId", PROJECT_ID)
+                            .update();
+                    if (affected > 0) {
+                        removed++;
+                        reclaimedVideoBytes += candidate.sizeBytes();
+                    }
+                }
+            }
+            if (removed > 0) {
+                log.info("Remotion retention removed {} obsolete MP4 versions ({} source bytes). Director LOCKED renders, current voice-linked shots and active preview dependencies were protected.",
+                        removed, reclaimedVideoBytes);
+            }
+        } catch (Exception error) {
+            log.warn("Remotion retention could not complete; existing Director LOCKED assets remain protected: {}",
+                    error.getMessage());
+        }
+    }
+}
