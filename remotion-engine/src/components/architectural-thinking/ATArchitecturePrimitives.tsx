@@ -66,9 +66,10 @@ type ATMiniWorldProps = {
   compact?: boolean;
   micro?: boolean;
   footer?: React.ReactNode;
+  footerReveal?: number;
 };
 
-export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,items,tags=[],compact=false,micro=false,footer}) => {
+export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,items,tags=[],compact=false,micro=false,footer,footerReveal=1}) => {
   if(micro){
     return (
       <div style={{borderRadius:12,padding:'6px 7px 6px',border:`1.25px solid rgba(80,150,224,${.20+activity*.48})`,background:'linear-gradient(180deg,rgba(8,25,42,.96),rgba(4,14,26,.985))',boxShadow:`0 8px 20px rgba(0,0,0,.18),0 0 ${6+activity*12}px rgba(47,145,255,${activity*.12})`,opacity:reveal,transform:`translateY(${(1-reveal)*5}px)`,fontFamily:AT_FONT}}>
@@ -84,7 +85,12 @@ export const ATMiniWorld: React.FC<ATMiniWorldProps> = ({title,reveal,activity,i
             </div>;
           })}
         </div>
-        {footer?<div style={{marginTop:6}}>{footer}</div>:null}
+        {footer?<div style={{
+          marginTop:6*footerReveal,
+          maxHeight:48*footerReveal,
+          opacity:footerReveal,
+          overflow:'hidden',
+        }}>{footer}</div>:null}
       </div>
     );
   }
@@ -190,6 +196,7 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
           <ATMiniWorld
             title={section.title} items={section.items}
             reveal={1} activity={active} micro
+            footerReveal={section.title==='DNS Resolution'&&dnsLookup?Math.max(0,Math.min(1,dnsLookup.reveal)):1}
             footer={section.title==='DNS Resolution'&&dnsLookup?(
               <div style={{
                 display:'flex',alignItems:'center',justifyContent:'space-between',gap:4,
