@@ -28,8 +28,8 @@ export const ATControlledRealismLayer: React.FC<ATControlledRealismLayerProps> =
   const sheenX = 44 + Math.sin(frame*.018)*4;
   return (
     <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:1}}>
-      <div style={{position:'absolute',left:'50%',top:-210,width:980,height:620,transform:'translateX(-50%)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(122,190,255,${.13*r}) 0%,rgba(48,109,174,${.055*r}) 38%,transparent 72%)`,filter:'blur(16px)',opacity:1-a*.48}}/>
-      <div style={{position:'absolute',left:'50%',bottom:-205,width:1040,height:420,transform:'translateX(-50%) perspective(900px) rotateX(68deg)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(49,139,223,${.13*r}) 0%,rgba(13,46,86,${.055*r}) 44%,transparent 73%)`,filter:'blur(18px)',opacity:1-a*.42}}/>
+      <div style={{position:'absolute',left:'50%',top:-210,width:980,height:620,transform:'translateX(-50%)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(122,190,255,${.13*r}) 0%,rgba(48,109,174,${.055*r}) 38%,transparent 72%)`,opacity:1-a*.48}}/>
+      <div style={{position:'absolute',left:'50%',bottom:-205,width:1040,height:420,transform:'translateX(-50%) perspective(900px) rotateX(68deg)',borderRadius:'50%',background:`radial-gradient(ellipse,rgba(49,139,223,${.13*r}) 0%,rgba(13,46,86,${.055*r}) 44%,transparent 73%)`,opacity:1-a*.42}}/>
       <div style={{position:'absolute',inset:0,background:`linear-gradient(115deg,transparent 0%,transparent ${sheenX-8}%,rgba(158,215,255,${.018*r}) ${sheenX}%,transparent ${sheenX+9}%,transparent 100%)`,opacity:1-a*.65}}/>
       <div style={{position:'absolute',inset:0,background:`radial-gradient(ellipse at center,transparent 43%,rgba(0,2,7,${.14+.14*r}) 100%)`}}/>
     </div>
@@ -52,7 +52,7 @@ export const ATArchitectureRevealBridge: React.FC<ATArchitectureRevealBridgeProp
     <div style={{position:'absolute',left:'50%',top,width:160,height:bottom-top,transform:'translateX(-50%)',pointerEvents:'none',zIndex:3,opacity:r}}>
       <div style={{position:'absolute',left:'50%',top:origin==='top'?0:undefined,bottom:origin==='bottom'?0:undefined,width:2,height,transform:'translateX(-50%)',borderRadius:99,background:origin==='top'?'linear-gradient(180deg,rgba(190,151,255,.15),rgba(129,82,255,.75) 44%,rgba(56,220,235,.46) 100%)':'linear-gradient(0deg,rgba(56,220,235,.52),rgba(129,82,255,.75) 54%,rgba(190,151,255,.15) 100%)',boxShadow:`0 0 ${12+22*p}px rgba(130,91,255,${.13+.25*p})`}}/>
       <div style={{position:'absolute',left:'50%',top:origin==='top'?Math.max(0,height-9):Math.max(0,(bottom-top)-height-9),width:18,height:18,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'rgba(180,232,255,.94)',boxShadow:`0 0 ${18+30*p}px rgba(101,210,255,${.28+.36*p})`,opacity:r}}/>
-      <div style={{position:'absolute',left:'50%',top:origin==='top'?Math.max(0,height-30):Math.max(0,(bottom-top)-height-30),width:74,height:74,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'radial-gradient(circle,rgba(92,210,255,.16),transparent 68%)',filter:'blur(5px)',opacity:p}}/>
+      <div style={{position:'absolute',left:'50%',top:origin==='top'?Math.max(0,height-30):Math.max(0,(bottom-top)-height-30),width:74,height:74,transform:'translate(-50%,-50%)',borderRadius:'50%',background:'radial-gradient(circle,rgba(92,210,255,.16),transparent 68%)',opacity:p}}/>
     </div>
   );
 };
@@ -109,7 +109,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,sp
     <div style={{height:70,borderRadius:19,border:`2px solid rgba(154,255,248,${working?.68:.96})`,background:working?'linear-gradient(180deg,#078A84,#075D59)':'linear-gradient(135deg,#34EEE2 0%,#15D2CA 47%,#099FA1 100%)',boxShadow:working?`0 ${12-press*5}px ${28-press*6}px rgba(0,0,0,.38),0 0 20px rgba(37,221,207,.14),inset 0 1px 0 rgba(255,255,255,.13)`:`0 ${shadowY}px ${shadowBlur}px rgba(0,226,211,.30),0 0 42px rgba(42,236,224,.25),inset 0 ${2-press*.8}px 0 rgba(255,255,255,${.34-press*.12}),inset 0 -${1+press*2}px 7px rgba(0,67,68,${.12+press*.18})`,transform:`translateY(${press*5}px) scale(${1-press*.028})`,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
       <div style={{position:'absolute',left:24,right:24,top:1+press*2,height:1,background:'linear-gradient(90deg,transparent,rgba(255,255,255,.58),transparent)',opacity:working?.20:.76-press*.22}}/>
       <div style={{position:'absolute',inset:0,background:`linear-gradient(180deg,rgba(255,255,255,${.055*(1-press)}) 0%,transparent 34%,rgba(0,49,53,${.11*press}) 100%)`,pointerEvents:'none'}}/>
-      {working?<div style={{width:18,height:18,marginRight:10,borderRadius:'50%',border:'2.4px solid rgba(255,255,255,.24)',borderTopColor:'#fff',opacity:spinner,transform:`rotate(${frame*12}deg)`,filter:'drop-shadow(0 0 5px rgba(255,255,255,.14))'}}/>:null}
+      {working?<div style={{width:18,height:18,marginRight:10,borderRadius:'50%',border:'2.4px solid rgba(255,255,255,.24)',borderTopColor:'#fff',opacity:spinner,transform:`rotate(${frame*12}deg)`}}/>:null}
       <span style={{fontFamily:AT_FONT,fontSize:working?18:22,fontWeight:working?760:860,letterSpacing:working?'.07em':'-.025em',color:'#FAFFFF',textShadow:'0 1px 1px rgba(0,20,24,.18)'}}>{waiting>.5?'Waiting':working?'Logging in...':'Log in'}</span>
       {!working?<span style={{position:'absolute',right:22,fontFamily:AT_FONT,fontSize:32,fontWeight:400,lineHeight:1,color:'#FAFFFF',opacity:.96}}>→</span>:null}
     </div>
@@ -142,18 +142,18 @@ export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emai
   const glassSheen = 18 + Math.sin(frame*.014)*3;
 
   return (
-    <div style={{position:'absolute',left:'50%',top,width:500,height:900,transform:`translateX(-50%) perspective(1600px) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${scale})`,transformOrigin:'50% 0%',zIndex:5,filter:`drop-shadow(0 ${24+material*16}px ${38+material*30}px rgba(0,0,0,${.28+material*.28}))`}}>
-      <div style={{position:'absolute',left:-28,right:-28,top:-34,height:126,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(123,198,255,${.12*material}) 0%,rgba(77,137,204,${.045*material}) 46%,transparent 72%)`,filter:'blur(12px)',pointerEvents:'none'}}/>
+    <div style={{position:'absolute',left:'50%',top,width:500,height:900,transform:`translateX(-50%) perspective(1600px) rotateY(${rotateY}deg) rotateX(${rotateX}deg) scale(${scale})`,transformOrigin:'50% 0%',zIndex:5}}>
+      <div style={{position:'absolute',left:-28,right:-28,top:-34,height:126,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(123,198,255,${.12*material}) 0%,rgba(77,137,204,${.045*material}) 46%,transparent 72%)`,pointerEvents:'none'}}/>
       <div style={{position:'absolute',left:-6,top:147,width:6,height:66,borderRadius:'5px 0 0 5px',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
       <div style={{position:'absolute',left:-6,top:242,width:6,height:108,borderRadius:'5px 0 0 5px',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
       <div style={{position:'absolute',right:-6,top:202,width:6,height:142,borderRadius:'0 5px 5px 0',background:'linear-gradient(180deg,#B5C7D7,#334B62 47%,#8EA7BE)'}}/>
-      <div style={{position:'absolute',inset:0,borderRadius:70,padding:7,background:'linear-gradient(145deg,#DCE8F2 0%,#7893AA 9%,#1B2A39 24%,#060C12 47%,#2E4358 71%,#B4C8D8 91%,#E8F0F6 100%)',border:'1px solid rgba(226,241,252,.95)',boxShadow:'0 40px 100px rgba(0,0,0,.62),0 0 35px rgba(89,153,218,.14),inset 0 1px 0 rgba(255,255,255,.76),inset 0 -1px 0 rgba(0,0,0,.72)'}}>
+      <div style={{position:'absolute',inset:0,borderRadius:70,padding:7,background:'linear-gradient(145deg,#DCE8F2 0%,#7893AA 9%,#1B2A39 24%,#060C12 47%,#2E4358 71%,#B4C8D8 91%,#E8F0F6 100%)',border:'1px solid rgba(226,241,252,.95)',boxShadow:`0 ${38+material*8}px ${76+material*10}px rgba(0,0,0,${.56+material*.06}),0 0 30px rgba(89,153,218,.13),inset 0 1px 0 rgba(255,255,255,.76),inset 0 -1px 0 rgba(0,0,0,.72)`}}>
         <div style={{position:'absolute',inset:4,borderRadius:67,border:'1px solid rgba(13,21,29,.94)',boxShadow:'inset 0 0 0 1px rgba(255,255,255,.10)',pointerEvents:'none'}}/>
         <div style={{position:'relative',width:'100%',height:'100%',borderRadius:63,overflow:'hidden',background:'radial-gradient(circle at 50% 17%,#0A2036 0%,#061521 38%,#030911 100%)',border:'2px solid rgba(119,164,202,.42)',boxShadow:'inset 0 0 82px rgba(8,40,70,.27)'}}>
           <div style={{position:'absolute',width:620,height:620,left:-305,top:-165,borderRadius:'50%',border:'2px solid rgba(39,117,255,.35)',boxShadow:'0 0 42px rgba(26,91,255,.09)',transform:'rotate(-18deg)'}}/>
           <div style={{position:'absolute',width:570,height:570,right:-380,bottom:-190,borderRadius:'50%',border:'2px solid rgba(10,168,255,.47)',boxShadow:'0 0 42px rgba(20,126,255,.10)'}}/>
           <div style={{position:'absolute',inset:0,background:'linear-gradient(128deg,rgba(28,79,170,.13) 0%,transparent 31%,transparent 68%,rgba(0,127,217,.08) 100%)'}}/>
-          <div style={{position:'absolute',left:`${glassSheen}%`,top:-120,width:148,height:1120,transform:'rotate(15deg)',background:`linear-gradient(90deg,transparent,rgba(220,241,255,${.055*material}),rgba(255,255,255,${.018*material}),transparent)`,filter:'blur(4px)',pointerEvents:'none'}}/>
+          <div style={{position:'absolute',left:`${glassSheen}%`,top:-120,width:148,height:1120,transform:'rotate(15deg)',background:`linear-gradient(90deg,transparent,rgba(220,241,255,${.055*material}),rgba(255,255,255,${.018*material}),transparent)`,pointerEvents:'none'}}/>
           <div style={{position:'absolute',inset:0,borderRadius:63,boxShadow:`inset 10px 0 24px rgba(148,211,255,${.025*material}),inset -12px 0 30px rgba(0,0,0,${.15+.08*material})`,pointerEvents:'none'}}/>
           <StatusBar/>
           <div style={{position:'absolute',left:'50%',top:14,width:116,height:34,transform:'translateX(-50%)',borderRadius:21,background:'#01050A',boxShadow:'0 3px 12px rgba(0,0,0,.58)'}}><div style={{position:'absolute',right:12,top:12,width:7,height:7,borderRadius:'50%',background:'#10213B',boxShadow:'0 0 4px rgba(61,107,190,.35)'}}/></div>
@@ -168,7 +168,7 @@ export const ATPhone: React.FC<ATPhoneProps> = ({frame,reveal,credential,ui,emai
           </div>
         </div>
       </div>
-      <div style={{position:'absolute',left:'10%',right:'8%',bottom:-28,height:50,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(25,123,255,${.18+.16*material}) 0%,rgba(20,82,160,${.05+.05*material}) 47%,transparent 75%)`,filter:`blur(${7+material*4}px)`,transform:'rotateX(68deg)',opacity:.78+material*.22}}/>
+      <div style={{position:'absolute',left:'10%',right:'8%',bottom:-28,height:50,borderRadius:'50%',background:`radial-gradient(ellipse,rgba(25,123,255,${.18+.16*material}) 0%,rgba(20,82,160,${.05+.05*material}) 47%,transparent 75%)`,transform:'rotateX(68deg)',opacity:.78+material*.22}}/>
     </div>
   );
 };
