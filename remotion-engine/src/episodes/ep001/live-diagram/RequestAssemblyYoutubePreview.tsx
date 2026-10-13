@@ -15,7 +15,7 @@ import {
 import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 import {SHOT02} from './shot02Timing';
 
-export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean(),recapHighlights:z.boolean().optional(),frameOverride:z.number().optional()});
+export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean(),recapHighlights:z.boolean().optional(),frameOverride:z.number().optional(),ambientFrameOverride:z.number().optional(),embedded:z.boolean().optional(),readyStampOpacity:z.number().optional(),networkHintOpacity:z.number().optional(),extraFocus:z.object({payload:z.number(),headers:z.number(),context:z.number()}).optional()});
 type Props = z.infer<typeof requestAssemblyYoutubePreviewSchema>;
 
 const EMAIL='user@example.com';
@@ -23,10 +23,11 @@ const out=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1
 const ease=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1],{extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic)});
 const pulse=(frame:number,start:number,end:number,fade=10)=>Math.min(out(frame,start,Math.min(start+fade,end)),1-out(frame,Math.max(start,end-fade),end));
 
-export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHighlights=true,frameOverride})=>{
+export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHighlights=true,frameOverride,ambientFrameOverride,embedded=false,readyStampOpacity=1,networkHintOpacity=1,extraFocus})=>{
   const compositionFrame=useCurrentFrame();
   const frame=frameOverride ?? compositionFrame;
-  const continuationFrame=SHOT01_DURATION_FRAMES+frame;
+  const continuationFrame=SHOT01_DURATION_FRAMES+(ambientFrameOverride ?? frame);
+  const WorldWrapper=embedded?React.Fragment:ATBackground;
 
   const contextQuiet=ease(frame,SHOT02.handoff.contextQuietStart,SHOT02.handoff.contextQuietEnd);
   const phoneShift=ease(frame,SHOT02.handoff.phoneShiftStart,SHOT02.handoff.phoneShiftEnd);
@@ -74,9 +75,9 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHig
   const timestamp=Math.max(pulse(frame,SHOT02.context.timestampStart,SHOT02.context.timestampEnd,6),contextAssemblyFocus);
   const source=Math.max(pulse(frame,SHOT02.context.sourceStart,SHOT02.context.sourceEnd,6),contextAssemblyFocus);
 
-  const payloadActivity=Math.max(identity,secret,payloadAssemblyFocus);
-  const headersActivity=Math.max(userAgent,accept,headersAssemblyFocus);
-  const contextActivity=Math.max(timestamp,source,contextAssemblyFocus);
+  const payloadActivity=Math.max(identity,secret,payloadAssemblyFocus,extraFocus?.payload??0);
+  const headersActivity=Math.max(userAgent,accept,headersAssemblyFocus,extraFocus?.headers??0);
+  const contextActivity=Math.max(timestamp,source,contextAssemblyFocus,extraFocus?.context??0);
 
   const settle=ease(frame,SHOT02.assembly.settleStart,SHOT02.assembly.settleEnd);
   const ready=out(frame,SHOT02.assembly.readyStart,SHOT02.assembly.readyEnd);
@@ -85,7 +86,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHig
   const requestActive=.62*(1-requestQuiet)+.08;
 
   return (
-    <ATBackground>
+    <WorldWrapper>
       <ATCameraRig x={stackRigX} y={stackRigY} scale={stackRigScale} opacity={stackOpacity} zIndex={3}>
         <ATSecondaryStack
           frame={continuationFrame}
@@ -187,7 +188,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHig
       </ATCameraRig>
 
       <ATConnectionPath
-        reveal={networkReveal}
+        reveal={networkReveal*networkHintOpacity}
         left={requestLeft+requestWidth/2-4}
         top={requestTop+requestHeight*.5-54}
         width={650-requestQuiet*40}
@@ -195,8 +196,8 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHig
         nodeOpacity={.34}
       />
 
-      <div style={{position:'absolute',right:70,bottom:48,opacity:networkReveal*.55,fontFamily:AT_FONT,fontSize:13,fontWeight:720,letterSpacing:'.11em',color:'rgba(128,162,192,.62)'}}>READY ≠ SENT</div>
+      <div style={{position:'absolute',right:70,bottom:48,opacity:networkReveal*.55*readyStampOpacity,fontFamily:AT_FONT,fontSize:13,fontWeight:720,letterSpacing:'.11em',color:'rgba(128,162,192,.62)'}}>READY ≠ SENT</div>
       {showGuides?<div style={{position:'absolute',inset:40,border:'1px dashed rgba(255,255,255,.20)',pointerEvents:'none',zIndex:30}}/>:null}
-    </ATBackground>
+    </WorldWrapper>
   );
 };
