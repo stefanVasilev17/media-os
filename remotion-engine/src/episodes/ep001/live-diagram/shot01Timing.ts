@@ -43,6 +43,18 @@ export const SHOT01 = {
     start: f(29.4),
     end: f(31),
   },
+  controlledRealism: {
+    bridgeStart: f(5.85),
+    bridgeEnd: f(8.4),
+    bridgePulseStart: f(5.5),
+    bridgePulseEnd: f(8.9),
+    fadeStart: f(6.8),
+    fadeMid: f(17),
+    fadeEnd: f(24),
+    minimum: .28,
+    bridgeTop: 225,
+    bridgeBottom: 770,
+  },
   camera: {
     phoneCloseHoldEnd: f(6.8),
     worldRevealStart: f(7),
