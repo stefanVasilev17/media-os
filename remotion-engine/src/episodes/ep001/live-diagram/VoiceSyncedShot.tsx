@@ -83,17 +83,11 @@ export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({
   audioClips,
   durationInFrames,
   anchors,
-  comprehensionHolds,
 }) => {
   const frame = useCurrentFrame();
-  const holdPoints: AnchorPoint[] = comprehensionHolds.flatMap(hold => [
-    {actual: hold.fromFrame, canonical: hold.canonicalFrame},
-    {actual: hold.toFrame, canonical: hold.canonicalFrame},
-  ]);
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
     {actual: actualFrame(anchors, 'PRESS_LOGIN', 5.45, SHOT01_FPS), canonical: Math.round(5.45 * SHOT01_FPS)},
-    ...holdPoints,
     {actual: actualFrame(anchors, 'LOGIN_INTENT', 7, SHOT01_FPS), canonical: Math.round(7 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'VALIDATE', 10.3, SHOT01_FPS), canonical: Math.round(10.3 * SHOT01_FPS)},
     {actual: actualFrame(anchors, 'SUBMIT', 13.3, SHOT01_FPS), canonical: Math.round(13.3 * SHOT01_FPS)},
