@@ -2,7 +2,7 @@ import React from 'react';
 import {Easing, interpolate, spring, useCurrentFrame} from 'remotion';
 import {z} from 'zod';
 import {ATArchitectureRevealBridge, ATBackground, ATControlledRealismLayer, AT_FONT, ATPhone, ATSecondaryStack} from '../../../components/architectural-thinking';
-import {SHOT01, SHOT01_FPS} from './shot01Timing';
+import {SHOT01, SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 
 export const phoneFirstYoutubePreviewSchema = z.object({showGuides: z.boolean()});
 type Props = z.infer<typeof phoneFirstYoutubePreviewSchema>;
@@ -78,8 +78,8 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
             {
               title:'Login Intent',
               items:[
-                {label:'Validate',activity:validate},
-                {label:'Submit',activity:submit},
+                {label:'Validate',activity:validate,activationStart:SHOT01.loginIntent.validateGlowStart,activationEnd:SHOT01.loginIntent.validateGlowEnd},
+                {label:'Submit',activity:submit,activationStart:SHOT01.loginIntent.submitGlowStart,activationEnd:SHOT01.loginIntent.submitGlowEnd},
               ],
               reveal:1,
               divider:credential,
@@ -87,8 +87,8 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
             {
               title:'Credential Input',
               items:[
-                {label:'Identifier',activity:identifier},
-                {label:'Secret',activity:secret},
+                {label:'Identifier',activity:identifier,activationStart:SHOT01.credentialInput.identifierGlowStart,activationEnd:SHOT01.credentialInput.identifierGlowEnd},
+                {label:'Secret',activity:secret,activationStart:SHOT01.credentialInput.secretGlowStart,activationEnd:SHOT01.credentialInput.secretGlowEnd},
               ],
               reveal:credential,
               divider:ui,
@@ -96,8 +96,8 @@ export const PhoneFirstYoutubePreview: React.FC<Props> = ({showGuides}) => {
             {
               title:'Local UI State',
               items:[
-                {label:'Submitting',activity:submitting},
-                {label:'Waiting',activity:stackWaiting},
+                {label:'Submitting',activity:submitting,activationStart:SHOT01.localUiState.submittingStart,activationEnd:SHOT01.localUiState.submittingEnd},
+                {label:'Waiting',activity:stackWaiting,activationStart:SHOT01.localUiState.waitingStart,activationEnd:SHOT01_DURATION_FRAMES},
               ],
               reveal:ui,
               divider:0,
