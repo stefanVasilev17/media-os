@@ -6,7 +6,6 @@ import {RequestAssemblyYoutubePreview} from './RequestAssemblyYoutubePreview';
 import {ReadyNotSentYoutubePreview} from './ReadyNotSentYoutubePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 import {SHOT02, SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
-import {SHOT03, SHOT03_DURATION_FRAMES, SHOT03_FPS} from './shot03Timing';
 
 const voiceClipSchema = z.object({
   src: z.string(),
@@ -156,37 +155,9 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, aud
   );
 };
 
-export const Shot03VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,durationInFrames,anchors}) => {
-  const frame=useCurrentFrame();
-  const cue=(key:string,canonical:number):AnchorPoint => ({
-    actual:actualFrame(anchors,key,canonical/SHOT03_FPS,SHOT03_FPS),
-    canonical,
-  });
-  const points:AnchorPoint[]=[
-    {actual:0,canonical:0},
-    cue('REQUEST_ASSEMBLY',SHOT03.reaffirm.request),
-    cue('PAYLOAD',SHOT03.reaffirm.payload),
-    cue('HEADERS',SHOT03.reaffirm.headers),
-    cue('REQUEST_CONTEXT',SHOT03.reaffirm.context),
-    cue('MESSAGE_READY',SHOT03.insight.readyNotReceived),
-    cue('YOUR_SIDE',SHOT03.insight.clientSide),
-    cue('SPINNER',SHOT03.insight.spinner),
-    cue('DISABLED',SHOT03.insight.disabled),
-    cue('NETWORK_TRANSIT',SHOT03.insight.network),
-    cue('API_GATEWAY',SHOT03.insight.gateway),
-    cue('LOAD_BALANCER',SHOT03.insight.balancer),
-    cue('AUTH_SERVICE',SHOT03.insight.auth),
-    cue('USER_DATABASE',SHOT03.insight.database),
-    cue('READY_NOT_SENT',SHOT03.insight.conclusion),
-    {actual:Math.max(1,durationInFrames-1),canonical:SHOT03_DURATION_FRAMES-1},
-  ];
-  const canonicalFrame=mapFrame(frame,points,SHOT03_DURATION_FRAMES);
-  return (
-    <>
-      <Freeze frame={canonicalFrame}>
-        <ReadyNotSentYoutubePreview showGuides={false}/>
-      </Freeze>
-      <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
-    </>
-  );
-};
+export const Shot03VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,anchors}) => (
+  <>
+    <ReadyNotSentYoutubePreview showGuides={false} anchors={anchors}/>
+    <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
+  </>
+);
