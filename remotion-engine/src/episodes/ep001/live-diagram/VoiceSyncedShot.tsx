@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {PhoneFirstYoutubePreview} from './PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview} from './RequestAssemblyYoutubePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
-import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
+import {SHOT02, SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
 
 const voiceClipSchema = z.object({
   src: z.string(),
@@ -113,15 +113,33 @@ export const Shot01VoiceSynced: React.FC<VoiceSyncedShotProps> = ({
 
 export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, audioClips, durationInFrames, anchors}) => {
   const frame = useCurrentFrame();
+  const frameFor = (key: string, canonical: number) => ({
+    actual: actualFrame(anchors, key, canonical / SHOT02_FPS, SHOT02_FPS),
+    canonical,
+  });
+  const recapKeys = ['WHAT_SENDING', 'HOW_READ', 'SYSTEM_KNOW'];
+  const recapHighlights = recapKeys.every(key => Number.isFinite(anchors[key])) &&
+    recapKeys.every((key, index) => index === 0 || anchors[key] > anchors[recapKeys[index - 1]]);
   const points: AnchorPoint[] = [
     {actual: 0, canonical: 0},
-    {actual: actualFrame(anchors, 'VALIDATE', 2.3, SHOT02_FPS), canonical: Math.round(2.3 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'SUBMIT', 7.5, SHOT02_FPS), canonical: Math.round(7.5 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'REQUEST_ASSEMBLY', 14.35, SHOT02_FPS), canonical: Math.round(14.35 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'PAYLOAD', 22, SHOT02_FPS), canonical: Math.round(22 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'HEADERS', 36, SHOT02_FPS), canonical: Math.round(36 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'REQUEST_CONTEXT', 51.2, SHOT02_FPS), canonical: Math.round(51.2 * SHOT02_FPS)},
-    {actual: actualFrame(anchors, 'REQUEST_READY', 72.4, SHOT02_FPS), canonical: Math.round(72.4 * SHOT02_FPS)},
+    frameFor('VALIDATE', SHOT02.handoff.validateStart),
+    frameFor('SUBMIT', SHOT02.handoff.submitStart),
+    frameFor('REQUEST_ASSEMBLY', SHOT02.requestAssembly.revealStart),
+    frameFor('PAYLOAD', SHOT02.payload.start),
+    frameFor('IDENTITY', SHOT02.payload.identityStart),
+    frameFor('SECRET', SHOT02.payload.secretStart),
+    frameFor('HEADERS', SHOT02.headers.start),
+    frameFor('USER_AGENT', SHOT02.headers.userAgentStart),
+    frameFor('ACCEPT', SHOT02.headers.acceptStart),
+    frameFor('REQUEST_CONTEXT', SHOT02.context.start),
+    frameFor('TIMESTAMP', SHOT02.context.timestampStart),
+    frameFor('SOURCE', SHOT02.context.sourceStart),
+    ...(recapHighlights ? [
+      frameFor('WHAT_SENDING', SHOT02.assembly.payloadFocusStart),
+      frameFor('HOW_READ', SHOT02.assembly.headersFocusStart),
+      frameFor('SYSTEM_KNOW', SHOT02.assembly.contextFocusStart),
+    ] : []),
+    frameFor('REQUEST_READY', SHOT02.assembly.readyStart),
     {actual: Math.max(1, durationInFrames - 1), canonical: SHOT02_DURATION_FRAMES - 1},
   ];
   const canonicalFrame = mapFrame(frame, points, SHOT02_DURATION_FRAMES);
@@ -129,7 +147,7 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, aud
   return (
     <>
       <Freeze frame={canonicalFrame}>
-        <RequestAssemblyYoutubePreview showGuides={false} />
+        <RequestAssemblyYoutubePreview showGuides={false} recapHighlights={recapHighlights} />
       </Freeze>
       <VoiceAudio audioUrl={audioUrl} audioClips={audioClips} />
     </>
