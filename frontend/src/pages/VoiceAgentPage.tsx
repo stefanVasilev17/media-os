@@ -51,6 +51,15 @@ function performanceDirectionForClip(clip: VoiceClipState | undefined) {
   return AT_V4_DIRECTION;
 }
 
+function voiceRouteTarget() {
+  const query = (window.location.hash.split('?', 2)[1] || '').trim();
+  const params = new URLSearchParams(query);
+  return {
+    shotKey: params.get('shot') || '',
+    clipKey: params.get('clip') || ''
+  };
+}
+
 function exactElevenLabsText(narration: string, performanceDirection: string, modelId?: string) {
   const supportsAudioTags = Boolean(modelId?.startsWith('eleven_v4') || modelId?.startsWith('eleven_v3'));
   if (!supportsAudioTags || !performanceDirection.trim()) return narration;
@@ -77,6 +86,7 @@ export function VoiceAgentPage() {
   const [continuityPlaying, setContinuityPlaying] = useState(false);
   const [continuityNow, setContinuityNow] = useState('');
   const continuityAudioRef = useRef<HTMLAudioElement | null>(null);
+  const routeTargetRef = useRef(voiceRouteTarget());
 
   const bundles = useMemo(() => {
     if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
@@ -175,7 +185,10 @@ export function VoiceAgentPage() {
           const related = synced.filter(clip => clip.shotKey === bundle.key);
           return related.length === 0 || related.some(clip => !clip.approved);
         });
-        setShotIndex(firstPendingShot);
+        const requestedShotIndex = routeTargetRef.current.shotKey
+          ? bundles.findIndex(bundle => bundle.key === routeTargetRef.current.shotKey)
+          : -1;
+        setShotIndex(requestedShotIndex >= 0 ? requestedShotIndex : firstPendingShot);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Voice Agent.');
       } finally {
@@ -186,9 +199,16 @@ export function VoiceAgentPage() {
   }, []);
 
   useEffect(() => {
-    setClipIndex(0);
+    const target = routeTargetRef.current;
+    if (target.shotKey && currentShot?.key === target.shotKey && target.clipKey) {
+      const requestedClipIndex = shotClips.findIndex(clip => clip.clipKey === target.clipKey);
+      setClipIndex(requestedClipIndex >= 0 ? requestedClipIndex : 0);
+      routeTargetRef.current = { shotKey: '', clipKey: '' };
+    } else {
+      setClipIndex(0);
+    }
     setCorrection('');
-  }, [shotIndex]);
+  }, [shotIndex, currentShot?.key, shotClips]);
 
   useEffect(() => {
     stopContinuity();
