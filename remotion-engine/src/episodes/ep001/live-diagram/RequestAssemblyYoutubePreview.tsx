@@ -29,6 +29,8 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
 
   const contextQuiet=ease(frame,SHOT02.handoff.contextQuietStart,SHOT02.handoff.contextQuietEnd);
   const phoneShift=ease(frame,SHOT02.handoff.phoneShiftStart,SHOT02.handoff.phoneShiftEnd);
+  const validateActivity=pulse(frame,SHOT02.handoff.validateStart,SHOT02.handoff.validateEnd,10);
+  const submitActivity=pulse(frame,SHOT02.handoff.submitStart,SHOT02.handoff.submitEnd,10);
   const legacyWaiting=.12+.88*(1-out(frame,0,18));
   const requestHintCarry=1-out(frame,0,SHOT02.handoff.hintEnd);
   const flowReveal=out(frame,SHOT02.handoff.flowStart,SHOT02.handoff.flowEnd);
@@ -43,18 +45,18 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const requestHeight=240;
   const requestVisualScale=1.80-requestQuiet*.80;
 
-  const phoneRigX=-500*phoneShift;
-  const phoneRigY=18*phoneShift;
-  const phoneRigScale=1-.26*phoneShift;
-  const stackRigX=-520*contextQuiet;
-  const stackRigY=22*contextQuiet;
-  const stackRigScale=1-.28*contextQuiet;
-  const stackOpacity=1-.78*contextQuiet;
+  const phoneRigX=-350*phoneShift;
+  const phoneRigY=16*phoneShift;
+  const phoneRigScale=1-.44*phoneShift;
+  const stackRigX=-555*contextQuiet;
+  const stackRigY=-24*contextQuiet;
+  const stackRigScale=1-.45*contextQuiet;
+  const stackOpacity=1-.80*contextQuiet;
 
   const phoneCenterX=460;
   const phoneVisibleHalfWidth=250*.53*phoneRigScale;
-  const flowStartX=phoneCenterX+phoneVisibleHalfWidth;
-  const flowStartY=823;
+  const flowStartX=960+(phoneCenterX-960)*phoneRigScale+phoneRigX+phoneVisibleHalfWidth;
+  const flowStartY=540+(823-540)*phoneRigScale+phoneRigY;
   const flowEndX=requestLeft-(requestWidth*requestVisualScale)/2-8;
   const flowEndY=requestTop+requestHeight*.5;
 
@@ -79,7 +81,7 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
 
   const settle=ease(frame,SHOT02.assembly.settleStart,SHOT02.assembly.settleEnd);
   const ready=out(frame,SHOT02.assembly.readyStart,SHOT02.assembly.readyEnd);
-  const networkReveal=Math.max(ready,requestQuiet*.78);
+  const networkReveal=Math.max(ready,requestQuiet*.78,phoneShift*.09);
   const requestScale=1-overview*.015;
   const requestActive=.62*(1-requestQuiet)+.08;
 
@@ -94,8 +96,8 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
           connectorHeight={20}
           sections={[
             {title:'Login Intent',items:[
-              {label:'Validate',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
-              {label:'Submit',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
+              {label:'Validate',activity:validateActivity,activationStart:SHOT01_DURATION_FRAMES+SHOT02.handoff.validateStart,activationEnd:SHOT01_DURATION_FRAMES+SHOT02.handoff.validateEnd},
+              {label:'Submit',activity:submitActivity,activationStart:SHOT01_DURATION_FRAMES+SHOT02.handoff.submitStart,activationEnd:SHOT01_DURATION_FRAMES+SHOT02.handoff.submitEnd},
             ],reveal:1,divider:1},
             {title:'Credential Input',items:[
               {label:'Identifier',activity:0,activationStart:SHOT01_DURATION_FRAMES,activationEnd:SHOT01_DURATION_FRAMES+1},
