@@ -23,13 +23,35 @@ public class RemotionRenderRetentionService {
         this.jdbc = jdbc;
     }
 
+    private void logStorageFootprint() {
+        try {
+            jdbc.sql("""
+                    select pg_database_size(current_database()) as database_bytes,
+                           pg_total_relation_size('remotion_render') as remotion_bytes,
+                           pg_total_relation_size('spline_shot_render') as spline_bytes,
+                           pg_total_relation_size('voice_clip_workflow') as voice_clip_bytes
+                    """)
+                    .query((rs, index) -> {
+                        log.info("MediaOS storage: postgres={} MB; Remotion={} MB; legacy Spline={} MB; voice clips={} MB. These are allocated database sizes, not remaining volume space.",
+                                rs.getLong("database_bytes") / 1048576,
+                                rs.getLong("remotion_bytes") / 1048576,
+                                rs.getLong("spline_bytes") / 1048576,
+                                rs.getLong("voice_clip_bytes") / 1048576);
+                        return 1;
+                    }).single();
+        } catch (Exception error) {
+            log.warn("MediaOS storage metrics unavailable: {}", error.getMessage());
+        }
+    }
+
     private record Candidate(UUID id, long sizeBytes) {}
 
     @Scheduled(
             initialDelayString = "${mediaos.render.retention.initial-delay-ms:20000}",
-            fixedDelayString = "${mediaos.render.retention.interval-ms:3600000}"
+            fixedDelayString = "${mediaos.render.retention.interval-ms:60000}"
     )
     public void pruneObsoleteRenderVersions() {
+        logStorageFootprint();
         long reclaimedVideoBytes = 0;
         int removed = 0;
 
