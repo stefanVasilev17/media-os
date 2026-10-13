@@ -36,6 +36,7 @@ public class VisualQaController {
 
     public record ShotRequest(@Positive int scriptRevision, @NotBlank String shotKey) {}
     public record RenderQaRequest(@Positive int scriptRevision, @NotBlank String shotKey, @NotNull UUID renderId) {}
+    public record VisualLockRequest(@Positive int scriptRevision, @NotBlank String shotKey, @NotNull UUID renderId) {}
 
     @GetMapping("/state")
     public Map<String, Object> state(@RequestParam int scriptRevision) {
@@ -46,6 +47,8 @@ public class VisualQaController {
                        v.remotion_render_id, v.rendered_at,
                        r.duration_in_frames as render_duration_in_frames,
                        r.fps as render_fps,
+                       l.render_id as locked_render_id,
+                       l.locked_at,
                        (
                          select q.status
                          from visual_shot_qa q
@@ -58,6 +61,10 @@ public class VisualQaController {
                        ) as qa_status
                 from voice_shot_workflow v
                 left join remotion_render r on r.id=v.remotion_render_id
+                left join visual_shot_lock l
+                  on l.episode_id=v.episode_id
+                 and l.script_revision=v.script_revision
+                 and l.shot_key=v.shot_key
                 where v.episode_id=:episodeId and v.script_revision=:revision
                 order by v.start_second, v.shot_key
                 """)
@@ -84,6 +91,10 @@ public class VisualQaController {
                     UUID renderId = rs.getObject("remotion_render_id", UUID.class);
                     row.put("renderId", renderId);
                     row.put("rendered", renderId != null && rs.getObject("rendered_at", OffsetDateTime.class) != null);
+                    UUID lockedRenderId = rs.getObject("locked_render_id", UUID.class);
+                    row.put("locked", lockedRenderId != null);
+                    row.put("lockedRenderId", lockedRenderId);
+                    row.put("lockedAt", rs.getObject("locked_at", OffsetDateTime.class));
                     String qa = rs.getString("qa_status");
                     row.put("qaStatus", qa == null ? "PENDING" : qa);
                     row.put("compositionId", compositionFor(rs.getString("shot_key")));
@@ -109,8 +120,12 @@ public class VisualQaController {
         List<Map<String, Object>> checks = new ArrayList<>();
 
         Map<String, Object> shot = voiceShot(request.scriptRevision(), shotKey);
+        boolean locked = isVisualLocked(request.scriptRevision(), shotKey);
         boolean voiceReady = shot.get("voiceApprovedAt") != null && shot.get("visualSyncReadyAt") != null;
         addCheck(checks, "LOCKED_SCRIPT", true, "Visual work is bound to LOCKED Script revision " + request.scriptRevision() + ".");
+        addCheck(checks, "VISUAL_NOT_LOCKED", !locked, locked
+                ? shotKey + " is Director LOCKED and cannot be recreated without an explicit unlock."
+                : "Shot is open for visual production.");
         addCheck(checks, "MEMORY_PREFLIGHT", ((Number) memoryAudit.get("ruleCount")).intValue() > 0,
                 memoryAudit.get("ruleCount") + " active production-memory rule(s) loaded.");
         addCheck(checks, "VOICE_APPROVED", voiceReady, voiceReady
@@ -241,6 +256,91 @@ public class VisualQaController {
         result.put("status", passed ? "PASS" : "FAIL");
         result.put("checks", checks);
         return result;
+    }
+
+    @PostMapping("/lock")
+    public Map<String, Object> lock(@Valid @RequestBody VisualLockRequest request) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String shotKey = normalizeShotKey(request.shotKey());
+
+        Map<String, Object> current = jdbc.sql("""
+                select v.remotion_render_id,
+                       exists(
+                         select 1 from visual_shot_qa q
+                         where q.episode_id=v.episode_id
+                           and q.script_revision=v.script_revision
+                           and q.shot_key=v.shot_key
+                           and q.render_id=:renderId
+                           and q.phase='POST_RENDER'
+                           and q.status='PASS'
+                       ) as qa_passed,
+                       r.status as render_status
+                from voice_shot_workflow v
+                left join remotion_render r on r.id=v.remotion_render_id
+                where v.episode_id=:episodeId
+                  and v.script_revision=:revision
+                  and v.shot_key=:shotKey
+                """)
+                .param("renderId", request.renderId())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .query((rs, rowNum) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("renderId", rs.getObject("remotion_render_id", UUID.class));
+                    row.put("qaPassed", rs.getBoolean("qa_passed"));
+                    row.put("renderStatus", rs.getString("render_status"));
+                    return row;
+                })
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Visual shot state is not initialized."));
+
+        if (!request.renderId().equals(current.get("renderId"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only the current shot render can be locked.");
+        }
+        if (!Boolean.TRUE.equals(current.get("qaPassed")) || !"SUCCEEDED".equals(current.get("renderStatus"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Shot must pass post-render QA before Director LOCK.");
+        }
+
+        jdbc.sql("""
+                insert into visual_shot_lock(
+                  id, episode_id, script_revision, shot_key, render_id, locked_at, source
+                ) values (
+                  :id,:episodeId,:revision,:shotKey,:renderId,now(),'Director approval'
+                )
+                on conflict (episode_id, script_revision, shot_key) do update
+                set render_id=excluded.render_id,
+                    locked_at=now(),
+                    source='Director approval'
+                """)
+                .param("id", UUID.randomUUID())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision())
+                .param("shotKey", shotKey)
+                .param("renderId", request.renderId())
+                .update();
+
+        return Map.of(
+                "shotKey", shotKey,
+                "locked", true,
+                "renderId", request.renderId()
+        );
+    }
+
+    private boolean isVisualLocked(int revision, String shotKey) {
+        return jdbc.sql("""
+                select exists(
+                  select 1 from visual_shot_lock
+                  where episode_id=:episodeId
+                    and script_revision=:revision
+                    and shot_key=:shotKey
+                )
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("shotKey", shotKey)
+                .query(Boolean.class)
+                .single();
     }
 
     private Map<String, Object> voiceShot(int revision, String shotKey) {
