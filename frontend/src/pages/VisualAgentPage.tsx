@@ -55,6 +55,25 @@ const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
   REQUEST_READY: ['structured message ready']
 };
 
+const SHOT03_WORD_ANCHORS: Record<string, string[]> = {
+  REQUEST_ASSEMBLY:['request assembly'],
+  PAYLOAD:['payload'],
+  HEADERS:['headers'],
+  REQUEST_CONTEXT:['request context'],
+  MESSAGE_READY:['message being ready'],
+  YOUR_SIDE:['your side'],
+  SPINNER:['spinner'],
+  DISABLED:['disabled'],
+  NETWORK_TRANSIT:['network transit'],
+  API_GATEWAY:['api gateway'],
+  LOAD_BALANCER:['load balancer'],
+  AUTH_SERVICE:['auth service'],
+  USER_DATABASE:['user database'],
+  READY_NOT_SENT:['ready is not the same as sent'],
+};
+
+const SHOT03_REQUIRED_ANCHORS = Object.keys(SHOT03_WORD_ANCHORS);
+
 const SHOT02_REQUIRED_ANCHORS = [
   'VALIDATE', 'SUBMIT', 'REQUEST_ASSEMBLY', 'PAYLOAD', 'IDENTITY', 'SECRET',
   'HEADERS', 'USER_AGENT', 'ACCEPT', 'REQUEST_CONTEXT', 'TIMESTAMP', 'SOURCE'
@@ -66,7 +85,10 @@ function anchorsOf(row?: VoiceShotState) {
     words?: Array<{ text: string; start: number }>;
   } | undefined;
   const anchors = { ...(alignment?.anchors || {}) };
-  if (row?.shotKey !== 'SHOT 02' || !Array.isArray(alignment?.words)) return anchors;
+  const phrases = row?.shotKey === 'SHOT 02'
+    ? SHOT02_WORD_ANCHORS
+    : row?.shotKey === 'SHOT 03' ? SHOT03_WORD_ANCHORS : null;
+  if (!phrases || !Array.isArray(alignment?.words)) return anchors;
 
   const tokens = alignment.words.flatMap(word => {
     const start = Number(word.start);
@@ -75,8 +97,8 @@ function anchorsOf(row?: VoiceShotState) {
       .filter(Boolean).map(value => ({ value, start }));
   });
 
-  for (const [key, phrases] of Object.entries(SHOT02_WORD_ANCHORS)) {
-    for (const phrase of phrases) {
+  for (const [key, candidates] of Object.entries(phrases)) {
+    for (const phrase of candidates) {
       const parts = phrase.split(' ');
       const index = tokens.findIndex((token, start) =>
         parts.every((part, offset) => tokens[start + offset]?.value === part)
@@ -383,6 +405,22 @@ export function VisualAgentPage() {
           throw new Error(
             'SHOT 02 voice anchors are out of order. Check approved narration and word alignment before rendering.'
           );
+        }
+      }
+      if (currentShot.key === 'SHOT 03') {
+        const missing = SHOT03_REQUIRED_ANCHORS.filter(key => !Number.isFinite(rawAnchors[key]));
+        if (missing.length > 0) {
+          throw new Error(
+            'SHOT 03 sync is incomplete. Missing spoken-word anchors: ' +
+            missing.join(', ') +
+            '. Review approved voice narration or alignment before rendering.'
+          );
+        }
+        const outOfOrder = SHOT03_REQUIRED_ANCHORS.some((key, index) =>
+          index > 0 && rawAnchors[key] <= rawAnchors[SHOT03_REQUIRED_ANCHORS[index - 1]]
+        );
+        if (outOfOrder) {
+          throw new Error('SHOT 03 anchors are out of narration order. Review the approved voice timing.');
         }
       }
       const pacing = currentShot.key === 'SHOT 01'

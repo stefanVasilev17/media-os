@@ -4,10 +4,12 @@ import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
 import {PhoneFirstYoutubePreview, phoneFirstYoutubePreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from './episodes/ep001/live-diagram/RequestAssemblyYoutubePreview';
-import {Shot01VoiceSynced, Shot02VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
+import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './episodes/ep001/live-diagram/ReadyNotSentYoutubePreview';
+import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './episodes/ep001/live-diagram/shot02Timing';
+import {SHOT03_DURATION_FRAMES, SHOT03_FPS} from './episodes/ep001/live-diagram/shot03Timing';
 import {VerticalSlice, verticalSliceSchema} from './episodes/ep001/vertical-slice/VerticalSlice';
 import {FPS, VERTICAL_SLICE_FRAMES} from './episodes/ep001/vertical-slice/timeline';
 
@@ -124,6 +126,32 @@ export const Root: React.FC = () => {
           durationInFrames: SHOT02_DURATION_FRAMES,
           anchors: {},
           comprehensionHolds: [],
+        }}
+      />
+      <Composition
+        id="EP001-ReadyNotSent-Youtube"
+        component={ReadyNotSentYoutubePreview}
+        durationInFrames={SHOT03_DURATION_FRAMES}
+        fps={SHOT03_FPS}
+        width={1920}
+        height={1080}
+        schema={readyNotSentYoutubePreviewSchema}
+        defaultProps={{showGuides:false}}
+      />
+      <Composition
+        id="EP001-Shot03-VoiceSynced"
+        component={Shot03VoiceSynced}
+        durationInFrames={dynamicDuration ?? SHOT03_DURATION_FRAMES}
+        fps={SHOT03_FPS}
+        width={1920}
+        height={1080}
+        schema={voiceSyncedShotSchema}
+        defaultProps={{
+          audioUrl:'',
+          audioClips:[],
+          durationInFrames:SHOT03_DURATION_FRAMES,
+          anchors:{},
+          comprehensionHolds:[],
         }}
       />
       <Composition

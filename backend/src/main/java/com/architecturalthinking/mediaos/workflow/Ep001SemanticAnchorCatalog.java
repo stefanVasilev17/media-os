@@ -44,7 +44,15 @@ public final class Ep001SemanticAnchorCatalog {
                     "PAYLOAD", "Payload",
                     "HEADERS", "Headers",
                     "REQUEST_CONTEXT", "Request Context",
+                    "MESSAGE_READY", "message being ready",
+                    "YOUR_SIDE", "your side",
+                    "SPINNER", "spinner",
+                    "DISABLED", "disabled",
                     "NETWORK_TRANSIT", "Network Transit",
+                    "API_GATEWAY", "API Gateway",
+                    "LOAD_BALANCER", "Load Balancer",
+                    "AUTH_SERVICE", "Auth Service",
+                    "USER_DATABASE", "User Database",
                     "READY_NOT_SENT", "Ready is not the same as sent"
             );
             case "SHOT 04" -> linked(

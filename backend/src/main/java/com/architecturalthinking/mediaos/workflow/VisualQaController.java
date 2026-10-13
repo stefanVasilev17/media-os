@@ -436,6 +436,7 @@ public class VisualQaController {
         return switch (shotKey) {
             case "SHOT 01" -> "EP001-Shot01-VoiceSynced";
             case "SHOT 02" -> "EP001-Shot02-VoiceSynced";
+            case "SHOT 03" -> "EP001-Shot03-VoiceSynced";
             default -> "";
         };
     }
