@@ -68,7 +68,8 @@ const BACKEND_NODES=[
 ] as const;
 
 export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,captionOpacity=1,worldMotion})=>{
-  const frame=frameOverride ?? useCurrentFrame();
+  const currentFrame=useCurrentFrame();
+  const frame=frameOverride ?? currentFrame;
   const at=(key:string,fallbackFrame:number)=>Number.isFinite(anchors[key])
     ?Math.max(0,anchors[key]*30):fallbackFrame;
 

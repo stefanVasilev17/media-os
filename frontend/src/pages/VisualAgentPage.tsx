@@ -73,6 +73,20 @@ const SHOT03_WORD_ANCHORS: Record<string, string[]> = {
   READY_NOT_SENT:['ready is not the same as sent'],
 };
 
+const SHOT04_WORD_ANCHORS:Record<string,string[]> = {
+  PREPARED_LOGIN:['prepared login'],
+  WHERE_SENT:['where should this message actually be sent'],
+  DNS_RESOLUTION:['dns resolution'],
+  RESOLVE:['resolve'],
+  CACHE:['cache'],
+  NETWORK_TRANSIT:['network transit'],
+  NETWORK_LATENCY:['network latency'],
+  RTT:['rtt'],
+  JITTER:['jitter'],
+  DESTINATION_KNOWN:['where it is going'],
+  JOURNEY_HEALTH:['how healthy'],
+};
+const SHOT04_REQUIRED_ANCHORS=Object.keys(SHOT04_WORD_ANCHORS);
 const SHOT03_REQUIRED_ANCHORS = Object.keys(SHOT03_WORD_ANCHORS);
 
 const SHOT02_REQUIRED_ANCHORS = [
@@ -88,7 +102,8 @@ function anchorsOf(row?: VoiceShotState) {
   const anchors = { ...(alignment?.anchors || {}) };
   const phrases = row?.shotKey === 'SHOT 02'
     ? SHOT02_WORD_ANCHORS
-    : row?.shotKey === 'SHOT 03' ? SHOT03_WORD_ANCHORS : null;
+    : row?.shotKey === 'SHOT 03' ? SHOT03_WORD_ANCHORS
+    : row?.shotKey === 'SHOT 04' ? SHOT04_WORD_ANCHORS : null;
   if (!phrases || !Array.isArray(alignment?.words)) return anchors;
 
   const tokens = alignment.words.flatMap(word => {
@@ -427,6 +442,16 @@ export function VisualAgentPage() {
         if (outOfOrder) {
           throw new Error('SHOT 03 anchors are out of narration order. Review the approved voice timing.');
         }
+      }
+      if (currentShot.key === 'SHOT 04') {
+        const missing=SHOT04_REQUIRED_ANCHORS.filter(key=>!Number.isFinite(rawAnchors[key]));
+        if (missing.length>0) {
+          throw new Error('SHOT 04 sync is incomplete. Missing spoken-word anchors: '+missing.join(', ')+'. Check Voice Agent alignment before rendering.');
+        }
+        const outOfOrder=SHOT04_REQUIRED_ANCHORS.some((key,index)=>
+          index>0 && rawAnchors[key]<=rawAnchors[SHOT04_REQUIRED_ANCHORS[index-1]]
+        );
+        if (outOfOrder) throw new Error('SHOT 04 anchors are not in narration order. Review alignment.');
       }
       const pacing = currentShot.key === 'SHOT 01'
         ? buildShot01ComprehensionPacing(

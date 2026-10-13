@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {PhoneFirstYoutubePreview} from './PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview} from './RequestAssemblyYoutubePreview';
 import {ReadyNotSentYoutubePreview} from './ReadyNotSentYoutubePreview';
+import {NetworkTransitYoutubePreview} from './NetworkTransitYoutubePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 import {SHOT02, SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
 
@@ -154,6 +155,13 @@ export const Shot02VoiceSynced: React.FC<VoiceSyncedShotProps> = ({audioUrl, aud
 export const Shot03VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,anchors}) => (
   <>
     <ReadyNotSentYoutubePreview showGuides={false} anchors={anchors}/>
+    <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
+  </>
+);
+
+export const Shot04VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,anchors}) => (
+  <>
+    <NetworkTransitYoutubePreview showGuides={false} anchors={anchors}/>
     <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
   </>
 );

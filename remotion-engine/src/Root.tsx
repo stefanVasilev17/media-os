@@ -5,11 +5,13 @@ import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-
 import {PhoneFirstYoutubePreview, phoneFirstYoutubePreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from './episodes/ep001/live-diagram/RequestAssemblyYoutubePreview';
 import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './episodes/ep001/live-diagram/ReadyNotSentYoutubePreview';
-import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
+import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from './episodes/ep001/live-diagram/NetworkTransitYoutubePreview';
+import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './episodes/ep001/live-diagram/shot02Timing';
 import {SHOT03_DURATION_FRAMES, SHOT03_FPS} from './episodes/ep001/live-diagram/shot03Timing';
+import {SHOT04_DURATION_FRAMES,SHOT04_FPS} from './episodes/ep001/live-diagram/shot04Timing';
 import {VerticalSlice, verticalSliceSchema} from './episodes/ep001/vertical-slice/VerticalSlice';
 import {FPS, VERTICAL_SLICE_FRAMES} from './episodes/ep001/vertical-slice/timeline';
 
@@ -150,6 +152,32 @@ export const Root: React.FC = () => {
           audioUrl:'',
           audioClips:[],
           durationInFrames:SHOT03_DURATION_FRAMES,
+          anchors:{},
+          comprehensionHolds:[],
+        }}
+      />
+      <Composition
+        id="EP001-NetworkTransit-Youtube"
+        component={NetworkTransitYoutubePreview}
+        durationInFrames={SHOT04_DURATION_FRAMES}
+        fps={SHOT04_FPS}
+        width={1920}
+        height={1080}
+        schema={networkTransitYoutubePreviewSchema}
+        defaultProps={{showGuides:false}}
+      />
+      <Composition
+        id="EP001-Shot04-VoiceSynced"
+        component={Shot04VoiceSynced}
+        durationInFrames={dynamicDuration ?? SHOT04_DURATION_FRAMES}
+        fps={SHOT04_FPS}
+        width={1920}
+        height={1080}
+        schema={voiceSyncedShotSchema}
+        defaultProps={{
+          audioUrl:'',
+          audioClips:[],
+          durationInFrames:SHOT04_DURATION_FRAMES,
           anchors:{},
           comprehensionHolds:[],
         }}

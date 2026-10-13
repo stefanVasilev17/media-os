@@ -56,13 +56,17 @@ public final class Ep001SemanticAnchorCatalog {
                     "READY_NOT_SENT", "Ready is not the same as sent"
             );
             case "SHOT 04" -> linked(
+                    "PREPARED_LOGIN", "prepared login",
+                    "WHERE_SENT", "where should this message actually be sent",
                     "DNS_RESOLUTION", "DNS Resolution",
                     "RESOLVE", "Resolve",
                     "CACHE", "Cache",
                     "NETWORK_TRANSIT", "Network Transit",
                     "NETWORK_LATENCY", "Network Latency",
                     "RTT", "RTT",
-                    "JITTER", "Jitter"
+                    "JITTER", "Jitter",
+                    "DESTINATION_KNOWN", "where it is going",
+                    "JOURNEY_HEALTH", "how healthy"
             );
             case "SHOT 05" -> linked(
                     "API_GATEWAY", "API Gateway",
