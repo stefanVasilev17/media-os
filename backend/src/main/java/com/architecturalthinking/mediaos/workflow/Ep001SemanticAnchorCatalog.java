@@ -26,8 +26,17 @@ public final class Ep001SemanticAnchorCatalog {
                     "SUBMIT", "Submit",
                     "REQUEST_ASSEMBLY", "Request Assembly",
                     "PAYLOAD", "Payload",
+                    "IDENTITY", "identity",
+                    "SECRET", "secret",
                     "HEADERS", "Headers",
+                    "USER_AGENT", "User-Agent",
+                    "ACCEPT", "Accept",
                     "REQUEST_CONTEXT", "Request Context",
+                    "TIMESTAMP", "Timestamp",
+                    "SOURCE", "Source",
+                    "WHAT_SENDING", "what are we sending",
+                    "HOW_READ", "how should it be read",
+                    "SYSTEM_KNOW", "what should the system know",
                     "REQUEST_READY", "structured message ready"
             );
             case "SHOT 03" -> linked(
