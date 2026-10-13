@@ -213,6 +213,7 @@ public class RemotionCpuWorkerController {
                     int scriptRevision = intValue(props.get("scriptRevision"), 0);
                     int generationRevision = intValue(props.get("generationRevision"), 0);
                     if (shotKey.isBlank() || scriptRevision <= 0) return;
+                    if (Boolean.TRUE.equals(props.get("technicalRerender"))) return;
 
                     jdbc.sql("""
                             update voice_shot_workflow
