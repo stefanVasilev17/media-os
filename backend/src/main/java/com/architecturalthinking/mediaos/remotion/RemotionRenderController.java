@@ -12,6 +12,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.OffsetDateTime;
@@ -63,9 +65,17 @@ public class RemotionRenderController {
 
     private String resolveEngineVersion() {
         String sha = System.getenv().getOrDefault("RAILWAY_GIT_COMMIT_SHA", "").trim();
-        if (sha.isBlank()) return ENGINE_VERSION_PREFIX + "LOCAL";
-        String shortSha = sha.length() > 12 ? sha.substring(0, 12) : sha;
-        return ENGINE_VERSION_PREFIX + shortSha;
+        String shortSha = sha.isBlank() ? "LOCAL" : sha.substring(0, Math.min(12, sha.length()));
+        String buildStamp = readBuildStamp().replaceAll("[^0-9]", "");
+        return ENGINE_VERSION_PREFIX + shortSha + (buildStamp.isBlank() ? "" : "_" + buildStamp);
+    }
+
+    private String readBuildStamp() {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("media-os-build-time.txt")) {
+            return input == null ? "" : new String(input.readAllBytes(), StandardCharsets.UTF_8).trim();
+        } catch (IOException ignored) {
+            return "";
+        }
     }
 
     public record RenderRequest(String profile, Map<String, Object> inputProps) {}

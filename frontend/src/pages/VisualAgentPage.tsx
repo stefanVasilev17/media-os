@@ -244,6 +244,7 @@ export function VisualAgentPage() {
   const [locking, setLocking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [renderNotice, setRenderNotice] = useState('');
   const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
   const [previewDuration, setPreviewDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -305,6 +306,7 @@ export function VisualAgentPage() {
     setPostQa(null);
     setActiveRender(null);
     setCorrection('');
+    setRenderNotice('');
     setLocking(false);
   }, [selectedIndex]);
 
@@ -365,6 +367,7 @@ export function VisualAgentPage() {
 
     setBusy(true);
     setError('');
+    setRenderNotice('');
     setPostQa(null);
     try {
       if (!technicalRerender && correction.trim()) {
@@ -467,6 +470,9 @@ export function VisualAgentPage() {
         scriptRevision: script.revision,
         generationRevision: voiceShot.generationRevision,
         ...(technicalRerender ? { technicalRerender: true } : {}),
+        ...((technicalRerender || currentVisual?.qaStatus === 'PASS')
+          ? { directorRerenderId: crypto.randomUUID() }
+          : {}),
         audioUrl: '',
         audioClips,
         durationInFrames,
@@ -489,8 +495,10 @@ export function VisualAgentPage() {
 
       if (technicalRerender) {
         await refresh(script.revision);
+        setRenderNotice('Fresh technical render passed QA. The original LOCKED MP4 is preserved until Director approval.');
       } else {
         await updateCumulativePreview(script.revision);
+        setRenderNotice('Fresh SHOT render passed QA and the cumulative episode preview has been updated. Review before locking.');
       }
       setPreflight(gate);
     } catch (cause) {
@@ -586,6 +594,7 @@ export function VisualAgentPage() {
       </header>
 
       {error && <div className="production-error">{error}</div>}
+      {renderNotice && <div className="production-success">{renderNotice}</div>}
 
       <section className="production-summary">
         <div><span>ENGINE</span><strong>Remotion · CPU Render</strong></div>
