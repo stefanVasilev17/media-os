@@ -2,7 +2,7 @@ insert into visual_shot_lock(
   id, episode_id, script_revision, shot_key, render_id, locked_at, source
 )
 select
-  '97000000-0000-4000-8000-000000000001',
+  gen_random_uuid(),
   v.episode_id,
   v.script_revision,
   v.shot_key,
