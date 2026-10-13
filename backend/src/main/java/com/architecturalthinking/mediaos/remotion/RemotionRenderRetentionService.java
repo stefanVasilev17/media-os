@@ -105,7 +105,8 @@ public class RemotionRenderRetentionService {
                 if (candidates.isEmpty()) break;
                 for (Candidate candidate : candidates) {
                     int affected = jdbc.sql("""
-                            delete from remotion_render r
+                            update remotion_render r
+                            set video_data=null, size_bytes=null, updated_at=now()
                             where r.id=:id
                               and r.project_id=:projectId
                               and r.status='SUCCEEDED'
@@ -150,11 +151,11 @@ public class RemotionRenderRetentionService {
                 }
             }
             if (removed > 0) {
-                log.info("Remotion retention removed {} obsolete MP4 versions ({} source bytes). Director LOCKED renders, current voice-linked shots and active preview dependencies were protected.",
+                log.info("Remotion retention released {} obsolete MP4 payloads ({} source bytes). Render metadata and QA history were preserved; Director LOCKED and current shot videos remain protected.",
                         removed, reclaimedVideoBytes);
             }
         } catch (Exception error) {
-            log.warn("Remotion retention could not complete; existing Director LOCKED assets remain protected: {}",
+            log.warn("Remotion retention could not clear obsolete MP4 payloads; existing Director LOCKED assets remain protected: {}",
                     error.getMessage());
         }
     }
