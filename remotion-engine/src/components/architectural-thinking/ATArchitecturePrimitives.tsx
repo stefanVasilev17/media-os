@@ -168,32 +168,22 @@ export type ATBackendNodeProps = {
 };
 
 export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
-  title,x,y,reveal,sections,active=0,quiet=.94,secondaryReveal=0,width=330,height=222,
+  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,width=270,height=244,
 }) => (
   <ATPrimaryNode
     title={title} left={x} top={y} width={width} height={height}
-    reveal={reveal} active={active} quiet={quiet} compact
+    reveal={reveal} active={active} quiet={quiet} micro
   >
-    {secondaryReveal>0 ? (
-      <div style={{
-        display:'flex',flexDirection:'column',gap:8,
-        opacity:secondaryReveal,transform:`translateY(${(1-secondaryReveal)*7}px)`,
-      }}>
-        {sections.map(section=>(
-          <ATMiniWorld
-            key={section.title} title={section.title} items={section.items}
-            reveal={secondaryReveal} activity={active} compact
-          />
-        ))}
-      </div>
-    ) : (
-      <div style={{
-        height:58,border:'1px solid rgba(80,150,224,.22)',
-        borderRadius:13,background:'rgba(8,25,42,.65)',
-        display:'flex',alignItems:'center',justifyContent:'center',
-        fontFamily:AT_FONT,fontSize:13,fontWeight:670,
-        letterSpacing:'.09em',color:'rgba(175,207,238,.65)',
-      }}>NO REQUEST RECEIVED</div>
-    )}
+    <div style={{
+      position:'relative',display:'flex',flexDirection:'column',gap:5,
+      opacity:secondaryReveal>0?secondaryReveal:.20,
+    }}>
+      {sections.map(section=>(
+        <ATMiniWorld
+          key={section.title} title={section.title} items={section.items}
+          reveal={1} activity={active} micro
+        />
+      ))}
+    </div>
   </ATPrimaryNode>
 );

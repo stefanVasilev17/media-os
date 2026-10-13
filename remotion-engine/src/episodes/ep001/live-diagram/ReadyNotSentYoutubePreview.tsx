@@ -30,24 +30,24 @@ const focus=(frame:number,start:number,hold=50)=>{
 };
 
 const BACKEND_NODES=[
-  {title:'Network / Transit',x:1800,anchor:'NETWORK_TRANSIT',sections:[
+  {title:'Network / Transit',x:1360,anchor:'NETWORK_TRANSIT',sections:[
     {title:'DNS Resolution',items:[{label:'Resolve'},{label:'Cache'}]},
     {title:'Network Latency',items:[{label:'RTT'},{label:'Jitter'}]},
   ]},
-  {title:'API Gateway',x:2215,anchor:'API_GATEWAY',sections:[
+  {title:'API Gateway',x:1660,anchor:'API_GATEWAY',sections:[
     {title:'Routing',items:[{label:'Path'},{label:'Method'}]},
     {title:'Rate Limit',items:[{label:'Burst'},{label:'Quota'}]},
     {title:'Request Filter',items:[{label:'WAF'},{label:'Schema'}]},
   ]},
-  {title:'Load Balancer',x:2630,anchor:'LOAD_BALANCER',sections:[
+  {title:'Load Balancer',x:1960,anchor:'LOAD_BALANCER',sections:[
     {title:'Traffic Distribution',items:[{label:'Route Mode'},{label:'Hash Key'}]},
     {title:'Health Checks',items:[{label:'Healthy'},{label:'Timeout'}]},
     {title:'Target Choice',items:[{label:'Instance'},{label:'Zone'}]},
   ]},
-  {title:'Auth Service',x:3045,anchor:'AUTH_SERVICE',sections:[
+  {title:'Auth Service',x:2260,anchor:'AUTH_SERVICE',sections:[
     {title:'Validation Steps',items:[{label:'Token Status'},{label:'User Lookup'}]},
   ]},
-  {title:'User Database',x:3460,anchor:'USER_DATABASE',sections:[
+  {title:'User Database',x:2560,anchor:'USER_DATABASE',sections:[
     {title:'User Data',items:[{label:'Profile'},{label:'Settings'}]},
     {title:'Access Rights',items:[{label:'Role'},{label:'Scopes'}]},
     {title:'Session Management',items:[{label:'Create'},{label:'Refresh'}]},
@@ -76,9 +76,9 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}}
   const zoomStart=Math.max(0,cue.messageReady-(SHOT03.insight.readyNotReceived-SHOT03.camera.widenStart));
   const zoomEnd=Math.max(zoomStart+1,cue.network);
   const overview=ease(frame,zoomStart,zoomEnd);
-  const cameraScale=1-.51*overview;
-  const cameraX=-365*overview;
-  const cameraY=20*overview;
+  const cameraScale=1-.14*overview;
+  const cameraX=-552*overview;
+  const cameraY=-48*overview;
   const oldLabelOpacity=1-ease(frame,zoomStart,zoomStart+26);
   const oldNetworkHintOpacity=1-ease(frame,zoomStart,zoomStart+72);
   const packetReveal=enter(frame,cue.messageReady,cue.messageReady+18);
@@ -124,26 +124,28 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}}
         </div>
 
         <div style={{
-          position:'absolute',left:1220,top:710,width:410,
-          borderTop:'2px dashed rgba(78,120,158,.34)',
-          opacity:networkReveal*.56,zIndex:3,
+          position:'absolute',left:1175,top:692,width:50,
+          borderTop:'2px dashed rgba(78,120,158,.42)',
+          opacity:networkReveal*.65,zIndex:3,
         }}/>
 
         {BACKEND_NODES.map((node,index)=>(
           <React.Fragment key={node.anchor}>
             {index>0 && (
               <div style={{
-                position:'absolute',left:BACKEND_NODES[index-1].x+165,
-                top:734,width:85,borderTop:'1.5px dashed rgba(91,129,158,.26)',
+                position:'absolute',left:BACKEND_NODES[index-1].x+135,
+                top:692,width:30,borderTop:'1.5px dashed rgba(91,129,158,.36)',
                 opacity:nodeReveals[index]*.55,zIndex:3,
               }}/>
             )}
             <ATBackendNode
               title={node.title}
               x={node.x}
-              y={614}
+              y={570}
               reveal={nodeReveals[index]}
-              quiet={.96}
+              width={270}
+              height={244}
+              quiet={.55}
               active={0}
               sections={node.sections.map(section=>({
                 title:section.title,
