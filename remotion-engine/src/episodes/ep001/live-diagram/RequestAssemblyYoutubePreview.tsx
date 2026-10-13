@@ -15,7 +15,7 @@ import {
 import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 import {SHOT02} from './shot02Timing';
 
-export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean()});
+export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean(),recapHighlights:z.boolean().optional()});
 type Props = z.infer<typeof requestAssemblyYoutubePreviewSchema>;
 
 const EMAIL='user@example.com';
@@ -23,7 +23,7 @@ const out=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1
 const ease=(frame:number,from:number,to:number)=>interpolate(frame,[from,to],[0,1],{extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic)});
 const pulse=(frame:number,start:number,end:number,fade=10)=>Math.min(out(frame,start,Math.min(start+fade,end)),1-out(frame,Math.max(start,end-fade),end));
 
-export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
+export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides,recapHighlights=true})=>{
   const frame=useCurrentFrame();
   const continuationFrame=SHOT01_DURATION_FRAMES+frame;
 
@@ -62,16 +62,16 @@ export const RequestAssemblyYoutubePreview:React.FC<Props>=({showGuides})=>{
   const flowEndX=requestLeft-(requestWidth*requestVisualScale)/2-8;
   const flowEndY=680;
 
-  const payloadAssemblyFocus=pulse(frame,SHOT02.assembly.payloadFocusStart,SHOT02.assembly.payloadFocusEnd,10);
-  const headersAssemblyFocus=pulse(frame,SHOT02.assembly.headersFocusStart,SHOT02.assembly.headersFocusEnd,10);
-  const contextAssemblyFocus=pulse(frame,SHOT02.assembly.contextFocusStart,SHOT02.assembly.contextFocusEnd,10);
+  const payloadAssemblyFocus=recapHighlights?pulse(frame,SHOT02.assembly.payloadFocusStart,SHOT02.assembly.payloadFocusEnd,6):0;
+  const headersAssemblyFocus=recapHighlights?pulse(frame,SHOT02.assembly.headersFocusStart,SHOT02.assembly.headersFocusEnd,6):0;
+  const contextAssemblyFocus=recapHighlights?pulse(frame,SHOT02.assembly.contextFocusStart,SHOT02.assembly.contextFocusEnd,6):0;
 
-  const identity=Math.max(pulse(frame,SHOT02.payload.identityStart,SHOT02.payload.identityEnd,12),payloadAssemblyFocus);
-  const secret=Math.max(pulse(frame,SHOT02.payload.secretStart,SHOT02.payload.secretEnd,12),payloadAssemblyFocus);
-  const userAgent=Math.max(pulse(frame,SHOT02.headers.userAgentStart,SHOT02.headers.userAgentEnd,12),headersAssemblyFocus);
-  const accept=Math.max(pulse(frame,SHOT02.headers.acceptStart,SHOT02.headers.acceptEnd,12),headersAssemblyFocus);
-  const timestamp=Math.max(pulse(frame,SHOT02.context.timestampStart,SHOT02.context.timestampEnd,12),contextAssemblyFocus);
-  const source=Math.max(pulse(frame,SHOT02.context.sourceStart,SHOT02.context.sourceEnd,12),contextAssemblyFocus);
+  const identity=Math.max(pulse(frame,SHOT02.payload.identityStart,SHOT02.payload.identityEnd,6),payloadAssemblyFocus);
+  const secret=Math.max(pulse(frame,SHOT02.payload.secretStart,SHOT02.payload.secretEnd,6),payloadAssemblyFocus);
+  const userAgent=Math.max(pulse(frame,SHOT02.headers.userAgentStart,SHOT02.headers.userAgentEnd,6),headersAssemblyFocus);
+  const accept=Math.max(pulse(frame,SHOT02.headers.acceptStart,SHOT02.headers.acceptEnd,6),headersAssemblyFocus);
+  const timestamp=Math.max(pulse(frame,SHOT02.context.timestampStart,SHOT02.context.timestampEnd,6),contextAssemblyFocus);
+  const source=Math.max(pulse(frame,SHOT02.context.sourceStart,SHOT02.context.sourceEnd,6),contextAssemblyFocus);
 
   const payloadActivity=Math.max(identity,secret,payloadAssemblyFocus);
   const headersActivity=Math.max(userAgent,accept,headersAssemblyFocus);
