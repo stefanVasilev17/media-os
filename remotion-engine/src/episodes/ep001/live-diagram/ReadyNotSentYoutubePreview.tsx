@@ -14,6 +14,19 @@ import {SHOT03} from './shot03Timing';
 export const readyNotSentYoutubePreviewSchema=z.object({
   showGuides:z.boolean(),
   anchors:z.record(z.string(),z.number()).optional(),
+  frameOverride:z.number().optional(),
+  captionOpacity:z.number().optional(),
+  worldMotion:z.object({
+    packetOffsetX:z.number(),
+    packetOffsetY:z.number().optional(),
+    networkActive:z.number().optional(),
+    dnsReveal:z.number().optional(),
+    latencyReveal:z.number().optional(),
+    resolve:z.number().optional(),
+    cache:z.number().optional(),
+    rtt:z.number().optional(),
+    jitter:z.number().optional(),
+  }).optional(),
 });
 type Props=z.infer<typeof readyNotSentYoutubePreviewSchema>;
 
@@ -54,8 +67,8 @@ const BACKEND_NODES=[
   ]},
 ] as const;
 
-export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}})=>{
-  const frame=useCurrentFrame();
+export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,captionOpacity=1,worldMotion})=>{
+  const frame=frameOverride ?? useCurrentFrame();
   const at=(key:string,fallbackFrame:number)=>Number.isFinite(anchors[key])
     ?Math.max(0,anchors[key]*30):fallbackFrame;
 
@@ -111,13 +124,13 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}}
         />
 
         <div style={{
-          position:'absolute',left:1155,top:689,width:46,height:34,
+          position:'absolute',left:1155+(worldMotion?.packetOffsetX??0),top:689+(worldMotion?.packetOffsetY??0),width:46,height:34,
           display:'flex',alignItems:'center',justifyContent:'center',
           opacity:packetReveal,zIndex:10,
         }}>
           <div style={{
             width:23,height:16,borderRadius:4,
-            background:'rgba(23,168,138,.85)',
+            background:worldMotion?.networkActive?'rgba(23,207,157,.93)':'rgba(23,168,138,.85)',
             border:'1px solid rgba(104,255,213,.8)',
             boxShadow:'0 0 16px rgba(25,220,173,.25)',
           }}/>
@@ -145,11 +158,18 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}}
               reveal={nodeReveals[index]}
               width={270}
               height={244}
-              quiet={.55}
-              active={0}
+              quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0)):.55}
+              active={index===0?(worldMotion?.networkActive??0):0}
+              secondaryReveal={index===0?Math.max(worldMotion?.dnsReveal??0,worldMotion?.latencyReveal??0):0}
               sections={node.sections.map(section=>({
                 title:section.title,
-                items:section.items.map(item=>({label:item.label})),
+                items:section.items.map(item=>({
+                  label:item.label,
+                  activity:index!==0?0:item.label==='Resolve'?worldMotion?.resolve??0
+                    :item.label==='Cache'?worldMotion?.cache??0
+                    :item.label==='RTT'?worldMotion?.rtt??0
+                    :item.label==='Jitter'?worldMotion?.jitter??0:0,
+                })),
               }))}
             />
           </React.Fragment>
@@ -160,13 +180,13 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={}}
         position:'absolute',left:0,right:0,bottom:100,
         textAlign:'center',fontFamily:AT_FONT,fontSize:26,
         fontWeight:760,letterSpacing:'.04em',color:'#D9E8FA',
-        opacity:insight*.94,textShadow:'0 0 24px rgba(107,159,211,.16)',zIndex:12,
+        opacity:insight*.94*captionOpacity,textShadow:'0 0 24px rgba(107,159,211,.16)',zIndex:12,
       }}>READY ≠ SENT</div>
       <div style={{
         position:'absolute',left:0,right:0,bottom:74,
         textAlign:'center',fontFamily:AT_FONT,fontSize:13,
         fontWeight:650,letterSpacing:'.12em',color:'#7897B5',
-        opacity:insight*.7,zIndex:12,
+        opacity:insight*.7*captionOpacity,zIndex:12,
       }}>THE BACKEND HAS NOT RECEIVED THE REQUEST</div>
 
       {showGuides?<div style={{
