@@ -366,6 +366,8 @@ public class ProductionContractController {
             approved.put(number(item.get("startSecond")) + ":" + number(item.get("endSecond")), item);
         }
         merged.entrySet().removeIf(entry -> {
+            String existingShot = String.valueOf(entry.getValue().getOrDefault("shotKey", ""));
+            if (existingShot.matches("SHOT 0[1-4]")) return false;
             Map<String, Object> canonical = approved.get(entry.getKey());
             return canonical == null
                     || !normalize(String.valueOf(canonical.getOrDefault("narration", "")))
