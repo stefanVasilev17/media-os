@@ -104,6 +104,8 @@ function ManualLockedScriptImport({
 function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) {
   const artifact = state.artifact!;
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const amendmentRef = useRef<HTMLInputElement | null>(null);
+  const [amending, setAmending] = useState(false);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
   const [voiceClips, setVoiceClips] = useState<VoiceClipState[]>([]);
   const [editingClipKey, setEditingClipKey] = useState('');
@@ -228,6 +230,30 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
     }
   }
 
+  async function importDirectorAmendment(file?: File) {
+    if (!file || amending) return;
+    setAmending(true);
+    setError('');
+    try {
+      const payload = JSON.parse(await file.text());
+      const response = await fetch('/api/v1/locked-script/director-amendment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || body.message || `Director amendment rejected (HTTP ${response.status}).`);
+      }
+      window.location.reload();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Director amendment import failed.');
+    } finally {
+      setAmending(false);
+      if (amendmentRef.current) amendmentRef.current.value = '';
+    }
+  }
+
   async function handleImport(file?: File) {
     if (!file || importing) return;
     setImporting(true);
@@ -265,6 +291,22 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
         <div><span>WORKING TIMELINE</span><strong>{clock(artifact.targetDurationSeconds)}</strong></div>
         <div><span>CONTRACT</span><strong>{contract?.ready ? (contract.payload?.timeline.length || 0) + '/' + artifact.timeline.length + ' HEAR + SEE blocks' : 'Narration only'}</strong></div>
         <div><span>NEXT</span><strong>Voice Agent</strong></div>
+      </section>
+
+      <section className="contract-import-card">
+        <div>
+          <span>DIRECTOR-APPROVED SCRIPT AMENDMENT · SHOT 05</span>
+          <strong>First import file 01 — the full approved script revision. SHOT 01–04 voice and video locks remain untouched.</strong>
+          <p>This creates an immutable amendment under the existing Script revision. The canonical LOCKED source is never overwritten. Once accepted, import file 02 using Production Contract below.</p>
+        </div>
+        <input ref={amendmentRef} type="file" accept=".json,application/json" hidden
+          onChange={event => void importDirectorAmendment(event.target.files?.[0])} />
+        <div className="contract-import-actions">
+          <button type="button" disabled={amending || Boolean((artifact as ScriptArtifact & {directorAmendment?: string}).directorAmendment)} onClick={() => amendmentRef.current?.click()}>
+            {amending ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
+            {(artifact as ScriptArtifact & {directorAmendment?: string}).directorAmendment ? "SHOT 05 Amendment Active" : "Import Director Revision · File 01"}
+          </button>
+        </div>
       </section>
 
       <section className="contract-import-card">
