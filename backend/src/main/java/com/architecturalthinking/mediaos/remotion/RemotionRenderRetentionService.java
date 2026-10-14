@@ -86,8 +86,14 @@ public class RemotionRenderRetentionService {
                               and newer.video_data is not null
                               and (
                                 r.composition_id='EP001-Voice-CurrentPreview'
-                                or newer.input_props->>'shotKey'
-                                  is not distinct from r.input_props->>'shotKey'
+                                or (
+                                    newer.input_props->>'shotKey'=r.input_props->>'shotKey'
+                                    and exists (
+                                      select 1 from visual_shot_qa qa
+                                      where qa.render_id=newer.id
+                                        and qa.phase='POST_RENDER' and qa.status='PASS'
+                                    )
+                                  )
                               )
                               and (
                                 newer.created_at > r.created_at
@@ -134,8 +140,14 @@ public class RemotionRenderRetentionService {
                                   and newer.video_data is not null
                                   and (
                                     r.composition_id='EP001-Voice-CurrentPreview'
-                                    or newer.input_props->>'shotKey'
-                                      is not distinct from r.input_props->>'shotKey'
+                                    or (
+                                    newer.input_props->>'shotKey'=r.input_props->>'shotKey'
+                                    and exists (
+                                      select 1 from visual_shot_qa qa
+                                      where qa.render_id=newer.id
+                                        and qa.phase='POST_RENDER' and qa.status='PASS'
+                                    )
+                                  )
                                   )
                                   and (
                                     newer.created_at > r.created_at
