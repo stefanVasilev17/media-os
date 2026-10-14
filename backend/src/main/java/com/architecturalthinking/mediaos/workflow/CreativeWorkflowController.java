@@ -33,19 +33,22 @@ public class CreativeWorkflowController {
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
     private final ProductionMemoryService productionMemory;
+    private final DirectorScriptAmendmentController directorAmendments;
 
     public CreativeWorkflowController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             CreativeAgentClient creativeAgent,
             ProductionOverviewService overviewService,
-            ProductionMemoryService productionMemory
+            ProductionMemoryService productionMemory,
+            DirectorScriptAmendmentController directorAmendments
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
         this.productionMemory = productionMemory;
+        this.directorAmendments = directorAmendments;
     }
 
     public record MessageRequest(@NotBlank @Size(max = 6000) String message) {}
@@ -207,7 +210,9 @@ public class CreativeWorkflowController {
         result.put("summary", stage.get("summary"));
         result.put("nextAction", stage.get("nextAction"));
         result.put("revision", stage.get("revision"));
-        result.put("artifact", stage.get("artifact"));
+        result.put("artifact", "SCRIPT".equals(key)
+                ? directorAmendments.effectiveArtifact(number(stage.get("revision")), artifact)
+                : stage.get("artifact"));
         result.put("messages", messages(threadId(key), 60));
         result.put("memory", memories(key, 20));
         result.put("readyToLock", !locked && upstreamReady && remaining.isEmpty());

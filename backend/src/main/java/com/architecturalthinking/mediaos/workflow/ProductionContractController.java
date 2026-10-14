@@ -36,17 +36,20 @@ public class ProductionContractController {
     private final ObjectMapper objectMapper;
     private final ProductionMemoryService memory;
     private final ProductionOverviewService overview;
+    private final DirectorScriptAmendmentController directorAmendments;
 
     public ProductionContractController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             ProductionMemoryService memory,
-            ProductionOverviewService overview
+            ProductionOverviewService overview,
+            DirectorScriptAmendmentController directorAmendments
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.memory = memory;
         this.overview = overview;
+        this.directorAmendments = directorAmendments;
     }
 
     public record VisualContract(
@@ -121,7 +124,7 @@ public class ProductionContractController {
             Map<String, Object> item = scriptTimeline.get(index);
             int start = number(item.get("startSecond"));
             int end = number(item.get("endSecond"));
-            String shotKey = shotKeyForSecond(start);
+            String shotKey = String.valueOf(item.get("shotKey"));
             int clipNo = clipCounters.merge(shotKey, 1, Integer::sum);
 
             Map<String, Object> visual = new LinkedHashMap<>();
@@ -280,7 +283,7 @@ public class ProductionContractController {
                     }
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("revision", rs.getInt("current_revision"));
-                    row.put("artifact", readMap(rs.getString("artifact")));
+                    row.put("artifact", directorAmendments.effectiveArtifact(rs.getInt("current_revision"), readMap(rs.getString("artifact"))));
                     return row;
                 })
                 .single();
@@ -321,7 +324,7 @@ public class ProductionContractController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         segment.segmentId() + " has invalid clipKey; expected SHOT 01-C01.");
             }
-            String expectedShot = shotKeyForSecond(segment.startSecond());
+            String expectedShot = String.valueOf(canonical.getOrDefault("shotKey", ""));
             if (!expectedShot.equals(segment.shotKey().trim().toUpperCase(Locale.ROOT))) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         segment.segmentId() + " belongs to " + expectedShot + ", not " + segment.shotKey() + ".");
@@ -356,17 +359,24 @@ public class ProductionContractController {
             merged.put(segment.startSecond() + ":" + segment.endSecond(), row);
         }
 
+        Map<String, Object> script = lockedScript();
+        Map<String, Object> artifact = readMap(writeJson(script.get("artifact")));
+        Map<String, Map<String, Object>> approved = new LinkedHashMap<>();
+        for (Map<String, Object> item : mapList(artifact.get("timeline"))) {
+            approved.put(number(item.get("startSecond")) + ":" + number(item.get("endSecond")), item);
+        }
+        merged.entrySet().removeIf(entry -> {
+            String existingShot = String.valueOf(entry.getValue().getOrDefault("shotKey", ""));
+            if (existingShot.matches("SHOT 0[1-4]")) return false;
+            Map<String, Object> canonical = approved.get(entry.getKey());
+            return canonical == null
+                    || !normalize(String.valueOf(canonical.getOrDefault("narration", "")))
+                         .equals(normalize(String.valueOf(entry.getValue().getOrDefault("hear", ""))));
+        });
+
         return merged.values().stream()
                 .sorted((a, b) -> Integer.compare(number(a.get("startSecond")), number(b.get("startSecond"))))
                 .toList();
-    }
-
-    private String shotKeyForSecond(int second) {
-        int[] starts = {0,70,144,197,264,344,424,509,599,694,809,889,984,1059,1139,1194};
-        for (int i = starts.length - 1; i >= 0; i--) {
-            if (second >= starts[i]) return "SHOT " + String.format(Locale.ROOT, "%02d", i + 1);
-        }
-        return "SHOT 01";
     }
 
     private int number(Object value) {
