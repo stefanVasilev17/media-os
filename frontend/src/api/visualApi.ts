@@ -96,3 +96,24 @@ export function approveVisualTechnicalRerender(scriptRevision: number, shotKey: 
     body: JSON.stringify({ scriptRevision, shotKey, renderId })
   });
 }
+
+export type StorageHealth = {
+  configuredVolumeBytes: number;
+  databaseBytes: number;
+  walBytes: number;
+  walMeasured: boolean;
+  safetyReserveBytes: number;
+  estimatedUsedBytes: number;
+  estimatedPercent: number;
+  status: 'ESTIMATED_OK' | 'WARNING' | 'CRITICAL';
+  retainedMp4Bytes: number;
+  lockedMp4Bytes: number;
+  retainedMp4Count: number;
+  lockedMp4Count: number;
+  exactVolumeUsageAvailable: boolean;
+  measurementNote: string;
+};
+
+export function loadStorageHealth() {
+  return request<StorageHealth>('/api/v1/storage/health');
+}

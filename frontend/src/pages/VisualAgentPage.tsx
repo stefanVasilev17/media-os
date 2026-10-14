@@ -25,6 +25,8 @@ import {
 import { loadVoiceClips, syncVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
 import {
   loadVisualState,
+  loadStorageHealth,
+  type StorageHealth,
   lockVisualShot,
   approveVisualTechnicalRerender,
   runVisualPostQa,
@@ -254,6 +256,7 @@ export function VisualAgentPage() {
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
   const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
   const [activeRender, setActiveRender] = useState<RemotionRenderState | null>(null);
+  const [storageHealth, setStorageHealth] = useState<StorageHealth | null>(null);
   const [correction, setCorrection] = useState('');
   const [busy, setBusy] = useState(false);
   const [locking, setLocking] = useState(false);
@@ -280,6 +283,7 @@ export function VisualAgentPage() {
       loadVoiceClips(revision)
     ]);
     setVisual(nextVisual);
+    void loadStorageHealth().then(setStorageHealth).catch(() => setStorageHealth(null));
     setVoiceShots(Object.fromEntries(nextShots.map(row => [row.shotKey, row])));
     setClips(nextClips);
     return nextVisual;
@@ -627,6 +631,20 @@ export function VisualAgentPage() {
         <div><span>REVIEW SURFACE</span><strong>One cumulative episode video</strong></div>
       </section>
 
+      <section className={'storage-health-panel ' + (storageHealth?.status === 'CRITICAL' ? 'critical' : storageHealth?.status === 'WARNING' ? 'warning' : '')} aria-label="PostgreSQL storage protection">
+        <div className="storage-health-title">
+          <div><span>STORAGE GUARD · POSTGRESQL ESTIMATE</span><strong>{storageHealth ? Math.min(999,storageHealth.estimatedPercent) + '% estimated risk' : 'Metrics temporarily unavailable'}</strong></div>
+          <span>{storageHealth?.status === 'CRITICAL' ? 'RENDER BLOCKED ABOVE 85%' : storageHealth?.status === 'WARNING' ? 'WARNING ABOVE 70%' : storageHealth ? 'MONITORING ACTIVE' : 'CHECK RAILWAY METRICS'}</span>
+        </div>
+        {storageHealth && (
+          <>
+            <div className="storage-health-track"><div style={{width:Math.min(100,storageHealth.estimatedPercent)+'%'}} /></div>
+            <p>{Math.round(storageHealth.databaseBytes / 1048576)} MB database allocation · {Math.round(storageHealth.walBytes / 1048576)} MB WAL{storageHealth.walMeasured ? '' : ' allowance'} · {storageHealth.retainedMp4Count} retained MP4 files ({Math.round(storageHealth.retainedMp4Bytes / 1048576)} MB) · {storageHealth.lockedMp4Count} protected LOCKED MP4 files.</p>
+            <small>Estimated usage against configured {Math.round(storageHealth.configuredVolumeBytes / 1048576)} MB volume; includes safety reserve. This is not Railway's measured disk utilization. Render and upload guards reject unsafe writes; locked media is preserved.</small>
+          </>
+        )}
+      </section>
+
       <section className="episode-master-preview">
         <div className="production-section-head">
           <div>
@@ -756,7 +774,7 @@ export function VisualAgentPage() {
               onClick={() => void produceShot(true)}
             >
               {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
-              {rendering ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
+              {rendering ? (activeRender && activeRender.progress >= 95 ? 'Finalizing MP4 · ' : 'Rendering ') + Math.max(0, activeRender?.progress || 0) + '%'
                 : busy ? 'Preparing smooth-motion candidate…' : 'Render Smooth Candidate (keep LOCKED)'}
             </button>
           )}
@@ -769,7 +787,7 @@ export function VisualAgentPage() {
             >
               {busy ? <LoaderCircle className="spin" size={15} /> : <ShieldCheck size={15} />}
               {rendering
-                ? 'Rendering ' + Math.max(0, activeRender?.progress || 0) + '%'
+                ? (activeRender && activeRender.progress >= 95 ? 'Finalizing MP4 · ' : 'Rendering ') + Math.max(0, activeRender?.progress || 0) + '%'
                 : busy
                   ? 'Validating production contract…'
                   : currentVisual?.qaStatus === 'PASS'

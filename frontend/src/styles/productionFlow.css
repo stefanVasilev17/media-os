@@ -594,3 +594,15 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   .voice-primary-actions-clean { flex-direction:column; }
   .voice-next-compact { align-items:stretch; flex-direction:column; }
 }
+
+.storage-health-panel { margin:-4px 0 18px; padding:14px 15px; border:1px solid rgba(104,214,255,.14); border-radius:12px; background:rgba(7,13,22,.8); }
+.storage-health-title { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.storage-health-title>div>span,.storage-health-title>span { color:#8da5bb; font-size:9px; font-weight:750; letter-spacing:.06em; }
+.storage-health-title strong { display:block; margin-top:5px; color:#e5f2fc; font-size:15px; }
+.storage-health-track { height:7px; margin:12px 0 10px; overflow:hidden; border-radius:12px; background:rgba(255,255,255,.09); }
+.storage-health-track>div { height:100%; background:#70b7d1; border-radius:12px; }
+.storage-health-panel.warning .storage-health-track>div { background:#d7a860; }
+.storage-health-panel.critical .storage-health-track>div { background:#e57c88; }
+.storage-health-panel p { margin:0 0 5px; color:#c4d5e3; font-size:11px; line-height:1.6; }
+.storage-health-panel small { color:#8599ac; font-size:10px; line-height:1.5; }
+@media (max-width:720px){ .storage-health-title { align-items:flex-start; flex-direction:column; gap:6px; } }

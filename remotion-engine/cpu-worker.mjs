@@ -84,6 +84,9 @@ async function complete(renderId, outputPath) {
   });
   if (!response.ok) {
     const detail = await response.text();
+    if (response.status === 507) {
+      throw new Error('STORAGE_GUARD: database has insufficient write headroom to save the MP4. The render finished but upload was blocked safely. Free storage or restore capacity, then retry. ' + detail.slice(0, 400));
+    }
     throw new Error(`MP4 upload failed: ${response.status} ${detail.slice(0, 1600)}`);
   }
   return bytes.length;
@@ -190,6 +193,8 @@ async function render(job) {
     if (job.compositionId === 'EP001-Voice-CurrentPreview') {
       console.log(`Concatenating cumulative preview from ${Array.isArray(inputProps.segments) ? inputProps.segments.length : 0} rendered shot segment(s)`);
       await renderCumulativePreview(job, outputPath, inputProps);
+      heartbeatProgress = 97;
+      await progress(job.renderId, 97);
       const sizeBytes = await complete(job.renderId, outputPath);
       console.log(`Completed cumulative preview ${job.renderId}: ${sizeBytes} bytes`);
       return;
@@ -256,6 +261,8 @@ async function render(job) {
       },
     });
 
+    heartbeatProgress = 97;
+    await progress(job.renderId, 97);
     const sizeBytes = await complete(job.renderId, outputPath);
     console.log(`Completed ${job.renderId}: ${sizeBytes} bytes`);
   } finally {
