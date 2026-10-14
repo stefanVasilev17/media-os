@@ -52,16 +52,19 @@ public class RemotionRenderController {
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final ProductionMemoryService productionMemory;
+    private final StorageHealthService storage;
     private final String engineVersion;
 
     public RemotionRenderController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
-            ProductionMemoryService productionMemory
+            ProductionMemoryService productionMemory,
+            StorageHealthService storage
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.productionMemory = productionMemory;
+        this.storage = storage;
         this.engineVersion = resolveEngineVersion();
     }
 
@@ -110,6 +113,7 @@ public class RemotionRenderController {
             if (!"FAILED".equals(row.status())) {
                 return response(row);
             }
+            storage.requireRenderHeadroom();
             jdbc.sql("""
                     update remotion_render
                     set status='QUEUED', progress=0, worker_id=null, error=null,
@@ -121,6 +125,7 @@ public class RemotionRenderController {
             return response(findById(row.id()).orElseThrow());
         }
 
+        storage.requireRenderHeadroom();
         UUID renderId = UUID.randomUUID();
         String inputPropsJson = writeJson(inputProps);
 

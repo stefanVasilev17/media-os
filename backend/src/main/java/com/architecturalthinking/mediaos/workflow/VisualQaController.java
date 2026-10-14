@@ -526,6 +526,7 @@ public class VisualQaController {
                 where episode_id=:episodeId
                   and composition_id='EP001-Voice-CurrentPreview'
                   and status='SUCCEEDED'
+                  and video_data is not null
                 order by finished_at desc nulls last, updated_at desc
                 limit 1
                 """)

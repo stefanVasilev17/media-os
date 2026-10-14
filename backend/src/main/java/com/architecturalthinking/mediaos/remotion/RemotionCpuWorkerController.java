@@ -26,15 +26,18 @@ public class RemotionCpuWorkerController {
 
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
+    private final StorageHealthService storage;
     private final String workerKey;
 
     public RemotionCpuWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
+            StorageHealthService storage,
             @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
+        this.storage = storage;
         this.workerKey = workerKey == null ? "" : workerKey.trim();
     }
 
@@ -143,6 +146,7 @@ public class RemotionCpuWorkerController {
             throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Rendered Remotion video is larger than 256 MB.");
         }
 
+        storage.requireUploadHeadroom(video.length);
         int updated = jdbc.sql("""
                 update remotion_render
                 set status='SUCCEEDED', progress=100, media_type='video/mp4', video_data=:video,
