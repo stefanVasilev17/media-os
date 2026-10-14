@@ -89,9 +89,8 @@ public class RemotionRenderRetentionService {
                                 or (
                                     newer.input_props->>'shotKey'=r.input_props->>'shotKey'
                                     and exists (
-                                      select 1 from visual_shot_qa qa
-                                      where qa.render_id=newer.id
-                                        and qa.phase='POST_RENDER' and qa.status='PASS'
+                                      select 1 from visual_shot_lock approved
+                                      where approved.render_id=newer.id
                                     )
                                   )
                               )
@@ -143,9 +142,8 @@ public class RemotionRenderRetentionService {
                                     or (
                                     newer.input_props->>'shotKey'=r.input_props->>'shotKey'
                                     and exists (
-                                      select 1 from visual_shot_qa qa
-                                      where qa.render_id=newer.id
-                                        and qa.phase='POST_RENDER' and qa.status='PASS'
+                                      select 1 from visual_shot_lock approved
+                                      where approved.render_id=newer.id
                                     )
                                   )
                                   )

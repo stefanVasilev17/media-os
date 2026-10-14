@@ -59,10 +59,16 @@ public class StorageHealthService {
         );
     }
 
+    public static class StorageLimitException extends ResponseStatusException {
+        public StorageLimitException(String reason) {
+            super(HttpStatus.INSUFFICIENT_STORAGE, reason);
+        }
+    }
+
     public void requireRenderHeadroom() {
         Snapshot s = snapshot();
         if (s.estimatedPercent() >= 85) {
-            throw new ResponseStatusException(HttpStatus.INSUFFICIENT_STORAGE,
+            throw new StorageLimitException(
                     "STORAGE_GUARD: estimated storage risk is " + s.estimatedPercent()
                     + "%. Render was not queued. Preserve Director LOCKED assets and free obsolete data.");
         }
@@ -73,7 +79,7 @@ public class StorageHealthService {
         long writeOverhead = Math.multiplyExact(videoBytes, 2);
         long freeReserve = Math.max(64 * MB, s.configuredVolumeBytes() / 20);
         if (s.estimatedUsedBytes() + writeOverhead >= s.configuredVolumeBytes() - freeReserve) {
-            throw new ResponseStatusException(HttpStatus.INSUFFICIENT_STORAGE,
+            throw new StorageLimitException(
                     "STORAGE_GUARD: MP4 requires " + (videoBytes / MB)
                     + " MB plus database write headroom. Upload stopped before database write; "
                     + "approved shots are unchanged. Free old media or increase storage, then retry.");
