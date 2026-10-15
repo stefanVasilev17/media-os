@@ -11,6 +11,7 @@ type LegacyShot = { key: string; title: string; clips: LegacyClip[]; voice?: Voi
 
 export function LegacyShotMirror() {
   const [shots, setShots] = useState<LegacyShot[]>([]);
+  const [scriptRevision, setScriptRevision] = useState(0);
   const [selected, setSelected] = useState('');
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
@@ -49,6 +50,7 @@ export function LegacyShotMirror() {
         }));
         if (alive) {
           setShots(mirror);
+          setScriptRevision(script.revision);
           setSelected(current => mirror.some(s => s.key === current) ? current : 'SHOT 05');
         }
       } catch (e) {
@@ -83,7 +85,7 @@ export function LegacyShotMirror() {
         <summary>{c.clipKey} · {c.voice?.approved ? 'VOICE LOCKED' : c.voice?.generated ? 'Voice draft' : 'Original script'}</summary>
         <p>{c.narration}</p>
         {c.voice?.generated && <audio controls preload="none" src={voiceClipAudioUrl(c.clipKey,
-          (active.voice as VoiceShotState & { scriptRevision?: number })?.scriptRevision || 3,
+          scriptRevision,
           c.voice.generationRevision)} />}
       </details>)}
       <div className="studio-buttons">
