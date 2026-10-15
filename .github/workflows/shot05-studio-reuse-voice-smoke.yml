@@ -58,7 +58,16 @@ jobs:
           print("Original voice generated:",sum(bool(v["generated"]) for v in originals.values()),
                 "Director-approved:",sum(bool(v["approved"]) for v in originals.values()),flush=True)
           c01=copy.deepcopy(old[0])
-          response=req("/api/v1/studio/shots/"+pre["id"]+"/reuse-existing-voices",{})
+          for deployed_attempt in range(55):
+              try:
+                  response=req("/api/v1/studio/shots/"+pre["id"]+"/reuse-existing-voices",{})
+                  break
+              except urllib.error.HTTPError as exc:
+                  if exc.code not in (404,502,503,504) or deployed_attempt==54:
+                      raise
+                  if deployed_attempt%5==0:
+                      print("Waiting for new reuse endpoint to deploy (HTTP",exc.code,")",flush=True)
+                  time.sleep(17)
           assert isinstance(response.get("reusedClips"),int),response
           after,updated=get_shot()
           assert after["id"]==pre["id"]
