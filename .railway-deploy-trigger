@@ -5,3 +5,5 @@ Triggered: 2026-10-07
 EP001 SHOT05 C01 v3 production activation; approved change PR #79.
 Target source commit: 4f107eab53fdbc30e84f8dcd01bf006e8d5f4335
 Reason: Railway service watchPatterns excludes ops/** and .github/**; rebuild backend/main to activate C01-v3 safely.
+
+MediaOS Shot Studio 2026-10-16: activate reuse-existing-voices endpoint from PR #83 at main. Built artifact contains read-only canonical voice, safe guarded Studio reuse and already-deployed UI. Railway backend watchPaths are backend/**, frontend/**, remotion-engine/**, Dockerfile and this trigger file. No original MP4 render triggered.
