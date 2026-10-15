@@ -96,7 +96,7 @@ const sharedText:React.CSSProperties={fontFamily:AT_FONT,color:COLORS.white};
 const border=(color='rgba(106,171,226,.22)')=>'1px solid '+color;
 
 const Mono:React.FC<{children:React.ReactNode;size?:number;color?:string;weight?:number}>=({children,size=24,color=COLORS.white,weight=720})=>(
-  <span style={{fontFamily:'SFMono-Regular,Consolas,Menlo,monospace',fontSize:size,color,fontWeight,letterSpacing:'-.03em'}}>{children}</span>
+  <span style={{fontFamily:'SFMono-Regular,Consolas,Menlo,monospace',fontSize:size,color,fontWeight:weight,letterSpacing:'-.03em'}}>{children}</span>
 );
 
 export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,anchors,clipStarts})=>{
