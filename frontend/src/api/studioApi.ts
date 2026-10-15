@@ -6,7 +6,8 @@ export type StudioClip = {
 export type StudioShot = {
   id: string; shotNumber: number; shotKey: string; title: string;
   visualPrompt: string; visualRevision: number; previewRenderId?: string | null;
-  previewVisualRevision?: number | null; clips: StudioClip[];
+  previewVisualRevision?: number | null; sourceShotKey?: string | null;
+  sourceScriptRevision?: number | null; clips: StudioClip[];
 };
 async function request<T>(url: string, method = 'GET', data?: unknown): Promise<T> {
   const r = await fetch('/api/v1/studio' + url, {
@@ -23,6 +24,8 @@ async function request<T>(url: string, method = 'GET', data?: unknown): Promise<
 export const studio = {
   shots: () => request<StudioShot[]>('/shots'),
   createShot: (title: string) => request<StudioShot>('/shots','POST',{title}),
+  unlockOriginalShot: (shotKey: string) => request<StudioShot>(
+    '/original-shots/' + encodeURIComponent(shotKey) + '/unlock','POST',{directorConfirmed:true}),
   addClip: (shotId: string, narration: string, voiceDirection: string) =>
     request<StudioShot>('/shots/' + shotId + '/clips','POST',{narration,voiceDirection}),
   editClip: (id: string, narration: string, voiceDirection: string) =>

@@ -37,6 +37,95 @@ public class ShotStudioController {
         return db.sql("select id from studio_shot where episode_id=:episode order by shot_number")
             .param("episode",EPISODE).query(UUID.class).list().stream().map(this::shot).toList();
     }
+    public record DirectorWorkingCopy(boolean directorConfirmed) {}
+
+    private static final List<String> EP001_TITLES=List.of(
+        "The Human Action / Login Intent",
+        "Request Assembly",
+        "Ready Does Not Mean Sent",
+        "DNS Resolution / Network Transit",
+        "API Gateway / Routing",
+        "Load Balancer / Traffic Distribution",
+        "Auth Service / Validation Steps",
+        "User Database / User Data",
+        "Healthy Auth Service, Broken Login",
+        "When Trust Breaks Along the Way",
+        "Correct Password, But Not Logged In Yet",
+        "Authentication State / Session Creation",
+        "Route Decision / Logged-In UI",
+        "Session Restore Flow",
+        "What Really Happened When You Clicked Login",
+        "The Next Request"
+    );
+
+    @Transactional
+    @PostMapping("/original-shots/{shotKey}/unlock")
+    public Map<String,Object> unlockOriginalShot(
+        @PathVariable String shotKey,
+        @RequestBody DirectorWorkingCopy action
+    ){
+        if(action==null||!action.directorConfirmed())
+            throw conflict("Explicit Director confirmation is required before opening an original shot for corrections.");
+        int shotNumber=originalShotNumber(shotKey);
+        String key=String.format(Locale.ROOT,"SHOT %02d",shotNumber);
+        db.sql("select id from episode where id=:episode for update")
+            .param("episode",EPISODE).query(UUID.class).single();
+        UUID existing=db.sql("""
+            select id from studio_shot where episode_id=:episode and shot_number=:number
+            """).param("episode",EPISODE).param("number",shotNumber)
+            .query(UUID.class).optional().orElse(null);
+        if(existing!=null)return shot(existing);
+
+        int scriptRevision=db.sql("""
+            select current_revision from production_stage
+            where episode_id=:episode and stage_key='SCRIPT' and status='LOCKED'
+            """).param("episode",EPISODE).query(Integer.class)
+            .optional().orElseThrow(()->conflict("Original EP001 Script is not Director LOCKED."));
+
+        record SourceClip(int sequence,String text,String direction) {}
+        List<SourceClip> source=db.sql("""
+            select sequence_no,coalesce(director_narration_override,narration) as effective_narration,
+                   coalesce(voice_direction,'') as direction
+            from voice_clip_workflow
+            where episode_id=:episode and script_revision=:revision and shot_key=:shot
+            order by sequence_no
+            """).param("episode",EPISODE).param("revision",scriptRevision).param("shot",key)
+            .query((rs,n)->new SourceClip(
+                rs.getInt("sequence_no"),rs.getString("effective_narration"),rs.getString("direction")))
+            .list();
+        if(source.isEmpty())throw conflict("Original shot has no authoritative voice clips. Copy was not created.");
+        if(source.size()>48)throw conflict("Shot contains too many clips for automatic working-copy preparation.");
+        for(int i=0;i<source.size();i++){
+            SourceClip clip=source.get(i);
+            if(clip.sequence()!=i+1||clip.text()==null||clip.text().isBlank())
+                throw conflict("Original voice clips are incomplete or out of sequence. Source was not modified.");
+            validate(clip.text(),5000);
+        }
+        UUID shotId=UUID.randomUUID();
+        db.sql("""
+            insert into studio_shot (
+                id,episode_id,shot_number,title,legacy_source_shot_key,legacy_source_script_revision
+            ) values(:id,:episode,:number,:title,:source,:revision)
+            """).param("id",shotId).param("episode",EPISODE).param("number",shotNumber)
+            .param("title",EP001_TITLES.get(shotNumber-1)).param("source",key)
+            .param("revision",scriptRevision).update();
+        for(SourceClip clip:source){
+            db.sql("""
+                insert into studio_clip(id,shot_id,sequence,narration,voice_direction)
+                values(:id,:shot,:sequence,:narration,:direction)
+                """).param("id",UUID.randomUUID()).param("shot",shotId)
+                .param("sequence",clip.sequence()).param("narration",clip.text())
+                .param("direction",clip.direction()).update();
+        }
+        return shot(shotId);
+    }
+
+    static int originalShotNumber(String shotKey){
+        if(shotKey==null||!shotKey.matches("SHOT (0[1-9]|1[0-6])"))
+            throw bad("Only canonical EP001 SHOT 01–16 can be unlocked through this endpoint.");
+        return Integer.parseInt(shotKey.substring(5));
+    }
+
     @Transactional
     @PostMapping("/shots")
     public Map<String,Object> create(@Valid @RequestBody Title body){
@@ -168,7 +257,8 @@ public class ShotStudioController {
     }
     private Map<String,Object> shot(UUID id){
         Map<String,Object> value=db.sql("""
-            select shot_number,title,visual_prompt,visual_revision,preview_render_id,preview_visual_revision from studio_shot
+            select shot_number,title,visual_prompt,visual_revision,preview_render_id,preview_visual_revision,
+                   legacy_source_shot_key,legacy_source_script_revision from studio_shot
             where id=:id and episode_id=:episode
             """).param("id",id).param("episode",EPISODE).query((rs,n)->{
                 Map<String,Object> r=new LinkedHashMap<>();
@@ -178,7 +268,9 @@ public class ShotStudioController {
                 r.put("visualRevision",rs.getInt("visual_revision"));
                 UUID previewId=rs.getObject("preview_render_id",UUID.class);
                 r.put("previewRenderId",previewId);
-                r.put("previewVisualRevision",rs.getObject("preview_visual_revision"));return r;
+                r.put("previewVisualRevision",rs.getObject("preview_visual_revision"));
+                r.put("sourceShotKey",rs.getString("legacy_source_shot_key"));
+                r.put("sourceScriptRevision",rs.getObject("legacy_source_script_revision"));return r;
             }).optional().orElseThrow(()->missing("Shot"));
         value.put("clips",db.sql("""
             select c.id from studio_clip c where c.shot_id=:id order by c.sequence

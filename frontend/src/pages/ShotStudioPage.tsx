@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, FileText, LockKeyhole, Mic2, Plus, RotateCcw, Save, Clapperboard } from 'lucide-react';
 import { studio, type StudioClip, type StudioShot } from '../api/studioApi';
 import { LegacyShotMirror } from '../components/LegacyShotMirror';
+import { loadVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
 import { loadRemotionRender, remotionRenderVideoUrl, type RemotionRenderState } from '../api/voiceApi';
 import '../styles/shotStudio.css';
 
@@ -21,6 +22,7 @@ export function ShotStudioPage() {
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
   const [preview,setPreview]=useState<RemotionRenderState|null>(null);
+  const [sourceVoice,setSourceVoice]=useState<VoiceClipState[]>([]);
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
   const clip=useMemo(()=>shot?.clips.find(x=>x.id===clipId),[shot,clipId]);
@@ -60,6 +62,14 @@ export function ShotStudioPage() {
     return()=>{active=false;window.clearInterval(timer);};
   },[shot?.previewRenderId]);
   useEffect(()=>{
+    let active=true;
+    if(!shot?.sourceShotKey||!shot?.sourceScriptRevision){setSourceVoice([]);return;}
+    loadVoiceClips(shot.sourceScriptRevision)
+      .then(items=>{if(active)setSourceVoice(items.filter(item=>item.shotKey===shot.sourceShotKey));})
+      .catch(()=>{if(active)setSourceVoice([]);});
+    return ()=>{active=false;};
+  },[shot?.sourceShotKey,shot?.sourceScriptRevision]);
+  useEffect(()=>{
     setNarration(clip?.narration||'');
     setDirection(clip?.voiceDirection||'calm, conversational, confident');
   },[clipId,clip?.scriptRevision]);
@@ -87,6 +97,23 @@ export function ShotStudioPage() {
   }
   const dirty=Boolean(clip&&(narration.trim()!==clip.narration || direction.trim()!==clip.voiceDirection));
   const visualDirty=Boolean(shot&&visual.trim()!==shot.visualPrompt);
+  const originalClip=shot?.sourceShotKey&&clip ? sourceVoice.find(c=>c.clipKey===clip.clipKey) : undefined;
+  async function openOriginalEditor(opened:StudioShot,sequence:number){
+    const updated=await refresh();
+    const selected=updated.find(s=>s.id===opened.id)||opened;
+    setShotId(selected.id);
+    setClipId(selected.clips.find(c=>c.sequence===sequence)?.id||'');
+    setMessage('Editable working copy opened. The approved original video is untouched.');
+    window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+  async function saveLockAndGenerate(){
+    if(!clip||busy||!narration.trim())return;
+    await run(async()=>{
+      if(dirty)await studio.editClip(clip.id,narration,direction);
+      await studio.lockClip(clip.id);
+      await studio.generateVoice(clip.id);
+    },'Voice draft generated for this clip. Listen below and approve it when satisfied.');
+  }
 
   return (
     <main className="studio-page">
@@ -101,12 +128,12 @@ export function ShotStudioPage() {
       {message&&<div className="studio-alert studio-success" role="status">{message}</div>}
       <div className="studio-shell">
         <aside className="studio-sidebar">
-          <LegacyShotMirror />
-          <div className="studio-section-head"><h2>New Studio Shots</h2><span>{shots.length}</span></div>
-          <p className="studio-muted">New Studio shoots start after canonical SHOT 16; the original shots above are displayed read-only.</p>
+          <LegacyShotMirror workingCopies={shots.filter(s=>Boolean(s.sourceShotKey))} onOpenEditor={openOriginalEditor} />
+          <div className="studio-section-head"><h2>New Studio Shots</h2><span>{shots.filter(s=>!s.sourceShotKey).length}</span></div>
+          <p className="studio-muted">Choose any original shot above to unlock and edit it, or create a new one below. Approved videos remain protected.</p>
           {loading&&<p className="studio-muted">Loading shots…</p>}
           <div className="studio-shot-list">
-            {shots.map(s=><button key={s.id} type="button"
+            {shots.filter(s=>!s.sourceShotKey).map(s=><button key={s.id} type="button"
               className={'studio-shot-tab '+(s.id===shotId?'selected':'')}
               onClick={()=>{setShotId(s.id);setMessage('');setError('');}}>
               <strong>{s.shotKey}</strong><span>{s.title}</span>
@@ -125,13 +152,15 @@ export function ShotStudioPage() {
             <button type="button" onClick={()=>{window.location.hash='#/agents/script';}}>Open existing Script <ArrowRight size={14}/></button>
           </div>
         </aside>
-        <section className="studio-content">
+        <section className="studio-content" id="studio-working-editor">
           {!shot?<div className="studio-empty">
             <h2>Create your first new shot</h2>
-            <p>Use the panel on the left. EP001's already-approved materials stay untouched.</p>
+            <p>Select an original shot above to unlock a working copy, or create a new shot. Approved video remains intact.</p>
           </div>:<>
             <div className="studio-shot-head"><span>{shot.shotKey}</span><h2>{shot.title}</h2>
-              <p>Each voice clip has its own script lock, generation and approval. A correction never regenerates its neighbors.</p>
+              <p>{shot.sourceShotKey
+                ? 'Editable Director working version of '+shot.sourceShotKey+' · the original audio and video remain preserved.'
+                : 'Every clip has an independent script lock, generation and approval. Editing does not regenerate other clips.'}</p>
             </div>
             <div className="studio-panel">
               <div className="studio-section-head"><h3><FileText size={19}/> Script & Voice</h3><span>{shot.clips.length} clips</span></div>
@@ -156,6 +185,9 @@ export function ShotStudioPage() {
                     <button type="button" disabled={busy||dirty} className="studio-primary"
                       onClick={()=>void run(()=>studio.lockClip(clip.id),'Script LOCKED. Voice generation is now enabled.')}>
                       <LockKeyhole size={15}/> Lock Script</button>
+                    <button type="button" className="studio-primary" disabled={busy||!narration.trim()}
+                      onClick={()=>void saveLockAndGenerate()}>
+                      <Mic2 size={15}/> {originalClip?.generated?'Regenerate Voice':'Generate Voice'}</button>
                   </>:<>
                     <button type="button" disabled={busy} onClick={()=>{
                       if(window.confirm('Director unlock: archive this clip\'s current audio and approval, then open only this clip for editing?'))
@@ -174,7 +206,12 @@ export function ShotStudioPage() {
                     src={studio.audioUrl(clip.id,clip.generationRevision)}/>
                   {clip.approvedAt&&<span>Director voice approval saved</span>}
                 </div>}
-                {dirty&&<p className="studio-muted">Save changes before locking. Other voice clips will not be touched.</p>}
+                {originalClip?.generated&&shot?.sourceScriptRevision&&<div className="studio-audio">
+                  <label>Play original {originalClip.approved?'Director-approved':'draft'} voice (preserved)</label>
+                  <audio key={originalClip.clipKey+':'+originalClip.generationRevision} controls preload="metadata"
+                    src={voiceClipAudioUrl(originalClip.clipKey,shot.sourceScriptRevision,originalClip.generationRevision)}/>
+                </div>}
+                {dirty&&<p className="studio-muted">Changes remain in this working clip. Other audio and original recordings are untouched.</p>}
               </div>:<p className="studio-muted">Add a clip below to begin the Script → Voice workflow.</p>}
               <div className="studio-add-clip"><label htmlFor="studio-new-clip">Add a voice clip</label>
                 <textarea id="studio-new-clip" rows={3} placeholder="Paste the next narration block (C01, C02…)" value={newClipText}
