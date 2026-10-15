@@ -1,0 +1,261 @@
+{
+  "schemaVersion": "mediaos.production-contract.v1",
+  "episodeNumber": "EP001",
+  "title": "What Really Happens When You Click Login?",
+  "source": "DIRECTOR_APPROVED_SHOT05_C01_V3_2026_10_15_VERSIONED_NO_OTHER_CLIP_CHANGES",
+  "timeline": [
+    {
+      "segmentId": "SHOT05-SEG-01",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C01",
+      "startSecond": 225,
+      "endSecond": 242,
+      "hear": "The API Gateway is the first stop for our login request after it crosses the network. It doesn't check your password. Instead, it checks whether the request can continue and where it should go next. And if something is wrong, the login can stop right here.",
+      "voiceDirection": "Calm, conversational, confident. Open with API Gateway immediately; pause naturally between the three ideas. Preserve 1.25 seconds of pre-voice silence.",
+      "visual": {
+        "summary": "API Gateway appears as the first named subject. Canonical green login request approaches its first server-side stop; Gateway checks permission to continue and next-hop selection, not password validity.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Highlight API Gateway on the first spoken words; let the green request approach during the opening sentence; keep the visual steady on the final line before the routing case.",
+        "semanticAnchors": [
+          "API_GATEWAY",
+          "GATEWAY_ENTRY"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: A destination becomes a checkpoint. Planned within 17s. 0.0-1.25 SHOT 04 end frame held still; no new voice or text. 1.25-5.0 Green packet resumes; camera begins eased pan along connector. 5.0-9.5 Gateway edge becomes visible; packet slows at ingress. 9.5-14.5 One gate activates; contrast: password is NOT checked here. 14.5-17.0 Name the gate API Gateway; stable read hold. Audio note: [{\"atLocalSeconds\": 0, \"durationSeconds\": 1.25, \"intent\": \"Leave the final SHOT 04 thought room to land; no overlap with destination looks.\"}, {\"afterWords\": \"going.\", \"durationSeconds\": 0.6, \"intent\": \"Viewer follows packet\"}, {\"afterWords\": \"server.\", \"durationSeconds\": 0.55, \"intent\": \"Gateway boundary becomes visible\"}]. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-02",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C02",
+      "startSecond": 242,
+      "endSecond": 263,
+      "hear": "The request must find the right service. The app now uses version two of the login address. But the gateway still knows only version one. It answers 404. The password check never starts. Choosing where a request goes is called routing.",
+      "voiceDirection": "Leave a beat after “Auth Service” so the correct path can be read. Change to diagnostic tone on the deployment mismatch; let the rejection land.",
+      "visual": {
+        "summary": "Teach ROUTING with a concrete service path, not with five glossary rows. Green POST /api/v1/login follows the visible route to auth-service. Create ONE amber illustrative request with POST /api/v2/login; let it reach the route fork and halt at a missing path. Illuminate the gap and 404 result; visibly show auth-service has received NO CALL for that failed sample. Only after the cause and failure are visible reveal ROUTING.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Working route -> incorrect v2 route -> dead end -> 404 -> upstream NOT CALLED -> ROUTING. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "ROUTING",
+          "PATH",
+          "ROUTE_MISMATCH"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: One wrong address stops a healthy service. Planned within 21s. 0-4 Draw real route v1 as a connecting line toward auth-service. 4-9 Show new app request v2 alongside established v1 route. 9-14 Amber packet reaches missing branch, stops; emit restrained red 404. 14-18 Trace the missing upstream call with empty destination. 18-21 Reveal ROUTING after the spoken definition; hold. Audio note: []. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-03",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C03",
+      "startSecond": 263,
+      "endSecond": 283,
+      "hear": "The address is right, but the app sends GET instead of POST. The gateway answers 405: Method Not Allowed. POST is for sending login details. GET asks to read data. This difference is called the HTTP method.",
+      "voiceDirection": "Give separate weight to POST and GET. Brief hold after “method not allowed”. Pronounce method names as words, not symbols.",
+      "visual": {
+        "summary": "Hold exact path /api/v1/login fixed. Introduce small POST and GET request tags side-by-side; green POST can cross the method gate while amber GET meets an explicit POST-only rule and is refused with 405. Animate both outcomes before bringing up HTTP METHOD. Separate this from route mismatch visually by keeping address text absolutely unchanged.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Same path -> POST green succeeds -> GET amber blocked -> 405 -> METHOD. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "METHOD",
+          "METHOD_MISMATCH"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: Same address, wrong action. Planned within 20s. 0-4 Lock one common route path on screen. 4-9 Animate green POST passing its check. 9-14 Animate GET stopped at same path with 405. 14-18 Hold comparison until viewer sees only action differs. 18-20 Name METHOD and hold. Audio note: []. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-04",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C04",
+      "startSecond": 283,
+      "endSecond": 306,
+      "hear": "The app gets no answer, so it tries again and again. Soon, too many requests arrive. The gateway answers 429: Too Many Requests. A few quick requests are fine. That is a burst. A limit per minute is a quota. Together, these rules are called rate limiting.",
+      "voiceDirection": "Slower for Burst and Quota, then accelerate slightly on “hundreds of automatic retries” and hold on the fact Auth Service is healthy.",
+      "visual": {
+        "summary": "Follow one failed illustrative attempt being retried too aggressively. Animate packet arrivals stacking into a small traffic queue, counter 12/100 rising to 124/100 requests/min and the overflow diverting to a red 429 lane. Show separate short burst allowance (5/10 s) and minute quota. Keep the real green request safely away from the overflow. Auth Service in background remains HEALTHY but never receives rejected samples. Reveal RATE LIMIT last.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Repeated retries -> growing counter -> crossed quota -> overflow to 429 -> healthy backend -> RATE LIMIT. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "RATE_LIMIT",
+          "BURST",
+          "QUOTA",
+          "RETRY_STORM"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: The retry storm. Planned within 23s. 0-5 An illustrative timeout makes client retry; pulses accumulate. 5-12 Counter rises from 12/100 to 124/100 with clear cause. 12-17 Excess packets visibly diverted to 429 failure lane. 17-21 Contrast burst and per-minute quota with two readable measurements. 21-23 Name RATE LIMIT after outcome; hold. Audio note: []. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-05",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C05",
+      "startSecond": 306,
+      "endSecond": 326,
+      "hear": "Some requests look unsafe. A rule stops them. But a bad rule can also stop a normal login. The gateway answers 403: Forbidden. This kind of check is done by a Web Application Firewall, or WAF.",
+      "voiceDirection": "Explain WAF naturally. Pause after “legitimate login”; a clear contrast between a correct request and a false positive.",
+      "visual": {
+        "summary": "A green normal login safely passes policy. A separate amber normal-looking example meets an overly broad rule WAF_LOGIN_1042; outline the matched rule and block the otherwise valid sample with 403. Contrast green allowed route and red denied illustrative route; password validation stays unlit. Name WAF after seeing why a false positive matters.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Normal request allowed -> configured rule too broad -> legitimate sample blocked -> 403 -> WAF. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "REQUEST_FILTER",
+          "WAF",
+          "WAF_FALSE_POSITIVE"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: When safety blocks the innocent. Planned within 20s. 0-5 Show normal request passes security lens. 5-11 Display and highlight broad rule WAF_LOGIN_1042. 11-16 Sample caught; 403 and Auth Service NOT CALLED. 16-20 Narrator names Web Application Firewall; label arrives last. Audio note: []. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-06",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C06",
+      "startSecond": 326,
+      "endSecond": 344,
+      "hear": "The app should send a field called email. After an update, it sends userEmail instead. The gateway cannot find the field it needs, so it answers 400: Bad Request. This check is called schema validation.",
+      "voiceDirection": "Give viewers time to compare email and userEmail; emphasize that this is a field-name mismatch, not incorrect credentials.",
+      "visual": {
+        "summary": "Use a quiet two-column JSON shape comparison in the one active diagnostic area. EXPECTED {\"email\":\"...\"} and RECEIVED {\"userEmail\":\"...\"}; spotlight the differing field names while everything else dims. Validator searches for email and finds none; a short trace moves to 400 Bad Request. This validator is explicitly configured at the gateway. Never show actual credentials or pretend that every gateway validates JSON.",
+        "objects": [
+          "Network Transit — quiet continuity",
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Single right-side diagnostic panel",
+          "Dedicated failure sample",
+          "Load Balancer — dim preview"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Expected email -> incoming userEmail -> validator misses email -> 400 -> SCHEMA VALIDATION. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "SCHEMA",
+          "SCHEMA_MISMATCH"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: The field the gateway cannot find. Planned within 18s. 0-5 Expected schema appears on left, received request on right. 5-10 Highlight email and userEmail field-name difference only. 10-14 Validator misses required email: 400 BAD REQUEST. 14-18 Name SCHEMA VALIDATION after explanation; hold. Audio note: []. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    },
+    {
+      "segmentId": "SHOT05-SEG-07",
+      "shotKey": "SHOT 05",
+      "clipKey": "SHOT 05-C07",
+      "startSecond": 344,
+      "endSecond": 355,
+      "hear": "Those failures were only examples. Our green request passes. Now it reaches another decision: which healthy server should receive it?",
+      "voiceDirection": "Soft reassuring handoff. Pause 0.45s after \"examples.\" and 0.65s after \"passes.\" End on a curious question leading to Load Balancer; do not introduce the next term early.",
+      "visual": {
+        "summary": "Collapse all temporary failure examples to darkness. Preserve same green canonical request visibly at gateway; show compact passed-check ribbon without a text grid. Green packet exits the gateway along the EXISTING connector. Camera makes a single horizontal dolly and comes to rest with still-dim Load Balancer centered for SHOT 06. Do not light up Auth Service as if the password has already been accepted.",
+        "objects": [
+          "Existing API Gateway portal",
+          "Green canonical request",
+          "Load Balancer — next dim node"
+        ],
+        "camera": "Stay inside the SHOT 04 persistent architecture frame and transform. Hold 1.25 seconds at start, then a single gentle camera dolly follows the SAME green canonical request into the existing Gateway node. No replacement full-screen HUD, no snap, no object reposition. At most one active large explanation and one active diagnostic packet. Hold after every observable outcome and after the technical term is spoken.",
+        "attentionCue": "Clear errors -> one green request -> ALLOWED -> connector lights -> Load Balancer receives focus. Only animate an emphasis AFTER the associated idea is visible and the spoken cue has arrived.",
+        "semanticAnchors": [
+          "REQUEST_ALLOWED",
+          "NEXT_HEALTHY_SERVER_QUESTION"
+        ],
+        "effects": [
+          "Concept first → observable cause → HTTP result → spoken technical label; never glossary first.",
+          "Only one dominant active focus at a time; all unrelated elements remain dim.",
+          "Persistent SHOT04→SHOT05 world; same real green request and existing backend positions.",
+          "Separate amber diagnostic samples may fail; never fail or duplicate the green canonical request.",
+          "Keep essential technical values legible at 30–36px; avoid a dashboard of textual rows.",
+          "Native Remotion easing, gentle rack focus and comprehension holds, no hard cut.",
+          "WAF and gateway-level schema validation are configured example policies, not universal behavior."
+        ],
+        "notes": "Story phase: Back to our one successful request. Planned within 11s. 0-2.5 All red/amber diagnostic packets and overlays dissolve. 2.5-5 Canonical green request remains; simple ALLOWED status. 5-9 Camera glides and packet moves to Load Balancer. 9-11 Voice hands off to healthy server choice; settle for SHOT 06. Audio note: [{\"afterWords\": \"examples.\", \"durationSeconds\": 0.45, \"intent\": \"Clear diagnostic samples\"}, {\"afterWords\": \"passes.\", \"durationSeconds\": 0.65, \"intent\": \"Camera turns toward Load Balancer\"}]. C01/C07 require new TTS, word alignment, and full runtime verification. C02-C06 exact words preserved. Storyboard instructions are production planning, not completed production locks."
+      }
+    }
+  ]
+}
