@@ -89,7 +89,7 @@ def sync_voice_contract(script_revision):
         "title": "API Gateway",
         "startSecond": parts[0]["startSecond"],
         "endSecond": parts[-1]["endSecond"],
-        "narration": "\\n\\n".join(x["hear"] for x in parts),
+        "narration": "\n\n".join(x["hear"] for x in parts),
         "voiceDirection": "Slow, precise, calm educational storytelling, with pauses between ideas.",
         "clips": [
             {"clipKey": x["clipKey"], "sequence": i+1,
