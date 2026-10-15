@@ -112,9 +112,13 @@ def sync_voice_contract(script_revision):
     if len(shots) != 7:
         raise RuntimeError("Voice sync response did not contain 7 SHOT05 clips")
     for i, clip in enumerate(sorted(shots, key=lambda x: x["sequence"])):
-        if clip.get("narration") != parts[i]["hear"]:
-            raise RuntimeError("Voice clip differs from exact v2 script: " + clip.get("clipKey", "?"))
-    print("Voice contract PASS: C01–C07 up to date, unchanged audio retained, changed C01/C07 require regenerated TTS.")
+        if i in (0, 6) and clip.get("narration") != parts[i]["hear"]:
+            raise RuntimeError("Changed voice clip differs from exact Director v2 text: " + clip.get("clipKey", "?"))
+        if i not in (0, 6) and clip.get("narration") != parts[i]["hear"]:
+            if not clip.get("narrationOverridden"):
+                raise RuntimeError("Unexplained divergence in unchanged voice clip: " + clip.get("clipKey", "?"))
+            print("Preserved previously approved Director narration override: " + clip.get("clipKey", "?"))
+    print("Voice contract PASS: exact C01/C07, unchanged C02-C06 Director overrides and audio preserved.")
     
 def main():
     first, second = preflight()
