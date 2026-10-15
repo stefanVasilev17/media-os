@@ -82,8 +82,9 @@ public class DirectorScriptAmendmentController {
         String requestedVersion = approvedNarrationVersion(approvedShot);
         String previousVersion = previousPayload == null ? null : approvedNarrationVersionFromArtifact(read(previousPayload));
         if (previousVersion != null && !previousVersion.equals(requestedVersion)
-                && !("V1".equals(previousVersion) && "V2".equals(requestedVersion))) {
-            throw conflict("Only the Director-approved SHOT 05 v1 → v2 upgrade is allowed.");
+                && !("V1".equals(previousVersion) && "V2".equals(requestedVersion))
+                && !("V2".equals(previousVersion) && "V3".equals(requestedVersion))) {
+            throw conflict("Only the approved SHOT 05 v1 → v2 → v3 progression is allowed.");
         }
         boolean upgradingV1ToV2 = "V1".equals(previousVersion) && "V2".equals(requestedVersion);
         if (previousPayload == null) {
@@ -122,7 +123,7 @@ public class DirectorScriptAmendmentController {
                 throw conflict("SHOT 05 aggregate voice is approved. Review the voice approval before upgrading.");
             }
 
-        } else if (upgradingV1ToV2) {
+        } else if (upgradingV1ToV2 || ("V2".equals(previousVersion) && "V3".equals(requestedVersion))) {
             long shot05DirectorLocks = jdbc.sql("""
                     select count(*) from visual_shot_lock
                     where episode_id=:episodeId and script_revision=:revision and shot_key='SHOT 05'
@@ -131,7 +132,11 @@ public class DirectorScriptAmendmentController {
             if (shot05DirectorLocks > 0) {
                 throw conflict("SHOT 05 video is Director LOCKED. Its voice/video must not be altered.");
             }
-            archiveAndResetV1Shot05Voice(revision, approvedShot);
+            if (upgradingV1ToV2) {
+                archiveAndResetV1Shot05Voice(revision, approvedShot);
+            } else {
+                archiveAndResetV2Shot05C01(revision, approvedShot.get(0));
+            }
         }
         int originalStart = number(grouped(before).get("SHOT 05").get(0).get("startSecond"));
         int suppliedStart = approvedShot.get(0).startSecond();
@@ -232,6 +237,8 @@ public class DirectorScriptAmendmentController {
             "a7d4ddce77e70013b8a9ab384bc2baba5f80440f4a5d911dd0799c34355e58d8";
     private static final String APPROVED_STORYTELLING_V2_SHA256 =
             "003ee78105dd0f331a0cd0784374b38e4a4d3778141f784ad072f2944b253d3c";
+    private static final String APPROVED_GATEWAY_FIRST_V3_SHA256 =
+            "ad757b71e1d2ca418a09f83c81581cf49699220b0c94b8d246a74848c51bc16a";
 
     static List<LockedScriptImportController.TimelineBlock> scopedApprovedShot05(
             List<Map<String, Object>> canonical,
@@ -272,8 +279,9 @@ public class DirectorScriptAmendmentController {
             byte[] checksum = MessageDigest.getInstance("SHA-256")
                     .digest(narration.toString().getBytes(StandardCharsets.UTF_8));
             String hash = HexFormat.of().formatHex(checksum);
-            if (!APPROVED_NARRATION_SHA256.equals(hash) && !APPROVED_STORYTELLING_V2_SHA256.equals(hash)) {
-                throw conflict("SHOT 05 text does not match either exact Director-approved script.");
+            if (!APPROVED_NARRATION_SHA256.equals(hash) && !APPROVED_STORYTELLING_V2_SHA256.equals(hash)
+                    && !APPROVED_GATEWAY_FIRST_V3_SHA256.equals(hash)) {
+                throw conflict("SHOT 05 text does not match an approved immutable narration revision.");
             }
         } catch (java.security.NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is unavailable.", ex);
@@ -362,6 +370,89 @@ public class DirectorScriptAmendmentController {
                 .param("revision", revision).update();
     }
 
+    private void archiveAndResetV2Shot05C01(
+            int revision,
+            LockedScriptImportController.TimelineBlock approvedC01
+    ) {
+        String existingV2C01 = "Now we know where the request is going. Follow it to the server. Before the password is checked, the request meets its first server-side checkpoint: the API Gateway.";
+        long unexpectedNarration = jdbc.sql("""
+                select count(*) from voice_clip_workflow
+                where episode_id=:episodeId and script_revision=:revision and shot_key='SHOT 05'
+                  and clip_key='SHOT 05-C01'
+                  and coalesce(director_narration_override,narration)<>:expected
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("expected", existingV2C01)
+                .query(Long.class).single();
+        if (unexpectedNarration > 0) {
+            throw conflict("SHOT 05-C01 has a separate Director voice edit. Manual review required.");
+        }
+        long existingRender = jdbc.sql("""
+                select count(*) from voice_shot_workflow
+                where episode_id=:episodeId and script_revision=:revision and shot_key='SHOT 05'
+                  and remotion_render_id is not null
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision).query(Long.class).single();
+        if (existingRender > 0) {
+            throw conflict("SHOT 05 has an existing render. Preserve and review the old preview before replacing C01.");
+        }
+        jdbc.sql("""
+                insert into episode_shot05_voice_revision_archive(
+                    id,episode_id,script_revision,source_version,record_type,record_key,snapshot,audio
+                )
+                select gen_random_uuid(),c.episode_id,c.script_revision,'V2','CLIP',c.clip_key,
+                       to_jsonb(c)-'generated_audio',c.generated_audio
+                from voice_clip_workflow c
+                where c.episode_id=:episodeId and c.script_revision=:revision and c.shot_key='SHOT 05'
+                  and c.clip_key='SHOT 05-C01'
+                on conflict (episode_id,script_revision,source_version,record_type,record_key) do nothing
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision).update();
+
+        jdbc.sql("""
+                insert into episode_shot05_voice_revision_archive(
+                    id,episode_id,script_revision,source_version,record_type,record_key,
+                    snapshot,audio,remotion_render_id
+                )
+                select gen_random_uuid(),v.episode_id,v.script_revision,'V2','SHOT',v.shot_key,
+                       to_jsonb(v)-'generated_audio',v.generated_audio,v.remotion_render_id
+                from voice_shot_workflow v
+                where v.episode_id=:episodeId and v.script_revision=:revision and v.shot_key='SHOT 05'
+                on conflict (episode_id,script_revision,source_version,record_type,record_key) do nothing
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision).update();
+
+        jdbc.sql("""
+                update voice_clip_workflow
+                set narration=:narration,voice_direction=:voiceDirection,
+                    director_narration_override=null,
+                    generated_audio=null,generated_audio_content_type=null,generated_audio_file_name=null,
+                    generated_alignment=null,voice_generated_at=null,voice_approved_at=null,
+                    updated_at=now()
+                where episode_id=:episodeId and script_revision=:revision
+                  and shot_key='SHOT 05' and clip_key='SHOT 05-C01'
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("narration", approvedC01.narration())
+                .param("voiceDirection", approvedC01.voiceDirection()).update();
+
+        jdbc.sql("""
+                update voice_shot_workflow
+                set voice_approved_at=null,recorded_at=null,alignment=null,aligned_at=null,
+                    visual_sync_spec=null,visual_sync_markdown=null,visual_sync_ready_at=null,
+                    remotion_synced_at=null,remotion_render_id=null,
+                    rendered_generation_revision=null,rendered_at=null,updated_at=now()
+                where episode_id=:episodeId and script_revision=:revision and shot_key='SHOT 05'
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision).update();
+    }
+
     private static String approvedNarrationVersion(List<LockedScriptImportController.TimelineBlock> blocks) {
         StringBuilder text = new StringBuilder();
         for (var block : blocks) {
@@ -400,6 +491,7 @@ public class DirectorScriptAmendmentController {
                     .digest(text.getBytes(StandardCharsets.UTF_8)));
             if (APPROVED_NARRATION_SHA256.equals(hash)) return "V1";
             if (APPROVED_STORYTELLING_V2_SHA256.equals(hash)) return "V2";
+            if (APPROVED_GATEWAY_FIRST_V3_SHA256.equals(hash)) return "V3";
             throw conflict("Active SHOT 05 amendment differs from both Director-approved versions. Manual review required.");
         } catch (java.security.NoSuchAlgorithmException error) {
             throw new IllegalStateException("SHA-256 is unavailable.", error);
