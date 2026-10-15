@@ -26,8 +26,8 @@ export const studio = {
   createShot: (title: string) => request<StudioShot>('/shots','POST',{title}),
   unlockOriginalShot: (shotKey: string) => request<StudioShot>(
     '/original-shots/' + encodeURIComponent(shotKey) + '/unlock','POST',{directorConfirmed:true}),
-  reuseApprovedVoices: (shotId: string) => request<{reusedClips: number; shot: StudioShot}>(
-    '/shots/' + shotId + '/reuse-approved-voices','POST',{}),
+  reuseExistingVoices: (shotId: string) => request<{reusedClips: number; approvedClips: number; shot: StudioShot}>(
+    '/shots/' + shotId + '/reuse-existing-voices','POST',{}),
   addClip: (shotId: string, narration: string, voiceDirection: string) =>
     request<StudioShot>('/shots/' + shotId + '/clips','POST',{narration,voiceDirection}),
   editClip: (id: string, narration: string, voiceDirection: string) =>
