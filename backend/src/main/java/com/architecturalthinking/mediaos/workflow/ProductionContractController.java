@@ -184,13 +184,14 @@ public class ProductionContractController {
         @SuppressWarnings("unchecked")
         Map<String, Object> artifact = (Map<String, Object>) script.get("artifact");
         List<Map<String, Object>> scriptTimeline = mapList(artifact.get("timeline"));
-        validateContractAgainstLockedScript(request.timeline(), scriptTimeline);
+        List<TimelineSegment> normalizedTimeline = rebaseDirectorShot05(request.timeline(), artifact);
+        validateContractAgainstLockedScript(normalizedTimeline, scriptTimeline);
 
         memory.preflight("SCRIPT", "IMPORT_PRODUCTION_CONTRACT");
         memory.preflight("VOICE", "IMPORT_PRODUCTION_CONTRACT");
         memory.preflight("VISUAL", "IMPORT_PRODUCTION_CONTRACT");
 
-        List<Map<String, Object>> mergedTimeline = mergeWithActiveContract(currentRevision, request.timeline());
+        List<Map<String, Object>> mergedTimeline = mergeWithActiveContract(currentRevision, normalizedTimeline);
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("schemaVersion", request.schemaVersion());
@@ -263,7 +264,7 @@ public class ProductionContractController {
         result.put("scriptRevision", currentRevision);
         result.put("sha256", sha);
         result.put("timelineSegments", mergedTimeline.size());
-        result.put("importedSegments", request.timeline().size());
+        result.put("importedSegments", normalizedTimeline.size());
         result.put("nextRoute", "#/agents/voice");
         result.put("message", "Production contract segment(s) validated, merged, and activated.");
         return result;
@@ -287,6 +288,55 @@ public class ProductionContractController {
                     return row;
                 })
                 .single();
+    }
+
+    static List<TimelineSegment> rebaseDirectorShot05(
+            List<TimelineSegment> incoming,
+            Map<String, Object> canonicalArtifact
+    ) {
+        if (!canonicalArtifact.containsKey("directorAmendment")
+                || incoming.size() != 7
+                || incoming.stream().anyMatch(s -> !"SHOT 05".equals(s.shotKey()))) {
+            return incoming;
+        }
+        List<Map<String, Object>> script = new ArrayList<>();
+        Object raw = canonicalArtifact.get("timeline");
+        if (raw instanceof List<?> list) {
+            for (Object obj : list) {
+                if (obj instanceof Map<?, ?> item && "SHOT 05".equals(item.get("shotKey"))) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    item.forEach((key, value) -> row.put(String.valueOf(key), value));
+                    script.add(row);
+                }
+            }
+        }
+        if (script.size() != incoming.size()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The active Director amendment has a different number of SHOT 05 blocks.");
+        }
+        int from = incoming.get(0).startSecond();
+        int to = ((Number) script.get(0).get("startSecond")).intValue();
+        int delta = to - from;
+        List<TimelineSegment> rebased = new ArrayList<>();
+        for (int i = 0; i < incoming.size(); i++) {
+            TimelineSegment item = incoming.get(i);
+            Map<String, Object> expected = script.get(i);
+            int start = item.startSecond() + delta;
+            int end = item.endSecond() + delta;
+            if (start != ((Number) expected.get("startSecond")).intValue()
+                    || end != ((Number) expected.get("endSecond")).intValue()
+                    || !item.hear().strip().replaceAll("\\s+", " ").equalsIgnoreCase(
+                            String.valueOf(expected.get("narration")).strip().replaceAll("\\s+", " "))) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "SHOT 05 HEAR/SEE clip " + (i+1)
+                                + " does not match the Director-approved narration and relative timing.");
+            }
+            rebased.add(new TimelineSegment(
+                    item.segmentId(), item.shotKey(), item.clipKey(),
+                    start, end, item.hear(), item.voiceDirection(), item.visual()
+            ));
+        }
+        return rebased;
     }
 
     private void validateContractAgainstLockedScript(
