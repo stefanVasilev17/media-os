@@ -3,6 +3,7 @@ import { AppBottomNav } from './components/AppBottomNav';
 import { DirectorRoomPage } from './pages/DirectorRoomPage';
 import { SceneAgentPage } from './pages/SceneAgentPage';
 import { ScriptAgentPage } from './pages/ScriptAgentPage';
+import { ShotStudioPage } from './pages/ShotStudioPage';
 import { VoiceAgentPage } from './pages/VoiceAgentPage';
 import { VisualAgentPage } from './pages/VisualAgentPage';
 import './styles/episodeSceneCompositor.css';
