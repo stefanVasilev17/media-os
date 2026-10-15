@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, FileText, LockKeyhole, Mic2, Plus, RotateCcw, Save, Clapperboard } from 'lucide-react';
 import { studio, type StudioClip, type StudioShot } from '../api/studioApi';
+import { LegacyShotMirror } from '../components/LegacyShotMirror';
+import { loadRemotionRender, remotionRenderVideoUrl, type RemotionRenderState } from '../api/voiceApi';
 import '../styles/shotStudio.css';
 
 const status = (c: StudioClip) => c.approvedAt ? 'VOICE APPROVED' : c.generated ? 'VOICE DRAFT' : c.lockedAt ? 'SCRIPT LOCKED' : 'SCRIPT DRAFT';
@@ -18,6 +20,7 @@ export function ShotStudioPage() {
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
+  const [preview,setPreview]=useState<RemotionRenderState|null>(null);
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
   const clip=useMemo(()=>shot?.clips.find(x=>x.id===clipId),[shot,clipId]);
@@ -37,6 +40,25 @@ export function ShotStudioPage() {
     setClipId(id=>shot?.clips.some(c=>c.id===id)?id:shot?.clips[0]?.id||'');
     setVisual(shot?.visualPrompt||'');
   },[shotId,shot?.visualRevision,shot?.visualPrompt,shot?.clips.length]);
+  useEffect(()=>{
+    setPreview(null);
+  },[shotId,shot?.previewRenderId]);
+  useEffect(()=>{
+    if(!shot?.previewRenderId)return;
+    let active=true;
+    const poll=async()=>{
+      try {
+        const next=await loadRemotionRender(shot.previewRenderId!);
+        if(active)setPreview(next);
+        return next.status==='READY'||next.status==='FAILED';
+      } catch(e){if(active)setError(e instanceof Error?e.message:String(e));return true;}
+    };
+    void poll();
+    const timer=window.setInterval(()=>{
+      void poll().then(done=>{if(done)window.clearInterval(timer);});
+    },3500);
+    return()=>{active=false;window.clearInterval(timer);};
+  },[shot?.previewRenderId]);
   useEffect(()=>{
     setNarration(clip?.narration||'');
     setDirection(clip?.voiceDirection||'calm, conversational, confident');
@@ -79,8 +101,9 @@ export function ShotStudioPage() {
       {message&&<div className="studio-alert studio-success" role="status">{message}</div>}
       <div className="studio-shell">
         <aside className="studio-sidebar">
-          <div className="studio-section-head"><h2>Shots</h2><span>{shots.length} new</span></div>
-          <p className="studio-muted">Existing EP001 SHOT 01–16 remain in the protected legacy production system.</p>
+          <LegacyShotMirror />
+          <div className="studio-section-head"><h2>New Studio Shots</h2><span>{shots.length}</span></div>
+          <p className="studio-muted">New Studio shoots start after canonical SHOT 16; the original shots above are displayed read-only.</p>
           {loading&&<p className="studio-muted">Loading shots…</p>}
           <div className="studio-shot-list">
             {shots.map(s=><button key={s.id} type="button"
@@ -173,7 +196,22 @@ export function ShotStudioPage() {
                   <Save size={15}/> Save Visual Directions</button>
                 <span className="studio-muted">{voiceReady?'All voices approved.':'Approve every clip before the final voice-synced render.'}</span>
               </div>
-              <p className="studio-caution">Custom-shot visual generation is not activated yet. Existing EP001 renders remain available in the protected Visual Agent; saving a prompt does not claim to have rendered a video.</p>
+              <div className="studio-buttons">
+                <button type="button" className="studio-primary" disabled={busy||!voiceReady||!visual.trim()||visualDirty}
+                  onClick={()=>void run(()=>studio.generatePreview(shot.id),
+                    'A separate Studio Living Map draft preview was queued. Approved original videos were not touched.')}>
+                  <Clapperboard size={15}/> Generate Template Preview
+                </button>
+                <span className="studio-muted">Requires saved directions and approved audio for all clips.</span>
+              </div>
+              {preview&&<div className="studio-preview-result">
+                <strong>Isolated Studio draft · {preview.status}</strong>
+                {preview.status==='FAILED'&&<p className="studio-error">{preview.error||'Rendering failed; original footage is unchanged.'}</p>}
+                {preview.status==='READY'&&<video key={preview.renderId} controls preload="metadata"
+                  src={remotionRenderVideoUrl(preview.renderId)} />}
+                {preview.status!=='READY'&&preview.status!=='FAILED'&&<p className="studio-muted">Remotion rendering: {Math.round((preview.progress||0)*100)}% — preview is not Director LOCKED.</p>}
+              </div>}
+              <p className="studio-caution">This first renderer interprets supported focus objects and camera cues using a consistent Living Map template, rather than arbitrary custom animation code. All existing EP001 LOCKED shots and original MP4s remain unchanged.</p>
               <button type="button" className="studio-secondary" onClick={()=>{window.location.hash='#/agents/visual';}}>
                 Open existing Visual Agent <ArrowRight size={15}/></button>
             </div>
