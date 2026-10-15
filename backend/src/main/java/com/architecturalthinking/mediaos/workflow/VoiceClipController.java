@@ -550,7 +550,8 @@ public class VoiceClipController {
         if (!"SHOT 05".equals(shotKey) || orderedClips.isEmpty()) return 0.0d;
         Object narration = orderedClips.get(0).get("narration");
         return narration instanceof String text
-                && text.startsWith("Now we know where the request is going.")
+                && (text.startsWith("Now we know where the request is going.")
+                    || text.startsWith("The API Gateway is the first stop for our login request"))
                 ? 1.25d : 0.0d;
     }
 
