@@ -17,6 +17,12 @@ const items: NavItem[] = [
     match: hash => hash === '#/' || hash === '' || hash.startsWith('#/director')
   },
   {
+    label: 'Studio',
+    hash: '#/studio',
+    icon: <Layers3 size={17} />,
+    match: hash => hash.startsWith('#/studio')
+  },
+  {
     label: 'Script',
     hash: '#/agents/script',
     icon: <FileText size={17} />,
