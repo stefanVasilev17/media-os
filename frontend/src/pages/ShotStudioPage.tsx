@@ -104,6 +104,7 @@ export function ShotStudioPage() {
     setShotId(selected.id);
     setClipId(selected.clips.find(c=>c.sequence===sequence)?.id||'');
     setMessage('Editable working copy opened. The approved original video is untouched.');
+    window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
   }
   async function saveLockAndGenerate(){
     if(!clip||busy||!narration.trim())return;
@@ -151,7 +152,7 @@ export function ShotStudioPage() {
             <button type="button" onClick={()=>{window.location.hash='#/agents/script';}}>Open existing Script <ArrowRight size={14}/></button>
           </div>
         </aside>
-        <section className="studio-content">
+        <section className="studio-content" id="studio-working-editor">
           {!shot?<div className="studio-empty">
             <h2>Create your first new shot</h2>
             <p>Select an original shot above to unlock a working copy, or create a new shot. Approved video remains intact.</p>
