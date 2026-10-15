@@ -102,11 +102,11 @@ export function ShotStudioPage() {
     if(!shot||busy||!shot.sourceShotKey)return;
     setBusy(true);setError('');setMessage('');
     try{
-      const result=await studio.reuseApprovedVoices(shot.id);
+      const result=await studio.reuseExistingVoices(shot.id);
       await refresh();
       setMessage(result.reusedClips>0
-        ? result.reusedClips+' previously approved, unchanged voices restored. Original video and recordings preserved.'
-        : 'No additional unchanged Director-approved audio was eligible. Remaining clips need a voice draft and approval.');
+        ? result.reusedClips+' existing recordings restored; '+result.approvedClips+' clips currently voice-approved. Original video and recordings preserved.'
+        : 'No additional matching original audio was found. Generate or approve the remaining voice clips.');
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
@@ -177,11 +177,11 @@ export function ShotStudioPage() {
             <div className="studio-panel">
               <div className="studio-section-head"><h3><FileText size={19}/> Script & Voice</h3><span>{shot.clips.length} clips</span></div>
               {shot.sourceShotKey&&<div className="studio-reuse-panel">
-                <div><strong>Keep existing approved audio</strong>
-                  <p className="studio-muted">Reuse only clips whose locked text and voice direction exactly match the original Director-approved recording. Edited clips are never replaced.</p>
+                <div><strong>Reuse existing voice recordings</strong>
+                  <p className="studio-muted">Reuse matching original voice recordings without ElevenLabs charges. Existing approvals are kept; unapproved recordings stay drafts. Changed texts and already generated voices are never replaced.</p>
                 </div>
                 <button type="button" disabled={busy} onClick={()=>void reuseExistingVoiceClips()}>
-                  <Check size={16}/> Reuse Approved Original Voices
+                  <Check size={16}/> Reuse Original Voices
                 </button>
               </div>}
               <div className="studio-clip-tabs">
