@@ -192,7 +192,7 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,an
                      boxShadow:`0 0 ${16+24*centerPulse}px rgba(122,108,255,.36)`}}/>
         <div style={{padding:'38px 45px 29px 60px'}}>
           <div style={{fontSize:19,letterSpacing:'.20em',fontWeight:800,color:'#989FD5'}}>BACKEND INGRESS</div>
-          <div style={{fontSize:42,fontWeight:880,letterSpacing:'-.04em',marginTop:12}}>API Gateway</div>
+          <div style={{fontSize:42,fontWeight:880,letterSpacing:'-.04em',marginTop:12}}>{frame>=labelTime('API_GATEWAY',starts[0]+Math.round((starts[1]-starts[0])*.72))?'API Gateway':'First checkpoint'}</div>
           <div style={{fontSize:19,color:'#859FC5',marginTop:9}}>First rules before authentication</div>
         </div>
         <div style={{position:'absolute',left:64,right:45,top:182,height:1,background:'rgba(130,152,213,.22)'}}/>
