@@ -6,12 +6,13 @@ import {PhoneFirstYoutubePreview, phoneFirstYoutubePreviewSchema} from './episod
 import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from './episodes/ep001/live-diagram/RequestAssemblyYoutubePreview';
 import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './episodes/ep001/live-diagram/ReadyNotSentYoutubePreview';
 import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from './episodes/ep001/live-diagram/NetworkTransitYoutubePreview';
-import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
+import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './episodes/ep001/live-diagram/shot02Timing';
 import {SHOT03_DURATION_FRAMES, SHOT03_FPS} from './episodes/ep001/live-diagram/shot03Timing';
 import {SHOT04_DURATION_FRAMES,SHOT04_FPS} from './episodes/ep001/live-diagram/shot04Timing';
+import {SHOT05_DURATION_FRAMES,SHOT05_FPS} from './episodes/ep001/live-diagram/shot05Timing';
 import {VerticalSlice, verticalSliceSchema} from './episodes/ep001/vertical-slice/VerticalSlice';
 import {FPS, VERTICAL_SLICE_FRAMES} from './episodes/ep001/vertical-slice/timeline';
 
@@ -180,6 +181,19 @@ export const Root: React.FC = () => {
           durationInFrames:SHOT04_DURATION_FRAMES,
           anchors:{},
           comprehensionHolds:[],
+        }}
+      />
+      <Composition
+        id="EP001-Shot05-VoiceSynced"
+        component={Shot05VoiceSynced}
+        durationInFrames={dynamicDuration ?? SHOT05_DURATION_FRAMES}
+        fps={SHOT05_FPS}
+        width={1920}
+        height={1080}
+        schema={voiceSyncedShotSchema}
+        defaultProps={{
+          audioUrl:"",audioClips:[],durationInFrames:SHOT05_DURATION_FRAMES,
+          anchors:{},comprehensionHolds:[],
         }}
       />
       <Composition
