@@ -546,6 +546,14 @@ public class VoiceClipController {
                 .update();
     }
 
+    static double shot05OpeningSilenceSeconds(String shotKey, List<Map<String, Object>> orderedClips) {
+        if (!"SHOT 05".equals(shotKey) || orderedClips.isEmpty()) return 0.0d;
+        Object narration = orderedClips.get(0).get("narration");
+        return narration instanceof String text
+                && text.startsWith("Now we know where the request is going.")
+                ? 1.25d : 0.0d;
+    }
+
     private void rebuildShotAggregateIfReady(int revision, String shotKey) {
         List<Map<String, Object>> shotClips = clips(revision).stream()
                 .filter(clip -> shotKey.equals(clip.get("shotKey")))
@@ -558,7 +566,7 @@ public class VoiceClipController {
 
         List<Map<String, Object>> combinedWords = new ArrayList<>();
         List<Map<String, Object>> audioClips = new ArrayList<>();
-        double offset = 0.0d;
+        double offset = shot05OpeningSilenceSeconds(shotKey, shotClips);
 
         for (Map<String, Object> clip : shotClips) {
             Map<String, Object> alignment = asMap(clip.get("generatedAlignment"));
