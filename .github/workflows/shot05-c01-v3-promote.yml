@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/shot05-c01-v3-promote.yml'
       - 'ops/shot05-v3/promote.py'
+      - '.railway-deploy-trigger'
 permissions:
   contents: read
 concurrency:
