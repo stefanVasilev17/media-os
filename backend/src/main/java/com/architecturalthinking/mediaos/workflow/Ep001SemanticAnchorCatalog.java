@@ -71,12 +71,12 @@ public final class Ep001SemanticAnchorCatalog {
             case "SHOT 05" -> linked(
                     "API_GATEWAY", "API Gateway",
                     "ROUTING", "Routing",
-                    "PATH", "Path",
+                    "PATH", "login address",
                     "METHOD", "Method",
-                    "RATE_LIMIT", "Rate Limit",
+                    "RATE_LIMIT", "rate limiting",
                     "BURST", "Burst",
                     "QUOTA", "Quota",
-                    "REQUEST_FILTER", "Request Filter",
+                    "REQUEST_FILTER", "look unsafe",
                     "WAF", "WAF",
                     "SCHEMA", "Schema"
             );
