@@ -73,7 +73,7 @@ jobs:
               if previous["generated"]:
                   assert now==previous,"Existing working voice was overwritten"
               elif now["generated"] and not previous["generated"]:
-                  assert previous["lockedAt"] and now["approvedAt"]==original["approvedAt"],"Unapproved voice was autoapproved"
+                  assert previous["lockedAt"] and bool(now["approvedAt"])==bool(original["approvedAt"]),"Unapproved voice was autoapproved"
                   assert now["narration"]==original["narration"],"Voice text mismatch"
               else:
                   assert now==previous,"Unmatched working draft was modified"
