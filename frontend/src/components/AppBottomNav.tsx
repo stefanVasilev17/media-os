@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BrainCircuit, FileText, Mic2, Clapperboard } from 'lucide-react';
+import { BrainCircuit, FileText, Mic2, Clapperboard, Layers3 } from 'lucide-react';
 import '../styles/compactBottomNav.css';
 
 type NavItem = {
@@ -15,6 +15,12 @@ const items: NavItem[] = [
     hash: '#/',
     icon: <BrainCircuit size={17} />,
     match: hash => hash === '#/' || hash === '' || hash.startsWith('#/director')
+  },
+  {
+    label: 'Studio',
+    hash: '#/studio',
+    icon: <Layers3 size={17} />,
+    match: hash => hash.startsWith('#/studio')
   },
   {
     label: 'Script',
