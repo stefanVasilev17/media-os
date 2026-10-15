@@ -72,6 +72,10 @@ public class RemotionRenderRetentionService {
                             select 1 from voice_shot_workflow v where v.remotion_render_id=r.id
                           )
                           and not exists (
+                            select 1 from episode_shot05_voice_revision_archive archive
+                            where archive.remotion_render_id=r.id
+                          )
+                          and not exists (
                             select 1 from remotion_render running
                             where running.project_id=r.project_id
                               and running.status in ('QUEUED', 'RUNNING')
@@ -123,6 +127,10 @@ public class RemotionRenderRetentionService {
                               )
                               and not exists (
                                 select 1 from voice_shot_workflow v where v.remotion_render_id=r.id
+                              )
+                              and not exists (
+                                select 1 from episode_shot05_voice_revision_archive archive
+                                where archive.remotion_render_id=r.id
                               )
                               and not exists (
                                 select 1 from remotion_render running
