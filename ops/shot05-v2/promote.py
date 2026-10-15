@@ -76,12 +76,53 @@ def verify():
         raise RuntimeError("Active Production Contract does not contain the exact v2 narration.")
     print("Post-import verification PASS: 7 active SHOT05 HEAR entries exactly match the v2 checksum.")
 
+def sync_voice_contract(script_revision):
+    req = urllib.request.Request(BASE + "/api/v1/production-contract", method="GET")
+    with urllib.request.urlopen(req, timeout=30) as res:
+        current = json.load(res)
+    parts = [x for x in current["payload"]["timeline"] if x["shotKey"] == "SHOT 05"]
+    parts.sort(key=lambda x: x["startSecond"])
+    if len(parts) != 7 or sha([x["hear"] for x in parts]) != V2_SHA:
+        raise RuntimeError("Refusing voice sync because active SHOT05 script is not exact v2")
+    bundle = {
+        "shotKey": "SHOT 05",
+        "title": "API Gateway",
+        "startSecond": parts[0]["startSecond"],
+        "endSecond": parts[-1]["endSecond"],
+        "narration": "\\n\\n".join(x["hear"] for x in parts),
+        "voiceDirection": "Slow, precise, calm educational storytelling, with pauses between ideas.",
+        "clips": [
+            {"clipKey": x["clipKey"], "sequence": i+1,
+             "startSecond": x["startSecond"], "endSecond": x["endSecond"],
+             "narration": x["hear"], "voiceDirection": x["voiceDirection"]}
+            for i, x in enumerate(parts)
+        ],
+    }
+    req = urllib.request.Request(BASE + "/api/v1/voice-clips/sync",
+        data=json.dumps({"scriptRevision": script_revision, "shots": [bundle]}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=40) as res:
+            result = json.load(res)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError("Voice clip sync blocked by production approval gate: HTTP " + str(error.code)
+            + " " + error.read(1000).decode("utf-8", errors="replace")) from error
+    shots = [c for c in result if c.get("shotKey") == "SHOT 05"]
+    if len(shots) != 7:
+        raise RuntimeError("Voice sync response did not contain 7 SHOT05 clips")
+    for i, clip in enumerate(sorted(shots, key=lambda x: x["sequence"])):
+        if clip.get("narration") != parts[i]["hear"]:
+            raise RuntimeError("Voice clip differs from exact v2 script: " + clip.get("clipKey", "?"))
+    print("Voice contract PASS: C01–C07 up to date, unchanged audio retained, changed C01/C07 require regenerated TTS.")
+    
 def main():
     first, second = preflight()
-    post(FILES[0][2], first, max_attempts=18)
+    director = post(FILES[0][2], first, max_attempts=18)
     post(FILES[1][2], second, max_attempts=5)
     verify()
-    print("EP001 SHOT05 v2 PROMOTED; existing SHOT01–04 Director locks protected.")
+    sync_voice_contract(director["scriptRevision"])
+    print("EP001 SHOT05 v2 PROMOTED + VOICE SYNCED; existing SHOT01–04 Director locks protected.")
 
 if __name__ == "__main__":
     try:
