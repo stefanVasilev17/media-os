@@ -8,6 +8,7 @@ import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './ep
 import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from './episodes/ep001/live-diagram/NetworkTransitYoutubePreview';
 import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
+import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './episodes/ep001/live-diagram/shot02Timing';
 import {SHOT03_DURATION_FRAMES, SHOT03_FPS} from './episodes/ep001/live-diagram/shot03Timing';
@@ -195,6 +196,16 @@ export const Root: React.FC = () => {
           audioUrl:"",audioClips:[],durationInFrames:SHOT05_DURATION_FRAMES,
           anchors:{},comprehensionHolds:[],
         }}
+      />
+      <Composition
+        id="EP001-Studio-LivingMapDraft"
+        component={StudioLivingMapDraftPreview}
+        durationInFrames={dynamicDuration ?? 600}
+        fps={30}
+        width={1920}
+        height={1080}
+        schema={studioLivingMapDraftSchema}
+        defaultProps={{shotKey:'',shotTitle:'Architecture',focusNode:'API Gateway',routeNodes:['Client','API Gateway','Auth Service'],cameraMode:'FOCUS',annotation:'',audioClips:[],durationInFrames:600}}
       />
       <Composition
         id="EP001-Voice-CurrentPreview"
