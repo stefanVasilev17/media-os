@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -80,6 +81,73 @@ public class VoiceClipController {
 
     public record ApproveRequest(@Positive int scriptRevision) {}
     public record UpdateNarrationRequest(@Positive int scriptRevision, @NotBlank String narration) {}
+
+    @Transactional
+    @PostMapping("/shots/{shotKey}/refresh-anchors")
+    public Map<String, Object> refreshApprovedShotAnchors(
+            @PathVariable String shotKey, @Valid @RequestBody ApproveRequest request
+    ) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String key = normalizeShotKey(shotKey);
+        if (!"SHOT 05".equals(key)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Anchor recalculation is limited to the approved SHOT 05 vocabulary migration.");
+        }
+        long locks = jdbc.sql("""
+                select count(*) from visual_shot_lock
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision()).param("shotKey", key)
+                .query(Long.class).single();
+        if (locks > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A Director LOCKED video cannot be changed.");
+        }
+        Map<String, Object> current = jdbc.sql("""
+                select alignment::text, remotion_render_id
+                from voice_shot_workflow
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                for update
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision()).param("shotKey", key)
+                .query((rs, n) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("alignment", readMap(rs.getString("alignment")));
+                    row.put("renderId", rs.getObject("remotion_render_id"));
+                    return row;
+                }).single();
+        Map<String, Object> alignment = asMap(current.get("alignment"));
+        if (asMap(alignment.get("unresolvedAnchors")).isEmpty()) {
+            return Map.of("ready", true, "changed", false, "message", "All approved semantic anchors were already resolved.");
+        }
+        if (current.get("renderId") != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT 05 has an existing rendered video. Review it before rebuilding voice alignment metadata.");
+        }
+        List<Map<String, Object>> approved = clips(request.scriptRevision()).stream()
+                .filter(c -> key.equals(c.get("shotKey"))).toList();
+        if (approved.size() != 7 || approved.stream().anyMatch(c -> !Boolean.TRUE.equals(c.get("approved")))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "All seven SHOT 05 voice clips must be approved before resolving semantic anchors.");
+        }
+        rebuildShotAggregateIfReady(request.scriptRevision(), key);
+        Map<String, Object> updated = jdbc.sql("""
+                select alignment::text from voice_shot_workflow
+                where episode_id=:episodeId and script_revision=:revision and shot_key=:shotKey
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", request.scriptRevision()).param("shotKey", key)
+                .query((rs, n) -> readMap(rs.getString("alignment"))).single();
+        Map<String, Object> missing = asMap(updated.get("unresolvedAnchors"));
+        if (!missing.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Approved audio still does not contain phrases for semantic anchors: "
+                            + String.join(", ", missing.keySet()));
+        }
+        return Map.of("ready", true, "changed", true,
+                "message", "SHOT 05 semantic anchors were updated using existing approved TTS timestamps; audio unchanged.");
+    }
 
     @PostMapping("/sync")
     public List<Map<String, Object>> sync(@Valid @RequestBody SyncRequest request) {

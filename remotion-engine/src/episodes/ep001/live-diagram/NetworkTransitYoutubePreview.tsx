@@ -8,6 +8,7 @@ import {SHOT04} from './shot04Timing';
 
 export const networkTransitYoutubePreviewSchema=z.object({
   showGuides:z.boolean(),
+  frameOverride:z.number().optional(),
   anchors:z.record(z.string(),z.number()).optional(),
 });
 type Props=z.infer<typeof networkTransitYoutubePreviewSchema>;
@@ -19,8 +20,9 @@ const progress=(frame:number,start:number,end:number)=>interpolate(frame,[start,
 const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isFinite(anchors[key])
   ?Math.max(0,anchors[key]*30):fallback;
 
-export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={}})=>{
-  const frame=useCurrentFrame();
+export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride})=>{
+  const currentFrame=useCurrentFrame();
+  const frame=frameOverride??currentFrame;
   const t={
     release:cue(anchors,'PREPARED_LOGIN',SHOT04.release),
     destinationQuestion:cue(anchors,'WHERE_SENT',SHOT04.destinationQuestion),
