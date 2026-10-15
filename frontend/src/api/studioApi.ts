@@ -1,0 +1,37 @@
+export type StudioClip = {
+  id: string; shotId: string; clipKey: string; sequence: number; narration: string;
+  voiceDirection: string; scriptRevision: number; generationRevision: number;
+  generated: boolean; lockedAt: string | null; generatedAt: string | null; approvedAt: string | null;
+};
+export type StudioShot = {
+  id: string; shotNumber: number; shotKey: string; title: string;
+  visualPrompt: string; visualRevision: number; clips: StudioClip[];
+};
+async function request<T>(url: string, method = 'GET', data?: unknown): Promise<T> {
+  const r = await fetch('/api/v1/studio' + url, {
+    method, cache: 'no-store',
+    headers: data === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: data === undefined ? undefined : JSON.stringify(data),
+  });
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({})) as { detail?: string; message?: string };
+    throw new Error(body.detail || body.message || 'MediaOS request failed (HTTP ' + r.status + ')');
+  }
+  return r.json() as Promise<T>;
+}
+export const studio = {
+  shots: () => request<StudioShot[]>('/shots'),
+  createShot: (title: string) => request<StudioShot>('/shots','POST',{title}),
+  addClip: (shotId: string, narration: string, voiceDirection: string) =>
+    request<StudioShot>('/shots/' + shotId + '/clips','POST',{narration,voiceDirection}),
+  editClip: (id: string, narration: string, voiceDirection: string) =>
+    request<StudioClip>('/clips/' + id,'PUT',{narration,voiceDirection}),
+  lockClip: (id: string) => request<StudioClip>('/clips/' + id + '/lock','POST',{}),
+  unlockClip: (id: string) => request<StudioClip>('/clips/' + id + '/unlock','POST',{directorConfirmed:true}),
+  generateVoice: (id: string) => request<StudioClip>('/clips/' + id + '/generate','POST',{}),
+  approveVoice: (id: string) => request<StudioClip>('/clips/' + id + '/approve','POST',{}),
+  saveVisual: (shotId: string, instructions: string) =>
+    request<StudioShot>('/shots/' + shotId + '/visual','PUT',{instructions}),
+  audioUrl: (id: string, generationRevision: number) =>
+    '/api/v1/studio/clips/' + id + '/audio?v=' + generationRevision,
+};
