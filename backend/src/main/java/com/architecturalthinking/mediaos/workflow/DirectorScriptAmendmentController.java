@@ -65,13 +65,15 @@ public class DirectorScriptAmendmentController {
             throw conflict("The original script must remain LOCKED.");
         }
         int revision = ((Number) current.get("revision")).intValue();
-        if (jdbc.sql("""
-                select count(*) from episode_script_director_amendment
+        String previousPayload = jdbc.sql("""
+                select payload::text from episode_script_director_amendment
                 where episode_id=:episodeId and script_revision=:revision
-                """).param("episodeId", ProductionOverviewService.EPISODE_ID).param("revision", revision)
-                .query(Long.class).single() > 0) {
-            throw conflict("A Director amendment is already active for this revision.");
-        }
+                for update
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .query(String.class)
+                .optional().orElse(null);
         long downstreamVisualLocks = jdbc.sql("""
                 select count(*) from visual_shot_lock
                 where episode_id=:episodeId and script_revision=:revision
@@ -85,13 +87,26 @@ public class DirectorScriptAmendmentController {
         long downstreamApprovedVoice = jdbc.sql("""
                 select count(*) from voice_clip_workflow
                 where episode_id=:episodeId and script_revision=:revision
-                  and shot_key not in ('SHOT 01','SHOT 02','SHOT 03','SHOT 04')
+                  and (
+                    shot_key not in ('SHOT 01','SHOT 02','SHOT 03','SHOT 04','SHOT 05')
+                    or (shot_key='SHOT 05' and clip_key in ('SHOT 05-C01','SHOT 05-C07'))
+                  )
                   and voice_approved_at is not null
                 """)
                 .param("episodeId", ProductionOverviewService.EPISODE_ID).param("revision", revision)
                 .query(Long.class).single();
         if (downstreamApprovedVoice > 0) {
-            throw conflict("A later voice clip is already approved; automatic replacement is unsafe.");
+            throw conflict("An affected voice clip or a later shot has approved audio. Versioned replacement is unsafe.");
+        }
+        long shot05AggregateApproval = jdbc.sql("""
+                select count(*) from voice_shot_workflow
+                where episode_id=:episodeId and script_revision=:revision
+                  and shot_key='SHOT 05' and voice_approved_at is not null
+                """)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID).param("revision", revision)
+                .query(Long.class).single();
+        if (shot05AggregateApproval > 0) {
+            throw conflict("SHOT 05 aggregate voice is approved. Review the voice approval before upgrading.");
         }
 
         @SuppressWarnings("unchecked")
@@ -99,6 +114,12 @@ public class DirectorScriptAmendmentController {
         List<Map<String, Object>> before = rows(base.get("timeline"));
         List<LockedScriptImportController.TimelineBlock> after = request.timeline();
         List<LockedScriptImportController.TimelineBlock> approvedShot = scopedApprovedShot05(before, after);
+        String requestedVersion = approvedNarrationVersion(approvedShot);
+        String previousVersion = previousPayload == null ? null : approvedNarrationVersionFromArtifact(read(previousPayload));
+        if (previousVersion != null && !previousVersion.equals(requestedVersion)
+                && !("V1".equals(previousVersion) && "V2".equals(requestedVersion))) {
+            throw conflict("Only the Director-approved SHOT 05 v1 → v2 upgrade is allowed.");
+        }
         int originalStart = number(grouped(before).get("SHOT 05").get(0).get("startSecond"));
         int suppliedStart = approvedShot.get(0).startSecond();
         int effectiveTarget = number(base.get("targetDurationSeconds")) + 50;
@@ -144,19 +165,34 @@ public class DirectorScriptAmendmentController {
         amended.put("targetDurationSeconds", effectiveTarget);
         amended.put("directorAmendment", "SHOT 05 | Concept First, Term Second | +50s downstream planning clock");
         String json = write(amended);
-        jdbc.sql("""
-                insert into episode_script_director_amendment(id,episode_id,script_revision,payload)
-                values(:id,:episodeId,:revision,cast(:payload as jsonb))
-                """)
-                .param("id", UUID.randomUUID())
-                .param("episodeId", ProductionOverviewService.EPISODE_ID)
-                .param("revision", revision)
-                .param("payload", json)
-                .update();
+        if (previousPayload == null) {
+            jdbc.sql("""
+                    insert into episode_script_director_amendment(id,episode_id,script_revision,payload)
+                    values(:id,:episodeId,:revision,cast(:payload as jsonb))
+                    """)
+                    .param("id", UUID.randomUUID())
+                    .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                    .param("revision", revision)
+                    .param("payload", json)
+                    .update();
+        } else if (!previousVersion.equals(requestedVersion)) {
+            snapshotAmendment(revision, previousVersion, previousPayload);
+            jdbc.sql("""
+                    update episode_script_director_amendment
+                    set payload=cast(:payload as jsonb)
+                    where episode_id=:episodeId and script_revision=:revision
+                    """)
+                    .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                    .param("revision", revision)
+                    .param("payload", json)
+                    .update();
+        }
+        snapshotAmendment(revision, requestedVersion, json);
 
         return Map.of(
                 "ready", true,
                 "scriptRevision", revision,
+                "amendmentVersion", requestedVersion,
                 "targetDurationSeconds", effectiveTarget,
                 "effectiveShot05StartSecond", originalStart,
                 "effectiveShot05EndSecond", originalStart + 130,
@@ -181,6 +217,8 @@ public class DirectorScriptAmendmentController {
 
     private static final String APPROVED_NARRATION_SHA256 =
             "a7d4ddce77e70013b8a9ab384bc2baba5f80440f4a5d911dd0799c34355e58d8";
+    private static final String APPROVED_STORYTELLING_V2_SHA256 =
+            "003ee78105dd0f331a0cd0784374b38e4a4d3778141f784ad072f2944b253d3c";
 
     static List<LockedScriptImportController.TimelineBlock> scopedApprovedShot05(
             List<Map<String, Object>> canonical,
@@ -220,13 +258,75 @@ public class DirectorScriptAmendmentController {
         try {
             byte[] checksum = MessageDigest.getInstance("SHA-256")
                     .digest(narration.toString().getBytes(StandardCharsets.UTF_8));
-            if (!APPROVED_NARRATION_SHA256.equals(HexFormat.of().formatHex(checksum))) {
-                throw conflict("SHOT 05 text does not match the Director-approved Simple English script.");
+            String hash = HexFormat.of().formatHex(checksum);
+            if (!APPROVED_NARRATION_SHA256.equals(hash) && !APPROVED_STORYTELLING_V2_SHA256.equals(hash)) {
+                throw conflict("SHOT 05 text does not match either exact Director-approved script.");
             }
         } catch (java.security.NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is unavailable.", ex);
         }
         return shot;
+    }
+
+    private static String approvedNarrationVersion(List<LockedScriptImportController.TimelineBlock> blocks) {
+        StringBuilder text = new StringBuilder();
+        for (var block : blocks) {
+            if (!text.isEmpty()) text.append('\n');
+            text.append(block.narration());
+        }
+        return approvedNarrationVersionForText(text.toString());
+    }
+
+    private static String approvedNarrationVersionFromArtifact(Map<String, Object> artifact) {
+        StringBuilder text = new StringBuilder();
+        for (Map<String, Object> block : groupedFromArtifact(artifact).getOrDefault("SHOT 05", List.of())) {
+            if (!text.isEmpty()) text.append('\n');
+            text.append(String.valueOf(block.get("narration")));
+        }
+        return approvedNarrationVersionForText(text.toString());
+    }
+
+    private static Map<String, List<Map<String, Object>>> groupedFromArtifact(Map<String, Object> artifact) {
+        List<Map<String, Object>> timeline = new ArrayList<>();
+        if (artifact.get("timeline") instanceof List<?> rows) {
+            for (Object item : rows) {
+                if (item instanceof Map<?, ?> m) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    m.forEach((key, value) -> row.put(String.valueOf(key), value));
+                    timeline.add(row);
+                }
+            }
+        }
+        return grouped(timeline);
+    }
+
+    private static String approvedNarrationVersionForText(String text) {
+        try {
+            String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(text.getBytes(StandardCharsets.UTF_8)));
+            if (APPROVED_NARRATION_SHA256.equals(hash)) return "V1";
+            if (APPROVED_STORYTELLING_V2_SHA256.equals(hash)) return "V2";
+            throw conflict("Active SHOT 05 amendment differs from both Director-approved versions. Manual review required.");
+        } catch (java.security.NoSuchAlgorithmException error) {
+            throw new IllegalStateException("SHA-256 is unavailable.", error);
+        }
+    }
+
+    private void snapshotAmendment(int revision, String version, String payload) {
+        jdbc.sql("""
+                insert into episode_script_director_amendment_history(
+                    id,episode_id,script_revision,amendment_version,payload
+                ) values (
+                    :id,:episodeId,:revision,:version,cast(:payload as jsonb)
+                )
+                on conflict (episode_id,script_revision,amendment_version) do nothing
+                """)
+                .param("id", UUID.randomUUID())
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("revision", revision)
+                .param("version", version)
+                .param("payload", payload)
+                .update();
     }
 
     static void validate(
