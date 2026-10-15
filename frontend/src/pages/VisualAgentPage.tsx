@@ -378,7 +378,7 @@ export function VisualAgentPage() {
   async function produceShot(technicalRerender = false) {
     if (!script || !currentShot || busy || locking) return;
     if (technicalRerender && (!currentVisual?.locked || !['SHOT 01', 'SHOT 02'].includes(currentShot.key))) return;
-    const voiceShot = voiceShots[currentShot.key];
+    let voiceShot = voiceShots[currentShot.key];
     if (!voiceShot) {
       setError('Voice shot state is missing. Refresh the Visual Agent and try again.');
       return;
@@ -395,6 +395,25 @@ export function VisualAgentPage() {
         setCorrection('');
       }
 
+      if (currentShot.key === 'SHOT 05') {
+        const missing = ['PATH', 'RATE_LIMIT', 'REQUEST_FILTER'].filter(
+          anchor => !Number.isFinite(anchorsOf(voiceShot)[anchor])
+        );
+        if (missing.length > 0) {
+          const response = await fetch('/api/v1/voice-clips/shots/SHOT%2005/refresh-anchors', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({scriptRevision: script.revision}),
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.detail || data.message || 'SHOT 05 anchor repair could not complete.');
+          }
+          const nextVoiceShots = await loadVoiceShots(script.revision);
+          setVoiceShots(Object.fromEntries(nextVoiceShots.map(row => [row.shotKey, row])));
+          voiceShot = nextVoiceShots.find(row => row.shotKey === currentShot.key) || voiceShot;
+        }
+      }
       const gate = await runVisualPreflight(script.revision, currentShot.key, technicalRerender);
       setPreflight(gate);
       if (!gate.passed) {
