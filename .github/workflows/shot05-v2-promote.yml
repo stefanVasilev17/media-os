@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/shot05-v2-promote.yml'
+      - 'ops/shot05-v2/promote.py'
 
 permissions:
   contents: read
