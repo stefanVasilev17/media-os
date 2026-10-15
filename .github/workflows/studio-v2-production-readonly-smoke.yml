@@ -1,0 +1,49 @@
+name: Shot Studio v2 production read-only verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/studio-v2-production-readonly-smoke.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check live Studio, canonical script, voice and render registry using GET only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+          from collections import Counter
+          root="https://media-os-backend-production.up.railway.app"
+          def get(path):
+              req=urllib.request.Request(root+path,method="GET",headers={"Accept":"application/json"})
+              with urllib.request.urlopen(req,timeout=25) as r:
+                  assert r.status==200,(path,r.status)
+                  return json.load(r)
+          health=get("/actuator/health")
+          assert health["status"]=="UP",health
+          studio=get("/api/v1/studio/shots")
+          assert isinstance(studio,list),"Studio API must return an array"
+          assert all(int(s["shotNumber"])>=17 for s in studio),"Legacy EP001 shot IDs must never be copied into editable Studio"
+          script=get("/api/v1/creative/script")
+          assert script["locked"] is True,"Canonical Script Director LOCK unexpectedly changed"
+          revision=int(script["revision"])
+          timeline=script["artifact"]["timeline"]
+          keys={x.get("shotKey") for x in timeline}
+          assert {"SHOT %02d"%n for n in range(1,17)} <= keys,"Lost canonical EP001 shot in Script view"
+          voice=get("/api/v1/voice-clips?scriptRevision="+str(revision))
+          assert isinstance(voice,list),"Voice clips GET failed"
+          provider=get("/api/v1/remotion/renders/provider-status")
+          assert "EP001-Studio-LivingMapDraft" in provider["compositions"],"Isolated Studio preview composition missing"
+          assert "EP001-Shot05-VoiceSynced" in provider["compositions"],"Canonical SHOT 05 composition missing"
+          assert "EP001-Shot01-VoiceSynced" in provider["compositions"],"Canonical SHOT 01 composition missing"
+          print("PRODUCTION GET-ONLY SMOKE PASS")
+          print("Healthy backend, isolated Studio shots:",len(studio))
+          print("Canonical EP001 Script locked, full sixteen-shot timeline retained, script revision:",revision)
+          print("Canonical clips readable:",len(voice))
+          print("Original Remotion compositions remain registered, new draft composition available")
+          print("No mutation endpoint called; no render requested; no voice approved or changed.")
+          PY
