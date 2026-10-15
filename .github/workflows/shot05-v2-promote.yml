@@ -1,0 +1,24 @@
+name: EP001 SHOT05 v2 production promotion
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/shot05-v2-promote.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ep001-shot05-v2-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Validate and promote Director v2 into live MediaOS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import exact Director revision and HEAR SEE contract
+        run: python3 ops/shot05-v2/promote.py
