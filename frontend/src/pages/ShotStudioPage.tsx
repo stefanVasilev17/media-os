@@ -98,6 +98,18 @@ export function ShotStudioPage() {
   const dirty=Boolean(clip&&(narration.trim()!==clip.narration || direction.trim()!==clip.voiceDirection));
   const visualDirty=Boolean(shot&&visual.trim()!==shot.visualPrompt);
   const originalClip=shot?.sourceShotKey&&clip ? sourceVoice.find(c=>c.clipKey===clip.clipKey) : undefined;
+  async function reuseExistingVoiceClips(){
+    if(!shot||busy||!shot.sourceShotKey)return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const result=await studio.reuseApprovedVoices(shot.id);
+      await refresh();
+      setMessage(result.reusedClips>0
+        ? result.reusedClips+' previously approved, unchanged voices restored. Original video and recordings preserved.'
+        : 'No additional unchanged Director-approved audio was eligible. Remaining clips need a voice draft and approval.');
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
+  }
   async function openOriginalEditor(opened:StudioShot,sequence:number){
     const updated=await refresh();
     const selected=updated.find(s=>s.id===opened.id)||opened;
@@ -164,6 +176,14 @@ export function ShotStudioPage() {
             </div>
             <div className="studio-panel">
               <div className="studio-section-head"><h3><FileText size={19}/> Script & Voice</h3><span>{shot.clips.length} clips</span></div>
+              {shot.sourceShotKey&&<div className="studio-reuse-panel">
+                <div><strong>Keep existing approved audio</strong>
+                  <p className="studio-muted">Reuse only clips whose locked text and voice direction exactly match the original Director-approved recording. Edited clips are never replaced.</p>
+                </div>
+                <button type="button" disabled={busy} onClick={()=>void reuseExistingVoiceClips()}>
+                  <Check size={16}/> Reuse Approved Original Voices
+                </button>
+              </div>}
               <div className="studio-clip-tabs">
                 {shot.clips.map(c=><button key={c.id} type="button" className={c.id===clipId?'selected':''}
                   onClick={()=>setClipId(c.id)}>{c.clipKey.split('-').at(-1)} <small>{status(c)}</small></button>)}
