@@ -112,17 +112,66 @@ def sync_voice_contract(script_revision):
     if len(shots) != 7:
         raise RuntimeError("Voice sync response did not contain 7 SHOT05 clips")
     for i, clip in enumerate(sorted(shots, key=lambda x: x["sequence"])):
-        if clip.get("narration") != parts[i]["hear"]:
-            raise RuntimeError("Voice clip differs from exact v2 script: " + clip.get("clipKey", "?"))
-    print("Voice contract PASS: C01–C07 up to date, unchanged audio retained, changed C01/C07 require regenerated TTS.")
+        if i in (0, 6) and clip.get("narration") != parts[i]["hear"]:
+            raise RuntimeError("Changed voice clip differs from exact Director v2 text: " + clip.get("clipKey", "?"))
+        if i not in (0, 6) and clip.get("narration") != parts[i]["hear"]:
+            if not clip.get("narrationOverridden"):
+                raise RuntimeError("Unexplained divergence in unchanged voice clip: " + clip.get("clipKey", "?"))
+            print("Preserved previously approved Director narration override: " + clip.get("clipKey", "?"))
+    print("Voice contract PASS: exact C01/C07, unchanged C02-C06 Director overrides and audio preserved.")
     
+def generate_changed_voice_clips(script_revision):
+    config = json.load(open(FILES[1][1], encoding="utf-8"))
+    directions = {x["clipKey"]: x["voiceDirection"] for x in config["timeline"]}
+    endpoint = BASE + "/api/v1/voice-clips?scriptRevision=" + str(script_revision)
+    with urllib.request.urlopen(endpoint, timeout=30) as res:
+        all_clips = json.load(res)
+    lookup = {x["clipKey"]: x for x in all_clips if x.get("shotKey") == "SHOT 05"}
+    for key in ("SHOT 05-C01", "SHOT 05-C07"):
+        clip = lookup.get(key)
+        if clip is None:
+            raise RuntimeError("Cannot generate absent clip " + key)
+        if clip.get("approved"):
+            print("Protected already-approved v2 voice clip: " + key)
+            continue
+        if clip.get("generated"):
+            print("Preserved existing v2 TTS draft: " + key)
+            continue
+        direction = directions[key]
+        if key.endswith("C01"):
+            direction = "Natural calm English storytelling. No added opening silence: the 1.25s pause is in the final editing timeline. Pause briefly after 'going' and 'server'."
+        elif key.endswith("C07"):
+            direction = "Calm reflective handoff. Pause after 'examples' and 'passes'. Give the closing question space; avoid rushing into the next scene."
+        payload = {
+            "scriptRevision": script_revision,
+            "voiceSettings": {},
+            "performanceDirection": direction,
+        }
+        request = urllib.request.Request(
+            BASE + "/api/v1/voice-clips/" + key.replace(" ", "%20") + "/generate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST")
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                created = json.load(response)
+        except urllib.error.HTTPError as error:
+            body = error.read(900).decode("utf-8", errors="replace")
+            raise RuntimeError("TTS generation blocked for " + key + ": HTTP " +
+                               str(error.code) + " " + body) from error
+        if not created.get("generated"):
+            raise RuntimeError("TTS provider did not confirm generated voice for " + key)
+        print("Draft voice generated; human voice approval retained: " + key)
+
+
 def main():
     first, second = preflight()
     director = post(FILES[0][2], first, max_attempts=18)
     post(FILES[1][2], second, max_attempts=5)
     verify()
     sync_voice_contract(director["scriptRevision"])
-    print("EP001 SHOT05 v2 PROMOTED + VOICE SYNCED; existing SHOT01–04 Director locks protected.")
+    generate_changed_voice_clips(director["scriptRevision"])
+    print("EP001 SHOT05 v2 PROMOTED + VOICE SYNCED + C01/C07 DRAFT TTS READY; existing SHOT01–04 Director locks protected.")
 
 if __name__ == "__main__":
     try:
