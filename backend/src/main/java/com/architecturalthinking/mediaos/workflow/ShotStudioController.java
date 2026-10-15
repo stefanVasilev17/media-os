@@ -218,11 +218,11 @@ public class ShotStudioController {
         return clip(id,false);
     }
     @Transactional
-    @PostMapping("/shots/{id}/reuse-approved-voices")
-    public Map<String,Object> reuseOriginalApprovedVoices(@PathVariable UUID id) {
+    @PostMapping("/shots/{id}/reuse-existing-voices")
+    public Map<String,Object> reuseOriginalVoices(@PathVariable UUID id) {
         Map<String,Object> current=shot(id);
         if(current.get("sourceShotKey")==null || current.get("sourceScriptRevision")==null)
-            throw conflict("Only an original EP001 Director working copy can reuse approved original audio.");
+            throw conflict("Only an original EP001 Director working copy can reuse the original voice recordings.");
 
         db.sql("select id from studio_shot where id=:id and episode_id=:episode for update")
             .param("id",id).param("episode",EPISODE).query(UUID.class).single();
@@ -250,12 +250,14 @@ public class ShotStudioController {
               and target.voice_direction=coalesce(original.voice_direction,'')
               and original.generated_audio is not null
               and original.generated_alignment is not null
-              and original.voice_approved_at is not null
             """).param("id",id).param("episode",EPISODE).update();
 
         if(reused>0)invalidatePreview(id);
         Map<String,Object> answer=new LinkedHashMap<>();
         answer.put("reusedClips",reused);
+        long voiceApproved=((List<?>)shot(id).get("clips")).stream()
+            .filter(value->value instanceof Map<?,?> m && m.get("approvedAt")!=null).count();
+        answer.put("approvedClips",voiceApproved);
         answer.put("shot",shot(id));
         return answer;
     }
