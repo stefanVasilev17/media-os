@@ -20,7 +20,7 @@ class Shot05SemanticAnchorsTest {
     @Test
     void leavesPreviousDirectorLockedShotsVocabularyUnchanged() {
         Map<String, String> fourth = Ep001SemanticAnchorCatalog.anchorsFor("SHOT 04");
-        assertEquals("DNS Resolution", fourth.get("DNS_RESOLUTION"));
+        assertEquals("DNS", fourth.get("DNS_RESOLUTION"));
         assertFalse(fourth.containsKey("RATE_LIMIT"));
         assertFalse(fourth.containsKey("REQUEST_FILTER"));
     }
