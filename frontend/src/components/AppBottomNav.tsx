@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BrainCircuit, FileText, Mic2, Clapperboard } from 'lucide-react';
+import { BrainCircuit, FileText, Mic2, Clapperboard, Layers3 } from 'lucide-react';
 import '../styles/compactBottomNav.css';
 
 type NavItem = {
