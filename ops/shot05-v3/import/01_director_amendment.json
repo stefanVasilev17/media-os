@@ -1,0 +1,875 @@
+{
+  "schemaVersion": "mediaos.locked-script.v1",
+  "episodeNumber": "EP001",
+  "title": "What Really Happens When You Click Login?",
+  "targetDurationSeconds": 1250,
+  "source": "DIRECTOR_APPROVED_SHOT05_C01_V3_2026_10_15_VERSIONED_NO_OTHER_CLIP_CHANGES",
+  "status": "FULLY_LOCKED",
+  "voicePerformance": "Measured, warm educational pacing. SHOT 05 C01: hold 1.25 seconds after SHOT 04 ending before voice begins, and include short narrative pauses; C07: calm guided handoff with 0.45s and 0.65s comprehension holds. Audio sequencing must use actual ElevenLabs alignment. SHOT 01–04 narration and approved video unchanged.",
+  "timeline": [
+    {
+      "sectionId": "SEG-001",
+      "sectionTitle": "The Human Action / Login Intent",
+      "shotKey": "SHOT 01",
+      "startSecond": 0,
+      "endSecond": 7,
+      "narration": "You enter your email, type your password, and press Login.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-002",
+      "sectionTitle": "The Human Action / Login Intent",
+      "shotKey": "SHOT 01",
+      "startSecond": 7,
+      "endSecond": 17,
+      "narration": "At this moment, the app understands your Login Intent: you are asking it to start a sign-in attempt.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-003",
+      "sectionTitle": "The Human Action / Login Intent",
+      "shotKey": "SHOT 01",
+      "startSecond": 17,
+      "endSecond": 31,
+      "narration": "That intent includes the Credential Input you just provided, and the Local UI State that controls what happens on your screen next — for example, showing that the login is being submitted while the app prepares to continue.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-004",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 31,
+      "endSecond": 43,
+      "narration": "Before the app sends anything, it first Validates what you entered. That means checking whether the information needed for this login is present and usable. When that check passes, Submit moves the attempt from editing on the screen into the process of actually sending it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-005",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 43,
+      "endSecond": 53,
+      "narration": "That handoff starts Request Assembly — the step where separate pieces of information are turned into one message the rest of the system can understand.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-006",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 53,
+      "endSecond": 67,
+      "narration": "The first piece is the Payload. This carries the actual login data, such as the identity you entered — for example your email — together with the password or secret you just provided. In our map, that data can be organized as JSON or Form data.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-007",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 67,
+      "endSecond": 81,
+      "narration": "The message also gets Headers. These usually do not contain the main login data. Instead, they describe the message around it. A User-Agent can identify the kind of browser or app that sent it, while Accept can tell the system what kind of response that client knows how to handle.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-008",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 81,
+      "endSecond": 94,
+      "narration": "Then we add Request Context. A Timestamp tells us when this login attempt was created, while Source helps describe where it came from — for example, which client or entry point started the request.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-009",
+      "sectionTitle": "Request Assembly",
+      "shotKey": "SHOT 02",
+      "startSecond": 94,
+      "endSecond": 105,
+      "narration": "Together, these pieces answer three simple questions: what are we sending, how should it be read, and what should the system know about this attempt? By the end of Request Assembly, the login is no longer just a button click. It is a structured message ready to begin its journey through the system.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-010",
+      "sectionTitle": "Ready Does Not Mean Sent",
+      "shotKey": "SHOT 03",
+      "startSecond": 105,
+      "endSecond": 116,
+      "narration": "At this point, Request Assembly has done its job. The Payload is ready, the Headers are attached, and the Request Context gives the message the extra information it needs.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-011",
+      "sectionTitle": "Ready Does Not Mean Sent",
+      "shotKey": "SHOT 03",
+      "startSecond": 116,
+      "endSecond": 128,
+      "narration": "But here is the important part: a message being ready does not mean the rest of the system has received it. Everything we have described so far can still be happening on your side.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-012",
+      "sectionTitle": "Ready Does Not Mean Sent",
+      "shotKey": "SHOT 03",
+      "startSecond": 128,
+      "endSecond": 139,
+      "narration": "Your screen may already show a spinner. The button may already look disabled. From your point of view, login has started.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-013",
+      "sectionTitle": "Ready Does Not Mean Sent",
+      "shotKey": "SHOT 03",
+      "startSecond": 139,
+      "endSecond": 150,
+      "narration": "But Network / Transit may not have carried anything yet. The parts farther ahead — the API Gateway, Load Balancer, Auth Service, and User Database — can still know nothing about this attempt.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-014",
+      "sectionTitle": "Ready Does Not Mean Sent",
+      "shotKey": "SHOT 03",
+      "startSecond": 150,
+      "endSecond": 158,
+      "narration": "You pressed Login, but the wider system may still know nothing about it. Ready is not the same as sent.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-015",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 158,
+      "endSecond": 170,
+      "narration": "Now the prepared login can finally leave the phone. But before it can reach the backend, the system first needs to answer a very practical question: where should this message actually be sent?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-016",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 170,
+      "endSecond": 184,
+      "narration": "That is where DNS Resolution helps. The app usually knows a service by a readable name, but the network needs a concrete destination. Resolve turns that name into the address the request can actually travel toward.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-017",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 184,
+      "endSecond": 194,
+      "narration": "If that answer was already found recently, Cache can reuse it instead of looking it up again. That saves a small amount of time before the login even begins crossing the network.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-018",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 194,
+      "endSecond": 207,
+      "narration": "Once the destination is known, the request moves through Network / Transit. And this part of the journey has its own information: Network Latency tells us how much delay the trip is adding.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-019",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 207,
+      "endSecond": 218,
+      "narration": "One useful measure is RTT — round-trip time — how long it takes for information to travel out and for an answer to come back. Jitter tells us whether that delay stays consistent or keeps changing from one moment to the next.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-020",
+      "sectionTitle": "DNS Resolution / Network Transit",
+      "shotKey": "SHOT 04",
+      "startSecond": 218,
+      "endSecond": 225,
+      "narration": "So even before the login reaches the backend, we already know two important things: where it is going, and how healthy the journey toward that destination looks.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-021",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 225,
+      "endSecond": 242,
+      "narration": "The API Gateway is the first stop for our login request after it crosses the network. It doesn't check your password. Instead, it checks whether the request can continue and where it should go next. And if something is wrong, the login can stop right here.",
+      "voiceDirection": "Gentle story continuation from SHOT 04. Initial 1.25s silence before narration. 0.60s thinking pause after \"going.\"; 0.55s after \"server.\" Only reveal API Gateway on spoken words. Read with calm clarity; do not rush to fill silence."
+    },
+    {
+      "sectionId": "SEG-022",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 242,
+      "endSecond": 263,
+      "narration": "The request must find the right service. The app now uses version two of the login address. But the gateway still knows only version one. It answers 404. The password check never starts. Choosing where a request goes is called routing.",
+      "voiceDirection": "Leave a beat after “Auth Service” so the correct path can be read. Change to diagnostic tone on the deployment mismatch; let the rejection land."
+    },
+    {
+      "sectionId": "SEG-023",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 263,
+      "endSecond": 283,
+      "narration": "The address is right, but the app sends GET instead of POST. The gateway answers 405: Method Not Allowed. POST is for sending login details. GET asks to read data. This difference is called the HTTP method.",
+      "voiceDirection": "Give separate weight to POST and GET. Brief hold after “method not allowed”. Pronounce method names as words, not symbols."
+    },
+    {
+      "sectionId": "SEG-024",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 283,
+      "endSecond": 306,
+      "narration": "The app gets no answer, so it tries again and again. Soon, too many requests arrive. The gateway answers 429: Too Many Requests. A few quick requests are fine. That is a burst. A limit per minute is a quota. Together, these rules are called rate limiting.",
+      "voiceDirection": "Slower for Burst and Quota, then accelerate slightly on “hundreds of automatic retries” and hold on the fact Auth Service is healthy."
+    },
+    {
+      "sectionId": "SEG-025",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 306,
+      "endSecond": 326,
+      "narration": "Some requests look unsafe. A rule stops them. But a bad rule can also stop a normal login. The gateway answers 403: Forbidden. This kind of check is done by a Web Application Firewall, or WAF.",
+      "voiceDirection": "Explain WAF naturally. Pause after “legitimate login”; a clear contrast between a correct request and a false positive."
+    },
+    {
+      "sectionId": "SEG-026",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 326,
+      "endSecond": 344,
+      "narration": "The app should send a field called email. After an update, it sends userEmail instead. The gateway cannot find the field it needs, so it answers 400: Bad Request. This check is called schema validation.",
+      "voiceDirection": "Give viewers time to compare email and userEmail; emphasize that this is a field-name mismatch, not incorrect credentials."
+    },
+    {
+      "sectionId": "SEG-027",
+      "sectionTitle": "API Gateway / Routing — Production Diagnostics",
+      "shotKey": "SHOT 05",
+      "startSecond": 344,
+      "endSecond": 355,
+      "narration": "Those failures were only examples. Our green request passes. Now it reaches another decision: which healthy server should receive it?",
+      "voiceDirection": "Soft reassuring handoff. Pause 0.45s after \"examples.\" and 0.65s after \"passes.\" End on a curious question leading to Load Balancer; do not introduce the next term early."
+    },
+    {
+      "sectionId": "SEG-028",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 355,
+      "endSecond": 368,
+      "narration": "The request has now passed the API Gateway, but the system still has another choice to make. There may be several copies of the login service available, so something has to decide which one should receive this attempt.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-029",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 368,
+      "endSecond": 381,
+      "narration": "That job belongs to the Load Balancer. Its Traffic Distribution rules decide how incoming work is spread across the available destinations instead of sending everything to one place.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-030",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 381,
+      "endSecond": 393,
+      "narration": "One part of that decision is the Route Mode — the rule used to distribute traffic. For example, the system may take turns between available destinations or prefer one that currently has more room to accept work.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-031",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 393,
+      "endSecond": 403,
+      "narration": "A Hash Key can add consistency when needed. It gives the system a stable value it can use when similar requests should be directed toward the same destination instead of being placed randomly each time.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-032",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 403,
+      "endSecond": 415,
+      "narration": "But before choosing anything, the Load Balancer also needs Health Checks. A target marked Healthy is considered ready to receive traffic, while a Timeout can tell us that a target is taking too long to respond and may no longer be a safe choice.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-033",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 415,
+      "endSecond": 427,
+      "narration": "Then comes Target Choice. Instance identifies the actual running copy that can take the login, while Zone tells us which part of the infrastructure that instance belongs to.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-034",
+      "sectionTitle": "Load Balancer / Traffic Distribution",
+      "shotKey": "SHOT 06",
+      "startSecond": 427,
+      "endSecond": 435,
+      "narration": "Together, Traffic Distribution answers one practical question: which healthy destination should do the work, and how do we choose it without making one place carry everything?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-035",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 435,
+      "endSecond": 448,
+      "narration": "The selected destination is the Auth Service — the part of the system responsible for deciding whether this login attempt can move toward a successful sign-in. But it cannot make that decision from the password alone.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-036",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 448,
+      "endSecond": 461,
+      "narration": "First it goes through Validation Steps. These checks help the Auth Service understand what kind of authentication information arrived, whether it can be used, and what still needs to be looked up before a decision is possible.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-037",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 461,
+      "endSecond": 475,
+      "narration": "One of those checks is Token Status. If the request carries an older proof from a previous login, the system can see whether it is Expired — meaning its allowed time has ended — or Revoked, meaning the system deliberately stopped trusting it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-038",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 475,
+      "endSecond": 486,
+      "narration": "For a fresh login like ours, the Auth Service still needs to identify the account behind the credentials. That starts a User Lookup.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-039",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 486,
+      "endSecond": 499,
+      "narration": "The lookup needs something that identifies the account. That may be a User ID, when the system already knows an internal identifier, or a Username such as the email or account name the person entered.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-040",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 499,
+      "endSecond": 510,
+      "narration": "The important point is that the Auth Service does not yet have all the facts it needs. It knows what decision it is responsible for, but the account information itself lives somewhere else.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-041",
+      "sectionTitle": "Auth Service / Validation Steps",
+      "shotKey": "SHOT 07",
+      "startSecond": 510,
+      "endSecond": 520,
+      "narration": "Together, these Validation Steps answer three questions: is there an older proof we can still trust, which account are we talking about, and what information do we still need before we can decide?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-042",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 520,
+      "endSecond": 533,
+      "narration": "That missing information lives in the User Database. The Auth Service sends its User Lookup here because this is where the system keeps the account data needed to understand who this login belongs to and whether that account can continue.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-043",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 533,
+      "endSecond": 547,
+      "narration": "The first group is User Data. Profile can contain the identity information connected to the account, while Settings can hold choices and account-specific configuration that change how that user should be treated.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-044",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 547,
+      "endSecond": 562,
+      "narration": "The database can also return the stored information needed to check the password. That does not mean sending the original plaintext password back to the Auth Service. The system only needs a stored representation that lets it answer whether what you entered matches what this account expects.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-045",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 562,
+      "endSecond": 576,
+      "narration": "Then we have Access Rights. A Role can describe the broader responsibility of the account — for example, a regular user or an administrator — while Scopes can describe more specific actions that account may be allowed to perform.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-046",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 576,
+      "endSecond": 587,
+      "narration": "Those access details do not decide whether the password is correct. They answer a different question: if this person is successfully identified, what should the system allow that identity to do afterward?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-047",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 587,
+      "endSecond": 599,
+      "narration": "Our map also keeps Session Management close to this account information. Create represents starting new remembered login state after a successful decision, while Refresh represents extending or replacing that state when the system allows it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-048",
+      "sectionTitle": "User Database / User Data",
+      "shotKey": "SHOT 08",
+      "startSecond": 599,
+      "endSecond": 610,
+      "narration": "Together, the User Database gives the Auth Service the facts it was missing: which account this is, whether the submitted secret can be accepted, what that identity may be allowed to do, and what account state should influence the journey next.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-049",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 610,
+      "endSecond": 624,
+      "narration": "Now imagine that the Auth Service is working normally. It received the Login Request, created the User Lookup, and is ready to continue as soon as the account information comes back.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-050",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 624,
+      "endSecond": 638,
+      "narration": "But this time, the User Database is slow. The Auth Service is not broken. It is simply waiting for a dependency it needs before it can make the next decision.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-051",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 638,
+      "endSecond": 650,
+      "narration": "That distinction matters. A service can be completely healthy on its own and still be part of a login journey that feels broken to the person using it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-052",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 650,
+      "endSecond": 663,
+      "narration": "While the User Lookup waits, time keeps passing. The phone still shows a spinner, and the system has less time left to finish the login before that attempt has to be abandoned.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-053",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 663,
+      "endSecond": 677,
+      "narration": "The Auth Service is healthy, but Login is still broken. The reason is simple — the user does not experience one service. The user experiences the full chain of things that service depends on.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-054",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 677,
+      "endSecond": 690,
+      "narration": "If the User Database finally answers in time, the journey can continue. But if the wait becomes too long, the Auth Service can no longer safely keep this attempt open forever.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-055",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 690,
+      "endSecond": 699,
+      "narration": "At that point, the successful path stops and the system prepares a Failure Response instead — a result that tells the client this login attempt did not complete successfully.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-056",
+      "sectionTitle": "Healthy Auth Service, Broken Login",
+      "shotKey": "SHOT 09",
+      "startSecond": 699,
+      "endSecond": 705,
+      "narration": "So a green service does not prove a healthy login. End-to-end health depends on every critical dependency returning what the journey needs, in time.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-057",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 705,
+      "endSecond": 722,
+      "narration": "A slow database is only one way the journey can stop. Imagine the app already has an older Expired Session from a previous login. The user may still look signed in for a moment, but once that Session timed out, the system can no longer rely on it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-058",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 722,
+      "endSecond": 739,
+      "narration": "If the relationship is still allowed to continue, the app may try to Refresh expired token and get a new proof without asking for the password again. But when that trust can no longer be extended, the journey falls back to Fresh Auth Required — the person has to sign in again.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-059",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 739,
+      "endSecond": 756,
+      "narration": "Sometimes the problem is not age but the proof itself. A request may arrive with an Invalid Token because the Signature no longer checks out, the token is Malformed, or the system simply does not recognize it as something it is willing to trust.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-060",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 756,
+      "endSecond": 774,
+      "narration": "And even perfect credentials cannot override the state of the account. If Account Status says Account Locked, perhaps after suspicious activity, the login stops there. If the account is Disabled, the system has been told not to let that identity continue at all.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-061",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 774,
+      "endSecond": 788,
+      "narration": "There are also cases where the system cannot resolve the situation automatically. That is where Contact Support enters the story: the normal login path has reached a point where a human or another recovery process has to take over.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-062",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 788,
+      "endSecond": 804,
+      "narration": "All of these paths eventually converge on the same decision. Instead of creating trusted authentication state, the system moves toward Access Denied and prepares a Failure Response that travels back to the app.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-063",
+      "sectionTitle": "When Trust Breaks Along the Way",
+      "shotKey": "SHOT 10",
+      "startSecond": 804,
+      "endSecond": 820,
+      "narration": "The person may only see ‘Try Again’ on the phone, but behind that small message could be an expired session, a proof the system no longer trusts, or an account that is not allowed to continue. The screen shows one failure. The architecture knows why.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-064",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 820,
+      "endSecond": 834,
+      "narration": "Now return to the successful path. The User Database answers in time, and the Auth Service finally has the account information it was waiting for.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-065",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 834,
+      "endSecond": 849,
+      "narration": "The password you entered is not compared with some readable copy stored in the database. Instead, the Auth Service uses the stored credential representation to check whether the secret you submitted matches what this account expects.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-066",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 849,
+      "endSecond": 861,
+      "narration": "This time, it matches. The account is allowed to continue, the check succeeds, and for a moment it feels like the story should be over.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-067",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 861,
+      "endSecond": 874,
+      "narration": "But the phone is not logged in yet. The Auth Service has answered a question about this login attempt — the credentials are valid — but that answer only exists at this point in the journey.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-068",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 874,
+      "endSecond": 887,
+      "narration": "Think about what happens one minute later. You open another page or perform another action. The system should not ask for your password again every single time.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-069",
+      "sectionTitle": "Correct Password, But Not Logged In Yet",
+      "shotKey": "SHOT 11",
+      "startSecond": 887,
+      "endSecond": 900,
+      "narration": "So a successful password check has to become something the system can remember and trust after this request is gone. That is why the journey now moves toward Authentication State. A correct password proves the login attempt. It does not, by itself, keep you logged in.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-070",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 900,
+      "endSecond": 915,
+      "narration": "The Auth Service has accepted the login, but now that decision has to survive beyond this single request. That is the job of Authentication State — turning a successful check into proof the system can recognize again later.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-071",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 915,
+      "endSecond": 932,
+      "narration": "Inside Session Creation, different systems can represent that proof in different ways. One design may create a Session ID, a unique reference that points back to remembered login state. Another may issue a Token, such as a JSON Web Token — JWT — that carries enough trusted information for later requests to prove who the user is.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-072",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 932,
+      "endSecond": 944,
+      "narration": "Whichever form is used, that trust should not last forever. A TTL — Time To Live — gives it a lifetime, so the system knows when this remembered authentication should stop being accepted and the person needs to prove themselves again.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-073",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 944,
+      "endSecond": 959,
+      "narration": "Now that proof has to make its way back to the app. In a browser-based flow, it may travel inside a Cookie, and a Set-Cookie instruction in the response tells the browser to store it so it can be included automatically when the next request is made.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-074",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 959,
+      "endSecond": 973,
+      "narration": "At the same time, Response Prep gets the successful answer ready for the return journey. It may include the User Data the screen needs immediately — perhaps the user’s name or basic profile information — without sending the entire account record back.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-075",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 973,
+      "endSecond": 985,
+      "narration": "It can also include a Redirect, telling the app where the successful journey should continue — for example, away from the Login screen and toward the authenticated part of the product.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-076",
+      "sectionTitle": "Authentication State / Session Creation",
+      "shotKey": "SHOT 12",
+      "startSecond": 985,
+      "endSecond": 995,
+      "narration": "And this is the real transformation: the password was used to prove the login once; Authentication State creates the proof that future requests can use instead.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-077",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 995,
+      "endSecond": 1008,
+      "narration": "The system now has something it did not have when you first pressed Login: a trusted Authentication State that future requests can use. That changes what the app is allowed to do next.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-078",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 1008,
+      "endSecond": 1022,
+      "narration": "This is where Route Decision becomes useful. The system can see that the session is Confirmed, the user is Authenticated, and the identity from that login can now be applied to the next part of the experience.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-079",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 1022,
+      "endSecond": 1037,
+      "narration": "Instead of sending the person back to Login, the response can carry a Redirect toward the Dashboard — the part of the product that should only become available after authentication succeeds.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-080",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 1037,
+      "endSecond": 1052,
+      "narration": "And once Identity Applied is true, the system is no longer dealing with an anonymous request. It can connect the next actions to the user who just signed in and make the appropriate access available.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-081",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 1052,
+      "endSecond": 1063,
+      "narration": "That is the moment the technical journey finally becomes visible to the person. The spinner disappears, the Login screen gives way, and the authenticated experience appears.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-082",
+      "sectionTitle": "Route Decision / Logged-In UI",
+      "shotKey": "SHOT 13",
+      "startSecond": 1063,
+      "endSecond": 1070,
+      "narration": "What looked like one button press has now become something much more important: the system has moved from ‘someone is claiming this identity’ to ‘this is an identity we are prepared to trust.’",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-083",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1070,
+      "endSecond": 1084,
+      "narration": "But being logged in once does not mean the app will keep that exact state forever. Time passes, the person closes the app, comes back later, and the system may need to rebuild enough trusted context to continue without starting the whole login journey again.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-084",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1084,
+      "endSecond": 1099,
+      "narration": "That is where the Session Restore Flow comes in. Instead of immediately asking for the password again, the app can try to Use Refresh Token — a longer-lived piece of proof whose job is to help request a fresh authentication proof when the previous one is no longer usable.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-085",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1099,
+      "endSecond": 1113,
+      "narration": "If the system accepts that request, it can issue a new token and then Validate New Token before trusting it. The point is simple: even a replacement proof has to be checked before the app can continue as if the earlier login still matters.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-086",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1113,
+      "endSecond": 1127,
+      "narration": "Once that new proof is accepted, the system can Restore Session Context — rebuilding the information the app needs to know who is signed in and what authenticated state should now be active again.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-087",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1127,
+      "endSecond": 1139,
+      "narration": "To the person, this may look almost invisible. They reopen the app and return to the authenticated experience without typing the password again. Behind that smooth return, the system has quietly rebuilt trust instead of assuming it.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-088",
+      "sectionTitle": "Session Restore Flow",
+      "shotKey": "SHOT 14",
+      "startSecond": 1139,
+      "endSecond": 1150,
+      "narration": "And that creates the next question naturally: if the password is not sent again every time, how does every new request prove who you are?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-089",
+      "sectionTitle": "What Really Happened When You Clicked Login",
+      "shotKey": "SHOT 15",
+      "startSecond": 1150,
+      "endSecond": 1164,
+      "narration": "Now zoom back out to the moment where this story started. You entered two pieces of information and pressed one button. On the screen, almost nothing happened — just a short wait before the Dashboard appeared.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-090",
+      "sectionTitle": "What Really Happened When You Clicked Login",
+      "shotKey": "SHOT 15",
+      "startSecond": 1164,
+      "endSecond": 1178,
+      "narration": "But underneath that moment, your Login Request was assembled, found its destination, passed through the API Gateway, was routed through the Load Balancer, and reached the Auth Service that had to decide whether your claim could be trusted.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-091",
+      "sectionTitle": "What Really Happened When You Clicked Login",
+      "shotKey": "SHOT 15",
+      "startSecond": 1178,
+      "endSecond": 1192,
+      "narration": "That decision depended on User Data, could fail because another part of the system was slow, and still was not enough on its own. Only when the successful check became Authentication State did the system have something future requests could rely on.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-092",
+      "sectionTitle": "What Really Happened When You Clicked Login",
+      "shotKey": "SHOT 15",
+      "startSecond": 1192,
+      "endSecond": 1205,
+      "narration": "So Login is not a password check. It is a journey that turns a human claim into trusted system state. And the next time the system sees you, it will not need to start that journey from the beginning.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-093",
+      "sectionTitle": "The Next Request",
+      "shotKey": "SHOT 16",
+      "startSecond": 1205,
+      "endSecond": 1217,
+      "narration": "A few seconds later, you click something inside the Dashboard and another request leaves the app. But this time, something important is missing: your password is not being sent again.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-094",
+      "sectionTitle": "The Next Request",
+      "shotKey": "SHOT 16",
+      "startSecond": 1217,
+      "endSecond": 1230,
+      "narration": "Instead, the request can carry the authentication proof created during Login — perhaps through a Session ID, a Cookie, or a JSON Web Token — so the system can connect this new action to the identity it already trusted.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-095",
+      "sectionTitle": "The Next Request",
+      "shotKey": "SHOT 16",
+      "startSecond": 1230,
+      "endSecond": 1241,
+      "narration": "That sounds convenient, but it creates a new architectural problem. Every new request now depends on the system recognizing that proof, checking whether it is still valid, and rebuilding enough identity context to know who is acting.",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    },
+    {
+      "sectionId": "SEG-096",
+      "sectionTitle": "The Next Request",
+      "shotKey": "SHOT 16",
+      "startSecond": 1241,
+      "endSecond": 1250,
+      "narration": "So the next question is no longer how you log in. It is this: once the password is gone, how does the system remember who you are?",
+      "voiceDirection": "Preserve existing approved delivery and audio. This metadata is a migration placeholder: reuse authoritative existing voice alignment for any already rendered/locked shot. Speak naturally as a technical story."
+    }
+  ]
+}
