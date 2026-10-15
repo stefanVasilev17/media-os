@@ -57,7 +57,9 @@ export function App() {
   }
 
   let page: ReactNode;
-  if (hash.startsWith('#/agents/script')) {
+  if (hash.startsWith('#/studio')) {
+    page = <ShotStudioPage />;
+  } else if (hash.startsWith('#/agents/script')) {
     page = <ScriptAgentPage />;
   } else if (hash.startsWith('#/agents/voice')) {
     page = <VoiceAgentPage />;
