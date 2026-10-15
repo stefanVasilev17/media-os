@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -95,7 +98,10 @@ public class DirectorScriptAmendmentController {
         Map<String, Object> base = (Map<String, Object>) current.get("artifact");
         List<Map<String, Object>> before = rows(base.get("timeline"));
         List<LockedScriptImportController.TimelineBlock> after = request.timeline();
-        validate(before, after, request.targetDurationSeconds(), number(base.get("targetDurationSeconds")));
+        List<LockedScriptImportController.TimelineBlock> approvedShot = scopedApprovedShot05(before, after);
+        int originalStart = number(grouped(before).get("SHOT 05").get(0).get("startSecond"));
+        int suppliedStart = approvedShot.get(0).startSecond();
+        int effectiveTarget = number(base.get("targetDurationSeconds")) + 50;
 
         Map<String, List<Map<String, Object>>> oldByShot = grouped(before);
         Map<String, Object> amended = new LinkedHashMap<>(base);
@@ -103,14 +109,13 @@ public class DirectorScriptAmendmentController {
         for (int shotIndex = 1; shotIndex <= 16; shotIndex++) {
             String shotKey = shot(shotIndex);
             if (shotIndex == 5) {
-                for (var block : after) {
-                    if (!shotKey.equals(block.shotKey())) continue;
+                for (var block : approvedShot) {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("sectionId", block.sectionId());
                     row.put("sectionTitle", block.sectionTitle());
                     row.put("shotKey", shotKey);
-                    row.put("startSecond", block.startSecond());
-                    row.put("endSecond", block.endSecond());
+                    row.put("startSecond", originalStart + block.startSecond() - suppliedStart);
+                    row.put("endSecond", originalStart + block.endSecond() - suppliedStart);
                     row.put("narration", block.narration());
                     row.put("voiceDirection", block.voiceDirection());
                     row.put("purpose", "Director-approved SHOT 05 amendment; Concept First, Term Second.");
@@ -136,7 +141,7 @@ public class DirectorScriptAmendmentController {
             }
         }
         amended.put("timeline", effectiveTimeline);
-        amended.put("targetDurationSeconds", request.targetDurationSeconds());
+        amended.put("targetDurationSeconds", effectiveTarget);
         amended.put("directorAmendment", "SHOT 05 | Concept First, Term Second | +50s downstream planning clock");
         String json = write(amended);
         jdbc.sql("""
@@ -152,7 +157,9 @@ public class DirectorScriptAmendmentController {
         return Map.of(
                 "ready", true,
                 "scriptRevision", revision,
-                "targetDurationSeconds", request.targetDurationSeconds(),
+                "targetDurationSeconds", effectiveTarget,
+                "effectiveShot05StartSecond", originalStart,
+                "effectiveShot05EndSecond", originalStart + 130,
                 "timelineBlocks", effectiveTimeline.size(),
                 "preservedDirectorLockedShots", List.of("SHOT 01", "SHOT 02", "SHOT 03", "SHOT 04"),
                 "message", "Director SHOT 05 amendment accepted. Import SHOT 05 HEAR/SEE next."
@@ -170,6 +177,56 @@ public class DirectorScriptAmendmentController {
                 .optional()
                 .map(this::read)
                 .orElse(original);
+    }
+
+    private static final String APPROVED_NARRATION_SHA256 =
+            "a7d4ddce77e70013b8a9ab384bc2baba5f80440f4a5d911dd0799c34355e58d8";
+
+    static List<LockedScriptImportController.TimelineBlock> scopedApprovedShot05(
+            List<Map<String, Object>> canonical,
+            List<LockedScriptImportController.TimelineBlock> supplied
+    ) {
+        Map<String, List<Map<String, Object>>> oldByShot = grouped(canonical);
+        List<Map<String, Object>> original = oldByShot.getOrDefault("SHOT 05", List.of());
+        if (original.isEmpty() || original.get(0).get("startSecond") == null) {
+            throw conflict("The current LOCKED Script has no SHOT 05. Import stopped.");
+        }
+        int start = number(original.get(0).get("startSecond"));
+        int end = number(original.get(original.size() - 1).get("endSecond"));
+        if (end - start != 80) {
+            throw conflict("Current SHOT 05 is " + (end-start) + " seconds, expected 80. Review required.");
+        }
+        List<LockedScriptImportController.TimelineBlock> shot = supplied.stream()
+                .filter(x -> "SHOT 05".equals(x.shotKey())).toList();
+        if (shot.size() != 7) {
+            throw conflict("The approved SHOT 05 must contain exactly seven voice blocks.");
+        }
+        int cursor = shot.get(0).startSecond();
+        int origin = cursor;
+        StringBuilder narration = new StringBuilder();
+        for (int i = 0; i < shot.size(); i++) {
+            var block = shot.get(i);
+            if (block.startSecond() != cursor || block.endSecond() <= cursor
+                    || block.narration() == null || block.narration().isBlank()) {
+                throw conflict("SHOT 05 contains a gap, overlap, or empty narration at clip " + (i+1) + ".");
+            }
+            cursor = block.endSecond();
+            if (i > 0) narration.append('\n');
+            narration.append(block.narration());
+        }
+        if (cursor - origin != 130) {
+            throw conflict("The seven approved SHOT 05 blocks must total 130 seconds.");
+        }
+        try {
+            byte[] checksum = MessageDigest.getInstance("SHA-256")
+                    .digest(narration.toString().getBytes(StandardCharsets.UTF_8));
+            if (!APPROVED_NARRATION_SHA256.equals(HexFormat.of().formatHex(checksum))) {
+                throw conflict("SHOT 05 text does not match the Director-approved Simple English script.");
+            }
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is unavailable.", ex);
+        }
+        return shot;
     }
 
     static void validate(
