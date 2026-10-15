@@ -217,6 +217,52 @@ public class ShotStudioController {
         invalidatePreview((UUID)old.get("shotId"));
         return clip(id,false);
     }
+    @Transactional
+    @PostMapping("/shots/{id}/reuse-existing-voices")
+    public Map<String,Object> reuseOriginalVoices(@PathVariable UUID id) {
+        Map<String,Object> current=shot(id);
+        if(current.get("sourceShotKey")==null || current.get("sourceScriptRevision")==null)
+            throw conflict("Only an original EP001 Director working copy can reuse the original voice recordings.");
+
+        db.sql("select id from studio_shot where id=:id and episode_id=:episode for update")
+            .param("id",id).param("episode",EPISODE).query(UUID.class).single();
+
+        int reused=db.sql("""
+            update studio_clip target
+            set generated_audio=original.generated_audio,
+                generated_audio_content_type=coalesce(original.generated_audio_content_type,'audio/mpeg'),
+                generated_alignment=original.generated_alignment,
+                generated_at=coalesce(original.voice_generated_at,now()),
+                generation_revision=greatest(target.generation_revision+1,1),
+                approved_at=original.voice_approved_at,
+                updated_at=now()
+            from studio_shot source, voice_clip_workflow original
+            where target.shot_id=source.id
+              and source.id=:id and source.episode_id=:episode
+              and source.legacy_source_shot_key is not null
+              and original.episode_id=source.episode_id
+              and original.shot_key=source.legacy_source_shot_key
+              and original.script_revision=source.legacy_source_script_revision
+              and original.sequence_no=target.sequence
+              and target.locked_at is not null
+              and target.generated_audio is null and target.approved_at is null
+              and target.narration=coalesce(original.director_narration_override,original.narration)
+              and target.voice_direction=coalesce(original.voice_direction,'')
+              and original.generated_audio is not null
+              and octet_length(original.generated_audio)>0
+              and original.generated_alignment is not null
+            """).param("id",id).param("episode",EPISODE).update();
+
+        if(reused>0)invalidatePreview(id);
+        Map<String,Object> answer=new LinkedHashMap<>();
+        answer.put("reusedClips",reused);
+        long voiceApproved=((List<?>)shot(id).get("clips")).stream()
+            .filter(value->value instanceof Map<?,?> m && m.get("approvedAt")!=null).count();
+        answer.put("approvedClips",voiceApproved);
+        answer.put("shot",shot(id));
+        return answer;
+    }
+
     @PostMapping("/clips/{id}/approve")
     @Transactional
     public Map<String,Object> approve(@PathVariable UUID id){

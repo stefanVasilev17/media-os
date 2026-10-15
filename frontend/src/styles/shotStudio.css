@@ -93,3 +93,14 @@
  .studio-legacy-mirror .studio-section-head{align-items:start}
  .studio-legacy-audio audio{min-height:44px}
 }
+
+.studio-reuse-panel{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+  margin-bottom:16px;padding:14px 16px;background:#122b3e;border:1px solid #335d7a;border-radius:13px}
+.studio-reuse-panel>div{flex:1 1 220px}
+.studio-reuse-panel strong{color:#d5eeff;font-size:14px}
+.studio-reuse-panel p{margin:5px 0 0}
+.studio-reuse-panel button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  border:1px solid #3b9cca;background:#1c5579;color:#f0f9ff;font:inherit;font-size:13px;font-weight:740;
+  border-radius:10px;padding:11px 14px;white-space:normal;text-align:center}
+.studio-reuse-panel button:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:850px){.studio-reuse-panel button{width:100%}}
