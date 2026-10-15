@@ -249,6 +249,7 @@ public class ShotStudioController {
               and target.narration=coalesce(original.director_narration_override,original.narration)
               and target.voice_direction=coalesce(original.voice_direction,'')
               and original.generated_audio is not null
+              and octet_length(original.generated_audio)>0
               and original.generated_alignment is not null
             """).param("id",id).param("episode",EPISODE).update();
 
