@@ -137,11 +137,7 @@ def generate_changed_voice_clips(script_revision):
         if clip.get("generated"):
             print("Preserved existing v2 TTS draft: " + key)
             continue
-        direction = directions[key]
-        if key.endswith("C01"):
-            direction = "Natural calm English storytelling. No added opening silence: the 1.25s pause is in the final editing timeline. Pause briefly after 'going' and 'server'."
-        elif key.endswith("C07"):
-            direction = "Calm reflective handoff. Pause after 'examples' and 'passes'. Give the closing question space; avoid rushing into the next scene."
+        direction = "calm, conversational, confident"
         payload = {
             "scriptRevision": script_revision,
             "voiceSettings": {},
