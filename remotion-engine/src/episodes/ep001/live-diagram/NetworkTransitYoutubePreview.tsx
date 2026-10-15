@@ -21,7 +21,8 @@ const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isF
   ?Math.max(0,anchors[key]*30):fallback;
 
 export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride})=>{
-  const frame=frameOverride??useCurrentFrame();
+  const currentFrame=useCurrentFrame();
+  const frame=frameOverride??currentFrame;
   const t={
     release:cue(anchors,'PREPARED_LOGIN',SHOT04.release),
     destinationQuestion:cue(anchors,'WHERE_SENT',SHOT04.destinationQuestion),
