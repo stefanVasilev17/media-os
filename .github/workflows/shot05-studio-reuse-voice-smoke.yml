@@ -1,9 +1,7 @@
 name: EP001 Shot Studio reuse original voices
+# Manual-only: never block a Railway deployment while waiting for the endpoint.
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/shot05-studio-reuse-voice-smoke.yml'
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
