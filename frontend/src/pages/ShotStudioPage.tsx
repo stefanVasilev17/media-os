@@ -267,10 +267,10 @@ export function ShotStudioPage() {
               </div>
               {isGatewayDirector?<div className="studio-director-workflow">
                 <h4>Voice-synchronized Director Visual Plan</h4>
-                <p>API Gateway · Existing cinematic Living Map · seven working examples · exact spoken status timing. The JSON is compiled locally from approved voice alignment with no additional AI or ElevenLabs charges.</p>
+                <p>API Gateway · Existing cinematic Living Map · seven real examples · status codes triggered on the exact spoken word. The registered Director recipe can plan from approved voices automatically; optional saved directions are retained for review. No AI or ElevenLabs charges.</p>
                 <div className="studio-buttons">
                   <button type="button" className="studio-primary"
-                    disabled={busy||!voiceReady||!visual.trim()||visualDirty}
+                    disabled={busy||!voiceReady||visualDirty}
                     onClick={()=>void run(async()=>{const result=await studio.generateVisualPlan(shot.id);
                       setDirectorPlan(result);},'Director JSON timeline compiled and validated against approved C01–C07 audio.')}>
                     <FileText size={15}/> Generate Visual Plan
