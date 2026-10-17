@@ -1,6 +1,6 @@
 import React from 'react';
 import {Easing,interpolate,useCurrentFrame} from 'remotion';
-import {ATCameraRig,AT_FONT} from '../../../components/architectural-thinking';
+import {AT_FONT} from '../../../components/architectural-thinking';
 import {NetworkTransitYoutubePreview} from './NetworkTransitYoutubePreview';
 import {SHOT04_DURATION_FRAMES} from './shot04Timing';
 
@@ -11,259 +11,315 @@ type Props={
   statusFrames?:Record<string,number>;
 };
 
-type Case={
-  prompt:string;
-  outcome:string;
-  name:string;
-  anchor:string;
-};
-
 const FPS=30;
 const C={
-  bright:'#E9F3FF',
-  muted:'#A5BED6',
-  dim:'#66809A',
-  green:'#5AEFC3',
-  amber:'#FFD07C',
-  red:'#FF849A',
-  purple:'#B59BFF',
-  blue:'#73C8FF',
+  bright:'#EFF6FF',muted:'#A3BDD6',green:'#58EAC0',
+  purple:'#B7A2FF',amber:'#FFD28B',red:'#FF8EA0',blue:'#86C8F7',
 };
-const CASES:Case[]=[
-  {prompt:'The request reaches its first server-side check',outcome:'PASSWORD NOT CHECKED',name:'API GATEWAY',anchor:'API_GATEWAY'},
-  {prompt:'Same service. Two different addresses.',outcome:'404 · NO ROUTE',name:'ROUTING',anchor:'ROUTING'},
-  {prompt:'Same address. Different request actions.',outcome:'405 · METHOD NOT ALLOWED',name:'HTTP METHOD',anchor:'METHOD'},
-  {prompt:'Retries pile up faster than the limit.',outcome:'429 · TOO MANY REQUESTS',name:'RATE LIMITING',anchor:'RATE_LIMIT'},
-  {prompt:'A rule can stop even a normal login.',outcome:'403 · FORBIDDEN',name:'WEB APPLICATION FIREWALL',anchor:'WAF'},
-  {prompt:'The expected field cannot be found.',outcome:'400 · BAD REQUEST',name:'SCHEMA VALIDATION',anchor:'SCHEMA'},
-  {prompt:'The real request passes every check.',outcome:'ALLOWED',name:'NEXT · HEALTHY SERVER',anchor:'REQUEST_ALLOWED'},
-];
-const clamp=(n:number)=>Math.max(0,Math.min(1,n));
-const ease=(frame:number,start:number,end:number)=>interpolate(frame,[start,Math.max(start+1,end)],[0,1],{
+const font:React.CSSProperties={fontFamily:AT_FONT,color:C.bright};
+const mono:React.CSSProperties={fontFamily:'Consolas,Menlo,monospace',fontWeight:730};
+const clamp=(v:number)=>Math.max(0,Math.min(1,v));
+const move=(frame:number,start:number,end:number)=>interpolate(frame,[start,Math.max(start+1,end)],[0,1],{
   extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic),
 });
-const appear=(frame:number,start:number,end:number)=>interpolate(frame,[start,Math.max(start+1,end)],[0,1],{
+const enter=(frame:number,start:number,end:number)=>interpolate(frame,[start,Math.max(start+1,end)],[0,1],{
   extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.out(Easing.cubic),
 });
-const Font:React.CSSProperties={fontFamily:AT_FONT,color:C.bright};
-const mono:React.CSSProperties={fontFamily:'Consolas,Menlo,monospace',fontWeight:760};
+const timing=(seconds:Record<string,number>,name:string)=>Number.isFinite(seconds[name])?seconds[name]*FPS:undefined;
+const FIRST=38;
+const DEFAULT_STARTS=[0,17,38,58,81,101,119];
+const FOCUS=[
+  ['Routing','Path'],['Routing','Path'],['Routing','Method'],
+  ['Rate Limit','Burst'],['Request Filter','WAF'],['Request Filter','Schema'],
+  ['Routing','Path'],
+] as const;
 
-const SmallPacket:React.FC<{x:number;y:number;color:string;size?:number;opacity?:number}>=({x,y,color,size=12,opacity=1})=>(
-  <g opacity={opacity}>
-    <circle cx={x} cy={y} r={size+12} fill={color} opacity={.08}/>
-    <circle cx={x} cy={y} r={size} fill={color} opacity={.90}/>
-    <circle cx={x-3} cy={y-3} r={Math.max(2,size*.25)} fill="white" opacity={.7}/>
-  </g>
-);
-
-const CasePanel:React.FC<{children:React.ReactNode;opacity:number;phase:number;label:string}>=({children,opacity,phase,label})=>(
-  <div style={{position:'absolute',left:1260,top:242,width:556,height:636,borderRadius:25,
-    border:'1px solid rgba(100,150,190,.26)',background:'linear-gradient(155deg,rgba(6,20,37,.94),rgba(5,14,28,.96))',
-    boxShadow:'0 18px 65px rgba(0,0,0,.19)',opacity,pointerEvents:'none',...Font}}>
-    <div style={{margin:'30px 34px 0',fontSize:17,fontWeight:850,letterSpacing:'.14em',color:C.muted}}>
-      WORKING EXAMPLE {String(phase).padStart(2,'0')} / 06
+const Tile:React.FC<{label:string;value:string;mode?:'active'|'dim'|'good'|'error'|'warning';small?:boolean}>=({
+  label,value,mode='dim',small=false
+})=>{
+  const active=mode!=='dim';
+  const color=mode==='error'?C.red:mode==='warning'?C.amber:mode==='good'?C.green:active?C.blue:C.muted;
+  return <div style={{borderRadius:14,border:'1px solid '+(active?color+'99':'rgba(89,139,180,.22)'),
+    background:active?'rgba(26,62,92,.76)':'rgba(8,26,45,.74)',
+    boxShadow:active?'0 0 23px '+color+'18':'none',padding:small?'12px 14px':'18px 20px',
+    display:'flex',alignItems:'center',justifyContent:'space-between',gap:15,minHeight:small?59:74}}>
+    <span style={{color:active?'#D7E5F4':C.muted,fontSize:small?19:23,fontWeight:670}}>{label}</span>
+    <span style={{color,fontSize:small?20:25,...mono,textAlign:'right'}}>{value}</span>
+  </div>;
+};
+const Module:React.FC<{name:string;items:string[];active:string;selected:string}>=({
+  name,items,active,selected
+})=>{
+  const highlighted=name===active;
+  return <div style={{borderRadius:20,border:'2px solid '+(highlighted?'rgba(143,193,254,.75)':'rgba(80,121,171,.20)'),
+    background:highlighted?'linear-gradient(145deg,rgba(33,64,93,.88),rgba(10,31,56,.96))':'rgba(7,24,44,.71)',
+    boxShadow:highlighted?'0 0 25px rgba(110,165,255,.14)':'none',
+    padding:'23px 23px 21px',minHeight:150,opacity:highlighted?1:.66}}>
+    <div style={{fontSize:23,fontWeight:810,color:highlighted?C.bright:C.muted,
+      marginBottom:18,letterSpacing:'.015em'}}>{name}</div>
+    <div style={{display:'flex',gap:11}}>
+      {items.map(item=><div key={item} style={{flex:1,borderRadius:9,
+        background:highlighted&&item===selected?'rgba(37,116,113,.36)':'rgba(4,19,35,.52)',
+        border:'1px solid '+(highlighted&&item===selected?C.green+'88':'rgba(86,131,166,.27)'),
+        padding:'11px 4px',fontSize:18,textAlign:'center',fontWeight:750,
+        color:highlighted&&item===selected?C.green:C.muted}}>{item}</div>)}
     </div>
-    <div style={{margin:'12px 34px 0',fontSize:29,lineHeight:1.18,fontWeight:820,maxWidth:472}}>{label}</div>
-    <div style={{position:'relative',height:494,margin:'18px 24px 12px',borderTop:'1px solid rgba(115,172,213,.15)'}}>{children}</div>
-  </div>
-);
-
-const Result:React.FC<{text:string;progress:number;color?:string;top?:number}>=({text,progress,color=C.red,top=395})=>(
-  <div style={{position:'absolute',left:22,right:22,top,padding:'17px 20px',borderRadius:13,
-    border:`1px solid ${color}88`,background:'rgba(12,26,42,.94)',opacity:progress,
-    transform:`translateY(${(1-progress)*13}px)`,fontSize:29,fontWeight:850,color}}>{text}</div>
-);
-
-const CaseAnimation:React.FC<{phase:number;local:number;segmentFrames:number;spokenStatusAt?:number}>=({phase,local,segmentFrames,spokenStatusAt})=>{
-  const q=(fraction:number)=>Math.round(segmentFrames*fraction);
-  const step=(a:number,b:number)=>appear(local,q(a),q(b));
-  const before=step(.11,.29);
-  const mismatch=step(.30,.52);
-  const error=Number.isFinite(spokenStatusAt)
-    ? appear(local,Math.max(0,spokenStatusAt!),Math.max(0,spokenStatusAt!)+15)
-    : step(.57,.75);
-  const line:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 18px',
-    border:'1px solid rgba(118,172,212,.23)',borderRadius:12,background:'rgba(13,34,57,.8)',fontSize:23};
-  if(phase===1){
-    return <>
-      <div style={{position:'absolute',top:29,left:18,right:18,opacity:before,...line}}>
-        <span style={{color:C.green,...mono}}>POST /api/v1/login</span><span style={{color:C.green,fontSize:21}}>✓</span>
-      </div>
-      <svg viewBox="0 0 508 280" width="508" height="280" style={{position:'absolute',top:107,left:0}}>
-        <path d="M 44 52 H 210 Q 233 52 233 77 V 91 H 387" fill="none" stroke={C.green} strokeWidth="3" opacity={before}/>
-        <rect x="343" y="76" width="147" height="56" rx="11" fill="rgba(36,104,86,.35)" stroke={C.green} opacity={before}/>
-        <text x="416" y="110" textAnchor="middle" fontSize="21" fill={C.green} opacity={before}>auth-service</text>
-        <path d="M 44 186 H 240" fill="none" stroke={C.amber} strokeWidth="3" strokeDasharray="9 9" opacity={mismatch}/>
-        <circle cx="261" cy="186" r="17" stroke={C.red} strokeWidth="3" fill="none" opacity={error}/>
-        <path d="M 251 176 L 271 196 M 271 176 L 251 196" stroke={C.red} strokeWidth="3" opacity={error}/>
-        <SmallPacket x={44+190*step(.31,.58)} y={186} color={C.amber} opacity={mismatch*(1-error*.65)}/>
-        <text x="44" y="166" fontSize="21" fill={C.amber} opacity={mismatch}>POST /api/v2/login</text>
-        <text x="279" y="194" fontSize="20" fill={C.red} opacity={error}>NO PATH</text>
-      </svg>
-      <Result text="404 · UPSTREAM NOT CALLED" progress={error} top={391}/>
-    </>;
-  }
-  if(phase===2){
-    return <>
-      <div style={{position:'absolute',top:27,left:22,right:22,padding:16,borderRadius:12,fontSize:25,textAlign:'center',border:'1px solid rgba(103,158,195,.23)',opacity:before,...mono}}> /api/v1/login </div>
-      <div style={{position:'absolute',top:120,left:25,width:202,padding:'25px 10px',borderRadius:14,
-        background:'rgba(26,86,72,.45)',border:`2px solid ${C.green}`,textAlign:'center',fontSize:32,fontWeight:880,opacity:before,color:C.green}}>POST → ✓</div>
-      <div style={{position:'absolute',top:120,right:25,width:202,padding:'25px 10px',borderRadius:14,
-        background:'rgba(106,48,60,.35)',border:`2px solid ${C.red}`,textAlign:'center',fontSize:32,fontWeight:880,opacity:mismatch,color:C.red}}>GET → ✕</div>
-      <svg width="508" height="100" viewBox="0 0 508 100" style={{position:'absolute',top:244,left:0}}>
-        <path d="M 125 0 V 55 H 252" stroke={C.green} strokeWidth="4" fill="none" opacity={before}/>
-        <path d="M 385 0 V 55 H 268" stroke={C.red} strokeWidth="4" fill="none" strokeDasharray="8 7" opacity={mismatch}/>
-        <rect x="194" y="40" width="120" height="49" rx="11" fill="#142A47" stroke={C.purple}/>
-        <text x="254" y="70" textAnchor="middle" fill={C.bright} fontSize="21">POST ONLY</text>
-      </svg>
-      <Result text="405 · SAME PATH, WRONG ACTION" progress={error} top={385}/>
-    </>;
-  }
-  if(phase===3){
-    const count=Math.round(12+112*step(.18,.66));
-    return <>
-      <div style={{position:'absolute',left:18,top:31,right:18,padding:'21px 14px',textAlign:'center',
-        borderRadius:14,border:`1px solid ${count>100?C.red:C.blue}88`,fontSize:31,fontWeight:870}}>
-        <span style={{color:count>100?C.red:C.blue,...mono}}>{count} / 100</span>
-        <div style={{fontSize:17,marginTop:6,color:C.muted}}>requests per minute · illustrative quota</div>
-      </div>
-      <svg width="508" height="195" viewBox="0 0 508 195" style={{position:'absolute',top:160,left:0}}>
-        <path d="M 20 98 H 489" stroke="rgba(104,151,194,.32)" strokeWidth="3" />
-        {[0,1,2,3,4,5,6].map((i)=><SmallPacket key={i} x={35+i*66*step(.12,.65)} y={98}
-          color={i>3?C.amber:C.blue} size={9} opacity={clamp((local-i*5)/15)}/>) }
-        <path d="M 318 98 V 152 H 476" stroke={C.red} strokeWidth="3" opacity={error}/>
-        <text x="334" y="185" fill={C.red} opacity={error} fontSize="22">OVER QUOTA → 429</text>
-      </svg>
-      <div style={{position:'absolute',left:27,top:360,color:C.muted,fontSize:21,opacity:before}}>Small burst: 5 requests / 10 seconds</div>
-      <Result text="429 · EXCESS RETRIES REJECTED" progress={error} top={404}/>
-    </>;
-  }
-  if(phase===4){
-    return <>
-      <div style={{position:'absolute',left:18,right:18,top:27,...line,opacity:before}}>
-        <span>NORMAL LOGIN</span><span style={{color:C.green,fontSize:24}}>ALLOWED ✓</span>
-      </div>
-      <svg width="508" height="235" viewBox="0 0 508 235" style={{position:'absolute',top:112,left:0}}>
-        <path d="M 28 90 H 475" stroke="rgba(129,157,193,.24)" strokeWidth="4" />
-        <rect x="210" y="40" width="110" height="112" rx="18" fill="rgba(113,75,173,.25)" stroke={C.purple} strokeWidth="3" opacity={mismatch}/>
-        <text x="264" y="73" textAnchor="middle" fill={C.bright} fontSize="20" opacity={mismatch}>RULE</text>
-        <text x="264" y="105" textAnchor="middle" fill={C.purple} fontSize="19" opacity={mismatch}>1042</text>
-        <path d="M 270 152 V 205 H 410" stroke={C.red} strokeWidth="3" opacity={error}/>
-        <SmallPacket x={36+207*step(.1,.55)} y={90} color={C.amber} opacity={mismatch}/>
-        <text x="322" y="207" fill={C.red} fontSize="20" opacity={error}>FALSE POSITIVE</text>
-      </svg>
-      <div style={{position:'absolute',left:22,right:22,top:351,opacity:mismatch,fontSize:22,color:C.purple,textAlign:'center'}}>Configured rule: WAF_LOGIN_1042</div>
-      <Result text="403 · NORMAL LOGIN BLOCKED" progress={error} top={397}/>
-    </>;
-  }
-  if(phase===5){
-    return <>
-      <div style={{position:'absolute',left:18,top:23,right:18,display:'flex',gap:12}}>
-        <div style={{flex:1,borderRadius:15,border:'1px solid rgba(106,183,208,.45)',padding:18,
-          background:'rgba(11,40,62,.78)',opacity:before}}>
-          <div style={{fontSize:17,color:C.muted,marginBottom:20}}>EXPECTED</div>
-          <div style={{...mono,fontSize:26,color:C.green}}>{'{ "email": "..." }'}</div>
-        </div>
-        <div style={{flex:1,borderRadius:15,border:'1px solid rgba(245,172,123,.45)',padding:18,
-          background:'rgba(57,33,45,.69)',opacity:mismatch}}>
-          <div style={{fontSize:17,color:C.muted,marginBottom:20}}>RECEIVED</div>
-          <div style={{...mono,fontSize:22,color:C.amber}}>{'{ "userEmail": "..." }'}</div>
-        </div>
-      </div>
-      <svg width="508" height="150" viewBox="0 0 508 150" style={{position:'absolute',top:197,left:0}}>
-        <path d="M 137 0 V 66 H 254 M 367 0 V 66 H 254" stroke="rgba(156,171,210,.61)" strokeWidth="3" fill="none" opacity={mismatch}/>
-        <circle cx="254" cy="86" r="31" fill="#172B40" stroke={C.red} strokeWidth="3" opacity={error}/>
-        <text x="254" y="97" textAnchor="middle" fontSize="33" fill={C.red} opacity={error}>✕</text>
-        <text x="254" y="144" textAnchor="middle" fontSize="21" fill={C.muted} opacity={error}>REQUIRED FIELD NOT FOUND</text>
-      </svg>
-      <Result text="400 · VALIDATION REJECTED" progress={error} top={393}/>
-    </>;
-  }
-  return null;
+  </div>;
 };
 
-export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,anchors,clipStarts,statusFrames})=>{
+const Status:React.FC<{code:string;caption:string;visibility:number;allowed?:boolean}>=({
+  code,caption,visibility,allowed=false
+})=>{
+  const color=allowed?C.green:C.red;
+  return <div style={{marginTop:16,borderRadius:16,border:'2px solid '+color+'A0',
+    background:allowed?'rgba(9,65,57,.68)':'rgba(69,24,43,.63)',minHeight:102,
+    padding:'20px 26px',opacity:visibility,
+    transform:'translateY('+((1-visibility)*11)+'px)',
+    display:'flex',alignItems:'center',gap:24}}>
+      <span style={{color,fontSize:36,fontWeight:900,...mono}}>{code}</span>
+      <span style={{color:C.bright,fontSize:24,fontWeight:760}}>{caption}</span>
+  </div>;
+};
+
+const Bullet:React.FC<{children:React.ReactNode;soft?:boolean}>=({children,soft=false})=>(
+  <div style={{fontSize:23,color:soft?C.muted:C.bright,lineHeight:1.5}}>{children}</div>
+);
+
+const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusAt:number}>=({
+  phase,local,segmentFrames,statusAt
+})=>{
+  const show=enter(local,10,24);
+  const compare=enter(local,Math.max(20,segmentFrames*.22),Math.max(34,segmentFrames*.36));
+  const failure=enter(local,statusAt,statusAt+13);
+  const caseNames=['ARRIVAL','PATH / ROUTING','HTTP METHOD','RATE LIMIT','WAF FILTER','SCHEMA','SUCCESSFUL HANDOFF'];
+  const subtitles=[
+    'The request has reached its first server-side checkpoint',
+    'Same service. A different address.',
+    'Same address. A different HTTP action.',
+    'A retry storm crosses a configured policy limit.',
+    'A valid login can be blocked by an overbroad rule.',
+    'The field name is wrong, even though the data looks valid.',
+    'The original green request is allowed to continue.',
+  ];
+  const full:React.CSSProperties={borderRadius:17,border:'1px solid rgba(97,151,191,.30)',
+    padding:22,background:'rgba(7,25,44,.70)'};
+  const row=(left:string,right:string,tone:string)=>(
+    <div style={{...full,display:'flex',alignItems:'center',justifyContent:'space-between',gap:15,
+      fontSize:24,fontWeight:750}}>
+      <span style={{color:C.muted}}>{left}</span>
+      <span style={{color:tone,...mono}}>{right}</span>
+    </div>
+  );
+  return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:18,pointerEvents:'none'}}>
+    <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
+      {phase===0?'FIRST SERVER-SIDE CHECKPOINT':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
+    </div>
+    <div style={{fontSize:32,fontWeight:870,lineHeight:1.2,color:C.bright}}>{caseNames[phase]}</div>
+    <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
+    <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
+    <div style={{display:'flex',flexDirection:'column',gap:14,flex:1,justifyContent:'flex-start'}}>
+    {phase===0&&<>
+      <div style={{opacity:show}}>{row('INCOMING REQUEST','POST /api/v1/login',C.green)}</div>
+      <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+        <Tile label="Path" value="/api/v1/login" mode="good"/>
+        <Tile label="Method" value="POST" mode="good"/>
+      </div>
+      <div style={{opacity:compare,marginTop:6,...full,border:'1px solid '+C.purple+'99',
+        display:'flex',alignItems:'center',justifyContent:'space-between',gap:20}}>
+        <Bullet>Routing, rate limits and filters run before authentication</Bullet>
+        <span style={{color:C.amber,fontSize:20,fontWeight:820,whiteSpace:'nowrap'}}>PASSWORD NOT CHECKED</span>
+      </div>
+      <div style={{opacity:compare,color:C.muted,fontSize:21}}>The Auth Service has not received the request.</div>
+    </>}
+    {phase===1&&<>
+      <div style={{opacity:show}}>{row('KNOWN ROUTE','POST /api/v1/login',C.green)}</div>
+      <div style={{opacity:compare}}>{row('DIAGNOSTIC REQUEST','POST /api/v2/login',C.amber)}</div>
+      <div style={{opacity:compare,display:'flex',gap:17,alignItems:'center',fontSize:22}}>
+        <span style={{color:C.green}}>v1 configured</span>
+        <span style={{color:C.muted}}>≠</span>
+        <span style={{color:C.amber}}>v2 requested</span>
+        <span style={{marginLeft:'auto',color:C.red,fontWeight:800}}>NO MATCHING ROUTE</span>
+      </div>
+      <Status code="404" caption="Not Found · Auth Service not reached" visibility={failure}/>
+    </>}
+    {phase===2&&<>
+      <div style={{opacity:show}}>{row('PATH','/api/v1/login  ✓',C.green)}</div>
+      <div style={{opacity:compare,display:'grid',gridTemplateColumns:'1fr 1fr',gap:15}}>
+        <Tile label="Expected" value="POST" mode="good"/>
+        <Tile label="Received" value="GET" mode="error"/>
+      </div>
+      <div style={{opacity:compare,fontSize:22,color:C.muted}}>POST sends login details. GET requests a resource.</div>
+      <Status code="405" caption="Method Not Allowed · path exists, action is wrong" visibility={failure}/>
+    </>}
+    {phase===3&&<>
+      <div style={{opacity:show}}>{row('CONFIGURED BURST WINDOW','5 requests / 10 seconds',C.blue)}</div>
+      <div style={{opacity:compare,...full,display:'flex',alignItems:'center',gap:18}}>
+        {Array.from({length:6},(_,i)=>{
+          const arrived=enter(local,Math.round(segmentFrames*.2)+i*10,
+            Math.round(segmentFrames*.2)+i*10+10);
+          const blocked=i===5;
+          return <div key={i} style={{flex:1,borderRadius:14,
+            border:'2px solid '+(blocked?C.red:C.green)+'99',
+            color:blocked?C.red:C.green,background:'rgba(17,49,60,.79)',
+            fontSize:27,fontWeight:850,textAlign:'center',padding:'17px 0',
+            opacity:arrived*.94}}>{i+1}</div>;
+        })}
+        <span style={{fontSize:22,color:C.red,opacity:failure,fontWeight:870}}>6 / 5</span>
+      </div>
+      <div style={{opacity:compare,display:'grid',gridTemplateColumns:'1fr 1fr',gap:15}}>
+        <Tile label="Burst" value="6 / 5" mode="error"/>
+        <Tile label="Quota" value="43 / 100 min" mode="active"/>
+      </div>
+      <div style={{fontSize:17,color:C.muted,opacity:compare}}>Illustrative example policy, not a universal gateway default.</div>
+      <Status code="429" caption="Too Many Requests · retry rejected" visibility={failure}/>
+    </>}
+    {phase===4&&<>
+      <div style={{opacity:show}}>{row('DIAGNOSTIC SAMPLE','Normal-looking login',C.green)}</div>
+      <div style={{opacity:compare}}>{row('CONFIGURED WAF RULE','WAF_LOGIN_1042',C.purple)}</div>
+      <div style={{opacity:compare,fontSize:22,color:C.amber,fontWeight:760}}>
+        Broad rule matched a legitimate sample → FALSE POSITIVE
+      </div>
+      <Status code="403" caption="Forbidden · sample blocked before Auth Service" visibility={failure}/>
+      <div style={{opacity:compare,fontSize:17,color:C.muted}}>This configured example is not a universal WAF behavior.</div>
+    </>}
+    {phase===5&&<>
+      <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+        <div style={{...full,border:'1px solid '+C.green+'80'}}>
+          <div style={{fontSize:18,color:C.muted,marginBottom:15}}>EXPECTED BODY</div>
+          <div style={{fontSize:23,color:C.green,...mono}}>email</div>
+          <div style={{fontSize:19,color:C.muted,marginTop:7}}>user@example.com</div>
+          <div style={{fontSize:18,color:C.muted,marginTop:20}}>password: ••••••••</div>
+        </div>
+        <div style={{...full,border:'1px solid '+C.amber+'88',opacity:compare}}>
+          <div style={{fontSize:18,color:C.muted,marginBottom:15}}>ACTUAL BODY</div>
+          <div style={{fontSize:23,color:C.amber,...mono}}>userEmail</div>
+          <div style={{fontSize:19,color:C.muted,marginTop:7}}>user@example.com</div>
+          <div style={{fontSize:18,color:C.muted,marginTop:20}}>password: ••••••••</div>
+        </div>
+      </div>
+      <div style={{opacity:compare,color:C.red,fontSize:22,fontWeight:770}}>
+        Required field “email” was not provided
+      </div>
+      <Status code="400" caption="Bad Request · configured schema rejected the body" visibility={failure}/>
+    </>}
+    {phase===6&&<>
+      <div style={{opacity:show}}>{row('ORIGINAL GREEN REQUEST','POST /api/v1/login',C.green)}</div>
+      <div style={{opacity:compare,display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:9}}>
+        {['PATH','METHOD','RATE','WAF','SCHEMA'].map((key,i)=><div key={key} style={{
+          border:'1px solid '+C.green+'77',borderRadius:11,background:'rgba(21,71,61,.57)',
+          textAlign:'center',padding:'17px 4px',fontSize:18,fontWeight:800,
+          color:C.green,opacity:enter(local,30+i*10,45+i*10)}}>✓ {key}</div>)}
+      </div>
+      <div style={{opacity:compare,padding:'22px 25px',borderRadius:14,
+        border:'1px solid '+C.green+'80',background:'rgba(14,62,60,.62)',fontSize:27,
+        fontWeight:840,color:C.green}}>Gateway → Load Balancer</div>
+      <div style={{opacity:compare,fontSize:19,color:C.muted}}>Next: choose a healthy server. Password validation has not started.</div>
+    </>}
+    </div>
+  </div>;
+};
+
+export const GatewayIncidentYoutubePreview:React.FC<Props>=({
+  durationInFrames,anchors,clipStarts,statusFrames
+})=>{
   const frame=useCurrentFrame();
   const total=Math.max(1,durationInFrames);
-  const planning=[0,17,38,58,81,101,119];
-  const starts=planning.map((seconds,i)=>Number.isFinite(clipStarts[i])?clipStarts[i]:Math.min(total-1,Math.round(seconds*FPS)));
-  const phase=starts.reduce((index,start,i)=>frame>=start?i:index,0);
+  const starts=DEFAULT_STARTS.map((sec,i)=>
+    Number.isFinite(clipStarts[i])?clipStarts[i]:Math.min(total-1,sec*FPS));
+  const phase=starts.reduce((n,start,i)=>frame>=start?i:n,0);
   const local=Math.max(0,frame-starts[phase]);
-  const segmentFrames=Math.max(20,(starts[phase+1]??total)-starts[phase]);
-  const openingLeadIn=38;
-  const arrival=appear(frame,openingLeadIn,openingLeadIn+145);
-  const focus=appear(frame,openingLeadIn+66,openingLeadIn+320);
-  const story=appear(frame,openingLeadIn+160,openingLeadIn+405);
-  const approvedHandoff=Number.isFinite(statusFrames?.LOAD_BALANCER_HANDOFF)
-    ? statusFrames!.LOAD_BALANCER_HANDOFF-starts[6] : segmentFrames*.2;
-  const handoff=phase===6?ease(local,approvedHandoff,Math.max(approvedHandoff+16,segmentFrames*.92)):0;
-  const termFrame=anchors[CASES[phase].anchor];
-  const termAt=Number.isFinite(termFrame)?termFrame*FPS:starts[phase]+Math.round(segmentFrames*.80);
-  const termReveal=appear(frame,termAt,termAt+16);
-  const panelOpen=phase===0?0:phase===6?0:clamp(appear(local,0,20)*(1-ease(local,segmentFrames-18,segmentFrames)));
-  const casePrompt=CASES[phase];
-  const canonicalX=phase===6?1016+(1264-1016)*handoff:756+(1016-756)*arrival;
-  const canonicalY=632;
-  const cameraX=-96*focus+38*handoff;
-  const cameraY=18*focus;
-  const cameraScale=1+.075*focus-.065*handoff;
-  const softLayer=clamp(story*(1-handoff));
-  return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...Font}}>
-    <ATCameraRig x={cameraX} y={cameraY} scale={cameraScale}>
+  const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
+  const focusEntry=move(frame,FIRST+14,FIRST+112);
+  const inside=enter(frame,FIRST+45,FIRST+105);
+  const out=phase===6?move(local,Math.max(30,segmentFrames*.63),
+    Math.max(40,segmentFrames*.92)):0;
+  const screenFocus=clamp(inside*(1-out));
+  const active=FOCUS[phase];
+  const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
+  const anchorStatus=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
+  const exact=statusFrames?.[statusKind[phase]] ??
+    timing(anchors,anchorStatus[phase]);
+  const approvedVoiceCueSeconds=[0,9.20,5.43,10.97,10.23,11.60,0];
+  const resultAt=Number.isFinite(exact)
+    ?Math.max(0,exact!-starts[phase])
+    :Math.round(approvedVoiceCueSeconds[phase]*FPS);
+  const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
+  const panelScale=.18+.82*focusEntry;
+  const packetEnter=move(frame,FIRST,FIRST+52);
+  const handoff=phase===6?move(local,Math.max(20,segmentFrames*.60),
+    Math.max(42,segmentFrames*.96)):0;
+  const interiorOpacity=clamp(inside*(1-out));
+
+  return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...font}}>
+    <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
       <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}/>
-      <div style={{position:'absolute',inset:0,pointerEvents:'none',opacity:softLayer,
-        background:'radial-gradient(ellipse at 70% 42%,rgba(11,17,44,.15),transparent 63%)'}}/>
-      <svg viewBox="0 0 1920 1080" width="1920" height="1080"
-        style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:16}}>
-        <defs>
-          <filter id="gwysoftglow" x="-150%" y="-150%" width="400%" height="400%">
-            <feGaussianBlur stdDeviation="6" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <path d="M 744 632 H 1015" stroke={C.green} strokeWidth="4" strokeLinecap="round"
-          strokeDasharray={`${Math.round(271*arrival)} 271`} opacity={arrival*.75}/>
-        <rect x="1003" y="510" width="244" height="235" rx="23" fill="none"
-          stroke={C.purple} strokeWidth="3.5" opacity={arrival*.45+focus*.37}
-          filter="url(#gwysoftglow)"/>
-        <path d="M 1247 632 H 1333" fill="none" stroke={C.green} strokeWidth="4"
-          strokeDasharray={`${Math.round(86*handoff)} 86`} opacity={handoff}/>
-        <SmallPacket x={canonicalX} y={canonicalY} color={C.green} size={12} opacity={frame<openingLeadIn?0:arrival*.9} />
-        {phase===6&&<SmallPacket x={1332} y={632} color={C.green} size={13} opacity={handoff*.68}/>}
-      </svg>
-      <div style={{position:'absolute',left:864,top:383,width:379,zIndex:19,opacity:clamp(arrival*(1-handoff*.25)),
-        textAlign:'center',pointerEvents:'none'}}>
-        <div style={{fontSize:19,color:C.purple,letterSpacing:'.13em',fontWeight:800,opacity:story}}>FIRST SERVER CHECKPOINT</div>
-        <div style={{marginTop:11,fontSize:32,fontWeight:870,opacity:phase===0?termReveal:1}}>API Gateway</div>
-        <div style={{marginTop:9,fontSize:20,fontWeight:650,color:C.muted,opacity:story}}>Password not checked here</div>
+    </div>
+    <div style={{position:'absolute',inset:0,
+      background:'radial-gradient(ellipse at 49% 49%,rgba(4,17,33,.94),rgba(2,9,22,.98))',
+      opacity:.92*screenFocus,pointerEvents:'none'}}/>
+    <div style={{position:'absolute',left:875,top:303,width:420,textAlign:'center',
+      opacity:clamp(enter(frame,FIRST,FIRST+24)*(1-inside)),
+      fontSize:31,color:C.green,fontWeight:870}}>
+      API Gateway · first server-side checkpoint
+    </div>
+    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
+      style={{position:'absolute',inset:0,pointerEvents:'none',
+        opacity:clamp(packetEnter*(1-screenFocus))}}>
+      <path d="M 748 632 H 936" fill="none" stroke={C.green} strokeWidth={4}
+        strokeDasharray={(Math.round(188*packetEnter))+' 188'} strokeLinecap="round"/>
+      <circle cx={748+188*packetEnter} cy={632} r={12} fill={C.green}/>
+      <path d="M 991 632 H 1042" stroke={C.green} strokeWidth={4}
+        strokeDasharray={(Math.round(51*handoff))+' 51'} opacity={handoff}/>
+    </svg>
+    <div style={{position:'absolute',left:234,top:122,width:1452,height:834,zIndex:10,
+      opacity:interiorOpacity,
+      transformOrigin:'center center',
+      transform:'translate('+(-100*(1-focusEntry))+'px,'+(70*(1-focusEntry))+'px) scale('+panelScale+')',
+      pointerEvents:'none',borderRadius:30,
+      border:'3px solid rgba(117,145,246,.77)',
+      background:'linear-gradient(145deg,rgba(11,33,56,.98),rgba(4,14,30,.98))',
+      boxShadow:'0 0 70px rgba(98,102,240,.22),0 30px 125px rgba(0,0,0,.65)',
+      overflow:'hidden'}}>
+      <div style={{position:'absolute',top:36,left:44,right:44,
+        display:'flex',alignItems:'center',justifyContent:'space-between',gap:20}}>
+        <div>
+          <div style={{fontSize:16,color:C.purple,letterSpacing:'.16em',fontWeight:840}}>
+            INSIDE THE SYSTEM
+          </div>
+          <div style={{fontSize:47,color:C.bright,fontWeight:880,marginTop:5}}>API Gateway</div>
+        </div>
+        <div style={{padding:'14px 21px',borderRadius:13,
+          border:'1px solid rgba(127,164,216,.34)',background:'rgba(7,27,45,.75)',
+          fontSize:20,color:C.muted,fontWeight:720}}>
+          REQUEST CHECKPOINT · NOT PASSWORD VALIDATION
+        </div>
       </div>
-      {phase>=1&&phase<=5&&<CasePanel phase={phase} label={casePrompt.prompt} opacity={panelOpen}>
-        <CaseAnimation phase={phase} local={local} segmentFrames={segmentFrames}
-          spokenStatusAt={statusFrames?.[['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400'][phase]] === undefined
-            ? undefined : statusFrames![['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400'][phase]]-starts[phase]}/>
-      </CasePanel>}
-      {phase>=1&&phase<=5&&<div style={{position:'absolute',left:846,top:780,width:366,zIndex:25,
-        padding:'14px 19px',borderRadius:13,background:'rgba(10,24,42,.93)',border:'1px solid rgba(168,138,255,.42)',
-        boxShadow:'0 10px 33px rgba(0,0,0,.19)',opacity:clamp(termReveal*(1-handoff)),pointerEvents:'none'}}>
-        <div style={{fontSize:17,color:C.muted,letterSpacing:'.14em',fontWeight:700}}>THIS CHECK IS CALLED</div>
-        <div style={{fontSize:28,color:C.purple,fontWeight:870,marginTop:7}}>{casePrompt.name}</div>
-      </div>}
-      {phase===0&&<div style={{position:'absolute',left:1250,top:422,zIndex:18,opacity:story,
-        border:'1px solid rgba(116,193,200,.24)',background:'rgba(8,29,46,.80)',borderRadius:17,
-        padding:'24px 26px',fontSize:26,color:C.muted,pointerEvents:'none'}}>
-        Request reaches the server <span style={{color:C.green}}>→</span> rules first
-      </div>}
-      {phase===6&&<div style={{position:'absolute',left:1280,top:446,zIndex:20,
-        opacity:handoff,pointerEvents:'none',padding:'22px 27px',borderRadius:17,
-        border:'1px solid rgba(84,238,188,.43)',background:'rgba(11,47,49,.86)'}}>
-        <div style={{fontSize:28,color:C.green,fontWeight:860}}>✓ CHECKS PASSED</div>
-        <div style={{fontSize:23,color:C.muted,marginTop:10}}>Which healthy server receives it next?</div>
-      </div>}
-    </ATCameraRig>
-    {frame>openingLeadIn&&<div style={{position:'absolute',left:82,bottom:72,zIndex:30,
-      opacity:appear(frame,openingLeadIn+40,openingLeadIn+112)*(1-handoff*.8),
-      color:C.dim,fontSize:19,fontWeight:690,letterSpacing:'.06em'}}>
-      ONE CANONICAL REQUEST · DIAGNOSTIC EXAMPLES ARE SEPARATE
+      <div style={{position:'absolute',left:44,right:44,top:162,bottom:67,
+        display:'grid',gridTemplateColumns:'391px 1fr',gap:31}}>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}/>
+          <Module name="Rate Limit" items={['Burst','Quota']} active={active[0]} selected={active[1]}/>
+          <Module name="Request Filter" items={['WAF','Schema']} active={active[0]} selected={active[1]}/>
+        </div>
+        <div style={{borderRadius:21,border:'1px solid rgba(103,164,213,.34)',
+          background:'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
+          padding:'27px 32px 17px',overflow:'hidden'}}>
+          <CaseStudy phase={phase} local={local} segmentFrames={segmentFrames} statusAt={resultLocal}/>
+        </div>
+      </div>
+      <div style={{position:'absolute',bottom:24,left:46,right:46,
+        display:'flex',justifyContent:'space-between',color:C.muted,fontSize:16,
+        fontWeight:700,letterSpacing:'.045em'}}>
+        <span>ONE CANONICAL REQUEST · FAILED SAMPLES ARE SEPARATE</span>
+        <span>GATEWAY CHECKS · {phase+1} / 7</span>
+      </div>
+    </div>
+    {phase===6&&<div style={{position:'absolute',right:135,top:352,zIndex:12,
+      padding:'23px 30px',borderRadius:17,
+      border:'2px solid '+C.green+'99',background:'rgba(8,42,48,.94)',
+      fontSize:31,fontWeight:840,color:C.green,opacity:handoff,
+      transform:'translateY('+((1-handoff)*12)+'px)'}}>
+      LOAD BALANCER · NEXT
     </div>}
   </div>;
 };
