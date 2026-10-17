@@ -35,6 +35,9 @@ public class StudioDirectorVisualPlanService {
     private static final String[] AUDIO_TERMS={
         "API Gateway","404","405","429","403","400","passes"
     };
+    private static final String[] SPOKEN_CONCEPT_TERMS={
+        "API Gateway","routing","HTTP method","rate limiting","WAF","schema validation","passes"
+    };
     private static final String[] LABELS={
         "First server-side checkpoint",
         "POST /api/v2/login → 404; gateway route /api/v1/login",
@@ -114,7 +117,10 @@ public class StudioDirectorVisualPlanService {
             event.put("visualExample",LABELS[i]);event.put("target",i==6?"Load Balancer":"API Gateway");
             event.put("derivedFromVoiceAlignment",true);
             events.add(event);
-            anchors.put(ANCHORS[i],Math.round(eventFrame*1000d/FPS)/1000d);
+            int conceptFrame=termFrame(alignment,SPOKEN_CONCEPT_TERMS[i]);
+            int conceptAt=conceptFrame>=0?voiceStart+conceptFrame:eventFrame;
+            if(conceptAt<from||conceptAt>=limit)conceptAt=eventFrame;
+            anchors.put(ANCHORS[i],Math.round(conceptAt*1000d/FPS)/1000d);
             offset+=GATEWAY_CLIP_SECONDS[i];
         }
         if(offset!=130||sections.size()!=7||events.size()!=7)
