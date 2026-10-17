@@ -446,7 +446,7 @@ public class ShotStudioController {
         Map<String,Object> props=new LinkedHashMap<>();
         props.put("directorPlan",plan);
         props.put("audioClips",clips);
-        props.put("durationInFrames",3900);
+        props.put("durationInFrames",plan.get("durationInFrames"));
         Map<String,Object> render=renderer.ensureRender("EP001-Studio-DirectorPlan",
             new RemotionRenderController.RenderRequest("FAST_PREVIEW",props));
         UUID renderId=UUID.fromString(String.valueOf(render.get("renderId")));
