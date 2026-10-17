@@ -67,7 +67,8 @@ public class StudioDirectorVisualPlanService {
         if(!"SHOT 05".equals(shot.get("sourceShotKey")))
             throw conflict("A voice-synchronized cinematic recipe is available for original SHOT 05 only. Other shots require a reviewed recipe; the template renderer remains separate.");
         String directorNotes=String.valueOf(shot.getOrDefault("visualPrompt","")).trim();
-        if(directorNotes.isBlank())throw conflict("Save the Director visual directions first.");
+        if(directorNotes.isBlank())
+            directorNotes="Built-in Director Gateway recipe: show real 404/405/429/403/400 examples in narration order; keep the current Living Architecture Map and reveal each result on the spoken status code.";
         List<VoiceRow> rows=voices(shotId);
         if(rows.size()!=7)throw conflict("API Gateway Director plan requires exactly seven original voice blocks.");
         for(int i=0;i<rows.size();i++){
