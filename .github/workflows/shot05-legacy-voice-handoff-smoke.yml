@@ -2,6 +2,9 @@ name: SHOT05 Director-approved voice handoff to legacy Visual
 # Explicit Director handoff is run only after backend deployment is healthy.
 # This workflow must never block Railway's required CI checks.
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot05-legacy-voice-handoff-smoke.yml']
   workflow_dispatch:
 permissions:
   contents: read
