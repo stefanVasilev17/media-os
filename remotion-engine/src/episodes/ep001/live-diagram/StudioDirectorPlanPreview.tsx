@@ -31,15 +31,15 @@ export const studioDirectorPlanSchema=z.object({
     livingMapSource:z.literal('EP001_CURRENT_WORLD'),
     voiceSignature:z.string().length(64),
     directorNotes:z.string(),
-    sections:z.array(sectionSchema).length(7),
-    events:z.array(visualEventSchema).length(7),
+    sections:z.array(sectionSchema).max(7),
+    events:z.array(visualEventSchema).max(7),
     anchors:z.record(z.string(),z.number()),
     audioSources:z.array(z.object({
       clipId:z.string(),fromFrame:z.number().int(),durationInFrames:z.number().int(),
       generationRevision:z.number().int(),
-    })).length(7),
+    })).max(7),
   }),
-  audioClips:z.array(audioSchema).length(7),
+  audioClips:z.array(audioSchema).max(7),
 });
 type Props=z.infer<typeof studioDirectorPlanSchema>;
 
@@ -51,7 +51,9 @@ export const StudioDirectorPlanPreview:React.FC<Props>=({directorPlan,audioClips
   for(const event of directorPlan.events){
     statusFrames[event.kind]=event.frame;
   }
-  const verified=directorPlan.events.every((event,i)=>
+  const verified=directorPlan.sections.length===7 && directorPlan.events.length===7 &&
+  directorPlan.audioSources.length===7 && audioClips.length===7 &&
+  directorPlan.events.every((event,i)=>
     event.clipKey===directorPlan.sections[i].clipKey &&
     event.frame>=directorPlan.sections[i].startFrame &&
     event.frame<directorPlan.sections[i].endFrame
