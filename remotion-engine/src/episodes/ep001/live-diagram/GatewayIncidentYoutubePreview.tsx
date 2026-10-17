@@ -210,7 +210,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
           textAlign:'center',padding:'17px 4px',fontSize:18,fontWeight:800,
           color:C.green,opacity:enter(local,30+i*10,45+i*10)}}>✓ {key}</div>)}
       </div>
-      <Status code="200?" caption="No response yet · checks passed, forwarding request" visibility={0} allowed/>
       <div style={{opacity:compare,padding:'22px 25px',borderRadius:14,
         border:'1px solid '+C.green+'80',background:'rgba(14,62,60,.62)',fontSize:27,
         fontWeight:840,color:C.green}}>Gateway → Load Balancer</div>
