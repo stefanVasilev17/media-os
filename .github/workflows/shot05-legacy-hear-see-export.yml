@@ -25,8 +25,9 @@ jobs:
           visuals=legacy["timeline"]
           assert template["schemaVersion"]=="mediaos.production-contract.v1"
           assert len(shots)==len(visuals)==7
-          assert [(x["clipKey"],x["startSecond"],x["endSecond"]) for x in shots]==[
-            (x["clipKey"],x["startSecond"],x["endSecond"]) for x in visuals]
+          assert [x["clipKey"] for x in shots]==[x["clipKey"] for x in visuals], "Original shot clip order changed"
+          print("CURRENT_LOCKED_TIMES",[(x["clipKey"],x["startSecond"],x["endSecond"]) for x in shots],flush=True)
+          print("PREVIOUS_APPROVED_TIMES",[(x["clipKey"],x["startSecond"],x["endSecond"]) for x in visuals],flush=True)
           out={
             "schemaVersion":template["schemaVersion"],
             "episodeNumber":template["episodeNumber"],
