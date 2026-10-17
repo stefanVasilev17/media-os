@@ -71,13 +71,13 @@ const Status:React.FC<{code:string;caption:string;visibility:number;allowed?:boo
   code,caption,visibility,allowed=false
 })=>{
   const color=allowed?C.green:C.red;
-  return <div style={{marginTop:16,borderRadius:16,border:'2px solid '+color+'A0',
-    background:allowed?'rgba(9,65,57,.68)':'rgba(69,24,43,.63)',minHeight:102,
-    padding:'20px 26px',opacity:visibility,
+  return <div style={{marginTop:0,borderRadius:16,border:'2px solid '+color+'C0',
+    background:allowed?'rgba(9,65,57,.68)':'rgba(69,24,43,.80)',height:90,boxSizing:'border-box',
+    padding:'14px 23px',opacity:visibility,
     transform:'translateY('+((1-visibility)*11)+'px)',
     display:'flex',alignItems:'center',gap:24}}>
-      <span style={{color,fontSize:36,fontWeight:900,...mono}}>{code}</span>
-      <span style={{color:C.bright,fontSize:24,fontWeight:760}}>{caption}</span>
+      <span style={{color,fontSize:42,fontWeight:900,...mono}}>{code}</span>
+      <span style={{color:C.bright,fontSize:23,fontWeight:760}}>{caption}</span>
   </div>;
 };
 
@@ -91,6 +91,14 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
   const show=enter(local,10,24);
   const compare=enter(local,Math.max(20,segmentFrames*.22),Math.max(34,segmentFrames*.36));
   const failure=enter(local,statusAt,statusAt+13);
+  const responses:Record<number,[string,string]>={
+    1:['404','Not Found · Auth Service not reached'],
+    2:['405','Method Not Allowed · path exists, action is wrong'],
+    3:['429','Too Many Requests · retry rejected'],
+    4:['403','Forbidden · sample blocked before Auth Service'],
+    5:['400','Bad Request · configured schema rejected the body'],
+  };
+  const response=responses[phase];
   const caseNames=['ARRIVAL','PATH / ROUTING','HTTP METHOD','RATE LIMIT','WAF FILTER','SCHEMA','SUCCESSFUL HANDOFF'];
   const subtitles=[
     'The request has reached its first server-side checkpoint',
@@ -110,14 +118,14 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <span style={{color:tone,...mono}}>{right}</span>
     </div>
   );
-  return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:18,pointerEvents:'none'}}>
+  return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
     <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
       {phase===0?'FIRST SERVER-SIDE CHECKPOINT':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
     </div>
     <div style={{fontSize:32,fontWeight:870,lineHeight:1.2,color:C.bright}}>{caseNames[phase]}</div>
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
-    <div style={{display:'flex',flexDirection:'column',gap:14,flex:1,justifyContent:'flex-start'}}>
+    <div style={{display:'flex',flexDirection:'column',gap:11,flex:1,minHeight:0,overflow:'hidden',justifyContent:'flex-start'}}>
     {phase===0&&<>
       <div style={{opacity:show}}>{row('INCOMING REQUEST','POST /api/v1/login',C.green)}</div>
       <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
@@ -140,7 +148,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <span style={{color:C.amber}}>v2 requested</span>
         <span style={{marginLeft:'auto',color:C.red,fontWeight:800}}>NO MATCHING ROUTE</span>
       </div>
-      <Status code="404" caption="Not Found · Auth Service not reached" visibility={failure}/>
     </>}
     {phase===2&&<>
       <div style={{opacity:show}}>{row('PATH','/api/v1/login  ✓',C.green)}</div>
@@ -149,7 +156,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <Tile label="Received" value="GET" mode="error"/>
       </div>
       <div style={{opacity:compare,fontSize:22,color:C.muted}}>POST sends login details. GET requests a resource.</div>
-      <Status code="405" caption="Method Not Allowed · path exists, action is wrong" visibility={failure}/>
     </>}
     {phase===3&&<>
       <div style={{opacity:show}}>{row('CONFIGURED BURST WINDOW','5 requests / 10 seconds',C.blue)}</div>
@@ -171,7 +177,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <Tile label="Quota" value="43 / 100 min" mode="active"/>
       </div>
       <div style={{fontSize:17,color:C.muted,opacity:compare}}>Illustrative example policy, not a universal gateway default.</div>
-      <Status code="429" caption="Too Many Requests · retry rejected" visibility={failure}/>
     </>}
     {phase===4&&<>
       <div style={{opacity:show}}>{row('DIAGNOSTIC SAMPLE','Normal-looking login',C.green)}</div>
@@ -179,7 +184,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,fontSize:22,color:C.amber,fontWeight:760}}>
         Broad rule matched a legitimate sample → FALSE POSITIVE
       </div>
-      <Status code="403" caption="Forbidden · sample blocked before Auth Service" visibility={failure}/>
       <div style={{opacity:compare,fontSize:17,color:C.muted}}>This configured example is not a universal WAF behavior.</div>
     </>}
     {phase===5&&<>
@@ -200,7 +204,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,color:C.red,fontSize:22,fontWeight:770}}>
         Required field “email” was not provided
       </div>
-      <Status code="400" caption="Bad Request · configured schema rejected the body" visibility={failure}/>
     </>}
     {phase===6&&<>
       <div style={{opacity:show}}>{row('ORIGINAL GREEN REQUEST','POST /api/v1/login',C.green)}</div>
@@ -216,6 +219,9 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,fontSize:19,color:C.muted}}>Next: choose a healthy server. Password validation has not started.</div>
     </>}
     </div>
+    {response&&<div style={{flex:'0 0 90px',minHeight:90,position:'relative',zIndex:3}}>
+      <Status code={response[0]} caption={response[1]} visibility={failure}/>
+    </div>}
   </div>;
 };
 
