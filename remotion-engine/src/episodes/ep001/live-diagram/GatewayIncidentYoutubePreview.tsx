@@ -239,8 +239,10 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const anchorStatus=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
   const exact=statusFrames?.[statusKind[phase]] ??
     timing(anchors,anchorStatus[phase]);
+  const approvedVoiceCueSeconds=[0,9.20,5.43,10.97,10.23,11.60,0];
   const resultAt=Number.isFinite(exact)
-    ?Math.max(0,exact!-starts[phase]):Math.round(segmentFrames*.56);
+    ?Math.max(0,exact!-starts[phase])
+    :Math.round(approvedVoiceCueSeconds[phase]*FPS);
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
   const panelScale=.18+.82*focusEntry;
   const packetEnter=move(frame,FIRST,FIRST+52);
