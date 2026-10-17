@@ -28,6 +28,8 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     jitter:z.number().optional(),
     focusIntensity:z.number().optional(),
     packetMorph:z.number().optional(),
+    gatewayActive:z.number().optional(),
+    balancerActive:z.number().optional(),
   }).optional(),
 });
 type Props=z.infer<typeof readyNotSentYoutubePreviewSchema>;
@@ -182,9 +184,13 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               reveal={nodeReveals[index]}
               width={270}
               height={244}
-              quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0)):.55}
+              quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0))
+                :index===1?.55*(1-.85*(worldMotion?.gatewayActive??0))
+                :index===2?.55*(1-.85*(worldMotion?.balancerActive??0)):.55}
               zIndex={index===0&&(worldMotion?.focusIntensity??0)>0?11:undefined}
-              active={index===0?(worldMotion?.networkActive??0):0}
+              active={index===0?(worldMotion?.networkActive??0)
+                :index===1?(worldMotion?.gatewayActive??0)
+                :index===2?(worldMotion?.balancerActive??0):0}
               secondaryReveal={index===0?Math.max(worldMotion?.dnsReveal??0,worldMotion?.latencyReveal??0):0}
               sectionReveals={index===0?{
                 'DNS Resolution':worldMotion?.dnsReveal??0,

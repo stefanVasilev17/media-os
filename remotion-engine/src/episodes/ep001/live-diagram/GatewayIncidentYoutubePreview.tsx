@@ -71,13 +71,13 @@ const Status:React.FC<{code:string;caption:string;visibility:number;allowed?:boo
   code,caption,visibility,allowed=false
 })=>{
   const color=allowed?C.green:C.red;
-  return <div style={{marginTop:16,borderRadius:16,border:'2px solid '+color+'A0',
-    background:allowed?'rgba(9,65,57,.68)':'rgba(69,24,43,.63)',minHeight:102,
-    padding:'20px 26px',opacity:visibility,
+  return <div style={{marginTop:0,borderRadius:16,border:'2px solid '+color+'C0',
+    background:allowed?'rgba(9,65,57,.68)':'rgba(69,24,43,.80)',height:90,boxSizing:'border-box',
+    padding:'14px 23px',opacity:visibility,
     transform:'translateY('+((1-visibility)*11)+'px)',
     display:'flex',alignItems:'center',gap:24}}>
-      <span style={{color,fontSize:36,fontWeight:900,...mono}}>{code}</span>
-      <span style={{color:C.bright,fontSize:24,fontWeight:760}}>{caption}</span>
+      <span style={{color,fontSize:42,fontWeight:900,...mono}}>{code}</span>
+      <span style={{color:C.bright,fontSize:23,fontWeight:760}}>{caption}</span>
   </div>;
 };
 
@@ -91,6 +91,14 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
   const show=enter(local,10,24);
   const compare=enter(local,Math.max(20,segmentFrames*.22),Math.max(34,segmentFrames*.36));
   const failure=enter(local,statusAt,statusAt+13);
+  const responses:Record<number,[string,string]>={
+    1:['404','Not Found · Auth Service not reached'],
+    2:['405','Method Not Allowed · path exists, action is wrong'],
+    3:['429','Too Many Requests · retry rejected'],
+    4:['403','Forbidden · sample blocked before Auth Service'],
+    5:['400','Bad Request · configured schema rejected the body'],
+  };
+  const response=responses[phase];
   const caseNames=['ARRIVAL','PATH / ROUTING','HTTP METHOD','RATE LIMIT','WAF FILTER','SCHEMA','SUCCESSFUL HANDOFF'];
   const subtitles=[
     'The request has reached its first server-side checkpoint',
@@ -110,14 +118,14 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <span style={{color:tone,...mono}}>{right}</span>
     </div>
   );
-  return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:18,pointerEvents:'none'}}>
+  return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
     <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
       {phase===0?'FIRST SERVER-SIDE CHECKPOINT':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
     </div>
     <div style={{fontSize:32,fontWeight:870,lineHeight:1.2,color:C.bright}}>{caseNames[phase]}</div>
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
-    <div style={{display:'flex',flexDirection:'column',gap:14,flex:1,justifyContent:'flex-start'}}>
+    <div style={{display:'flex',flexDirection:'column',gap:11,flex:1,minHeight:0,overflow:'hidden',justifyContent:'flex-start'}}>
     {phase===0&&<>
       <div style={{opacity:show}}>{row('INCOMING REQUEST','POST /api/v1/login',C.green)}</div>
       <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
@@ -140,7 +148,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <span style={{color:C.amber}}>v2 requested</span>
         <span style={{marginLeft:'auto',color:C.red,fontWeight:800}}>NO MATCHING ROUTE</span>
       </div>
-      <Status code="404" caption="Not Found · Auth Service not reached" visibility={failure}/>
     </>}
     {phase===2&&<>
       <div style={{opacity:show}}>{row('PATH','/api/v1/login  ✓',C.green)}</div>
@@ -149,7 +156,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <Tile label="Received" value="GET" mode="error"/>
       </div>
       <div style={{opacity:compare,fontSize:22,color:C.muted}}>POST sends login details. GET requests a resource.</div>
-      <Status code="405" caption="Method Not Allowed · path exists, action is wrong" visibility={failure}/>
     </>}
     {phase===3&&<>
       <div style={{opacity:show}}>{row('CONFIGURED BURST WINDOW','5 requests / 10 seconds',C.blue)}</div>
@@ -171,7 +177,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <Tile label="Quota" value="43 / 100 min" mode="active"/>
       </div>
       <div style={{fontSize:17,color:C.muted,opacity:compare}}>Illustrative example policy, not a universal gateway default.</div>
-      <Status code="429" caption="Too Many Requests · retry rejected" visibility={failure}/>
     </>}
     {phase===4&&<>
       <div style={{opacity:show}}>{row('DIAGNOSTIC SAMPLE','Normal-looking login',C.green)}</div>
@@ -179,7 +184,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,fontSize:22,color:C.amber,fontWeight:760}}>
         Broad rule matched a legitimate sample → FALSE POSITIVE
       </div>
-      <Status code="403" caption="Forbidden · sample blocked before Auth Service" visibility={failure}/>
       <div style={{opacity:compare,fontSize:17,color:C.muted}}>This configured example is not a universal WAF behavior.</div>
     </>}
     {phase===5&&<>
@@ -200,7 +204,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,color:C.red,fontSize:22,fontWeight:770}}>
         Required field “email” was not provided
       </div>
-      <Status code="400" caption="Bad Request · configured schema rejected the body" visibility={failure}/>
     </>}
     {phase===6&&<>
       <div style={{opacity:show}}>{row('ORIGINAL GREEN REQUEST','POST /api/v1/login',C.green)}</div>
@@ -216,6 +219,9 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,fontSize:19,color:C.muted}}>Next: choose a healthy server. Password validation has not started.</div>
     </>}
     </div>
+    {response&&<div style={{flex:'0 0 90px',minHeight:90,position:'relative',zIndex:3}}>
+      <Status code={response[0]} caption={response[1]} visibility={failure}/>
+    </div>}
   </div>;
 };
 
@@ -231,8 +237,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
   const focusEntry=move(frame,FIRST+14,FIRST+112);
   const inside=enter(frame,FIRST+45,FIRST+105);
-  const out=phase===6?move(local,Math.max(30,segmentFrames*.63),
-    Math.max(40,segmentFrames*.92)):0;
+  const out=phase===6?move(local,Math.max(25,segmentFrames*.35),
+    Math.max(40,segmentFrames*.56)):0;
   const screenFocus=clamp(inside*(1-out));
   const active=FOCUS[phase];
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
@@ -245,14 +251,18 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
     :Math.round(approvedVoiceCueSeconds[phase]*FPS);
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
   const panelScale=.18+.82*focusEntry;
-  const packetEnter=move(frame,FIRST,FIRST+52);
-  const handoff=phase===6?move(local,Math.max(20,segmentFrames*.60),
-    Math.max(42,segmentFrames*.96)):0;
+  const gatewayArrival=move(frame,5,68);
+  const handoff=phase===6?move(local,Math.max(35,segmentFrames*.57),
+    Math.max(50,segmentFrames*.94)):0;
+  const nativePacketOffset=300*gatewayArrival+300*handoff;
   const interiorOpacity=clamp(inside*(1-out));
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...font}}>
     <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
-      <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}/>
+      <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}
+        gatewayHandoff={nativePacketOffset}
+        gatewayActive={gatewayArrival*(1-handoff)} balancerActive={handoff}
+        networkActiveMultiplier={1-gatewayArrival}/>
     </div>
     <div style={{position:'absolute',inset:0,
       background:'radial-gradient(ellipse at 49% 49%,rgba(4,17,33,.94),rgba(2,9,22,.98))',
@@ -262,15 +272,6 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
       fontSize:31,color:C.green,fontWeight:870}}>
       API Gateway · first server-side checkpoint
     </div>
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-      style={{position:'absolute',inset:0,pointerEvents:'none',
-        opacity:clamp(packetEnter*(1-screenFocus))}}>
-      <path d="M 748 632 H 936" fill="none" stroke={C.green} strokeWidth={4}
-        strokeDasharray={(Math.round(188*packetEnter))+' 188'} strokeLinecap="round"/>
-      <circle cx={748+188*packetEnter} cy={632} r={12} fill={C.green}/>
-      <path d="M 991 632 H 1042" stroke={C.green} strokeWidth={4}
-        strokeDasharray={(Math.round(51*handoff))+' 51'} opacity={handoff}/>
-    </svg>
     <div style={{position:'absolute',left:234,top:122,width:1452,height:834,zIndex:10,
       opacity:interiorOpacity,
       transformOrigin:'center center',
@@ -314,12 +315,5 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         <span>GATEWAY CHECKS · {phase+1} / 7</span>
       </div>
     </div>
-    {phase===6&&<div style={{position:'absolute',right:135,top:352,zIndex:12,
-      padding:'23px 30px',borderRadius:17,
-      border:'2px solid '+C.green+'99',background:'rgba(8,42,48,.94)',
-      fontSize:31,fontWeight:840,color:C.green,opacity:handoff,
-      transform:'translateY('+((1-handoff)*12)+'px)'}}>
-      LOAD BALANCER · NEXT
-    </div>}
   </div>;
 };

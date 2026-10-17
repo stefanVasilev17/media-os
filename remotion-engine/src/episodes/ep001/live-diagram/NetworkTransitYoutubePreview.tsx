@@ -10,6 +10,10 @@ export const networkTransitYoutubePreviewSchema=z.object({
   showGuides:z.boolean(),
   frameOverride:z.number().optional(),
   anchors:z.record(z.string(),z.number()).optional(),
+  gatewayHandoff:z.number().optional(),
+  gatewayActive:z.number().optional(),
+  balancerActive:z.number().optional(),
+  networkActiveMultiplier:z.number().optional(),
 });
 type Props=z.infer<typeof networkTransitYoutubePreviewSchema>;
 
@@ -20,7 +24,7 @@ const progress=(frame:number,start:number,end:number)=>interpolate(frame,[start,
 const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isFinite(anchors[key])
   ?Math.max(0,anchors[key]*30):fallback;
 
-export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride})=>{
+export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1})=>{
   const currentFrame=useCurrentFrame();
   const frame=frameOverride??currentFrame;
   const t={
@@ -62,7 +66,7 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
   const latencyReveal=progress(frame,t.latency,t.latency+22);
   const rtt=progress(frame,t.rtt,t.rtt+12);
   const jitter=progress(frame,t.jitter,t.jitter+12);
-  const networkActive=clamp(Math.max(dnsReveal*.64,traverse*.8,latencyReveal*.9));
+  const networkActive=clamp(Math.max(dnsReveal*.64,traverse*.8,latencyReveal*.9))*clamp(networkActiveMultiplier);
 
   const addressNote=progress(frame,t.resolve,t.resolve+22)
     *(1-progress(frame,t.network,t.network+24));
@@ -79,7 +83,9 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           frameOverride={SHOT03_DURATION_FRAMES-1}
           captionOpacity={captionOpacity}
           worldMotion={{
-            packetOffsetX:packetWorldX-1178,
+            packetOffsetX:packetWorldX-1178+Math.max(0,gatewayHandoff),
+            gatewayActive,
+            balancerActive,
             packetOffsetY:packetWorldY-706,
             packetMorph,
             focusIntensity:focus,
@@ -92,6 +98,13 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
             jitter,
           }}
         />
+        {gatewayHandoff>0&&<svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
+          position:'absolute',inset:0,zIndex:7,pointerEvents:'none',overflow:'visible',opacity:.93,
+        }}>
+          <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1510+Math.max(0,gatewayHandoff))}`}
+            fill="none" stroke="rgba(57,228,176,.86)" strokeWidth={3}
+            strokeLinecap="round" style={{filter:'drop-shadow(0 0 5px rgba(44,229,169,.29))'}}/>
+        </svg>}
         <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
           position:'absolute',inset:0,zIndex:8,pointerEvents:'none',overflow:'visible',
           opacity:Math.min(1,.64*entry),
