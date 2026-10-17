@@ -3,11 +3,26 @@ export type StudioClip = {
   voiceDirection: string; scriptRevision: number; generationRevision: number;
   generated: boolean; lockedAt: string | null; generatedAt: string | null; approvedAt: string | null;
 };
+export type DirectorVisualEvent = {
+  clipKey: string; kind: string; frame: number; spokenTrigger: string;
+  visualExample: string; target: string; derivedFromVoiceAlignment: boolean;
+};
+export type DirectorVisualPlan = {
+  schemaVersion: number; recipeId: string; shotKey: string; fps: number;
+  durationInFrames: number; directorNotes: string; voiceSignature: string;
+  sections: Array<{clipKey: string; startFrame: number; endFrame: number; voiceStartFrame: number}>;
+  events: DirectorVisualEvent[];
+};
+export type DirectorVisualPlanState = {
+  ready: boolean; stale?: boolean; plan?: DirectorVisualPlan; validation?: string;
+  visualRevision?: number; generationCost?: string;
+};
 export type StudioShot = {
   id: string; shotNumber: number; shotKey: string; title: string;
   visualPrompt: string; visualRevision: number; previewRenderId?: string | null;
   previewVisualRevision?: number | null; sourceShotKey?: string | null;
-  sourceScriptRevision?: number | null; clips: StudioClip[];
+  sourceScriptRevision?: number | null; visualPlanRevision?: number | null;
+  visualPlanReady?: boolean; clips: StudioClip[];
 };
 async function request<T>(url: string, method = 'GET', data?: unknown): Promise<T> {
   const r = await fetch('/api/v1/studio' + url, {
@@ -36,6 +51,12 @@ export const studio = {
   unlockClip: (id: string) => request<StudioClip>('/clips/' + id + '/unlock','POST',{directorConfirmed:true}),
   generateVoice: (id: string) => request<StudioClip>('/clips/' + id + '/generate','POST',{}),
   approveVoice: (id: string) => request<StudioClip>('/clips/' + id + '/approve','POST',{}),
+  generateVisualPlan: (shotId: string) => request<DirectorVisualPlanState>(
+    '/shots/' + shotId + '/generate-visual-plan','POST',{}),
+  loadVisualPlan: (shotId: string) => request<DirectorVisualPlanState>(
+    '/shots/' + shotId + '/visual-plan'),
+  renderDirectorPlan: (shotId: string) => request<{renderId: string; status: string}>(
+    '/shots/' + shotId + '/render-director-plan','POST',{}),
   generatePreview: (shotId: string) => request<{renderId: string; status: string}>(
     '/shots/' + shotId + '/generate-preview','POST',{}),
   saveVisual: (shotId: string, instructions: string) =>

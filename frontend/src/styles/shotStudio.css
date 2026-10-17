@@ -104,3 +104,28 @@
   border-radius:10px;padding:11px 14px;white-space:normal;text-align:center}
 .studio-reuse-panel button:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:850px){.studio-reuse-panel button{width:100%}}
+
+.studio-director-workflow{border:1px solid #46668a;background:linear-gradient(145deg,#101e31,#132c45);
+  border-radius:14px;padding:18px;margin:10px 0}
+.studio-director-workflow h4{font-size:17px;margin:0 0 9px;color:#e8f5ff}
+.studio-director-workflow>p{color:#a9bed6;font-size:13px;line-height:1.75;margin:0 0 13px}
+.studio-director-workflow .studio-buttons button{min-height:47px}
+.studio-director-plan{border:1px solid #2c5270;background:#0b1c2f;border-radius:12px;
+  padding:15px;margin:18px 0 14px}
+.studio-director-plan>strong{font-size:13px;color:#b2d7f0;display:block;margin-bottom:14px}
+.studio-plan-beat{display:flex;align-items:flex-start;gap:13px;padding:12px 1px;
+  border-top:1px solid #294159}
+.studio-plan-beat>span{color:#87bad9;min-width:105px;font-size:12px;white-space:nowrap;font-weight:770}
+.studio-plan-beat>div{min-width:0}
+.studio-plan-beat b{font-size:13px;color:#f0f7ff}
+.studio-plan-beat p{margin:5px 0;color:#d8e9f7;font-size:13px;line-height:1.6}
+.studio-plan-beat small{color:#95bad8;font-size:11px}
+.studio-director-plan details{border-top:1px solid #345771;padding-top:13px;margin-top:8px}
+.studio-director-plan summary{cursor:pointer;font-weight:740;font-size:12px;color:#b4dcf6}
+.studio-director-plan pre{background:#061626;color:#a9e4c6;overflow:auto;max-height:320px;
+  padding:12px;border-radius:9px;line-height:1.6;font-size:11px;white-space:pre;max-width:100%}
+@media(max-width:650px){.studio-director-workflow{padding:13px}
+  .studio-director-workflow .studio-buttons button{width:100%}
+  .studio-plan-beat{display:block}
+  .studio-plan-beat>span{display:block;margin-bottom:7px}
+}

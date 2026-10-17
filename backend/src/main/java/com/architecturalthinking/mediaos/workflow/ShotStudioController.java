@@ -23,9 +23,10 @@ public class ShotStudioController {
     private final ObjectMapper json;
     private final ElevenLabsTextToSpeechService tts;
     private final RemotionRenderController renderer;
+    private final StudioDirectorVisualPlanService planner;
     public ShotStudioController(JdbcClient db,ObjectMapper json,ElevenLabsTextToSpeechService tts,
-                                RemotionRenderController renderer){
-        this.db=db;this.json=json;this.tts=tts;this.renderer=renderer;
+                                RemotionRenderController renderer,StudioDirectorVisualPlanService planner){
+        this.db=db;this.json=json;this.tts=tts;this.renderer=renderer;this.planner=planner;
     }
     public record Title(@NotBlank String title){}
     public record Text(@NotBlank String narration,String voiceDirection){}
@@ -291,6 +292,12 @@ public class ShotStudioController {
         if(!prompt.equals(old.get("visualPrompt"))){
             invalidatePreview(id);
             db.sql("""
+                update studio_shot
+                set director_visual_plan=null,director_visual_plan_revision=null,
+                    director_visual_voice_signature=null,director_visual_created_at=null
+                where id=:id
+                """).param("id",id).update();
+            db.sql("""
                 insert into studio_visual_revision_history(id,shot_id,visual_revision,prompt)
                 select gen_random_uuid(),id,visual_revision,visual_prompt from studio_shot
                 where id=:id and visual_revision>0
@@ -304,7 +311,8 @@ public class ShotStudioController {
     private Map<String,Object> shot(UUID id){
         Map<String,Object> value=db.sql("""
             select shot_number,title,visual_prompt,visual_revision,preview_render_id,preview_visual_revision,
-                   legacy_source_shot_key,legacy_source_script_revision from studio_shot
+                   legacy_source_shot_key,legacy_source_script_revision,
+                   director_visual_plan_revision,director_visual_voice_signature from studio_shot
             where id=:id and episode_id=:episode
             """).param("id",id).param("episode",EPISODE).query((rs,n)->{
                 Map<String,Object> r=new LinkedHashMap<>();
@@ -316,7 +324,10 @@ public class ShotStudioController {
                 r.put("previewRenderId",previewId);
                 r.put("previewVisualRevision",rs.getObject("preview_visual_revision"));
                 r.put("sourceShotKey",rs.getString("legacy_source_shot_key"));
-                r.put("sourceScriptRevision",rs.getObject("legacy_source_script_revision"));return r;
+                r.put("sourceScriptRevision",rs.getObject("legacy_source_script_revision"));
+                r.put("visualPlanRevision",rs.getObject("director_visual_plan_revision"));
+                r.put("visualPlanReady",rs.getString("director_visual_voice_signature")!=null);
+                return r;
             }).optional().orElseThrow(()->missing("Shot"));
         value.put("clips",db.sql("""
             select c.id from studio_clip c where c.shot_id=:id order by c.sequence
@@ -344,6 +355,112 @@ public class ShotStudioController {
             return r;
         }).optional().orElseThrow(()->missing("Clip"));
     }
+    @Transactional
+    @PostMapping("/shots/{id}/generate-visual-plan")
+    public Map<String,Object> generateDirectorPlan(@PathVariable UUID id) {
+        Map<String,Object> source=shot(id);
+        if(!"SHOT 05".equals(source.get("sourceShotKey")))
+            throw conflict("Director Visual Plan requires a registered cinematic scene recipe.");        StudioDirectorVisualPlanService.Compilation compiled=planner.compile(id,source);
+        String encoded=toJson(compiled.plan());
+        String signature=compiled.voiceSignature();
+        String unchanged=planner.currentSignature(id);
+        if(!signature.equals(unchanged))
+            throw conflict("A voice clip changed during planning. Generate again after its approval.");
+        int changed=db.sql("""
+            update studio_shot set
+              director_visual_plan=cast(:plan as jsonb),
+              director_visual_plan_revision=visual_revision,
+              director_visual_voice_signature=:signature,
+              director_visual_created_at=now(),
+              preview_render_id=null,preview_visual_revision=null
+            where id=:id and episode_id=:episode and visual_revision=:revision
+            """)
+            .param("plan",encoded).param("signature",signature).param("id",id)
+            .param("episode",EPISODE).param("revision",source.get("visualRevision")).update();
+        if(changed!=1)throw conflict("Visual instructions changed during compilation. Generate again.");
+        db.sql("""
+            insert into studio_director_visual_plan_history(
+                id,shot_id,visual_revision,voice_signature,plan
+            ) values(gen_random_uuid(),:shot,:revision,:signature,cast(:plan as jsonb))
+            on conflict(shot_id,visual_revision,voice_signature) do nothing
+            """).param("shot",id).param("revision",source.get("visualRevision"))
+            .param("signature",signature).param("plan",encoded).update();
+        return Map.of("ready",true,"visualRevision",source.get("visualRevision"),
+            "plan",compiled.plan(),"validation","PASSED","generationCost","ZERO_LLM_TOKENS");
+    }
+
+    @GetMapping("/shots/{id}/visual-plan")
+    public Map<String,Object> getDirectorPlan(@PathVariable UUID id) {
+        shot(id);
+        return db.sql("""
+            select director_visual_plan::text as plan,
+                   director_visual_plan_revision as revision,
+                   director_visual_voice_signature as signature,
+                   visual_revision as current_revision
+            from studio_shot where id=:id and episode_id=:episode
+            """).param("id",id).param("episode",EPISODE)
+            .query((rs,n)->{
+                String plan=rs.getString("plan");
+                if(plan==null)return Map.<String,Object>of("ready",false,"stale",false);
+                try{
+                    @SuppressWarnings("unchecked")
+                    Map<String,Object> parsed=json.readValue(plan,Map.class);
+                    boolean fresh=rs.getInt("revision")==rs.getInt("current_revision")
+                        && rs.getString("signature").equals(planner.currentSignature(id));
+                    Map<String,Object> value=new LinkedHashMap<>();
+                    value.put("ready",fresh);value.put("stale",!fresh);
+                    value.put("plan",parsed);
+                    return value;
+                }catch(Exception ex){throw conflict("Stored Visual Plan could not be validated.");}
+            }).single();
+    }
+
+    @PostMapping("/shots/{id}/render-director-plan")
+    public Map<String,Object> renderDirectorPlan(@PathVariable UUID id) {
+        Map<String,Object> source=shot(id);
+        if(!"SHOT 05".equals(source.get("sourceShotKey")))
+            throw conflict("Director-grade cinematic rendering is enabled for the SHOT 05 recipe only.");
+        Map<String,Object> saved=getDirectorPlan(id);
+        if(!Boolean.TRUE.equals(saved.get("ready")))
+            throw conflict("Generate a current validated Visual Plan first. Narration and instructions must not change.");
+        @SuppressWarnings("unchecked")
+        Map<String,Object> plan=(Map<String,Object>)saved.get("plan");
+        StudioDirectorVisualPlanService.validatePlan(plan);
+        @SuppressWarnings("unchecked")
+        List<Map<String,Object>> audio=(List<Map<String,Object>>)plan.get("audioSources");
+        String base=System.getenv().getOrDefault(
+            "MEDIA_OS_PUBLIC_URL","https://media-os-backend-production.up.railway.app").replaceAll("/+$","");
+        if(!base.matches("https://[A-Za-z0-9.:-]+"))
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "MEDIA_OS_PUBLIC_URL must be a public HTTPS backend URL.");
+        List<Map<String,Object>> clips=new ArrayList<>();
+        for(Map<String,Object> item:audio){
+            UUID clipId=UUID.fromString(String.valueOf(item.get("clipId")));
+            clips.add(Map.of(
+                "src",base+"/api/v1/studio/clips/"+clipId+"/audio?v="+item.get("generationRevision"),
+                "fromFrame",item.get("fromFrame"),
+                "durationInFrames",item.get("durationInFrames")
+            ));
+        }
+        Map<String,Object> props=new LinkedHashMap<>();
+        props.put("directorPlan",plan);
+        props.put("audioClips",clips);
+        props.put("durationInFrames",plan.get("durationInFrames"));
+        Map<String,Object> render=renderer.ensureRender("EP001-Studio-DirectorPlan",
+            new RemotionRenderController.RenderRequest("FAST_PREVIEW",props));
+        UUID renderId=UUID.fromString(String.valueOf(render.get("renderId")));
+        int changed=db.sql("""
+            update studio_shot set preview_render_id=:render,
+                preview_visual_revision=visual_revision,preview_created_at=now()
+            where id=:id and episode_id=:episode
+              and director_visual_voice_signature=:signature
+              and director_visual_plan_revision=visual_revision
+            """).param("render",renderId).param("id",id).param("episode",EPISODE)
+            .param("signature",plan.get("voiceSignature")).update();
+        if(changed!=1)throw conflict("Director plan became stale while the preview was queued.");
+        return render;
+    }
+
     @PostMapping("/shots/{id}/generate-preview")
     public Map<String,Object> generatePreview(@PathVariable UUID id){
         Map<String,Object> candidate=shot(id);

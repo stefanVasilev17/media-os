@@ -47,6 +47,8 @@ public class RemotionRenderController {
             new CompositionProfile("EP001_SHOT04_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2010, true),
             "EP001-Shot05-VoiceSynced",
             new CompositionProfile("EP001_SHOT05_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 3900, true),
+            "EP001-Studio-DirectorPlan",
+            new CompositionProfile("EP001_STUDIO_DIRECTOR_PLAN", EP001_ID, 1920, 1080, 30, 3900, true),
             "EP001-Studio-LivingMapDraft",
             new CompositionProfile("EP001_STUDIO_LIVING_MAP_DRAFT", EP001_ID, 1920, 1080, 30, 600, true),
             "EP001-Voice-CurrentPreview",

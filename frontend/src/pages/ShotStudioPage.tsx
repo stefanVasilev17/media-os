@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, FileText, LockKeyhole, Mic2, Plus, RotateCcw, Save, Clapperboard } from 'lucide-react';
-import { studio, type StudioClip, type StudioShot } from '../api/studioApi';
+import { studio, type StudioClip, type StudioShot, type DirectorVisualPlanState } from '../api/studioApi';
 import { LegacyShotMirror } from '../components/LegacyShotMirror';
 import { loadVoiceClips, voiceClipAudioUrl, type VoiceClipState } from '../api/voiceClipApi';
 import { loadRemotionRender, remotionRenderVideoUrl, type RemotionRenderState } from '../api/voiceApi';
@@ -22,6 +22,7 @@ export function ShotStudioPage() {
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
   const [preview,setPreview]=useState<RemotionRenderState|null>(null);
+  const [directorPlan,setDirectorPlan]=useState<DirectorVisualPlanState|null>(null);
   const [sourceVoice,setSourceVoice]=useState<VoiceClipState[]>([]);
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
@@ -45,6 +46,15 @@ export function ShotStudioPage() {
   useEffect(()=>{
     setPreview(null);
   },[shotId,shot?.previewRenderId]);
+  useEffect(()=>{
+    let active=true;
+    if(!shot?.id||shot.sourceShotKey!=='SHOT 05'){setDirectorPlan(null);return;}
+    studio.loadVisualPlan(shot.id)
+      .then(data=>{if(active)setDirectorPlan(data);})
+      .catch(()=>{if(active)setDirectorPlan(null);});
+    return()=>{active=false;};
+  },[shot?.id,shot?.visualPlanRevision,shot?.visualRevision,
+     shot?.clips.map(c=>c.generationRevision+':'+c.scriptRevision+':'+Boolean(c.approvedAt)).join(',')]);
   useEffect(()=>{
     if(!shot?.previewRenderId)return;
     let active=true;
@@ -97,6 +107,8 @@ export function ShotStudioPage() {
   }
   const dirty=Boolean(clip&&(narration.trim()!==clip.narration || direction.trim()!==clip.voiceDirection));
   const visualDirty=Boolean(shot&&visual.trim()!==shot.visualPrompt);
+  const isGatewayDirector=shot?.sourceShotKey==='SHOT 05';
+  const visualPlanReady=Boolean(isGatewayDirector&&directorPlan?.ready&&!visualDirty);
   const originalClip=shot?.sourceShotKey&&clip ? sourceVoice.find(c=>c.clipKey===clip.clipKey) : undefined;
   async function reuseExistingVoiceClips(){
     if(!shot||busy||!shot.sourceShotKey)return;
@@ -253,14 +265,45 @@ export function ShotStudioPage() {
                   <Save size={15}/> Save Visual Directions</button>
                 <span className="studio-muted">{voiceReady?'All voices approved.':'Approve every clip before the final voice-synced render.'}</span>
               </div>
-              <div className="studio-buttons">
+              {isGatewayDirector?<div className="studio-director-workflow">
+                <h4>Voice-synchronized Director Visual Plan</h4>
+                <p>API Gateway · Existing cinematic Living Map · seven real examples · status codes triggered on the exact spoken word. The registered Director recipe can plan from approved voices automatically; optional saved directions are retained for review. No AI or ElevenLabs charges.</p>
+                <div className="studio-buttons">
+                  <button type="button" className="studio-primary"
+                    disabled={busy||!voiceReady||visualDirty}
+                    onClick={()=>void run(async()=>{const result=await studio.generateVisualPlan(shot.id);
+                      setDirectorPlan(result);},'Director JSON timeline compiled and validated against approved C01–C07 audio.')}>
+                    <FileText size={15}/> Generate Visual Plan
+                  </button>
+                  <button type="button" className="studio-primary"
+                    disabled={busy||!voiceReady||!visualPlanReady}
+                    onClick={()=>void run(()=>studio.renderDirectorPlan(shot.id),
+                      'Cinematic Director preview queued separately. All original video renders and locks remain unchanged.')}>
+                    <Clapperboard size={15}/> Generate Director Preview
+                  </button>
+                </div>
+                {directorPlan?.stale&&<p className="studio-caution">The saved Visual Plan is stale: voice or visual instructions changed. Generate Visual Plan again before rendering.</p>}
+                {directorPlan?.ready&&directorPlan.plan&&<div className="studio-director-plan">
+                  <strong>Validated timeline · {directorPlan.plan.events.length} voice-aligned beats · {(directorPlan.plan.durationInFrames/30).toFixed(1)} seconds</strong>
+                  {directorPlan.plan.events.map((event,i)=><div className="studio-plan-beat" key={event.clipKey+':'+event.kind}>
+                    <span>{event.clipKey.split('-').at(-1)} · {(event.frame/30).toFixed(2)}s</span>
+                    <div><b>{event.kind.replaceAll('_',' ')}</b>
+                      <p>{event.visualExample}</p><small>Spoken trigger: “{event.spokenTrigger}”</small>
+                    </div>
+                  </div>)}
+                  <details><summary>Inspect validated Director JSON</summary>
+                    <pre>{JSON.stringify(directorPlan.plan,null,2)}</pre>
+                  </details>
+                </div>}
+                <p className="studio-muted">The renderer reuses the original Gateway cinematic composition; failure cards appear when their HTTP status is spoken. No automated Director video approval.</p>
+              </div>:<div className="studio-buttons">
                 <button type="button" className="studio-primary" disabled={busy||!voiceReady||!visual.trim()||visualDirty}
                   onClick={()=>void run(()=>studio.generatePreview(shot.id),
-                    'A separate Studio Living Map draft preview was queued. Approved original videos were not touched.')}>
+                    'A separate Studio Living Map template draft was queued. Original Director videos were not touched.')}>
                   <Clapperboard size={15}/> Generate Template Preview
                 </button>
-                <span className="studio-muted">Requires saved directions and approved audio for all clips.</span>
-              </div>
+                <span className="studio-muted">This is a reusable template, not a full Director scene.</span>
+              </div>}
               {preview&&<div className="studio-preview-result">
                 <strong>Isolated Studio draft · {preview.status}</strong>
                 {preview.status==='FAILED'&&<p className="studio-error">{preview.error||'Rendering failed; original footage is unchanged.'}</p>}
@@ -268,7 +311,7 @@ export function ShotStudioPage() {
                   src={remotionRenderVideoUrl(preview.renderId)} />}
                 {preview.status!=='READY'&&preview.status!=='FAILED'&&<p className="studio-muted">Remotion rendering: {Math.round((preview.progress||0)*100)}% — preview is not Director LOCKED.</p>}
               </div>}
-              <p className="studio-caution">This first renderer interprets supported focus objects and camera cues using a consistent Living Map template, rather than arbitrary custom animation code. All existing EP001 LOCKED shots and original MP4s remain unchanged.</p>
+              <p className="studio-caution">Only registered cinematic recipes can produce a voice-synchronized Director preview. For other shots the generic template is still limited. No original EP001 LOCKED render is overwritten.</p>
               <button type="button" className="studio-secondary" onClick={()=>{window.location.hash='#/agents/visual';}}>
                 Open existing Visual Agent <ArrowRight size={15}/></button>
             </div>

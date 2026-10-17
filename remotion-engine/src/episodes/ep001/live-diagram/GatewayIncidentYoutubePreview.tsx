@@ -8,6 +8,7 @@ type Props={
   durationInFrames:number;
   anchors:Record<string,number>;
   clipStarts:number[];
+  statusFrames?:Record<string,number>;
 };
 
 type Case={
@@ -73,12 +74,14 @@ const Result:React.FC<{text:string;progress:number;color?:string;top?:number}>=(
     transform:`translateY(${(1-progress)*13}px)`,fontSize:29,fontWeight:850,color}}>{text}</div>
 );
 
-const CaseAnimation:React.FC<{phase:number;local:number;segmentFrames:number}>=({phase,local,segmentFrames})=>{
+const CaseAnimation:React.FC<{phase:number;local:number;segmentFrames:number;spokenStatusAt?:number}>=({phase,local,segmentFrames,spokenStatusAt})=>{
   const q=(fraction:number)=>Math.round(segmentFrames*fraction);
   const step=(a:number,b:number)=>appear(local,q(a),q(b));
   const before=step(.11,.29);
   const mismatch=step(.30,.52);
-  const error=step(.57,.75);
+  const error=Number.isFinite(spokenStatusAt)
+    ? appear(local,Math.max(0,spokenStatusAt!),Math.max(0,spokenStatusAt!)+15)
+    : step(.57,.75);
   const line:React.CSSProperties={display:'flex',justifyContent:'space-between',alignItems:'center',padding:'16px 18px',
     border:'1px solid rgba(118,172,212,.23)',borderRadius:12,background:'rgba(13,34,57,.8)',fontSize:23};
   if(phase===1){
@@ -179,7 +182,7 @@ const CaseAnimation:React.FC<{phase:number;local:number;segmentFrames:number}>=(
   return null;
 };
 
-export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,anchors,clipStarts})=>{
+export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,anchors,clipStarts,statusFrames})=>{
   const frame=useCurrentFrame();
   const total=Math.max(1,durationInFrames);
   const planning=[0,17,38,58,81,101,119];
@@ -191,7 +194,9 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,an
   const arrival=appear(frame,openingLeadIn,openingLeadIn+145);
   const focus=appear(frame,openingLeadIn+66,openingLeadIn+320);
   const story=appear(frame,openingLeadIn+160,openingLeadIn+405);
-  const handoff=phase===6?ease(local,segmentFrames*.2,segmentFrames*.92):0;
+  const approvedHandoff=Number.isFinite(statusFrames?.LOAD_BALANCER_HANDOFF)
+    ? statusFrames!.LOAD_BALANCER_HANDOFF-starts[6] : segmentFrames*.2;
+  const handoff=phase===6?ease(local,approvedHandoff,Math.max(approvedHandoff+16,segmentFrames*.92)):0;
   const termFrame=anchors[CASES[phase].anchor];
   const termAt=Number.isFinite(termFrame)?termFrame*FPS:starts[phase]+Math.round(segmentFrames*.80);
   const termReveal=appear(frame,termAt,termAt+16);
@@ -233,7 +238,9 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({durationInFrames,an
         <div style={{marginTop:9,fontSize:20,fontWeight:650,color:C.muted,opacity:story}}>Password not checked here</div>
       </div>
       {phase>=1&&phase<=5&&<CasePanel phase={phase} label={casePrompt.prompt} opacity={panelOpen}>
-        <CaseAnimation phase={phase} local={local} segmentFrames={segmentFrames}/>
+        <CaseAnimation phase={phase} local={local} segmentFrames={segmentFrames}
+          spokenStatusAt={statusFrames?.[['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400'][phase]] === undefined
+            ? undefined : statusFrames![['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400'][phase]]-starts[phase]}/>
       </CasePanel>}
       {phase>=1&&phase<=5&&<div style={{position:'absolute',left:846,top:780,width:366,zIndex:25,
         padding:'14px 19px',borderRadius:13,background:'rgba(10,24,42,.93)',border:'1px solid rgba(168,138,255,.42)',
