@@ -83,15 +83,16 @@ public class StudioDirectorVisualPlanService {
         int offset=0;
         for(int i=0;i<rows.size();i++){
             VoiceRow voice=rows.get(i);
-            int from=offset*FPS,limit=(offset+GATEWAY_CLIP_SECONDS[i])*FPS;
+            int from=offset;
             int voiceStart=from+(i==0?38:0);
             JsonNode alignment=parse(voice.alignmentJson());
             double audioEnd=audioEnd(alignment);
             if(audioEnd<=0d || !Double.isFinite(audioEnd))
                 throw conflict("Missing timestamp alignment in C0"+(i+1)+". Cannot synchronize its visuals to voice.");
             int audioDuration=(int)Math.ceil((audioEnd+.18)*FPS);
-            if(voiceStart+audioDuration>limit+2)
-                throw conflict("Approved voice C0"+(i+1)+" exceeds its locked section. Review timing before rendering.");
+            int sectionDuration=Math.max(GATEWAY_CLIP_SECONDS[i]*FPS,
+                (voiceStart-from)+audioDuration+12);
+            int limit=from+sectionDuration;
             int anchorLocal=termFrame(alignment,AUDIO_TERMS[i]);
             if(anchorLocal<0)
                 throw conflict("Spoken anchor '"+AUDIO_TERMS[i]+"' is missing from voice C0"+(i+1)+
@@ -121,16 +122,16 @@ public class StudioDirectorVisualPlanService {
             int conceptAt=conceptFrame>=0?voiceStart+conceptFrame:eventFrame;
             if(conceptAt<from||conceptAt>=limit)conceptAt=eventFrame;
             anchors.put(ANCHORS[i],Math.round(conceptAt*1000d/FPS)/1000d);
-            offset+=GATEWAY_CLIP_SECONDS[i];
+            offset=limit;
         }
-        if(offset!=130||sections.size()!=7||events.size()!=7)
-            throw conflict("The immutable 130-second SHOT 05 recipe failed validation.");
+        if(offset>180*FPS||offset<130*FPS||sections.size()!=7||events.size()!=7)
+            throw conflict("The SHOT 05 storyboard is outside its supported 130–180 second voice-synchronized envelope.");
         Map<String,Object> plan=new LinkedHashMap<>();
         plan.put("schemaVersion",1);
         plan.put("recipeId","EP001_GATEWAY_DIAGNOSTICS_V1");
         plan.put("shotKey","SHOT 05");
         plan.put("fps",FPS);
-        plan.put("durationInFrames",130*FPS);
+        plan.put("durationInFrames",offset);
         plan.put("originalVideoPreserved",true);
         plan.put("livingMapSource","EP001_CURRENT_WORLD");
         plan.put("voiceSignature",signature);
@@ -193,9 +194,10 @@ public class StudioDirectorVisualPlanService {
     }
 
     static void validatePlan(Map<String,Object> plan){
-        if(!"EP001_GATEWAY_DIAGNOSTICS_V1".equals(plan.get("recipeId")) ||
-            !Integer.valueOf(3900).equals(plan.get("durationInFrames")))
+        if(!"EP001_GATEWAY_DIAGNOSTICS_V1".equals(plan.get("recipeId")))
             throw conflict("Unsupported or modified Director recipe.");
+        int total=((Number)plan.get("durationInFrames")).intValue();
+        if(total<3900||total>5400)throw conflict("Invalid director preview duration.");
         @SuppressWarnings("unchecked")
         List<Map<String,Object>> sections=(List<Map<String,Object>>)plan.get("sections");
         @SuppressWarnings("unchecked")
@@ -208,14 +210,14 @@ public class StudioDirectorVisualPlanService {
             int start=((Number)section.get("startFrame")).intValue();
             int sectionEnd=((Number)section.get("endFrame")).intValue();
             int at=((Number)event.get("frame")).intValue();
-            if(start!=end||sectionEnd-start!=GATEWAY_CLIP_SECONDS[i]*FPS ||
+            if(start!=end||sectionEnd-start<GATEWAY_CLIP_SECONDS[i]*FPS ||
                 at<start||at>=sectionEnd ||
                 !EVENT_KINDS[i].equals(event.get("kind"))||
                 !section.get("clipKey").equals(event.get("clipKey")))
                 throw conflict("Invalid event ordering, clip correspondence or frame boundaries in Director plan.");
             end=sectionEnd;
         }
-        if(end!=3900)throw conflict("Storyboard end frame does not match approved SHOT 05.");
+        if(end!=total)throw conflict("Storyboard end frame does not match approved voice-driven duration.");
     }
 
     private static String signature(List<VoiceRow> voices){
