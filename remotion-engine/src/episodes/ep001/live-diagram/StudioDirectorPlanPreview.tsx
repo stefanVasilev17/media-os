@@ -26,7 +26,7 @@ export const studioDirectorPlanSchema=z.object({
     recipeId:z.literal('EP001_GATEWAY_DIAGNOSTICS_V1'),
     shotKey:z.literal('SHOT 05'),
     fps:z.literal(30),
-    durationInFrames:z.literal(3900),
+    durationInFrames:z.number().int().min(3900).max(5400),
     originalVideoPreserved:z.literal(true),
     livingMapSource:z.literal('EP001_CURRENT_WORLD'),
     voiceSignature:z.string().length(64),
@@ -56,7 +56,8 @@ export const StudioDirectorPlanPreview:React.FC<Props>=({directorPlan,audioClips
     event.frame>=directorPlan.sections[i].startFrame &&
     event.frame<directorPlan.sections[i].endFrame
   ) && directorPlan.sections[0].startFrame===0 &&
-  directorPlan.sections[6].endFrame===3900 &&
+  directorPlan.sections[6].endFrame===directorPlan.durationInFrames &&
+  durationInFrames===directorPlan.durationInFrames &&
   audioClips.every((clip,i)=>clip.fromFrame===voiceStarts[i] &&
     clip.fromFrame+clip.durationInFrames<=directorPlan.sections[i].endFrame+2);
   if(!verified)return <div style={{width:1920,height:1080,background:'#050F1E',color:'#FF849A',
