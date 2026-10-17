@@ -237,8 +237,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
   const focusEntry=move(frame,FIRST+14,FIRST+112);
   const inside=enter(frame,FIRST+45,FIRST+105);
-  const out=phase===6?move(local,Math.max(30,segmentFrames*.63),
-    Math.max(40,segmentFrames*.92)):0;
+  const out=phase===6?move(local,Math.max(25,segmentFrames*.35),
+    Math.max(40,segmentFrames*.56)):0;
   const screenFocus=clamp(inside*(1-out));
   const active=FOCUS[phase];
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
@@ -251,14 +251,18 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
     :Math.round(approvedVoiceCueSeconds[phase]*FPS);
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
   const panelScale=.18+.82*focusEntry;
-  const packetEnter=move(frame,FIRST,FIRST+52);
-  const handoff=phase===6?move(local,Math.max(20,segmentFrames*.60),
-    Math.max(42,segmentFrames*.96)):0;
+  const gatewayArrival=move(frame,5,68);
+  const handoff=phase===6?move(local,Math.max(35,segmentFrames*.57),
+    Math.max(50,segmentFrames*.94)):0;
+  const nativePacketOffset=300*gatewayArrival+300*handoff;
   const interiorOpacity=clamp(inside*(1-out));
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...font}}>
     <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
-      <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}/>
+      <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}
+        gatewayHandoff={nativePacketOffset}
+        gatewayActive={gatewayArrival*(1-handoff)} balancerActive={handoff}
+        networkActiveMultiplier={1-gatewayArrival}/>
     </div>
     <div style={{position:'absolute',inset:0,
       background:'radial-gradient(ellipse at 49% 49%,rgba(4,17,33,.94),rgba(2,9,22,.98))',
@@ -268,15 +272,6 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
       fontSize:31,color:C.green,fontWeight:870}}>
       API Gateway · first server-side checkpoint
     </div>
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-      style={{position:'absolute',inset:0,pointerEvents:'none',
-        opacity:clamp(packetEnter*(1-screenFocus))}}>
-      <path d="M 748 632 H 936" fill="none" stroke={C.green} strokeWidth={4}
-        strokeDasharray={(Math.round(188*packetEnter))+' 188'} strokeLinecap="round"/>
-      <circle cx={748+188*packetEnter} cy={632} r={12} fill={C.green}/>
-      <path d="M 991 632 H 1042" stroke={C.green} strokeWidth={4}
-        strokeDasharray={(Math.round(51*handoff))+' 51'} opacity={handoff}/>
-    </svg>
     <div style={{position:'absolute',left:234,top:122,width:1452,height:834,zIndex:10,
       opacity:interiorOpacity,
       transformOrigin:'center center',
@@ -320,12 +315,5 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         <span>GATEWAY CHECKS · {phase+1} / 7</span>
       </div>
     </div>
-    {phase===6&&<div style={{position:'absolute',right:135,top:352,zIndex:12,
-      padding:'23px 30px',borderRadius:17,
-      border:'2px solid '+C.green+'99',background:'rgba(8,42,48,.94)',
-      fontSize:31,fontWeight:840,color:C.green,opacity:handoff,
-      transform:'translateY('+((1-handoff)*12)+'px)'}}>
-      LOAD BALANCER · NEXT
-    </div>}
   </div>;
 };
