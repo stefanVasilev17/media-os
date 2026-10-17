@@ -1,0 +1,58 @@
+name: SHOT05 Legacy Voice Audit - read only
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/shot05-legacy-voice-audit.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Compare approved Studio clips to original Voice Agent by audio digest without mutations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,urllib.request,urllib.error
+          from urllib.parse import quote
+          B="https://media-os-backend-production.up.railway.app"
+          def get(path, raw=False):
+              req=urllib.request.Request(B+path,method="GET")
+              with urllib.request.urlopen(req,timeout=45) as r:
+                  body=r.read()
+                  assert r.status==200
+                  return body if raw else json.loads(body)
+          shots=get("/api/v1/studio/shots")
+          matching=[x for x in shots if x.get("sourceShotKey")=="SHOT 05"]
+          assert len(matching)==1,"One original-linked Studio working copy required"
+          shot=matching[0]
+          revision=int(shot["sourceScriptRevision"])
+          legacy=[x for x in get("/api/v1/voice-clips?scriptRevision="+str(revision))
+                  if x.get("shotKey")=="SHOT 05"]
+          studio=sorted(shot["clips"],key=lambda c:c["sequence"])
+          assert len(legacy)==len(studio)==7
+          assert all(x["approvedAt"] and x["generated"] for x in studio)
+          print("STUDIO_SHOT_ID",shot["id"],flush=True)
+          print("LEGACY_REVISION",revision,flush=True)
+          print("SOURCE_AND_STUDIO_DIAGNOSTICS",flush=True)
+          for a,b in zip(sorted(legacy,key=lambda c:c["sequence"]),studio):
+              assert a["sequence"]==b["sequence"]
+              k=a["clipKey"]
+              t=a["narration"]==b["narration"]
+              v=a["voiceDirection"]==b["voiceDirection"]
+              old_audio=get("/api/v1/voice-clips/"+quote(k,safe="")+"/audio?scriptRevision="+str(revision),True)
+              draft=get("/api/v1/studio/clips/"+b["id"]+"/audio?v="+str(b["generationRevision"]),True)
+              same_audio=hashlib.sha256(old_audio).digest()==hashlib.sha256(draft).digest()
+              print("CLIP",k,"TEXT_MATCH",t,"DIRECTION_MATCH",v,"AUDIO_MATCH",same_audio,
+                    "LEGACY_APPROVED",a["approved"],"STUDIO_APPROVED",bool(b["approvedAt"]),
+                    "SOURCE_BYTES",len(old_audio),"STUDIO_BYTES",len(draft),flush=True)
+          voice=get("/api/v1/voice/shots?scriptRevision="+str(revision))
+          v=next((x for x in voice if x["shotKey"]=="SHOT 05"),None)
+          assert v
+          print("LEGACY_AGGREGATE",json.dumps({k:v.get(k) for k in
+                ("voiceApproved","visualSyncReady","alignment","generationRevision")},
+                ensure_ascii=False)[:2400],flush=True)
+          print("READ_ONLY_AUDIT_COMPLETE",flush=True)
+          PY
