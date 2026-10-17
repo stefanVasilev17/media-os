@@ -221,6 +221,48 @@ function buildShot01ComprehensionPacing(
   };
 }
 
+const SHOT05_READING_HOLD_FRAMES = 2 * VISUAL_FPS;
+
+function buildShot05ReadingPacing(clips: VoiceClipState[], rawAnchors: Record<string, number>) {
+  if (clips.length !== 7 || clips.some(clip => !Number.isFinite(clip.durationSeconds) || clip.durationSeconds <= 0)) {
+    throw new Error('SHOT 05 requires seven complete approved voice clips to place the 2-second reading holds.');
+  }
+  let frameCursor = 0;
+  let rawCursor = 0;
+  const windows: ContractPacingWindow[] = [];
+  for (const [index, clip] of clips.entries()) {
+    const durationFrames = Math.max(1, Math.ceil(clip.durationSeconds * VISUAL_FPS));
+    const startFrame = frameCursor;
+    windows.push({
+      clip,
+      rawStart: rawCursor,
+      rawEnd: rawCursor + clip.durationSeconds,
+      plannedStart: startFrame / VISUAL_FPS,
+      plannedEnd: (startFrame + durationFrames) / VISUAL_FPS
+    });
+    rawCursor += clip.durationSeconds;
+    frameCursor += durationFrames;
+    if (index < clips.length - 1) frameCursor += SHOT05_READING_HOLD_FRAMES;
+  }
+  const pacedAnchors = Object.fromEntries(Object.entries(rawAnchors).map(([key, original]) => {
+    if (!Number.isFinite(original)) return [key, original];
+    const match = windows.find((part, index) =>
+      original <= part.rawEnd + 0.02 || index === windows.length - 1
+    ) || windows[windows.length - 1];
+    const local = Math.max(0, Math.min(match.clip.durationSeconds, original - match.rawStart));
+    return [key, match.plannedStart + local];
+  }));
+  const comprehensionHolds = windows.slice(0, -1).map((window, index) => ({
+    fromFrame: Math.round(window.plannedEnd * VISUAL_FPS),
+    toFrame: Math.round(windows[index + 1].plannedStart * VISUAL_FPS),
+    canonicalFrame: Math.max(0, Math.round(window.plannedEnd * VISUAL_FPS) - 1)
+  }));
+  if (comprehensionHolds.some(gap => gap.toFrame - gap.fromFrame !== SHOT05_READING_HOLD_FRAMES)) {
+    throw new Error('SHOT 05 reading hold must be exactly two seconds and keep the original audio intact.');
+  }
+  return {windows, pacedAnchors, comprehensionHolds, durationInFrames: frameCursor};
+}
+
 function formatTimecode(seconds: number) {
   const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
   const minutes = Math.floor(safe / 60);
@@ -484,7 +526,9 @@ export function VisualAgentPage() {
             contractSegments,
             rawAnchors
           )
-        : null;
+        : currentShot.key === 'SHOT 05'
+          ? buildShot05ReadingPacing(related, rawAnchors)
+          : null;
 
       let cursor = 0;
       const audioClips = pacing
