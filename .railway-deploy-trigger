@@ -9,3 +9,5 @@ Reason: Railway service watchPatterns excludes ops/** and .github/**; rebuild ba
 MediaOS Shot Studio 2026-10-16: activate reuse-existing-voices endpoint from PR #83 at main. Built artifact contains read-only canonical voice, safe guarded Studio reuse and already-deployed UI. Railway backend watchPaths are backend/**, frontend/**, remotion-engine/**, Dockerfile and this trigger file. No original MP4 render triggered.
 
 2026-10-16: SAFE SHOT STUDIO REBUILD. Activate PR #83 reuse-existing-voices API. Do not invoke old C01 Director amendment automatically; do not rerender original SHOT01-SHOT16 footage. Previous production workflows set manual-only; CI runs before Railway deploy. Source contents unchanged apart from deployment gates.
+
+2026-10-17 Legacy Visual SHOT05 integration release, PR86. Build backend and frontend from main at this commit.
