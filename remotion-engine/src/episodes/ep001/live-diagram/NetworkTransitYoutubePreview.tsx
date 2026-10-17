@@ -13,6 +13,7 @@ export const networkTransitYoutubePreviewSchema=z.object({
   gatewayHandoff:z.number().optional(),
   gatewayActive:z.number().optional(),
   balancerActive:z.number().optional(),
+  networkActiveMultiplier:z.number().optional(),
 });
 type Props=z.infer<typeof networkTransitYoutubePreviewSchema>;
 
@@ -23,7 +24,7 @@ const progress=(frame:number,start:number,end:number)=>interpolate(frame,[start,
 const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isFinite(anchors[key])
   ?Math.max(0,anchors[key]*30):fallback;
 
-export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0})=>{
+export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1})=>{
   const currentFrame=useCurrentFrame();
   const frame=frameOverride??currentFrame;
   const t={
@@ -65,7 +66,7 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
   const latencyReveal=progress(frame,t.latency,t.latency+22);
   const rtt=progress(frame,t.rtt,t.rtt+12);
   const jitter=progress(frame,t.jitter,t.jitter+12);
-  const networkActive=clamp(Math.max(dnsReveal*.64,traverse*.8,latencyReveal*.9));
+  const networkActive=clamp(Math.max(dnsReveal*.64,traverse*.8,latencyReveal*.9))*clamp(networkActiveMultiplier);
 
   const addressNote=progress(frame,t.resolve,t.resolve+22)
     *(1-progress(frame,t.network,t.network+24));
