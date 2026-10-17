@@ -359,9 +359,8 @@ public class ShotStudioController {
     @PostMapping("/shots/{id}/generate-visual-plan")
     public Map<String,Object> generateDirectorPlan(@PathVariable UUID id) {
         Map<String,Object> source=shot(id);
-        if(((Number)source.get("visualRevision")).intValue()<1)
-            throw conflict("Save your Director visual directions before planning.");
-        StudioDirectorVisualPlanService.Compilation compiled=planner.compile(id,source);
+        if(!"SHOT 05".equals(source.get("sourceShotKey")))
+            throw conflict("Director Visual Plan requires a registered cinematic scene recipe.");        StudioDirectorVisualPlanService.Compilation compiled=planner.compile(id,source);
         String encoded=toJson(compiled.plan());
         String signature=compiled.voiceSignature();
         String unchanged=planner.currentSignature(id);
