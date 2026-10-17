@@ -82,6 +82,160 @@ public class VoiceClipController {
     public record ApproveRequest(@Positive int scriptRevision) {}
     public record UpdateNarrationRequest(@Positive int scriptRevision, @NotBlank String narration) {}
 
+    public record StudioDirectorHandoffRequest(@Positive int scriptRevision, boolean directorConfirmed) {}
+
+    @Transactional
+    @PostMapping("/shots/{shotKey}/activate-approved-studio-voice")
+    public Map<String,Object> activateApprovedStudioVoice(
+            @PathVariable String shotKey, @Valid @RequestBody StudioDirectorHandoffRequest request) {
+        assertLockedScriptRevision(request.scriptRevision());
+        String key=normalizeShotKey(shotKey);
+        if(!"SHOT 05".equals(key) || !request.directorConfirmed())
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Only Director-approved SHOT 05 Studio voice may enter the legacy Visual Agent.");
+
+        long visualLocks=jdbc.sql("""
+            select count(*) from visual_shot_lock
+            where episode_id=:episode and script_revision=:revision and shot_key='SHOT 05'
+            """).param("episode",ProductionOverviewService.EPISODE_ID)
+              .param("revision",request.scriptRevision()).query(Long.class).single();
+        if(visualLocks!=0)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "SHOT 05 has an existing Director video LOCK; legacy voice promotion is prohibited.");
+
+        UUID sourceId=jdbc.sql("""
+            select id from studio_shot where episode_id=:episode
+              and legacy_source_shot_key='SHOT 05'
+              and legacy_source_script_revision=:revision for update
+            """).param("episode",ProductionOverviewService.EPISODE_ID)
+              .param("revision",request.scriptRevision()).query(UUID.class).optional()
+              .orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,
+                  "No matching approved SHOT 05 Studio working copy."));
+
+        record StageVoice(int sequence,String narration,String direction,byte[] audio,
+                          String contentType,String alignment,OffsetDateTime approvedAt) {}
+        List<StageVoice> studio=jdbc.sql("""
+            select sequence,narration,voice_direction,generated_audio,
+                   generated_audio_content_type,generated_alignment::text,approved_at
+            from studio_clip where shot_id=:shot order by sequence for update
+            """).param("shot",sourceId).query((rs,n)->new StageVoice(
+                rs.getInt("sequence"),rs.getString("narration"),rs.getString("voice_direction"),
+                rs.getBytes("generated_audio"),rs.getString("generated_audio_content_type"),
+                rs.getString("generated_alignment"),
+                rs.getObject("approved_at",OffsetDateTime.class))).list();
+        if(studio.size()!=7)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"Exactly seven Studio voices are required.");
+        for(int i=0;i<7;i++){
+            StageVoice c=studio.get(i);
+            if(c.sequence()!=i+1||c.approvedAt()==null||c.audio()==null||c.audio().length==0
+                    ||c.alignment()==null||c.alignment().isBlank())
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "All seven Studio recordings must be generated and Director approved.");
+        }
+
+        record OriginalVoice(int sequence,String narration,String direction,byte[] audio) {}
+        List<OriginalVoice> original=jdbc.sql("""
+            select sequence_no,coalesce(director_narration_override,narration) as effective,
+                   voice_direction,generated_audio
+            from voice_clip_workflow
+            where episode_id=:episode and script_revision=:revision and shot_key='SHOT 05'
+            order by sequence_no for update
+            """).param("episode",ProductionOverviewService.EPISODE_ID)
+              .param("revision",request.scriptRevision())
+              .query((rs,n)->new OriginalVoice(rs.getInt("sequence_no"),
+                  rs.getString("effective"),rs.getString("voice_direction"),
+                  rs.getBytes("generated_audio"))).list();
+        if(original.size()!=7)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Legacy SHOT 05 clip count changed. Nothing was modified.");
+        for(int i=1;i<=6;i++){
+            OriginalVoice old=original.get(i);
+            StageVoice approved=studio.get(i);
+            if(old.sequence()!=i+1||!old.narration().equals(approved.narration())
+                    ||!java.util.Objects.equals(old.direction(),approved.direction())
+                    ||!java.util.Arrays.equals(old.audio(),approved.audio()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Legacy C02–C07 differs from the Director-approved Studio source at C0"+(i+1)
+                        +". Nothing was modified.");
+        }
+
+        OriginalVoice legacyC01=original.get(0);
+        StageVoice approvedC01=studio.get(0);
+        if(legacyC01.sequence()!=1 ||
+                !java.util.Objects.equals(legacyC01.direction(),approvedC01.direction()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Legacy C01 voice direction does not match the Director-approved Studio copy.");
+
+        boolean replaceC01=!legacyC01.narration().equals(approvedC01.narration())
+                ||!java.util.Arrays.equals(legacyC01.audio(),approvedC01.audio());
+        if(replaceC01){
+            int archived=jdbc.sql("""
+                insert into episode_shot05_voice_revision_archive(
+                    id,episode_id,script_revision,source_version,record_type,record_key,snapshot,audio
+                )
+                select gen_random_uuid(),v.episode_id,v.script_revision,'STUDIO_PRE',
+                    'CLIP',v.clip_key,
+                    to_jsonb(v)-'generated_audio',v.generated_audio
+                from voice_clip_workflow v
+                where v.episode_id=:episode and v.script_revision=:revision
+                  and v.clip_key='SHOT 05-C01'
+                on conflict(episode_id,script_revision,source_version,record_type,record_key)
+                do nothing
+                """).param("episode",ProductionOverviewService.EPISODE_ID)
+                  .param("revision",request.scriptRevision()).update();
+            if(archived!=1)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Previous C01 archive already exists. Refusing to replace another Director audio version.");
+            jdbc.sql("""
+                update voice_clip_workflow set
+                    director_narration_override=:narration,
+                    generated_audio=:audio,
+                    generated_audio_content_type=:contentType,
+                    generated_audio_file_name='SHOT05_C01_STUDIO_DIRECTOR_APPROVED.mp3',
+                    generated_alignment=cast(:alignment as jsonb),
+                    generated_voice_id=null,generated_model_id=null,
+                    generation_revision=generation_revision+1,
+                    voice_generated_at=now(),voice_approved_at=:approved,
+                    updated_at=now()
+                where episode_id=:episode and script_revision=:revision and clip_key='SHOT 05-C01'
+                """).param("narration",approvedC01.narration())
+                  .param("audio",approvedC01.audio())
+                  .param("contentType",approvedC01.contentType()==null?"audio/mpeg":approvedC01.contentType())
+                  .param("alignment",approvedC01.alignment())
+                  .param("approved",approvedC01.approvedAt())
+                  .param("episode",ProductionOverviewService.EPISODE_ID)
+                  .param("revision",request.scriptRevision()).update();
+        }
+        int c07=jdbc.sql("""
+            update voice_clip_workflow set voice_approved_at=:approved,updated_at=now()
+            where episode_id=:episode and script_revision=:revision
+              and clip_key='SHOT 05-C07' and voice_approved_at is null
+            """).param("approved",studio.get(6).approvedAt())
+              .param("episode",ProductionOverviewService.EPISODE_ID)
+              .param("revision",request.scriptRevision()).update();
+
+        boolean aggregateReady=jdbc.sql("""
+            select voice_approved_at is not null and visual_sync_ready_at is not null
+            from voice_shot_workflow where episode_id=:episode
+              and script_revision=:revision and shot_key='SHOT 05'
+            """).param("episode",ProductionOverviewService.EPISODE_ID)
+              .param("revision",request.scriptRevision()).query(Boolean.class).single();
+        if(replaceC01||c07>0||!aggregateReady){
+            refreshShotNarration(request.scriptRevision(),key);
+            rebuildShotAggregateIfReady(request.scriptRevision(),key);
+        }
+        Map<String,Object> result=new LinkedHashMap<>();
+        result.put("ready",true);
+        result.put("shotKey",key);
+        result.put("legacyApprovedClips",7);
+        result.put("studioC01Activated",replaceC01);
+        result.put("studioC07ApprovalActivated",c07==1);
+        result.put("previousC01Archived",replaceC01);
+        result.put("legacyVisualSyncReady",true);
+        result.put("directorLocksPreserved",true);
+        return result;
+    }
+
     @Transactional
     @PostMapping("/shots/{shotKey}/refresh-anchors")
     public Map<String, Object> refreshApprovedShotAnchors(
