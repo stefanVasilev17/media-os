@@ -8,6 +8,7 @@ type Props={
   durationInFrames:number;
   anchors:Record<string,number>;
   clipStarts:number[];
+  voiceEndFrame?:number;
   statusFrames?:Record<string,number>;
 };
 
@@ -88,6 +89,82 @@ const Bullet:React.FC<{children:React.ReactNode;soft?:boolean}>=({children,soft=
   <div style={{fontSize:23,color:soft?C.muted:C.bright,lineHeight:1.5}}>{children}</div>
 );
 
+
+const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame,segmentFrames})=>{
+  const travel=move(frame,Math.max(100,segmentFrames*.16),Math.max(165,segmentFrames*.43));
+  const gatewayReady=enter(frame,Math.max(165,segmentFrames*.43),Math.max(195,segmentFrames*.53));
+  const inspectionCue=enter(frame,Math.max(205,segmentFrames*.57),Math.max(260,segmentFrames*.76));
+  const pulse=.62+.38*Math.sin(Math.max(0,frame-155)*.075)**2;
+  const packetX=354+363*travel;
+  const arrival=enter(frame,55,96);
+  return <div style={{display:'flex',flexDirection:'column',gap:15,minHeight:0,height:'100%'}}>
+    <div style={{fontSize:19,letterSpacing:'.10em',fontWeight:790,color:C.purple,opacity:arrival}}>
+      ONE REQUEST · THE NEXT BOUNDARY IN THE SYSTEM
+    </div>
+    <svg viewBox="0 0 1100 300" width="100%" height="315" preserveAspectRatio="xMidYMid meet"
+      style={{display:'block',overflow:'visible',flex:'0 0 auto'}}>
+      <defs>
+        <linearGradient id="shot05-intro-gateway" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#173C64"/>
+          <stop offset="100%" stopColor="#101A40"/>
+        </linearGradient>
+        <linearGradient id="shot05-intro-flow" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#218F83"/>
+          <stop offset="100%" stopColor="#58EAC0"/>
+        </linearGradient>
+      </defs>
+      <rect x="12" y="66" width="324" height="170" rx="19" fill="rgba(8,52,51,.83)"
+        stroke="rgba(88,234,192,.68)" strokeWidth="2"/>
+      <text x="174" y="123" fontSize="28" fontWeight="850" textAnchor="middle"
+        fontFamily={AT_FONT} fill={C.green}>LOGIN REQUEST</text>
+      <text x="174" y="161" fontSize="22" textAnchor="middle" fontFamily={AT_FONT}
+        fill={C.muted}>Travelling from the network</text>
+      <rect x="48" y="184" width="252" height="14" rx="7" fill="rgba(24,121,105,.23)"/>
+      <rect x="48" y="184" width={252*travel} height="14" rx="7" fill="rgba(88,234,192,.75)"/>
+      <path d="M 341 150 H 719" stroke="rgba(102,159,187,.40)"
+        strokeWidth="8" strokeLinecap="round" fill="none"/>
+      <path d="M 341 150 H 719" stroke="rgba(88,234,192,.9)"
+        strokeWidth="5" strokeLinecap="round" fill="none" pathLength="1"
+        strokeDasharray={travel+' 1'} style={{filter:'drop-shadow(0 0 8px rgba(88,234,192,.37))'}}/>
+      <circle cx={packetX} cy="150" r={10+3*Math.sin(frame*.18)**2}
+        opacity={arrival} fill={C.green}
+        style={{filter:'drop-shadow(0 0 12px rgba(88,234,192,.88))'}}/>
+      <rect x="730" y="34" width="354" height="234" rx="24"
+        fill="url(#shot05-intro-gateway)"
+        stroke={gatewayReady>.01?C.purple:'#42668C'}
+        strokeWidth={2+gatewayReady*1.5}
+        style={{filter:gatewayReady>.01?'drop-shadow(0 0 '+(7+13*pulse*gatewayReady)+'px rgba(183,162,255,.48))':'none'}}/>
+      <rect x="748" y="54" width="318" height="194" rx="15"
+        fill="rgba(6,19,39,.60)" stroke="rgba(145,168,209,.17)"/>
+      <rect x="752" y="58" width="6" height="186" rx="3"
+        fill={C.green} opacity={.2+.75*gatewayReady*pulse}/>
+      <text x="908" y="108" fontSize="36" fontWeight="850" textAnchor="middle"
+        fontFamily={AT_FONT} fill={C.bright}>API GATEWAY</text>
+      <text x="908" y="148" fontSize="22" fontWeight="720" textAnchor="middle"
+        fontFamily={AT_FONT} fill={C.purple}>First server-side checkpoint</text>
+      <rect x="784" y="172" width="248" height="49" rx="11"
+        fill="rgba(25,50,73,.86)" stroke="rgba(152,181,223,.40)"/>
+      <text x="908" y="203" fontSize="21" fontWeight="830" textAnchor="middle"
+        fontFamily={AT_FONT} fill={gatewayReady>.1?C.green:C.amber}>
+        {gatewayReady>.95?'REQUEST RECEIVED':'AWAITING REQUEST'}
+      </text>
+      <rect x="786" y="171" width={244*inspectionCue} height="3" rx="2"
+        fill={C.purple} opacity={.7*inspectionCue}/>
+      <text x="908" y="294" fontSize="17" fontWeight="790" textAnchor="middle"
+        fontFamily={AT_FONT} fill={C.muted} opacity={inspectionCue}>
+        INSPECTION IS NEXT · NO AUTHENTICATION YET
+      </text>
+    </svg>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,opacity:inspectionCue}}>
+      <Tile label="Gateway boundary" value="REACHED" mode="good"/>
+      <Tile label="Auth Service" value="NOT REACHED" mode="warning"/>
+    </div>
+    <div style={{fontSize:21,lineHeight:1.4,fontWeight:720,color:C.muted,opacity:inspectionCue}}>
+      The request must pass gateway checks before it can continue toward authentication.
+    </div>
+  </div>;
+};
+
 const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusAt:number}>=({
   phase,local,segmentFrames,statusAt
 })=>{
@@ -129,43 +206,7 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
     <div style={{display:'flex',flexDirection:'column',gap:11,flex:1,minHeight:0,overflow:'hidden',justifyContent:'flex-start'}}>
-    {phase===0&&<>
-      <div style={{opacity:show,...full,border:'1px solid rgba(88,234,192,.58)',
-        background:'linear-gradient(145deg,rgba(20,65,73,.72),rgba(6,23,43,.96))',
-        padding:'28px 28px 26px'}}>
-        <div style={{color:C.purple,fontSize:17,fontWeight:810,letterSpacing:'.13em'}}>
-          FROM NETWORK TRANSIT TO THE FIRST GATEWAY BOUNDARY
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) 90px minmax(0,1fr)',
-          gap:18,alignItems:'center',marginTop:27}}>
-          <div style={{border:'1px solid rgba(88,234,192,.55)',background:'rgba(10,49,48,.70)',
-            borderRadius:16,padding:'24px 20px',textAlign:'center'}}>
-            <div style={{color:C.green,fontSize:29,fontWeight:870}}>LOGIN REQUEST</div>
-            <div style={{color:C.muted,fontSize:19,marginTop:9}}>Incoming packet</div>
-          </div>
-          <div style={{color:C.green,fontSize:60,fontWeight:830,textAlign:'center',
-            textShadow:'0 0 22px rgba(88,234,192,.38)',opacity:compare}}>→</div>
-          <div style={{border:'2px solid rgba(183,162,255,.72)',background:'rgba(40,39,86,.46)',
-            borderRadius:16,padding:'24px 20px',textAlign:'center'}}>
-            <div style={{color:C.bright,fontSize:29,fontWeight:870}}>API GATEWAY</div>
-            <div style={{color:C.purple,fontSize:19,marginTop:9}}>Entry boundary</div>
-          </div>
-        </div>
-        <div style={{opacity:compare,marginTop:26,padding:'14px 18px',borderRadius:11,
-          border:'1px solid rgba(88,234,192,.4)',background:'rgba(8,43,40,.66)',
-          color:C.green,fontSize:22,fontWeight:820,textAlign:'center'}}>
-          REQUEST ARRIVED · GATEWAY INSPECTION COMES NEXT
-        </div>
-      </div>
-      <div style={{opacity:compare,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-        <Tile label="API Gateway" value="RECEIVED" mode="good"/>
-        <Tile label="Auth Service" value="NOT REACHED" mode="warning"/>
-      </div>
-      <div style={{opacity:compare,color:C.muted,fontSize:22,lineHeight:1.45}}>
-        The request has reached the gateway, but the gateway has not yet demonstrated
-        its checks. Password validation happens later, in the Auth Service.
-      </div>
-    </>}
+    {phase===0&&<GatewayArrivalVisual frame={local} segmentFrames={segmentFrames}/>}
     {phase===1&&<>
       <div style={{opacity:show}}>{row('KNOWN ROUTE','POST /api/v1/login',C.green)}</div>
       <div style={{opacity:compare}}>{row('DIAGNOSTIC REQUEST','POST /api/v2/login',C.amber)}</div>
@@ -253,7 +294,7 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
 };
 
 export const GatewayIncidentYoutubePreview:React.FC<Props>=({
-  durationInFrames,anchors,clipStarts,statusFrames
+  durationInFrames,anchors,clipStarts,voiceEndFrame,statusFrames
 })=>{
   const frame=useCurrentFrame();
   const total=Math.max(1,durationInFrames);
@@ -264,8 +305,11 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
   const focusEntry=move(frame,FIRST+14,FIRST+112);
   const inside=enter(frame,FIRST+45,FIRST+105);
-  const out=phase===6?move(local,Math.max(25,segmentFrames*.35),
-    Math.max(40,segmentFrames*.56)):0;
+  const confirmedVoiceEnd=Math.max(starts[6]+1,Math.min(total,voiceEndFrame??total));
+  const hasFinalHold=total-confirmedVoiceEnd>=90;
+  const finalExitStart=hasFinalHold?confirmedVoiceEnd+60:Math.max(starts[6]+50,total-28);
+  const finalExitEnd=hasFinalHold?confirmedVoiceEnd+86:total-1;
+  const out=phase===6?move(frame,finalExitStart,finalExitEnd):0;
   const screenFocus=clamp(inside*(1-out));
   const active=FOCUS[phase];
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
@@ -279,8 +323,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
   const panelScale=.18+.82*focusEntry;
   const gatewayArrival=move(frame,5,68);
-  const handoff=phase===6?move(local,Math.max(35,segmentFrames*.57),
-    Math.max(50,segmentFrames*.94)):0;
+  const handoff=phase===6?move(frame,hasFinalHold?confirmedVoiceEnd+70:Math.max(starts[6]+55,total-36),
+    Math.max(hasFinalHold?confirmedVoiceEnd+102:total-2,starts[6]+56)):0;
   const nativePacketOffset=(NATIVE_GATEWAY_ENTRY_X-NATIVE_PACKET_FINAL_X)*gatewayArrival+
     (NATIVE_BALANCER_ENTRY_X-NATIVE_GATEWAY_ENTRY_X)*handoff;
   const interiorOpacity=clamp(inside*(1-out));
