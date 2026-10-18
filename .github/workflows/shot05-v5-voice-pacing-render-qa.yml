@@ -51,8 +51,8 @@ jobs:
               assert math.isfinite(duration) and duration>0 and duration<40
               audio_frames=max(1,math.ceil(duration*FPS))
               f=cursor
-              original_src=BASE+"/api/v1/voice-clips/"+quote(clip["clipKey"],safe="")+
-                "/audio?scriptRevision="+str(rev)+"&v="+str(clip["generationRevision"])
+              original_src=(BASE+"/api/v1/voice-clips/"+quote(clip["clipKey"],safe="")+
+                "/audio?scriptRevision="+str(rev)+"&v="+str(clip["generationRevision"]))
               trim=max(0,round(float(clip.get("leadingTrimSeconds") or 0)*FPS))
               if i==6:
                   split=C07_NATURAL_SPLIT_FRAMES
