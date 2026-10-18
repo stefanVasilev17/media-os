@@ -172,7 +172,8 @@ export const Shot05VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audio
   const voiceEndFrame=lastClip?lastClip.fromFrame+lastClip.durationInFrames:durationInFrames;
   return <>
     <GatewayIncidentYoutubePreview durationInFrames={durationInFrames} anchors={anchors}
-      clipStarts={audioClips.map(c=>c.fromFrame)} voiceEndFrame={voiceEndFrame}/>
+      clipStarts={audioClips.filter((clip,index)=>index===0||clip.src!==audioClips[index-1].src)
+        .map(clip=>clip.fromFrame)} voiceEndFrame={voiceEndFrame}/>
     <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
   </>;
 };
