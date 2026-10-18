@@ -1,4 +1,4 @@
-name: SHOT05 v5 continuous packet and 2s reading-hold preview QA
+name: SHOT05 Director review - exact Gateway and Balancer entry stops
 on:
   push:
     branches: [main]
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
-      - name: Render isolated voice-approved SHOT05 v5 preview with exact two-second reading holds
+      - name: Render isolated voice-approved SHOT05 boundary correction with exact two-second holds
         shell: bash
         run: |
           python3 - <<'PY'
@@ -106,7 +106,7 @@ jobs:
           check=sorted((x for x in fresh if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert [(x["clipKey"],x["generationRevision"],x["approved"]) for x in check]==[
              (x["clipKey"],x["generationRevision"],x["approved"]) for x in clips]
-          print("SHOT05 V5 MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
+          print("SHOT05 DIRECTOR ENTRY-STOP REVIEW MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
           print("MP4_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
           print("SAFE: 7 approved voices unchanged. SHOT01-04 and all original renders untouched. Director LOCK not performed.",flush=True)
           PY
