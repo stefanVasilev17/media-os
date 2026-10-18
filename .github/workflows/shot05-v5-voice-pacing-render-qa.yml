@@ -76,8 +76,8 @@ jobs:
           original_approved_voice_end=cursor
           cursor+=FINAL_HOLD_FRAMES
           assert len(clips_out)==8 and clips_out[-2]["src"]==clips_out[-1]["src"]
-          assert clips_out[-1]["fromFrame"]==clips_out[-2]["fromFrame"]+
-                 clips_out[-2]["durationInFrames"]+C07_DIRECTOR_PAUSE_FRAMES
+          assert clips_out[-1]["fromFrame"]==(clips_out[-2]["fromFrame"]+
+                 clips_out[-2]["durationInFrames"]+C07_DIRECTOR_PAUSE_FRAMES)
           assert len(holds)==6 and all(h["toFrame"]-h["fromFrame"]==60 for h in holds)
           anchors={}
           for k,v in raw.items():
