@@ -1,0 +1,42 @@
+name: SHOT05 C07 approved-voice pause analysis
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot05-c07-pause-analysis.yml']
+permissions:
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Locate natural C07 silence without editing approved recording
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,subprocess,tempfile,re,os
+          from urllib.parse import quote
+          base="https://media-os-backend-production.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path,timeout=35) as r:
+                  return json.load(r)
+          clips=sorted((x for x in get("/api/v1/voice-clips?scriptRevision=3") if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
+          assert len(clips)==7
+          clip=clips[-1]
+          assert clip["approved"] and clip["generated"] and clip["sequence"]==7
+          duration=float(clip["durationSeconds"])
+          leading=float(clip.get("leadingTrimSeconds") or 0)
+          print("C07 duration=",duration,"leadingTrimSeconds=",leading,flush=True)
+          path="/tmp/shot05-c07-approved-audio.bin"
+          url=base+"/api/v1/voice-clips/"+quote(clip["clipKey"],safe="")+"/audio?scriptRevision=3&v="+str(clip["generationRevision"])
+          with urllib.request.urlopen(url,timeout=40) as r,open(path,"wb") as f:
+              f.write(r.read())
+          p=subprocess.run(["ffmpeg","-hide_banner","-nostats","-i",path,
+                 "-af","silencedetect=noise=-36dB:d=0.09","-f","null","-"],
+                 capture_output=True,text=True,timeout=60)
+          print("FFMPEG exit=",p.returncode)
+          lines=p.stderr.splitlines()
+          for line in lines:
+              if "silence_start" in line or "silence_end" in line:
+                  print("PAUSE",line.strip(),flush=True)
+          assert p.returncode==0,"ffmpeg unable to analyze approved recording"
+          PY
