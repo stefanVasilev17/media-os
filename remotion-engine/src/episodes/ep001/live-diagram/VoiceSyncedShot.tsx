@@ -167,9 +167,12 @@ export const Shot04VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audio
   </>
 );
 
-export const Shot05VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,durationInFrames,anchors}) => (
-  <>
-    <GatewayIncidentYoutubePreview durationInFrames={durationInFrames} anchors={anchors} clipStarts={audioClips.map(c=>c.fromFrame)} />
+export const Shot05VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,durationInFrames,anchors}) => {
+  const lastClip=audioClips[audioClips.length-1];
+  const voiceEndFrame=lastClip?lastClip.fromFrame+lastClip.durationInFrames:durationInFrames;
+  return <>
+    <GatewayIncidentYoutubePreview durationInFrames={durationInFrames} anchors={anchors}
+      clipStarts={audioClips.map(c=>c.fromFrame)} voiceEndFrame={voiceEndFrame}/>
     <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
-  </>
-);
+  </>;
+};
