@@ -28,6 +28,9 @@ const enter=(frame:number,start:number,end:number)=>interpolate(frame,[start,Mat
 const timing=(seconds:Record<string,number>,name:string)=>Number.isFinite(seconds[name])?seconds[name]*FPS:undefined;
 const FIRST=38;
 const DEFAULT_STARTS=[0,17,38,58,81,101,119];
+const NATIVE_PACKET_FINAL_X=1510;
+const NATIVE_GATEWAY_ENTRY_X=1660-270/2;
+const NATIVE_BALANCER_ENTRY_X=1960-270/2;
 const FOCUS=[
   ['Routing','Path'],['Routing','Path'],['Routing','Method'],
   ['Rate Limit','Burst'],['Request Filter','WAF'],['Request Filter','Schema'],
@@ -127,17 +130,41 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
     <div style={{display:'flex',flexDirection:'column',gap:11,flex:1,minHeight:0,overflow:'hidden',justifyContent:'flex-start'}}>
     {phase===0&&<>
-      <div style={{opacity:show}}>{row('INCOMING REQUEST','POST /api/v1/login',C.green)}</div>
-      <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-        <Tile label="Path" value="/api/v1/login" mode="good"/>
-        <Tile label="Method" value="POST" mode="good"/>
+      <div style={{opacity:show,...full,border:'1px solid rgba(88,234,192,.58)',
+        background:'linear-gradient(145deg,rgba(20,65,73,.72),rgba(6,23,43,.96))',
+        padding:'28px 28px 26px'}}>
+        <div style={{color:C.purple,fontSize:17,fontWeight:810,letterSpacing:'.13em'}}>
+          FROM NETWORK TRANSIT TO THE FIRST GATEWAY BOUNDARY
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) 90px minmax(0,1fr)',
+          gap:18,alignItems:'center',marginTop:27}}>
+          <div style={{border:'1px solid rgba(88,234,192,.55)',background:'rgba(10,49,48,.70)',
+            borderRadius:16,padding:'24px 20px',textAlign:'center'}}>
+            <div style={{color:C.green,fontSize:29,fontWeight:870}}>LOGIN REQUEST</div>
+            <div style={{color:C.muted,fontSize:19,marginTop:9}}>Incoming packet</div>
+          </div>
+          <div style={{color:C.green,fontSize:60,fontWeight:830,textAlign:'center',
+            textShadow:'0 0 22px rgba(88,234,192,.38)',opacity:compare}}>→</div>
+          <div style={{border:'2px solid rgba(183,162,255,.72)',background:'rgba(40,39,86,.46)',
+            borderRadius:16,padding:'24px 20px',textAlign:'center'}}>
+            <div style={{color:C.bright,fontSize:29,fontWeight:870}}>API GATEWAY</div>
+            <div style={{color:C.purple,fontSize:19,marginTop:9}}>Entry boundary</div>
+          </div>
+        </div>
+        <div style={{opacity:compare,marginTop:26,padding:'14px 18px',borderRadius:11,
+          border:'1px solid rgba(88,234,192,.4)',background:'rgba(8,43,40,.66)',
+          color:C.green,fontSize:22,fontWeight:820,textAlign:'center'}}>
+          REQUEST ARRIVED · GATEWAY INSPECTION COMES NEXT
+        </div>
       </div>
-      <div style={{opacity:compare,marginTop:6,...full,border:'1px solid '+C.purple+'99',
-        display:'flex',alignItems:'center',justifyContent:'space-between',gap:20}}>
-        <Bullet>Routing, rate limits and filters run before authentication</Bullet>
-        <span style={{color:C.amber,fontSize:20,fontWeight:820,whiteSpace:'nowrap'}}>PASSWORD NOT CHECKED</span>
+      <div style={{opacity:compare,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+        <Tile label="API Gateway" value="RECEIVED" mode="good"/>
+        <Tile label="Auth Service" value="NOT REACHED" mode="warning"/>
       </div>
-      <div style={{opacity:compare,color:C.muted,fontSize:21}}>The Auth Service has not received the request.</div>
+      <div style={{opacity:compare,color:C.muted,fontSize:22,lineHeight:1.45}}>
+        The request has reached the gateway, but the gateway has not yet demonstrated
+        its checks. Password validation happens later, in the Auth Service.
+      </div>
     </>}
     {phase===1&&<>
       <div style={{opacity:show}}>{row('KNOWN ROUTE','POST /api/v1/login',C.green)}</div>
@@ -254,8 +281,10 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const gatewayArrival=move(frame,5,68);
   const handoff=phase===6?move(local,Math.max(35,segmentFrames*.57),
     Math.max(50,segmentFrames*.94)):0;
-  const nativePacketOffset=300*gatewayArrival+300*handoff;
+  const nativePacketOffset=(NATIVE_GATEWAY_ENTRY_X-NATIVE_PACKET_FINAL_X)*gatewayArrival+
+    (NATIVE_BALANCER_ENTRY_X-NATIVE_GATEWAY_ENTRY_X)*handoff;
   const interiorOpacity=clamp(inside*(1-out));
+  const leftRailReveal=phase===0?0:enter(local,8,22);
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...font}}>
     <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
@@ -296,12 +325,12 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         </div>
       </div>
       <div style={{position:'absolute',left:44,right:44,top:162,bottom:67,
-        display:'grid',gridTemplateColumns:'391px 1fr',gap:31}}>
-        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:31}}>
+        {phase!==0&&<div style={{display:'flex',flexDirection:'column',gap:16,opacity:leftRailReveal}}>
           <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}/>
           <Module name="Rate Limit" items={['Burst','Quota']} active={active[0]} selected={active[1]}/>
           <Module name="Request Filter" items={['WAF','Schema']} active={active[0]} selected={active[1]}/>
-        </div>
+        </div>}
         <div style={{borderRadius:21,border:'1px solid rgba(103,164,213,.34)',
           background:'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
           padding:'27px 32px 17px',overflow:'hidden'}}>
