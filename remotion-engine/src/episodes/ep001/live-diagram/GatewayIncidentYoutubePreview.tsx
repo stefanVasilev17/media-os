@@ -101,7 +101,7 @@ const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame
     <div style={{fontSize:19,letterSpacing:'.10em',fontWeight:790,color:C.purple,opacity:arrival}}>
       ONE REQUEST · THE NEXT BOUNDARY IN THE SYSTEM
     </div>
-    <svg viewBox="0 0 1100 300" width="100%" height="315" preserveAspectRatio="xMidYMid meet"
+    <svg viewBox="0 0 1100 300" width="100%" height="254" preserveAspectRatio="xMidYMid meet"
       style={{display:'block',overflow:'visible',flex:'0 0 auto'}}>
       <defs>
         <linearGradient id="shot05-intro-gateway" x1="0" y1="0" x2="1" y2="1">
@@ -159,9 +159,6 @@ const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame
       <Tile label="Gateway boundary" value="REACHED" mode="good"/>
       <Tile label="Auth Service" value="NOT REACHED" mode="warning"/>
     </div>
-    <div style={{fontSize:21,lineHeight:1.4,fontWeight:720,color:C.muted,opacity:inspectionCue}}>
-      The request must pass gateway checks before it can continue toward authentication.
-    </div>
   </div>;
 };
 
@@ -200,7 +197,7 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
   );
   return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
     <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
-      {phase===0?'FIRST SERVER-SIDE CHECKPOINT':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
+      {phase===0?'FIRST SERVER-SIDE CHECKPOINT':phase===6?'CANONICAL REQUEST · FINAL HANDOFF':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
     </div>
     <div style={{fontSize:32,fontWeight:870,lineHeight:1.2,color:C.bright}}>{caseNames[phase]}</div>
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
