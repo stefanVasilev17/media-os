@@ -110,8 +110,6 @@ const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame
         fill="rgba(10,30,49,.69)" stroke="rgba(88,132,164,.35)" strokeWidth="2"/>
       <text x="229" y="219" fontFamily={AT_FONT} fontWeight="790" fontSize="30"
         textAnchor="middle" fill="#A3BDD6">NETWORK TRANSIT</text>
-      <text x="229" y="258" fontFamily={AT_FONT} fontSize="23"
-        textAnchor="middle" fill="#7D9CB7">Where we came from</text>
       <path d="M 419 224 H 766" fill="none"
         stroke="rgba(94,145,173,.40)" strokeWidth="5" strokeLinecap="round"/>
       <path d="M 419 224 H 766" fill="none" pathLength={1}
@@ -330,7 +328,7 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
       background:'linear-gradient(145deg,rgba(11,33,56,.98),rgba(4,14,30,.98))',
       boxShadow:'0 0 70px rgba(98,102,240,.22),0 30px 125px rgba(0,0,0,.65)',
       overflow:'hidden'}}>
-      <div style={{position:'absolute',top:36,left:44,right:44,
+      {phase!==0&&<div style={{position:'absolute',top:36,left:44,right:44,
         display:'flex',alignItems:'center',justifyContent:'space-between',gap:20}}>
         <div>
           <div style={{fontSize:16,color:C.purple,letterSpacing:'.16em',fontWeight:840}}>
@@ -343,8 +341,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
           fontSize:20,color:C.muted,fontWeight:720}}>
           REQUEST CHECKPOINT · NOT PASSWORD VALIDATION
         </div>}
-      </div>
-      <div style={{position:'absolute',left:44,right:44,top:162,bottom:phase===0?48:67,
+      </div>}
+      <div style={{position:'absolute',left:44,right:44,top:phase===0?42:162,bottom:phase===0?42:67,
         display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:phase===0?0:31}}>
         {phase!==0&&<div style={{display:'flex',flexDirection:'column',gap:16,opacity:leftRailReveal}}>
           <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}/>
