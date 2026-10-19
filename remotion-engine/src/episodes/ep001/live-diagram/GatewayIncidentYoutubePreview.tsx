@@ -91,74 +91,53 @@ const Bullet:React.FC<{children:React.ReactNode;soft?:boolean}>=({children,soft=
 
 
 const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame,segmentFrames})=>{
-  const travel=move(frame,Math.max(100,segmentFrames*.16),Math.max(165,segmentFrames*.43));
-  const gatewayReady=enter(frame,Math.max(165,segmentFrames*.43),Math.max(195,segmentFrames*.53));
-  const inspectionCue=enter(frame,Math.max(205,segmentFrames*.57),Math.max(260,segmentFrames*.76));
-  const pulse=.62+.38*Math.sin(Math.max(0,frame-155)*.075)**2;
-  const packetX=354+363*travel;
-  const arrival=enter(frame,55,96);
-  return <div style={{display:'flex',flexDirection:'column',gap:15,minHeight:0,height:'100%'}}>
-    <div style={{fontSize:19,letterSpacing:'.10em',fontWeight:790,color:C.purple,opacity:arrival}}>
-      ONE REQUEST · THE NEXT BOUNDARY IN THE SYSTEM
-    </div>
-    <svg viewBox="0 0 1100 300" width="100%" height="254" preserveAspectRatio="xMidYMid meet"
-      style={{display:'block',overflow:'visible',flex:'0 0 auto'}}>
+  const travelStart=Math.max(26,Math.round(segmentFrames*.11));
+  const travelEnd=Math.max(travelStart+48,Math.round(segmentFrames*.40));
+  const progress=move(frame,travelStart,travelEnd);
+  const arrived=enter(frame,travelEnd+2,travelEnd+25);
+  const packetX=420+346*progress;
+  return <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',
+    justifyContent:'center',pointerEvents:'none'}}>
+    <svg viewBox="0 0 1200 440" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
+      style={{maxWidth:1250,maxHeight:550,overflow:'visible'}}>
       <defs>
-        <linearGradient id="shot05-intro-gateway" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#173C64"/>
-          <stop offset="100%" stopColor="#101A40"/>
-        </linearGradient>
-        <linearGradient id="shot05-intro-flow" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#218F83"/>
-          <stop offset="100%" stopColor="#58EAC0"/>
+        <linearGradient id="shot05-clean-gateway" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#183A65"/>
+          <stop offset="100%" stopColor="#0B1E3B"/>
         </linearGradient>
       </defs>
-      <rect x="12" y="66" width="324" height="170" rx="19" fill="rgba(8,52,51,.83)"
-        stroke="rgba(88,234,192,.68)" strokeWidth="2"/>
-      <text x="174" y="123" fontSize="28" fontWeight="850" textAnchor="middle"
-        fontFamily={AT_FONT} fill={C.green}>LOGIN REQUEST</text>
-      <text x="174" y="161" fontSize="22" textAnchor="middle" fontFamily={AT_FONT}
-        fill={C.muted}>Travelling from the network</text>
-      <rect x="48" y="184" width="252" height="14" rx="7" fill="rgba(24,121,105,.23)"/>
-      <rect x="48" y="184" width={252*travel} height="14" rx="7" fill="rgba(88,234,192,.75)"/>
-      <path d="M 341 150 H 719" stroke="rgba(102,159,187,.40)"
-        strokeWidth="8" strokeLinecap="round" fill="none"/>
-      <path d="M 341 150 H 719" stroke="rgba(88,234,192,.9)"
-        strokeWidth="5" strokeLinecap="round" fill="none" pathLength="1"
-        strokeDasharray={travel+' 1'} style={{filter:'drop-shadow(0 0 8px rgba(88,234,192,.37))'}}/>
-      <circle cx={packetX} cy="150" r={10+3*Math.sin(frame*.18)**2}
-        opacity={arrival} fill={C.green}
-        style={{filter:'drop-shadow(0 0 12px rgba(88,234,192,.88))'}}/>
-      <rect x="730" y="34" width="354" height="234" rx="24"
-        fill="url(#shot05-intro-gateway)"
-        stroke={gatewayReady>.01?C.purple:'#42668C'}
-        strokeWidth={2+gatewayReady*1.5}
-        style={{filter:gatewayReady>.01?'drop-shadow(0 0 '+(7+13*pulse*gatewayReady)+'px rgba(183,162,255,.48))':'none'}}/>
-      <rect x="748" y="54" width="318" height="194" rx="15"
-        fill="rgba(6,19,39,.60)" stroke="rgba(145,168,209,.17)"/>
-      <rect x="752" y="58" width="6" height="186" rx="3"
-        fill={C.green} opacity={.2+.75*gatewayReady*pulse}/>
-      <text x="908" y="108" fontSize="36" fontWeight="850" textAnchor="middle"
-        fontFamily={AT_FONT} fill={C.bright}>API GATEWAY</text>
-      <text x="908" y="148" fontSize="22" fontWeight="720" textAnchor="middle"
-        fontFamily={AT_FONT} fill={C.purple}>First server-side checkpoint</text>
-      <rect x="784" y="172" width="248" height="49" rx="11"
-        fill="rgba(25,50,73,.86)" stroke="rgba(152,181,223,.40)"/>
-      <text x="908" y="203" fontSize="21" fontWeight="830" textAnchor="middle"
-        fontFamily={AT_FONT} fill={gatewayReady>.1?C.green:C.amber}>
-        {gatewayReady>.95?'REQUEST RECEIVED':'AWAITING REQUEST'}
-      </text>
-      <rect x="786" y="171" width={244*inspectionCue} height="3" rx="2"
-        fill={C.purple} opacity={.7*inspectionCue}/>
-      <text x="908" y="294" fontSize="17" fontWeight="790" textAnchor="middle"
-        fontFamily={AT_FONT} fill={C.muted} opacity={inspectionCue}>
-        INSPECTION IS NEXT · NO AUTHENTICATION YET
-      </text>
+      <rect x="64" y="122" width="330" height="204" rx="23"
+        fill="rgba(10,30,49,.69)" stroke="rgba(88,132,164,.35)" strokeWidth="2"/>
+      <text x="229" y="219" fontFamily={AT_FONT} fontWeight="790" fontSize="30"
+        textAnchor="middle" fill="#A3BDD6">NETWORK TRANSIT</text>
+      <text x="229" y="258" fontFamily={AT_FONT} fontSize="23"
+        textAnchor="middle" fill="#7D9CB7">Where we came from</text>
+      <path d="M 419 224 H 766" fill="none"
+        stroke="rgba(94,145,173,.40)" strokeWidth="5" strokeLinecap="round"/>
+      <path d="M 419 224 H 766" fill="none" pathLength={1}
+        stroke={C.green} strokeWidth="5" strokeLinecap="round"
+        strokeDasharray={progress+' 1'} opacity=".95"
+        style={{filter:'drop-shadow(0 0 7px rgba(88,234,192,.33))'}}/>
+      <circle cx={packetX} cy="224" r="11" fill={C.green}
+        style={{filter:'drop-shadow(0 0 13px rgba(88,234,192,.8))'}}/>
+      <text x="593" y="190" fontFamily={AT_FONT} fontSize="23" fontWeight="730"
+        textAnchor="middle" fill={C.green}>LOGIN REQUEST</text>
+      <rect x="781" y="75" width="368" height="290" rx="28"
+        fill="url(#shot05-clean-gateway)" stroke={C.purple}
+        strokeWidth={2.5+arrived*1.5}
+        style={{filter:arrived>.02
+          ?'drop-shadow(0 0 '+(10+8*arrived)+'px rgba(145,124,247,.48))'
+          :'drop-shadow(0 0 9px rgba(145,124,247,.16))'}}/>
+      <rect x="796" y="90" width="8" height="260" rx="4"
+        fill={C.green} opacity={.17+.79*arrived}/>
+      <text x="963" y="218" fontFamily={AT_FONT} fontSize="40" fontWeight="860"
+        textAnchor="middle" fill={C.bright}>API GATEWAY</text>
+      <text x="963" y="259" fontFamily={AT_FONT} fontSize="25" fontWeight="720"
+        textAnchor="middle" fill={C.purple}>First server-side stop</text>
+      <circle cx="900" cy="310" r={5+arrived*2} fill={C.green} opacity={arrived}/>
+      <text x="916" y="318" fontFamily={AT_FONT} fontSize="19" fontWeight="740"
+        textAnchor="start" fill={C.green} opacity={arrived}>REQUEST ARRIVED</text>
     </svg>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,opacity:inspectionCue}}>
-      <Tile label="Gateway boundary" value="REACHED" mode="good"/>
-      <Tile label="Auth Service" value="NOT REACHED" mode="warning"/>
-    </div>
   </div>;
 };
 
@@ -195,6 +174,7 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <span style={{color:tone,...mono}}>{right}</span>
     </div>
   );
+  if(phase===0)return <GatewayArrivalVisual frame={local} segmentFrames={segmentFrames}/>;
   return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
     <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
       {phase===0?'FIRST SERVER-SIDE CHECKPOINT':phase===6?'CANONICAL REQUEST · FINAL HANDOFF':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
@@ -203,7 +183,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
     <div style={{display:'flex',flexDirection:'column',gap:11,flex:1,minHeight:0,overflow:'hidden',justifyContent:'flex-start'}}>
-    {phase===0&&<GatewayArrivalVisual frame={local} segmentFrames={segmentFrames}/>}
     {phase===1&&<>
       <div style={{opacity:show}}>{row('KNOWN ROUTE','POST /api/v1/login',C.green)}</div>
       <div style={{opacity:compare}}>{row('DIAGNOSTIC REQUEST','POST /api/v2/login',C.amber)}</div>
@@ -359,31 +338,31 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
           </div>
           <div style={{fontSize:47,color:C.bright,fontWeight:880,marginTop:5}}>API Gateway</div>
         </div>
-        <div style={{padding:'14px 21px',borderRadius:13,
+        {phase!==0&&<div style={{padding:'14px 21px',borderRadius:13,
           border:'1px solid rgba(127,164,216,.34)',background:'rgba(7,27,45,.75)',
           fontSize:20,color:C.muted,fontWeight:720}}>
           REQUEST CHECKPOINT · NOT PASSWORD VALIDATION
-        </div>
+        </div>}
       </div>
-      <div style={{position:'absolute',left:44,right:44,top:162,bottom:67,
-        display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:31}}>
+      <div style={{position:'absolute',left:44,right:44,top:162,bottom:phase===0?48:67,
+        display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:phase===0?0:31}}>
         {phase!==0&&<div style={{display:'flex',flexDirection:'column',gap:16,opacity:leftRailReveal}}>
           <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}/>
           <Module name="Rate Limit" items={['Burst','Quota']} active={active[0]} selected={active[1]}/>
           <Module name="Request Filter" items={['WAF','Schema']} active={active[0]} selected={active[1]}/>
         </div>}
-        <div style={{borderRadius:21,border:'1px solid rgba(103,164,213,.34)',
-          background:'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
-          padding:'27px 32px 17px',overflow:'hidden'}}>
+        <div style={{borderRadius:21,border:phase===0?'none':'1px solid rgba(103,164,213,.34)',
+          background:phase===0?'transparent':'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
+          padding:phase===0?0:'27px 32px 17px',overflow:'hidden'}}>
           <CaseStudy phase={phase} local={local} segmentFrames={segmentFrames} statusAt={resultLocal}/>
         </div>
       </div>
-      <div style={{position:'absolute',bottom:24,left:46,right:46,
+      {phase!==0&&<div style={{position:'absolute',bottom:24,left:46,right:46,
         display:'flex',justifyContent:'space-between',color:C.muted,fontSize:16,
         fontWeight:700,letterSpacing:'.045em'}}>
         <span>ONE CANONICAL REQUEST · FAILED SAMPLES ARE SEPARATE</span>
         <span>GATEWAY CHECKS · {phase+1} / 7</span>
-      </div>
+      </div>}
     </div>
   </div>;
 };
