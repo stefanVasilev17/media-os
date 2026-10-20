@@ -579,6 +579,7 @@ public class VisualQaController {
             case "SHOT 03" -> "EP001-Shot03-VoiceSynced";
             case "SHOT 04" -> "EP001-Shot04-VoiceSynced";
             case "SHOT 05" -> "EP001-Shot05-VoiceSynced";
+            case "SHOT 06" -> "EP001-Shot06-VoiceSynced";
             default -> "";
         };
     }
