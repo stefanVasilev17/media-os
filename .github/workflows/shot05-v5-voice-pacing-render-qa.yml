@@ -1,4 +1,4 @@
-name: SHOT05 Director review - clean typography
+name: SHOT05 Director-LOCKED 1080p production master
 on:
   push:
     branches: [main]
@@ -8,9 +8,9 @@ permissions:
 jobs:
   review-render:
     runs-on: ubuntu-latest
-    timeout-minutes: 24
+    timeout-minutes: 55
     steps:
-      - name: Render post-deploy SHOT05 with persistent navigation, focus crossfades, and clean gate exit
+      - name: Render approved SHOT05 in 1080p and apply MediaOS Director visual lock after QA
         shell: bash
         run: |
           python3 - <<'PY'
@@ -102,11 +102,11 @@ jobs:
                  "audioClips":clips_out,"durationInFrames":cursor,"anchors":anchors,
                  "comprehensionHolds":holds}
           result=post("/api/v1/remotion/renders/compositions/EP001-Shot05-VoiceSynced",
-                      {"profile":"FAST_PREVIEW","inputProps":props})
+                      {"profile":"REVIEW","inputProps":props})
           assert result.get("compositionId")=="EP001-Shot05-VoiceSynced",result
           rid=result["renderId"]
           print("RENDER_ID",rid,"status",result["status"],flush=True)
-          for attempt in range(120):
+          for attempt in range(270):
               state=get("/api/v1/remotion/renders/"+rid)
               if attempt%6==0:
                   print("RENDER_PROGRESS",state["status"],state.get("progress"),flush=True)
@@ -115,6 +115,7 @@ jobs:
               time.sleep(10)
           else: raise TimeoutError("v5 preview not finished in test window; original remains unaffected")
           assert state["durationInFrames"]==cursor
+          assert state["width"]==1920 and state["height"]==1080 and state["fps"]==30,state
           req=urllib.request.Request(BASE+"/api/v1/remotion/renders/"+rid+"/video",
               headers={"Range":"bytes=0-63"})
           with urllib.request.urlopen(req,timeout=50) as r:
@@ -124,7 +125,20 @@ jobs:
           check=sorted((x for x in fresh if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert [(x["clipKey"],x["generationRevision"],x["approved"]) for x in check]==[
              (x["clipKey"],x["generationRevision"],x["approved"]) for x in clips]
-          print("SHOT05 PERSISTENT MENU AND CLEAN EXIT MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
+          visual=get("/api/v1/visual/state?scriptRevision="+str(rev))
+          active=next(x for x in visual["shots"] if x["shotKey"]=="SHOT 05")
+          assert active["renderId"]==rid and active["voiceReady"],active.get("renderId")
+          approval={"scriptRevision":rev,"shotKey":"SHOT 05","renderId":rid}
+          qa=post("/api/v1/visual/qa/post-render",approval)
+          assert qa.get("passed") is True and qa.get("status")=="PASS",qa
+          print("POST_RENDER QA PASS",flush=True)
+          locked=post("/api/v1/visual/lock",approval)
+          assert locked.get("locked") is True and locked.get("renderId")==rid,locked
+          final=get("/api/v1/visual/state?scriptRevision="+str(rev))
+          verified=next(x for x in final["shots"] if x["shotKey"]=="SHOT 05")
+          assert verified.get("locked") and verified.get("lockedRenderId")==rid,verified
+          print("SHOT05 1080P MASTER QA PASSED AND MEDIAOS DIRECTOR LOCK VERIFIED",rid,
+                "frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
           print("MP4_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
-          print("SAFE: 7 approved audio sources unchanged; C07 reused twice at measured silence. SHOT01-04 untouched. No Director LOCK.",flush=True)
+          print("SAFE: 7 approved audio sources unchanged; C07 pause and holds preserved. SHOT01-04 untouched. Director LOCK applied only to SHOT05.",flush=True)
           PY
