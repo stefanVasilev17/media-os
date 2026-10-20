@@ -6,7 +6,8 @@ import {PhoneFirstYoutubePreview, phoneFirstYoutubePreviewSchema} from './episod
 import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from './episodes/ep001/live-diagram/RequestAssemblyYoutubePreview';
 import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './episodes/ep001/live-diagram/ReadyNotSentYoutubePreview';
 import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from './episodes/ep001/live-diagram/NetworkTransitYoutubePreview';
-import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
+import {LoadBalancerYoutubePreview} from './episodes/ep001/live-diagram/LoadBalancerYoutubePreview';
+import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, Shot06VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
@@ -195,6 +196,28 @@ export const Root: React.FC = () => {
         schema={voiceSyncedShotSchema}
         defaultProps={{
           audioUrl:"",audioClips:[],durationInFrames:SHOT05_DURATION_FRAMES,
+          anchors:{},comprehensionHolds:[],
+        }}
+      />
+      <Composition
+        id="EP001-LoadBalancer-Youtube"
+        component={LoadBalancerYoutubePreview}
+        durationInFrames={dynamicDuration ?? 2400}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:2400,anchors:{},clipStarts:[]}}
+      />
+      <Composition
+        id="EP001-Shot06-VoiceSynced"
+        component={Shot06VoiceSynced}
+        durationInFrames={dynamicDuration ?? 2400}
+        fps={30}
+        width={1920}
+        height={1080}
+        schema={voiceSyncedShotSchema}
+        defaultProps={{
+          audioUrl:'',audioClips:[],durationInFrames:2400,
           anchors:{},comprehensionHolds:[],
         }}
       />
