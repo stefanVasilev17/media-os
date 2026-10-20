@@ -27,7 +27,6 @@ const enter=(frame:number,start:number,end:number)=>interpolate(frame,[start,Mat
   extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.out(Easing.cubic),
 });
 const timing=(seconds:Record<string,number>,name:string)=>Number.isFinite(seconds[name])?seconds[name]*FPS:undefined;
-const FIRST=38;
 const DEFAULT_STARTS=[0,17,38,58,81,101,119];
 const NATIVE_PACKET_FINAL_X=1510;
 const NATIVE_GATEWAY_ENTRY_X=1660-270/2;
@@ -90,55 +89,6 @@ const Bullet:React.FC<{children:React.ReactNode;soft?:boolean}>=({children,soft=
 );
 
 
-const GatewayArrivalVisual:React.FC<{frame:number;segmentFrames:number}>=({frame,segmentFrames})=>{
-  const travelStart=Math.max(26,Math.round(segmentFrames*.11));
-  const travelEnd=Math.max(travelStart+48,Math.round(segmentFrames*.40));
-  const progress=move(frame,travelStart,travelEnd);
-  const arrived=enter(frame,travelEnd+2,travelEnd+25);
-  const packetX=420+346*progress;
-  return <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',
-    justifyContent:'center',pointerEvents:'none'}}>
-    <svg viewBox="0 0 1200 440" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
-      style={{maxWidth:1250,maxHeight:550,overflow:'visible'}}>
-      <defs>
-        <linearGradient id="shot05-clean-gateway" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#183A65"/>
-          <stop offset="100%" stopColor="#0B1E3B"/>
-        </linearGradient>
-      </defs>
-      <rect x="64" y="122" width="330" height="204" rx="23"
-        fill="rgba(10,30,49,.69)" stroke="rgba(88,132,164,.35)" strokeWidth="2"/>
-      <text x="229" y="219" fontFamily={AT_FONT} fontWeight="790" fontSize="30"
-        textAnchor="middle" fill="#A3BDD6">NETWORK TRANSIT</text>
-      <path d="M 419 224 H 766" fill="none"
-        stroke="rgba(94,145,173,.40)" strokeWidth="5" strokeLinecap="round"/>
-      <path d="M 419 224 H 766" fill="none" pathLength={1}
-        stroke={C.green} strokeWidth="5" strokeLinecap="round"
-        strokeDasharray={progress+' 1'} opacity=".95"
-        style={{filter:'drop-shadow(0 0 7px rgba(88,234,192,.33))'}}/>
-      <circle cx={packetX} cy="224" r="11" fill={C.green}
-        style={{filter:'drop-shadow(0 0 13px rgba(88,234,192,.8))'}}/>
-      <text x="593" y="190" fontFamily={AT_FONT} fontSize="23" fontWeight="730"
-        textAnchor="middle" fill={C.green}>LOGIN REQUEST</text>
-      <rect x="781" y="75" width="368" height="290" rx="28"
-        fill="url(#shot05-clean-gateway)" stroke={C.purple}
-        strokeWidth={2.5+arrived*1.5}
-        style={{filter:arrived>.02
-          ?'drop-shadow(0 0 '+(10+8*arrived)+'px rgba(145,124,247,.48))'
-          :'drop-shadow(0 0 9px rgba(145,124,247,.16))'}}/>
-      <rect x="796" y="90" width="8" height="260" rx="4"
-        fill={C.green} opacity={.17+.79*arrived}/>
-      <text x="963" y="218" fontFamily={AT_FONT} fontSize="40" fontWeight="860"
-        textAnchor="middle" fill={C.bright}>API GATEWAY</text>
-      <text x="963" y="259" fontFamily={AT_FONT} fontSize="25" fontWeight="720"
-        textAnchor="middle" fill={C.purple}>First server-side stop</text>
-      <circle cx="900" cy="310" r={5+arrived*2} fill={C.green} opacity={arrived}/>
-      <text x="916" y="318" fontFamily={AT_FONT} fontSize="19" fontWeight="740"
-        textAnchor="start" fill={C.green} opacity={arrived}>REQUEST ARRIVED</text>
-    </svg>
-  </div>;
-};
-
 const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusAt:number}>=({
   phase,local,segmentFrames,statusAt
 })=>{
@@ -172,7 +122,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <span style={{color:tone,...mono}}>{right}</span>
     </div>
   );
-  if(phase===0)return <GatewayArrivalVisual frame={local} segmentFrames={segmentFrames}/>;
   return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
     <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
       {phase===0?'FIRST SERVER-SIDE CHECKPOINT':phase===6?'CANONICAL REQUEST · FINAL HANDOFF':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
@@ -277,8 +226,14 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const phase=starts.reduce((n,start,i)=>frame>=start?i:n,0);
   const local=Math.max(0,frame-starts[phase]);
   const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
-  const focusEntry=move(frame,FIRST+14,FIRST+112);
-  const inside=enter(frame,FIRST+45,FIRST+105);
+  const interiorStart=starts[1];
+  const gatewayCinema=enter(frame,28,133)*
+    (1-move(frame,Math.max(145,interiorStart-28),interiorStart+35));
+  const nativeIntroVisible=frame<interiorStart+28;
+  const gatewayIntroArrival=enter(frame,56,100);
+  const gatewayIntroInspection=enter(frame,132,220);
+  const focusEntry=enter(frame,interiorStart-5,interiorStart+38);
+  const inside=phase===0?0:enter(frame,interiorStart-3,interiorStart+41);
   const confirmedVoiceEnd=Math.max(starts[6]+1,Math.min(total,voiceEndFrame??total));
   const hasFinalHold=total-confirmedVoiceEnd>=90;
   const finalExitStart=hasFinalHold?confirmedVoiceEnd+60:Math.max(starts[6]+50,total-28);
@@ -295,7 +250,7 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
     ?Math.max(0,exact!-starts[phase])
     :Math.round(approvedVoiceCueSeconds[phase]*FPS);
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
-  const panelScale=.18+.82*focusEntry;
+  const panelScale=.38+.62*focusEntry;
   const gatewayArrival=move(frame,5,68);
   const handoff=phase===6?move(frame,hasFinalHold?confirmedVoiceEnd+70:Math.max(starts[6]+55,total-36),
     Math.max(hasFinalHold?confirmedVoiceEnd+102:total-2,starts[6]+56)):0;
@@ -308,17 +263,17 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
     <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
       <NetworkTransitYoutubePreview showGuides={false} frameOverride={SHOT04_DURATION_FRAMES-1}
         gatewayHandoff={nativePacketOffset}
-        gatewayActive={gatewayArrival*(1-handoff)} balancerActive={handoff}
+        gatewayActive={gatewayArrival*(1-handoff)}
+        gatewayCinema={gatewayCinema}
+        gatewayIntroArrival={nativeIntroVisible?gatewayIntroArrival:undefined}
+        gatewayIntroInspection={nativeIntroVisible?gatewayIntroInspection:undefined}
+        gatewayIntroFrame={nativeIntroVisible?frame:undefined}
+        balancerActive={handoff}
         networkActiveMultiplier={1-gatewayArrival}/>
     </div>
     <div style={{position:'absolute',inset:0,
       background:'radial-gradient(ellipse at 49% 49%,rgba(4,17,33,.94),rgba(2,9,22,.98))',
       opacity:.92*screenFocus,pointerEvents:'none'}}/>
-    <div style={{position:'absolute',left:875,top:303,width:420,textAlign:'center',
-      opacity:clamp(enter(frame,FIRST,FIRST+24)*(1-inside)),
-      fontSize:31,color:C.green,fontWeight:870}}>
-      API Gateway · first server-side checkpoint
-    </div>
     <div style={{position:'absolute',left:234,top:122,width:1452,height:834,zIndex:10,
       opacity:interiorOpacity,
       transformOrigin:'center center',
