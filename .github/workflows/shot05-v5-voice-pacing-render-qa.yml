@@ -1,4 +1,4 @@
-name: SHOT05 Director review - verified post-deploy five-gate render
+name: SHOT05 Director review - persistent Gateway navigation and clean exit
 on:
   push:
     branches: [main]
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
-      - name: Render post-deploy SHOT05 with first-gate stop and complete C07 gate pass
+      - name: Render post-deploy SHOT05 with persistent navigation, focus crossfades, and clean gate exit
         shell: bash
         run: |
           python3 - <<'PY'
@@ -124,7 +124,7 @@ jobs:
           check=sorted((x for x in fresh if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert [(x["clipKey"],x["generationRevision"],x["approved"]) for x in check]==[
              (x["clipKey"],x["generationRevision"],x["approved"]) for x in clips]
-          print("SHOT05 DIRECTOR FIRST-STOP AND FINAL GATES MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
+          print("SHOT05 PERSISTENT MENU AND CLEAN EXIT MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
           print("MP4_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
           print("SAFE: 7 approved audio sources unchanged; C07 reused twice at measured silence. SHOT01-04 untouched. No Director LOCK.",flush=True)
           PY
