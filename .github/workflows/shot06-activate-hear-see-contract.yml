@@ -1,0 +1,94 @@
+name: EP001 Activate SHOT06 HEAR SEE Contract
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot06-activate-hear-see-contract.yml']
+permissions:
+  contents: read
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Activate existing production contract for SHOT06, preserving Director v3 voice overrides and SHOT01-05 locks
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          from collections import Counter
+          B="https://media-os-backend-production.up.railway.app"
+          def call(method,path,body=None):
+              data=json.dumps(body).encode() if body is not None else None
+              h={"Accept":"application/json"}
+              if data is not None:h["Content-Type"]="application/json"
+              req=urllib.request.Request(B+path,data=data,headers=h,method=method)
+              try:
+                  with urllib.request.urlopen(req,timeout=55) as r:return json.load(r)
+              except urllib.error.HTTPError as e:
+                  raise RuntimeError(f"HTTP {e.code} on {method} {path}: "+e.read(1500).decode("utf-8","replace")) from e
+          current=call("GET","/api/v1/production-contract")
+          template=call("GET","/api/v1/production-contract/template")
+          assert current["ready"] and current["scriptRevision"]==3, "Require active locked-script production contract"
+          assert template["scriptRevision"]==3 and template["schemaVersion"]=="mediaos.production-contract.v1"
+          existing=current["payload"]["timeline"]
+          oldshots=Counter(row["shotKey"] for row in existing)
+          targets=[row for row in template["timeline"] if row["shotKey"]=="SHOT 06"]
+          print("EXISTING_SHOT_COUNTS",dict(oldshots),flush=True)
+          print("SHOT06_CANONICAL",[(x["clipKey"],x["startSecond"],x["endSecond"]) for x in targets],flush=True)
+          assert len(targets)==7,"Expect seven exact locked-script SHOT06 timeblocks"
+          assert len([r for r in existing if r["shotKey"] in ("SHOT 01","SHOT 02","SHOT 03","SHOT 04","SHOT 05")])>=26
+          assert all(r["hear"] and r["visual"]["summary"] for r in existing),"Existing contract incomplete"
+          visuals=call("GET","/api/v1/visual/state?scriptRevision=3")
+          locks={r["shotKey"]:(r.get("locked"),r.get("lockedRenderId"),r.get("renderId"))
+                 for r in visuals["shots"] if r["shotKey"] in ["SHOT 01","SHOT 02","SHOT 03","SHOT 04","SHOT 05"]}
+          assert len(locks)==5 and all(x[0] for x in locks.values()),locks
+          voices=call("GET","/api/v1/voice-clips?scriptRevision=3")
+          protected={r["clipKey"]:(r["narration"],r["generationRevision"],r["approved"],r["voiceDirection"])
+                     for r in voices if r["shotKey"] in locks}
+          shot06=sorted((r for r in voices if r["shotKey"]=="SHOT 06"),key=lambda r:r["sequence"])
+          assert len(shot06)==7 and all(r["narrationOverridden"] and not r["generated"] and not r["approved"] for r in shot06)
+          original=[(r["clipKey"],r["narration"],r["voiceDirection"]) for r in shot06]
+          if oldshots["SHOT 06"]==7:
+              print("ALREADY_ACTIVE shot06 contract",flush=True)
+          else:
+              assert oldshots["SHOT 06"]==0, "Partial SHOT06 contract: refuse unsafe import"
+              assert all(r["shotKey"]=="SHOT 06" for r in targets)
+              for i,row in enumerate(targets):
+                  row["visual"]={
+                    "summary":(
+                      "Introduce the three Auth Service instances and the single green request waiting at Load Balancer" if i==0 else
+                      "Show separate blue diagnostic requests distributed only to eligible instances" if i==1 else
+                      "Demonstrate configured Round Robin on three blue example requests to A, B and C" if i==2 else
+                      "Demonstrate two same-hash-key blue requests routed to B with no implied universal stickiness" if i==3 else
+                      "Show health probes failing twice, reach configured threshold, and remove C from eligible routes" if i==4 else
+                      "Choose healthy B / Zone B and only now send the canonical green login request to B" if i==5 else
+                      "Return to the original Living Architecture Map and hand off to Auth Service; no login verdict"),
+                    "objects":["Load Balancer","Auth Service Instance A","Auth Service Instance B","Auth Service Instance C","canonical green request"],
+                    "camera":"Original-map push-in, clean center-focused examples, stable side navigation; slow reveal toward Auth Service",
+                    "attentionCue":"One causal fact per beat, matched to approved SHOT 06 voice v3",
+                    "semanticAnchors":["traffic_distribution","route_mode","hash_key","health_check","target_choice"],
+                    "effects":["smooth focus transition","health state downgrade","selected route glow"],
+                    "notes":"Director LOCKED spoken v3 lives in voice_clip_workflow.director_narration_override, not legacy contract.hear. This canonical template hear is deliberately unchanged to satisfy locked script contract validation. Do not generate old contract narration. Only effective Voice Agent override may be sent to ElevenLabs."}
+              payload={"schemaVersion":"mediaos.production-contract.v1",
+                  "episodeNumber":template["episodeNumber"],"title":template["title"],
+                  "scriptRevision":3,"source":"SHOT06_DIRECTOR_V3_VISUAL_CONTRACT",
+                  "timeline":targets}
+              res=call("POST","/api/v1/production-contract/import",payload)
+              assert res["ready"] and res["importedSegments"]==7,res
+              print("SHOT06_HEAR_SEE_CONTRACT_IMPORTED",res["timelineSegments"],flush=True)
+          after=call("GET","/api/v1/production-contract")
+          allrows=after["payload"]["timeline"]
+          assert len([r for r in allrows if r["shotKey"]=="SHOT 06"])==7
+          retained={r["segmentId"]:r for r in allrows if r["shotKey"] in locks}
+          for row in existing:
+              if row["shotKey"] in locks:
+                  assert retained.get(row["segmentId"])==row, ("Protected contract changed",row["segmentId"])
+          finalvoices=call("GET","/api/v1/voice-clips?scriptRevision=3")
+          confirmed=sorted((r for r in finalvoices if r["shotKey"]=="SHOT 06"),key=lambda r:r["sequence"])
+          assert [(r["clipKey"],r["narration"],r["voiceDirection"]) for r in confirmed]==original,"Approved spoken words/directions changed"
+          assert all(r["narrationOverridden"] and not r["generated"] and not r["approved"] for r in confirmed)
+          assert {r["clipKey"]:(r["narration"],r["generationRevision"],r["approved"],r["voiceDirection"]) for r in finalvoices if r["shotKey"] in locks}==protected
+          newlocks=call("GET","/api/v1/visual/state?scriptRevision=3")
+          assert {r["shotKey"]:(r.get("locked"),r.get("lockedRenderId"),r.get("renderId")) for r in newlocks["shots"] if r["shotKey"] in locks}==locks
+          print("SUCCESS: SHOT06 now appears in Voice Agent as 7 playable/generatable existing v3 Director override clips",flush=True)
+          print("SAFE: SHOT01-05 locks, voice, contracts unchanged. ElevenLabs credits untouched.",flush=True)
+          PY
