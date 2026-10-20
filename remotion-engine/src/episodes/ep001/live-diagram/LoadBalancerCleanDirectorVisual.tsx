@@ -249,7 +249,7 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
             r={14} fill={C.green}
             stroke="#D4FFEB" strokeWidth="2.5"/>;
         })()}
-      </g>
+      </g>}
       {!target&&<text x="20" y="296" fill={C.green} fontSize="23"
         fontWeight="830" fontFamily={AT_FONT}>LOGIN REQUEST</text>}
       {distribute&&queue>.1&&
