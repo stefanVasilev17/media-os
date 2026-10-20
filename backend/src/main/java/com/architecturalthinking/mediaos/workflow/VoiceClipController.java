@@ -365,7 +365,9 @@ public class VoiceClipController {
                             voice_generated_at=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.voice_generated_at else null end,
                             voice_approved_at=case when coalesce(voice_clip_workflow.director_narration_override,voice_clip_workflow.narration)=coalesce(voice_clip_workflow.director_narration_override,excluded.narration) then voice_clip_workflow.voice_approved_at else null end,
                             narration=excluded.narration,
-                            voice_direction=excluded.voice_direction,
+                            voice_direction=case when voice_clip_workflow.director_narration_override is not null
+                                                 then voice_clip_workflow.voice_direction
+                                                 else excluded.voice_direction end,
                             updated_at=now()
                         """)
                         .param("id", UUID.randomUUID())
@@ -499,6 +501,18 @@ public class VoiceClipController {
     public Map<String, Object> updateNarration(@PathVariable String clipKey, @Valid @RequestBody UpdateNarrationRequest request) {
         assertLockedScriptRevision(request.scriptRevision());
         String key = normalizeClipKey(clipKey);
+        if (key.startsWith("SHOT 06-C")) {
+            boolean locked=jdbc.sql("""
+                select exists(select 1 from shot06_director_voice_lock
+                              where episode_id=:episode and script_revision=:revision
+                                and shot_key='SHOT 06')
+                """).param("episode",ProductionOverviewService.EPISODE_ID)
+                  .param("revision",request.scriptRevision()).query(Boolean.class).single();
+            if (locked) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT 06 script is Director LOCKED. Record and approve voice without editing narration.");
+            }
+        }
         Map<String, Object> clip = clipState(request.scriptRevision(), key);
         if (Boolean.TRUE.equals(clip.get("approved"))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This voice clip is LOCKED. Approved narration cannot be edited.");
