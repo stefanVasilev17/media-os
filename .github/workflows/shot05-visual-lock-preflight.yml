@@ -1,35 +1,22 @@
-name: EP001 SHOT05 final Director visual lock
+name: SHOT05 Director visual lock audit
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/shot05-visual-lock-preflight.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  preflight:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Read MediaOS visual state
+      - name: Confirm the canonical LOCKED SHOT05 master without changing data
         run: |
           python3 - <<'PY'
           import json,urllib.request
-          url="https://media-os-backend-production.up.railway.app/api/v1/visual/state?scriptRevision=3"
-          with urllib.request.urlopen(url,timeout=45) as response:
-              data=json.load(response)
-          shot=next(x for x in data["shots"] if x["shotKey"]=="SHOT 05")
-          expected="f74baee9-7389-4d42-b03c-e41b63b3817a"
-          assert shot["renderId"]==expected and shot["voiceReady"],"Active render or voice differs"
-          payload=json.dumps({"scriptRevision":3,"shotKey":"SHOT 05","renderId":expected}).encode()
-          for endpoint in ("/api/v1/visual/qa/post-render","/api/v1/visual/lock"):
-              request=urllib.request.Request("https://media-os-backend-production.up.railway.app"+endpoint,
-                data=payload,method="POST",headers={"Content-Type":"application/json","Accept":"application/json"})
-              with urllib.request.urlopen(request,timeout=50) as response:
-                  result=json.load(response)
-              assert result.get("passed",result.get("locked")) is True,result
-              print(endpoint,"PASSED",flush=True)
-          with urllib.request.urlopen(url,timeout=45) as response:
-              verified=json.load(response)
-          final=next(x for x in verified["shots"] if x["shotKey"]=="SHOT 05")
-          assert final["locked"] and final["lockedRenderId"]==expected,final
-          print("SHOT 05 MEDIAOS VISUAL DIRECTOR LOCK VERIFIED:",expected,flush=True)
+          base="https://media-os-backend-production.up.railway.app"
+          with urllib.request.urlopen(base+"/api/v1/visual/state?scriptRevision=3",timeout=45) as r:
+              state=json.load(r)
+          shot=next(s for s in state["shots"] if s["shotKey"]=="SHOT 05")
+          expected="978127c4-fed2-40a8-ad5d-e7e3920b71cb"
+          assert shot["locked"] and shot["lockedRenderId"]==expected,shot.get("lockedRenderId")
+          assert shot["voiceReady"] and shot["qaStatus"]=="PASS"
+          print("SHOT05 LOCK VERIFIED",expected,flush=True)
           PY
