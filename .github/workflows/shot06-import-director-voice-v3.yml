@@ -1,0 +1,96 @@
+name: SHOT06 Import Director-LOCKED V3 Voice Into MediaOS
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot06-import-director-voice-v3.yml']
+permissions:
+  contents: read
+jobs:
+  import-shot06:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import seven Director-approved SHOT06 voice clips without touching locked shots
+        run: |
+          python3 - <<'PY'
+          import json,re,hashlib,time,urllib.request,urllib.error
+          from pathlib import Path
+          from urllib.parse import quote
+          base='https://media-os-backend-production.up.railway.app'
+          doc=Path('docs/episode-memory/events/2026-10-20-shot06-director-locked-voice-v3.md').read_text()
+          matches=re.findall(r'(?ms)^### C(\d{2}) —[^\n]*\nVoice: ([^\n]+)\n\n(.*?)(?=\n### C\d{2} —|\n## Director requirements)',doc)
+          assert len(matches)==7,('Voice source should have exactly seven scripts',len(matches))
+          clips=[{'key':'SHOT 06-C'+number,'sequence':i+1,
+                  'voiceDirection':direction.strip(),'narration':spoken.strip()}
+                for i,(number,direction,spoken) in enumerate(matches)]
+          for i,item in enumerate(clips):
+              assert item['key']=='SHOT 06-C0'+str(i+1),item
+          digest=hashlib.sha256(('\n<SHOT06_NEXT_CLIP>\n'.join(c['narration'] for c in clips)).encode()).hexdigest()
+          assert digest=='b5d1d4882ddb9a1784f521c0b323d7b1602ec6241f079fd60562652a269dd82b',('Director hash mismatch',digest)
+          print('APPROVED_SHA256',digest,'CLIPS',len(clips),flush=True)
+          def call(method,path,body=None):
+              payload=None if body is None else json.dumps(body).encode()
+              headers={'Accept':'application/json'}
+              if payload is not None:headers['Content-Type']='application/json'
+              req=urllib.request.Request(base+path,data=payload,headers=headers,method=method)
+              try:
+                  with urllib.request.urlopen(req,timeout=55) as r:return json.load(r)
+              except urllib.error.HTTPError as e:
+                  msg=e.read(2500).decode('utf-8','replace')
+                  raise RuntimeError(f'{method} {path}: HTTP {e.code}: {msg}') from e
+          original_visual=call('GET','/api/v1/visual/state?scriptRevision=3')
+          protected={s['shotKey']:(s.get('locked'),s.get('lockedRenderId'),s.get('renderId'))
+                     for s in original_visual['shots'] if s['shotKey'] in ('SHOT 01','SHOT 02','SHOT 03','SHOT 04','SHOT 05')}
+          assert len(protected)==5 and all(x[0] for x in protected.values()),protected
+          before=call('GET','/api/v1/voice-clips?scriptRevision=3')
+          protected_voice={c['clipKey']:(c['narration'],c['approved'],c['generationRevision'])
+                           for c in before if c['shotKey'] in protected}
+          existing=sorted((c for c in before if c['shotKey']=='SHOT 06'),key=lambda c:c['sequence'])
+          assert len(existing)==7,('Missing seven SHOT 06 Voice Agent slots',len(existing))
+          for i,c in enumerate(existing):
+              assert c['clipKey']==clips[i]['key'] and c['sequence']==i+1,c
+              assert not c['generated'] and not c['approved'],('Existing recorded audio must not be overwritten',c['clipKey'])
+          voice_shots=call('GET','/api/v1/voice/shots?scriptRevision=3')
+          original_shot=next((x for x in voice_shots if x['shotKey']=='SHOT 06'),None)
+          assert original_shot is not None,'SHOT 06 aggregate not found'
+          existing_matches=all(existing[i]['narration']==clips[i]['narration'] for i in range(7))
+          if not existing_matches:
+              bundle={'shotKey':'SHOT 06','title':str(original_shot.get('title') or original_shot.get('shotTitle') or 'Load Balancer / Traffic Distribution'),
+                      'startSecond':int(original_shot['startSecond']),
+                      'endSecond':int(original_shot['endSecond']),
+                      'narration':'\n\n'.join(c['narration'] for c in clips),
+                      'voiceDirection':'Director-approved voice v3',
+                      'clips':[{'clipKey':c['key'],'sequence':c['sequence'],
+                                'startSecond':existing[i]['startSecond'],
+                                'endSecond':existing[i]['endSecond'],
+                                'narration':c['narration'],
+                                'voiceDirection':c['voiceDirection']} for i,c in enumerate(clips)]}
+              print('SYNC_SHOT06_ONLY',bundle['startSecond'],bundle['endSecond'],flush=True)
+              result=call('POST','/api/v1/voice-clips/sync',
+                          {'scriptRevision':3,'shots':[bundle]})
+              assert len([x for x in result if x['shotKey']=='SHOT 06'])==7
+          for i,c in enumerate(clips):
+              current=call('GET','/api/v1/voice-clips?scriptRevision=3')
+              state=next(x for x in current if x['clipKey']==c['key'])
+              if state['narration']!=c['narration'] or not state['narrationOverridden']:
+                  updated=call('PUT','/api/v1/voice-clips/'+quote(c['key'],safe='')+'/narration',
+                               {'scriptRevision':3,'narration':c['narration']})
+                  assert updated['narration']==c['narration']
+              print('IMPORTED',c['key'],'WORDS',len(c['narration'].split()),flush=True)
+          final=call('GET','/api/v1/voice-clips?scriptRevision=3')
+          after=sorted((c for c in final if c['shotKey']=='SHOT 06'),key=lambda c:c['sequence'])
+          assert len(after)==7
+          for i,c in enumerate(after):
+              assert c['narration']==clips[i]['narration'] and c['narrationOverridden'] and not c['approved'] and not c['generated'],c['clipKey']
+          nowprotected={c['clipKey']:(c['narration'],c['approved'],c['generationRevision'])
+                          for c in final if c['shotKey'] in protected}
+          assert protected_voice==nowprotected,'Protected SHOT01-05 voice changed'
+          after_visual=call('GET','/api/v1/visual/state?scriptRevision=3')
+          visual={s['shotKey']:(s.get('locked'),s.get('lockedRenderId'),s.get('renderId'))
+                  for s in after_visual['shots'] if s['shotKey'] in protected}
+          assert visual==protected,'Protected shot visual locks changed'
+          print('SHOT06_DIRECTOR_V3_VOICE_IMPORT_SUCCESS seven clips editable-for-voice, exact spoken text, zero generated audio',flush=True)
+          print('SHOT01_05_LOCKED_AND_AUDIO_UNCHANGED',flush=True)
+          print('OPEN_VOICE_AGENT https://media-os-backend-production.up.railway.app/  # navigate to Voice Agent → SHOT 06',flush=True)
+          PY
