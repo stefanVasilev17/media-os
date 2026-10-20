@@ -34,25 +34,29 @@ public class RemotionRenderController {
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
-    private static final Map<String, CompositionProfile> COMPOSITIONS = Map.of(
-            "EP001-VerticalSlice",
-            new CompositionProfile("EP001_VERTICAL_SLICE", EP001_ID, 1920, 1080, 30, 1920, false),
-            "EP001-Shot01-VoiceSynced",
-            new CompositionProfile("EP001_SHOT01_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 930, true),
-            "EP001-Shot02-VoiceSynced",
-            new CompositionProfile("EP001_SHOT02_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2220, true),
-            "EP001-Shot03-VoiceSynced",
-            new CompositionProfile("EP001_SHOT03_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 1590, true),
-            "EP001-Shot04-VoiceSynced",
-            new CompositionProfile("EP001_SHOT04_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2010, true),
-            "EP001-Shot05-VoiceSynced",
-            new CompositionProfile("EP001_SHOT05_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 3900, true),
-            "EP001-Studio-DirectorPlan",
-            new CompositionProfile("EP001_STUDIO_DIRECTOR_PLAN", EP001_ID, 1920, 1080, 30, 3900, true),
-            "EP001-Studio-LivingMapDraft",
-            new CompositionProfile("EP001_STUDIO_LIVING_MAP_DRAFT", EP001_ID, 1920, 1080, 30, 600, true),
-            "EP001-Voice-CurrentPreview",
-            new CompositionProfile("EP001_VOICE_CURRENT_PREVIEW", EP001_ID, 1920, 1080, 30, 1, true)
+    private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
+            Map.entry("EP001-VerticalSlice",
+                new CompositionProfile("EP001_VERTICAL_SLICE", EP001_ID, 1920, 1080, 30, 1920, false)),
+            Map.entry("EP001-Shot01-VoiceSynced",
+                new CompositionProfile("EP001_SHOT01_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 930, true)),
+            Map.entry("EP001-Shot02-VoiceSynced",
+                new CompositionProfile("EP001_SHOT02_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2220, true)),
+            Map.entry("EP001-Shot03-VoiceSynced",
+                new CompositionProfile("EP001_SHOT03_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 1590, true)),
+            Map.entry("EP001-Shot04-VoiceSynced",
+                new CompositionProfile("EP001_SHOT04_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2010, true)),
+            Map.entry("EP001-Shot05-VoiceSynced",
+                new CompositionProfile("EP001_SHOT05_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 3900, true)),
+            Map.entry("EP001-LoadBalancer-Youtube",
+                new CompositionProfile("EP001_LOAD_BALANCER_YOUTUBE", EP001_ID, 1920, 1080, 30, 2400, true)),
+            Map.entry("EP001-Shot06-VoiceSynced",
+                new CompositionProfile("EP001_SHOT06_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 2400, true)),
+            Map.entry("EP001-Studio-DirectorPlan",
+                new CompositionProfile("EP001_STUDIO_DIRECTOR_PLAN", EP001_ID, 1920, 1080, 30, 3900, true)),
+            Map.entry("EP001-Studio-LivingMapDraft",
+                new CompositionProfile("EP001_STUDIO_LIVING_MAP_DRAFT", EP001_ID, 1920, 1080, 30, 600, true)),
+            Map.entry("EP001-Voice-CurrentPreview",
+                new CompositionProfile("EP001_VOICE_CURRENT_PREVIEW", EP001_ID, 1920, 1080, 30, 1, true))
     );
 
     private final JdbcClient jdbc;
