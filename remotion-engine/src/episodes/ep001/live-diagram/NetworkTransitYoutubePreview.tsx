@@ -14,6 +14,10 @@ export const networkTransitYoutubePreviewSchema=z.object({
   gatewayActive:z.number().optional(),
   balancerActive:z.number().optional(),
   networkActiveMultiplier:z.number().optional(),
+  gatewayCinema:z.number().optional(),
+  gatewayIntroArrival:z.number().optional(),
+  gatewayIntroInspection:z.number().optional(),
+  gatewayIntroFrame:z.number().optional(),
 });
 type Props=z.infer<typeof networkTransitYoutubePreviewSchema>;
 
@@ -24,7 +28,8 @@ const progress=(frame:number,start:number,end:number)=>interpolate(frame,[start,
 const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isFinite(anchors[key])
   ?Math.max(0,anchors[key]*30):fallback;
 
-export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1})=>{
+export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1,
+  gatewayCinema=0,gatewayIntroArrival,gatewayIntroInspection,gatewayIntroFrame})=>{
   const currentFrame=useCurrentFrame();
   const frame=frameOverride??currentFrame;
   const t={
@@ -46,9 +51,9 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
   const focusOut=progress(frame,Math.max(t.jitter+32,t.destinationKnown-100),t.destinationKnown+26);
   const focus=clamp(dnsIn*(1-focusOut));
   const latencyPan=progress(frame,Math.max(t.cache+22,t.latency-25),t.latency+30);
-  const cameraScale=1+1.55*focus;
-  const cameraX=207*cameraScale*focus-48*focusOut;
-  const cameraY=(-83+18*latencyPan)*cameraScale*focus-12*focusOut;
+  const cameraScale=1+1.55*focus+.84*gatewayCinema;
+  const cameraX=207*(1+1.55*focus)*focus-48*focusOut+38*gatewayCinema;
+  const cameraY=(-83+18*latencyPan)*(1+1.55*focus)*focus-12*focusOut-170*gatewayCinema;
   const captionOpacity=1-progress(frame,0,30);
 
   const entry=progress(frame,t.release,Math.max(t.release+18,t.dns+12));
@@ -85,10 +90,13 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           worldMotion={{
             packetOffsetX:packetWorldX-1178+Math.max(0,gatewayHandoff),
             gatewayActive,
+            gatewayIntroArrival,
+            gatewayIntroInspection,
+            gatewayIntroFrame,
             balancerActive,
             packetOffsetY:packetWorldY-706,
             packetMorph,
-            focusIntensity:focus,
+            focusIntensity:Math.max(focus,gatewayCinema*.25),
             networkActive,
             dnsReveal,
             resolve,
