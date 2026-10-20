@@ -15,6 +15,11 @@ export const networkTransitYoutubePreviewSchema=z.object({
   balancerActive:z.number().optional(),
   networkActiveMultiplier:z.number().optional(),
   gatewayCinema:z.number().optional(),
+  balancerCinema:z.number().optional(),
+  balancerHandoff:z.number().optional(),
+  balancerIntroArrival:z.number().optional(),
+  balancerIntroSelected:z.number().optional(),
+  authActive:z.number().optional(),
   gatewayIntroArrival:z.number().optional(),
   gatewayIntroInspection:z.number().optional(),
   gatewayIntroFrame:z.number().optional(),
@@ -29,7 +34,8 @@ const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isF
   ?Math.max(0,anchors[key]*30):fallback;
 
 export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1,
-  gatewayCinema=0,gatewayIntroArrival,gatewayIntroInspection,gatewayIntroFrame})=>{
+  gatewayCinema=0,balancerCinema=0,balancerHandoff=0,balancerIntroArrival,balancerIntroSelected,
+  authActive=0,gatewayIntroArrival,gatewayIntroInspection,gatewayIntroFrame})=>{
   const currentFrame=useCurrentFrame();
   const frame=frameOverride??currentFrame;
   const t={
@@ -51,9 +57,9 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
   const focusOut=progress(frame,Math.max(t.jitter+32,t.destinationKnown-100),t.destinationKnown+26);
   const focus=clamp(dnsIn*(1-focusOut));
   const latencyPan=progress(frame,Math.max(t.cache+22,t.latency-25),t.latency+30);
-  const cameraScale=1+1.55*focus+.84*gatewayCinema;
-  const cameraX=207*(1+1.55*focus)*focus-48*focusOut+38*gatewayCinema;
-  const cameraY=(-83+18*latencyPan)*(1+1.55*focus)*focus-12*focusOut-170*gatewayCinema;
+  const cameraScale=1+1.55*focus+.84*gatewayCinema+.84*balancerCinema;
+  const cameraX=207*(1+1.55*focus)*focus-48*focusOut+38*gatewayCinema-535*balancerCinema;
+  const cameraY=(-83+18*latencyPan)*(1+1.55*focus)*focus-12*focusOut-170*gatewayCinema-105*balancerCinema;
   const captionOpacity=1-progress(frame,0,30);
 
   const entry=progress(frame,t.release,Math.max(t.release+18,t.dns+12));
@@ -88,15 +94,18 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           frameOverride={SHOT03_DURATION_FRAMES-1}
           captionOpacity={captionOpacity}
           worldMotion={{
-            packetOffsetX:packetWorldX-1178+Math.max(0,gatewayHandoff),
+            packetOffsetX:packetWorldX-1178+Math.max(0,gatewayHandoff)+Math.max(0,balancerHandoff),
             gatewayActive,
             gatewayIntroArrival,
             gatewayIntroInspection,
             gatewayIntroFrame,
             balancerActive,
+            balancerIntroArrival,
+            balancerIntroSelected,
+            authActive,
             packetOffsetY:packetWorldY-706,
             packetMorph,
-            focusIntensity:Math.max(focus,gatewayCinema*.25),
+            focusIntensity:Math.max(focus,gatewayCinema*.25,balancerCinema*.20),
             networkActive,
             dnsReveal,
             resolve,
@@ -106,10 +115,10 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
             jitter,
           }}
         />
-        {gatewayHandoff>0&&<svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
+        {gatewayHandoff+balancerHandoff>0&&<svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
           position:'absolute',inset:0,zIndex:7,pointerEvents:'none',overflow:'visible',opacity:.93,
         }}>
-          <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1510+Math.max(0,gatewayHandoff))}`}
+          <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1510+Math.max(0,gatewayHandoff)+Math.max(0,balancerHandoff))}`}
             fill="none" stroke="rgba(57,228,176,.86)" strokeWidth={3}
             strokeLinecap="round" style={{filter:'drop-shadow(0 0 5px rgba(44,229,169,.29))'}}/>
         </svg>}
