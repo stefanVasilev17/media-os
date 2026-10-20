@@ -1,0 +1,41 @@
+name: SHOT06 Load Balancer Visual Review
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot06-load-balancer-previz.yml']
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Render SHOT06 director preview
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json,time
+          base='https://media-os-backend-production.up.railway.app'
+          payload=json.dumps({'profile':'FAST_PREVIEW','inputProps':{'durationInFrames':2400,'anchors':{},'clipStarts':[]}}).encode()
+          endpoint=base+'/api/v1/remotion/renders/compositions/EP001-LoadBalancer-Youtube'
+          for i in range(25):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(endpoint,data=payload,headers={'Content-Type':'application/json'}),timeout=45) as r:
+                      data=json.load(r)
+                  break
+              except Exception as exc:
+                  if i==24:raise
+                  print('Waiting for deploy:',str(exc)[:160],flush=True)
+                  time.sleep(15)
+          rid=data['renderId']
+          print('SHOT06_RENDER_ID',rid,flush=True)
+          for i in range(210):
+              with urllib.request.urlopen(base+'/api/v1/remotion/renders/'+rid,timeout=45) as r: state=json.load(r)
+              if i%5==0:print('RENDER_PROGRESS',state['status'],state.get('progress'),flush=True)
+              if state['status']=='READY':break
+              if state['status']=='FAILED':raise RuntimeError(str(state.get('error')))
+              time.sleep(10)
+          else:raise TimeoutError('Preview not ready')
+          assert state['durationInFrames']==2400
+          print('SHOT06_PREVIZ_READY',rid,base+'/api/v1/remotion/renders/'+rid+'/video',flush=True)
+          print('No voice used; SHOT01-05 unchanged; not Director LOCKED',flush=True)
+          PY
