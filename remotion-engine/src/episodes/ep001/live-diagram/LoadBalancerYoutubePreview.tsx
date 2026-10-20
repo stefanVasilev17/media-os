@@ -77,13 +77,13 @@ const Navigation:React.FC<{current:number;previous:number;blend:number}>=({curre
 };
 
 const DiagnosticFlow:React.FC<{phase:number;local:number;elapsed:number}>=({phase,local,elapsed})=>{
-  const healthyC=phase<4?1:1-motion(local,85,145);
+  const healthyC=phase<4?1:phase===4?1-motion(local,85,145):0;
   const activeChoice=phase>=5?1:0;
   const highlight=phase===2?((Math.floor(Math.max(0,local-30)/52))%3):
     phase===3?1:phase>=5?1:-1;
   const canonicalTravel=phase===5?motion(local,58,205):0;
   const lane=[123,246,369];
-  const diagnostic=[];
+  const diagnostic:{lane:number;progress:number;key:string}[]=[];
   if(phase===1){
     diagnostic.push({lane:0,progress:motion(local,35,112),key:'first'});
     diagnostic.push({lane:1,progress:motion(local,115,194),key:'second'});
