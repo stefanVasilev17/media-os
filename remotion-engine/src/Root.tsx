@@ -202,22 +202,22 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-LoadBalancer-Youtube"
         component={LoadBalancerYoutubePreview}
-        durationInFrames={dynamicDuration ?? 2400}
+        durationInFrames={dynamicDuration ?? 5220}
         fps={30}
         width={1920}
         height={1080}
-        defaultProps={{durationInFrames:2400,anchors:{},clipStarts:[]}}
+        defaultProps={{durationInFrames:5220,anchors:{},clipStarts:[]}}
       />
       <Composition
         id="EP001-Shot06-VoiceSynced"
         component={Shot06VoiceSynced}
-        durationInFrames={dynamicDuration ?? 2400}
+        durationInFrames={dynamicDuration ?? 5220}
         fps={30}
         width={1920}
         height={1080}
         schema={voiceSyncedShotSchema}
         defaultProps={{
-          audioUrl:'',audioClips:[],durationInFrames:2400,
+          audioUrl:'',audioClips:[],durationInFrames:5220,
           anchors:{},comprehensionHolds:[],
         }}
       />
