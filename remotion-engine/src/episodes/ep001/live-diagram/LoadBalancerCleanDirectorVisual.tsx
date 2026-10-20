@@ -88,7 +88,7 @@ const point=(index:number,progress:number)=>{
 };
 const Packet:React.FC<{route:number;progress:number;color:string;number?:string;scale?:number}>=(
   {route,progress,color,number,scale=1})=>{
-  if(progress<=0||progress>=1.01)return null;
+  if(progress<=0||progress>=.985)return null;
   const p=point(route,progress);
   return <g style={{filter:'drop-shadow(0 0 9px '+color+'77)'}}>
     <circle cx={p.x} cy={p.y} r={14*scale} fill={color} stroke="#D7F0FF" strokeWidth="2"/>
@@ -169,10 +169,6 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
   const queue=distribute?tween(frame,t('BOTTLENECK',22.502),t('BOTTLENECK',22.502)+33):0;
   const distribution=distribute?tween(frame,t('DISTRIBUTION_RULES',27.702),
     t('DISTRIBUTION_RULES',27.702)+38):0;
-  const visibleStatus=target&&choice>.92?'SELECTED':
-    health&&failed>.95?'2 ELIGIBLE':
-    roundRobin&&sample3>.9?'A → B → C':
-    hash&&hash2>.9?'SAME KEY · SAME DESTINATION':'';
   return <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',
     overflow:'hidden',fontFamily:AT_FONT}}>
     <div style={{height:88,flexShrink:0}}>
@@ -270,6 +266,8 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
       {hash&&<g>
         <Packet route={2} progress={hash1} color={C.blue} number="1"/>
         <Packet route={2} progress={hash2} color={C.blue} number="2"/>
+        {hash1>.985&&<circle cx="783" cy="473" r="8.5" fill={C.blue}/>}
+        {hash2>.985&&<circle cx="808" cy="473" r="8.5" fill={C.blue}/>}
         <rect x="362" y="168" rx="12" width="232" height="58"
           fill="rgba(19,47,79,.95)" stroke={C.blue} strokeWidth="2"/>
         <text x="478" y="205" fontFamily={AT_FONT} fontSize="25"
@@ -278,23 +276,11 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
       {health&&<g>
         <Packet route={1} progress={probe1} color={C.amber}/>
         <Packet route={1} progress={probe2} color={C.amber}/>
-        {frame>=t('NO_RESPONSE',81.763)&&
+        {frame>=t('NO_RESPONSE',81.763)&&failed<.65&&
           <text x="635" y="254" textAnchor="middle" fontSize="24"
             fontWeight="835" fill={C.amber} fontFamily={AT_FONT}>
             {frame>=t('THRESHOLD',84.963)?'TIMEOUT':'NO RESPONSE'}
           </text>}
-      </g>}
-      {choice>.1&&<g opacity={choice}>
-        <text x="665" y="460" textAnchor="middle" fontSize="27"
-          fontFamily={AT_FONT} fontWeight="850" fill={C.green}>SELECTED</text>
-      </g>}
-      {visibleStatus&&<g>
-        <rect x="366" y="553" width="342" height="59" rx="15"
-          fill="rgba(12,32,53,.9)" stroke={phase===4?C.amber:target?C.green:C.blue}
-          strokeWidth="2" opacity=".8"/>
-        <text x="537" y="590" textAnchor="middle" fontSize="25"
-          fontWeight="835" fontFamily={AT_FONT}
-          fill={phase===4?C.amber:target?C.green:C.blue}>{visibleStatus}</text>
       </g>}
     </svg>
   </div>;
