@@ -1,4 +1,4 @@
-name: SHOT05 Director review - persistent Gateway navigation and clean exit
+name: SHOT05 Director review - clean typography
 on:
   push:
     branches: [main]
