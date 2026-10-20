@@ -139,9 +139,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
     </div>
   );
   return <div style={{height:'100%',display:'flex',flexDirection:'column',gap:12,pointerEvents:'none',overflow:'hidden'}}>
-    <div style={{letterSpacing:'.12em',color:C.purple,fontSize:17,fontWeight:810}}>
-      {phase===0?'FIRST SERVER-SIDE CHECKPOINT':phase===6?'CANONICAL REQUEST · FINAL HANDOFF':'LIVE EXAMPLE '+String(phase).padStart(2,'0')+' / 05'}
-    </div>
     <div style={{fontSize:32,fontWeight:870,lineHeight:1.2,color:C.bright}}>{caseNames[phase]}</div>
     <div style={{fontSize:21,color:C.muted,marginTop:-9,lineHeight:1.35}}>{subtitles[phase]}</div>
     <div style={{height:2,background:'linear-gradient(to right,rgba(141,188,238,.48),rgba(141,188,238,0))',margin:'3px 0 0'}}/>
@@ -183,7 +180,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
         <Tile label="Burst" value="6 / 5" mode="error"/>
         <Tile label="Quota" value="43 / 100 min" mode="active"/>
       </div>
-      <div style={{fontSize:17,color:C.muted,opacity:compare}}>Illustrative example policy, not a universal gateway default.</div>
     </>}
     {phase===4&&<>
       <div style={{opacity:show}}>{row('DIAGNOSTIC SAMPLE','Normal-looking login',C.green)}</div>
@@ -191,7 +187,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,fontSize:22,color:C.amber,fontWeight:760}}>
         Broad rule matched a legitimate sample → FALSE POSITIVE
       </div>
-      <div style={{opacity:compare,fontSize:17,color:C.muted}}>This configured example is not a universal WAF behavior.</div>
     </>}
     {phase===5&&<>
       <div style={{opacity:show,display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
@@ -229,7 +224,6 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
       <div style={{opacity:compare,padding:'22px 25px',borderRadius:14,
         border:'1px solid '+C.green+'80',background:'rgba(14,62,60,.62)',fontSize:27,
         fontWeight:840,color:C.green}}>Gateway → Load Balancer</div>
-      <div style={{opacity:compare,fontSize:19,color:C.muted}}>Next: choose a healthy server. Password validation has not started.</div>
     </>}
     </div>
     {response&&<div style={{flex:'0 0 90px',minHeight:90,position:'relative',zIndex:3}}>
@@ -334,16 +328,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
       {phase!==0&&<div style={{position:'absolute',top:36,left:44,right:44,
         display:'flex',alignItems:'center',justifyContent:'space-between',gap:20}}>
         <div>
-          <div style={{fontSize:16,color:C.purple,letterSpacing:'.16em',fontWeight:840}}>
-            INSIDE THE SYSTEM
-          </div>
           <div style={{fontSize:47,color:C.bright,fontWeight:880,marginTop:5}}>API Gateway</div>
         </div>
-        {phase!==0&&<div style={{padding:'14px 21px',borderRadius:13,
-          border:'1px solid rgba(127,164,216,.34)',background:'rgba(7,27,45,.75)',
-          fontSize:20,color:C.muted,fontWeight:720}}>
-          REQUEST CHECKPOINT · NOT PASSWORD VALIDATION
-        </div>}
       </div>}
       <div style={{position:'absolute',left:44,right:44,top:phase===0?42:162,bottom:phase===0?42:67,
         display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:phase===0?0:31}}>
@@ -373,12 +359,6 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
           </div>
         </div>
       </div>
-      {phase!==0&&<div style={{position:'absolute',bottom:24,left:46,right:46,
-        display:'flex',justifyContent:'space-between',color:C.muted,fontSize:16,
-        fontWeight:700,letterSpacing:'.045em'}}>
-        <span>ONE CANONICAL REQUEST · FAILED SAMPLES ARE SEPARATE</span>
-        <span>GATEWAY CHECKS · {visualPhase+1} / 7</span>
-      </div>}
     </div>
   </div>;
 };
