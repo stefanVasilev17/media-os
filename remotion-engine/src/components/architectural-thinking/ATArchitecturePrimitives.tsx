@@ -196,31 +196,34 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
           style={{display:'block',overflow:'visible'}}>
           <path d="M 12 54 H 207" fill="none" stroke="rgba(90,144,188,.28)"
             strokeWidth={3} strokeLinecap="round"/>
-          {[0,1,2].map((index)=>{
-            const x=58+index*55;
-            const lit=Math.max(0,Math.min(1,(gatewayIntro.inspection-index*.22)*2.5));
+          {[0,1,2,3,4].map((index)=>{
+            const x=43+index*39;
+            const lit=Math.max(0,Math.min(1,(gatewayIntro.inspection*5-index)*2.2));
+            const waiting=index===0&&gatewayIntro.arrival>.1&&gatewayIntro.inspection<.03;
             return <g key={index}>
-              <rect x={x-12} y={24} width={24} height={60} rx={8}
+              <rect x={x-9} y={29} width={18} height={52} rx={6}
                 fill="rgba(11,37,57,.95)"
-                stroke={lit>.2?'rgba(88,234,192,.90)':'rgba(114,153,192,.32)'}
-                strokeWidth={lit>.2?2:1.4}/>
-              <path d={`M ${x} 35 V 74`} stroke={lit>.2?'rgba(88,234,192,.88)':'rgba(95,139,174,.40)'}
-                strokeWidth={3} strokeLinecap="round"/>
-              <circle cx={x} cy={54} r={lit>.1?4.8:3.5}
-                fill={lit>.1?'#58EAC0':'#608CA9'} opacity={.35+lit*.65}/>
+                stroke={lit>.15?'rgba(88,234,192,.90)':waiting?'rgba(183,162,255,.88)':'rgba(114,153,192,.32)'}
+                strokeWidth={lit>.15||waiting?2:1.4}/>
+              <path d={`M ${x} 38 V 72`}
+                stroke={lit>.15?'rgba(88,234,192,.88)':waiting?'rgba(183,162,255,.65)':'rgba(95,139,174,.40)'}
+                strokeWidth={2.5} strokeLinecap="round"/>
+              <circle cx={x} cy={54} r={lit>.15?4.3:3.5}
+                fill={lit>.15?'#58EAC0':waiting?'#B7A2FF':'#608CA9'} opacity={waiting?.95:.35+lit*.65}/>
             </g>;
           })}
-          <circle cx={32+165*gatewayIntro.inspection} cy={54} r={5}
+          <path d="M 12 54 H 207" stroke="rgba(88,234,192,.65)"
+            strokeWidth={2.6} pathLength={1}
+            strokeDasharray={`${Math.min(1,gatewayIntro.inspection*.82+.16)} 1`}
+            fill="none" opacity={gatewayIntro.arrival*gatewayIntro.inspection}/>
+          <circle cx={43+160*gatewayIntro.inspection} cy={54} r={5}
             fill="#58EAC0" opacity={gatewayIntro.arrival}
             style={{filter:'drop-shadow(0 0 6px rgba(88,234,192,.62))'}}/>
-          <path d="M 12 54 H 207" stroke="rgba(88,234,192,.65)"
-            strokeWidth={2.6} pathLength={1} strokeDasharray={`${gatewayIntro.inspection} 1`}
-            fill="none" opacity={gatewayIntro.arrival}/>
         </svg>
         <div style={{fontSize:11,fontFamily:AT_FONT,letterSpacing:'.10em',
           textAlign:'center',color:gatewayIntro.arrival>.9?'#78E6C1':'#8FA9C2',
           fontWeight:740}}>
-          {gatewayIntro.arrival>.9?'REQUEST AT GATEWAY':'AWAITING REQUEST'}
+          {gatewayIntro.inspection>=.999?'CHECKS PASSED':gatewayIntro.arrival>.9?'REQUEST HELD AT FIRST GATE':'AWAITING REQUEST'}
         </div>
       </div>:sections.map(section=>(
         <div key={section.title} style={{
