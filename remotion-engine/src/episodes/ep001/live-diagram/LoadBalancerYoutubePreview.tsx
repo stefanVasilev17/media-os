@@ -5,12 +5,16 @@ import {NetworkTransitYoutubePreview} from './NetworkTransitYoutubePreview';
 import {SHOT04_DURATION_FRAMES} from './shot04Timing';
 import {LoadBalancerCenter,ModeNavigation} from './LoadBalancerCleanDirectorVisual';
 
-type Props={durationInFrames:number;anchors?:Record<string,number>;clipStarts?:number[]};
+type Props={
+  durationInFrames:number;
+  anchors?:Record<string,number>;
+  clipStarts?:number[];
+};
 const FPS=30;
-const DEFAULT_SECONDS=[0,22,42,65,92,126,151];
-const ease=(frame:number,start:number,end:number)=>interpolate(
-  frame,[start,Math.max(start+1,end)],[0,1],
-  {extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic)});
+const DEFAULT_SECONDS=[0,16.581,33.002,53.902,77.522,105.143,136.763];
+const ease=(f:number,a:number,b:number)=>interpolate(
+  f,[a,Math.max(a+1,b)],[0,1],{
+  extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.inOut(Easing.cubic)});
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 
 export const LoadBalancerYoutubePreview:React.FC<Props>=({
@@ -18,74 +22,82 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
 })=>{
   const frame=useCurrentFrame();
   const total=Math.max(1,durationInFrames);
-  const starts=DEFAULT_SECONDS.map((second,index)=>{
-    const value=clipStarts[index];
-    return Number.isFinite(value)?Math.max(0,Math.min(total-1,value)):
-      Math.max(0,Math.min(total-1,second*FPS));
-  });
-  const phase=starts.reduce((selected,start,index)=>frame>=start?index:selected,0);
-  const selected=Math.min(5,phase);
-  const previous=Math.max(0,selected-1);
-  const local=Math.max(0,frame-starts[phase]);
-  const frames=Math.max(1,(starts[phase+1]??total)-starts[phase]);
-  const previousFrames=Math.max(1,starts[previous+1]-starts[previous]);
-  const entrance=ease(frame,76,146);
-  const departure=phase===6?ease(frame,starts[6],starts[6]+35):0;
-  const panelOpacity=clamp(entrance*(1-departure));
-  const navBlend=phase>=2&&phase<=5?ease(frame,starts[phase],starts[phase]+24):1;
-  const centerBlend=phase>=1&&phase<=5?ease(frame,starts[phase]+7,starts[phase]+29):1;
-  const introCamera=ease(frame,17,114);
-  const pullBack=phase===6?ease(frame,starts[6]+10,starts[6]+123):0;
-  const mapZoom=introCamera*(1-pullBack);
-  const selectedMap=phase===6?ease(frame,starts[6]+28,starts[6]+95):0;
-  const handoff=phase===6?300*ease(frame,starts[6]+90,
-    Math.min(total-1,starts[6]+260)):0;
-  const healthEnd=phase>=5;
+  const starts=DEFAULT_SECONDS.map((sec,i)=>
+    Number.isFinite(clipStarts[i])?Math.min(total-1,clipStarts[i]):Math.min(total-1,Math.round(sec*FPS)));
+  const phase=starts.reduce((n,start,i)=>frame>=start?i:n,0);
+  const livePhase=Math.min(phase,5);
+  const prior=Math.max(0,livePhase-1);
+  const entrance=ease(frame,66,122);
+  const firstInside=starts[1];
+  const panelIn=ease(frame,Math.min(90,firstInside-70),Math.min(120,firstInside-40));
+  const finalStart=starts[6];
+  const exit=ease(frame,finalStart-7,finalStart+19);
+  const opacity=clamp(panelIn*(1-exit));
+  const navBlend=phase>=2&&phase<=5?ease(frame,starts[phase],starts[phase]+20):1;
+  const centerBlend=phase>=1&&phase<=5?ease(frame,starts[phase]+6,starts[phase]+25):1;
+  const openingCamera=ease(frame,7,103)*(1-ease(frame,Math.max(105,firstInside-60),firstInside+18));
+  const finalCamera=ease(frame,finalStart-15,finalStart+32)*
+    (1-ease(frame,finalStart+65,finalStart+166));
+  const balancerCinema=Math.max(openingCamera,finalCamera);
+  const selectedOnMap=ease(frame,Math.round((anchors.SELECT_B??116.6)*FPS),
+    Math.round((anchors.SELECT_B??116.6)*FPS)+26);
+  const greenMoves=Math.round((anchors.GREEN_MOVES??133.863)*FPS);
+  const handoff=300*ease(frame,greenMoves,Math.min(total-1,finalStart+38));
+  const authFocus=ease(frame,finalStart,Math.min(total-1,finalStart+70));
+  const refOpacity=1-.24*opacity;
+  const lookPhase=livePhase;
+  const showNav=clamp(ease(frame,Math.min(90,firstInside-70),Math.min(120,firstInside-35))*(1-exit));
+
   return <div style={{position:'absolute',inset:0,overflow:'hidden',
-    background:'#050E1D',color:'#F2F7FF',fontFamily:AT_FONT}}>
-    <div style={{position:'absolute',inset:0}}>
+    color:'#F2F7FF',fontFamily:AT_FONT,background:'#05101D'}}>
+    <div style={{position:'absolute',inset:0,opacity:refOpacity}}>
       <NetworkTransitYoutubePreview showGuides={false}
         frameOverride={SHOT04_DURATION_FRAMES-1}
         gatewayHandoff={315}
-        balancerCinema={mapZoom}
-        balancerActive={1-pullBack*.65}
-        balancerIntroArrival={ease(frame,7,56)}
-        balancerIntroSelected={selectedMap}
+        balancerCinema={balancerCinema}
+        balancerActive={1-.68*authFocus}
+        balancerIntroArrival={ease(frame,2,45)}
+        balancerIntroSelected={selectedOnMap}
         balancerHandoff={handoff}
-        authActive={phase===6?ease(frame,starts[6]+115,
-          Math.min(total-1,starts[6]+246)):0}
+        authActive={authFocus}
         networkActiveMultiplier={0}/>
     </div>
-    <div style={{position:'absolute',inset:0,
-      background:'radial-gradient(ellipse at 50% 49%,rgba(3,10,25,.97),rgba(2,7,18,.99))',
-      opacity:panelOpacity*.91,pointerEvents:'none'}}/>
-    <div style={{position:'absolute',top:101,left:151,width:1618,height:880,
-      border:'3px solid rgba(153,143,255,.76)',borderRadius:30,
-      overflow:'hidden',zIndex:11,
-      background:'linear-gradient(140deg,rgba(10,30,56,.98),rgba(5,14,30,.99))',
-      boxShadow:'0 0 80px rgba(132,125,236,.25),0 35px 125px rgba(0,0,0,.67)',
-      opacity:panelOpacity,pointerEvents:'none',
-      transformOrigin:'center center',
-      transform:'translateY('+((1-entrance)*46)+'px) scale('+(0.93+.07*entrance)+')'}}>
-      <div style={{position:'absolute',left:48,top:31,fontSize:48,
-        fontWeight:890,color:'#F1F5FF'}}>Load Balancer</div>
-      <div style={{position:'absolute',left:46,right:46,top:132,bottom:43,
-        display:'grid',gridTemplateColumns:'365px 1fr',gap:24}}>
-        <ModeNavigation phase={selected} previous={previous} blend={navBlend}/>
-        <div style={{position:'relative',borderRadius:22,
-          border:'1px solid rgba(119,154,222,.33)',
-          background:'linear-gradient(154deg,rgba(13,32,59,.97),rgba(8,20,39,.96))',
-          padding:'28px 26px',overflow:'hidden'}}>
+    <div style={{position:'absolute',inset:0,pointerEvents:'none',
+      background:'radial-gradient(ellipse at 49% 46%,rgba(4,12,27,.94),rgba(2,7,18,.99))',
+      opacity:.94*opacity}}/>
+    <div style={{
+      position:'absolute',top:100,left:125,width:1670,height:880,
+      opacity,transformOrigin:'center center',
+      transform:'translateY('+((1-entrance)*48)+'px) scale('+(0.92+.08*entrance)+')',
+      pointerEvents:'none',zIndex:10,
+      border:'2px solid rgba(139,167,252,.72)',borderRadius:30,
+      background:'linear-gradient(155deg,rgba(11,26,50,.985),rgba(5,14,30,.985))',
+      boxShadow:'0 0 80px rgba(103,125,226,.20),0 32px 124px rgba(0,0,0,.68)',
+      overflow:'hidden'
+    }}>
+      <div style={{position:'absolute',left:51,top:28,right:46,
+        fontSize:51,fontWeight:885,color:'#F3F7FF'}}>
+        Load Balancer
+      </div>
+      <div style={{position:'absolute',left:46,right:46,top:127,bottom:34,
+        display:'grid',gridTemplateColumns:'365px 1fr',gap:21}}>
+        <div style={{opacity:showNav}}>
+          <ModeNavigation phase={lookPhase} previous={prior} blend={navBlend}/>
+        </div>
+        <div style={{position:'relative',overflow:'hidden',borderRadius:22,
+          border:'1px solid rgba(112,154,223,.30)',
+          padding:'25px 21px',
+          background:'linear-gradient(149deg,rgba(9,27,53,.97),rgba(6,16,34,.99))'}}>
           {phase>=1&&phase<=5&&centerBlend<1&&<div style={{
-            position:'absolute',inset:'28px 26px',
+            position:'absolute',inset:'25px 21px',
             opacity:1-centerBlend,pointerEvents:'none'}}>
-            <LoadBalancerCenter phase={previous} local={previousFrames-1}
-              frames={previousFrames} frozen/>
+            <LoadBalancerCenter phase={prior}
+              frame={Math.max(0,starts[phase]-1)}
+              anchors={anchors} frozen/>
           </div>}
-          <div style={{width:'100%',height:'100%',opacity:centerBlend}}>
-            <LoadBalancerCenter phase={selected}
-              local={phase===6?Math.max(0,starts[6]-starts[5]-1):local}
-              frames={phase===6?Math.max(1,starts[6]-starts[5]):frames}/>
+          <div style={{width:'100%',height:'100%',
+            opacity:centerBlend,pointerEvents:'none'}}>
+            <LoadBalancerCenter phase={lookPhase} frame={frame} anchors={anchors}/>
           </div>
         </div>
       </div>
