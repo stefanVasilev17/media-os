@@ -29,6 +29,9 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     focusIntensity:z.number().optional(),
     packetMorph:z.number().optional(),
     gatewayActive:z.number().optional(),
+    gatewayIntroArrival:z.number().optional(),
+    gatewayIntroInspection:z.number().optional(),
+    gatewayIntroFrame:z.number().optional(),
     balancerActive:z.number().optional(),
   }).optional(),
 });
@@ -187,7 +190,8 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0))
                 :index===1?.55*(1-.85*(worldMotion?.gatewayActive??0))
                 :index===2?.55*(1-.85*(worldMotion?.balancerActive??0)):.55}
-              zIndex={index===0&&(worldMotion?.focusIntensity??0)>0?11:undefined}
+              zIndex={index===1&&worldMotion?.gatewayIntroArrival!==undefined?12:
+                index===0&&(worldMotion?.focusIntensity??0)>0?11:undefined}
               active={index===0?(worldMotion?.networkActive??0)
                 :index===1?(worldMotion?.gatewayActive??0)
                 :index===2?(worldMotion?.balancerActive??0):0}
@@ -195,6 +199,11 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               sectionReveals={index===0?{
                 'DNS Resolution':worldMotion?.dnsReveal??0,
                 'Network Latency':worldMotion?.latencyReveal??0,
+              }:undefined}
+              gatewayIntro={index===1&&worldMotion?.gatewayIntroArrival!==undefined?{
+                arrival:worldMotion.gatewayIntroArrival,
+                inspection:worldMotion.gatewayIntroInspection??0,
+                frame:worldMotion.gatewayIntroFrame??0,
               }:undefined}
               dnsLookup={index===0&&worldMotion?{
                 hostname:'api.example.com',
