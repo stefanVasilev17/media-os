@@ -318,6 +318,26 @@ export function VisualAgentPage() {
   );
   const previewId = visual?.preview.ready ? visual.preview.renderId : undefined;
 
+  useEffect(() => {
+    if (!script?.revision) return;
+    let active = true;
+    const syncPreview = () => {
+      if (document.visibilityState !== 'visible') return;
+      void loadVisualState(script.revision).then(latest => {
+        if (active) setVisual(latest);
+      }).catch(() => {});
+    };
+    window.addEventListener('focus', syncPreview);
+    document.addEventListener('visibilitychange', syncPreview);
+    const interval = window.setInterval(syncPreview, 60_000);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', syncPreview);
+      document.removeEventListener('visibilitychange', syncPreview);
+      window.clearInterval(interval);
+    };
+  }, [script?.revision]);
+
   async function refresh(revision: number) {
     const [nextVisual, nextShots, nextClips] = await Promise.all([
       loadVisualState(revision),
@@ -722,6 +742,7 @@ export function VisualAgentPage() {
         {previewId ? (
           <>
             <video
+              key={previewId}
               ref={videoRef}
               controls
               preload="metadata"
