@@ -9,6 +9,8 @@ type Props={
   anchors:Record<string,number>;
   clipStarts:number[];
   voiceEndFrame?:number;
+  c07SplitFrame?:number;
+  c07ResumeFrame?:number;
   statusFrames?:Record<string,number>;
 };
 
@@ -89,8 +91,8 @@ const Bullet:React.FC<{children:React.ReactNode;soft?:boolean}>=({children,soft=
 );
 
 
-const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusAt:number}>=({
-  phase,local,segmentFrames,statusAt
+const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusAt:number;gateProgress:number}>=({
+  phase,local,segmentFrames,statusAt,gateProgress
 })=>{
   const show=enter(local,10,24);
   const compare=enter(local,Math.max(20,segmentFrames*.22),Math.max(34,segmentFrames*.36));
@@ -199,10 +201,16 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
     {phase===6&&<>
       <div style={{opacity:show}}>{row('ORIGINAL GREEN REQUEST','POST /api/v1/login',C.green)}</div>
       <div style={{opacity:compare,display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:9}}>
-        {['PATH','METHOD','RATE','WAF','SCHEMA'].map((key,i)=><div key={key} style={{
-          border:'1px solid '+C.green+'77',borderRadius:11,background:'rgba(21,71,61,.57)',
-          textAlign:'center',padding:'17px 4px',fontSize:18,fontWeight:800,
-          color:C.green,opacity:enter(local,30+i*10,45+i*10)}}>✓ {key}</div>)}
+        {['PATH','METHOD','RATE','WAF','SCHEMA'].map((key,i)=>{
+          const passed=clamp((gateProgress*5-i)*2.5);
+          return <div key={key} style={{
+            border:'1px solid '+(passed>.3?C.green+'99':'rgba(102,147,185,.30)'),
+            borderRadius:11,background:passed>.3?'rgba(21,71,61,.57)':'rgba(8,27,46,.63)',
+            textAlign:'center',padding:'17px 4px',fontSize:18,fontWeight:800,
+            color:passed>.3?C.green:C.muted}}>
+            {passed>.6?'✓ ':''}{key}
+          </div>;
+        })}
       </div>
       <div style={{opacity:compare,padding:'22px 25px',borderRadius:14,
         border:'1px solid '+C.green+'80',background:'rgba(14,62,60,.62)',fontSize:27,
@@ -217,7 +225,7 @@ const CaseStudy:React.FC<{phase:number;local:number;segmentFrames:number;statusA
 };
 
 export const GatewayIncidentYoutubePreview:React.FC<Props>=({
-  durationInFrames,anchors,clipStarts,voiceEndFrame,statusFrames
+  durationInFrames,anchors,clipStarts,voiceEndFrame,c07SplitFrame,c07ResumeFrame,statusFrames
 })=>{
   const frame=useCurrentFrame();
   const total=Math.max(1,durationInFrames);
@@ -227,18 +235,23 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const local=Math.max(0,frame-starts[phase]);
   const segmentFrames=Math.max(21,(starts[phase+1]??total)-starts[phase]);
   const interiorStart=starts[1];
-  const gatewayCinema=enter(frame,28,133)*
+  const splitFrame=Math.max(starts[6]+30,Math.min(total-80,c07SplitFrame??starts[6]+116));
+  const resumeFrame=Math.max(splitFrame+35,Math.min(total-40,c07ResumeFrame??splitFrame+90));
+  const gateStart=splitFrame+8;
+  const gateEnd=Math.max(gateStart+25,resumeFrame-12);
+  const gateProgress=move(frame,gateStart,gateEnd);
+  const openingCinema=enter(frame,28,133)*
     (1-move(frame,Math.max(145,interiorStart-28),interiorStart+35));
+  const gateCinema=enter(frame,splitFrame-22,splitFrame+13)*
+    (1-move(frame,gateEnd+14,resumeFrame+85));
+  const gatewayCinema=Math.max(openingCinema,gateCinema);
   const nativeIntroVisible=frame<interiorStart+28;
-  const gatewayIntroArrival=enter(frame,56,100);
-  const gatewayIntroInspection=enter(frame,132,220);
+  const finalGateVisible=phase===6&&frame>=splitFrame-25;
+  const gatewayIntroArrival=finalGateVisible?1:enter(frame,56,100);
+  const gatewayIntroInspection=finalGateVisible?gateProgress:0;
   const focusEntry=enter(frame,interiorStart-5,interiorStart+38);
   const inside=phase===0?0:enter(frame,interiorStart-3,interiorStart+41);
-  const confirmedVoiceEnd=Math.max(starts[6]+1,Math.min(total,voiceEndFrame??total));
-  const hasFinalHold=total-confirmedVoiceEnd>=90;
-  const finalExitStart=hasFinalHold?confirmedVoiceEnd+60:Math.max(starts[6]+50,total-28);
-  const finalExitEnd=hasFinalHold?confirmedVoiceEnd+86:total-1;
-  const out=phase===6?move(frame,finalExitStart,finalExitEnd):0;
+  const out=phase===6?move(frame,splitFrame-10,splitFrame+13):0;
   const screenFocus=clamp(inside*(1-out));
   const active=FOCUS[phase];
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
@@ -252,8 +265,7 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
   const panelScale=.38+.62*focusEntry;
   const gatewayArrival=move(frame,5,68);
-  const handoff=phase===6?move(frame,hasFinalHold?confirmedVoiceEnd+70:Math.max(starts[6]+55,total-36),
-    Math.max(hasFinalHold?confirmedVoiceEnd+102:total-2,starts[6]+56)):0;
+  const handoff=phase===6?move(frame,resumeFrame+8,resumeFrame+71):0;
   const nativePacketOffset=(NATIVE_GATEWAY_ENTRY_X-NATIVE_PACKET_FINAL_X)*gatewayArrival+
     (NATIVE_BALANCER_ENTRY_X-NATIVE_GATEWAY_ENTRY_X)*handoff;
   const interiorOpacity=clamp(inside*(1-out));
@@ -265,9 +277,9 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         gatewayHandoff={nativePacketOffset}
         gatewayActive={gatewayArrival*(1-handoff)}
         gatewayCinema={gatewayCinema}
-        gatewayIntroArrival={nativeIntroVisible?gatewayIntroArrival:undefined}
-        gatewayIntroInspection={nativeIntroVisible?gatewayIntroInspection:undefined}
-        gatewayIntroFrame={nativeIntroVisible?frame:undefined}
+        gatewayIntroArrival={nativeIntroVisible||finalGateVisible?gatewayIntroArrival:undefined}
+        gatewayIntroInspection={nativeIntroVisible||finalGateVisible?gatewayIntroInspection:undefined}
+        gatewayIntroFrame={nativeIntroVisible||finalGateVisible?frame:undefined}
         balancerActive={handoff}
         networkActiveMultiplier={1-gatewayArrival}/>
     </div>
@@ -307,7 +319,8 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         <div style={{borderRadius:21,border:phase===0?'none':'1px solid rgba(103,164,213,.34)',
           background:phase===0?'transparent':'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
           padding:phase===0?0:'27px 32px 17px',overflow:'hidden'}}>
-          <CaseStudy phase={phase} local={local} segmentFrames={segmentFrames} statusAt={resultLocal}/>
+          <CaseStudy phase={phase} local={local} segmentFrames={segmentFrames}
+            statusAt={resultLocal} gateProgress={gateProgress}/>
         </div>
       </div>
       {phase!==0&&<div style={{position:'absolute',bottom:24,left:46,right:46,
