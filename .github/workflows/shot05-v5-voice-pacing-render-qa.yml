@@ -1,8 +1,6 @@
 name: SHOT05 Director-LOCKED 1080p production master
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/shot05-v5-voice-pacing-render-qa.yml']
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -28,6 +26,9 @@ jobs:
                   assert r.status in (200,202)
                   return json.load(r)
           rev=3
+          existing=get("/api/v1/visual/state?scriptRevision="+str(rev))
+          current=next(x for x in existing["shots"] if x["shotKey"]=="SHOT 05")
+          assert not current.get("locked"),"SHOT 05 is Director LOCKED; explicitly unlock before any new render."
           source=get("/api/v1/voice-clips?scriptRevision="+str(rev))
           clips=sorted((x for x in source if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert len(clips)==7 and all(x["generated"] and x["approved"] for x in clips)
