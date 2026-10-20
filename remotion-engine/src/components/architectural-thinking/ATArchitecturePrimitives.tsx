@@ -175,13 +175,14 @@ export type ATBackendNodeProps = {
   sectionReveals?:Record<string,number>;
   dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
   gatewayIntro?:{arrival:number;inspection:number;frame:number};
+  balancerIntro?:{arrival:number;selected:number};
   zIndex?:number;
   width?:number;
   height?:number;
 };
 
 export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
-  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,gatewayIntro,zIndex,width=270,height=244,
+  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,gatewayIntro,balancerIntro,zIndex,width=270,height=244,
 }) => (
   <ATPrimaryNode
     title={title} left={x} top={y} width={width} height={height}
@@ -190,7 +191,21 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
     <div style={{
       position:'relative',display:'flex',flexDirection:'column',gap:5,
     }}>
-      {gatewayIntro?<div style={{height:157,position:'relative',display:'flex',
+      {balancerIntro?<div style={{height:157,position:'relative',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+        <svg width="100%" height={146} viewBox="0 0 232 146" style={{display:'block',overflow:'visible'}}>
+          <path d="M 11 73 H 77" stroke="rgba(88,234,192,.68)" strokeWidth={3} fill="none"/>
+          {[30,73,116].map((y,index)=>{
+            const selected=balancerIntro.selected>.5&&index===1;
+            return <g key={index}>
+              <path d={`M 77 73 C 100 73 95 ${y} 121 ${y} H 158`} stroke={selected?'#58EAC0':'rgba(118,153,216,.48)'} strokeWidth={selected?4:2.4} fill="none"/>
+              <rect x={159} y={y-15} width={59} height={30} rx={7} fill="rgba(16,35,62,.94)" stroke={selected?'#58EAC0':'rgba(123,153,212,.56)'} strokeWidth={selected?2.3:1.4}/>
+              <circle cx={187} cy={y} r={selected?5:3} fill={selected?'#58EAC0':'#8AA5D5'}/>
+            </g>;
+          })}
+          <circle cx={77} cy={73} r={8} fill="#B7A2FF" stroke="rgba(179,157,255,.8)" strokeWidth={2}/>
+          <circle cx={53+24*balancerIntro.arrival} cy={73} r={5} fill="#58EAC0" opacity={balancerIntro.arrival}/>
+        </svg>
+      </div>:gatewayIntro?<div style={{height:157,position:'relative',display:'flex',
         flexDirection:'column',justifyContent:'center',gap:12,padding:'8px 8px 0'}}>
         <svg viewBox="0 0 224 115" width="100%" height={114}
           style={{display:'block',overflow:'visible'}}>
