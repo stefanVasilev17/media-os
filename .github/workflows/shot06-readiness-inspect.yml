@@ -26,7 +26,8 @@ jobs:
               elif name=="CLIPS":
                   rows=[x for x in raw if x.get("shotKey")=="SHOT 06"]
                   print("SHOT06_CLIPS",json.dumps([{k:v for k,v in x.items() if k in
-                   ("clipKey","sequence","generated","approved","durationSeconds","generationRevision")} for x in rows]),flush=True)
+                   ("clipKey","sequence","generated","approved","durationSeconds","leadingTrimSeconds","playbackEndSeconds","generationRevision","narration","generatedAt","approvedAt")} for x in rows]),flush=True)
+                  print("SHOT06_ALIGNMENT_META",json.dumps([{"clip":x["clipKey"],"keys":list(x.get("generatedAlignment",{}).keys()),"hasZoneExplanation":"A zone is a separate" in x.get("narration","")} for x in rows]),flush=True)
               else:
                   row=next(x for x in raw["shots"] if x["shotKey"]=="SHOT 06")
                   print("SHOT06_VISUAL",json.dumps({k:v for k,v in row.items() if k in
