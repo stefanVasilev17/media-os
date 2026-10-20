@@ -1,4 +1,4 @@
-name: SHOT06 Clean Load Balancer Voice-Synced Director Render
+name: SHOT06 Post-Deploy Clean Voice-Synced Director Review
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 65
     steps:
-      - name: Render SHOT06 approved voice with semantic anchors and six director reading pauses
+      - name: Render SHOT06 from verified production worker with approved narration and director pauses
         shell: bash
         run: |
           python3 - <<'PY'
