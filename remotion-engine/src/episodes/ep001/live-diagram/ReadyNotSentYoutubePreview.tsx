@@ -33,6 +33,9 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     gatewayIntroInspection:z.number().optional(),
     gatewayIntroFrame:z.number().optional(),
     balancerActive:z.number().optional(),
+    balancerIntroArrival:z.number().optional(),
+    balancerIntroSelected:z.number().optional(),
+    authActive:z.number().optional(),
   }).optional(),
 });
 type Props=z.infer<typeof readyNotSentYoutubePreviewSchema>;
@@ -189,16 +192,23 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               height={244}
               quiet={index===0?.55*(1-.75*(worldMotion?.networkActive??0))
                 :index===1?.55*(1-.85*(worldMotion?.gatewayActive??0))
-                :index===2?.55*(1-.85*(worldMotion?.balancerActive??0)):.55}
-              zIndex={index===1&&worldMotion?.gatewayIntroArrival!==undefined?12:
+                :index===2?.55*(1-.85*(worldMotion?.balancerActive??0))
+                :index===3?.55*(1-.78*(worldMotion?.authActive??0)):.55}
+              zIndex={index===2&&worldMotion?.balancerIntroArrival!==undefined?12:
+                index===1&&worldMotion?.gatewayIntroArrival!==undefined?12:
                 index===0&&(worldMotion?.focusIntensity??0)>0?11:undefined}
               active={index===0?(worldMotion?.networkActive??0)
                 :index===1?(worldMotion?.gatewayActive??0)
-                :index===2?(worldMotion?.balancerActive??0):0}
+                :index===2?(worldMotion?.balancerActive??0)
+                :index===3?(worldMotion?.authActive??0):0}
               secondaryReveal={index===0?Math.max(worldMotion?.dnsReveal??0,worldMotion?.latencyReveal??0):0}
               sectionReveals={index===0?{
                 'DNS Resolution':worldMotion?.dnsReveal??0,
                 'Network Latency':worldMotion?.latencyReveal??0,
+              }:undefined}
+              balancerIntro={index===2&&worldMotion?.balancerIntroArrival!==undefined?{
+                arrival:worldMotion.balancerIntroArrival,
+                selected:worldMotion.balancerIntroSelected??0,
               }:undefined}
               gatewayIntro={index===1&&worldMotion?.gatewayIntroArrival!==undefined?{
                 arrival:worldMotion.gatewayIntroArrival,
