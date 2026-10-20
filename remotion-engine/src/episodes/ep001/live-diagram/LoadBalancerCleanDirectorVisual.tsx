@@ -115,11 +115,11 @@ const Group:React.FC<{
       fontWeight="840">INSTANCE {name}</text>
     <text x="924" y={y+18} fill={C.muted} fontSize="23" fontFamily={AT_FONT}>
       Auth Service</text>
-    <circle cx="1043" cy={y+37} r="6.5"
+    <circle cx="997" cy={y+37} r="6.5"
       fill={isC&&failed>.6?C.red:chosen>.05?C.green:'#74BCEB'}/>
-    <text x="1057" y={y+44} fontSize="16" fontFamily={AT_FONT}
+    <text x="1013" y={y+44} fontSize="16" fontFamily={AT_FONT}
       fontWeight="820" fill={isC&&failed>.6?C.red:chosen>.05?C.green:C.muted}>
-      {isC&&failed>.6?'OUT':chosen>.05?'SELECTED':'READY'}
+      {isC&&failed>.6?'UNHEALTHY':chosen>.05?'SELECTED':'HEALTHY'}
     </text>
   </g>;
 };
@@ -161,11 +161,9 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
     health?failed>.75?'Instance C · UNHEALTHY':
       frame>=t('NO_RESPONSE',81.763)?'No response from Instance C':'Checking Instance C':
       brightZone>.6?'Instance B · Zone B':'Selecting a healthy instance';
-  const aRoute=health&&failed>.85?false:true;
   const queue=distribute?tween(frame,t('BOTTLENECK',22.502),t('BOTTLENECK',22.502)+33):0;
   const distribution=distribute?tween(frame,t('DISTRIBUTION_RULES',27.702),
     t('DISTRIBUTION_RULES',27.702)+38):0;
-  const introC=health?1:0;
   const visibleStatus=phase>=5?'SELECTED':
     health&&failed>.95?'2 ELIGIBLE':
     roundRobin&&sample3>.9?'A → B → C':
