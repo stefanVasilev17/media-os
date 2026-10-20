@@ -170,10 +170,17 @@ export const Shot04VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audio
 export const Shot05VoiceSynced:React.FC<VoiceSyncedShotProps> = ({audioUrl,audioClips,durationInFrames,anchors}) => {
   const lastClip=audioClips[audioClips.length-1];
   const voiceEndFrame=lastClip?lastClip.fromFrame+lastClip.durationInFrames:durationInFrames;
+  const c07SecondPartIndex=audioClips.findIndex((clip,index)=>
+    index>0&&clip.src===audioClips[index-1].src);
+  const c07FirstPart=c07SecondPartIndex>0?audioClips[c07SecondPartIndex-1]:undefined;
+  const c07SecondPart=c07SecondPartIndex>0?audioClips[c07SecondPartIndex]:undefined;
+  const c07SplitFrame=c07FirstPart?c07FirstPart.fromFrame+c07FirstPart.durationInFrames:undefined;
+  const c07ResumeFrame=c07SecondPart?.fromFrame;
   return <>
     <GatewayIncidentYoutubePreview durationInFrames={durationInFrames} anchors={anchors}
       clipStarts={audioClips.filter((clip,index)=>index===0||clip.src!==audioClips[index-1].src)
-        .map(clip=>clip.fromFrame)} voiceEndFrame={voiceEndFrame}/>
+        .map(clip=>clip.fromFrame)} voiceEndFrame={voiceEndFrame}
+      c07SplitFrame={c07SplitFrame} c07ResumeFrame={c07ResumeFrame}/>
     <VoiceAudio audioUrl={audioUrl} audioClips={audioClips}/>
   </>;
 };
