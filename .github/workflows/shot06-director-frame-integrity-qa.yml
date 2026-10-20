@@ -1,4 +1,4 @@
-name: SHOT06 Director Frame Integrity QA
+name: SHOT06 Final Clean Director MP4 Frame QA
 on:
   push:
     branches: [main]
@@ -17,7 +17,7 @@ jobs:
           sudo apt-get install -y -qq ffmpeg > /dev/null
           python3 - <<'PY'
           import urllib.request, json, subprocess, tempfile, base64, os
-          video="https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/4ecac8b7-afd6-4d0c-85b9-4385b46de3b7/video"
+          video="https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/de3532d5-d76c-4dbf-a08a-9ea5fa7e972a/video"
           with tempfile.TemporaryDirectory() as temp:
               path=os.path.join(temp,"shot06.mp4")
               urllib.request.urlretrieve(video,path)
