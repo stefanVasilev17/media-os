@@ -1,0 +1,22 @@
+name: MediaOS SHOT05 visual lock preflight
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot05-visual-lock-preflight.yml']
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read MediaOS visual state
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          url="https://media-os-backend-production.up.railway.app/api/v1/visual/state?scriptRevision=3"
+          with urllib.request.urlopen(url,timeout=45) as response:
+              data=json.load(response)
+          for shot in data["shots"]:
+              if shot["shotKey"]=="SHOT 05":
+                  print(json.dumps(shot,default=str),flush=True)
+          PY
