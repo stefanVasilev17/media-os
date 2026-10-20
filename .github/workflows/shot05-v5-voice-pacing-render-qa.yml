@@ -1,4 +1,4 @@
-name: SHOT05 Director review - clear Gateway establishing frame
+name: SHOT05 Director review - native cinematic Gateway intro
 on:
   push:
     branches: [main]
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
-      - name: Render SHOT05 with simplified Network Transit to Gateway arrival
+      - name: Render SHOT05 with native Gateway node, camera arrival and approved voice
         shell: bash
         run: |
           python3 - <<'PY'
@@ -124,7 +124,7 @@ jobs:
           check=sorted((x for x in fresh if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert [(x["clipKey"],x["generationRevision"],x["approved"]) for x in check]==[
              (x["clipKey"],x["generationRevision"],x["approved"]) for x in clips]
-          print("SHOT05 CLEAR GATEWAY INTRO MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
+          print("SHOT05 NATIVE CINEMATIC INTRO MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
           print("MP4_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
           print("SAFE: 7 approved audio sources unchanged; C07 reused twice at measured silence. SHOT01-04 untouched. No Director LOCK.",flush=True)
           PY
