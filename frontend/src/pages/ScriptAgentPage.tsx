@@ -261,7 +261,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
     setImportMessage('');
     try {
       const raw = await file.text();
-      const parsed = JSON.parse(raw) as ProductionContractPayload & {
+      const parsed = JSON.parse(raw) as {
         schemaVersion: string;
         shotKey?: string;
         clips?: unknown[];
@@ -281,7 +281,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
         setVoiceClips(await loadVoiceClips(state.revision));
         setImportMessage(imported.message + ' Open Voice Agent → SHOT 06 to record the seven clips.');
       } else {
-        const result = await importProductionContract(parsed);
+        const result = await importProductionContract(parsed as ProductionContractPayload);
         setContract(await loadProductionContract());
         setImportMessage(result.message + ' ' + result.timelineSegments + '/' + artifact.timeline.length + ' timeline blocks are now active.');
       }
