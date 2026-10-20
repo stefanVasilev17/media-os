@@ -1,0 +1,34 @@
+name: EP001 SHOT06 source and voice readiness inspection
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot06-readiness-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read live SHOT06 approved voice and visual contract
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          B="https://media-os-backend-production.up.railway.app"
+          for name,path in (("VOICE","/api/v1/voice/shots?scriptRevision=3"),
+                            ("CLIPS","/api/v1/voice-clips?scriptRevision=3"),
+                            ("VISUAL","/api/v1/visual/state?scriptRevision=3")):
+              with urllib.request.urlopen(B+path,timeout=40) as r: raw=json.load(r)
+              if name=="VOICE":
+                  rows=[x for x in raw if x["shotKey"]=="SHOT 06"]
+                  for r in rows:
+                      print("SHOT06_VOICE",json.dumps({k:v for k,v in r.items() if k in
+                        ("shotKey","voiceGenerated","voiceApproved","visualSyncReady","generationRevision","alignment","narration")},default=str)[:13000],flush=True)
+              elif name=="CLIPS":
+                  rows=[x for x in raw if x.get("shotKey")=="SHOT 06"]
+                  print("SHOT06_CLIPS",json.dumps([{k:v for k,v in x.items() if k in
+                   ("clipKey","sequence","generated","approved","durationSeconds","generationRevision")} for x in rows]),flush=True)
+              else:
+                  row=next(x for x in raw["shots"] if x["shotKey"]=="SHOT 06")
+                  print("SHOT06_VISUAL",json.dumps({k:v for k,v in row.items() if k in
+                    ("shotKey","compositionId","renderId","locked","qaStatus","voiceReady","durationSeconds")}),flush=True)
+          PY
