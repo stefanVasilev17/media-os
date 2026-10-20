@@ -1,0 +1,44 @@
+name: SHOT06 Director Frame Integrity QA
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shot06-director-frame-integrity-qa.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect produced MP4 duration, audio and six keyframes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request, json, subprocess, tempfile, base64, os
+          video="https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/0933b45c-024d-405f-9fae-b1b6abbda09b/video"
+          with tempfile.TemporaryDirectory() as temp:
+              path=os.path.join(temp,"shot06.mp4")
+              urllib.request.urlretrieve(video,path)
+              data=json.loads(subprocess.check_output(["ffprobe","-v","quiet","-show_streams","-show_format","-of","json",path]))
+              streams=data["streams"]
+              video_stream=next(x for x in streams if x["codec_type"]=="video")
+              audio_stream=next(x for x in streams if x["codec_type"]=="audio")
+              assert video_stream["width"]==1280 and video_stream["height"]==720,video_stream
+              assert video_stream["r_frame_rate"]=="30/1",video_stream
+              duration=float(data["format"]["duration"])
+              assert 171.1<=duration<=171.5, duration
+              assert audio_stream["codec_type"]=="audio"
+              print("SHOT06_FFPROBE_PASS",json.dumps({"duration":duration,
+                "width":video_stream["width"],"height":video_stream["height"],
+                "videoCodec":video_stream["codec_name"],"audioCodec":audio_stream["codec_name"],
+                "sizeBytes":os.path.getsize(path)}),flush=True)
+              samples=[10.8,26.5,44.6,68.1,90.1,103.0,126.6,135.5,147.8,159.6]
+              for sec in samples:
+                  jpeg=subprocess.check_output(["ffmpeg","-nostdin","-hide_banner","-loglevel","error",
+                    "-ss",str(sec),"-i",path,"-frames:v","1",
+                    "-vf","scale=640:360:flags=lanczos","-q:v","7",
+                    "-f","image2pipe","-vcodec","mjpeg","pipe:1"])
+                  assert jpeg[:2]==b"\xff\xd8" and jpeg[-2:]==b"\xff\xd9"
+                  print("SHOT06_FRAME_JPEG",str(sec),base64.b64encode(jpeg).decode(),flush=True)
+              print("SHOT06_DIRECTOR_KEYFRAMES_READY: inspect visual content before approving the shot.",flush=True)
+          PY
