@@ -1,4 +1,4 @@
-name: SHOT05 Director review - native cinematic Gateway intro
+name: SHOT05 Director review - first gate stop and final five-gate pass
 on:
   push:
     branches: [main]
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
-      - name: Render SHOT05 with native Gateway node, camera arrival and approved voice
+      - name: Render SHOT05 with first-gate stop, C07 five-gate payoff and approved voice
         shell: bash
         run: |
           python3 - <<'PY'
@@ -39,7 +39,7 @@ jobs:
           assert len(raw)>=7
           FPS=30
           C07_NATURAL_SPLIT_FRAMES=116
-          C07_DIRECTOR_PAUSE_FRAMES=66
+          C07_DIRECTOR_PAUSE_FRAMES=90
           FINAL_HOLD_FRAMES=105
           cursor=0
           raw_cursor=0.0
@@ -93,7 +93,7 @@ jobs:
           assert clips_out[3]["fromFrame"]-(
              clips_out[2]["fromFrame"]+clips_out[2]["durationInFrames"])==60
           print("PACING PASS: 7 original approved voice recordings, one C07 split at measured 3.86-second natural gap,",
-                "66-frame director silence, 6 exact 60-frame reading holds,",
+                "90-frame director silence, 6 exact 60-frame reading holds,",
                 "105-frame end hold,",cursor,"frames",round(cursor/30,3),"seconds",flush=True)
           print("Original approved C01 generation:",clips[0]["generationRevision"],flush=True)
           props={"shotKey":"SHOT 05","scriptRevision":rev,
@@ -124,7 +124,7 @@ jobs:
           check=sorted((x for x in fresh if x.get("shotKey")=="SHOT 05"),key=lambda x:x["sequence"])
           assert [(x["clipKey"],x["generationRevision"],x["approved"]) for x in check]==[
              (x["clipKey"],x["generationRevision"],x["approved"]) for x in clips]
-          print("SHOT05 NATIVE CINEMATIC INTRO MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
+          print("SHOT05 DIRECTOR FIRST-STOP AND FINAL GATES MP4 READY",rid,"frames",cursor,"bytes",state.get("sizeBytes"),flush=True)
           print("MP4_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
           print("SAFE: 7 approved audio sources unchanged; C07 reused twice at measured silence. SHOT01-04 untouched. No Director LOCK.",flush=True)
           PY
