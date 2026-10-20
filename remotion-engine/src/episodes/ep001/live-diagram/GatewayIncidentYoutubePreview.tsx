@@ -271,6 +271,7 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const active=FOCUS[visualPhase];
   const previousFocus=FOCUS[Math.max(1,visualPhase-1)];
   const focusBlend=phase>=2&&phase<=5?move(frame,starts[phase],starts[phase]+18):1;
+  const centerBlend=phase>=2&&phase<=5?move(frame,starts[phase]+8,starts[phase]+26):1;
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
   const anchorStatus=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
   const exact=statusFrames?.[statusKind[phase]] ??
@@ -357,15 +358,15 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
         <div style={{borderRadius:21,border:phase===0?'none':'1px solid rgba(103,164,213,.34)',
           background:phase===0?'transparent':'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
           padding:phase===0?0:'27px 32px 17px',overflow:'hidden',position:'relative'}}>
-          {phase>=2&&phase<=5&&focusBlend<1&&<div style={{
+          {phase>=2&&phase<=5&&centerBlend<1&&<div style={{
             position:'absolute',inset:'27px 32px 17px',
-            opacity:1-focusBlend,pointerEvents:'none',
+            opacity:1-centerBlend,pointerEvents:'none',
           }}>
             <CaseStudy phase={previousPhase} local={previousLocal}
               segmentFrames={previousSegmentFrames} statusAt={previousResultLocal}
               gateProgress={0}/>
           </div>}
-          <div style={{width:'100%',height:'100%',opacity:focusBlend,pointerEvents:'none'}}>
+          <div style={{width:'100%',height:'100%',opacity:centerBlend,pointerEvents:'none'}}>
             <CaseStudy phase={visualPhase} local={centerLocal}
               segmentFrames={centerSegmentFrames} statusAt={centerStatusAt}
               gateProgress={0}/>
