@@ -16,6 +16,6 @@ Keep the technically relevant information in the script, voice-over and producti
 
 ## SHOT 05 implementation and review contract
 
-Remove decorative microcopy only. Preserve all 7 approved audio recordings, the original living map, persistent left navigation and focus transitions, the 404/405/429/403/400 demonstrations, the first-gate stop, five-gate pass and final Load Balancer handoff. SHOT 01–04 remain LOCKED. The cleaned SHOT 05 video requires Director review; do not mark it LOCKED automatically.
+Remove decorative microcopy only. Preserve all 7 approved audio recordings, the original living map, persistent left navigation and focus transitions, the 404/405/429/403/400 demonstrations, the first-gate stop, five-gate pass and final Load Balancer handoff. SHOT 01–04 remain LOCKED. The cleaned SHOT 05 video was explicitly approved and Director LOCKED on 2026-10-20; the production master and canonical MediaOS visual lock are tracked by the separate SHOT 05 final-approval event. Do not alter the locked scene without another explicit Director instruction.
 
 **Future production criterion:** each visible text string must justify its screen space by answering what happened, why it happened, or what state the current object is in. If it merely labels the editing process, reassures about implementation, repeats the narration without adding meaning, or reads like a tiny technical disclaimer, remove it before Director Review.
