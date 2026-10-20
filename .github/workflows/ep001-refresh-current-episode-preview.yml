@@ -1,0 +1,82 @@
+name: EP001 Refresh Current Episode Preview From Director Locks
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/ep001-refresh-current-episode-preview.yml']
+permissions:
+  contents: read
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - name: Rebuild contiguous QA-approved episode using the canonical locked SHOT05
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,math,time,urllib.request,urllib.error
+          base="https://media-os-backend-production.up.railway.app"
+          approved="978127c4-fed2-40a8-ad5d-e7e3920b71cb"
+          fps=30
+          def call(method,path,body=None):
+              headers={"Accept":"application/json"}
+              payload=None
+              if body is not None:
+                  headers["Content-Type"]="application/json"
+                  payload=json.dumps(body).encode()
+              req=urllib.request.Request(base+path,data=payload,method=method,headers=headers)
+              with urllib.request.urlopen(req,timeout=65) as res:
+                  return json.load(res)
+          data=call("GET","/api/v1/visual/state?scriptRevision=3")
+          print("OLD_PREVIEW",json.dumps(data.get("preview")),flush=True)
+          shots=sorted(data["shots"],key=lambda s:s["startSecond"])
+          contiguous=[]
+          for shot in shots:
+              expected="SHOT "+str(len(contiguous)+1).zfill(2)
+              if shot["shotKey"]!=expected or shot["qaStatus"]!="PASS" or not shot.get("renderId"):
+                  print("STOP_AT",expected,"found",shot["shotKey"],"QA",shot["qaStatus"],flush=True)
+                  break
+              if not shot["locked"] or shot["lockedRenderId"]!=shot["renderId"]:
+                  raise RuntimeError(expected+" is not Director-LOCKED to its current render")
+              contiguous.append(shot)
+          assert len(contiguous)==5,"Expected exactly five contiguous approved and Director-LOCKED shots"
+          assert contiguous[4]["renderId"]==approved,"The final SHOT05 master differs from Director LOCK"
+          segments=[]
+          for shot in contiguous:
+              render=call("GET","/api/v1/remotion/renders/"+shot["renderId"])
+              assert render["status"]=="READY" and render["fps"]==fps,render
+              length=int(render["durationInFrames"])
+              assert length>0
+              segments.append({"shotKey":shot["shotKey"],
+                "videoUrl":base+"/api/v1/remotion/renders/"+shot["renderId"]+"/video",
+                "durationInFrames":length})
+          total=sum(x["durationInFrames"] for x in segments)
+          print("CANONICAL_SEGMENTS",json.dumps([
+            {"shot":s["shotKey"],"frames":s["durationInFrames"],
+             "renderId":contiguous[i]["renderId"]} for i,s in enumerate(segments)]),flush=True)
+          print("TOTAL",total,"frames",total/fps,"seconds",flush=True)
+          render=call("POST","/api/v1/remotion/renders/compositions/EP001-Voice-CurrentPreview",
+            {"profile":"FAST_PREVIEW",
+             "inputProps":{"durationInFrames":total,"segments":segments}})
+          rid=render["renderId"]
+          print("NEW_EPISODE_RENDER",rid,"initial_status",render["status"],flush=True)
+          for i in range(320):
+              state=call("GET","/api/v1/remotion/renders/"+rid)
+              if i%4==0:print("RENDER_PROGRESS",state["status"],state.get("progress"),flush=True)
+              if state["status"]=="READY":
+                  break
+              if state["status"]=="FAILED":
+                  raise RuntimeError("Episode render failed: "+str(state.get("error")))
+              time.sleep(15)
+          else:
+              raise TimeoutError("Episode preview exceeded QA render time window")
+          assert state["durationInFrames"]==total and state["fps"]==fps,state
+          latest=call("GET","/api/v1/visual/state?scriptRevision=3")
+          assert latest["preview"]["ready"] and latest["preview"]["renderId"]==rid,latest["preview"]
+          for i,shot in enumerate(contiguous):
+              current=next(s for s in latest["shots"] if s["shotKey"]==shot["shotKey"])
+              assert current["locked"] and current["lockedRenderId"]==shot["renderId"]
+          print("EPISODE_PREVIEW_REFRESH_VERIFIED",rid,flush=True)
+          print("EPISODE_PREVIEW_URL",base+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
+          print("SAFE: NO LOCKED SHOT OR AUDIO MODIFIED",flush=True)
+          PY
