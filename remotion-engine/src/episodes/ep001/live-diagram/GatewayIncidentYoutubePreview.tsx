@@ -52,22 +52,36 @@ const Tile:React.FC<{label:string;value:string;mode?:'active'|'dim'|'good'|'erro
     <span style={{color,fontSize:small?20:25,...mono,textAlign:'right'}}>{value}</span>
   </div>;
 };
-const Module:React.FC<{name:string;items:string[];active:string;selected:string}>=({
-  name,items,active,selected
-})=>{
-  const highlighted=name===active;
-  return <div style={{borderRadius:20,border:'2px solid '+(highlighted?'rgba(143,193,254,.75)':'rgba(80,121,171,.20)'),
-    background:highlighted?'linear-gradient(145deg,rgba(33,64,93,.88),rgba(10,31,56,.96))':'rgba(7,24,44,.71)',
-    boxShadow:highlighted?'0 0 25px rgba(110,165,255,.14)':'none',
-    padding:'23px 23px 21px',minHeight:150,opacity:highlighted?1:.66}}>
-    <div style={{fontSize:23,fontWeight:810,color:highlighted?C.bright:C.muted,
+const Module:React.FC<{
+  name:string;items:string[];active:string;selected:string;
+  previousActive:string;previousSelected:string;blend:number;
+}>=({name,items,active,selected,previousActive,previousSelected,blend})=>{
+  const strength=clamp((name===previousActive?1-blend:0)+(name===active?blend:0));
+  const strengthFor=(item:string)=>clamp(
+    (name===previousActive&&item===previousSelected?1-blend:0)+
+    (name===active&&item===selected?blend:0)
+  );
+  return <div style={{
+    borderRadius:20,border:'2px solid rgba(143,193,254,'+(.20+.55*strength)+')',
+    background:'linear-gradient(145deg,rgba(33,64,93,'+(.20+.68*strength)+'),rgba(10,31,56,.96))',
+    boxShadow:'0 0 '+(25*strength)+'px rgba(110,165,255,'+(.14*strength)+')',
+    padding:'23px 23px 21px',minHeight:150,opacity:.66+.34*strength,
+  }}>
+    <div style={{fontSize:23,fontWeight:810,
+      color:'rgb('+Math.round(163+76*strength)+','+Math.round(189+57*strength)+','+Math.round(214+41*strength)+')',
       marginBottom:18,letterSpacing:'.015em'}}>{name}</div>
     <div style={{display:'flex',gap:11}}>
-      {items.map(item=><div key={item} style={{flex:1,borderRadius:9,
-        background:highlighted&&item===selected?'rgba(37,116,113,.36)':'rgba(4,19,35,.52)',
-        border:'1px solid '+(highlighted&&item===selected?C.green+'88':'rgba(86,131,166,.27)'),
-        padding:'11px 4px',fontSize:18,textAlign:'center',fontWeight:750,
-        color:highlighted&&item===selected?C.green:C.muted}}>{item}</div>)}
+      {items.map(item=>{
+        const intensity=strengthFor(item);
+        return <div key={item} style={{
+          flex:1,borderRadius:9,
+          background:'rgba(37,116,113,'+(.06+.30*intensity)+')',
+          border:'1px solid rgba(88,234,192,'+(.13+.40*intensity)+')',
+          padding:'11px 4px',fontSize:18,textAlign:'center',fontWeight:750,
+          color:'rgb('+Math.round(163-75*intensity)+','+Math.round(189+45*intensity)+','+Math.round(214-22*intensity)+')',
+          textShadow:'0 0 '+(8*intensity)+'px rgba(88,234,192,'+(.25*intensity)+')',
+        }}>{item}</div>;
+      })}
     </div>
   </div>;
 };
@@ -242,18 +256,21 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
   const gateProgress=move(frame,gateStart,gateEnd);
   const openingCinema=enter(frame,28,133)*
     (1-move(frame,Math.max(145,interiorStart-28),interiorStart+35));
-  const gateCinema=enter(frame,splitFrame-22,splitFrame+13)*
+  const gateCinema=enter(frame,starts[6]-5,starts[6]+22)*
     (1-move(frame,gateEnd+14,resumeFrame+85));
   const gatewayCinema=Math.max(openingCinema,gateCinema);
   const nativeIntroVisible=frame<interiorStart+28;
-  const finalGateVisible=phase===6&&frame>=splitFrame-25;
+  const finalGateVisible=phase===6;
   const gatewayIntroArrival=finalGateVisible?1:enter(frame,56,100);
   const gatewayIntroInspection=finalGateVisible?gateProgress:0;
   const focusEntry=enter(frame,interiorStart-5,interiorStart+38);
   const inside=phase===0?0:enter(frame,interiorStart-3,interiorStart+41);
-  const out=phase===6?move(frame,splitFrame-10,splitFrame+13):0;
+  const out=move(frame,starts[6],starts[6]+13);
   const screenFocus=clamp(inside*(1-out));
-  const active=FOCUS[phase];
+  const visualPhase=Math.min(phase,5);
+  const active=FOCUS[visualPhase];
+  const previousFocus=FOCUS[Math.max(1,visualPhase-1)];
+  const focusBlend=phase>=2&&phase<=5?move(frame,starts[phase],starts[phase]+18):1;
   const statusKind=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
   const anchorStatus=['','ROUTE_404','METHOD_405','RATE_LIMIT_429','WAF_403','SCHEMA_400',''];
   const exact=statusFrames?.[statusKind[phase]] ??
@@ -263,13 +280,31 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
     ?Math.max(0,exact!-starts[phase])
     :Math.round(approvedVoiceCueSeconds[phase]*FPS);
   const resultLocal=Math.max(25,Math.min(segmentFrames-14,resultAt));
+  const previousPhase=Math.max(1,visualPhase-1);
+  const previousSegmentFrames=Math.max(21,starts[previousPhase+1]-starts[previousPhase]);
+  const previousLocal=previousSegmentFrames-1;
+  const previousExact=statusFrames?.[statusKind[previousPhase]] ??
+    timing(anchors,anchorStatus[previousPhase]);
+  const previousStatusAt=Number.isFinite(previousExact)
+    ?Math.max(0,previousExact!-starts[previousPhase])
+    :Math.round(approvedVoiceCueSeconds[previousPhase]*FPS);
+  const previousResultLocal=Math.max(25,Math.min(previousSegmentFrames-14,previousStatusAt));
+  const centerLocal=phase===6?Math.max(0,starts[6]-starts[5]-1):local;
+  const centerSegmentFrames=phase===6?Math.max(21,starts[6]-starts[5]):segmentFrames;
+  const schemaExact=statusFrames?.[statusKind[5]] ?? timing(anchors,anchorStatus[5]);
+  const schemaStatusAt=Number.isFinite(schemaExact)
+    ?Math.max(0,schemaExact!-starts[5])
+    :Math.round(approvedVoiceCueSeconds[5]*FPS);
+  const centerStatusAt=phase===6
+    ?Math.max(25,Math.min(centerSegmentFrames-14,schemaStatusAt))
+    :resultLocal;
   const panelScale=.38+.62*focusEntry;
   const gatewayArrival=move(frame,5,68);
   const handoff=phase===6?move(frame,resumeFrame+8,resumeFrame+71):0;
   const nativePacketOffset=(NATIVE_GATEWAY_ENTRY_X-NATIVE_PACKET_FINAL_X)*gatewayArrival+
     (NATIVE_BALANCER_ENTRY_X-NATIVE_GATEWAY_ENTRY_X)*handoff;
   const interiorOpacity=clamp(inside*(1-out));
-  const leftRailReveal=phase===0?0:enter(local,8,22);
+  const leftRailReveal=enter(frame,interiorStart+8,interiorStart+22);
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',background:'#050F1E',...font}}>
     <div style={{position:'absolute',inset:0,opacity:1-.28*screenFocus}}>
@@ -312,22 +347,36 @@ export const GatewayIncidentYoutubePreview:React.FC<Props>=({
       <div style={{position:'absolute',left:44,right:44,top:phase===0?42:162,bottom:phase===0?42:67,
         display:'grid',gridTemplateColumns:phase===0?'1fr':'391px 1fr',gap:phase===0?0:31}}>
         {phase!==0&&<div style={{display:'flex',flexDirection:'column',gap:16,opacity:leftRailReveal}}>
-          <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}/>
-          <Module name="Rate Limit" items={['Burst','Quota']} active={active[0]} selected={active[1]}/>
-          <Module name="Request Filter" items={['WAF','Schema']} active={active[0]} selected={active[1]}/>
+          <Module name="Routing" items={['Path','Method']} active={active[0]} selected={active[1]}
+            previousActive={previousFocus[0]} previousSelected={previousFocus[1]} blend={focusBlend}/>
+          <Module name="Rate Limit" items={['Burst','Quota']} active={active[0]} selected={active[1]}
+            previousActive={previousFocus[0]} previousSelected={previousFocus[1]} blend={focusBlend}/>
+          <Module name="Request Filter" items={['WAF','Schema']} active={active[0]} selected={active[1]}
+            previousActive={previousFocus[0]} previousSelected={previousFocus[1]} blend={focusBlend}/>
         </div>}
         <div style={{borderRadius:21,border:phase===0?'none':'1px solid rgba(103,164,213,.34)',
           background:phase===0?'transparent':'linear-gradient(160deg,rgba(14,39,65,.88),rgba(7,20,39,.93))',
-          padding:phase===0?0:'27px 32px 17px',overflow:'hidden'}}>
-          <CaseStudy phase={phase} local={local} segmentFrames={segmentFrames}
-            statusAt={resultLocal} gateProgress={gateProgress}/>
+          padding:phase===0?0:'27px 32px 17px',overflow:'hidden',position:'relative'}}>
+          {phase>=2&&phase<=5&&focusBlend<1&&<div style={{
+            position:'absolute',inset:'27px 32px 17px',
+            opacity:1-focusBlend,pointerEvents:'none',
+          }}>
+            <CaseStudy phase={previousPhase} local={previousLocal}
+              segmentFrames={previousSegmentFrames} statusAt={previousResultLocal}
+              gateProgress={0}/>
+          </div>}
+          <div style={{width:'100%',height:'100%',opacity:focusBlend,pointerEvents:'none'}}>
+            <CaseStudy phase={visualPhase} local={centerLocal}
+              segmentFrames={centerSegmentFrames} statusAt={centerStatusAt}
+              gateProgress={0}/>
+          </div>
         </div>
       </div>
       {phase!==0&&<div style={{position:'absolute',bottom:24,left:46,right:46,
         display:'flex',justifyContent:'space-between',color:C.muted,fontSize:16,
         fontWeight:700,letterSpacing:'.045em'}}>
         <span>ONE CANONICAL REQUEST · FAILED SAMPLES ARE SEPARATE</span>
-        <span>GATEWAY CHECKS · {phase+1} / 7</span>
+        <span>GATEWAY CHECKS · {visualPhase+1} / 7</span>
       </div>}
     </div>
   </div>;
