@@ -174,13 +174,14 @@ export type ATBackendNodeProps = {
   secondaryReveal?:number;
   sectionReveals?:Record<string,number>;
   dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
+  gatewayIntro?:{arrival:number;inspection:number;frame:number};
   zIndex?:number;
   width?:number;
   height?:number;
 };
 
 export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
-  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,zIndex,width=270,height=244,
+  title,x,y,reveal,sections,active=0,quiet=.55,secondaryReveal=0,sectionReveals,dnsLookup,gatewayIntro,zIndex,width=270,height=244,
 }) => (
   <ATPrimaryNode
     title={title} left={x} top={y} width={width} height={height}
@@ -189,7 +190,39 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
     <div style={{
       position:'relative',display:'flex',flexDirection:'column',gap:5,
     }}>
-      {sections.map(section=>(
+      {gatewayIntro?<div style={{height:157,position:'relative',display:'flex',
+        flexDirection:'column',justifyContent:'center',gap:12,padding:'8px 8px 0'}}>
+        <svg viewBox="0 0 224 115" width="100%" height={114}
+          style={{display:'block',overflow:'visible'}}>
+          <path d="M 12 54 H 207" fill="none" stroke="rgba(90,144,188,.28)"
+            strokeWidth={3} strokeLinecap="round"/>
+          {[0,1,2].map((index)=>{
+            const x=58+index*55;
+            const lit=Math.max(0,Math.min(1,(gatewayIntro.inspection-index*.22)*2.5));
+            return <g key={index}>
+              <rect x={x-12} y={24} width={24} height={60} rx={8}
+                fill="rgba(11,37,57,.95)"
+                stroke={lit>.2?'rgba(88,234,192,.90)':'rgba(114,153,192,.32)'}
+                strokeWidth={lit>.2?2:1.4}/>
+              <path d={`M ${x} 35 V 74`} stroke={lit>.2?'rgba(88,234,192,.88)':'rgba(95,139,174,.40)'}
+                strokeWidth={3} strokeLinecap="round"/>
+              <circle cx={x} cy={54} r={lit>.1?4.8:3.5}
+                fill={lit>.1?'#58EAC0':'#608CA9'} opacity={.35+lit*.65}/>
+            </g>;
+          })}
+          <circle cx={32+165*gatewayIntro.inspection} cy={54} r={5}
+            fill="#58EAC0" opacity={gatewayIntro.arrival}
+            style={{filter:'drop-shadow(0 0 6px rgba(88,234,192,.62))'}}/>
+          <path d="M 12 54 H 207" stroke="rgba(88,234,192,.65)"
+            strokeWidth={2.6} pathLength={1} strokeDasharray={`${gatewayIntro.inspection} 1`}
+            fill="none" opacity={gatewayIntro.arrival}/>
+        </svg>
+        <div style={{fontSize:11,fontFamily:AT_FONT,letterSpacing:'.10em',
+          textAlign:'center',color:gatewayIntro.arrival>.9?'#78E6C1':'#8FA9C2',
+          fontWeight:740}}>
+          {gatewayIntro.arrival>.9?'REQUEST AT GATEWAY':'AWAITING REQUEST'}
+        </div>
+      </div>:sections.map(section=>(
         <div key={section.title} style={{
           opacity:.20+.80*Math.max(0,Math.min(1,sectionReveals?.[section.title]??secondaryReveal)),
         }}>
