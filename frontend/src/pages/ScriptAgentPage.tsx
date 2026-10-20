@@ -261,10 +261,30 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
     setImportMessage('');
     try {
       const raw = await file.text();
-      const payload = JSON.parse(raw) as ProductionContractPayload;
-      const result = await importProductionContract(payload);
-      setContract(await loadProductionContract());
-      setImportMessage(result.message + ' ' + result.timelineSegments + '/' + artifact.timeline.length + ' timeline blocks are now active.');
+      const parsed = JSON.parse(raw) as ProductionContractPayload & {
+        schemaVersion: string;
+        shotKey?: string;
+        clips?: unknown[];
+      };
+      if (parsed.schemaVersion === 'mediaos.shot06-director-voice.v1') {
+        const response = await fetch('/api/v1/voice-clips/shot06/director-voice-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(parsed)
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error((body as { detail?: string; message?: string }).detail ||
+            (body as { message?: string }).message || 'SHOT 06 Director voice import failed.');
+        }
+        const imported = await response.json() as {message: string;voiceClips: number};
+        setVoiceClips(await loadVoiceClips(state.revision));
+        setImportMessage(imported.message + ' Open Voice Agent → SHOT 06 to record the seven clips.');
+      } else {
+        const result = await importProductionContract(parsed);
+        setContract(await loadProductionContract());
+        setImportMessage(result.message + ' ' + result.timelineSegments + '/' + artifact.timeline.length + ' timeline blocks are now active.');
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not import production contract.');
     } finally {
@@ -311,11 +331,12 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 
       <section className="contract-import-card">
         <div>
-          <span>PRODUCTION CONTRACT INPUT</span>
+          <span>PRODUCTION CONTRACT / SHOT 06 DIRECTOR VOICE IMPORT</span>
           <strong>{contract?.ready ? 'Validated HEAR / SEE blocks are active. Add the next shot contract to merge it into the current timeline.' : 'Import the first HEAR / SEE shot contract created in ChatGPT.'}</strong>
           <p>
-            Contract import preserves the LOCKED Script structure and timing. Director edits made inside WHAT YOU HEAR are stored as the effective downstream narration and are not silently overwritten by a later Voice sync.
-            Shot contracts are merged incrementally: new time blocks are added, and matching time blocks are updated. Existing blocks outside the imported shot stay untouched.
+            Import standard HEAR / SEE contracts or the Director-LOCKED SHOT 06 v3 voice JSON.
+            The SHOT 06 voice import writes only C01–C07 to Voice Agent and does not replace the original LOCKED Script
+            or any earlier Director-LOCKED shots. Existing HEAR / SEE contracts remain available.
           </p>
         </div>
         <input
@@ -331,7 +352,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           </button>
           <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
             {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
-            {contract?.ready ? 'Add / Update Shot Contract' : 'Import First Shot Contract'}
+            {contract?.ready ? 'Import Contract / Director Voice JSON' : 'Import Shot Contract / Voice JSON'}
           </button>
         </div>
       </section>
