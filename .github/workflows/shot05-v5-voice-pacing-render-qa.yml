@@ -1,4 +1,4 @@
-name: SHOT05 Director review - first gate stop and final five-gate pass
+name: SHOT05 Director review - verified post-deploy five-gate render
 on:
   push:
     branches: [main]
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 24
     steps:
-      - name: Render SHOT05 with first-gate stop, C07 five-gate payoff and approved voice
+      - name: Render post-deploy SHOT05 with first-gate stop and complete C07 gate pass
         shell: bash
         run: |
           python3 - <<'PY'
