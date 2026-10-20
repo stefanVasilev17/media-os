@@ -121,9 +121,9 @@ const Group:React.FC<{
       fontWeight="840">INSTANCE {name}</text>
     <text x="924" y={y+18} fill={C.muted} fontSize="23" fontFamily={AT_FONT}>
       Auth Service</text>
-    <circle cx="997" cy={y+37} r="6.5"
+    <circle cx="983" cy={y+37} r="7"
       fill={isC&&failed>.6?C.red:chosen>.05?C.green:'#74BCEB'}/>
-    <text x="1013" y={y+44} fontSize="16" fontFamily={AT_FONT}
+    <text x="997" y={y+44} fontSize="19" fontFamily={AT_FONT}
       fontWeight="820" fill={isC&&failed>.6?C.red:chosen>.05?C.green:C.muted}>
       {isC&&failed>.6?'UNHEALTHY':chosen>.05?'SELECTED':'HEALTHY'}
     </text>
@@ -151,12 +151,11 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
   const greenTravel=target?tween(frame,t('GREEN_MOVES',133.863),t('GREEN_MOVES',133.863)+70):0;
   const brightZone=target?tween(frame,t('ZONE_EXPLAIN',121.463),
     t('ZONE_EXPLAIN',121.463)+28):0;
-  const introduceAt=t('THREE_COPIES',7.121);
-  const revealA=arrive?fade(frame,introduceAt,introduceAt+16):1;
-  const revealB=arrive?fade(frame,introduceAt+17,introduceAt+33):1;
-  const revealC=arrive?fade(frame,introduceAt+34,introduceAt+50):1;
+  const revealA=arrive?fade(frame,t('SERVER_A',9.921)-8,t('SERVER_A',9.921)+13):1;
+  const revealB=arrive?fade(frame,t('SERVER_B',10.641)-8,t('SERVER_B',10.641)+13):1;
+  const revealC=arrive?fade(frame,t('SERVER_C',11.121)-8,t('SERVER_C',11.121)+13):1;
   const reveals=[revealA,revealC,revealB];
-  const showZone=target?fade(frame,t('ZONE_EXPLAIN',121.463)-20,t('ZONE_EXPLAIN',121.463)+20):.36;
+  const showZone=target?fade(frame,t('ZONE_EXPLAIN',121.463)-20,t('ZONE_EXPLAIN',121.463)+20):.72;
   const sceneText=arrive?'Three servers. One request.':
     distribute?'Traffic Distribution':roundRobin?'Round Robin':
     hash?'Hash Key':health?'Health Checks':'Target Choice';
