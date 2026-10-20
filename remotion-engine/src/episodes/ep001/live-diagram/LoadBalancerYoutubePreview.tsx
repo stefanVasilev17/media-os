@@ -46,6 +46,10 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
   const authFocus=ease(frame,finalStart,Math.min(total-1,finalStart+70));
   const refOpacity=1-.24*opacity;
   const lookPhase=livePhase;
+  const zoneCue=Math.round((anchors.ZONE_EXPLAIN??121.463)*FPS);
+  const greenCue=Math.round((anchors.GREEN_MOVES??133.863)*FPS);
+  const zoneFocus=lookPhase===5?
+    ease(frame,zoneCue-8,zoneCue+22)*(1-ease(frame,greenCue-26,greenCue+7)):0;
   const showNav=clamp(ease(frame,Math.min(90,firstInside-70),Math.min(120,firstInside-35))*(1-exit));
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',
@@ -82,7 +86,8 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
       <div style={{position:'absolute',left:46,right:46,top:127,bottom:34,
         display:'grid',gridTemplateColumns:'365px 1fr',gap:21}}>
         <div style={{opacity:showNav}}>
-          <ModeNavigation phase={lookPhase} previous={prior} blend={navBlend}/>
+          <ModeNavigation phase={lookPhase} previous={prior} blend={navBlend}
+            zoneFocus={zoneFocus}/>
         </div>
         <div style={{position:'relative',overflow:'hidden',borderRadius:22,
           border:'1px solid rgba(112,154,223,.30)',
