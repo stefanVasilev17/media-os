@@ -35,4 +35,4 @@ Follow the authoritative currently LOCKED script/approved narration and semantic
 
 Before asking for Director LOCK: verify continuity with SHOT 05, inspect a representative frame at every beat, run automated technical and post-render QA, preserve any previously approved audio, and supply an actual ready MP4 for visual review. The Director, not the agents, makes the final LOCK decision.
 
-**Quality benchmark:** EP001 SHOT 05 final Director LOCK, render ID `f74baee9-7389-4d42-b03c-e41b63b3817a`.
+**Quality benchmark:** EP001 SHOT 05 final Director LOCK, canonical 1920×1080 MediaOS-locked master render ID `978127c4-fed2-40a8-ad5d-e7e3920b71cb` (same approved visual cut as the 1280×720 director preview).
