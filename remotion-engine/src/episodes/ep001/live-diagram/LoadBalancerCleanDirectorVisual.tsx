@@ -17,7 +17,7 @@ const fade=(frame:number,start:number,end:number)=>interpolate(frame,
     extrapolateLeft:'clamp',extrapolateRight:'clamp',easing:Easing.out(Easing.cubic)});
 const at=(seconds:number)=>Math.round(seconds*30);
 
-type Phase={phase:number;previous:number;blend:number};
+type Phase={phase:number;previous:number;blend:number;zoneFocus?:number};
 type CenterProps={
   phase:number;frame:number;anchors:Record<string,number>;
   frozen?:boolean;
@@ -33,11 +33,17 @@ const sectionFor=(phase:number):[string,string]=>phase<=2?
   phase===4?['Health Checks','Timeout']:
   ['Target Choice','Instance'];
 
-export const ModeNavigation:React.FC<Phase>=({phase,previous,blend})=>{
+export const ModeNavigation:React.FC<Phase>=({phase,previous,blend,zoneFocus=0})=>{
   const selected=sectionFor(phase),prior=sectionFor(previous);
-  const brightness=(section:string,item?:string)=>limit(
-    (prior[0]===section&&(!item||prior[1]===item)?1-blend:0)+
-    (selected[0]===section&&(!item||selected[1]===item)?blend:0));
+  const brightness=(section:string,item?:string)=>{
+    const current=(selected[0]===section&&(!item||selected[1]===item)?blend:0);
+    const earlier=(prior[0]===section&&(!item||prior[1]===item)?1-blend:0);
+    if(section==='Target Choice'&&phase===5&&item==='Zone')
+      return limit(zoneFocus);
+    if(section==='Target Choice'&&phase===5&&item==='Instance')
+      return limit((1-zoneFocus)*(current+earlier));
+    return limit(current+earlier);
+  };
   return <div style={{display:'flex',flexDirection:'column',gap:19,height:'100%'}}>
     {menus.map(group=>{
       const lit=brightness(group.name);
@@ -164,7 +170,7 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
   const queue=distribute?tween(frame,t('BOTTLENECK',22.502),t('BOTTLENECK',22.502)+33):0;
   const distribution=distribute?tween(frame,t('DISTRIBUTION_RULES',27.702),
     t('DISTRIBUTION_RULES',27.702)+38):0;
-  const visibleStatus=phase>=5?'SELECTED':
+  const visibleStatus=target&&choice>.92?'SELECTED':
     health&&failed>.95?'2 ELIGIBLE':
     roundRobin&&sample3>.9?'A → B → C':
     hash&&hash2>.9?'SAME KEY · SAME DESTINATION':'';
@@ -233,10 +239,17 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
         strokeDasharray="9 8" opacity=".83"/>
       {(!target||greenTravel<.99)&&<g
         style={{filter:'drop-shadow(0 0 10px rgba(88,234,192,.44))'}}>
-        {(()=>{const p=point(2,greenTravel);return <circle cx={greenTravel>0?p.x:29}
-          cy={greenTravel>0?p.y:326} r={14} fill={C.green}
-          stroke="#D4FFEB" strokeWidth="2.5"/>})()}
-      </g>}
+        {(()=>{
+          const travel=target?greenTravel:0;
+          const advance=travel<.32?0:(travel-.32)/.68;
+          const p=point(2,advance);
+          return <circle
+            cx={travel<.32?29+303*travel/.32:p.x}
+            cy={travel<.32?326:p.y}
+            r={14} fill={C.green}
+            stroke="#D4FFEB" strokeWidth="2.5"/>;
+        })()}
+      </g>
       {!target&&<text x="20" y="296" fill={C.green} fontSize="23"
         fontWeight="830" fontFamily={AT_FONT}>LOGIN REQUEST</text>}
       {distribute&&queue>.1&&
