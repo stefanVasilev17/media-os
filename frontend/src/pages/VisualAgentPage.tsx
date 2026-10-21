@@ -131,6 +131,8 @@ function anchorsOf(row?: VoiceShotState) {
 }
 
 
+const SHOT06_DIRECTOR_V3_VIDEO = '/director-review/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4';
+
 const VISUAL_FPS = 30;
 
 type ContractPacingWindow = {
@@ -307,6 +309,7 @@ export function VisualAgentPage() {
   const [renderNotice, setRenderNotice] = useState('');
   const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
   const [previewDuration, setPreviewDuration] = useState(0);
+  const [shot06DirectorPreviewError, setShot06DirectorPreviewError] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
@@ -765,6 +768,40 @@ export function VisualAgentPage() {
           <div className="preview-empty"><Play size={24} /><strong>No QA-approved episode preview yet.</strong><span>Shot 01 will create the first cumulative preview.</span></div>
         )}
       </section>
+
+      {script.revision === 3 && (
+        <section className="shot06-director-final-review" aria-label="SHOT 06 Director locked video and final voice review">
+          <div className="shot06-director-review-top">
+            <div>
+              <span>SHOT 06 · LOAD BALANCER · DIRECTOR V3</span>
+              <h2>Director video locked · Final voice review</h2>
+              <p>One complete 2:51 video with C01–C07 narration, visual corrections and synchronized motion. The approved video is preserved; final Director voice sign-off is pending.</p>
+            </div>
+            <strong>VIDEO LOCKED · NATIVE SYNC PENDING</strong>
+          </div>
+          {shot06DirectorPreviewError ? (
+            <div className="shot06-director-review-error" role="status">
+              The approved video is not yet served by this MediaOS deployment. Its GitHub release remains the verified source; this is not the older MediaOS render.
+            </div>
+          ) : (
+            <video
+              controls
+              preload="metadata"
+              playsInline
+              src={SHOT06_DIRECTOR_V3_VIDEO}
+              onError={() => setShot06DirectorPreviewError(true)}
+              aria-label="SHOT 06 Director v3 final review with all seven original voice recordings"
+            />
+          )}
+          <div className="shot06-director-review-footer">
+            <span>2:51 · 1280 × 720 · 30 fps · Original C01–C07 audio · SHOT 01–05 unchanged</span>
+            <a href={SHOT06_DIRECTOR_V3_VIDEO} download="SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4">Download video</a>
+          </div>
+          <p className="shot06-director-review-boundary">
+            The cumulative episode preview above continues to show native QA-approved SHOT 01–05 only. SHOT 06 is Director VIDEO LOCKED, but its MediaOS-native render and final voice sign-off have not yet been completed. Do not substitute the old render.
+          </p>
+        </section>
+      )}
 
       <nav className="production-shot-rail" aria-label="Visual shots">
         {bundles.map((shot, index) => {
