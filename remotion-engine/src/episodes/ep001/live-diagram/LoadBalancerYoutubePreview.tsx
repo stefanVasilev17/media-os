@@ -11,6 +11,7 @@ type Props={
   clipStarts?:number[];
 };
 const FPS=30;
+const INTRO_EXTRA_FRAMES=45;
 const DEFAULT_SECONDS=[0,16.581,33.002,53.902,77.522,105.143,136.763];
 const ease=(f:number,a:number,b:number)=>interpolate(
   f,[a,Math.max(a+1,b)],[0,1],{
@@ -27,15 +28,17 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
   const phase=starts.reduce((n,start,i)=>frame>=start?i:n,0);
   const livePhase=Math.min(phase,5);
   const prior=Math.max(0,livePhase-1);
-  const entrance=ease(frame,66,122);
+  const entrance=ease(frame,66+INTRO_EXTRA_FRAMES,122+INTRO_EXTRA_FRAMES);
   const firstInside=starts[1];
-  const panelIn=ease(frame,Math.min(90,firstInside-70),Math.min(120,firstInside-40));
+  const panelIn=ease(frame,Math.min(90,firstInside-70)+INTRO_EXTRA_FRAMES,
+    Math.min(120,firstInside-40)+INTRO_EXTRA_FRAMES);
   const finalStart=starts[6];
   const exit=ease(frame,finalStart-7,finalStart+19);
   const opacity=clamp(panelIn*(1-exit));
   const navBlend=phase>=2&&phase<=5?ease(frame,starts[phase],starts[phase]+20):1;
   const centerBlend=phase>=1&&phase<=5?ease(frame,starts[phase]+6,starts[phase]+25):1;
-  const openingCamera=ease(frame,7,103)*(1-ease(frame,Math.max(105,firstInside-60),firstInside+18));
+  const openingCamera=ease(frame,7,103+INTRO_EXTRA_FRAMES)*
+    (1-ease(frame,Math.max(105,firstInside-60),firstInside+18));
   const finalCamera=ease(frame,finalStart-15,finalStart+32)*
     (1-ease(frame,finalStart+65,finalStart+166));
   const balancerCinema=Math.max(openingCamera,finalCamera);
@@ -50,7 +53,8 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
   const greenCue=Math.round((anchors.GREEN_MOVES??133.863)*FPS);
   const zoneFocus=lookPhase===5?
     ease(frame,zoneCue-8,zoneCue+22)*(1-ease(frame,greenCue-26,greenCue+7)):0;
-  const showNav=clamp(ease(frame,Math.min(90,firstInside-70),Math.min(120,firstInside-35))*(1-exit));
+  const showNav=clamp(ease(frame,Math.min(90,firstInside-70)+INTRO_EXTRA_FRAMES,
+    Math.min(120,firstInside-35)+INTRO_EXTRA_FRAMES)*(1-exit));
 
   return <div style={{position:'absolute',inset:0,overflow:'hidden',
     color:'#F2F7FF',fontFamily:AT_FONT,background:'#05101D'}}>
@@ -62,7 +66,7 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
         balancerActive={1-.68*authFocus}
         balancerIntroArrival={ease(frame,2,45)}
         balancerIntroSelected={selectedOnMap}
-        balancerIntroFlow={ease(frame,24,76)}
+        balancerIntroFlow={ease(frame,24,76+INTRO_EXTRA_FRAMES)}
         balancerIntroFrame={frame}
         balancerIntroHandoff={phase===6?ease(frame,finalStart-4,finalStart+57):0}
         balancerIntroUnhealthy={ease(frame,Math.round((anchors.MARK_UNHEALTHY??90)*FPS),
