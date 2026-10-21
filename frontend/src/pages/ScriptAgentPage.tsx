@@ -9,6 +9,7 @@ import {
   type ProductionContractState
 } from '../api/productionContractApi';
 import { importLockedScript, type LockedScriptImportPayload } from '../api/lockedScriptApi';
+import { importDirectorVoicePack, type DirectorVoicePackPayload } from '../api/directorVoicePackApi';
 import { loadVoiceClips, syncVoiceClips, updateVoiceClipNarration, type VoiceClipState } from '../api/voiceClipApi';
 import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import { CreativeAgentPage } from './CreativeAgentPage';
@@ -266,7 +267,10 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
         shotKey?: string;
         clips?: unknown[];
       };
-      if (parsed.schemaVersion === 'mediaos.shot06-director-voice.v1') {
+      if (parsed.schemaVersion === 'mediaos.director-voice-pack.v1') {
+        const result = await importDirectorVoicePack(parsed as DirectorVoicePackPayload);
+        setImportMessage(result.message + ' Navigate to Voice Agent → SHOT 07; SHOT 08 and SHOT 09 are also ready.');
+      } else if (parsed.schemaVersion === 'mediaos.shot06-director-voice.v1') {
         const response = await fetch('/api/v1/voice-clips/shot06/director-voice-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -331,11 +335,11 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 
       <section className="contract-import-card">
         <div>
-          <span>PRODUCTION CONTRACT / SHOT 06 DIRECTOR VOICE IMPORT</span>
+          <span>PRODUCTION CONTRACT / DIRECTOR VOICE IMPORTS (SHOT 06–09)</span>
           <strong>{contract?.ready ? 'Validated HEAR / SEE blocks are active. Add the next shot contract to merge it into the current timeline.' : 'Import the first HEAR / SEE shot contract created in ChatGPT.'}</strong>
           <p>
-            Import standard HEAR / SEE contracts or the Director-LOCKED SHOT 06 v3 voice JSON.
-            The SHOT 06 voice import writes only C01–C07 to Voice Agent and does not replace the original LOCKED Script
+            Import standard HEAR / SEE contracts, SHOT 06 Director voice JSON, or the new SHOT 07–09 explained voice pack.
+            Director voice imports write only the designated Voice Agent clips and do not replace the original LOCKED Script
             or any earlier Director-LOCKED shots. Existing HEAR / SEE contracts remain available.
           </p>
         </div>
@@ -352,7 +356,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           </button>
           <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
             {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
-            {contract?.ready ? 'Import Contract / Director Voice JSON' : 'Import Shot Contract / Voice JSON'}
+            {contract?.ready ? 'Import Contract / Director Voice Pack JSON' : 'Import Shot Contract / Voice Pack JSON'}
           </button>
         </div>
       </section>
