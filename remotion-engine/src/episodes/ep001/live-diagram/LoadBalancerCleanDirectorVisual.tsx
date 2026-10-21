@@ -23,12 +23,12 @@ type CenterProps={
   frozen?:boolean;
 };
 const menus=[
-  {name:'Traffic Distribution',items:['Route Mode','Hash Key']},
+  {name:'Traffic Distribution',items:['Round Robin','Hash Key']},
   {name:'Health Checks',items:['Healthy','Timeout']},
   {name:'Target Choice',items:['Instance','Zone']},
 ];
 const sectionFor=(phase:number):[string,string]=>phase<=2?
-  ['Traffic Distribution','Route Mode']:
+  ['Traffic Distribution','Round Robin']:
   phase===3?['Traffic Distribution','Hash Key']:
   phase===4?['Health Checks','Timeout']:
   ['Target Choice','Instance'];
@@ -107,26 +107,30 @@ const Group:React.FC<{
   const dim=isC?1-.58*failed:1;
   const chosen=isB?choice:0;
   return <g opacity={reveal*dim}>
-    <rect x="832" y={y-52} rx="18" width="276" height="105"
+    <rect x="820" y={y-52} rx="18" width="306" height="105"
       fill={chosen>.02?'rgba(13,54,51,.88)':'rgba(18,35,62,.93)'}
       stroke={isC&&failed>.65?C.red:chosen>.05?C.green:'#516A97'}
       strokeWidth={chosen>.05?3:2}/>
-    <rect x="851" y={y-31} rx="7" width="49" height="57"
+    <rect x="837" y={y-31} rx="7" width="49" height="57"
       fill="rgba(32,65,107,.85)" stroke={chosen>.05?C.green:C.blue} strokeWidth="2"/>
     {[0,1,2].map(i=><g key={i}>
-      <circle cx="861" cy={y-18+i*16} r="2.5" fill={chosen>.05?C.green:C.blue}/>
-      <path d={'M 871 '+(y-18+i*16)+' H 889'} stroke="#799BC8" strokeWidth="2"/>
+      <circle cx="848" cy={y-18+i*16} r="2.5" fill={chosen>.05?C.green:C.blue}/>
+      <path d={'M 857 '+(y-18+i*16)+' H 877'} stroke="#799BC8" strokeWidth="2"/>
     </g>)}
-    <text x="924" y={y-14} fill={C.white} fontSize="29" fontFamily={AT_FONT}
+    <text x="903" y={y-18} fill={C.white} fontSize="25" fontFamily={AT_FONT}
       fontWeight="840">INSTANCE {name}</text>
-    <text x="924" y={y+18} fill={C.muted} fontSize="23" fontFamily={AT_FONT}>
+    <text x="903" y={y+11} fill={C.muted} fontSize="20" fontFamily={AT_FONT}>
       Auth Service</text>
-    <circle cx="983" cy={y+37} r="7"
+    <circle cx="908" cy={y+36} r="5.8"
       fill={isC&&failed>.6?C.red:chosen>.05?C.green:'#74BCEB'}/>
-    <text x="997" y={y+44} fontSize="19" fontFamily={AT_FONT}
+    <text x="922" y={y+42} fontSize="17.5" fontFamily={AT_FONT}
       fontWeight="820" fill={isC&&failed>.6?C.red:chosen>.05?C.green:C.muted}>
       {isC&&failed>.6?'UNHEALTHY':chosen>.05?'SELECTED':'HEALTHY'}
     </text>
+    {[0,1,2].map((i)=><rect key={i} x={1080} y={y-22+i*16}
+      width={i===0?30:i===1?23:16} height={5} rx={2.5}
+      fill={chosen>.05?C.green:i===0?C.blue:'#5F8CC3'}
+      opacity={isC&&failed>.6?.3:.75-(i*.13)}/>)}
   </g>;
 };
 
@@ -170,33 +174,34 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
   const distribution=distribute?tween(frame,t('DISTRIBUTION_RULES',27.702),
     t('DISTRIBUTION_RULES',27.702)+38):0;
   return <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',
-    overflow:'hidden',fontFamily:AT_FONT}}>
-    <div style={{height:88,flexShrink:0}}>
+    overflow:'hidden',fontFamily:AT_FONT,minHeight:0}}>
+    <div style={{height:96,flexShrink:0,paddingLeft:13,overflow:'hidden'}}>
       <div style={{fontSize:36,fontWeight:850,color:C.white}}>{sceneText}</div>
       <div style={{fontSize:23,fontWeight:710,color:
         health&&failed>.7?C.amber:target?C.green:C.muted,marginTop:6}}>
         {secondary}
       </div>
     </div>
-    <svg viewBox="0 0 1160 642" width="100%"
-      style={{display:'block',overflow:'visible',flex:'1 1 auto'}}>
+    <svg viewBox="0 0 1160 642" width="100%" height="100%"
+      preserveAspectRatio="xMidYMid meet"
+      style={{display:'block',overflow:'hidden',flex:'1 1 0',minHeight:0}}>
       <defs>
         <linearGradient id="lb-gateway" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#1B3861"/>
           <stop offset="1" stopColor="#0C1D3A"/>
         </linearGradient>
       </defs>
-      <rect x="746" y="42" width="396" height="356" rx="24"
+      <rect x="756" y="42" width="390" height="356" rx="24"
         fill={'rgba(21,42,73,'+(.14+.13*(1-brightZone))+')'}
         stroke={'rgba(107,151,236,'+(.30+.15*(1-brightZone))+')'}
         strokeWidth="2" opacity={showZone}/>
-      <rect x="746" y="418" width="396" height="196" rx="24"
+      <rect x="756" y="418" width="390" height="196" rx="24"
         fill={'rgba(9,79,60,'+(.10+.22*brightZone)+')'}
         stroke={'rgba(88,234,192,'+(.26+.53*brightZone)+')'}
         strokeWidth={brightZone>.4?3:2} opacity={showZone}/>
-      <text x="774" y="77" fill={C.blue} fontSize="23" fontWeight="830"
+      <text x="775" y="77" fill={C.blue} fontSize="23" fontWeight="830"
         fontFamily={AT_FONT} opacity={showZone}>ZONE A</text>
-      <text x="774" y="451" fill={C.green} fontSize="23" fontWeight="830"
+      <text x="775" y="451" fill={C.green} fontSize="23" fontWeight="830"
         fontFamily={AT_FONT} opacity={showZone}>ZONE B</text>
       {[0,1,2].map(index=>{
         const isC=index===1;
