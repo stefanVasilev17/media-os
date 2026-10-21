@@ -1,4 +1,4 @@
-name: SHOT06 Director v2 Full Voice-Synced MP4 Build
+name: SHOT06 Director v3 Clean Layout Voice-Synced MP4 Build
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ jobs:
     timeout-minutes: 90
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: shot06-director-v2-2026-10-21
+      TAG: shot06-director-v3-clean-layout-2026-10-21
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -93,7 +93,7 @@ jobs:
           assert anchors["THREE_COPIES"]<anchors["FIRST_A"]<anchors["HASH_SAMPLES"]<anchors["PROBE_1"]<anchors["SELECT_B"]<anchors["ZONE_EXPLAIN"]<anchors["GREEN_MOVES"]
           assert frame==5137,(frame,sec)
           props={"audioUrl":"","audioClips":tracks,"durationInFrames":frame,"anchors":anchors,"comprehensionHolds":holds}
-          open("shot06-director-v2-props.json","w").write(json.dumps(props))
+          open("shot06-director-v3-props.json","w").write(json.dumps(props))
           print("VOICE_PREPARED",json.dumps({"frames":frame,"seconds":frame/FPS,"sourceClips":len(tracks),"holds":len(holds)}),flush=True)
           PY
       - name: Install Remotion and browser
@@ -105,20 +105,36 @@ jobs:
         working-directory: remotion-engine
         run: |
           mkdir -p ../out
-          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-first-check.png --props=../shot06-director-v2-props.json --frame=2840 --scale=0.6666666666666666
+          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-first-check.png --props=../shot06-director-v3-props.json --frame=2840 --scale=0.6666666666666666
       - name: Render full 171 second Director preview with exact original voice
         working-directory: remotion-engine
         timeout-minutes: 65
         run: |
-          npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v2.mp4 \
-            --props=../shot06-director-v2-props.json --codec=h264 --audio-codec=aac \
+          npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4 \
+            --props=../shot06-director-v3-props.json --codec=h264 --audio-codec=aac \
             --scale=0.6666666666666666 --concurrency=2 --overwrite
+      - name: Enforce reviewed non-overlap geometry and protected labels
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("remotion-engine/src/episodes/ep001/live-diagram/LoadBalancerCleanDirectorVisual.tsx").read_text()
+          assert "{id:'B',x:822,y:540}" in src
+          assert '<rect x="19" y="184" width="226" height="48"' in src
+          assert '<text x="775" y="455"' in src
+          assert 'fontSize="23" fontWeight="860"' in src
+          assert 184+48+12<=247
+          assert 455+22<=540-52
+          assert 540+53<614
+          assert "INSTANCE {name}" in src
+          print("DIRECTOR_V3_LAYOUT_COLLISION_CHECK_PASS",flush=True)
+          PY
       - name: Independently validate frame count, audio, duration and render samples
         shell: bash
         run: |
           python3 - <<'PY'
           import json,subprocess,os
-          path="out/SHOT06_LoadBalancer_Director_v2.mp4"
+          path="out/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4"
           d=json.loads(subprocess.check_output(["ffprobe","-v","error","-show_format","-show_streams","-of","json",path]))
           video=next(x for x in d["streams"] if x["codec_type"]=="video")
           audio=next(x for x in d["streams"] if x["codec_type"]=="audio")
@@ -131,7 +147,7 @@ jobs:
           for t in [8,38,61,90,110,127,143,159,170]:
               data=subprocess.check_output(["ffmpeg","-v","error","-ss",str(t),"-i",path,"-frames:v","1","-vf","scale=640:360","-f","image2pipe","-vcodec","mjpeg","pipe:1"])
               assert data[:2]==b"\xff\xd8"
-          print("DIRECTOR_V2_VERIFIED",json.dumps({"seconds":seconds,"width":video["width"],"height":video["height"],
+          print("DIRECTOR_V3_VERIFIED",json.dumps({"seconds":seconds,"width":video["width"],"height":video["height"],
             "videoCodec":video["codec_name"],"audioCodec":audio["codec_name"],
             "bytes":os.path.getsize(path),"reviewStatus":"NOT_LOCKED"}),flush=True)
           PY
@@ -139,21 +155,21 @@ jobs:
         shell: bash
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/SHOT06_LoadBalancer_Director_v2.mp4 --clobber
+            gh release upload "$TAG" out/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4 --clobber
           else
-            gh release create "$TAG" out/SHOT06_LoadBalancer_Director_v2.mp4 \
-              --title "EP001 SHOT06 Load Balancer — Director Review v2" \
-              --notes "Video review only. Seven approved original ElevenLabs clips. Animated native balancer traffic, Round Robin, clean frame layout and healthy-instance Auth handoff. NOT DIRECTOR LOCKED. SHOT01-05 unchanged." \
+            gh release create "$TAG" out/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4 \
+              --title "EP001 SHOT06 Load Balancer — Director Review v3 Clean Layout" \
+              --notes "Video review v3. Corrected LOGIN REQUEST, ZONE B heading, Auth Service card spacing with refined visual details. Original seven approved ElevenLabs clips unchanged. SHOT06 not Director LOCKED. SHOT01-05 unchanged." \
               --prerelease
           fi
           gh release view "$TAG" --json url,assets --jq '{url:.url,assets:[.assets[]|{name:.name,url:.url,size:.size}]}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: SHOT06-Director-v2-Full-MP4-and-QA
+          name: SHOT06-Director-v3-CleanLayout-MP4-and-QA
           path: |
-            out/SHOT06_LoadBalancer_Director_v2.mp4
+            out/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4
             out/shot06-first-check.png
-            shot06-director-v2-props.json
+            shot06-director-v3-props.json
           if-no-files-found: warn
           retention-days: 30
