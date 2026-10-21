@@ -96,6 +96,42 @@ const Packet:React.FC<{route:number;progress:number;color:string;number?:string;
       fontWeight="880" fill="#08162A" fontFamily={AT_FONT}>{number}</text>}
   </g>;
 };
+const EventDashes:React.FC<{
+  route:number;frame:number;start:number;duration?:number;
+  colorMode?:'blue'|'green'|'amber';count?:number;opacity?:number;
+  repeating?:boolean;
+}>=({route,frame,start,duration=82,colorMode='blue',count=7,opacity=1,repeating=false})=>{
+  const age=frame-start;
+  if(age<0||opacity<=0)return null;
+  if(!repeating&&age>duration+18)return null;
+  const appearance=tween(frame,start,start+12);
+  const disappearance=repeating?1:1-tween(frame,start+duration,start+duration+18);
+  const palette=colorMode==='green'?['#58EAC0','#65E8D9','#84C5FA','#B2A2FF']:
+    colorMode==='amber'?['#EAB46D','#F6D392','#85B5E7']:
+    ['#54D1F2','#7EE5D7','#8EBAFC','#B39FFF'];
+  const spacing=repeating?1/count:11/duration;
+  return <g opacity={Math.max(0,appearance*disappearance*opacity)}>
+    {Array.from({length:count},(_,index)=>{
+      const progress=repeating?((age/(74+route*9)+index/count)%1):
+        Math.min(1.03,Math.max(-.06,age/duration-index*spacing));
+      if(progress<.02||progress>.975)return null;
+      const pt=point(route,progress);
+      const next=point(route,Math.min(1,progress+.012));
+      const rotation=Math.atan2(next.y-pt.y,next.x-pt.x)*180/Math.PI;
+      const hue=palette[index%palette.length];
+      const length=index%4===0?18:index%3===0?13:9;
+      const alpha=(.53+.37*Math.sin(progress*Math.PI))*(index%3===0?1:.76);
+      return <g key={index} transform={'translate('+pt.x+' '+pt.y+') rotate('+rotation+')'}>
+        <rect x={-length/2} y={-2.5} width={length} height={5} rx={2.5}
+          fill={hue} opacity={alpha}
+          style={{filter:'drop-shadow(0 0 5px '+hue+'88)'}}/>
+        {index%3===0&&<rect x={-length/2} y={-1.25} width={length} height={2.5} rx={1.2}
+          fill="#DDFBFF" opacity={.35*alpha}/>}
+      </g>;
+    })}
+  </g>;
+};
+
 const wordAnchor=(anchors:Record<string,number>,key:string,fallback:number)=>
   at(anchors[key]??fallback);
 const Group:React.FC<{
@@ -104,7 +140,7 @@ const Group:React.FC<{
 }>=({index,frame,phase,failed,choice,reveal,zoneFocus})=>{
   const name=ROUTES[index].id,y=ROUTES[index].y;
   const isC=name==='C',isB=name==='B';
-  const dim=isC?1-.58*failed:1;
+  const dim=isC?1-.19*failed:1;
   const chosen=isB?choice:0;
   return <g opacity={reveal*dim}>
     <rect x="820" y={y-52} rx="18" width="306" height="105"
@@ -225,6 +261,64 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
             failed={failed} choice={choice} reveal={reveals[index]}
             zoneFocus={brightZone}/>
         </g>;
+      })}
+      {[0,1,2].map(index=>{
+        const isC=index===1;
+        const open=phase===0?
+          fade(frame,t('THREE_COPIES',7.1)+18+index*12,
+            t('THREE_COPIES',7.1)+36+index*12):
+          1;
+        const intensity=phase===0?.28:distribute?.45:
+          roundRobin?.18:hash?.13:health?.12:target?.12:0;
+        return <g key={'ambient-'+index}>
+          <path d={curve(index)} fill="none" stroke={index===2?C.green:C.blue}
+            strokeWidth={7} opacity={open*intensity*.13}
+            style={{filter:'blur(4px)'}}/>
+          <path d={curve(index)} fill="none" stroke={C.blue}
+            strokeWidth={1} strokeDasharray="3 13"
+            opacity={open*intensity*.56}/>
+          {(phase===0||distribute)&&<EventDashes route={index} frame={frame}
+            start={t('THREE_COPIES',7.1)+20+index*13}
+            repeating count={index===2?6:5} opacity={open*(distribute?.78:.42)}/>}
+        </g>;
+      })}
+      {roundRobin&&<g>
+        <EventDashes route={0} frame={frame} start={t('FIRST_A',38.682)}
+          duration={32} colorMode="blue" count={6}/>
+        <EventDashes route={2} frame={frame} start={t('SECOND_B',40.762)}
+          duration={32} colorMode="blue" count={6}/>
+        <EventDashes route={1} frame={frame} start={t('THIRD_C',42.442)}
+          duration={32} colorMode="blue" count={6}/>
+      </g>}
+      {hash&&<g>
+        <EventDashes route={2} frame={frame} start={t('HASH_SAMPLES',61.982)}
+          duration={50} colorMode="blue" count={8}/>
+        <EventDashes route={2} frame={frame} start={t('SAME_DESTINATION',67.022)}
+          duration={46} colorMode="blue" count={8}/>
+      </g>}
+      {health&&failed<.65&&<g>
+        <EventDashes route={1} frame={frame} start={t('PROBE_1',79.323)}
+          duration={70} colorMode="amber" count={5} opacity={1-failed}/>
+        <EventDashes route={1} frame={frame} start={t('PROBE_2',83.123)}
+          duration={55} colorMode="amber" count={5} opacity={1-failed}/>
+      </g>}
+      {target&&greenTravel>.02&&<EventDashes route={2} frame={frame}
+        start={t('GREEN_MOVES',133.863)+19} duration={73} colorMode="green"
+        count={7} opacity={Math.min(1,greenTravel*3)}/>}
+      <path d="M 14 326 H 76" stroke="rgba(88,234,192,.2)"
+        strokeWidth={9} fill="none" strokeLinecap="round"/>
+      <path d="M 14 326 H 76" stroke="#58EAC0"
+        strokeWidth={3.3} fill="none" strokeLinecap="round"
+        style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.56))'}}/>
+      <path d="M 77 326 H 317" stroke="#58EAC0" strokeWidth={2.4}
+        fill="none" opacity={.30+.56*greenTravel} strokeLinecap="round"/>
+      {Array.from({length:6},(_,k)=>{
+        const p=((frame*.023+k/6)%1+1)%1;
+        const x=16+57*p;
+        const hue=['#58EAC0','#52D6F5','#A5A7FF'][k%3];
+        return <rect key={'inlet-'+k} x={x} y={324.1} width={k%2===0?8:5}
+          height={3.8} rx={1.9} fill={hue} opacity={.26+.40*Math.sin(Math.PI*p)}
+          style={{filter:'drop-shadow(0 0 4px '+hue+')'}}/>;
       })}
       <rect x="76" y="247" width="242" height="158" rx="25"
         fill="url(#lb-gateway)" stroke={C.violet} strokeWidth="3"/>
