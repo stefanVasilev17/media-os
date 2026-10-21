@@ -1,0 +1,50 @@
+name: SHOT06 Director Video Lock — Single Video Voice Review
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/shot06-v3-single-video-director-review-label.yml'
+permissions:
+  contents: write
+jobs:
+  mark-director-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: shot06-director-v3-clean-layout-2026-10-21
+      ASSET_NAME: SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4
+      ASSET_SHA256: 834e984d6f42b12f89e305ae779b6fbb7fd6655f4bf25e843de5e1e451418ab9
+    steps:
+      - name: Check existing published release has the exact one combined MP4
+        shell: bash
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/shot06-release.json"
+          jq -e --arg name "$ASSET_NAME" --arg digest "sha256:$ASSET_SHA256" '
+            .prerelease == true and (.assets | length) == 1 and
+            .assets[0].name == $name and
+            .assets[0].size == 12326125 and
+            .assets[0].digest == $digest
+          ' "$RUNNER_TEMP/shot06-release.json" >/dev/null
+      - name: Label the existing combined video with the Director decisions
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/shot06-review-notes.md" <<'EOF'
+          **Director VIDEO LOCKED (2026-10-21). Final Director voice sign-off PENDING.**
+
+          This release contains **one complete 2:51 MP4 with all seven original approved-for-production C01–C07 voice recordings**, synchronized to the improved Load Balancer animation. Review narration and visuals together, not as seven separate videos or audio files. No separate review videos are required.
+
+          - Visual corrections are locked by Director decision: readable LOGIN REQUEST, non-overlapping Zone B label, refined Load Balancer and server cards.
+          - 1280×720 @ 30 fps; H.264 video / AAC audio; 5137 frames; independently validated.
+          - Original C01–C07 audio unchanged; SHOT 01–05 remain untouched and locked.
+          - Director final voice approval is not implied by earlier clip approvals; request explicit `VOICE LOCK C01–C07` or specific corrections.
+          - GitHub release is the authoritative Director-approved visual artifact. MediaOS-native database video-lock synchronization is separate and must use only the same verified version after native QA, not an older render.
+          EOF
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/shot06-review-notes.md"
+      - name: Confirm release has one MP4 and correct review state
+        shell: bash
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/shot06-release-after.json"
+          jq -e '.assets | length == 1' "$RUNNER_TEMP/shot06-release-after.json" >/dev/null
+          jq -e '.body | contains("Director VIDEO LOCKED") and contains("Final Director voice sign-off PENDING")' "$RUNNER_TEMP/shot06-release-after.json" >/dev/null
+          echo "SHOT06_SINGLE_MP4_DIRECTOR_VIDEO_LOCK_RECORDED"
