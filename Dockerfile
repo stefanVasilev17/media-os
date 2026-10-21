@@ -41,3 +41,4 @@ ENV GALLIUM_DRIVER=llvmpipe
 ENV MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
 EXPOSE 8080
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# 2026-10-21 SHOT06 Director preview: refresh both Railway images from current Remotion source; no change to SHOT01-05.
