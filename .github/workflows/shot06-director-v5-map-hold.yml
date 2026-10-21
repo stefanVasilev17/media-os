@@ -1,4 +1,4 @@
-name: SHOT06 Director v5 7.5s Map Hold Voice-Synced MP4 Build
+name: SHOT06 Director v5 Confirmed Map Hold 7.5s Audio-Synced MP4 Build
 on:
   push:
     branches: [main]
