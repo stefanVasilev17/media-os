@@ -1,4 +1,4 @@
-name: SHOT06 Director v4 Extra 1.5s Opening MP4 Build
+name: SHOT06 Director v5 Confirmed Map Hold 7.5s Audio-Synced MP4 Build
 on:
   push:
     branches: [main]
@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 90
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: shot06-director-v4-extended-intro-2026-10-21
+      TAG: shot06-director-v5-map-hold-2026-10-21
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -94,7 +94,7 @@ jobs:
           assert anchors["THREE_COPIES"]<anchors["FIRST_A"]<anchors["HASH_SAMPLES"]<anchors["PROBE_1"]<anchors["SELECT_B"]<anchors["ZONE_EXPLAIN"]<anchors["GREEN_MOVES"]
           assert frame==5137,(frame,sec)
           props={"audioUrl":"","audioClips":tracks,"durationInFrames":frame,"anchors":anchors,"comprehensionHolds":holds}
-          open("shot06-director-v4-props.json","w").write(json.dumps(props))
+          open("shot06-director-v5-props.json","w").write(json.dumps(props))
           print("VOICE_PREPARED",json.dumps({"frames":frame,"seconds":frame/FPS,"sourceClips":len(tracks),"holds":len(holds)}),flush=True)
           PY
       - name: Install Remotion and browser
@@ -102,18 +102,19 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx remotion browser ensure
-      - name: Runtime frame smoke tests for 4s and 6s opening
+      - name: Runtime frame smoke tests for 7s map, 8.5s entry and 10s panel
         working-directory: remotion-engine
         run: |
           mkdir -p ../out
-          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-v4-opening-before-panel.png --props=../shot06-director-v4-props.json --frame=120 --scale=0.6666666666666666
-          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-v4-opening-after-panel.png --props=../shot06-director-v4-props.json --frame=180 --scale=0.6666666666666666
-      - name: Render full Director v4 video with 45 extra frames of unobstructed map intro
+          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-v5-map-at-7s.png --props=../shot06-director-v5-props.json --frame=210 --scale=0.6666666666666666
+          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-v5-transition-at-8p5s.png --props=../shot06-director-v5-props.json --frame=255 --scale=0.6666666666666666
+          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-v5-panel-at-10s.png --props=../shot06-director-v5-props.json --frame=300 --scale=0.6666666666666666
+      - name: Render full Director v5 with visible living map to 7.5 seconds and two-second entry
         working-directory: remotion-engine
         timeout-minutes: 65
         run: |
-          npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v4_IntroPlus1p5s.mp4 \
-            --props=../shot06-director-v4-props.json --codec=h264 --audio-codec=aac \
+          npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4 \
+            --props=../shot06-director-v5-props.json --codec=h264 --audio-codec=aac \
             --scale=0.6666666666666666 --concurrency=2 --overwrite
       - name: Enforce reviewed non-overlap geometry and protected labels
         shell: bash
@@ -131,14 +132,20 @@ jobs:
           assert 540+53<614
           assert "INSTANCE {name}" in src
           opening=Path("remotion-engine/src/episodes/ep001/live-diagram/LoadBalancerYoutubePreview.tsx").read_text()
-          assert "const INTRO_EXTRA_FRAMES=45;" in opening
-          assert "66+INTRO_EXTRA_FRAMES,122+INTRO_EXTRA_FRAMES" in opening
-          assert "Math.min(90,firstInside-70)+INTRO_EXTRA_FRAMES" in opening
-          assert "balancerIntroFlow={ease(frame,24,76+INTRO_EXTRA_FRAMES)}" in opening
-          props=json.loads(Path("shot06-director-v4-props.json").read_text())
+          assert "const PANEL_REVEAL_START=225;" in opening
+          assert "const PANEL_REVEAL_END=285;" in opening
+          assert "const panelIn=ease(frame,PANEL_REVEAL_START,PANEL_REVEAL_END);" in opening
+          assert "balancerIntroFlow={ease(frame,24,210)}" in opening
+          assert "const openingCamera=ease(frame,7,118)*" in opening
+          assert "const showNav=clamp(ease(frame,PANEL_REVEAL_START+10,PANEL_REVEAL_END)*(1-exit));" in opening
+          props=json.loads(Path("shot06-director-v5-props.json").read_text())
           assert len(props["audioClips"])==7 and len(props["comprehensionHolds"])==6
           assert props["durationInFrames"]==5137
-          print("DIRECTOR_V4_LAYOUT_COLLISION_CHECK_PASS",flush=True)
+          assert 7.0 < props["anchors"]["THREE_COPIES"] < 7.4
+          assert 9.7 < props["anchors"]["SERVER_A"] < 10.2
+          assert 225/30 > props["anchors"]["THREE_COPIES"]
+          assert 285/30 < props["anchors"]["SERVER_A"]
+          print("DIRECTOR_V5_LAYOUT_COLLISION_CHECK_PASS",flush=True)
           PY
       - name: Provide ffprobe and ffmpeg for final independent QA
         shell: bash
@@ -150,7 +157,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import json,subprocess,os
-          path="out/SHOT06_LoadBalancer_Director_v4_IntroPlus1p5s.mp4"
+          path="out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4"
           d=json.loads(subprocess.check_output(["ffprobe","-v","error","-show_format","-show_streams","-of","json",path]))
           video=next(x for x in d["streams"] if x["codec_type"]=="video")
           audio=next(x for x in d["streams"] if x["codec_type"]=="audio")
@@ -163,7 +170,7 @@ jobs:
           for t in [8,38,61,90,110,127,143,159,170]:
               data=subprocess.check_output(["ffmpeg","-v","error","-ss",str(t),"-i",path,"-frames:v","1","-vf","scale=640:360","-f","image2pipe","-vcodec","mjpeg","pipe:1"])
               assert data[:2]==bytes((255,216))
-          print("DIRECTOR_V4_VERIFIED",json.dumps({"seconds":seconds,"width":video["width"],"height":video["height"],
+          print("DIRECTOR_V5_VERIFIED",json.dumps({"seconds":seconds,"width":video["width"],"height":video["height"],
             "videoCodec":video["codec_name"],"audioCodec":audio["codec_name"],
             "bytes":os.path.getsize(path),"reviewStatus":"NOT_LOCKED"}),flush=True)
           PY
@@ -171,22 +178,23 @@ jobs:
         shell: bash
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/SHOT06_LoadBalancer_Director_v4_IntroPlus1p5s.mp4 --clobber
+            gh release upload "$TAG" out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4 --clobber
           else
-            gh release create "$TAG" out/SHOT06_LoadBalancer_Director_v4_IntroPlus1p5s.mp4 \
-              --title "EP001 SHOT06 Load Balancer — Director Review v4 +1.5s Intro" \
-              --notes "Video review v4. Exactly 45 extra visual frames (1.5 seconds) before entering the internal Load Balancer screen; camera and route-motion slowed smoothly. No voice changes, no audio offsets, same 5137 frame duration. All v3 clean-layout corrections preserved. Source video v3 remains Director VIDEO LOCKED; v4 opening adjustment awaits Director review. SHOT01-05 unchanged." \
+            gh release create "$TAG" out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4 \
+              --title "EP001 SHOT06 Load Balancer — Director Review v5 Map Hold 7.5s" \
+              --notes "Video review v5: keep the living architecture map unobscured until 7.5 seconds (frame 225), with an explicit 2-second easing into the detailed Load Balancer panel ending at 9.5 seconds (frame 285). The THREE_COPIES narration anchor is at ~7.1s and the server reveals start at ~9.9s. Seven original C01-C07 approved voice tracks and audio timeline completely unchanged; 5137 frames. v3 remains the previously Director-locked source; v5 awaits review. SHOT01-05 untouched." \
               --prerelease
           fi
           gh release view "$TAG" --json url,assets --jq '{url:.url,assets:[.assets[]|{name:.name,url:.url,size:.size}]}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: SHOT06-Director-v4-IntroPlus1p5s-MP4-and-QA
+          name: SHOT06-Director-v5-MapHold-MP4-and-QA
           path: |
-            out/SHOT06_LoadBalancer_Director_v4_IntroPlus1p5s.mp4
-            out/shot06-v4-opening-before-panel.png
-            out/shot06-v4-opening-after-panel.png
-            shot06-director-v4-props.json
+            out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4
+            out/shot06-v5-map-at-7s.png
+            out/shot06-v5-transition-at-8p5s.png
+            out/shot06-v5-panel-at-10s.png
+            shot06-director-v5-props.json
           if-no-files-found: warn
           retention-days: 30
