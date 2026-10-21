@@ -1,5 +1,6 @@
 import type { ScriptArtifact, ScriptTimelineItem } from '../api/creativeApi';
 import type { ProductionContractPayload } from '../api/productionContractApi';
+import type { DirectorVoicePackPayload } from '../api/directorVoicePackApi';
 
 export type EpisodeShotDefinition = {
   key: string;
@@ -102,4 +103,33 @@ export function buildVoiceShotBundlesFromContract(contract: ProductionContractPa
       };
     })
     .filter(shot => shot.clips.length > 0);
+}
+
+export function mergeDirectorVoiceShotBundles(
+  existing: VoiceShotBundle[],
+  pack?: DirectorVoicePackPayload
+): VoiceShotBundle[] {
+  if (!pack || pack.schemaVersion !== 'mediaos.director-voice-pack.v1') return existing;
+  const byShot = new Map(existing.map(shot => [shot.key, shot]));
+  for (const shot of pack.shots) {
+    byShot.set(shot.shotKey, {
+      key: shot.shotKey,
+      title: shot.title,
+      startSecond: shot.startSecond,
+      endSecond: shot.endSecond,
+      narration: shot.clips.map(clip => clip.narration.trim()).join('\n\n'),
+      voiceDirection: Array.from(new Set(shot.clips.map(clip => clip.voiceDirection.trim()))).join(' '),
+      clips: shot.clips.map(clip => ({
+        clipKey: clip.clipKey,
+        sequence: clip.sequence,
+        startSecond: clip.startSecond,
+        endSecond: clip.endSecond,
+        narration: clip.narration.trim(),
+        voiceDirection: clip.voiceDirection.trim()
+      }))
+    });
+  }
+  return [...byShot.values()].sort((a, b) =>
+    Number(a.key.replace(/\D/g, '')) - Number(b.key.replace(/\D/g, ''))
+  );
 }
