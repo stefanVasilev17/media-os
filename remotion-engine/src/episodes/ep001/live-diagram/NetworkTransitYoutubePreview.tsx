@@ -19,6 +19,10 @@ export const networkTransitYoutubePreviewSchema=z.object({
   balancerHandoff:z.number().optional(),
   balancerIntroArrival:z.number().optional(),
   balancerIntroSelected:z.number().optional(),
+  balancerIntroFlow:z.number().optional(),
+  balancerIntroFrame:z.number().optional(),
+  balancerIntroHandoff:z.number().optional(),
+  balancerIntroUnhealthy:z.number().optional(),
   authActive:z.number().optional(),
   gatewayIntroArrival:z.number().optional(),
   gatewayIntroInspection:z.number().optional(),
@@ -35,6 +39,7 @@ const cue=(anchors:Record<string,number>,key:string,fallback:number)=>Number.isF
 
 export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={},frameOverride,gatewayHandoff=0,gatewayActive=0,balancerActive=0,networkActiveMultiplier=1,
   gatewayCinema=0,balancerCinema=0,balancerHandoff=0,balancerIntroArrival,balancerIntroSelected,
+  balancerIntroFlow,balancerIntroFrame,balancerIntroHandoff,balancerIntroUnhealthy,
   authActive=0,gatewayIntroArrival,gatewayIntroInspection,gatewayIntroFrame})=>{
   const currentFrame=useCurrentFrame();
   const frame=frameOverride??currentFrame;
@@ -102,6 +107,10 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
             balancerActive,
             balancerIntroArrival,
             balancerIntroSelected,
+            balancerIntroFlow,
+            balancerIntroFrame,
+            balancerIntroHandoff,
+            balancerIntroUnhealthy,
             authActive,
             packetOffsetY:packetWorldY-706,
             packetMorph,
@@ -116,11 +125,24 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           }}
         />
         {gatewayHandoff+balancerHandoff>0&&<svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
-          position:'absolute',inset:0,zIndex:7,pointerEvents:'none',overflow:'visible',opacity:.93,
+          position:'absolute',inset:0,zIndex:7,pointerEvents:'none',overflow:'visible',opacity:.97,
         }}>
-          <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1510+Math.max(0,gatewayHandoff)+Math.max(0,balancerHandoff))}`}
-            fill="none" stroke="rgba(57,228,176,.86)" strokeWidth={3}
-            strokeLinecap="round" style={{filter:'drop-shadow(0 0 5px rgba(44,229,169,.29))'}}/>
+          <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1825)}`}
+            fill="none" stroke="rgba(67,229,184,.9)" strokeWidth={3.2}
+            strokeLinecap="round" style={{filter:'drop-shadow(0 0 5px rgba(44,229,169,.32))'}}/>
+          {balancerHandoff>270&&<path
+            d={`M ${sceneX(2095)} ${sceneY(706)} H ${sceneX(Math.min(2125,1825+balancerHandoff))}`}
+            fill="none" stroke="#58EAC0" strokeWidth={3.8} strokeLinecap="round"
+            style={{filter:'drop-shadow(0 0 8px rgba(56,239,177,.45))'}}/>}
+          {(balancerIntroHandoff??0)>.03&&[0,1,2,3,4,5].map((k)=>{
+            const p=((balancerIntroFrame??currentFrame)*.014+k/6)%1;
+            const x=sceneX(2095+Math.min(1,balancerHandoff/300)*30*p);
+            const y=sceneY(706);
+            const color=k%3===0?'#58EAC0':k%3===1?'#58C8F4':'#A295FF';
+            return <rect key={k} x={x-4} y={y-2} width={9} height={4} rx={2}
+              fill={color} opacity={(balancerIntroHandoff??0)*(.35+.50*(1-Math.abs(2*p-1)))}
+              style={{filter:'drop-shadow(0 0 4px '+color+')'}}/>;
+          })}
         </svg>}
         <svg width={1920} height={1080} viewBox="0 0 1920 1080" style={{
           position:'absolute',inset:0,zIndex:8,pointerEvents:'none',overflow:'visible',
