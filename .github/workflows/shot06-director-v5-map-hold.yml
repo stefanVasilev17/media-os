@@ -141,6 +141,10 @@ jobs:
           props=json.loads(Path("shot06-director-v5-props.json").read_text())
           assert len(props["audioClips"])==7 and len(props["comprehensionHolds"])==6
           assert props["durationInFrames"]==5137
+          assert 7.0 < props["anchors"]["THREE_COPIES"] < 7.4
+          assert 9.7 < props["anchors"]["SERVER_A"] < 10.2
+          assert 225/30 > props["anchors"]["THREE_COPIES"]
+          assert 285/30 < props["anchors"]["SERVER_A"]
           print("DIRECTOR_V5_LAYOUT_COLLISION_CHECK_PASS",flush=True)
           PY
       - name: Provide ffprobe and ffmpeg for final independent QA
