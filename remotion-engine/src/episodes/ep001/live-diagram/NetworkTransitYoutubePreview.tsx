@@ -130,6 +130,16 @@ export const NetworkTransitYoutubePreview:React.FC<Props>=({showGuides,anchors={
           <path d={`M ${sceneX(1510)} ${sceneY(706)} H ${sceneX(1825)}`}
             fill="none" stroke="rgba(67,229,184,.9)" strokeWidth={3.2}
             strokeLinecap="round" style={{filter:'drop-shadow(0 0 5px rgba(44,229,169,.32))'}}/>
+          {(balancerIntroFlow??0)>.02&&Array.from({length:9},(_,k)=>{
+            const p=((((balancerIntroFrame??currentFrame)*.012+k/9)%1)+1)%1;
+            const x=sceneX(1510+315*p),y=sceneY(706);
+            const color=k%4===0?'#58EAC0':k%4===1?'#66D5F7':k%4===2?'#A8A0FF':'#7BEAD6';
+            const brightness=(.35+.52*Math.sin(Math.PI*p))*(balancerIntroFlow??0);
+            return <rect key={'incoming-flow-'+k} x={x-5} y={y-1.8}
+              width={k%3===0?12:8} height={3.6} rx={1.8}
+              fill={color} opacity={brightness}
+              style={{filter:'drop-shadow(0 0 4px '+color+'88)'}}/>;
+          })}
           {balancerHandoff>270&&<path
             d={`M ${sceneX(2095)} ${sceneY(706)} H ${sceneX(Math.min(2125,1825+balancerHandoff))}`}
             fill="none" stroke="#58EAC0" strokeWidth={3.8} strokeLinecap="round"
