@@ -249,10 +249,18 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
               fill={hue} opacity={(balancerIntro.flow??0)*(.35+.55*(1-Math.abs(2*p-1)))}
               style={{filter:'drop-shadow(0 0 3px '+hue+')'}}/>;
           })}
-          <circle cx={9+58*Math.min(1,balancerIntro.arrival)} cy={74} r={4.7}
-            fill="#58EAC0" opacity={balancerIntro.arrival}
-            stroke="#C2FFEB" strokeWidth={1.1}
-            style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.68))'}}/>
+          {(()=>{
+            const travel=Math.max(0,Math.min(1,balancerIntro.handoff??0));
+            const branch=Math.min(1,travel/.70);
+            const exit=Math.max(0,(travel-.70)/.30);
+            const x=travel===0?9+58*Math.min(1,balancerIntro.arrival):
+              exit>0?149+78*exit:67+82*branch;
+            const y=travel===0?74:exit>0?117-44*exit:74+43*branch;
+            return <circle cx={x} cy={y} r={4.7}
+              fill="#58EAC0" opacity={balancerIntro.arrival*(1-.85*Math.max(0,(travel-.91)/.09))}
+              stroke="#C2FFEB" strokeWidth={1.1}
+              style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.68))'}}/>;
+          })()}
         </svg>
       </div>:gatewayIntro?<div style={{height:157,position:'relative',display:'flex',
         flexDirection:'column',justifyContent:'center',gap:12,padding:'8px 8px 0'}}>
