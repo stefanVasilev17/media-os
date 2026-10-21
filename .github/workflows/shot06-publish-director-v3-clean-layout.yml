@@ -45,7 +45,7 @@ jobs:
           for t in (8,21,28,38,45,61,73,82,90,103,113,120,127,137,143,150,159,169):
               image=subprocess.check_output(["ffmpeg","-nostdin","-v","error","-ss",str(t),"-i",file,
               "-frames:v","1","-vf","scale=640:360","-f","image2pipe","-vcodec","mjpeg","pipe:1"])
-              assert image[:2]==b"\\xff\\xd8",t
+              assert image[:2]==bytes((255,216)),t
           print("SHOT06_V3_INDEPENDENT_QA_PASS",os.stat(file).st_size,flush=True)
           PY
       - name: Publish as a separate Director-only GitHub prerelease
