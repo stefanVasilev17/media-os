@@ -16,6 +16,7 @@ jobs:
       ASSET_NAME: SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4
       ASSET_SHA256: 834e984d6f42b12f89e305ae779b6fbb7fd6655f4bf25e843de5e1e451418ab9
     steps:
+      - uses: actions/checkout@v4
       - name: Check existing published release has the exact one combined MP4
         shell: bash
         run: |
