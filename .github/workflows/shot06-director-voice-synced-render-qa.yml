@@ -9,13 +9,35 @@ permissions:
 jobs:
   review-render:
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 90
     steps:
+      - name: Wait until MediaOS backend has the updated Director v2 source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request,urllib.error
+          base="https://media-os-backend-production.up.railway.app"
+          expected="AT_REMOTION_cd975995738a"
+          for attempt in range(90):
+              try:
+                  with urllib.request.urlopen(base+"/api/v1/remotion/renders/provider-status",timeout=18) as response:
+                      payload=json.load(response)
+                  version=str(payload.get("engineVersion",""))
+                  print("MEDIAOS_BACKEND_VERSION",version,"CHECK",attempt+1,flush=True)
+                  if version.startswith(expected):
+                      print("MEDIAOS_DIRECTOR_V2_BACKEND_DEPLOYED",flush=True)
+                      break
+              except Exception as exc:
+                  print("MediaOS backend is updating:",str(exc)[:220],flush=True)
+              time.sleep(15)
+          else:
+              raise RuntimeError("Railway backend did not deploy the current SHOT06 source; refusing to render an outdated visual.")
+          PY
       - name: Render revised SHOT06 after director screenshot cleanup from fully deployed worker
         shell: bash
         run: |
           python3 - <<'PY'
-          import json,math,re,time,urllib.request,urllib.error,uuid
+          import json,math,re,time,urllib.request,urllib.error,uuid,os
           from urllib.parse import quote
           BASE="https://media-os-backend-production.up.railway.app"
           FPS=30
@@ -170,4 +192,11 @@ jobs:
             "BYTES",result.get("sizeBytes"),flush=True)
           print("VIDEO_URL",BASE+"/api/v1/remotion/renders/"+rid+"/video",flush=True)
           print("SAFE: SHOT01-05 remain LOCKED. All seven approved voice recordings untouched. No SHOT06 Director LOCK.",flush=True)
+          assert current.get("renderId")==rid,("MediaOS did not register the new SHOT06 render",current.get("renderId"),rid)
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as summary:
+              summary.write("### EP001 SHOT06 Director v2 — MediaOS Preview READY\\n\\n")
+              summary.write("- **[Watch MediaOS-native SHOT06 MP4]("+BASE+"/api/v1/remotion/renders/"+rid+"/video)**\\n")
+              summary.write("- Render ID: "+rid+"\\n- 1280 × 720, 30 fps, 5137 frames, 7 approved voice clips\\n")
+              summary.write("- **Director review required — SHOT06 NOT LOCKED**\\n")
+              summary.write("- SHOT 01–05 original locks and audio preserved\\n")
           PY
