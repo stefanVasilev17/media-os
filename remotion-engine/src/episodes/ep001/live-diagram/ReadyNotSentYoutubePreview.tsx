@@ -35,6 +35,10 @@ export const readyNotSentYoutubePreviewSchema=z.object({
     balancerActive:z.number().optional(),
     balancerIntroArrival:z.number().optional(),
     balancerIntroSelected:z.number().optional(),
+    balancerIntroFlow:z.number().optional(),
+    balancerIntroFrame:z.number().optional(),
+    balancerIntroHandoff:z.number().optional(),
+    balancerIntroUnhealthy:z.number().optional(),
     authActive:z.number().optional(),
   }).optional(),
 });
@@ -209,6 +213,10 @@ export const ReadyNotSentYoutubePreview:React.FC<Props>=({showGuides,anchors={},
               balancerIntro={index===2&&worldMotion?.balancerIntroArrival!==undefined?{
                 arrival:worldMotion.balancerIntroArrival,
                 selected:worldMotion.balancerIntroSelected??0,
+                flow:worldMotion.balancerIntroFlow??0,
+                frame:worldMotion.balancerIntroFrame??0,
+                handoff:worldMotion.balancerIntroHandoff??0,
+                unhealthy:worldMotion.balancerIntroUnhealthy??0,
               }:undefined}
               gatewayIntro={index===1&&worldMotion?.gatewayIntroArrival!==undefined?{
                 arrival:worldMotion.gatewayIntroArrival,
