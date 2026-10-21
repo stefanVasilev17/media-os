@@ -62,6 +62,11 @@ export const LoadBalancerYoutubePreview:React.FC<Props>=({
         balancerActive={1-.68*authFocus}
         balancerIntroArrival={ease(frame,2,45)}
         balancerIntroSelected={selectedOnMap}
+        balancerIntroFlow={ease(frame,24,76)}
+        balancerIntroFrame={frame}
+        balancerIntroHandoff={phase===6?ease(frame,finalStart-4,finalStart+57):0}
+        balancerIntroUnhealthy={ease(frame,Math.round((anchors.MARK_UNHEALTHY??90)*FPS),
+          Math.round((anchors.ROUTE_REMOVED??93)*FPS)+15)}
         balancerHandoff={handoff}
         authActive={authFocus}
         networkActiveMultiplier={0}/>
