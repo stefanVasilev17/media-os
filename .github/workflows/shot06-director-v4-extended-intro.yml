@@ -1,8 +1,5 @@
 name: SHOT06 Director v5 Confirmed Map Hold 7.5s Audio-Synced MP4 Build
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/shot06-director-v4-extended-intro.yml']
   workflow_dispatch:
 permissions:
   contents: write
@@ -178,7 +175,7 @@ jobs:
         shell: bash
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4 --clobber
+            echo "::notice::SHOT 06 v5 has Director LOCK. The existing published release asset is immutable by production policy; no overwrite allowed."
           else
             gh release create "$TAG" out/SHOT06_LoadBalancer_Director_v5_MapHold_7p5sec.mp4 \
               --title "EP001 SHOT06 Load Balancer — Director Review v5 Map Hold 7.5s" \
