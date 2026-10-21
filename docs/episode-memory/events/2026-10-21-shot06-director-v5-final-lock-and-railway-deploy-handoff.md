@@ -33,7 +33,7 @@ Director's exact decision, after reviewing the **one full video with all seven o
 **State on 2026-10-21:** Railway `production` keeps SKIPPING new builds for both `media-os-backend` and `media-os-render-worker`. Their last live successful deployments are from 2026-10-20. Railway reports `Deploys have been paused temporarily`. **GitHub changes are ALREADY PUSHED to `main`.** The pending task is a **fresh deployment of latest main** to both production services, not a git push and not a Redeploy that reuses the old image.
 
 Railway project: `a2b47ba1-385e-4410-93ee-b2198492b724`. Production environment: `ffce6002-aa51-4a11-a23f-73c9a05d3cb1`.
-- Backend service: `d28a8117-8fe2-4e9d-93ee-b2198492b724`? **NO:** exact backend service ID is `d28a8117-8fe2-4e9d-93ee-ebf936d053b9`.
+- Backend service ID: `d28a8117-8fe2-4e9d-93ee-ebf936d053b9`.
 - Remotion worker service ID: `e78e8e8d-9ad7-4307-aae0-e08037c30134`.
 - Postgres volume must be preserved; do not redeploy/recreate Postgres, wipe tables, or change locked SHOT 01–05 artifacts.
 
