@@ -75,7 +75,7 @@ export const ModeNavigation:React.FC<Phase>=({phase,previous,blend,zoneFocus=0})
 const ROUTES=[
   {id:'A',x:822,y:163},
   {id:'C',x:822,y:317},
-  {id:'B',x:822,y:501},
+  {id:'B',x:822,y:540},
 ];
 const origin={x:332,y:326};
 const curve=(index:number)=>'M '+origin.x+' '+origin.y+
@@ -144,11 +144,20 @@ const Group:React.FC<{
   const chosen=isB?choice:0;
   return <g opacity={reveal*dim}>
     <rect x="820" y={y-52} rx="18" width="306" height="105"
-      fill={chosen>.02?'rgba(13,54,51,.88)':'rgba(18,35,62,.93)'}
-      stroke={isC&&failed>.65?C.red:chosen>.05?C.green:'#516A97'}
-      strokeWidth={chosen>.05?3:2}/>
-    <rect x="837" y={y-31} rx="7" width="49" height="57"
-      fill="rgba(32,65,107,.85)" stroke={chosen>.05?C.green:C.blue} strokeWidth="2"/>
+      fill={chosen>.02?'rgba(13,54,51,.92)':'url(#lb-instance-surface)'}
+      stroke={isC&&failed>.65?C.red:chosen>.05?C.green:'#6384B6'}
+      strokeWidth={chosen>.05?2.8:1.8}/>
+    <rect x="825" y={y-47} rx="14" width="296" height="95"
+      fill="none" stroke="rgba(172,204,248,.16)" strokeWidth="1"/>
+    <path d={'M 842 '+(y-45)+' H 1046'} stroke={chosen>.05?C.green:C.blue}
+      strokeWidth="2" opacity={chosen>.05?.68:.27}/>
+    <path d={'M 827 '+(y-33)+' V '+(y+33)}
+      stroke={isC&&failed>.65?C.red:chosen>.05?C.green:C.blue}
+      strokeWidth="3" opacity=".75" strokeLinecap="round"/>
+    <rect x="837" y={y-31} rx="9" width="49" height="57"
+      fill="url(#lb-server-surface)" stroke={chosen>.05?C.green:C.blue} strokeWidth="2"/>
+    <rect x="841" y={y-27} width="41" height="49" rx="6"
+      fill="none" stroke="rgba(191,222,255,.17)" strokeWidth=".9"/>
     {[0,1,2].map(i=><g key={i}>
       <circle cx="848" cy={y-18+i*16} r="2.5" fill={chosen>.05?C.green:C.blue}/>
       <path d={'M 857 '+(y-18+i*16)+' H 877'} stroke="#799BC8" strokeWidth="2"/>
@@ -226,6 +235,15 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
           <stop offset="0" stopColor="#1B3861"/>
           <stop offset="1" stopColor="#0C1D3A"/>
         </linearGradient>
+        <linearGradient id="lb-instance-surface" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#142C4C"/>
+          <stop offset=".56" stopColor="#102441"/>
+          <stop offset="1" stopColor="#091A32"/>
+        </linearGradient>
+        <linearGradient id="lb-server-surface" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#254B7A"/>
+          <stop offset="1" stopColor="#0C213D"/>
+        </linearGradient>
       </defs>
       <rect x="756" y="42" width="390" height="356" rx="24"
         fill={'rgba(21,42,73,'+(.14+.13*(1-brightZone))+')'}
@@ -237,8 +255,12 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
         strokeWidth={brightZone>.4?3:2} opacity={showZone}/>
       <text x="775" y="77" fill={C.blue} fontSize="23" fontWeight="830"
         fontFamily={AT_FONT} opacity={showZone}>ZONE A</text>
-      <text x="775" y="451" fill={C.green} fontSize="23" fontWeight="830"
+      <path d="M 775 91 H 1117" stroke={C.blue} strokeWidth="1"
+        opacity={showZone*.18}/>
+      <text x="775" y="455" fill={C.green} fontSize="23" fontWeight="830"
         fontFamily={AT_FONT} opacity={showZone}>ZONE B</text>
+      <path d="M 775 469 H 1117" stroke={C.green} strokeWidth="1"
+        opacity={showZone*(.11+.19*brightZone)}/>
       {[0,1,2].map(index=>{
         const isC=index===1;
         const strong=index===2&&choice>.05;
@@ -321,14 +343,23 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
           style={{filter:'drop-shadow(0 0 4px '+hue+')'}}/>;
       })}
       <rect x="76" y="247" width="242" height="158" rx="25"
-        fill="url(#lb-gateway)" stroke={C.violet} strokeWidth="3"/>
-      <circle cx="197" cy="291" r="10" fill={C.violet}/>
-      <circle cx="159" cy="322" r="10" fill={C.blue}/>
-      <circle cx="231" cy="322" r="10" fill={C.blue}/>
-      <path d="M 197 291 L 159 322 M 197 291 L 231 322"
-        stroke={C.blue} strokeWidth="4" fill="none"/>
-      <text x="197" y="364" textAnchor="middle" fontSize="26" fontWeight="880"
-        fontFamily={AT_FONT} fill={C.white}>LOAD BALANCER</text>
+        fill="url(#lb-gateway)" stroke={C.violet} strokeWidth="2.7"/>
+      <rect x="83" y="254" width="228" height="144" rx="20"
+        fill="none" stroke="rgba(204,207,255,.19)" strokeWidth="1.3"/>
+      <path d="M 106 263 H 287" stroke={C.violet} strokeWidth="2"
+        opacity=".52" strokeLinecap="round"/>
+      <rect x="147" y="268" width="99" height="82" rx="14"
+        fill="rgba(27,49,84,.66)" stroke="rgba(124,167,244,.30)" strokeWidth="1.2"/>
+      <circle cx="197" cy="290" r="8" fill={C.violet}/>
+      <circle cx="164" cy="326" r="8" fill={C.blue}/>
+      <circle cx="230" cy="326" r="8" fill={C.blue}/>
+      <path d="M 197 290 L 164 326 M 197 290 L 230 326"
+        stroke={C.blue} strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+      <path d="M 110 353 H 285" stroke="rgba(164,175,245,.29)" strokeWidth="1"/>
+      <text x="197" y="379" textAnchor="middle" fontSize="23" fontWeight="860"
+        fontFamily={AT_FONT} fill={C.white} letterSpacing=".5">LOAD BALANCER</text>
+      <path d="M 156 390 H 238" stroke={C.violet} strokeWidth="2" opacity=".50"
+        strokeLinecap="round"/>
       <path d="M 21 326 H 75" stroke={C.green} strokeWidth="3"
         strokeDasharray="9 8" opacity=".83"/>
       {(!target||greenTravel<.99)&&<g
@@ -344,8 +375,13 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
             stroke="#D4FFEB" strokeWidth="2.5"/>;
         })()}
       </g>}
-      {!target&&<text x="20" y="296" fill={C.green} fontSize="23"
-        fontWeight="830" fontFamily={AT_FONT}>LOGIN REQUEST</text>}
+      {!target&&<g>
+        <rect x="19" y="184" width="226" height="48" rx="12"
+          fill="rgba(8,42,48,.94)" stroke="rgba(88,234,192,.64)" strokeWidth="1.4"/>
+        <circle cx="38" cy="208" r="5.5" fill={C.green}/>
+        <text x="53" y="215" fill={C.green} fontSize="19"
+          fontWeight="820" letterSpacing=".6" fontFamily={AT_FONT}>LOGIN REQUEST</text>
+      </g>}
       {distribute&&queue>.1&&
         [0,1,2,3].map((i)=><circle key={i} cx={345+i*27} cy={262}
           r="9" stroke="#CDEBFF" strokeWidth="1.5" fill={C.blue}
@@ -358,15 +394,14 @@ export const LoadBalancerCenter:React.FC<CenterProps>=({phase,frame,anchors,froz
         <Packet route={2} progress={sample2} color={C.blue} number="2"/>
         <Packet route={1} progress={sample3} color={C.blue} number="3"/>
         {[sample1,sample2,sample3].map((v,i)=>v>.95&&
-          <text key={i} x={780} y={ROUTES[[0,2,1][i]].y-63}
-            textAnchor="middle" fontSize="19" fontWeight="810"
-            fontFamily={AT_FONT} fill={C.blue}>{i+1}</text>)}
+          <circle key={i} cx={813} cy={ROUTES[[0,2,1][i]].y}
+            r="4" fill={C.blue} opacity=".7"/>)}
       </g>}
       {hash&&<g>
         <Packet route={2} progress={hash1} color={C.blue} number="1"/>
         <Packet route={2} progress={hash2} color={C.blue} number="2"/>
-        {hash1>.985&&<circle cx="783" cy="473" r="8.5" fill={C.blue}/>}
-        {hash2>.985&&<circle cx="808" cy="473" r="8.5" fill={C.blue}/>}
+        {hash1>.985&&<circle cx="787" cy="540" r="6.5" fill={C.blue}/>}
+        {hash2>.985&&<circle cx="805" cy="540" r="6.5" fill={C.blue}/>}
         <rect x="362" y="168" rx="12" width="232" height="58"
           fill="rgba(19,47,79,.95)" stroke={C.blue} strokeWidth="2"/>
         <text x="478" y="205" fontFamily={AT_FONT} fontSize="25"
