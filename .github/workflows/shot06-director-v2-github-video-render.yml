@@ -105,14 +105,14 @@ jobs:
         working-directory: remotion-engine
         run: |
           mkdir -p ../out
-          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-first-check.png --props=../shot06-director-v2-props.json --frame=2840 --scale=0.666666667
+          npx remotion still src/index.ts EP001-Shot06-VoiceSynced ../out/shot06-first-check.png --props=../shot06-director-v2-props.json --frame=2840 --scale=0.6666666666666666
       - name: Render full 171 second Director preview with exact original voice
         working-directory: remotion-engine
         timeout-minutes: 65
         run: |
           npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v2.mp4 \
             --props=../shot06-director-v2-props.json --codec=h264 --audio-codec=aac \
-            --scale=0.666666667 --concurrency=2 --overwrite
+            --scale=0.6666666666666666 --concurrency=2 --overwrite
       - name: Independently validate frame count, audio, duration and render samples
         shell: bash
         run: |
