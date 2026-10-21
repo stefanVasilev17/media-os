@@ -175,7 +175,7 @@ export type ATBackendNodeProps = {
   sectionReveals?:Record<string,number>;
   dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
   gatewayIntro?:{arrival:number;inspection:number;frame:number};
-  balancerIntro?:{arrival:number;selected:number};
+  balancerIntro?:{arrival:number;selected:number;flow?:number;frame?:number;handoff?:number;unhealthy?:number};
   zIndex?:number;
   width?:number;
   height?:number;
@@ -192,18 +192,67 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
       position:'relative',display:'flex',flexDirection:'column',gap:5,
     }}>
       {balancerIntro?<div style={{height:157,position:'relative',display:'flex',flexDirection:'column',justifyContent:'center'}}>
-        <svg width="100%" height={146} viewBox="0 0 232 146" style={{display:'block',overflow:'visible'}}>
-          <path d="M 11 73 H 77" stroke="rgba(88,234,192,.68)" strokeWidth={3} fill="none"/>
-          {[30,73,116].map((y,index)=>{
-            const selected=balancerIntro.selected>.5&&index===1;
-            return <g key={index}>
-              <path d={`M 77 73 C 100 73 95 ${y} 121 ${y} H 158`} stroke={selected?'#58EAC0':'rgba(118,153,216,.48)'} strokeWidth={selected?4:2.4} fill="none"/>
-              <rect x={159} y={y-15} width={59} height={30} rx={7} fill="rgba(16,35,62,.94)" stroke={selected?'#58EAC0':'rgba(123,153,212,.56)'} strokeWidth={selected?2.3:1.4}/>
-              <circle cx={187} cy={y} r={selected?5:3} fill={selected?'#58EAC0':'#8AA5D5'}/>
+        <svg width="100%" height={146} viewBox="0 0 232 146"
+          style={{display:'block',overflow:'visible'}}>
+          <defs>
+            <linearGradient id="lb-native-spine" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stopColor="#58EAC0"/><stop offset=".48" stopColor="#4AE4E5"/>
+              <stop offset="1" stopColor="#AC9DFF"/>
+            </linearGradient>
+          </defs>
+          <path d="M 7 74 H 67" fill="none" stroke="rgba(83,239,198,.25)"
+            strokeWidth={7} strokeLinecap="round"/>
+          <path d="M 7 74 H 67" stroke="url(#lb-native-spine)"
+            strokeWidth={2.6} fill="none" strokeLinecap="round"
+            opacity={.4+.55*balancerIntro.arrival}/>
+          <circle cx={67} cy={74} r={12} fill="rgba(167,148,255,.13)"/>
+          <circle cx={67} cy={74} r={5} fill="#AFA3FF" stroke="#E2D9FF" strokeWidth={1.4}/>
+          {[29,73,117].map((y,index)=>{
+            const eligible=index!==1||(balancerIntro.unhealthy??0)<.65;
+            const selected=index===2&&(balancerIntro.selected??0)>.1;
+            const d='M 67 74 C 97 74 102 '+y+' 149 '+y;
+            const strength=(balancerIntro.flow??0);
+            const out=(balancerIntro.handoff??0);
+            const useRoute=selected||index===0&&out>.01;
+            return <g key={index} opacity={index===1?1-.65*(balancerIntro.unhealthy??0):1}>
+              <path d={d} fill="none" stroke="rgba(87,146,216,.36)" strokeWidth={5}/>
+              <path d={d} fill="none" stroke={selected?'#58EAC0':'rgba(94,191,247,.75)'}
+                strokeWidth={selected?2.8:1.7} opacity={index===1&&!eligible?.17:.47+.5*strength}/>
+              {Array.from({length:5},(_,k)=>{
+                const cycle=(((balancerIntro.frame??0)*(.009+.001*index)+k/5+index*.21)%1+1)%1;
+                const p=cycle,q=1-p;
+                const px=q*q*q*67+3*q*q*p*97+3*q*p*p*102+p*p*p*149;
+                const py=q*q*q*74+3*q*q*p*74+3*q*p*p*y+p*p*p*y;
+                const visible=eligible&&(strength>.05||out>.05);
+                const hue=selected&&k===0?'#58EAC0':k%3===0?'#8BAAFF':k%3===1?'#55D5F9':'#7BE7D9';
+                return <rect key={k} x={px-4} y={py-1.7} width={8} height={3.4} rx={1.7}
+                  fill={hue} opacity={visible?(.3+.65*Math.min(1,strength+out))*(1-Math.pow(Math.abs(2*p-1),5)):0}
+                  style={{filter:'drop-shadow(0 0 3px '+hue+')'}}/>;
+              })}
+              <rect x={153} y={y-13} width={59} height={26} rx={7}
+                fill={selected?'rgba(14,73,62,.93)':'rgba(14,33,62,.96)'}
+                stroke={selected?'#58EAC0':eligible?'rgba(120,173,240,.72)':'rgba(228,133,137,.37)'}
+                strokeWidth={selected?2.2:1.3}/>
+              <circle cx={167} cy={y} r={4} fill={selected?'#58EAC0':eligible?'#78BDEA':'#F1A6AB'}/>
+              <path d={'M 178 '+(y-5)+' H 201 M 178 '+(y+4)+' H 196'}
+                stroke={selected?'#58EAC0':'#6A99CA'} strokeWidth={2.3}
+                strokeLinecap="round" opacity={eligible?.9:.3}/>
+              {useRoute&&out>.05&&<path d={'M 212 '+y+' C 219 '+y+' 216 73 227 73'}
+                stroke={selected?'#58EAC0':'#79BEEA'} strokeWidth={selected?2.3:1.5}
+                opacity={out} fill="none"/>}
             </g>;
           })}
-          <circle cx={77} cy={73} r={8} fill="#B7A2FF" stroke="rgba(179,157,255,.8)" strokeWidth={2}/>
-          <circle cx={53+24*balancerIntro.arrival} cy={73} r={5} fill="#58EAC0" opacity={balancerIntro.arrival}/>
+          {Array.from({length:5},(_,k)=>{
+            const p=(((balancerIntro.frame??0)*.022+k/5)%1+1)%1;
+            const hue=k%3===0?'#5EEFC2':k%3===1?'#62DBF5':'#A695FF';
+            return <rect key={'in'+k} x={8+54*p} y={72.5} width={k%2===0?8:5} height={3} rx={1.5}
+              fill={hue} opacity={(balancerIntro.flow??0)*(.35+.55*(1-Math.abs(2*p-1)))}
+              style={{filter:'drop-shadow(0 0 3px '+hue+')'}}/>;
+          })}
+          <circle cx={9+58*Math.min(1,balancerIntro.arrival)} cy={74} r={4.7}
+            fill="#58EAC0" opacity={balancerIntro.arrival}
+            stroke="#C2FFEB" strokeWidth={1.1}
+            style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.68))'}}/>
         </svg>
       </div>:gatewayIntro?<div style={{height:157,position:'relative',display:'flex',
         flexDirection:'column',justifyContent:'center',gap:12,padding:'8px 8px 0'}}>
