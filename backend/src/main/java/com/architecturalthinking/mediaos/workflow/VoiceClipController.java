@@ -303,6 +303,57 @@ public class VoiceClipController {
                 "message", "SHOT 05 semantic anchors were updated using existing approved TTS timestamps; audio unchanged.");
     }
 
+    private boolean hasDirectorFutureVoicePack(int revision) {
+        if (revision!=3) return false;
+        return jdbc.sql("""
+                select exists(select 1 from episode_director_voice_pack
+                              where episode_id=:episode and script_revision=3)
+                """).param("episode",ProductionOverviewService.EPISODE_ID)
+                .query(Boolean.class).single();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void verifyDirectorFutureShotSync(int revision, String shotKey, ShotBundle incoming) {
+        if (revision!=3 || !shotKey.matches("SHOT 0[789]")) return;
+        String payload=jdbc.sql("""
+                select payload::text from episode_director_voice_pack
+                where episode_id=:episode and script_revision=3
+                """).param("episode",ProductionOverviewService.EPISODE_ID)
+                .query(String.class).optional().orElse(null);
+        if(payload==null) return;
+        try {
+            Map<String,Object> doc=objectMapper.readValue(payload,Map.class);
+            List<Map<String,Object>> shots=(List<Map<String,Object>>)doc.get("shots");
+            Map<String,Object> approved=shots.stream()
+                    .filter(x->shotKey.equals(x.get("shotKey"))).findFirst()
+                    .orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Director voice pack is missing "+shotKey));
+            List<Map<String,Object>> clips=(List<Map<String,Object>>)approved.get("clips");
+            if (!incoming.title().equals(approved.get("title")) ||
+                    incoming.startSecond()!=((Number)approved.get("startSecond")).intValue() ||
+                    incoming.endSecond()!=((Number)approved.get("endSecond")).intValue() ||
+                    clips.size()!=incoming.clips().size()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        shotKey+" differs from the immutable Director voice pack.");
+            }
+            for(int i=0;i<clips.size();i++) {
+                Map<String,Object> exact=clips.get(i);
+                ClipDefinition candidate=incoming.clips().get(i);
+                if(!candidate.clipKey().equals(exact.get("clipKey")) ||
+                   candidate.sequence()!=((Number)exact.get("sequence")).intValue() ||
+                   candidate.startSecond()!=((Number)exact.get("startSecond")).intValue() ||
+                   candidate.endSecond()!=((Number)exact.get("endSecond")).intValue() ||
+                   !candidate.narration().equals(exact.get("narration")) ||
+                   !java.util.Objects.equals(candidate.voiceDirection(),exact.get("voiceDirection"))) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            candidate.clipKey()+" differs from the Director-LOCKED narration.");
+                }
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new IllegalStateException("Cannot read Director voice pack.",ex);
+        }
+    }
+
     @PostMapping("/sync")
     public List<Map<String, Object>> sync(@Valid @RequestBody SyncRequest request) {
         assertLockedScriptRevision(request.scriptRevision());
@@ -310,6 +361,7 @@ public class VoiceClipController {
 
         for (ShotBundle shot : request.shots()) {
             String shotKey = normalizeShotKey(shot.shotKey());
+            verifyDirectorFutureShotSync(request.scriptRevision(), shotKey, shot);
             if (shot.endSecond() <= shot.startSecond()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, shotKey + " has an invalid time range.");
             }
@@ -501,6 +553,10 @@ public class VoiceClipController {
     public Map<String, Object> updateNarration(@PathVariable String clipKey, @Valid @RequestBody UpdateNarrationRequest request) {
         assertLockedScriptRevision(request.scriptRevision());
         String key = normalizeClipKey(clipKey);
+        if (key.matches("SHOT 0[789]-C\\d{2}") && hasDirectorFutureVoicePack(request.scriptRevision())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT 07–09 narration is Director LOCKED. Generate and approve without editing text.");
+        }
         if (key.startsWith("SHOT 06-C")) {
             boolean locked=jdbc.sql("""
                 select exists(select 1 from shot06_director_voice_lock
