@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, Play, RotateCcw, SlidersHorizontal, Square } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
+import { loadDirectorVoicePack, type DirectorVoicePackState } from '../api/directorVoicePackApi';
 import { loadTtsProvider, loadVoiceShots, type TtsProviderStatus, type VoiceShotState } from '../api/voiceApi';
 import {
   approveVoiceClip,
@@ -13,7 +14,7 @@ import {
   type VoiceClipState,
   type VoiceSettings
 } from '../api/voiceClipApi';
-import { EP001_SHOTS, buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
+import { EP001_SHOTS, buildVoiceShotBundles, buildVoiceShotBundlesFromContract, mergeDirectorVoiceShotBundles, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
 function defaultSettings(provider: TtsProviderStatus | null): VoiceSettings {
@@ -74,6 +75,7 @@ export function VoiceAgentPage() {
   const [shotState, setShotState] = useState<Record<string, VoiceShotState>>({});
   const [provider, setProvider] = useState<TtsProviderStatus | null>(null);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
+  const [directorVoicePack, setDirectorVoicePack] = useState<DirectorVoicePackState | null>(null);
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
   const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
@@ -89,9 +91,11 @@ export function VoiceAgentPage() {
   const routeTargetRef = useRef(voiceRouteTarget());
 
   const bundles = useMemo(() => {
-    if (contract?.ready && contract.payload) return buildVoiceShotBundlesFromContract(contract.payload);
-    return script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
-  }, [script, contract]);
+    const base = contract?.ready && contract.payload
+      ? buildVoiceShotBundlesFromContract(contract.payload)
+      : script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
+    return mergeDirectorVoiceShotBundles(base, directorVoicePack?.ready ? directorVoicePack.payload : undefined);
+  }, [script, contract, directorVoicePack]);
   const pendingContractShots = useMemo(
     () => EP001_SHOTS.filter(shot => !bundles.some(bundle => bundle.key === shot.key)),
     [bundles]
@@ -167,19 +171,24 @@ export function VoiceAgentPage() {
     let active = true;
     (async () => {
       try {
-        const [scriptState, tts, productionContract] = await Promise.all([
+        const [scriptState, tts, productionContract, importedDirectorVoicePack] = await Promise.all([
           loadCreativeStage<ScriptArtifact>('SCRIPT'),
           loadTtsProvider(),
-          loadProductionContract()
+          loadProductionContract(),
+          loadDirectorVoicePack()
         ]);
         if (!active) return;
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Voice Agent.');
         setScript(scriptState);
         setProvider(tts);
         setContract(productionContract);
-        const bundles = productionContract.ready && productionContract.payload
+        setDirectorVoicePack(importedDirectorVoicePack);
+        const baseBundles = productionContract.ready && productionContract.payload
           ? buildVoiceShotBundlesFromContract(productionContract.payload)
           : buildVoiceShotBundles(scriptState.artifact);
+        const bundles = mergeDirectorVoiceShotBundles(
+          baseBundles, importedDirectorVoicePack.ready ? importedDirectorVoicePack.payload : undefined
+        );
         const synced = await syncVoiceClips(scriptState.revision, bundles);
         if (!active) return;
         setClips(synced);
