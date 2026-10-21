@@ -112,7 +112,7 @@ jobs:
         run: |
           npx remotion render src/index.ts EP001-Shot06-VoiceSynced ../out/SHOT06_LoadBalancer_Director_v2.mp4 \
             --props=../shot06-director-v2-props.json --codec=h264 --audio-codec=aac \
-            --scale=0.666666667 --concurrency=3 --overwrite
+            --scale=0.666666667 --concurrency=2 --overwrite
       - name: Independently validate frame count, audio, duration and render samples
         shell: bash
         run: |
