@@ -11,3 +11,8 @@ MediaOS Shot Studio 2026-10-16: activate reuse-existing-voices endpoint from PR 
 2026-10-16: SAFE SHOT STUDIO REBUILD. Activate PR #83 reuse-existing-voices API. Do not invoke old C01 Director amendment automatically; do not rerender original SHOT01-SHOT16 footage. Previous production workflows set manual-only; CI runs before Railway deploy. Source contents unchanged apart from deployment gates.
 
 2026-10-17 Legacy Visual SHOT05 integration release, PR86. Build backend and frontend from main at this commit.
+2026-10-22: SAFE MEDIAOS BACKEND REBUILD FOR LOCKED AUTH SERVICE VOICE IMPORT.
+Trigger fresh Railway backend Dockerfile image from latest approved GitHub main, following the end of Railway builds-paused incident.
+Required source head before trigger: 3e2169529401ba793f6bf78beda6bb8affd30005.
+Purpose: include /api/v1/director-voice-pack (GET and POST /import), Flyway V71, Script Agent JSON import, and Voice Agent 13 clips across SHOT 07-09.
+Director-approved narration and existing SHOT01-06 masters must not change. Do not restart or recreate PostgreSQL. No automatic voice generation. Distinguish successful BUILDING/DEPLOY from Voice Pack actual import.
