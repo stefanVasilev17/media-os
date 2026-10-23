@@ -36,7 +36,8 @@ import {
   type VisualState
 } from '../api/visualApi';
 import { loadProductionMemory, rememberProductionCorrection, type ProductionMemoryRule } from '../api/productionMemoryApi';
-import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
+import { loadDirectorVoicePack, type DirectorVoicePackState } from '../api/directorVoicePackApi';
+import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, mergeDirectorVoiceShotBundles, clock } from '../lib/ep001Production';
 import '../styles/productionFlow.css';
 
 const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
@@ -296,6 +297,7 @@ export function VisualAgentPage() {
   const [clips, setClips] = useState<VoiceClipState[]>([]);
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
+  const [directorVoicePack, setDirectorVoicePack] = useState<DirectorVoicePackState | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
   const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
@@ -312,7 +314,14 @@ export function VisualAgentPage() {
   const [shot06DirectorPreviewError, setShot06DirectorPreviewError] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const bundles = useMemo(() => script?.artifact ? buildVoiceShotBundles(script.artifact) : [], [script]);
+  const bundles = useMemo(() => {
+    const base = contract?.ready && contract.payload
+      ? buildVoiceShotBundlesFromContract(contract.payload)
+      : script?.artifact ? buildVoiceShotBundles(script.artifact) : [];
+    return mergeDirectorVoiceShotBundles(
+      base, directorVoicePack?.ready ? directorVoicePack.payload : undefined
+    );
+  }, [script, contract, directorVoicePack]);
   const currentShot = bundles[selectedIndex];
   const currentVisual = visual?.shots.find(shot => shot.shotKey === currentShot?.key);
   const contractSegments = useMemo(
@@ -358,23 +367,34 @@ export function VisualAgentPage() {
     let active = true;
     (async () => {
       try {
-        const [scriptState, rules, productionContract] = await Promise.all([
+        const [scriptState, rules, productionContract, importedDirectorVoicePack] = await Promise.all([
           loadCreativeStage<ScriptArtifact>('SCRIPT'),
           loadProductionMemory('VISUAL'),
-          loadProductionContract()
+          loadProductionContract(),
+          loadDirectorVoicePack()
         ]);
         if (!active) return;
         if (!scriptState.locked || !scriptState.artifact) throw new Error('Script must be LOCKED before Visual Agent.');
         setScript(scriptState);
         setMemory(rules);
         setContract(productionContract);
+        setDirectorVoicePack(importedDirectorVoicePack);
         const voiceBundles = productionContract.ready && productionContract.payload
           ? buildVoiceShotBundlesFromContract(productionContract.payload)
           : buildVoiceShotBundles(scriptState.artifact);
-        await syncVoiceClips(scriptState.revision, voiceBundles);
+        const directorBundles = mergeDirectorVoiceShotBundles(
+          voiceBundles,
+          importedDirectorVoicePack.ready ? importedDirectorVoicePack.payload : undefined
+        );
+        if (!importedDirectorVoicePack.ready) {
+          await syncVoiceClips(scriptState.revision, voiceBundles);
+        }
         const nextVisual = await refresh(scriptState.revision);
         if (!active) return;
-        const firstPending = nextVisual.shots.findIndex(shot => shot.qaStatus !== 'PASS');
+        const firstPending = directorBundles.findIndex(bundle => {
+          const state = nextVisual.shots.find(shot => shot.shotKey === bundle.key);
+          return !state || state.qaStatus !== 'PASS';
+        });
         setSelectedIndex(firstPending === -1 ? 0 : firstPending);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Visual Agent.');
@@ -801,6 +821,15 @@ export function VisualAgentPage() {
             The cumulative episode preview above continues to show native QA-approved SHOT 01–05 only. SHOT 06 is Director VIDEO LOCKED, but its MediaOS-native render and final voice sign-off have not yet been completed. Do not substitute the old render.
           </p>
         </section>
+      )}
+
+      {directorVoicePack?.ready && (
+        <div className="production-success">
+          Director-LOCKED SHOT 07–09 voice pack loaded for visual planning. Existing ElevenLabs
+          approvals and SHOT 01–06 are read-only; no voice re-sync is performed here.
+          The SHOT 07 Remotion composition and validated HEAR / SEE visual contract must be
+          implemented before visual QA can authorize a render.
+        </div>
       )}
 
       <nav className="production-shot-rail" aria-label="Visual shots">
