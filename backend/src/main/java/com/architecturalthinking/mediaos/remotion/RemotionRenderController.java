@@ -51,6 +51,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP001_LOAD_BALANCER_YOUTUBE", EP001_ID, 1920, 1080, 30, 5220, true)),
             Map.entry("EP001-Shot06-VoiceSynced",
                 new CompositionProfile("EP001_SHOT06_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 5220, true)),
+            Map.entry("EP001-Shot07-VoiceSynced",
+                new CompositionProfile("EP001_SHOT07_VOICE_SYNCED", EP001_ID, 1920, 1080, 30, 6000, true)),
             Map.entry("EP001-Studio-DirectorPlan",
                 new CompositionProfile("EP001_STUDIO_DIRECTOR_PLAN", EP001_ID, 1920, 1080, 30, 3900, true)),
             Map.entry("EP001-Studio-LivingMapDraft",
