@@ -13,6 +13,8 @@ from urllib.request import Request, urlopen
 BASE = os.environ.get("MEDIAOS_BASE", "https://media-os-backend-production.up.railway.app").rstrip("/")
 FPS = 30
 GAPS = (36, 30, 45, 36)
+LEGACY_REVIEW_ID = "37a47af3-a8fe-4fc5-b421-398f10380f7b"
+REVISION = "TIER2_MINIPHONE_AUTH_LOOKUP_V1"
 PHRASES = (
     (
         ("AUTH_ARRIVAL", "Our Login Request has finally reached the Auth Service"),
@@ -118,6 +120,8 @@ def main():
     contract = api("/api/v1/director-visual-contract/shot-07")
     if not voice.get("ready") or not contract.get("ready"):
         raise ValueError("The immutable voice pack or auto-imported SHOT07 draft is not ready.")
+    if contract["payload"].get("source") != "DIRECTOR_TIER2_VISUAL_PASS_V3_2026_10_24":
+        raise ValueError("Tier++ visual contract migration V75 is not live: will not render legacy design.")
     draft = contract["payload"]
     if (draft.get("shotKey") != "SHOT 07" or draft.get("status") != "VISUAL_DRAFT"
             or draft.get("scriptRevision") != 3 or len(draft.get("timeline", [])) != 5
@@ -136,8 +140,8 @@ def main():
     if storage.get("status") != "ESTIMATED_OK":
         raise ValueError(f"Storage guard blocks new render: {storage.get('status')}")
     latest = api("/api/v1/remotion/renders/compositions/EP001-Shot07-VoiceSynced/latest?profile=REVIEW")
-    if latest.get("status") in ("QUEUED", "RENDERING", "READY"):
-        print("SAFE SKIP: an existing SHOT07 REVIEW render exists; ID=" +
+    if latest.get("status") in ("QUEUED", "RENDERING", "READY") and latest.get("renderId") != LEGACY_REVIEW_ID:
+        print("SAFE SKIP: a newer SHOT07 REVIEW render is already present; ID=" +
               str(latest.get("renderId", "")) + " status=" + str(latest.get("status")))
         return
 
@@ -179,6 +183,7 @@ def main():
     cursor += 54
     input_props = {
         "shotKey": "SHOT 07", "scriptRevision": 3,
+        "visualRevision": REVISION,
         "draftVisualContractSha256": contract["sha256"],
         "voicePackSha256": contract["voicePackSha256"],
         "audioUrl": "", "audioClips": audio_clips,
