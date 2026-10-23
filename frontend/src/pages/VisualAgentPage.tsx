@@ -43,6 +43,10 @@ import {
   loadDirectorVisualContract, importDirectorVisualDraft,
   type DirectorVisualContractState, type DirectorVisualContractPayload
 } from '../api/directorVisualContractApi';
+import {
+  loadShot06DirectorReference, uploadShot06DirectorReference,
+  type Shot06DirectorReferenceState
+} from '../api/shot06DirectorReferenceApi';
 import '../styles/productionFlow.css';
 
 const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
@@ -136,8 +140,6 @@ function anchorsOf(row?: VoiceShotState) {
   return anchors;
 }
 
-
-const SHOT06_DIRECTOR_V3_VIDEO = '/director-review/SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4';
 
 const VISUAL_FPS = 30;
 
@@ -319,6 +321,7 @@ export function VisualAgentPage() {
   const [previewCurrentTime, setPreviewCurrentTime] = useState(0);
   const [previewDuration, setPreviewDuration] = useState(0);
   const [shot06DirectorPreviewError, setShot06DirectorPreviewError] = useState(false);
+  const [shot06DirectorReference, setShot06DirectorReference] = useState<Shot06DirectorReferenceState | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const bundles = useMemo(() => {
@@ -402,7 +405,10 @@ export function VisualAgentPage() {
           const state = nextVisual.shots.find(shot => shot.shotKey === bundle.key);
           return !state || state.qaStatus !== 'PASS';
         });
-        setSelectedIndex(firstPending === -1 ? 0 : firstPending);
+        const shot07Index = importedDirectorVoicePack.ready
+          ? directorBundles.findIndex(bundle => bundle.key === 'SHOT 07')
+          : -1;
+        setSelectedIndex(shot07Index >= 0 ? shot07Index : firstPending === -1 ? 0 : firstPending);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Visual Agent.');
       } finally {
@@ -436,6 +442,33 @@ export function VisualAgentPage() {
     });
     return () => { active = false; };
   }, [directorVoicePack?.ready]);
+
+  useEffect(() => {
+    if (script?.revision !== 3) return;
+    let active = true;
+    void loadShot06DirectorReference().then(state => {
+      if (active) setShot06DirectorReference(state);
+    }).catch(() => {
+      if (active) setShot06DirectorReference(null);
+    });
+    return () => { active = false; };
+  }, [script?.revision]);
+
+  async function uploadShot06ReferenceFile(file: File) {
+    if (busy || locking) return;
+    setBusy(true);
+    setError('');
+    try {
+      const uploaded = await uploadShot06DirectorReference(file);
+      setShot06DirectorReference(uploaded);
+      setShot06DirectorPreviewError(false);
+      setRenderNotice('Byte-identical SHOT 06 v5 Director reference is now stored and playable in MediaOS. Native 1080p Visual QA and database Director LOCK remain separate and pending.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not upload the original SHOT 06 v5 reference.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function importShot07VisualFile(file: File) {
     if (busy || locking) return;
@@ -888,45 +921,73 @@ export function VisualAgentPage() {
       </section>
 
       {script.revision === 3 && (
-        <section className="shot06-director-final-review" aria-label="SHOT 06 Director locked video and final voice review">
+        <section className="shot06-director-final-review" aria-label="SHOT 06 exact v5 Director reference video">
           <div className="shot06-director-review-top">
             <div>
-              <span>SHOT 06 · LOAD BALANCER · DIRECTOR V3</span>
-              <h2>Director video locked · Final voice review</h2>
-              <p>One complete 2:51 video with C01–C07 narration, visual corrections and synchronized motion. The approved video is preserved; final Director voice sign-off is pending.</p>
+              <span>SHOT 06 · LOAD BALANCER · DIRECTOR-APPROVED V5</span>
+              <h2>Original Director v5 · Locked reference</h2>
+              <p>Exact approved 171.243-second reference with original C01–C07 voices. Map unobstructed through 7.5 seconds; panel opens by 9.5 seconds. This review source is separate from MediaOS-native 1080p Visual QA and database Director LOCK.</p>
             </div>
-            <strong>VIDEO LOCKED · NATIVE SYNC PENDING</strong>
+            <strong>{shot06DirectorReference?.available
+              ? 'EXACT V5 VERIFIED · NATIVE QA PENDING'
+              : 'DIRECTOR V5 APPROVED · FILE IMPORT PENDING'}</strong>
           </div>
-          {shot06DirectorPreviewError ? (
-            <div className="shot06-director-review-error" role="status">
-              The approved video is not yet served by this MediaOS deployment. Its GitHub release remains the verified source; this is not the older MediaOS render.
-            </div>
+          {shot06DirectorReference?.available ? (
+            shot06DirectorPreviewError ? (
+              <div className="shot06-director-review-error" role="status">
+                The verified v5 video could not be played. The original is preserved; check MediaOS HTTP media delivery.
+              </div>
+            ) : (
+              <video controls preload="metadata" playsInline
+                src={shot06DirectorReference.videoUrl}
+                onError={() => setShot06DirectorPreviewError(true)}
+                aria-label="Exact SHOT 06 Director-approved v5 Load Balancer full video and seven voice clips"
+              />
+            )
           ) : (
-            <video
-              controls
-              preload="metadata"
-              playsInline
-              src={SHOT06_DIRECTOR_V3_VIDEO}
-              onError={() => setShot06DirectorPreviewError(true)}
-              aria-label="SHOT 06 Director v3 final review with all seven original voice recordings"
-            />
+            <div className="visual-technical-review">
+              <p>The approved v5 file is not yet stored in MediaOS. Select the original file
+                named SHOT06_v5_LongMapOpening_7p5_to_9p5_FULL_WITH_SOUND.mp4.
+                The backend accepts only the exact 10,518,165-byte file with the locked SHA-256 hash.
+                It will refuse v3, v4, altered or separately encoded GitHub renders.</p>
+              <label style={{display:'block'}}>
+                Upload exact approved SHOT 06 v5 MP4
+                <input type="file" accept="video/mp4,.mp4" disabled={busy || locking}
+                  style={{display:'block', marginTop:10}}
+                  onChange={event => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void uploadShot06ReferenceFile(file);
+                    event.currentTarget.value = '';
+                  }}/>
+              </label>
+            </div>
           )}
           <div className="shot06-director-review-footer">
-            <span>2:51 · 1280 × 720 · 30 fps · Original C01–C07 audio · SHOT 01–05 unchanged</span>
-            <a href={SHOT06_DIRECTOR_V3_VIDEO} download="SHOT06_LoadBalancer_Director_v3_CleanLayout.mp4">Download video</a>
+            <span>171.243 s · 1280 × 720 · 30 fps · Original C01–C07 · SHA-256 6e96f65d…8ff361a3e57</span>
+            {shot06DirectorReference?.available &&
+              <a href={shot06DirectorReference.videoUrl} download="SHOT06_v5_LongMapOpening_7p5_to_9p5_FULL_WITH_SOUND.mp4">
+                Download exact verified v5 MP4
+              </a>}
           </div>
           <p className="shot06-director-review-boundary">
-            The cumulative episode preview above continues to show native QA-approved SHOT 01–05 only. SHOT 06 is Director VIDEO LOCKED, but its MediaOS-native render and final voice sign-off have not yet been completed. Do not substitute the old render.
+            Director-approved v5 source is immutable. The SHOT 06 database Visual QA and native Director LOCK remain pending; SHOT 01–05 are not modified. The cumulative episode preview must not silently substitute an older v3/v4 render.
           </p>
         </section>
       )}
 
       {directorVoicePack?.ready && (
         <div className="production-success">
-          Director-LOCKED SHOT 07–09 voice pack loaded for visual planning. Existing ElevenLabs
-          approvals and SHOT 01–06 are read-only; no voice re-sync is performed here.
-          The SHOT 07 Remotion composition and validated HEAR / SEE visual contract must be
-          implemented before visual QA can authorize a render.
+          SHOT 07–09 original Director-LOCKED narration is loaded. SHOT 07 Director Visual
+          Draft is {directorVisualContract?.ready ? 'IMPORTED and ready for isolated review rendering'
+            : 'being initialized from its five approved voice segments'}.
+          SHOT 06 original v5 reference and SHOT 07 are separate visual review stages;
+          neither bypasses the native Visual QA / Director LOCK sequence.
+          <div style={{marginTop:10}}>
+            <button type="button" onClick={() => {
+              const index = bundles.findIndex(bundle => bundle.key === 'SHOT 07');
+              if (index >= 0) setSelectedIndex(index);
+            }}>Open SHOT 07 Director Draft</button>
+          </div>
         </div>
       )}
 
