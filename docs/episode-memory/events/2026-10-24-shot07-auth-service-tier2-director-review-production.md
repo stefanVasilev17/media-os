@@ -25,7 +25,7 @@ Director rejected previous SHOT07 review as visually noisy, abstract, text-heavy
 - GitHub CI TypeScript passed for new composition; Railway render worker successfully deployed.
 - One-shot script: `ops/shot07/render_director_review_once.py`, guarded by voice SHA, exact draft source, approved five clips, 30 unique aligned semantic anchors and storage health.
 - Initial old review ID: `37a47af3-a8fe-4fc5-b421-398f10380f7b`; do not present this as Tier++.
-- **New Tier++ Remotion preview ID:** `8fcc80df-4299-42ce-b458-8b1d1d4b7373`, composition `EP001-Shot07-VoiceSynced`, 1920×1080 @30fps, 4882 frames. Submitted to CPU queue on 2026-10-23 22:37 UTC; render success must be confirmed before declaring it ready.
+- **New Tier++ Remotion preview ID:** `8fcc80df-4299-42ce-b458-8b1d1d4b7373`, composition `EP001-Shot07-VoiceSynced`, 1920×1080 @30fps, 4882 frames, **SUCCEEDED** at 2026-10-23 22:48:14 UTC; 15,109,999 bytes, original C01–C05 approved audio retained. This is a Director review DRAFT only; native Visual QA and Director LOCK have NOT been applied.
 - Media URL when SUCCEEDED: `https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/8fcc80df-4299-42ce-b458-8b1d1d4b7373/video`.
 
 ## Director QA criteria
