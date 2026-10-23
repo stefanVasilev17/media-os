@@ -38,6 +38,7 @@ import {
 import { loadProductionMemory, rememberProductionCorrection, type ProductionMemoryRule } from '../api/productionMemoryApi';
 import { loadDirectorVoicePack, type DirectorVoicePackState } from '../api/directorVoicePackApi';
 import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, mergeDirectorVoiceShotBundles, clock } from '../lib/ep001Production';
+import { buildShot07DirectorTiming } from '../lib/shot07VoiceTiming';
 import '../styles/productionFlow.css';
 
 const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
@@ -571,7 +572,9 @@ export function VisualAgentPage() {
           )
         : currentShot.key === 'SHOT 05'
           ? buildShot05ReadingPacing(related, rawAnchors)
-          : null;
+          : currentShot.key === 'SHOT 07' && directorVoicePack?.ready
+            ? buildShot07DirectorTiming(related)
+            : null;
 
       let cursor = 0;
       const audioClips = pacing
