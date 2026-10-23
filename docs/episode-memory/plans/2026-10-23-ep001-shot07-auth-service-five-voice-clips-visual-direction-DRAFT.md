@@ -268,3 +268,20 @@ SHOT07 is ready for visual sign-off only if:
 - SHOT01–06 remain unchanged and there is a verified single playable SHOT07 candidate using the original five voices.
 
 **Director has approved the narration, not this visual pass. No automatic visual LOCK.**
+
+---
+
+## 11. Implementation checkpoint — 2026-10-23
+
+**Technical changes in GitHub are a working foundation, not a rendered or approved shot.** Implementation work started with the Director's authorization. Latest changes:
+
+- `f15e51f90b65273892221167b72605edcd69f386`: Visual Agent now merges the imported Director Voice Pack into SHOT07–09 navigation. When the voice pack is present it does not call legacy `syncVoiceClips` on mount, protecting already-approved C01–C13 audio.
+- `941ff96cadf2a2a865ade27c50571c97c9ddb37e`: draft Auth Service scene. It reuses the existing Living Architecture Map and introduces separate input, validation and decision zones with a distinct cyan User Lookup. **All object positioning still needs real frame-by-frame render inspection.**
+- `702a3114cb9da45f459283e8707a9e54515e6b26` and `5604c0ebc6febddab79c49eb99479318967f5263`: SHOT07 scene wired to the existing audio compositor and registered at 1920×1080, 30 fps.
+- `2633cbd90acc9bac511f9503585d3fdbb92310a4`: actual-clip timing utility assembles **24 opening frames + 36/30/45/36 pause frames + 54 final hold frames** while consuming real approved audio lengths and resolving **30 semantic cues** from ElevenLabs character-level alignment. All 30 phrase strings were checked offline against the locked voice pack for unique order; real timestamp fields still need production testing.
+- `3d093d1ecf8a0e65d3508f55647e4d8410f13e6d`: Visual Agent uses the SHOT07 timing utility and preserves individual audio files.
+- `9a2aae90cb7d4c263b0f8d3841cd03a04ea1800d`: backend Visual QA knows the new composition ID; all existing mandatory preflight checks remain.
+
+**Gates still blocking a truly finished, director-reviewable MP4:** new v3 visual HEAR/SEE contract has not been activated; MediaOS-native SHOT06 contiguous QA/locked-render issue #89 still needs resolution; current ChatGPT Railway connector yielded `link_id must identify an eligible linked account` during the latest attempted access, despite user reporting the interactive reconnect had succeeded. Do not infer a successful Railway deployment from GitHub CI. Live approved audio timestamps/hashes and actual SHOT06→SHOT07 pixel/frame continuity have not yet been verified against a real MP4. Do not claim visual LOCK or launch an unreviewed render.
+
+**No audio changed. No Director locks modified.**
