@@ -39,6 +39,10 @@ import { loadProductionMemory, rememberProductionCorrection, type ProductionMemo
 import { loadDirectorVoicePack, type DirectorVoicePackState } from '../api/directorVoicePackApi';
 import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, mergeDirectorVoiceShotBundles, clock } from '../lib/ep001Production';
 import { buildShot07DirectorTiming } from '../lib/shot07VoiceTiming';
+import {
+  loadDirectorVisualContract, importDirectorVisualDraft,
+  type DirectorVisualContractState, type DirectorVisualContractPayload
+} from '../api/directorVisualContractApi';
 import '../styles/productionFlow.css';
 
 const SHOT02_WORD_ANCHORS: Record<string, string[]> = {
@@ -299,6 +303,8 @@ export function VisualAgentPage() {
   const [memory, setMemory] = useState<ProductionMemoryRule[]>([]);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
   const [directorVoicePack, setDirectorVoicePack] = useState<DirectorVoicePackState | null>(null);
+  const [directorVisualContract, setDirectorVisualContract] = useState<DirectorVisualContractState | null>(null);
+  const [shot07DraftRenderId, setShot07DraftRenderId] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
   const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
@@ -419,6 +425,78 @@ export function VisualAgentPage() {
     setPreviewCurrentTime(0);
     setPreviewDuration(0);
   }, [previewId]);
+
+  useEffect(() => {
+    if (!directorVoicePack?.ready) return;
+    let active = true;
+    void loadDirectorVisualContract().then(state => {
+      if (active) setDirectorVisualContract(state);
+    }).catch(() => {
+      if (active) setDirectorVisualContract(null);
+    });
+    return () => { active = false; };
+  }, [directorVoicePack?.ready]);
+
+  async function importShot07VisualFile(file: File) {
+    if (busy || locking) return;
+    setBusy(true);
+    setError('');
+    try {
+      const draft = JSON.parse(await file.text()) as DirectorVisualContractPayload;
+      await importDirectorVisualDraft(draft);
+      const state = await loadDirectorVisualContract();
+      setDirectorVisualContract(state);
+      setShot07DraftRenderId(null);
+      setRenderNotice('SHOT 07 visual draft imported and verified against all five immutable voice clips. No Director video LOCK or legacy production contract was changed.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'SHOT 07 visual draft import failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function renderShot07DirectorDraft() {
+    if (!script || busy || locking || !directorVisualContract?.ready ||
+        directorVisualContract.payload?.shotKey !== 'SHOT 07' ||
+        !directorVoicePack?.ready) return;
+    setBusy(true);
+    setError('');
+    setRenderNotice('');
+    setShot07DraftRenderId(null);
+    try {
+      const related = clips.filter(clip => clip.shotKey === 'SHOT 07')
+        .sort((a, b) => a.sequence - b.sequence);
+      const pacing = buildShot07DirectorTiming(related);
+      const audioClips = pacing.windows.map(window => ({
+        src: window.location.origin + voiceClipAudioUrl(
+          window.clip.clipKey, script.revision, window.clip.generationRevision
+        ),
+        fromFrame: Math.round(window.plannedStart * VISUAL_FPS),
+        durationInFrames: Math.max(1, Math.ceil(window.clip.durationSeconds * VISUAL_FPS)),
+        trimBeforeFrames: Math.max(0, Math.round((window.clip.leadingTrimSeconds || 0) * VISUAL_FPS))
+      }));
+      const render = await startRemotionRender('EP001-Shot07-VoiceSynced', {
+        shotKey: 'SHOT 07',
+        scriptRevision: script.revision,
+        draftVisualContractSha256: directorVisualContract.sha256,
+        voicePackSha256: directorVisualContract.voicePackSha256,
+        audioUrl: '',
+        audioClips,
+        durationInFrames: pacing.durationInFrames,
+        anchors: pacing.pacedAnchors,
+        comprehensionHolds: pacing.comprehensionHolds,
+      }, 'REVIEW');
+      setActiveRender(render);
+      const completed = await pollRender(render.renderId);
+      if (completed.status === 'FAILED') throw new Error(completed.error || 'SHOT 07 review render failed.');
+      setShot07DraftRenderId(completed.renderId);
+      setRenderNotice('SHOT 07 Director visual DRAFT render is ready to review. It is not native Visual QA, not cumulative episode footage and NOT Director LOCKED.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'SHOT 07 draft render could not complete.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function pollRender(renderId: string) {
     let transientFailures = 0;
@@ -887,6 +965,48 @@ export function VisualAgentPage() {
           </strong>
         </div>
 
+        {currentShot.key === 'SHOT 07' && directorVoicePack?.ready && (
+          <section className="visual-technical-review" aria-label="SHOT 07 visual draft production">
+            <strong>SHOT 07 · AUTH SERVICE · DIRECTOR VISUAL DRAFT</strong>
+            <p>
+              Five original voice clips remain Director LOCKED. Import the SHOT 07 Visual
+              Contract JSON, then render an isolated review MP4. This does not replace
+              the old HEAR / SEE contract, pass native Visual QA or change the episode preview.
+            </p>
+            <p>
+              Visual draft: {directorVisualContract?.ready
+                ? 'IMPORTED · ' + directorVisualContract.payload?.timeline.length + ' voice-matched sections'
+                : 'AWAITING IMPORT'}
+            </p>
+            <div className="visual-main-actions">
+              <label style={{cursor:busy ? 'not-allowed' : 'pointer', display:'inline-block'}}>
+                Import SHOT 07 Visual Contract JSON
+                <input type="file" accept=".json,application/json" disabled={busy || locking}
+                  style={{display:'block',marginTop:8}}
+                  onChange={event => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void importShot07VisualFile(file);
+                    event.currentTarget.value = '';
+                  }}/>
+              </label>
+              <button type="button" className="primary"
+                disabled={!directorVisualContract?.ready || busy || locking || rendering}
+                onClick={() => void renderShot07DirectorDraft()}>
+                {busy ? 'Preparing / rendering…' : 'Render SHOT 07 DRAFT Review MP4'}
+              </button>
+            </div>
+            {shot07DraftRenderId && (
+              <div>
+                <p>ISOLATED REVIEW MP4 · NOT QA PASSED · NOT DIRECTOR LOCKED</p>
+                <video controls preload="metadata" playsInline
+                  style={{width:'100%',maxHeight:520,background:'#030914',borderRadius:12}}
+                  src={remotionRenderVideoUrl(shot07DraftRenderId)}/>
+                <a href={remotionRenderVideoUrl(shot07DraftRenderId)} download="SHOT07_AuthService_DRAFT_Review.mp4">Download draft review</a>
+              </div>
+            )}
+          </section>
+        )}
+
         <div className="visual-contract-grid">
           <div>
             <span>REMOTION COMPOSITION</span>
@@ -948,7 +1068,7 @@ export function VisualAgentPage() {
                 : busy ? 'Preparing smooth-motion candidate…' : 'Render Smooth Candidate (keep LOCKED)'}
             </button>
           )}
-          {!currentVisual?.locked && (
+          {!currentVisual?.locked && currentShot.key !== 'SHOT 07' && (
             <button
               type="button"
               className={currentVisual?.qaStatus === 'PASS' ? '' : 'primary'}
