@@ -201,6 +201,11 @@ export function startRemotionRender(
   });
 }
 
+export function loadLatestRemotionRender(compositionId: string, profile: 'FAST_PREVIEW' | 'REVIEW' = 'REVIEW') {
+  return request<RemotionRenderState>('/api/v1/remotion/renders/compositions/'
+    + encodeURIComponent(compositionId) + '/latest?profile=' + profile);
+}
+
 export function loadRemotionRender(renderId: string) {
   return request<RemotionRenderState>('/api/v1/remotion/renders/' + encodeURIComponent(renderId));
 }
