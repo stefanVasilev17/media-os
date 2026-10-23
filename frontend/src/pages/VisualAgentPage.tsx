@@ -464,6 +464,23 @@ export function VisualAgentPage() {
   async function produceShot(technicalRerender = false) {
     if (!script || !currentShot || busy || locking) return;
     if (technicalRerender && (!currentVisual?.locked || !['SHOT 01', 'SHOT 02'].includes(currentShot.key))) return;
+    const directorShot = directorVoicePack?.ready
+      ? directorVoicePack.payload?.shots.find(shot => shot.shotKey === currentShot.key)
+      : undefined;
+    if (directorShot) {
+      const validatedSegments = [...contractSegments].sort((a, b) => a.startSecond - b.startSecond);
+      const exactDirectorContract = validatedSegments.length === directorShot.clips.length &&
+        validatedSegments.every((segment, index) => {
+          const clip = directorShot.clips[index];
+          return segment.clipKey === clip.clipKey && segment.hear.trim() === clip.narration.trim();
+        });
+      if (!exactDirectorContract) {
+        setError('The Director-LOCKED ' + currentShot.key +
+          ' voice pack requires its new approved HEAR / SEE visual contract. ' +
+          'The legacy script visual contract cannot be used to render this scene.');
+        return;
+      }
+    }
     let voiceShot = voiceShots[currentShot.key];
     if (!voiceShot) {
       setError('Voice shot state is missing. Refresh the Visual Agent and try again.');
