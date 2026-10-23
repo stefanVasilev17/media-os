@@ -7,7 +7,7 @@ import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from
 import {ReadyNotSentYoutubePreview, readyNotSentYoutubePreviewSchema} from './episodes/ep001/live-diagram/ReadyNotSentYoutubePreview';
 import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from './episodes/ep001/live-diagram/NetworkTransitYoutubePreview';
 import {LoadBalancerYoutubePreview} from './episodes/ep001/live-diagram/LoadBalancerYoutubePreview';
-import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, Shot06VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
+import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, Shot06VoiceSynced, Shot07VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
@@ -218,6 +218,19 @@ export const Root: React.FC = () => {
         schema={voiceSyncedShotSchema}
         defaultProps={{
           audioUrl:'',audioClips:[],durationInFrames:5220,
+          anchors:{},comprehensionHolds:[],
+        }}
+      />
+      <Composition
+        id="EP001-Shot07-VoiceSynced"
+        component={Shot07VoiceSynced}
+        durationInFrames={dynamicDuration ?? 6000}
+        fps={30}
+        width={1920}
+        height={1080}
+        schema={voiceSyncedShotSchema}
+        defaultProps={{
+          audioUrl:'',audioClips:[],durationInFrames:6000,
           anchors:{},comprehensionHolds:[],
         }}
       />
