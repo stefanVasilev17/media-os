@@ -3,9 +3,95 @@ on:
   pull_request:
   push:
     branches: [main, gpu-dev]
+    paths-ignore:
+      - 'docs/**'
+      - 'skills/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.select.outputs.frontend }}
+      backend: ${{ steps.select.outputs.backend }}
+      remotion: ${{ steps.select.outputs.remotion }}
+      cpu_worker: ${{ steps.select.outputs.cpu_worker }}
+      windows: ${{ steps.select.outputs.windows }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select affected CI jobs
+        id: select
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          frontend=false
+          backend=false
+          remotion=false
+          cpu_worker=false
+          windows=false
+          all=false
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            all=true
+          else
+            changed="$RUNNER_TEMP/ci-changed-files.txt"
+            if [[ "$EVENT_NAME" == "pull_request" ]]; then
+              git diff --name-only "$PR_BASE_SHA...$PR_HEAD_SHA" > "$changed"
+            elif [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]] &&
+                 git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+              git diff --name-only "$BEFORE_SHA" "$HEAD_SHA" > "$changed"
+            else
+              git ls-files > "$changed"
+            fi
+            echo "Changed files:"
+            cat "$changed"
+            while IFS= read -r file; do
+              case "$file" in
+                .github/workflows/ci.yml|Dockerfile|docker-compose.yml|railway.json|contracts/*|gpu-render-worker/*|ops/*)
+                  all=true ;;
+                frontend/*) frontend=true ;;
+                backend/*) backend=true ;;
+                remotion-engine/*) remotion=true; cpu_worker=true ;;
+                render-worker/*) cpu_worker=true ;;
+                worker/*) windows=true ;;
+                docker-entrypoint.sh|chromium-software-webgl.sh)
+                  backend=true; cpu_worker=true ;;
+                .github/workflows/*|.github/ISSUE_TEMPLATE/*|.railway-deploy-trigger|.gitignore|.env.example|README.md|docs/*|skills/*|*.md)
+                  : ;;
+                *) echo "Unknown source path '$file': keep full test coverage."; all=true ;;
+              esac
+            done < "$changed"
+          fi
+          if [[ "$all" == true ]]; then
+            frontend=true; backend=true; remotion=true; cpu_worker=true; windows=true
+          fi
+          {
+            echo "frontend=$frontend"
+            echo "backend=$backend"
+            echo "remotion=$remotion"
+            echo "cpu_worker=$cpu_worker"
+            echo "windows=$windows"
+          } >> "$GITHUB_OUTPUT"
+          echo "Selected: frontend=$frontend backend=$backend remotion=$remotion cpu_worker=$cpu_worker windows=$windows"
+
   frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -15,10 +101,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-frontend-${{ hashFiles('frontend/package.json') }}
+          restore-keys: ${{ runner.os }}-npm-frontend-
+      - run: npm install --no-audit --no-fund --prefer-offline
       - run: npm run build
 
   remotion-engine:
+    needs: changes
+    if: needs.changes.outputs.remotion == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -28,10 +121,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-remotion-${{ hashFiles('remotion-engine/package.json') }}
+          restore-keys: ${{ runner.os }}-npm-remotion-
+      - run: npm install --no-audit --no-fund --prefer-offline
       - run: npm run typecheck
 
   backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -46,6 +146,8 @@ jobs:
       - run: mvn -B test
 
   remotion-cpu-worker-preflight:
+    needs: changes
+    if: needs.changes.outputs.cpu_worker == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +157,8 @@ jobs:
         run: docker run --rm --entrypoint node media-os-remotion-cpu:preflight --check /app/remotion-engine/cpu-worker.mjs
 
   windows-worker:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
