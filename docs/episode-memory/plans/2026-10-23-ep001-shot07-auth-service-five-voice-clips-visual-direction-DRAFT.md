@@ -88,23 +88,25 @@ The *three-column view is a maximum-information overview*, not a demand to show 
 **Pre-approved visible text (the actual strings, case may follow canonical style):**
 - AUTH SERVICE
 - LOGIN REQUEST
-- ACCOUNT IDENTIFIER
+- ACCOUNT / IDENTIFIER (two deliberate stacked text lines inside the request field; not a forced tiny one-line label)
 - alex@example.com (fictional example, optional; do not show a real address)
 - PASSWORD / ••••••••••••
 - RECEIVED
-- IDENTITY UNVERIFIED
+- IDENTITY / UNVERIFIED (two stacked lines in the right decision card)
 - REQUEST VALIDATION
 - REQUIRED FIELDS
 - EXPECTED FORMAT
 - INPUT LIMITS
 - REQUEST VALID
-- NOT AUTHENTICATED
-- ACCOUNT DATA NEEDED
+- NOT / AUTHENTICATED (two stacked lines in the right decision card)
+- ACCOUNT DATA / NEEDED (two stacked lines; avoid squeezing one line)
 - USER LOOKUP
-- User key: alex@example.com (optional, use one compact key field)
+- USER KEY + alex@example.com (optional; label and value on separate lines, never one overlong line)
 - USER DATABASE (dim until selected)
 
 Do **not** put narration paragraphs into cards. Do not show actual passwords or their hash, security secrets, personal information, unnecessary terms (TOKEN EXPIRED, REVOKED, JWT, MFA, Argon2id) or future-success state in this shot. For exact copy, avoid ambiguous “USER ID” in the incoming form: the narration identifies the submitted input as **email**; internal User ID is typically retrieved *after* lookup.
+
+**Preliminary label-width audit — actually measured in the current container, not merely estimated:** using the installed Inter Regular OpenType font at target 1920×1080 reference sizes, with 24 px inner padding plus a further 24 px buffer per side: request inner maximum **294 px**, decision maximum **329 px**, validation maximum **444 px**, lookup maximum **324 px**. **LOGIN REQUEST** = 288 px at 36 px; fictional email = 267 px at 29 px; **REQUEST VALIDATION** = 388 px at 36 px; **REQUIRED FIELDS** = 277 px at 32 px; **EXPECTED FORMAT** = 309 px at 32 px; **INPUT LIMITS** = 212 px at 32 px; **USER LOOKUP** = 253 px at 36 px; **USER DATABASE** = 290 px at 36 px — each fits its budget in this preliminary font test. Four originally overlong copy groups required deliberate reflow: **ACCOUNT / IDENTIFIER**, **IDENTITY / UNVERIFIED**, **ACCOUNT DATA / NEEDED**, **USER KEY / sample email**. **NOT / AUTHENTICATED** is also split to preserve a real safety margin. Those are intentional stacked text rows, not separate floating objects; reserve suitable line-height in the owning card. Actual bold typeface metrics, UI rendering, shadows, video rescaling and camera zoom still require post-render verification; this audit is **not** proof of zero overlap in a video that has not been rendered.
 
 **String-fit acceptance:** measure *rendered* text dimensions using the loaded typeface and actual weight at final scale. For each live text box: text width ≤ available inner width minus ≥24 px buffer on both sides; baseline/line height fits vertically; no ellipsis or auto-font-collapse for meaning-bearing fields. All text must remain inside its owning component's padded rectangle after camera transforms and glow. If not: widen/relayout first, or use deliberate two-line title where semantically safe. These numbers are design guides, not a claim that an unrendered layout has already passed.
 
@@ -236,7 +238,7 @@ Required anchor families (names are proposed, phrase matches are exact or unique
 8. Verify final green ingress port and cyan output port join the same map geometry as SHOT06 and planned SHOT08. Compare **SHOT06 final 1.5s + SHOT07 first 3s** side-by-side at equal camera scale. Validate full handoff with sound.
 9. Watch actual output at **phone landscape size**; if hierarchy is unreadable, simplify visible content/camera composition, not merely raise glow or tiny font.
 10. Play all five original clips continuously and check the designed audible breathing gaps, sentence endings, no double-silence, no clipped breaths, no sudden dip in ambience and no mid-word visual scene cut. SHOT07→SHOT08 should feel like one continuous camera journey.
-11. Post-render inspect audio inclusion (all five C01–C05 in correct order and correct source hashes), no missing playback or audio clipping, lip? **No lips — architecture video.** Check durations and rendered frame count against resolved audio+holds.
+11. Post-render inspect audio inclusion (all five C01–C05 in correct order and correct source hashes), no missing playback, truncated narration or audio clipping. Check durations and rendered frame count against resolved audio + holds.
 12. Run MediaOS post-render QA and show Director the **single joined playable SHOT07 MP4**, full sound, before any LOCK. **Do not mark a preflight PASS or GitHub CI PASS as Director approval.**
 
 **QA deliverables expected from an implementing agent:** exact locked audio clip hashes and lengths; resolved anchor→frame table; scene-object registry with final positions/states; crop/overlap report (including text), a contact sheet of key rendered frames, and one 1080p 30 fps review MP4. No claims of “pixel-perfect” until real frames have been checked.
@@ -247,7 +249,7 @@ Required anchor families (names are proposed, phrase matches are exact or unique
 
 This revised storyboard deliberately **does not claim the shot video is rendered**. The checked repository currently has:
 - Voice Agent merges the Director Voice Pack, but **Visual Agent still reads only legacy Script revision 3 / HEAR-SEE contract bundles**; new SHOT07–09 voice-pack overlay has not been connected there.
-- Backend \`VisualQaController.compositionFor\` returns composition IDs for SHOT 01–06 only. SHOT07's new Remotion composition must be implemented and registered before preflight.
+- Backend `VisualQaController.compositionFor` returns composition IDs for SHOT 01–06 only. SHOT07's new Remotion composition must be implemented and registered before preflight.
 - The Voice Pack is a **narration import**, not the validated HEAR/SEE contract required by native Visual QA. Build a safe new visual addendum or validated HEAR/SEE path tied to the approved voice; do not force legacy SHOT 07/09 semantics onto the new happy-path story.
 - Native SHOT06 MediaOS post-render QA remains a separate blocker for the contiguous episode preview, even though v5 **is** Director-approved as a reviewed video. See issue #89.
 - Live ElevenLabs files, their hashes and word alignment have **not** been fetched here because direct production connection is unavailable in this preparation pass. The Director's statement that all 13 recordings are locked is authoritative, but visual timings must still be retrieved before rendering.
