@@ -467,13 +467,13 @@ export function VisualAgentPage() {
       const related = clips.filter(clip => clip.shotKey === 'SHOT 07')
         .sort((a, b) => a.sequence - b.sequence);
       const pacing = buildShot07DirectorTiming(related);
-      const audioClips = pacing.windows.map(window => ({
+      const audioClips = pacing.windows.map(item => ({
         src: window.location.origin + voiceClipAudioUrl(
-          window.clip.clipKey, script.revision, window.clip.generationRevision
+          item.clip.clipKey, script.revision, item.clip.generationRevision
         ),
-        fromFrame: Math.round(window.plannedStart * VISUAL_FPS),
-        durationInFrames: Math.max(1, Math.ceil(window.clip.durationSeconds * VISUAL_FPS)),
-        trimBeforeFrames: Math.max(0, Math.round((window.clip.leadingTrimSeconds || 0) * VISUAL_FPS))
+        fromFrame: Math.round(item.plannedStart * VISUAL_FPS),
+        durationInFrames: Math.max(1, Math.ceil(item.clip.durationSeconds * VISUAL_FPS)),
+        trimBeforeFrames: Math.max(0, Math.round((item.clip.leadingTrimSeconds || 0) * VISUAL_FPS))
       }));
       const render = await startRemotionRender('EP001-Shot07-VoiceSynced', {
         shotKey: 'SHOT 07',
