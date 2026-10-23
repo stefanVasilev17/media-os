@@ -66,7 +66,10 @@ jobs:
                   all=true ;;
                 frontend/*) frontend=true ;;
                 backend/*) backend=true ;;
-                remotion-engine/*) remotion=true; cpu_worker=true ;;
+                remotion-engine/cpu-worker.mjs|remotion-engine/package.json|remotion-engine/package-lock.json)
+                  remotion=true; cpu_worker=true ;;
+                remotion-engine/*)
+                  remotion=true ;;
                 render-worker/*) cpu_worker=true ;;
                 worker/*) windows=true ;;
                 docker-entrypoint.sh|chromium-software-webgl.sh)
