@@ -16,6 +16,7 @@ import {
 } from '../api/productionContractApi';
 import {
   loadRemotionRender,
+  loadLatestRemotionRender,
   loadVoiceShots,
   remotionRenderVideoUrl,
   startRemotionRender,
@@ -307,6 +308,7 @@ export function VisualAgentPage() {
   const [directorVoicePack, setDirectorVoicePack] = useState<DirectorVoicePackState | null>(null);
   const [directorVisualContract, setDirectorVisualContract] = useState<DirectorVisualContractState | null>(null);
   const [shot07DraftRenderId, setShot07DraftRenderId] = useState<string | null>(null);
+  const [shot07LastRender, setShot07LastRender] = useState<RemotionRenderState | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [preflight, setPreflight] = useState<VisualPreflight | null>(null);
   const [postQa, setPostQa] = useState<VisualPostQa | null>(null);
@@ -488,6 +490,27 @@ export function VisualAgentPage() {
     }
   }
 
+  async function refreshShot07Review() {
+    const latest = await loadLatestRemotionRender('EP001-Shot07-VoiceSynced', 'REVIEW');
+    setShot07LastRender(latest);
+    setShot07DraftRenderId(latest.status === 'READY' ? latest.renderId : null);
+    return latest;
+  }
+
+  useEffect(() => {
+    if (!directorVisualContract?.ready) return;
+    let active = true;
+    void loadLatestRemotionRender('EP001-Shot07-VoiceSynced', 'REVIEW')
+      .then(latest => {
+        if (!active) return;
+        setShot07LastRender(latest);
+        setShot07DraftRenderId(latest.status === 'READY' ? latest.renderId : null);
+      }).catch(() => {
+        if (active) setShot07LastRender(null);
+      });
+    return () => { active = false; };
+  }, [directorVisualContract?.ready, directorVisualContract?.sha256]);
+
   async function renderShot07DirectorDraft() {
     if (!script || busy || locking || !directorVisualContract?.ready ||
         directorVisualContract.payload?.shotKey !== 'SHOT 07' ||
@@ -520,9 +543,11 @@ export function VisualAgentPage() {
         comprehensionHolds: pacing.comprehensionHolds,
       }, 'REVIEW');
       setActiveRender(render);
+      setShot07LastRender(render);
       const completed = await pollRender(render.renderId);
       if (completed.status === 'FAILED') throw new Error(completed.error || 'SHOT 07 review render failed.');
       setShot07DraftRenderId(completed.renderId);
+      setShot07LastRender(completed);
       setRenderNotice('SHOT 07 Director visual DRAFT render is ready to review. It is not native Visual QA, not cumulative episode footage and NOT Director LOCKED.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'SHOT 07 draft render could not complete.');
@@ -1051,11 +1076,23 @@ export function VisualAgentPage() {
                   }}/>
               </label>
               <button type="button" className="primary"
-                disabled={!directorVisualContract?.ready || busy || locking || rendering}
+                disabled={!directorVisualContract?.ready || busy || locking || rendering
+                  || shot07LastRender?.status === 'QUEUED' || shot07LastRender?.status === 'RENDERING'}
                 onClick={() => void renderShot07DirectorDraft()}>
                 {busy ? 'Preparing / rendering…' : 'Render SHOT 07 DRAFT Review MP4'}
               </button>
+              <button type="button" disabled={busy || locking}
+                onClick={() => void refreshShot07Review().catch(cause =>
+                  setError(cause instanceof Error ? cause.message : 'Could not refresh SHOT 07 review status.'))}>
+                Refresh SHOT 07 MP4 status
+              </button>
             </div>
+            {shot07LastRender && shot07LastRender.status !== 'EMPTY' && (
+              <p>Saved Remotion review: {shot07LastRender.status}
+                {shot07LastRender.status === 'RENDERING' ? ' · ' + shot07LastRender.progress + '%' : ''}
+                {shot07LastRender.status === 'FAILED' && shot07LastRender.error
+                  ? ' · ' + shot07LastRender.error : ''}</p>
+            )}
             {shot07DraftRenderId && (
               <div>
                 <p>ISOLATED REVIEW MP4 · NOT QA PASSED · NOT DIRECTOR LOCKED</p>
