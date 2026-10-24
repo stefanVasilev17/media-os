@@ -1,0 +1,31 @@
+name: EP001 SHOT07 v10 native lock and splice readiness audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/shot07-v10-native-lock-readiness.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read production's current shot locks and exact render
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request
+          base="https://media-os-backend-production.up.railway.app"
+          def get(p):
+              with urllib.request.urlopen(base+p,timeout=35) as f:return json.load(f)
+          d=get("/api/v1/visual/state?scriptRevision=3")
+          for s in d["shots"][:8]:
+              print("SHOT_STATUS",json.dumps({k:s.get(k) for k in ["shotKey","renderId","locked","lockedRenderId","qaStatus","rendered","voiceReady"]}),flush=True)
+          print("PREVIEW_STATE",json.dumps(d.get("preview",{})),flush=True)
+          for key,rid in [("APPROVED_SHOT07_V10","dc31f24e-ea31-462a-8398-457f780e7f6a")]:
+              a=get("/api/v1/remotion/renders/"+rid)
+              print(key,json.dumps({k:a.get(k) for k in ["renderId","status","profile","compositionId","fps","width","height","durationInFrames","sizeBytes","progress"]}),flush=True)
+          PY
