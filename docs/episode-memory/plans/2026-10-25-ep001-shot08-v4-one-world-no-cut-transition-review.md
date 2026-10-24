@@ -25,3 +25,13 @@
 - One-shot independent TypeScript/Bun TSX parser test succeeded, plus deterministic camera position tests at frames 0, 90, 180, 300, 465, 630, 900. At frame 0 scale=1 and DB screen x=1733, at frame 465 DB x=960; by frame 630 scale=6.25 and DB x=960. This is a **code and math test**, not proof of cinematic success.
 - Render review gate: verify playable MP4, independently capture sample frames around 0, 3, 10, 15, 20, 25, 30 seconds, check continuity, clipping, blur, timing and whether the camera follows the same object perceptually, not merely mathematically.
 - Do not extend the SHOT08 voice/timeline, integrate with cumulative EP001, or approve Director LOCK before explicit visual approval.
+
+## Verified V4 30-second preview
+
+- Railway backend `9675e4b2` and Remotion worker `ec7d14be` deployed the independent `EP001-Shot08-ContinuousDive-V4` composition.
+- **Render ID:** `2efb69cc-3970-4793-b16a-0726b5795af7`.
+- Worker completed render at `2026-10-24T21:25:19Z`: **READY**, 1280×720, 30fps, **900 frames / 30 seconds**, size **3,688,195 bytes**.
+- **Playable MP4:** https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/2efb69cc-3970-4793-b16a-0726b5795af7/video
+- Independent MediaOS network check: **206 Partial Content**, `Content-Type: video/mp4`, `Content-Range: bytes 0-127/3688195`, `ftyp` MP4 signature.
+- MediaOS independently verified the previously Director-approved SHOT01–07 `LOCKED`, all `QA PASS`, no lockedRenderId modifications, and the same combined approved preview `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
+- **Visual Director approval NOT YET GIVEN.** The toolchain has established valid code, smooth mathematically tracked camera center, an encoded and playable MP4. It has **not** independently inspected rendered frames for actual artistic quality or motion continuity. Director must watch the video. No voice, no native SHOT08 lock, no cumulative movie append.
