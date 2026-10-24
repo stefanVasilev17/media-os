@@ -1,0 +1,27 @@
+name: SHOT07 v8 MP4 delivery check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/shot07-v8-delivery-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Download exact v8 video and verify audio and 1080p picture
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/a9cd36f8-5898-4132-bafc-45112d316248/video"
+          curl -fSL --connect-timeout 15 --max-time 100 "$url" -o shot07_v8.mp4
+          test "$(stat -c%s shot07_v8.mp4)" -gt 3000000
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0 shot07_v8.mp4 | grep -q '^1920,1080$'
+          ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of csv=p=0 shot07_v8.mp4 | grep -q '[a-z]'
+          echo "V8 VIDEO READY: 1080p MP4 with audio is reachable over HTTP"
