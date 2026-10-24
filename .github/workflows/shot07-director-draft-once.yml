@@ -1,4 +1,4 @@
-name: SHOT07 Director v9 Visible Database Scan — guarded review
+name: SHOT07 Director v10 iPhone Database Scan — guarded review
 
 on:
   push:
@@ -20,32 +20,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out exact v9 source
+      - name: Check out exact v10 source
         uses: actions/checkout@v4
-      - name: Ensure v9 renderer source and remove unsupported overlays
+      - name: Ensure v10 renderer source and remove unsupported overlays
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'AuthServiceTier2V9YoutubePreview' remotion-engine/src/episodes/ep001/live-diagram/VoiceSyncedShot.tsx
-          grep -q 'v9-db-clip' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V9YoutubePreview.tsx
-          ! grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V9YoutubePreview.tsx
-          ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V9YoutubePreview.tsx
-          grep -q 'DIRECTOR_AUTH_DB_VISIBLE_SCAN_V9_REVIEW' ops/shot07/render_director_review_once.py
-          grep -q 'a9cd36f8-5898-4132-bafc-45112d316248' ops/shot07/render_director_review_once.py
-      - name: Wait for exact v9 worker deployment
+          grep -q 'AuthServiceTier2V10YoutubePreview' remotion-engine/src/episodes/ep001/live-diagram/VoiceSyncedShot.tsx
+          grep -q 'v10-db-window' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V10YoutubePreview.tsx
+          grep -q 'v10-phone-screen-clip' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V10YoutubePreview.tsx
+          ! grep -q '>Continue<' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V10YoutubePreview.tsx
+          ! grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V10YoutubePreview.tsx
+          ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V10YoutubePreview.tsx
+          grep -q 'DIRECTOR_IPHONE_DB_SCAN_V10_REVIEW' ops/shot07/render_director_review_once.py
+          grep -q '88aed1cd-0945-4969-b489-ac031c6c2766' ops/shot07/render_director_review_once.py
+      - name: Wait for exact v10 worker deployment
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 120); do
-            state="$(gh api repos/stefanVasilev17/media-os/commits/5ea3f7f4a57ef768886e07591c8b5c435f7018ee/status --jq '[.statuses[] | select(.context=="MediaOS - media-os-render-worker")][0].state // "pending"')"
-            echo "v9 worker: $state"
+            state="$(gh api repos/stefanVasilev17/media-os/commits/4dc626adf0c0de9eebacd34ac0f6eb30cd06ce0a/status --jq '[.statuses[] | select(.context=="MediaOS - media-os-render-worker")][0].state // "pending"')"
+            echo "v10 worker: $state"
             if [ "$state" = success ]; then exit 0; fi
             if [ "$state" = failure ] || [ "$state" = error ]; then exit 1; fi
             sleep 5
           done
-          echo "v9 worker was not deployed. No stale render queued." >&2
+          echo "v10 worker was not deployed. No stale render queued." >&2
           exit 1
       - name: Verify Director v6 visual contract, keep immutable voices
         shell: bash
@@ -53,10 +55,10 @@ jobs:
           set -euo pipefail
           curl -fsS --max-time 20 https://media-os-backend-production.up.railway.app/api/v1/director-visual-contract/shot-07 |
             python3 -c "import json,sys; d=json.load(sys.stdin); assert d['ready'] and d['payload']['source']=='DIRECTOR_AUTH_SCREEN_VISIBLE_V6_2026_10_24'"
-      - name: Confirm fully active v9 worker
+      - name: Allow previous worker to exit before fresh v10 render
         shell: bash
-        run: sleep 25
-      - name: Queue clean v9 1080p voice-synced director-review video
+        run: sleep 50
+      - name: Queue clean v10 1080p voice-synced director-review video
         env:
           MEDIAOS_BASE: https://media-os-backend-production.up.railway.app
         run: python3 ops/shot07/render_director_review_once.py
