@@ -7,7 +7,7 @@ import {ReadyNotSentYoutubePreview} from './ReadyNotSentYoutubePreview';
 import {NetworkTransitYoutubePreview} from './NetworkTransitYoutubePreview';
 import {GatewayIncidentYoutubePreview} from './GatewayIncidentYoutubePreview';
 import {LoadBalancerYoutubePreview} from './LoadBalancerYoutubePreview';
-import {AuthServiceTier2V5YoutubePreview} from './AuthServiceTier2V5YoutubePreview';
+import {AuthServiceTier2V6YoutubePreview} from './AuthServiceTier2V6YoutubePreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './shot01Timing';
 import {SHOT02, SHOT02_DURATION_FRAMES, SHOT02_FPS} from './shot02Timing';
 
@@ -201,7 +201,7 @@ export const Shot07VoiceSynced:React.FC<VoiceSyncedShotProps> = ({
   audioUrl,audioClips,durationInFrames,anchors
 }) => (
   <>
-    <AuthServiceTier2V5YoutubePreview
+    <AuthServiceTier2V6YoutubePreview
       durationInFrames={durationInFrames}
       anchors={anchors}
       clipStarts={audioClips.map(clip => clip.fromFrame)}
