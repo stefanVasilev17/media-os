@@ -9,6 +9,7 @@ import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from '.
 import {LoadBalancerYoutubePreview} from './episodes/ep001/live-diagram/LoadBalancerYoutubePreview';
 import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, Shot06VoiceSynced, Shot07VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
+import {UserDatabaseHappyPathV1} from './episodes/ep001/live-diagram/UserDatabaseHappyPathV1';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -233,6 +234,15 @@ export const Root: React.FC = () => {
           audioUrl:'',audioClips:[],durationInFrames:6000,
           anchors:{},comprehensionHolds:[],
         }}
+      />
+      <Composition
+        id="EP001-Shot08-VisualDraft"
+        component={UserDatabaseHappyPathV1}
+        durationInFrames={dynamicDuration ?? 2850}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:2850,anchors:{}}}
       />
       <Composition
         id="EP001-Studio-DirectorPlan"
