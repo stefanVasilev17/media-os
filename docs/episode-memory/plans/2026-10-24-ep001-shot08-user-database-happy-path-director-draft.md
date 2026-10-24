@@ -75,3 +75,12 @@ Five independently revisable voice blocks. Working visual timing **0:00–1:35 (
 - **Initial visual-only preview render ID:** `b4988c23-309d-473a-8818-e994b1398b34`. 1280×720 FAST_PREVIEW, 2850 frames / 95 seconds @30 fps, **render submission accepted** at 2026-10-24T18:23:47Z. Worker claimed the job and reached 5%; no completion or validated MP4 has yet been recorded in this checkpoint.
 - This is an explicitly **silent** visual draft, without generated or synchronized voice. Input props intentionally omit `shotKey` and `scriptRevision` to prevent the worker from accidentally assigning a draft preview as SHOT08's active master. Prior Director-approved 01–07 native locks and 12:18 cumulative preview were verified unchanged on submission.
 - This initial code and script remain **NOT LOCKED**; voice mood, script, approximate visual timing and final output will be refined based on Director Review.
+
+## Verified visual-only MP4 — 2026-10-24
+
+- Standalone render `b4988c23-309d-473a-8818-e994b1398b34` completed successfully 2026-10-24T18:27:30Z.
+- Actual status `READY`; duration 2,850 frames / 95 seconds; 1280×720 at 30 FPS; 4,422,748 bytes; `FAST_PREVIEW`; *silent visual-only draft*.
+- Direct review video: https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/b4988c23-309d-473a-8818-e994b1398b34/video
+- Independent video delivery check: HTTP 206, `video/mp4`, byte range `0-127/4422748`, valid `ftyp` header.
+- The cumulative SHOT01–07 preview remains `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`; native SHOT01–07 locks all remained QA PASS.
+- **Next:** Director reviews SHOT08 silent camera + scan + account facts motion, then voice script / voice generation and final audio synchronization. **Do not treat this visual draft as Director LOCKED.**
