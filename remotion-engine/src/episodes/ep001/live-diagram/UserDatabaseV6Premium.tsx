@@ -36,7 +36,7 @@ const OriginalMap:React.FC<{frame:number;dim:number}>=({frame,dim})=>{
  const live=engage*release;
  const trace=ease(frame,t(3.3),t(8.0));
  return <div style={{position:'absolute',inset:0,opacity:1-dim*.84,
-  filter:'blur('+(dim*4.5)+'px)',transform:'scale('+(1+dim*.02)+')',
+  filter:'blur('+(dim*2.8)+'px)',transform:'scale('+(1+dim*.02)+')',
   transformOrigin:'55% 54%'}}>
   <Sequence from={-4881}><AuthServiceTier2V10YoutubePreview
      durationInFrames={4882} anchors={ANCHORS} clipStarts={STARTS}/></Sequence>
@@ -106,8 +106,8 @@ const UserRow:React.FC<{frame:number;index:number;record:typeof rows[number];mat
  const offset=selected?-39*lift:0;
  return <g opacity={shown*faded} transform={'translate(0 '+offset+')'}>
    <rect x={179} y={y} width={1546} height={90} rx={12}
-     fill={selected?'#103C54':'#0C2A43'} fillOpacity={.57+(selected?.29*match:0)}
-     stroke={selected?'#6AE9FA':'#3C607D'}
+     fill={selected&&match>.04?'#103C54':'#0C2A43'} fillOpacity={.57+(selected?.29*match:0)}
+     stroke={selected&&match>.04?'#6AE9FA':'#3C607D'}
      strokeOpacity={selected?.27+.69*match:.27} strokeWidth={selected?2.7:1.1}/>
    {columnX.slice(1).map((x,i)=><path key={i}
       d={'M '+x+' '+(y+11)+' V '+(y+78)}
@@ -239,7 +239,7 @@ export const UserDatabaseV6Premium:React.FC<Props>=({durationInFrames,anchors={}
    (1-ease(frame,t(open+1.4),t(open+2.5)));
  return <div style={{position:'absolute',inset:0,width:W,height:H,
    overflow:'hidden',background:C.bg,isolation:'isolate',fontFamily:AT_FONT}}>
-  <OriginalMap frame={frame} dim={ambient}/>
+  {frame<t(open+3.5)&&<OriginalMap frame={frame} dim={ambient}/>}
   <div style={{position:'absolute',inset:0,opacity:fade,
     transform:'translateY('+shift+'px)',pointerEvents:'none'}}>
    <DatabaseScreen frame={frame} beats={beats}/>
