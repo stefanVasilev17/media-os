@@ -1,5 +1,5 @@
 import React from 'react';
-import {Easing,Freeze,interpolate,useCurrentFrame} from 'remotion';
+import {Easing,Sequence,interpolate,useCurrentFrame} from 'remotion';
 import {AT_FONT} from '../../../components/architectural-thinking';
 import {AuthServiceTier2V10YoutubePreview} from './AuthServiceTier2V10YoutubePreview';
 
@@ -34,10 +34,10 @@ const OriginalMap:React.FC<{frame:number;fade:number}>=({frame,fade})=>{
  const scanner=ease(frame,t(2.1),t(3.7))*(1-ease(frame,t(8.9),t(11.1)));
  const sweep=((frame-t(2))*1.20)%163;
  return <div style={{position:'absolute',inset:0,opacity:fade}}>
-  <Freeze frame={4881}>
+  <Sequence from={-4881}>
    <AuthServiceTier2V10YoutubePreview durationInFrames={4882}
      anchors={ANCHORS} clipStarts={STARTS}/>
-  </Freeze>
+  </Sequence>
   <svg width={W} height={H} viewBox="0 0 1920 1080"
    style={{position:'absolute',inset:0,pointerEvents:'none'}}>
    <defs>
