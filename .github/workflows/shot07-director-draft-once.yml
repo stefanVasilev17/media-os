@@ -1,4 +1,4 @@
-name: SHOT07 Director v6 Auth Screen Visibility — one-shot
+name: SHOT07 Director v7 Auth–Database animated lookup — one-shot
 
 on:
   push:
@@ -34,6 +34,13 @@ jobs:
           done
           echo "Director v6 visual contract unavailable; refusing legacy render" >&2
           exit 1
+      - name: Verify v7 lookup choreography is selected
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'AuthServiceTier2V7YoutubePreview' remotion-engine/src/episodes/ep001/live-diagram/VoiceSyncedShot.tsx
+          grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V7YoutubePreview.tsx
+          ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V7YoutubePreview.tsx
       - name: Verify five approved clips and queue isolated DRAFT render
         env:
           MEDIAOS_BASE: https://media-os-backend-production.up.railway.app
