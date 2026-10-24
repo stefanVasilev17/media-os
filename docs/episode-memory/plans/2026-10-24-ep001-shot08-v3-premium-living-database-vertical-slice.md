@@ -46,3 +46,13 @@
 - Semantic motion: one original green request WAITING; one cyan lookup OUT; one cyan account facts IN. Never pre-approve account as AUTHENTICATED.
 - 5–10s meaningful visual transformation; purposeful camera; 0.5–2s settles/holds at key reveals.
 - Review **30s high-quality visual-only vertical slice first**. Only expand full SHOT08 after Director approves style and camera; then record voice/sync/QA/LOCK.
+
+## V3 implementation checkpoint
+
+- `remotion-engine/src/episodes/ep001/live-diagram/Shot08V3PremiumSlice.tsx` is a new independent production preview component. It includes a `Freeze` of the **exact terminal frame 4881 / 4882** of locked `AuthServiceTier2V10YoutubePreview` using the production database's exact 29+ key voice-alignment anchor values and clip starts `[24,952,1821,2940,3915]`. Neither the original SHOT07 code nor its voice clips were edited.
+- The v3 opening camera formula was corrected to make initial camera translation **exactly zero**; focus moves from original DB map coordinate `(1733,613)` toward viewport center `(960,540)`, with bounded scale from 1.0 to 2.56. The interior mini-world fades in only after the camera pushes toward the node.
+- The **first 30-second 900-frame slice** includes actual existing map → camera push → three-dimensional-looking layered storage cylinder → isolated record prisms `ACCOUNT 041, 042, 043` → animated extraction of selected account 042, with meaningful labels but **no GUI dashboard cards**.
+- Remotion composition registered independently as `EP001-Shot08-PremiumSlice-V3` at 1920×1080/30 fps, render profile `EP001_SHOT08_PREMIUM_SLICE_V3` supporting 1280×720 FAST_PREVIEW. Neither SHOT08 v1/v2 nor native SHOT01–07 masters are overwritten.
+- Isolated Bun TSX compiler test passed: `V3_30S_TSX_PARSE_PASS`. This confirms syntax, **not** visual quality, browser execution, first-frame pixel identity or runtime MP4.
+- Native backend and worker deployments were requested; transient Docker Hub `502 Bad Gateway` affected the first pre-fix commit's image build, then later builds proceeded. The render must only be submitted after compatible backend and worker deployments and all seven native locks remain unchanged.
+- Next review gate: **30-second silent preview MP4**, comparing source continuity, camera framing, legibility and actual spatial-archive execution. The scope of v3 remains Director DRAFT/NOT LOCKED; role/permissions and verifier redesign should be completed only after the director approves these first 30 seconds.
