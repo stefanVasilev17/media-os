@@ -43,8 +43,8 @@ const Text:React.FC<{
 const TerminalWorld:React.FC<{frame:number}>=({frame})=>{
   const focus=ease(frame,164,357);
   const depth=1+1.56*focus;
-  const offsetX=960-1733*depth;
-  const offsetY=540-613*depth;
+  const offsetX=focus*(960-1733*depth);
+  const offsetY=focus*(540-613*depth);
   return <div style={{position:'absolute',inset:0,overflow:'hidden',background:T.navy}}>
     <div style={{position:'absolute',width:W,height:H,left:0,top:0,
       transformOrigin:'0 0',transform:'translate('+offsetX+'px,'+offsetY+'px) scale('+depth+')'}}>
