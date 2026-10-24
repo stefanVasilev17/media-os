@@ -37,3 +37,12 @@
 - Both v5 preview job submissions were guarded by MediaOS verification of 7 previously director-LOCKED/QA PASS shot masters and cumulative preview id `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c` unchanged.
 - **IMPORTANT:** v5.1 is a silent visual-only review candidate, NO approved SHOT08 voice pack or synchronized narration exists. Prior chat comments about a completed sound design do not establish audio in the encoded MP4; no audio has been mixed yet. The row-scan cues are provisional until approved voice/audio is obtained.
 - **Next:** after corrected render reports READY, check HTTP partial MP4 delivery and extract at least 0/9/12/24/34/42/50s frames. Only then share corrected review link. Director must approve before creative/native LOCK or adding to cumulative preview.
+
+## V5.1 corrected full video — DIRECTOR REVIEW READY (2026-10-24)
+
+- Corrected full 55-second candidate `41864a99-2211-420b-b9b5-fca1fbe706fe` was rendered successfully using source commit `5ddc11adfd4e50fd28ff9990991e8f00e1c75cd5`. Status READY; 1650 frames / 55 seconds, 1280×720, 30fps, 1,729,189 bytes, Remotion engine `AT_REMOTION_5ddc11adfd4e_20261024214235`.
+- Direct MP4: https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/41864a99-2211-420b-b9b5-fca1fbe706fe/video
+- Independently tested MP4 ranged delivery HTTP 206, Content-Type video/mp4, valid MP4 `ftyp` header and matching length.
+- 7 actual encoded video frame images successfully extracted at 0, 9, 12, 24, 34, 42 and 50 seconds. **Visually inspected:** 0/9s original SHOT07 Living Architecture overview with Auth `LOGIN WAITING` and DB scan; 12s opened new modern DB search; 24s populated rows and columns; 34s highlighted exact `ACCOUNT 0042` / `alex@example.com`; 42s correct row lifted and data ribbon revealed. New transition avoids previous incorrect Auth phone detail opening.
+- MediaOS verified native SHOT01–07 all remain LOCKED with QA PASS, unchanged exact Director approved cumulative preview render `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
+- **Director approval has NOT been given**, no native SHOT08 lock, no integration into cumulative episode. MP4 is a **silent visual-only preview**: no voice pack, voice synchronization or SFX mix has been added. Previous statements that sound effects were already prepared were inaccurate as descriptions of the actual rendered MP4. Cues remain provisional until approved SHOT08 voice.
