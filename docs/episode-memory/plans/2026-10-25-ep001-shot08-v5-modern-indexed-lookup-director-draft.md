@@ -20,3 +20,11 @@
 - Cue anchors DB_SCAN and DB_TABLE_OPEN; once actual Director-approved SHOT08 voice exists, re-align all search/match/reveal moments to word-timed voice. CURRENT V5 IS A SILENT VISUAL DRAFT: do not claim existing approved audio or fake audio sync.
 - Protect locked SHOT01–07, existing exact render IDs, QA PASS and approved 12:18.1 cumulative MP4 render 1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c.
 - V1–V4 remain archived/rejected; do not overwrite. V5 must undergo Director Review before any LOCK.
+## 2026-10-25 visual QA correction and re-render
+
+- Initial 55-sec v5 render `800b1cd3-8ed6-439f-84cb-9a32f133d05d` completed READY, but frame-by-frame sampled QA revealed **wrong opening frame** (Auth Service detail screen, not living architecture map). Therefore **rejected as Director-ready despite valid video.**
+- Cause: wrapping the SHOT07 scene in `<Freeze frame={4881}>` did not produce the intended last-frame render in this nested context. Fixed source in commit `5ddc11ad` using `<Sequence from={-4881}>` so this scene's local `useCurrentFrame()` is evaluated as the correct SHOT07 final frame.
+- Independent 2-sec opening QA render `44a901c9-4628-45f5-9e55-6d2bab12623a` rendered successfully and sampled frames at seconds 0 and 1. **Visually confirmed** first frame displays original full Living Architecture Map with gateway/balancer/auth/database, green Login Waiting, and DB cyan storage scan; no Auth Service detail card.
+- Corrected full 55-second v5 preview `23e4b4b1-b4b2-4a9d-b4ca-82d99d45da3d` was accepted as **QUEUED** at `2026-10-24T21:59:44.750555Z`, composition `EP001-Shot08-TableLookup-V5`, FAST_PREVIEW 1280×720, 1650 frames at 30fps, `engineVersion AT_REMOTION_5ddc11adfd4e_20261024214235`.
+- Protected SHOT01–07 native locks and existing approved 12:18 montage remained unchanged at submission. No SHOT08 native or Director LOCK.
+- New output status must be verified READY and playable before presenting as finished. It is a **silent** visual-only preview; no approved revised SHOT08 voice exists, and no audio/SFX has actually been mixed into this output yet.
