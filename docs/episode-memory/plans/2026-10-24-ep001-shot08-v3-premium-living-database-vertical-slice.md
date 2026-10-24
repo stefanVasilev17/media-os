@@ -56,3 +56,11 @@
 - Isolated Bun TSX compiler test passed: `V3_30S_TSX_PARSE_PASS`. This confirms syntax, **not** visual quality, browser execution, first-frame pixel identity or runtime MP4.
 - Native backend and worker deployments were requested; transient Docker Hub `502 Bad Gateway` affected the first pre-fix commit's image build, then later builds proceeded. The render must only be submitted after compatible backend and worker deployments and all seven native locks remain unchanged.
 - Next review gate: **30-second silent preview MP4**, comparing source continuity, camera framing, legibility and actual spatial-archive execution. The scope of v3 remains Director DRAFT/NOT LOCKED; role/permissions and verifier redesign should be completed only after the director approves these first 30 seconds.
+
+## Native V3 preview render submitted
+
+- Independent 30s Remotion composition `EP001-Shot08-PremiumSlice-V3`, 900 frames, 30 FPS, 1280×720 FAST_PREVIEW, *silent*.
+- **Render ID** `59ac4969-d588-46f9-b0eb-b9a2c37ec323`, queued at 2026-10-24T20:33:38Z after compatible backend `1e292f0f` and worker `0f125658` deployments reached SUCCESS.
+- Worker claimed 2026-10-24T20:33:45Z and reported 20% progress. Until completed and independently validated, **do not claim video READY**.
+- Guard read all SHOT01–07 `locked=true`, `qaStatus=PASS`, exact native render IDs equal locked IDs and current Director-approved cumulative preview remains `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
+- V3 does not modify script revision 3, previous voice-over, native SHOT01–07 source compositions, or SHOT08 v1/v2.
