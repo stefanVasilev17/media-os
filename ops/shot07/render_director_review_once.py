@@ -13,8 +13,8 @@ from urllib.request import Request, urlopen
 BASE = os.environ.get("MEDIAOS_BASE", "https://media-os-backend-production.up.railway.app").rstrip("/")
 FPS = 30
 GAPS = (36, 30, 45, 36)
-LEGACY_REVIEW_IDS = {"37a47af3-a8fe-4fc5-b421-398f10380f7b", "8fcc80df-4299-42ce-b458-8b1d1d4b7373", "8822900c-b8d0-41f4-9209-7cfb4749da43", "ff2f2cef-fcda-42ee-b293-0b0255f9bcff", "f8ad727b-34ab-4410-a6de-356d81a31763", "bdeab4a8-70df-4995-9b28-b72a473d780b", "a9cd36f8-5898-4132-bafc-45112d316248"}
-REVISION = "DIRECTOR_AUTH_DB_VISIBLE_SCAN_V9_REVIEW"
+LEGACY_REVIEW_IDS = {"37a47af3-a8fe-4fc5-b421-398f10380f7b", "8fcc80df-4299-42ce-b458-8b1d1d4b7373", "8822900c-b8d0-41f4-9209-7cfb4749da43", "ff2f2cef-fcda-42ee-b293-0b0255f9bcff", "f8ad727b-34ab-4410-a6de-356d81a31763", "bdeab4a8-70df-4995-9b28-b72a473d780b", "a9cd36f8-5898-4132-bafc-45112d316248", "88aed1cd-0945-4969-b489-ac031c6c2766"}
+REVISION = "DIRECTOR_IPHONE_DB_SCAN_V10_REVIEW"
 PHRASES = (
     (
         ("AUTH_ARRIVAL", "Our Login Request has finally reached the Auth Service"),
