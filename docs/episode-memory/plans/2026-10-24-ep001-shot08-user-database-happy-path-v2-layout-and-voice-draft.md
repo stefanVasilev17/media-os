@@ -69,3 +69,12 @@ C05: “The database sends the account facts back to Auth Service. The cyan repl
 - v2 code path: `remotion-engine/src/episodes/ep001/live-diagram/UserDatabaseHappyPathV2.tsx`. Independent Remotion composition: `EP001-Shot08-VisualDraft-V2`, 1920×1080 design coordinates, `FAST_PREVIEW` 1280×720, 30 fps, 2,850 frames (95 seconds).
 - Older `EP001-Shot08-VisualDraft` v1 remains available for reference. Do not overwrite it. No voice generated or altered by standalone preview. No active SHOT08 native render registration yet.
 - Director must review the new v2 output before we call the visual LOCK or produce locked synchronized voice.
+
+## Implementation & render submission checkpoint — 2026-10-24
+
+- V2 visual component `UserDatabaseHappyPathV2.tsx` committed, with native four-card SVG map and no nested/shifted v1 backdrop. Independent Bun TSX compilation test succeeded (15,617 bytes source); required v2 content checks passed, old `SETTINGS` text absent.
+- Remotion composition: `EP001-Shot08-VisualDraft-V2` (independent from original `EP001-Shot08-VisualDraft`). Backend render profile registered as `EP001_SHOT08_VISUAL_DRAFT_V2`.
+- Railway worker commit `c727c399` and backend commit `35521c9f` successfully deployed and composition availability independently confirmed.
+- **V2 95-second visual-only FAST_PREVIEW queued:** render ID `06c6fee5-6918-45dc-8d0d-0435d9e80cd5`, 1280×720 at 30 FPS, 2850 frames; claimed by Railway worker at 2026-10-24T19:03:44Z. Do not claim a ready playable MP4 until the worker completes and HTTP video delivery is checked.
+- Before submitting the V2 draft, MediaOS confirmed SHOT 01–07 are all native LOCKED with QA PASS and the exact previous 12:18 cumulative Director LOCK preview remained `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`. V2 preview input intentionally omits `shotKey`/`scriptRevision` to prevent accidental native SHOT08 master mutation. No voice generation or locked-source rewrite performed.
+- **Status: SHOT08 V2 VISUAL-ONLY DIRECTOR REVIEW, NOT LOCKED.**
