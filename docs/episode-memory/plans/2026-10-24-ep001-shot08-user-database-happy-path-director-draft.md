@@ -67,3 +67,11 @@ Five independently revisable voice blocks. Working visual timing **0:00–1:35 (
 ## Director review gates
 
 **Director to approve or revise:** English wording/voice mood, approximate duration, physical database representation, amount of detail about role/scope vs credential verifier, and hand-off composition. All visual/voice changes to SHOT08 are permitted while it is DRAFT; previous seven locked shots are untouched.
+
+## Implementation checkpoint — 2026-10-24
+
+- Draft visual component: `remotion-engine/src/episodes/ep001/live-diagram/UserDatabaseHappyPathV1.tsx`; isolated fully procedural SVG/React. It uses existing Living Architecture Map and does not alter any locked SHOT01–07 source composition.
+- Separate Remotion ID: `EP001-Shot08-VisualDraft` registered in `remotion-engine/src/Root.tsx`. Native backend render profile was registered separately. The 2026-10-24 deployments of the worker at `69cc68ab` and backend at `7d09f6e1` succeeded. Standalone TSX syntax parser passed.
+- **Initial visual-only preview render ID:** `b4988c23-309d-473a-8818-e994b1398b34`. 1280×720 FAST_PREVIEW, 2850 frames / 95 seconds @30 fps, **render submission accepted** at 2026-10-24T18:23:47Z. Worker claimed the job and reached 5%; no completion or validated MP4 has yet been recorded in this checkpoint.
+- This is an explicitly **silent** visual draft, without generated or synchronized voice. Input props intentionally omit `shotKey` and `scriptRevision` to prevent the worker from accidentally assigning a draft preview as SHOT08's active master. Prior Director-approved 01–07 native locks and 12:18 cumulative preview were verified unchanged on submission.
+- This initial code and script remain **NOT LOCKED**; voice mood, script, approximate visual timing and final output will be refined based on Director Review.
