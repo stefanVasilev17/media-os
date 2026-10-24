@@ -11,6 +11,7 @@ import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSync
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
 import {UserDatabaseHappyPathV1} from './episodes/ep001/live-diagram/UserDatabaseHappyPathV1';
 import {UserDatabaseHappyPathV2} from './episodes/ep001/live-diagram/UserDatabaseHappyPathV2';
+import {Shot08V3PremiumSlice} from './episodes/ep001/live-diagram/Shot08V3PremiumSlice';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -253,6 +254,15 @@ export const Root: React.FC = () => {
         width={1920}
         height={1080}
         defaultProps={{durationInFrames:2850,anchors:{}}}
+      />
+      <Composition
+        id="EP001-Shot08-PremiumSlice-V3"
+        component={Shot08V3PremiumSlice}
+        durationInFrames={dynamicDuration ?? 900}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:900}}
       />
       <Composition
         id="EP001-Studio-DirectorPlan"
