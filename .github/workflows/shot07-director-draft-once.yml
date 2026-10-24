@@ -1,4 +1,4 @@
-name: SHOT07 Director v7 Auth–Database animated lookup — one-shot
+name: SHOT07 Director v8 Native Database Scan — one-shot
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  statuses: read
 
 concurrency:
   group: ep001-shot07-director-one-shot-review
@@ -17,31 +18,41 @@ concurrency:
 jobs:
   queue-director-review:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 15
     steps:
-      - name: Checkout exact director-review producer
+      - name: Check out exact v8 source
         uses: actions/checkout@v4
-      - name: Wait until exact Tier++ Director Visual Contract is live
-        run: |
-          for attempt in $(seq 1 90); do
-            if curl --fail --silent --show-error --max-time 12 \
-                https://media-os-backend-production.up.railway.app/api/v1/director-visual-contract/shot-07 \
-                | python3 -c "import json,sys; d=json.load(sys.stdin); assert d['ready'] and d['payload']['source']=='DIRECTOR_AUTH_SCREEN_VISIBLE_V6_2026_10_24'"; then
-              echo "Director v6 visual contract verified"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Director v6 visual contract unavailable; refusing legacy render" >&2
-          exit 1
-      - name: Verify v7 lookup choreography is selected
+      - name: Ensure v8 renderer source and remove unsupported overlays
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'AuthServiceTier2V7YoutubePreview' remotion-engine/src/episodes/ep001/live-diagram/VoiceSyncedShot.tsx
-          grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V7YoutubePreview.tsx
-          ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V7YoutubePreview.tsx
-      - name: Verify five approved clips and queue isolated DRAFT render
+          grep -q 'AuthServiceTier2V8YoutubePreview' remotion-engine/src/episodes/ep001/live-diagram/VoiceSyncedShot.tsx
+          grep -q 'v8-db-native-mask' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V8YoutubePreview.tsx
+          ! grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V8YoutubePreview.tsx
+          ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V8YoutubePreview.tsx
+          grep -q 'DIRECTOR_AUTH_DB_NATIVE_SCAN_V8_REVIEW' ops/shot07/render_director_review_once.py
+      - name: Wait for exact v8 worker deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 120); do
+            state="$(gh api repos/stefanVasilev17/media-os/commits/b9fa7ac3b7c9e16d22a13c80e5aa8f4158aca081/status --jq '[.statuses[] | select(.context=="MediaOS - media-os-render-worker")][0].state // "pending"')"
+            echo "v8 worker: $state"
+            if [ "$state" = success ]; then exit 0; fi
+            if [ "$state" = failure ] || [ "$state" = error ]; then exit 1; fi
+            sleep 5
+          done
+          echo "v8 worker was not deployed. No stale render queued." >&2
+          exit 1
+      - name: Verify Director v6 visual contract, keep immutable voices
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 20 https://media-os-backend-production.up.railway.app/api/v1/director-visual-contract/shot-07 |
+            python3 -c "import json,sys; d=json.load(sys.stdin); assert d['ready'] and d['payload']['source']=='DIRECTOR_AUTH_SCREEN_VISIBLE_V6_2026_10_24'"
+      - name: Queue separate v8 1080p voice-synced director-review video
         env:
           MEDIAOS_BASE: https://media-os-backend-production.up.railway.app
         run: python3 ops/shot07/render_director_review_once.py
