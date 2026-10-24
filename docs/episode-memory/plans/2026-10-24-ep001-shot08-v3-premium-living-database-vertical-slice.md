@@ -64,3 +64,11 @@
 - Worker claimed 2026-10-24T20:33:45Z and reported 20% progress. Until completed and independently validated, **do not claim video READY**.
 - Guard read all SHOT01–07 `locked=true`, `qaStatus=PASS`, exact native render IDs equal locked IDs and current Director-approved cumulative preview remains `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
 - V3 does not modify script revision 3, previous voice-over, native SHOT01–07 source compositions, or SHOT08 v1/v2.
+
+## Verified V3 vertical-slice delivery — 2026-10-24
+
+- Render `59ac4969-d588-46f9-b0eb-b9a2c37ec323` completed at 2026-10-24T20:35:07Z and is **READY**, `EP001-Shot08-PremiumSlice-V3`, FAST_PREVIEW 1280×720 at 30fps, 900 frames / 30s, **2,575,020 bytes**.
+- Direct video: https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/59ac4969-d588-46f9-b0eb-b9a2c37ec323/video
+- HTTP delivery independently checked: `206 Partial Content`, `Content-Type: video/mp4`, valid 128-byte range and `ftyp` MP4 signature. Backend and worker v3 builds succeeded after earlier DockerHub image metadata 502.
+- Final MediaOS state independently verified: SHOT01–07 all native LOCKED with QA PASS and unchanged `lockedRenderId`/`renderId`; current 12:18 combined Director-approved preview still `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
+- **IMPORTANT:** READY means generated/playable; it does **not** mean the Director judged the 30s footage Tier++ or visually approved it. V3 remains DRAFT, awaiting review of exact scene continuity, camera focus, record slab depth, contrast, motion and readability. No SHOT08 voice produced; no SHOT08 Director LOCK and no change to prior masters.
