@@ -86,3 +86,12 @@ C05: “The database sends the account facts back to Auth Service. The cyan repl
 - Backend `AT_REMOTION_35521c9f55f4_20261024185858` confirmed v2 composition available before accepting a render.
 - **Accepted visual-only V2 render ID:** `f06fef7e-99b2-4186-91ab-8bebfd8a6be2`, `FAST_PREVIEW` 1280×720, 2,850 frames / 95 seconds @30 fps. At this writing it was **QUEUED**, not yet confirmed READY or delivered over HTTP. Do not link as a completed MP4 until independent completion/delivery QA passes.
 - Seven native Director LOCKs and cumulative preview `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c` were verified unchanged. No SHOT08 voice was generated and no SHOT08 native Director LOCK was applied.
+
+## Verified completed V2 preview — 2026-10-24
+
+- Railway Remotion worker successfully completed V2 visual-only preview `06c6fee5-6918-45dc-8d0d-0435d9e80cd5` at **2026-10-24T19:13:21Z**.
+- Render `READY`, composition `EP001-Shot08-VisualDraft-V2`, `FAST_PREVIEW`, 1280×720, 30 fps, 2,850 frames, **95 seconds**, **4,132,090 bytes**.
+- Direct video: https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/06c6fee5-6918-45dc-8d0d-0435d9e80cd5/video
+- Independent MediaOS network verification: HTTP **206**, `video/mp4`, `Content-Range: bytes 0-127/4132090`, valid `ftyp` MP4 header.
+- Native SHOT01–07 remain **LOCKED** with all **QA PASS**, and the same immutable cumulative preview ID `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
+- **Next:** Director visually assesses V2 composition before any creative lock or voice synchronization. This preview is **visual-only, NOT LOCKED**.
