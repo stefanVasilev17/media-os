@@ -1,4 +1,4 @@
-name: SHOT07 Director v8 Native Database Scan — one-shot
+name: SHOT07 Director v8 Native Database Scan — safe fresh review
 
 on:
   push:
@@ -31,6 +31,7 @@ jobs:
           ! grep -q 'SEARCHING RECORD' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V8YoutubePreview.tsx
           ! grep -q 'The original request stays. A different request moves.' remotion-engine/src/episodes/ep001/live-diagram/AuthServiceTier2V8YoutubePreview.tsx
           grep -q 'DIRECTOR_AUTH_DB_NATIVE_SCAN_V8_REVIEW' ops/shot07/render_director_review_once.py
+          grep -q 'a9cd36f8-5898-4132-bafc-45112d316248' ops/shot07/render_director_review_once.py
       - name: Wait for exact v8 worker deployment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -52,7 +53,7 @@ jobs:
           set -euo pipefail
           curl -fsS --max-time 20 https://media-os-backend-production.up.railway.app/api/v1/director-visual-contract/shot-07 |
             python3 -c "import json,sys; d=json.load(sys.stdin); assert d['ready'] and d['payload']['source']=='DIRECTOR_AUTH_SCREEN_VISIBLE_V6_2026_10_24'"
-      - name: Queue separate v8 1080p voice-synced director-review video
+      - name: Queue clean v8 1080p voice-synced director-review video
         env:
           MEDIAOS_BASE: https://media-os-backend-production.up.railway.app
         run: python3 ops/shot07/render_director_review_once.py
