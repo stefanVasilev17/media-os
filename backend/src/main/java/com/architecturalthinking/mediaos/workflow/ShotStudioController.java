@@ -75,7 +75,13 @@ public class ShotStudioController {
             select id from studio_shot where episode_id=:episode and shot_number=:number
             """).param("episode",EPISODE).param("number",shotNumber)
             .query(UUID.class).optional().orElse(null);
-        if(existing!=null)return shot(existing);
+        if(existing!=null){
+            Map<String,Object> found=shot(existing);
+            if(!key.equals(found.get("sourceShotKey")))
+                throw conflict("Studio "+key+" is an independent Director working draft, not an "
+                    +"original LOCKED Script working copy. The original voice was not changed.");
+            return found;
+        }
 
         int scriptRevision=db.sql("""
             select current_revision from production_stage
