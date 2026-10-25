@@ -69,6 +69,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP001_SHOT08_PREMIUM_V7", EP001_ID, 1920, 1080, 30, 1650, true)),
             Map.entry("EP001-Shot08-PremiumV8",
                 new CompositionProfile("EP001_SHOT08_PREMIUM_V8", EP001_ID, 1920, 1080, 30, 1650, true)),
+            Map.entry("EP001-Shot08-DirectorVoiceV9",
+                new CompositionProfile("EP001_SHOT08_DIRECTOR_VOICE_V9", EP001_ID, 1920, 1080, 30, 4690, true)),
             Map.entry("EP001-Studio-DirectorPlan",
                 new CompositionProfile("EP001_STUDIO_DIRECTOR_PLAN", EP001_ID, 1920, 1080, 30, 3900, true)),
             Map.entry("EP001-Studio-LivingMapDraft",
