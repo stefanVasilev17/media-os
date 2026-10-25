@@ -365,6 +365,15 @@ export const Root: React.FC = () => {
         defaultProps={{durationInFrames:4090,audioClips:[]}}
       />
       <Composition
+        id="EP001-Shot09-DirectorVoiceV4"
+        component={Shot09DirectorVoiceV3}
+        durationInFrames={dynamicDuration ?? 4090}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:4090,audioClips:[]}}
+      />
+      <Composition
         id="EP001-Studio-DirectorPlan"
         component={StudioDirectorPlanPreview}
         durationInFrames={dynamicDuration ?? 3900}
