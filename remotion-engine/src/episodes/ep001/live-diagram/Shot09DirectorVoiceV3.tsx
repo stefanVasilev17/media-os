@@ -68,8 +68,6 @@ const Header:React.FC<{time:number;phase:string;sub:string;children:React.ReactN
  <circle cx={132} cy={126} r={11} fill={C.mint}/>
  <circle cx={132} cy={126} r={20+5*wave(time,3)} fill={C.mint} opacity=".07"/>
  <T x={164} y={122} size={35} weight={870}>AUTH SERVICE</T>
- <T x={164} y={159} size={19} weight={740} color={C.muted}>{sub}</T>
- <Capsule x={1416} y={102} w={349} label={phase} color={C.cyan}/>
  {children}
  <path d="M 200 1015 H 1720" stroke={C.cyan} strokeWidth={2} opacity=".23"/>
  <path d={'M 200 1015 H '+(200+1520*clamp(time/136.333))} stroke={C.mint} strokeWidth={4} opacity=".72"/>
