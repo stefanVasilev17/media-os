@@ -77,3 +77,6 @@ export const prepareDirectorShot10Studio = () =>
   request<{ ready: boolean; alreadyPrepared: boolean; studioShotId: string; message: string }>(
     route + '/prepare-studio-voice', 'POST', {}
   );
+
+export const renderDirectorShot10V7 = () =>
+  request<{ renderId: string; status: string }>(route + '/render-v7', 'POST', {});
