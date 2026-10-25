@@ -4,7 +4,7 @@ import {AT_FONT} from '../../../components/architectural-thinking';
 import {NetworkTransitYoutubePreview} from './NetworkTransitYoutubePreview';
 import {SHOT04_DURATION_FRAMES} from './shot04Timing';
 
-type Props = {durationInFrames:number; anchors?:Record<string,number>; clipStarts?:number[]};
+type Props = {durationInFrames:number; anchors?:Record<string,number>; clipStarts?:number[]; showFoundAccountRecord?:boolean};
 const W=1920, H=1080, BG='#081B34', WHITE='#F6F8FF', MUTED='#B2C5E1';
 const TEAL='#42E6C5', BLUE='#29B9FF', PURPLE='#8C83FF';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
@@ -315,8 +315,8 @@ const Facts:React.FC<{show:number;lookup:number}>=({show,lookup})=><g>
 
 const ReturnMap:React.FC<{
   progress:number;waiting:number;travel:number;internal:number;question:number;
-  account:number;facts:number;frame:number
-}>=({progress,waiting,travel,question,account,facts,frame})=>{
+  account:number;facts:number;frame:number;showFoundAccountRecord?:boolean
+}>=({progress,waiting,travel,question,account,facts,frame,showFoundAccountRecord=false})=>{
   const arrival=clamp((travel-.80)/.20);
   const active=clamp(Math.max(arrival,question*.38,account*.95,facts));
   const cycle=((frame*.013)%1+1)%1;
@@ -376,6 +376,25 @@ const ReturnMap:React.FC<{
       <g clipPath="url(#v10-db-window)">
         <rect x={1635} y={552} width={199} height={153}
           fill="#051F3E" fillOpacity=".86"/>
+        {showFoundAccountRecord ? (
+          <g>
+            <rect x={1644} y={558} width={179} height={141} rx={10}
+              fill="#082B45" stroke="#60EFC7" strokeWidth={1.5} strokeOpacity=".84"/>
+            <rect x={1654} y={569} width={159} height={29} rx={8}
+              fill="#114B52" stroke="#60EFC7" strokeWidth={1.1} strokeOpacity=".76"/>
+            <Text x={1733} y={589} size={17} anchor="middle" weight={840}
+              color="#89FFE1">RECORD FOUND</Text>
+            <Text x={1733} y={635} size={36} anchor="middle" weight={900}
+              color="#F6FEFF">0042</Text>
+            <Text x={1733} y={660} size={14.5} anchor="middle" weight={730}
+              color="#C6EFFB">alex@example.com</Text>
+            <rect x={1679} y={672} width={108} height={22} rx={8}
+              fill="#144C47" stroke="#60EFC7" strokeWidth={1}/>
+            <Text x={1733} y={689} size={16} anchor="middle" weight={860}
+              color="#60EFC7">ACTIVE</Text>
+          </g>
+        ) : (
+          <>
         <g opacity={.98}>
           {[0,1,2].map((index)=>{
             const top=562+index*43;
@@ -409,16 +428,18 @@ const ReturnMap:React.FC<{
         <path d={"M 1646 "+(scanY-5)+" H 1822"}
           stroke="#10E8FF" strokeWidth={9} strokeLinecap="round"
           opacity=".20"/>
+          </>
+        )}
       </g>
-      <circle cx={1733} cy={613} r={33} fill="none"
+      {!showFoundAccountRecord&&<circle cx={1733} cy={613} r={33} fill="none"
         stroke="#4EE7FF" strokeWidth={2.2}
-        strokeOpacity={.32+.15*shimmer}/>
+        strokeOpacity={.32+.15*shimmer}/>}
     </g>
   </g>;
 };
 
 export const AuthServiceTier2Shot08BridgeV8:React.FC<Props>=({
- durationInFrames,anchors={},clipStarts=[]
+ durationInFrames,anchors={},clipStarts=[],showFoundAccountRecord=false
 })=>{
  const frame=useCurrentFrame();
  const fallback=[0,.2,.4,.6,.8].map(v=>Math.floor(durationInFrames*v));
@@ -502,7 +523,7 @@ export const AuthServiceTier2Shot08BridgeV8:React.FC<Props>=({
        </defs>
        <ReturnMap progress={mapIn} waiting={waiting} travel={lookupTravel}
          internal={internal} question={question} account={account}
-         facts={stored} frame={frame}/>
+         facts={stored} frame={frame} showFoundAccountRecord={showFoundAccountRecord}/>
      </svg>
    )}
  </div>;
