@@ -123,7 +123,7 @@ const Overview:React.FC<{time:number}>=({time})=>{
       <rect x={110} y={72} width={1042} height={99} rx={19} fill="url(#reuse09v3-head)"
         stroke={C.cyan} strokeWidth={1.8}/>
       <circle cx={145} cy={122} r={8} fill={C.mint}/>
-      <T x={170} y={119} size={30} weight={880}>SAME LIVING ARCHITECTURE MAP</T>
+      <T x={170} y={119} size={30} weight={880}>LOGIN ARCHITECTURE</T>
       <T x={170} y={154} size={21} color={C.muted}>ACCOUNT FACTS HAVE RETURNED  /  AUTH SERVICE CONTINUES</T>
      </g>
      <g opacity={database*(1-target*.35)}>
@@ -137,7 +137,7 @@ const Overview:React.FC<{time:number}>=({time})=>{
        <rect x={567} y={853} width={786} height={87} rx={20} fill="#123F58"
          stroke={C.mint} strokeOpacity=".83" strokeWidth={1.8}/>
        <T x={960} y={909} size={30} anchor="middle" color={C.mint} weight={875}>
-         CAMERA ENTERS AUTH SERVICE  /  CREDENTIAL VERIFICATION
+         NEXT  /  AUTH SERVICE VERIFIES THE CREDENTIALS
        </T>
      </g>
    </svg>
