@@ -154,7 +154,6 @@ const Verify:React.FC<{time:number}>=({time})=>{
    <T x={151} y={509} size={22} color={C.muted}>SUBMITTED PASSWORD</T>
    <rect x={151} y={531} width={418} height={87} rx={16} fill="#15465F" stroke={C.cyan} strokeOpacity=".55"/>
    <T x={360} y={591} size={42} weight={900} anchor="middle">••••••••••••</T>
-   <T x={151} y={669} size={21} color="#B5D8E8">SECRET INPUT  ·  MASKED</T>
   </Card>
   <Card x={1307} y={244} w={501} h={461} accent={C.violet} time={time+1}>
    <Capsule x={1340} y={278} w={296} label="STORED ACCOUNT FACTS" color={C.violet}/>
