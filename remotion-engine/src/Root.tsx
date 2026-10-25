@@ -16,6 +16,7 @@ import {Shot08V4ContinuousDive} from './episodes/ep001/live-diagram/Shot08V4Cont
 import {UserDatabaseV5ModernTable} from './episodes/ep001/live-diagram/UserDatabaseV5ModernTable';
 import {UserDatabaseV6Premium} from './episodes/ep001/live-diagram/UserDatabaseV6Premium';
 import {UserDatabaseV7Premium} from './episodes/ep001/live-diagram/UserDatabaseV7Premium';
+import {UserDatabaseV8Premium} from './episodes/ep001/live-diagram/UserDatabaseV8Premium';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -298,6 +299,15 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot08-PremiumV7"
         component={UserDatabaseV7Premium}
+        durationInFrames={dynamicDuration ?? 1650}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:1650,anchors:{}}}
+      />
+      <Composition
+        id="EP001-Shot08-PremiumV8"
+        component={UserDatabaseV8Premium}
         durationInFrames={dynamicDuration ?? 1650}
         fps={30}
         width={1920}
