@@ -19,3 +19,12 @@
 - Backend and worker source deployments are correct for the v8 composition. MediaOS guarded render request confirmed SHOT01–07 all native LOCKED with QA PASS and unchanged cumulative preview `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`.
 - Review render `19d15beb-dd5f-4986-be58-2a75c6bb5ffb` (`EP001-Shot08-PremiumV8`) submitted 2026-10-25T07:10:25Z. **Do not call READY until MP4 metadata and HTTP delivery are independently validated.**
 - After render: capture true MP4 frames at first architectural map, 3–6 seconds waiting dot, search focus at 21–26 seconds, match/hold at 29–50 seconds, confirm readability and transitions. V8 remains **NOT LOCKED** until Director approval. No new Director-approved SHOT08 voice pack was supplied, so no narration-sync claim.
+
+## V8 ready MP4 and encoded-frame QA — October 25, 2026
+
+- Final isolated v8 render: `19d15beb-dd5f-4986-be58-2a75c6bb5ffb`, `EP001-Shot08-PremiumV8`, `FAST_PREVIEW`, 1650 frames / 55 sec, 1280×720, 30fps, **READY**, file size **1,676,493 bytes**, completed `2026-10-25T07:13:28Z`.
+- **Direct playable video:** https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/19d15beb-dd5f-4986-be58-2a75c6bb5ffb/video
+- Independent MediaOS QA: valid MP4 `ftyp`, `Content-Type: video/mp4`, tested HTTP 206 Partial Content `bytes 0-127/1676493`, exact byte-size match.
+- Thirteen native encoded-frame screenshots captured and inspected at 0s, 3s, 6s, 9s, 11s, 17s, 21s, 24s, 26s, 29s, 34s, 43s, 50s. **Visual evidence:** main architecture map at 0–6s, waiting mint dot near database node's left edge, modern database table transition, new left-inset email search frame on each candidate including Alex at 26s, correctly stopped and selected `0042` at 34s, crisp `MATCH FOUND` context strip staying inside boundaries at 50s. All previous saturation and restrained modern lookup design preserved.
+- The protected cumulative Director-approved preview remains exactly `1fcb24e2-99bc-4e97-85f1-cbafcfc4e94c`. Native MediaOS guard **PASS**: SHOT01–07 all locked with `qaStatus=PASS` and exact previous locked render ids unchanged.
+- **Director creative approval still pending.** v8 is a **silent, visual-only Director Review**, not a voice-synced or publication master. No v8 native SHOT08 lock or cumulative-preview append was requested/performed.
