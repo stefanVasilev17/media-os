@@ -438,10 +438,10 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 
       <section className="contract-import-card">
         <div>
-          <span>PRODUCTION CONTRACT / DIRECTOR VOICE IMPORTS (SHOT 06–09)</span>
+          <span>PRODUCTION CONTRACT / DIRECTOR DRAFTS (SHOT 06–10)</span>
           <strong>{contract?.ready ? 'Validated HEAR / SEE blocks are active. Add the next shot contract to merge it into the current timeline.' : 'Import the first HEAR / SEE shot contract created in ChatGPT.'}</strong>
           <p>
-            Import standard HEAR / SEE contracts, SHOT 06 Director voice JSON, or the new SHOT 07–09 explained voice pack.
+            Import standard HEAR / SEE contracts, SHOT 06 Director voice JSON, SHOT 07–09 explained voice packs, or a standalone 72-second SHOT 10 director-review draft.
             Director voice imports write only the designated Voice Agent clips and do not replace the original LOCKED Script
             or any earlier Director-LOCKED shots. Existing HEAR / SEE contracts remain available.
           </p>
@@ -459,7 +459,7 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
           </button>
           <button type="button" disabled={importing} onClick={() => inputRef.current?.click()}>
             {importing ? <LoaderCircle className="spin" size={15} /> : <Upload size={15} />}
-            {contract?.ready ? 'Import Contract / Director Voice Pack JSON' : 'Import Shot Contract / Voice Pack JSON'}
+            {contract?.ready ? 'Import HEAR/SEE / Director Draft JSON' : 'Import Shot Contract / Voice Pack JSON'}
           </button>
         </div>
       </section>
