@@ -148,6 +148,26 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       await progress(job.renderId, percent);
     }
 
+    if (inputProps.retimeVideoTo30fps === true) {
+      if (segments.length !== 1 || files.length !== 1 || job.fps !== 30
+          || job.width !== 1920 || job.height !== 1080
+          || segments[0].normalizeVideoTo) {
+        throw new Error('Safe episode retime accepts one existing 1920x1080 composite at 30fps, with no scene changes.');
+      }
+      console.log('Repairing approved episode MP4 timestamps: decode every original frame, reset video PTS to frame_index/30, copy original audio without voice regeneration');
+      await progress(job.renderId, 75);
+      await runProcess('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-i', files[0],
+        '-map', '0:v:0', '-map', '0:a:0?',
+        '-vf', 'setpts=N/(30*TB)', '-fps_mode:v', 'passthrough',
+        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+        '-pix_fmt', 'yuv420p', '-r', '30',
+        '-c:a', 'copy', '-movflags', '+faststart', '-y', outputPath,
+      ]);
+      await progress(job.renderId, 95);
+      return;
+    }
+
     const concatFile = path.join(tmpDir, 'concat.txt');
     const manifest = files.map(file => `file '${file.replaceAll("'", "'\\''")}'`).join('\n') + '\n';
     await fs.writeFile(concatFile, manifest, 'utf8');
