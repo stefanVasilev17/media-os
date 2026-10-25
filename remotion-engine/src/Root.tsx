@@ -24,6 +24,7 @@ import {Shot09DirectorVoiceV2} from './episodes/ep001/live-diagram/Shot09Directo
 import {Shot09DirectorVoiceV3} from './episodes/ep001/live-diagram/Shot09DirectorVoiceV3';
 import {Shot09DirectorVoiceV5} from './episodes/ep001/live-diagram/Shot09DirectorVoiceV5';
 import {Shot09DirectorVoiceV6} from './episodes/ep001/live-diagram/Shot09DirectorVoiceV6';
+import {Shot10SessionCreationShortV1} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV1';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -392,6 +393,15 @@ export const Root: React.FC = () => {
         width={1920}
         height={1080}
         defaultProps={{durationInFrames:4090,audioClips:[]}}
+      />
+      <Composition
+        id="EP001-Shot10-SessionCreationShortV1"
+        component={Shot10SessionCreationShortV1}
+        durationInFrames={dynamicDuration ?? 2160}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:2160,audioClips:[]}}
       />
       <Composition
         id="EP001-Studio-DirectorPlan"
