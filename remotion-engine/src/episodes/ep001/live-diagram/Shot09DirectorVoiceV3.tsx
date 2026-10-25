@@ -159,17 +159,6 @@ const Verify:React.FC<{time:number}>=({time})=>{
    <T x={960} y={624} anchor="middle" color={third>.7?C.mint:C.muted} size={23}>MATCH AGAINST PROTECTED VERIFIER</T>
    <g opacity={third}><Tick x={1173} y={664} size={22} time={time}/></g>
   </Card>
-  <g opacity={step}>
-   <Card x={204} y={760} w={1512} h={160} accent={C.mint} time={time}>
-     <T x={249} y={811} size={23} color={C.muted}>HOW THE CHECK WORKS</T>
-     <Capsule x={245} y={840} w={430} label="USE STORED PARAMETERS" color={C.cyan}/>
-     <DotTrail x1={692} y1={864} x2={752} y2={864} time={time} count={2} speed={.5}/>
-     <Capsule x={769} y={840} w={373} label="COMPUTE A CHECK" color={C.violet}/>
-     <DotTrail x1={1156} y1={864} x2={1216} y2={864} time={time} count={2} speed={.5}/>
-     <Capsule x={1235} y={840} w={414} label="VERIFY THE RESULT" color={third>.5?C.mint:C.cyan}/>
-   </Card>
-  </g>
-  <T x={960} y={964} size={22} color={C.muted} anchor="middle">THE STORED PASSWORD IS NOT DECRYPTED  ·  THERE IS NO READABLE PASSWORD COMPARISON</T>
  </g>
  </Header>;
 };
