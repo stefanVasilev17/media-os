@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, PencilLine, Save, Upload, Mic2 } from 'lucide-react';
+import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, PencilLine, Save, Upload, Mic2, Play } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   importProductionContract,
@@ -11,7 +11,7 @@ import {
 import { importLockedScript, type LockedScriptImportPayload } from '../api/lockedScriptApi';
 import { importDirectorVoicePack, type DirectorVoicePackPayload } from '../api/directorVoicePackApi';
 import {
-  importDirectorShot10Draft, loadDirectorShot10Draft, prepareDirectorShot10Studio,
+  importDirectorShot10Draft, loadDirectorShot10Draft, prepareDirectorShot10Studio, renderDirectorShot10V7,
   type DirectorShot10DraftPayload, type DirectorShot10DraftState
 } from '../api/directorShot10DraftApi';
 import { loadVoiceClips, syncVoiceClips, updateVoiceClipNarration, type VoiceClipState } from '../api/voiceClipApi';
@@ -121,6 +121,8 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
   const [importMessage, setImportMessage] = useState('');
   const [shot10Draft, setShot10Draft] = useState<DirectorShot10DraftState | null>(null);
   const [preparingShot10, setPreparingShot10] = useState(false);
+  const [renderingShot10, setRenderingShot10] = useState(false);
+  const [shot10RenderId, setShot10RenderId] = useState('');
 
   const segmentByRange = useMemo(() => {
     const map = new Map<string, ProductionContractSegment>();
@@ -175,6 +177,22 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
       setError(cause instanceof Error ? cause.message : 'Could not prepare SHOT 10 Studio voices.');
     } finally {
       setPreparingShot10(false);
+    }
+  }
+
+  async function renderShot10V7() {
+    if (renderingShot10 || !shot10Draft?.studioPrepared) return;
+    setRenderingShot10(true);
+    setError('');
+    setImportMessage('');
+    try {
+      const queued = await renderDirectorShot10V7();
+      setShot10RenderId(queued.renderId);
+      setImportMessage('SHOT 10 V7 voiced 3D preview queued. This is a Director review render, not a video LOCK.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not prepare SHOT 10 V7 preview.');
+    } finally {
+      setRenderingShot10(false);
     }
   }
 
@@ -371,9 +389,21 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
         {shot10Draft?.ready && (
           <div className="contract-import-actions">
             {shot10Draft.studioPrepared ? (
-              <button type="button" onClick={() => { window.location.hash = '#/studio'; }}>
-                Open SHOT 10 Studio · Voice Review
-              </button>
+              <>
+                <button type="button" onClick={() => { window.location.hash = '#/studio'; }}>
+                  Open SHOT 10 Studio · Voice Review
+                </button>
+                <button type="button" disabled={renderingShot10} onClick={() => void renderShot10V7()}>
+                  {renderingShot10 ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />}
+                  {renderingShot10 ? 'Queuing preview…' : 'Render Voiced 3D V7 (after approval)'}
+                </button>
+                {shot10RenderId && (
+                  <a href={'/api/v1/remotion/renders/' + encodeURIComponent(shot10RenderId)}
+                     target="_blank" rel="noreferrer">
+                    Check V7 render status
+                  </a>
+                )}
+              </>
             ) : (
               <button type="button" disabled={preparingShot10} onClick={() => void prepareShot10Studio()}>
                 {preparingShot10 ? <LoaderCircle className="spin" size={15} /> : <Mic2 size={15} />}
