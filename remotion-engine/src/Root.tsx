@@ -29,6 +29,7 @@ import {Shot10SessionCreationShortV2} from './episodes/ep001/live-diagram/Shot10
 import {Shot10SessionCreationShortV3} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV3';
 import {Shot10SessionCreationShortV4} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV4';
 import {Shot10SessionCreationShortV5} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV5';
+import {Shot10SessionCreationShortV6} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV6';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -437,6 +438,15 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot10-SessionCreationShortV5"
         component={Shot10SessionCreationShortV5}
+        durationInFrames={dynamicDuration ?? 2160}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:2160,audioClips:[]}}
+      />
+      <Composition
+        id="EP001-Shot10-SessionCreationShortV6"
+        component={Shot10SessionCreationShortV6}
         durationInFrames={dynamicDuration ?? 2160}
         fps={30}
         width={1920}
