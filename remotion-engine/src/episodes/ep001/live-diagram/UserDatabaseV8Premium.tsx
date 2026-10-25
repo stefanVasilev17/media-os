@@ -77,22 +77,23 @@ const rows=[
  {id:'0047',email:'jordan@example.net',name:'Jordan Lee',status:'ACTIVE',role:'MEMBER'},
  {id:'0052',email:'sam@example.net',name:'Sam Rivera',status:'ACTIVE',role:'MEMBER'},
 ];
-const columnX=[206,370,894,1227,1470], columnTitles=['USER ID','EMAIL','DISPLAY NAME','STATUS','ROLE'];
+const columnX=[206,370,894,1227,1470], columnCenters=[274,632,1060,1349,1597];
+const columnTitles=['USER ID','EMAIL','DISPLAY NAME','STATUS','ROLE'];
 const ColumnCell:React.FC<{value:string;col:number;y:number;selected:boolean;opacity?:number}>=({
  value,col,y,selected,opacity=1
 })=>{
  if(col===3||col===4){const st=col===3,accent=st?'#58F3CB':'#C0B6FF';
   return <g opacity={opacity}>
-   <rect x={columnX[col]+20} y={y+23} width={st?159:160} height={43}
+   <rect x={columnCenters[col]-80} y={y+16} width={160} height={43}
      rx={12} fill={st?(selected?'#145D53':'#134A4A'):(selected?'#333E79':'#2B355F')}
      stroke={accent} strokeWidth={selected?1.9:1.3} strokeOpacity={selected?1:.66}/>
-   {st&&<circle cx={columnX[col]+38} cy={y+45} r={4.5} fill={accent}/>}
-   <Txt x={columnX[col]+(st?51:41)} y={y+54} size={21}
+   {st&&<circle cx={columnCenters[col]-62} cy={y+37} r={4.5} fill={accent}/>}
+   <Txt x={columnCenters[col]+(st?8:0)} y={y+44} size={20} anchor="middle"
      weight={800} color={selected?C.text:accent}>{value}</Txt>
   </g>;
  }
- return <g opacity={opacity}><Txt x={columnX[col]+22} y={y+57}
-   size={col===1?27:24} weight={selected?850:660}
+ return <g opacity={opacity}><Txt x={columnCenters[col]} y={y+49} anchor="middle"
+   size={col===1?25:24} weight={selected?850:660}
    color={selected?'#F5FEFF':col===0?'#BCDCEB':'#C0D8E7'}>{value}</Txt></g>;
 };
 
@@ -100,28 +101,28 @@ type Beats={scan:number;found:number;hero:number;detail:number;rows:number};
 const UserRow:React.FC<{frame:number;index:number;record:typeof rows[number];match:number;lift:number;beats:Beats}>=({
  frame,index,record,match,lift,beats
 })=>{
- const y=416+index*103,selected=index===2;
+ const y=448+index*88,selected=index===2;
  const shown=ease(frame,t(beats.rows)+index*8,t(beats.rows+1.3)+index*8);
  const faded=selected?1:1-ease(frame,t(beats.found+.4),t(beats.found+2.6))*.61;
- const offset=selected?-18*lift:0;
+ const offset=selected?-8*lift:0;
  return <g opacity={shown*faded} transform={'translate(0 '+offset+')'}>
-   <rect x={179} y={y} width={1546} height={90} rx={12}
+   <rect x={179} y={y} width={1546} height={76} rx={12}
      fill={selected&&match>.04?'#0D4965':'#0C2E48'} fillOpacity={.94+(selected?.05*match:0)}
      stroke={selected&&match>.04?'#5EF0FF':'#447B9A'}
      strokeOpacity={selected?.33+.65*match:.46} strokeWidth={selected?2.9:1.4}/>
    {columnX.slice(1).map((x,i)=><path key={i}
-      d={'M '+x+' '+(y+11)+' V '+(y+78)}
+      d={'M '+x+' '+(y+10)+' V '+(y+66)}
       stroke="#35536F" strokeWidth={1.2} opacity=".52"/>)}
    {[record.id,record.email,record.name,record.status,record.role].map((v,i)=>
      <ColumnCell key={i} value={v} col={i} y={y} selected={selected&&match>.1}/>)}
    {selected&&<g opacity={match}>
-     <rect x={183} y={y+3} width={1537} height={84} rx={11}
+     <rect x={183} y={y+3} width={1537} height={70} rx={11}
        fill="none" stroke="#6AEEFF" strokeWidth={6} strokeOpacity=".51"/>
-     <path d={'M 189 '+(y+18)+' V '+(y+73)+' M 189 '+(y+18)+' H 215 M 189 '+(y+73)+' H 215'}
+     <path d={'M 189 '+(y+15)+' V '+(y+61)+' M 189 '+(y+15)+' H 215 M 189 '+(y+61)+' H 215'}
        stroke="#C4FCFF" strokeWidth={3} fill="none"/>
-     <circle cx={1683} cy={y+45} r={14} fill="#12617C"
+     <circle cx={1683} cy={y+38} r={14} fill="#12617C"
        stroke="#B9FFFF" strokeWidth={2}/>
-     <path d={'M 1677 '+(y+45)+' l 5 5 l 9 -11'} stroke="#D2FFFF" strokeWidth={2.8} fill="none"/>
+     <path d={'M 1677 '+(y+38)+' l 5 5 l 9 -11'} stroke="#D2FFFF" strokeWidth={2.8} fill="none"/>
    </g>}
  </g>;
 };
@@ -136,7 +137,7 @@ const DatabaseScreen:React.FC<{frame:number;beats:Beats}>=({frame,beats})=>{
  const delta=frame/FPS-beats.scan;
  const focusY=interpolate(frame,
     [t(beats.scan),t(beats.scan+2.2),t(beats.scan+2.95),t(beats.scan+4.65),t(beats.scan+5.4),t(beats.found)],
-    [416,416,519,519,622,622],{extrapolateLeft:'clamp',extrapolateRight:'clamp'});
+    [448,448,536,536,624,624],{extrapolateLeft:'clamp',extrapolateRight:'clamp'});
  return <svg width={W} height={H} viewBox="0 0 1920 1080" style={{display:'block'}}>
   <defs>
    <radialGradient id="v6-canvas" cx=".5" cy=".35" r=".83">
@@ -173,11 +174,11 @@ const DatabaseScreen:React.FC<{frame:number;beats:Beats}>=({frame,beats})=>{
      fill="#092E50" stroke="#57A0BE" strokeWidth={1.8} strokeOpacity=".90"/>
    <rect x={205} y={246} width={171} height={76} rx={12}
      fill="#123D59" stroke="#5583A4" strokeWidth={1.2}/>
-   <Txt x={240} y={293} size={25} weight={790} color="#B9E2F4">EMAIL</Txt>
+   <Txt x={290} y={293} size={25} anchor="middle" weight={790} color="#B9E2F4">EMAIL</Txt>
    <rect x={396} y={246} width={1006} height={76} rx={12}
      fill="#0D3A59" stroke="#5C9DBA" strokeWidth={1.4}/>
-   <Txt x={435} y={294} size={34} weight={820}>alex@example.com</Txt>
-   <path d="M 434 312 H 781" stroke="#62D6EA" strokeWidth={2} opacity={matched?.24:.60}/>
+   <Txt x={899} y={294} size={34} weight={820} anchor="middle">alex@example.com</Txt>
+   <path d="M 733 312 H 1065" stroke="#62D6EA" strokeWidth={2} opacity={matched?.24:.60}/>
    <rect x={1428} y={246} width={263} height={76} rx={12}
      fill="#0C5667" stroke="#55E5ED" strokeWidth={2.1} strokeOpacity="1"/>
    <Txt x={1559} y={293} size={23} weight={840} anchor="middle" color="#B5F2FC">INDEX LOOKUP</Txt>
@@ -186,8 +187,8 @@ const DatabaseScreen:React.FC<{frame:number;beats:Beats}>=({frame,beats})=>{
   <g opacity={table}>
    <rect x={178} y={372} width={1547} height={63} rx={10}
      fill="#0B304C" stroke="#4F88A8" strokeWidth={1.4}/>
-   {columnTitles.map((value,i)=><Txt key={i} x={columnX[i]+22} y={414}
-      size={21} color="#A0CDE4" weight={830}>{value}</Txt>)}
+   {columnTitles.map((value,i)=><Txt key={i} x={columnCenters[i]} y={414}
+      size={21} anchor="middle" color="#A0CDE4" weight={830}>{value}</Txt>)}
    {rows.map((rec,i)=><UserRow key={i} frame={frame} index={i}
      record={rec} match={matched} lift={lifted} beats={beats}/>)}
   </g>
@@ -208,14 +209,14 @@ const DatabaseScreen:React.FC<{frame:number;beats:Beats}>=({frame,beats})=>{
    <rect x={201} y={932} width={264} height={66} rx={12}
      fill="#145E75" stroke="#6AF6FF" strokeOpacity=".86" strokeWidth={1.7}/>
    <circle cx={222} cy={963} r={7} fill="#66F3C8"/>
-   <Txt x={238} y={971} size={22} weight={845} color="#F1FEFF">MATCH FOUND</Txt>
-   <Txt x={492} y={977} size={32} weight={870} color="#F0FEFF">0042</Txt>
+   <Txt x={343} y={971} size={22} anchor="middle" weight={845} color="#F1FEFF">MATCH FOUND</Txt>
+   <Txt x={546} y={977} size={32} anchor="middle" weight={870} color="#F0FEFF">0042</Txt>
    <path d="M 611 932 V 997 M 1238 932 V 997"
      stroke="#558EA9" strokeWidth={1.3} strokeOpacity=".8"/>
-   <Txt x={641} y={955} size={18} weight={770} color="#A5D1E9">IDENTIFIER</Txt>
-   <Txt x={641} y={991} size={28} weight={840} color="#E1FCFF">alex@example.com</Txt>
-   <Txt x={1267} y={955} size={18} weight={780} color="#A9D9EC">NEXT</Txt>
-   <Txt x={1267} y={991} size={26} weight={830} color="#D0F6FF">CREDENTIAL CHECK</Txt>
+   <Txt x={925} y={955} size={18} anchor="middle" weight={770} color="#A5D1E9">IDENTIFIER</Txt>
+   <Txt x={925} y={991} size={28} anchor="middle" weight={840} color="#E1FCFF">alex@example.com</Txt>
+   <Txt x={1480} y={955} size={18} anchor="middle" weight={780} color="#A9D9EC">NEXT</Txt>
+   <Txt x={1480} y={991} size={26} anchor="middle" weight={830} color="#D0F6FF">CREDENTIAL CHECK</Txt>
   </g>
   <path d="M 414 1044 H 1505" stroke="#54BDD5" strokeOpacity=".26" strokeWidth={2}/>
  </svg>;
