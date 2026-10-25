@@ -90,7 +90,7 @@ const SessionExample:React.FC<{t:number}>=({t})=>{
     <path d="M 204 564 H 669" stroke={P.cyan} strokeOpacity=".33" strokeWidth={2}/>
     <Text x={205} y={619} size={30} color={P.dim}>ACCOUNT</Text>
     <Text x={635} y={619} anchor="end" size={36} color={P.mint} weight={880}>#0042</Text>
-    <Text x={205} y={703} size={30} color={P.dim}>SERVER REMEMBERS THE LOGIN</Text>
+    <Text x={205} y={703} size={30} color={P.dim}>SERVER STORES THE LOGIN</Text>
    </g>
   </Card>
   <g opacity={issued}><Flow x1={753} y1={528} x2={862} y2={528} t={t} color={P.cyan}/></g>
@@ -121,8 +121,8 @@ const TokenExample:React.FC<{t:number}>=({t})=>{
     <rect x={176} y={417} width={630} height={124} rx={18} fill="#1B3052" stroke={P.violet} strokeOpacity=".55"/>
     <Text x={204} y={467} size={31} color={P.dim}>SUBJECT</Text>
     <Text x={770} y={467} size={38} weight={870} color={P.white} anchor="end">0042</Text>
-    <Text x={204} y={515} size={31} color={P.dim}>EXPIRES AFTER</Text>
-    <Text x={770} y={515} size={36} weight={860} color={P.amber} anchor="end">15 MIN / EXAMPLE</Text>
+    <Text x={204} y={515} size={31} color={P.dim}>EXPIRY</Text>
+    <Text x={770} y={515} size={36} weight={860} color={P.amber} anchor="end">15 MIN</Text>
    </g>
    <g opacity={signed}>
     <rect x={176} y={585} width={630} height={125} rx={18} fill="#102B49" stroke={P.violet} strokeOpacity=".58"/>
