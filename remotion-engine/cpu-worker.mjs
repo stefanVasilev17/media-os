@@ -130,7 +130,19 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
     for (let index = 0; index < segments.length; index++) {
       const target = path.join(tmpDir, `segment-${String(index).padStart(3, '0')}.mp4`);
       await downloadFile(segments[index].videoUrl, target);
-      files.push(target);
+      if (segment.normalizeVideoTo === '1920x1080') {
+        const normalized = path.join(tmpDir, `normalized-${String(index).padStart(3, '0')}.mp4`);
+        console.log(`Normalizing cumulative preview segment ${index + 1}/${segments.length} to 1920x1080 (original source preserved)`);
+        await runProcess('ffmpeg', [
+          '-hide_banner', '-loglevel', 'error', '-i', target,
+          '-map', '0:v:0', '-map', '0:a:0?', '-vf', 'scale=1920:1080:flags=lanczos,format=yuv420p',
+          '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-r', '30',
+          '-c:a', 'copy', '-movflags', '+faststart', '-y', normalized,
+        ]);
+        files.push(normalized);
+      } else {
+        files.push(target);
+      }
       const percent = Math.max(5, Math.min(70, Math.round(((index + 1) / segments.length) * 60) + 5));
       await progress(job.renderId, percent);
     }
