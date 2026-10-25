@@ -18,6 +18,7 @@ import {UserDatabaseV6Premium} from './episodes/ep001/live-diagram/UserDatabaseV
 import {UserDatabaseV7Premium} from './episodes/ep001/live-diagram/UserDatabaseV7Premium';
 import {UserDatabaseV8Premium} from './episodes/ep001/live-diagram/UserDatabaseV8Premium';
 import {Shot08ApprovedVoiceV9} from './episodes/ep001/live-diagram/Shot08ApprovedVoiceV9';
+import {Shot08ApprovedVoiceV10} from './episodes/ep001/live-diagram/Shot08ApprovedVoiceV10';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -318,6 +319,15 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot08-DirectorVoiceV9"
         component={Shot08ApprovedVoiceV9}
+        durationInFrames={dynamicDuration ?? 4690}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:4690,audioClips:[]}}
+      />
+      <Composition
+        id="EP001-Shot08-DirectorVoiceV10"
+        component={Shot08ApprovedVoiceV10}
         durationInFrames={dynamicDuration ?? 4690}
         fps={30}
         width={1920}
