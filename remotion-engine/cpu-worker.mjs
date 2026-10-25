@@ -159,9 +159,9 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       await runProcess('ffmpeg', [
         '-hide_banner', '-loglevel', 'error', '-i', files[0],
         '-map', '0:v:0', '-map', '0:a:0?',
-        '-vf', 'setpts=N/(30*TB)', '-fps_mode:v', 'passthrough',
+        '-vf', 'setpts=N/(30*TB)', '-fps_mode:v', 'cfr',
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
-        '-pix_fmt', 'yuv420p',
+        '-pix_fmt', 'yuv420p', '-r', '30',
         '-c:a', 'copy', '-movflags', '+faststart', '-y', outputPath,
       ]);
       await progress(job.renderId, 95);
