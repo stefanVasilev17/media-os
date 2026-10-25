@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, FileText, LockKeyhole, Mic2, Plus, RotateCcw, Save, Clapperboard } from 'lucide-react';
 import { studio, type StudioClip, type StudioShot, type DirectorVisualPlanState } from '../api/studioApi';
 import { LegacyShotMirror } from '../components/LegacyShotMirror';
@@ -7,6 +7,12 @@ import { loadRemotionRender, remotionRenderVideoUrl, type RemotionRenderState } 
 import '../styles/shotStudio.css';
 
 const status = (c: StudioClip) => c.approvedAt ? 'VOICE APPROVED' : c.generated ? 'VOICE DRAFT' : c.lockedAt ? 'SCRIPT LOCKED' : 'SCRIPT DRAFT';
+
+function studioRouteTarget() {
+  const query = window.location.hash.split('?', 2)[1] || '';
+  const params = new URLSearchParams(query);
+  return { shotKey: params.get('shot') || '', clipKey: params.get('clip') || '' };
+}
 
 export function ShotStudioPage() {
   const [shots,setShots]=useState<StudioShot[]>([]);
@@ -24,6 +30,7 @@ export function ShotStudioPage() {
   const [preview,setPreview]=useState<RemotionRenderState|null>(null);
   const [directorPlan,setDirectorPlan]=useState<DirectorVisualPlanState|null>(null);
   const [sourceVoice,setSourceVoice]=useState<VoiceClipState[]>([]);
+  const studioRouteTargetRef = useRef(studioRouteTarget());
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
   const clip=useMemo(()=>shot?.clips.find(x=>x.id===clipId),[shot,clipId]);
@@ -33,14 +40,31 @@ export function ShotStudioPage() {
   const refresh=useCallback(async()=>{
     const next=await studio.shots();
     setShots(next);
-    setShotId(id=>next.some(s=>s.id===id)?id:next[0]?.id||'');
+    setShotId(id=>{
+      const requested=studioRouteTargetRef.current.shotKey;
+      if(requested){
+        const found=next.find(s=>s.shotKey===requested&&!s.sourceShotKey);
+        if(found)return found.id;
+      }
+      return next.some(s=>s.id===id)?id:next[0]?.id||'';
+    });
     return next;
   },[]);
   useEffect(()=>{
     refresh().catch(e=>setError(String(e))).finally(()=>setLoading(false));
   },[refresh]);
   useEffect(()=>{
-    setClipId(id=>shot?.clips.some(c=>c.id===id)?id:shot?.clips[0]?.id||'');
+    const requested=studioRouteTargetRef.current;
+    if(shot && requested.shotKey===shot.shotKey){
+      const desired=shot.clips.find(c=>c.clipKey===requested.clipKey);
+      setClipId(desired?.id||shot.clips[0]?.id||'');
+      studioRouteTargetRef.current={shotKey:'',clipKey:''};
+      window.requestAnimationFrame(()=>
+        document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'})
+      );
+    } else {
+      setClipId(id=>shot?.clips.some(c=>c.id===id)?id:shot?.clips[0]?.id||'');
+    }
     setVisual(shot?.visualPrompt||'');
   },[shotId,shot?.visualRevision,shot?.visualPrompt,shot?.clips.length]);
   useEffect(()=>{
@@ -182,6 +206,14 @@ export function ShotStudioPage() {
             <p>Select an original shot above to unlock a working copy, or create a new shot. Approved video remains intact.</p>
           </div>:<>
             <div className="studio-shot-head"><span>{shot.shotKey}</span><h2>{shot.title}</h2>
+              {shot.shotKey==='SHOT 10'&&!shot.sourceShotKey&&(
+                <p><strong>72s Director review · C01 0–22s · C02 22–46s · C03 46–72s.</strong>
+                  {' '}These three imported HEAR/SEE clips live in isolated Studio storage.
+                  Review and lock each script, then generate and approve its ElevenLabs voice.
+                  Editing narration after import may make the voiced V7 preview fail its HEAR/SEE consistency guard.
+                  SHOT 01–09 remain untouched.
+                </p>
+              )}
               <p>{shot.sourceShotKey
                 ? 'Editable Director working version of '+shot.sourceShotKey+' · the original audio and video remain preserved.'
                 : 'Every clip has an independent script lock, generation and approval. Editing does not regenerate other clips.'}</p>
