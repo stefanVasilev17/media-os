@@ -72,7 +72,6 @@ const Header:React.FC<{time:number;phase:string;sub:string;children:React.ReactN
  <path d="M 200 1015 H 1720" stroke={C.cyan} strokeWidth={2} opacity=".23"/>
  <path d={'M 200 1015 H '+(200+1520*clamp(time/136.333))} stroke={C.mint} strokeWidth={4} opacity=".72"/>
  {Array.from({length:4},(_,i)=><circle key={i} cx={[200,610,1032,1460][i]} cy={1015} r={6} fill={time>[0,36,67,101][i]?C.mint:'#42738F'}/>)}
- <T x={202} y={1050} size={17} color={C.muted}>EP001  /  CREDENTIAL VERIFICATION</T>
  <T x={1718} y={1050} size={18} color={C.muted} anchor="end">SHOT 09  /  DIRECTOR PREVIEW V3</T>
 </svg>;
 
