@@ -63,7 +63,8 @@ const Chip:React.FC<{x:number;y:number;w:number;label:string;tint?:string}>=
   <rect x={x} y={y} width={w} height={46} rx={12} fill="#17445A"
     stroke={tint} strokeWidth={1.5} strokeOpacity=".62"/>
   <circle cx={x+19} cy={y+24} r={5} fill={tint}/>
-  <T x={x+36} y={y+31} color={tint} size={22} weight={815}>{label}</T>
+  <T x={x+w/2+8} y={y+31} anchor="middle" color={tint}
+    size={Math.min(22,Math.floor((w-48)/Math.max(1,label.length*.56)))} weight={815}>{label}</T>
  </g>;
 
 const FlowEdge:React.FC<{x1:number;y1:number;x2:number;y2:number;active:number;reverse?:boolean}>=
@@ -125,18 +126,18 @@ const CredentialSecurity:React.FC<{time:number;frame:number}>=({time,frame})=>{
         <T x={907} y={603} size={27} color="#DCF9FF" weight={830}>One-way protected representation</T>
       </g>
       <g opacity={revealHash}>
-        <T x={890} y={692} size={23} color="#94C1DA" weight={785}>KDF</T>
-        <T x={1107} y={692} size={23} color="#94C1DA" weight={785}>SALT</T>
-        <T x={1407} y={692} size={23} color="#94C1DA" weight={785}>DIGEST</T>
+        <T x={983} y={692} anchor="middle" size={23} color="#94C1DA" weight={785}>PROCESS</T>
+        <T x={1241} y={692} anchor="middle" size={23} color="#94C1DA" weight={785}>SALT</T>
+        <T x={1557} y={692} anchor="middle" size={23} color="#94C1DA" weight={785}>DIGEST</T>
         {[
-          {x:883,w:200,label:'Argon2id'},
+          {x:883,w:200,label:'ONE-WAY HASH'},
           {x:1100,w:281,label:'f6c1…8a04'},
           {x:1399,w:316,label:'9ac2…e047'}
         ].map((e,i)=><g key={i}>
           <rect x={e.x} y={716} width={e.w} height={75} rx={12}
             fill="#193A61" stroke={i===0?COLORS.violet:COLORS.cyan}
             strokeWidth={1.8}/>
-          <T x={e.x+17} y={765} size={i===0?29:27} weight={800}>{e.label}</T>
+          <T x={e.x+e.w/2} y={765} anchor="middle" size={i===0?22:27} weight={800}>{e.label}</T>
         </g>)}
       </g>
     </Panel>
@@ -151,23 +152,23 @@ const CredentialSecurity:React.FC<{time:number;frame:number}>=({time,frame})=>{
       <T x={215} y={486} size={29} weight={845}>PASSWORD HASHING — HOW THE VERIFIER IS CREATED</T>
       <rect x={212} y={544} width={365} height={165} rx={18}
          fill="#17405D" stroke="#5FCBEE" strokeWidth={1.8}/>
-      <T x={251} y={600} size={24} color="#A6D6E9" weight={790}>PASSWORD INPUT</T>
-      <T x={251} y={671} size={42}>••••••••••</T>
+      <T x={394} y={600} anchor="middle" size={24} color="#A6D6E9" weight={790}>PASSWORD INPUT</T>
+      <T x={394} y={671} anchor="middle" size={42}>••••••••••</T>
       <rect x={723} y={544} width={443} height={165} rx={18}
          fill="#28335A" stroke={COLORS.violet} strokeWidth={2}/>
-      <T x={945} y={602} size={28} anchor="middle" weight={830}>PASSWORD KDF</T>
-      <T x={945} y={662} size={38} anchor="middle" color="#E5DFFF" weight={870}>Argon2id</T>
+      <T x={945} y={602} size={28} anchor="middle" weight={830}>PASSWORD HASHING</T>
+      <T x={945} y={662} size={35} anchor="middle" color="#E5DFFF" weight={870}>ONE-WAY PROCESS</T>
       <rect x={1323} y={544} width={363} height={165} rx={18}
          fill="#17405B" stroke={COLORS.cyan} strokeWidth={1.9}/>
-      <T x={1360} y={601} size={24} color="#9DDAE9" weight={790}>STORED VERIFIER</T>
-      <T x={1360} y={658} size={34} weight={850}>9ac2…e047</T>
+      <T x={1504} y={601} anchor="middle" size={24} color="#9DDAE9" weight={790}>STORED VERIFIER</T>
+      <T x={1504} y={658} anchor="middle" size={34} weight={850}>9ac2…e047</T>
       <FlowEdge x1={583} y1={622} x2={713} y2={622} active={linear(frame,66.8,68.1)}/>
       <FlowEdge x1={1170} y1={622} x2={1313} y2={622} active={linear(frame,69.2,71.0)}/>
       <g opacity={salt}>
         <rect x={741} y={739} width={407} height={91} rx={17}
           fill="#134E57" stroke={COLORS.mint} strokeWidth={1.8}/>
-        <T x={778} y={770} size={21} color="#9DF5DA" weight={825}>UNIQUE SALT</T>
-        <T x={778} y={808} size={29} weight={810}>f6c1…8a04</T>
+        <T x={945} y={770} anchor="middle" size={21} color="#9DF5DA" weight={825}>UNIQUE SALT</T>
+        <T x={945} y={808} anchor="middle" size={29} weight={810}>f6c1…8a04</T>
         <path d="M 945 740 V 709" stroke={COLORS.mint} strokeWidth={3}
           strokeLinecap="round"/>
       </g>
@@ -181,11 +182,11 @@ const CredentialSecurity:React.FC<{time:number;frame:number}>=({time,frame})=>{
         {y:694,name:'ACCOUNT B',salt:'4d87…63ff',hash:'e4b9…27c1',tint:COLORS.violet}
       ].map((o,i)=><g key={i}>
         <rect x={232} y={o.y} width={1450} height={122} rx={15} fill="#103752" stroke={o.tint} strokeOpacity=".66"/>
-        <T x={256} y={o.y+46} size={25} weight={815} color={o.tint}>{o.name}</T>
-        <T x={590} y={o.y+43} size={20} color="#9AC5DA" weight={735}>SALT</T>
-        <T x={590} y={o.y+90} size={28}>{o.salt}</T>
-        <T x={1080} y={o.y+43} size={20} color="#9AC5DA" weight={735}>HASH</T>
-        <T x={1080} y={o.y+90} size={28} weight={840}>{o.hash}</T>
+        <T x={405} y={o.y+46} anchor="middle" size={25} weight={815} color={o.tint}>{o.name}</T>
+        <T x={745} y={o.y+43} anchor="middle" size={20} color="#9AC5DA" weight={735}>SALT</T>
+        <T x={745} y={o.y+90} anchor="middle" size={28}>{o.salt}</T>
+        <T x={1242} y={o.y+43} anchor="middle" size={20} color="#9AC5DA" weight={735}>HASH</T>
+        <T x={1242} y={o.y+90} anchor="middle" size={28} weight={840}>{o.hash}</T>
       </g>)}
     </g>
     <g opacity={work}>
@@ -210,7 +211,7 @@ const CredentialSecurity:React.FC<{time:number;frame:number}>=({time,frame})=>{
        return <g key={i}>
          <rect x={xx} y={yy} width={169} height={70} rx={13}
            fill={active?'#14536A':'#123A53'} stroke={active?COLORS.cyan:'#47738C'} strokeWidth={1.2}/>
-         <T x={xx+21} y={yy+44} size={22} weight={790}
+         <T x={xx+84.5} y={yy+44} anchor="middle" size={22} weight={790}
            color={active?'#B5FCFF':'#8FB3CA'}>ATTEMPT {String(i+1).padStart(2,'0')}</T>
        </g>;
      })}
@@ -248,7 +249,7 @@ const FactsReturn:React.FC<{time:number;frame:number}>=({time,frame})=>{
        <rect x={169} y={613} width={567} height={128} rx={14}
          fill="#153C57" stroke={COLORS.violet} strokeWidth={1.4}/>
        <T x={200} y={658} color="#C2B7FF" size={22} weight={830}>STORED VERIFIER</T>
-       <T x={200} y={709} size={30} weight={805}>Argon2id  /  salt  /  digest</T>
+       <T x={452} y={709} size={25} anchor="middle" weight={805}>Protected hash  /  salt  /  digest</T>
       </g>
     </Panel>
     <path d="M 803 523 H 1214" stroke="#407793" strokeWidth={5} opacity=".85"/>
@@ -257,31 +258,31 @@ const FactsReturn:React.FC<{time:number;frame:number}>=({time,frame})=>{
         fill="#5BDDEB" stroke="#ACFCFF" strokeWidth={1.6}/>
     </g>
     <Panel x={1233} y={268} w={553} h={524} tint={COLORS.violet} active={arrival>.3}>
-      <T x={1276} y={344} size={33} weight={865}>AUTH SERVICE</T>
-      <T x={1276} y={392} size={24} color="#B8C5F4">IDENTITY VERIFICATION</T>
+      <T x={1509} y={344} size={33} anchor="middle" weight={865}>AUTH SERVICE</T>
+      <T x={1509} y={392} size={24} anchor="middle" color="#B8C5F4">IDENTITY VERIFICATION</T>
       <rect x={1272} y={441} width={473} height={121} rx={15} fill="#143D57"
          stroke={COLORS.cyan} strokeWidth={1.5}/>
-      <T x={1298} y={485} size={23} color="#A5E5F1" weight={790}>ORIGINAL LOGIN REQUEST</T>
+      <T x={1508} y={485} size={23} anchor="middle" color="#A5E5F1" weight={790}>ORIGINAL LOGIN REQUEST</T>
       <Chip x={1300} y={504} w={246} label="WAITING" tint={COLORS.mint}/>
       <g opacity={arrival}>
-       <T x={1276} y={653} size={28} color="#9BEFDA" weight={845}>ACCOUNT FACTS RECEIVED</T>
-       <T x={1276} y={710} size={23} color="#C4DEEE">Credential check comes next.</T>
+       <T x={1509} y={653} size={28} anchor="middle" color="#9BEFDA" weight={845}>ACCOUNT FACTS RECEIVED</T>
+       <T x={1509} y={710} size={23} anchor="middle" color="#C4DEEE">Credential check comes next.</T>
       </g>
     </Panel>
     <g opacity={showStatus}>
      <rect x={136} y={817} width={526} height={82} rx={15} fill="#0F4652"
        stroke={COLORS.mint} strokeWidth={1.6}/>
-     <T x={174} y={868} size={26} color="#C3FDEB" weight={825}>STATUS  ·  ACTIVE</T>
+     <T x={399} y={868} size={26} anchor="middle" color="#C3FDEB" weight={825}>STATUS  ·  ACTIVE</T>
     </g>
     <g opacity={showRole}>
      <rect x={677} y={817} width={530} height={82} rx={15} fill="#2A2D56"
        stroke={COLORS.violet} strokeWidth={1.6}/>
-     <T x={718} y={868} size={26} weight={835} color="#DFD6FF">ROLE  ·  MEMBER</T>
+     <T x={942} y={868} size={26} anchor="middle" weight={835} color="#DFD6FF">ROLE  ·  MEMBER</T>
     </g>
     <g opacity={proof}>
      <rect x={1226} y={817} width={560} height={82} rx={15} fill="#103A57"
        stroke={COLORS.cyan} strokeWidth={1.6}/>
-     <T x={1257} y={869} size={23} weight={855}>PERMISSIONS ≠ PASSWORD PROOF</T>
+     <T x={1506} y={869} size={23} anchor="middle" weight={855}>PERMISSIONS ≠ PASSWORD PROOF</T>
     </g>
     <g opacity={ease(frame,128.0,131.3)*(1-ease(frame,148,150.8))}>
       <T x={1017} y={483} anchor="middle" size={22} weight={845} color="#B8EEFA">ACCOUNT FACTS</T>
