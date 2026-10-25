@@ -148,7 +148,6 @@ const Verify:React.FC<{time:number}>=({time})=>{
  <g opacity={f}>
   <Card x={112} y={244} w={501} h={461} accent={C.cyan} time={time}>
    <Capsule x={144} y={278} w={276} label="SUBMITTED INPUT" color={C.cyan}/>
-   <T x={151} y={378} size={25} color={C.muted}>LOGIN REQUEST</T>
    <T x={151} y={425} size={30} weight={830}>alex@example.com</T>
    <path d="M 145 462 H 578" stroke={C.cyan} strokeWidth={1} opacity=".29"/>
    <T x={151} y={509} size={22} color={C.muted}>SUBMITTED PASSWORD</T>
