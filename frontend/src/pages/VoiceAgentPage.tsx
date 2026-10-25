@@ -3,6 +3,8 @@ import { Check, ChevronLeft, ChevronRight, LoaderCircle, Mic2, Play, RotateCcw, 
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import { loadProductionContract, type ProductionContractState } from '../api/productionContractApi';
 import { loadDirectorVoicePack, type DirectorVoicePackState } from '../api/directorVoicePackApi';
+import { loadDirectorShot10Draft, type DirectorShot10DraftState } from '../api/directorShot10DraftApi';
+import { studio, type StudioShot } from '../api/studioApi';
 import { loadTtsProvider, loadVoiceShots, type TtsProviderStatus, type VoiceShotState } from '../api/voiceApi';
 import {
   approveVoiceClip,
@@ -76,6 +78,9 @@ export function VoiceAgentPage() {
   const [provider, setProvider] = useState<TtsProviderStatus | null>(null);
   const [contract, setContract] = useState<ProductionContractState | null>(null);
   const [directorVoicePack, setDirectorVoicePack] = useState<DirectorVoicePackState | null>(null);
+  const [shot10Draft, setShot10Draft] = useState<DirectorShot10DraftState | null>(null);
+  const [shot10Studio, setShot10Studio] = useState<StudioShot | null>(null);
+  const [shot10StatusError, setShot10StatusError] = useState('');
   const [shotIndex, setShotIndex] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
   const [settingsByClip, setSettingsByClip] = useState<Record<string, VoiceSettings>>({});
@@ -100,7 +105,20 @@ export function VoiceAgentPage() {
     () => EP001_SHOTS.filter(shot => !bundles.some(bundle => bundle.key === shot.key)),
     [bundles]
   );
-  const nextContractShot = pendingContractShots[0];
+  const nextContractShot = shot10Draft?.ready
+    ? undefined
+    : pendingContractShots[0];
+  const shot10StudioClips = useMemo(
+    () => [...(shot10Studio?.clips ?? [])].sort((a, b) => a.sequence - b.sequence),
+    [shot10Studio]
+  );
+  const shot10ApprovedCount = shot10StudioClips.filter(clip => Boolean(clip.approvedAt)).length;
+  const shot10NeedsVoice = shot10Draft?.ready && shot10StudioClips.some(clip => !clip.approvedAt);
+  function openShot10Studio(clipKey?: string) {
+    const params = new URLSearchParams({ shot: 'SHOT 10' });
+    if (clipKey) params.set('clip', clipKey);
+    window.location.hash = '#/studio?' + params.toString();
+  }
   const lockedShotIndexes = useMemo(
     () => bundles
       .map((shot, index) => {
@@ -166,6 +184,34 @@ export function VoiceAgentPage() {
     setClips(nextClips);
     setShotState(Object.fromEntries(nextShots.map(row => [row.shotKey, row])));
   }
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [draftResult, studioResult] = await Promise.allSettled([
+          loadDirectorShot10Draft(),
+          studio.shots()
+        ]);
+        if (!active) return;
+        if (draftResult.status === 'fulfilled') {
+          setShot10Draft(draftResult.value);
+        } else {
+          setShot10StatusError('SHOT 10 Director draft could not be loaded. Refresh the page or open Studio.');
+        }
+        if (studioResult.status === 'fulfilled') {
+          setShot10Studio(studioResult.value.find(shot =>
+            shot.shotKey === 'SHOT 10' && !shot.sourceShotKey
+          ) ?? null);
+        } else {
+          setShot10StatusError('SHOT 10 Studio status could not be loaded. Open Studio directly to review the clips.');
+        }
+      } catch {
+        if (active) setShot10StatusError('SHOT 10 Director workspace could not be loaded.');
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -434,11 +480,67 @@ export function VoiceAgentPage() {
         </div>
         <div className="voice-provider-status">
           <span>{provider?.configured ? 'ElevenLabs v4 · READY' : 'TTS NOT READY'}</span>
-          <strong>{approvedInShot}/{shotClips.length || 0} approved</strong>
+          <strong>{currentShot
+            ? approvedInShot + '/' + (shotClips.length || 0) + ' approved'
+            : shot10Draft?.ready
+              ? shot10ApprovedCount + '/' + shot10StudioClips.length + ' · SHOT 10 approved'
+              : approvedInShot + '/' + (shotClips.length || 0) + ' approved'}</strong>
         </div>
       </header>
 
       {error && <div className="production-error">{error}</div>}
+      {shot10StatusError && <div className="production-error">{shot10StatusError}</div>}
+
+      {shot10Draft?.ready && (
+        <section className="production-next voice-next-compact" style={{ marginBottom: 20 }}>
+          <div>
+            <span>SHOT 10 · ACTIVE DIRECTOR DRAFT · 72 SECONDS · NOT LOCKED</span>
+            <strong>{shot10Draft.payload?.shotTitle || 'Authentication State / Session Creation'}</strong>
+            <p>
+              Three new voice clips are prepared in the independent Studio workflow.
+              This is the current 72-second success flow, not the historical long SHOT 10.
+              Approved SHOT 01–09 voice and video remain unchanged.
+            </p>
+            {shot10Studio && shot10StudioClips.length > 0 ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                {shot10StudioClips.map((clip, index) => {
+                  const boundaries = [0, 22, 46, 72];
+                  const state = clip.approvedAt
+                    ? 'VOICE APPROVED'
+                    : clip.generated
+                      ? 'VOICE DRAFT'
+                      : clip.lockedAt ? 'SCRIPT LOCKED' : 'READY TO REVIEW';
+                  return (
+                    <button key={clip.id} type="button"
+                      onClick={() => openShot10Studio(clip.clipKey)}
+                      title={'Open ' + clip.clipKey + ' in Studio'}
+                      style={{ padding: '11px 14px', borderRadius: 10,
+                        background: 'rgba(97,222,245,.08)',
+                        border: '1px solid rgba(97,222,245,.3)', color: 'inherit' }}>
+                      <strong>C{String(index + 1).padStart(2, '0')}</strong>
+                      {' · ' + clock(boundaries[index]) + '–' + clock(boundaries[index + 1])}
+                      <small style={{ display: 'block', marginTop: 4 }}>{state}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p>
+                {shot10Draft.studioPrepared
+                  ? 'Studio is prepared. Open it to review C01–C03.'
+                  : 'Draft is imported. Prepare the three Studio voice clips from Script Agent.'}
+              </p>
+            )}
+          </div>
+          <button type="button" onClick={() => {
+            if (shot10Draft.studioPrepared) openShot10Studio(shot10StudioClips[0]?.clipKey);
+            else window.location.hash = '#/agents/script';
+          }}>
+            {shot10Draft.studioPrepared ? 'Open SHOT 10 · Voice Studio' : 'Prepare SHOT 10 · Script Agent'}
+            <ChevronRight size={16}/>
+          </button>
+        </section>
+      )}
 
       <div className="voice-shot-navigation">
         <nav className="production-shot-rail" aria-label="Active voice shots">
@@ -456,9 +558,17 @@ export function VoiceAgentPage() {
               </button>
             );
           })}
-          {activeShotIndexes.length === 0 && (
+          {shot10NeedsVoice && (
+            <button type="button" onClick={() => openShot10Studio(shot10StudioClips.find(clip => !clip.approvedAt)?.clipKey)}
+              title="SHOT 10 · Authentication State / Session Creation · Director voice review">
+              <span>10</span>
+            </button>
+          )}
+          {activeShotIndexes.length === 0 && !shot10NeedsVoice && (
             <span className="voice-all-shots-complete">
-              {pendingContractShots.length > 0 ? 'ALL IMPORTED SHOTS LOCKED' : 'ALL SHOTS LOCKED'}
+              {shot10Draft?.ready
+                ? 'DIRECTOR SHOT 10 · ' + shot10ApprovedCount + '/' + shot10StudioClips.length + ' APPROVED'
+                : pendingContractShots.length > 0 ? 'ALL IMPORTED SHOTS LOCKED' : 'ALL SHOTS LOCKED'}
             </span>
           )}
         </nav>
@@ -714,9 +824,11 @@ export function VoiceAgentPage() {
       ) : (
         <section className="voice-workspace voice-production-complete">
           <Check size={22} />
-          <strong>{pendingContractShots.length > 0
-            ? 'All imported voice shots are LOCKED. Import the next shot contract to continue.'
-            : 'All voice shots are LOCKED.'}</strong>
+          <strong>{shot10Draft?.ready
+            ? 'Approved legacy shots are protected. SHOT 10 C01–C03 continue in Voice Studio.'
+            : pendingContractShots.length > 0
+              ? 'All imported voice shots are LOCKED. Import the next shot contract to continue.'
+              : 'All voice shots are LOCKED.'}</strong>
         </section>
       )}
 
