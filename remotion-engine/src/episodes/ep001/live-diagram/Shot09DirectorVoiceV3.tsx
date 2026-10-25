@@ -117,13 +117,6 @@ const Overview:React.FC<{time:number}>=({time})=>{
          <stop offset="1" stopColor="#0B2A45" stopOpacity=".84"/>
        </linearGradient>
      </defs>
-     <g opacity={attention}>
-      <rect x={110} y={72} width={1042} height={99} rx={19} fill="url(#reuse09v3-head)"
-        stroke={C.cyan} strokeWidth={1.8}/>
-      <circle cx={145} cy={122} r={8} fill={C.mint}/>
-      <T x={170} y={119} size={30} weight={880}>LOGIN ARCHITECTURE</T>
-      <T x={170} y={154} size={21} color={C.muted}>ACCOUNT FACTS HAVE RETURNED  /  AUTH SERVICE CONTINUES</T>
-     </g>
      <g opacity={arrow}>
        <rect x={705} y={853} width={510} height={87} rx={20} fill="#123F58"
          stroke={C.mint} strokeOpacity=".83" strokeWidth={1.8}/>
