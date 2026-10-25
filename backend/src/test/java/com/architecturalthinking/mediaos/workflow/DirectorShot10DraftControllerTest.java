@@ -103,4 +103,11 @@ class DirectorShot10DraftControllerTest {
         assertThrows(ResponseStatusException.class,
             () -> DirectorShot10DraftController.validateDraft(other, TITLE));
     }
+
+    @Test
+    void usesTimestampEndToGuardAgainstAudioTruncation() {
+        String alignment = "{\"normalized_alignment\":{\"character_end_times_seconds\":[0.1,2.4,21.9]}}";
+        assertEquals(21.9, DirectorShot10DraftController.alignmentEndSeconds(alignment), 0.0001);
+        assertEquals(0.0, DirectorShot10DraftController.alignmentEndSeconds("{\"alignment\":{}}"), 0.0001);
+    }
 }
