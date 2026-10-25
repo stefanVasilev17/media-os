@@ -128,6 +128,7 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
   try {
     const files = [];
     for (let index = 0; index < segments.length; index++) {
+      const segment = segments[index];
       const target = path.join(tmpDir, `segment-${String(index).padStart(3, '0')}.mp4`);
       await downloadFile(segments[index].videoUrl, target);
       if (segment.normalizeVideoTo === '1920x1080') {
