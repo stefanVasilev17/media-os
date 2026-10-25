@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, PencilLine, Save, Upload } from 'lucide-react';
+import { ArrowRight, Bot, Download, FileJson2, LockKeyhole, LoaderCircle, PencilLine, Save, Upload, Mic2 } from 'lucide-react';
 import { loadCreativeStage, type CreativeStageState, type ScriptArtifact } from '../api/creativeApi';
 import {
   importProductionContract,
@@ -10,6 +10,10 @@ import {
 } from '../api/productionContractApi';
 import { importLockedScript, type LockedScriptImportPayload } from '../api/lockedScriptApi';
 import { importDirectorVoicePack, type DirectorVoicePackPayload } from '../api/directorVoicePackApi';
+import {
+  importDirectorShot10Draft, loadDirectorShot10Draft, prepareDirectorShot10Studio,
+  type DirectorShot10DraftPayload, type DirectorShot10DraftState
+} from '../api/directorShot10DraftApi';
 import { loadVoiceClips, syncVoiceClips, updateVoiceClipNarration, type VoiceClipState } from '../api/voiceClipApi';
 import { buildVoiceShotBundles, buildVoiceShotBundlesFromContract, clock } from '../lib/ep001Production';
 import { CreativeAgentPage } from './CreativeAgentPage';
@@ -115,6 +119,8 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [importMessage, setImportMessage] = useState('');
+  const [shot10Draft, setShot10Draft] = useState<DirectorShot10DraftState | null>(null);
+  const [preparingShot10, setPreparingShot10] = useState(false);
 
   const segmentByRange = useMemo(() => {
     const map = new Map<string, ProductionContractSegment>();
@@ -147,6 +153,30 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
       });
     return () => { active = false; };
   }, [state.revision]);
+
+  useEffect(() => {
+    let active = true;
+    loadDirectorShot10Draft()
+      .then(draft => { if (active) setShot10Draft(draft); })
+      .catch(() => { if (active) setShot10Draft(null); });
+    return () => { active = false; };
+  }, []);
+
+  async function prepareShot10Studio() {
+    if (preparingShot10 || !shot10Draft?.ready) return;
+    setPreparingShot10(true);
+    setError('');
+    setImportMessage('');
+    try {
+      const result = await prepareDirectorShot10Studio();
+      setShot10Draft(await loadDirectorShot10Draft());
+      setImportMessage(result.message);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not prepare SHOT 10 Studio voices.');
+    } finally {
+      setPreparingShot10(false);
+    }
+  }
 
   function beginNarrationEdit(clipKey: string, narration: string) {
     setError('');
@@ -267,7 +297,11 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
         shotKey?: string;
         clips?: unknown[];
       };
-      if (parsed.schemaVersion === 'mediaos.director-voice-pack.v1') {
+      if (parsed.schemaVersion === 'mediaos.director-shot-draft.v1') {
+        const result = await importDirectorShot10Draft(parsed as DirectorShot10DraftPayload);
+        setShot10Draft(await loadDirectorShot10Draft());
+        setImportMessage(result.message + ' Review three HEAR/SEE blocks below, then prepare Studio voices.');
+      } else if (parsed.schemaVersion === 'mediaos.director-voice-pack.v1') {
         const result = await importDirectorVoicePack(parsed as DirectorVoicePackPayload);
         setImportMessage(result.message + ' Navigate to Voice Agent → SHOT 07; SHOT 08 and SHOT 09 are also ready.');
       } else if (parsed.schemaVersion === 'mediaos.shot06-director-voice.v1') {
@@ -310,6 +344,45 @@ function LockedScript({ state }: { state: CreativeStageState<ScriptArtifact> }) 
 
       {error && <div className="production-error">{error}</div>}
       {importMessage && <div className="production-success">{importMessage}</div>}
+
+      <section className="contract-import-card">
+        <div>
+          <span>EP001 · SHOT 10 · 72-SECOND DIRECTOR REVIEW</span>
+          <strong>Short Session Creation HEAR/SEE — independent of the legacy LOCKED Script</strong>
+          <p>
+            Import the mediaos.director-shot-draft.v1 JSON using the contract import control below.
+            The draft preserves SHOT 01–09 and does not overwrite the historical long SHOT 10,
+            any generated voice, or the locked cumulative video.
+          </p>
+          {shot10Draft?.ready && shot10Draft.payload && (
+            <div>
+              <p><strong>Imported draft:</strong> {shot10Draft.payload.shotTitle} · {shot10Draft.payload.durationSeconds}s · {shot10Draft.payload.timeline.length} voice clips · DIRECTOR REVIEW / NOT LOCKED</p>
+              {shot10Draft.payload.timeline.map(segment => (
+                <div key={segment.clipKey} style={{ marginTop: '12px' }}>
+                  <strong>{segment.clipKey} · {clock(segment.startSecond)}–{clock(segment.endSecond)}</strong>
+                  <p><b>HEAR:</b> {segment.hear}</p>
+                  <p><b>VOICE:</b> {segment.voiceDirection}</p>
+                  <p><b>SEE:</b> {segment.visual.summary}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        {shot10Draft?.ready && (
+          <div className="contract-import-actions">
+            {shot10Draft.studioPrepared ? (
+              <button type="button" onClick={() => { window.location.hash = '#/studio'; }}>
+                Open SHOT 10 Studio · Voice Review
+              </button>
+            ) : (
+              <button type="button" disabled={preparingShot10} onClick={() => void prepareShot10Studio()}>
+                {preparingShot10 ? <LoaderCircle className="spin" size={15} /> : <Mic2 size={15} />}
+                {preparingShot10 ? 'Preparing voices…' : 'Prepare 3 Studio Voice Clips'}
+              </button>
+            )}
+          </div>
+        )}
+      </section>
 
       <section className="production-summary">
         <div><span>WORKING TIMELINE</span><strong>{clock(artifact.targetDurationSeconds)}</strong></div>
