@@ -209,6 +209,69 @@ function getServeUrl() {
   return serveUrlPromise;
 }
 
+
+async function addShot10V6SoundDesign(job, outputPath, inputProps) {
+  if (job.compositionId !== 'EP001-Shot10-SessionCreationShortV6'
+    || inputProps.soundDesign !== 'SHOT10_V6_PREMIUM_SFX'
+    || Number(job.durationInFrames) !== 2160
+    || Number(job.fps) !== 30) {
+    throw new Error('Only the standalone 72-second SHOT10 V6 may receive this soundtrack.');
+  }
+  if (Array.isArray(inputProps.audioClips) && inputProps.audioClips.length) {
+    throw new Error('SHOT10 V6 sound pass is SFX-only; approved narration clips may not be replaced.');
+  }
+  const cues = [
+    {s:1.6,f:240,d:.56,g:.32},
+    {s:8.45,f:190,d:.75,g:.52},
+    {s:10.1,f:760,d:.2,g:.67},
+    {s:13.0,f:900,d:.18,g:.63},
+    {s:17.2,f:1140,d:.27,g:.72},
+    {s:20.8,f:470,d:.45,g:.36},
+    {s:26.5,f:190,d:.9,g:.56},
+    {s:29.2,f:735,d:.23,g:.72},
+    {s:33.1,f:880,d:.23,g:.7},
+    {s:37.8,f:1090,d:.25,g:.72},
+    {s:42.0,f:520,d:.56,g:.48},
+    {s:47.2,f:250,d:.72,g:.48},
+    {s:51.5,f:820,d:.22,g:.65},
+    {s:54.7,f:980,d:.22,g:.71},
+    {s:57.7,f:1250,d:.4,g:.75},
+    {s:61.4,f:230,d:.74,g:.52},
+    {s:64.4,f:580,d:.3,g:.65},
+    {s:68.9,f:980,d:.44,g:.76},
+    {s:71.2,f:540,d:.46,g:.37},
+  ];
+  const newAudioFile = outputPath.replace(/\.mp4$/, '-audio.mp4');
+  const args = ['-hide_banner','-loglevel','error','-i',outputPath,
+    '-f','lavfi','-i','anoisesrc=color=pink:amplitude=0.08:sample_rate=24000:duration=72'];
+  for (const cue of cues) {
+    args.push('-f','lavfi','-i','sine=frequency='+cue.f+':sample_rate=24000:duration='+cue.d);
+  }
+  const chain = [
+    '[1:a]lowpass=f=480,volume=0.095,afade=t=in:st=0:d=2,afade=t=out:st=70:d=2[bed]',
+  ];
+  cues.forEach((cue, i) => {
+    const fadeOutStart = Math.max(.05, cue.d-.16);
+    const fadeDuration = Math.min(.14, cue.d-.05);
+    chain.push('['+(i+2)+':a]volume='+cue.g+',afade=t=in:st=0:d=0.025,afade=t=out:st='+fadeOutStart+':d='+fadeDuration+',adelay='+Math.round(cue.s*1000)+':all=1[c'+i+']');
+  });
+  const labels = ['[bed]', ...cues.map((_, i) => '[c'+i+']')].join('');
+  chain.push(labels+'amix=inputs='+(cues.length+1)+':duration=first:normalize=0,alimiter=limit=0.88:level=false[sound]');
+  args.push('-filter_complex',chain.join(';'),'-map','0:v:0','-map','[sound]',
+    '-c:v','copy','-c:a','aac','-b:a','144k','-ar','48000',
+    '-t','72','-movflags','+faststart','-y',newAudioFile);
+  try {
+    console.log('Mixing SHOT10 V6 original cinematic sound design with '+cues.length+' cues.');
+    await runProcess('ffmpeg',args);
+    const stat = await fs.stat(newAudioFile);
+    if (stat.size <= 1000000) throw new Error('Sound design output unexpectedly small');
+    await fs.rename(newAudioFile,outputPath);
+    console.log('SHOT10 V6 soundtrack mux complete: '+stat.size+' bytes');
+  } finally {
+    await fs.rm(newAudioFile,{force:true}).catch(()=>undefined);
+  }
+}
+
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
@@ -294,6 +357,9 @@ async function render(job) {
       },
     });
 
+    if (job.compositionId === 'EP001-Shot10-SessionCreationShortV6') {
+      await addShot10V6SoundDesign(job, outputPath, inputProps);
+    }
     heartbeatProgress = 97;
     await progress(job.renderId, 97);
     const sizeBytes = await complete(job.renderId, outputPath);
