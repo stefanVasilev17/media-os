@@ -124,13 +124,6 @@ const Overview:React.FC<{time:number}>=({time})=>{
       <T x={170} y={119} size={30} weight={880}>LOGIN ARCHITECTURE</T>
       <T x={170} y={154} size={21} color={C.muted}>ACCOUNT FACTS HAVE RETURNED  /  AUTH SERVICE CONTINUES</T>
      </g>
-     <g opacity={database*(1-target*.35)}>
-       <rect x={1410} y={224} width={395} height={66} rx={14} fill="#103C57"
-         stroke={C.violet} strokeOpacity=".74" strokeWidth={1.5}/>
-       <T x={1608} y={265} size={23} weight={810} anchor="middle" color={C.violet}>
-         DATABASE LOOKUP COMPLETE
-       </T>
-     </g>
      <g opacity={arrow}>
        <rect x={705} y={853} width={510} height={87} rx={20} fill="#123F58"
          stroke={C.mint} strokeOpacity=".83" strokeWidth={1.8}/>
