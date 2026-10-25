@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.workflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.architecturalthinking.mediaos.remotion.RemotionRenderController;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,11 +27,15 @@ public class DirectorShot10DraftController {
     private final JdbcClient db;
     private final ObjectMapper mapper;
     private final ProductionOverviewService overview;
+    private final RemotionRenderController renderer;
 
-    public DirectorShot10DraftController(JdbcClient db, ObjectMapper mapper, ProductionOverviewService overview) {
+    public DirectorShot10DraftController(
+            JdbcClient db, ObjectMapper mapper, ProductionOverviewService overview,
+            RemotionRenderController renderer) {
         this.db = db;
         this.mapper = mapper;
         this.overview = overview;
+        this.renderer = renderer;
     }
 
     @GetMapping
@@ -175,6 +180,96 @@ public class DirectorShot10DraftController {
             "clips", 3, "status", "DIRECTOR_REVIEW",
             "message", "Three unlocked SHOT 10 draft voices created in isolated Studio. "
                 + "Review each, lock narration, generate ElevenLabs audio, and approve individually.");
+    }
+
+    @PostMapping("/render-v7")
+    public Map<String, Object> renderVoiceSyncedV7() {
+        record Draft(String payload, UUID studioId) {}
+        Draft draft = db.sql("""
+            select payload::text, studio_shot_id from episode_director_shot_draft
+            where episode_id=:episode and shot_key=:shot
+            """).param("episode", EPISODE).param("shot", SHOT)
+            .query((rs, row) -> new Draft(rs.getString(1), rs.getObject(2, UUID.class)))
+            .optional().orElseThrow(() -> conflict("Import SHOT 10 draft before rendering."));
+        if (draft.studioId() == null) throw conflict("Prepare three SHOT 10 Studio voices before rendering.");
+        JsonNode payload;
+        try {
+            payload = mapper.readTree(draft.payload());
+        } catch (Exception ex) {
+            throw conflict("Stored SHOT 10 HEAR/SEE draft is invalid.");
+        }
+        validateDraft(payload, String.valueOf(overview.episode().get("title")));
+        record Voice(int seq, UUID id, String narration, boolean approved, boolean generated, String alignment) {}
+        List<Voice> voices = db.sql("""
+            select sequence,id,narration,
+                   (approved_at is not null) as approved,
+                   (generated_audio is not null and octet_length(generated_audio)>0) as generated,
+                   generated_alignment::text
+            from studio_clip where shot_id=:shot order by sequence
+            """).param("shot", draft.studioId())
+            .query((rs, row) -> new Voice(
+                rs.getInt(1), rs.getObject(2, UUID.class), rs.getString(3),
+                rs.getBoolean(4), rs.getBoolean(5), rs.getString(6)))
+            .list();
+        if (voices.size() != 3) {
+            throw conflict("SHOT 10 V7 needs precisely three Studio voice clips.");
+        }
+        String base = System.getenv().getOrDefault(
+            "MEDIA_OS_PUBLIC_URL", "https://media-os-backend-production.up.railway.app").replaceAll("/+$", "");
+        if (!base.matches("https://[A-Za-z0-9.:-]+")) {
+            throw conflict("MEDIA_OS_PUBLIC_URL must be a public HTTPS backend for voice previews.");
+        }
+        int[] boundaries = {0, 22, 46, 72};
+        List<Map<String, Object>> audio = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            Voice voice = voices.get(i);
+            JsonNode segment = payload.path("timeline").get(i);
+            if (voice.seq() != i + 1 || !voice.narration().equals(text(segment, "hear"))) {
+                throw conflict("SHOT 10 C0" + (i + 1) +
+                    " Studio narration differs from HEAR/SEE. No render was queued.");
+            }
+            if (!voice.approved() || !voice.generated()) {
+                throw conflict("Generate and Director-approve SHOT 10 C0" + (i + 1) +
+                    " in Studio before rendering V7.");
+            }
+            double duration = alignmentEndSeconds(voice.alignment());
+            int slotFrames = (boundaries[i + 1] - boundaries[i]) * 30;
+            if (!(duration > 0d) || !Double.isFinite(duration) || duration * 30d > slotFrames - 6) {
+                throw conflict("SHOT 10 C0" + (i + 1) +
+                    " does not fit its " + (boundaries[i + 1] - boundaries[i]) +
+                    "-second voice slot. Re-align the 72-second storyboard in Director review; do not truncate approved audio.");
+            }
+            audio.add(Map.of(
+                "src", base + "/api/v1/studio/clips/" + voice.id() + "/audio",
+                "fromFrame", boundaries[i] * 30,
+                "durationInFrames", slotFrames
+            ));
+        }
+        Map<String, Object> props = Map.of("durationInFrames", 2160, "audioClips", audio);
+        return renderer.ensureRender("EP001-Shot10-SessionCreationShortV7",
+            new RemotionRenderController.RenderRequest("FAST_PREVIEW", props));
+    }
+
+    static double alignmentEndSeconds(String encoded) {
+        if (encoded == null || encoded.isBlank()) return 0d;
+        try {
+            JsonNode root = new ObjectMapper().readTree(encoded);
+            for (String section : List.of("normalized_alignment", "alignment")) {
+                JsonNode node = root.path(section);
+                for (String key : List.of("character_end_times_seconds", "character_end_times")) {
+                    JsonNode times = node.path(key);
+                    if (!times.isArray() || times.isEmpty()) continue;
+                    double max = 0;
+                    for (JsonNode time : times) {
+                        if (time.isNumber()) max = Math.max(max, time.asDouble());
+                    }
+                    if (max > 0) return max;
+                }
+            }
+            return 0d;
+        } catch (Exception ex) {
+            return 0d;
+        }
     }
 
     static void validateDraft(JsonNode payload, String expectedTitle) {
