@@ -134,10 +134,10 @@ const Overview:React.FC<{time:number}>=({time})=>{
        </T>
      </g>
      <g opacity={arrow}>
-       <rect x={567} y={853} width={786} height={87} rx={20} fill="#123F58"
+       <rect x={705} y={853} width={510} height={87} rx={20} fill="#123F58"
          stroke={C.mint} strokeOpacity=".83" strokeWidth={1.8}/>
        <T x={960} y={909} size={30} anchor="middle" color={C.mint} weight={875}>
-         NEXT  /  AUTH SERVICE VERIFIES THE CREDENTIALS
+         VERIFY CREDENTIALS
        </T>
      </g>
    </svg>
@@ -219,9 +219,6 @@ const Success:React.FC<{time:number}>=({time})=>{
     </g>
     <T x={1437} y={848} size={22} color={C.muted} anchor="middle">AUTHENTICATED ≠ AUTHORIZED FOR ALL ACTIONS</T>
    </Card>
-   <g opacity={checks}>
-    <T x={960} y={969} color={C.amber} size={22} anchor="middle">AN ADDITIONAL FACTOR IS VERIFIED ONLY WHEN REQUIRED BY THIS SYSTEM</T>
-   </g>
   </g>
  </Header>;
 };
