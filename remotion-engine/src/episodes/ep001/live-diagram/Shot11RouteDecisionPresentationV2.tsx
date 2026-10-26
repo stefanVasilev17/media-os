@@ -58,7 +58,7 @@ const Pill:React.FC<{
       weight={780} color={color} anchor="middle">{label}</Txt>
     {check&&<Check x={x+w-30} y={y+h/2} r={18}/>}
   </g>;
-
+};
 
 const Check:React.FC<{x:number;y:number;r?:number;color?:string}>=
   ({x,y,r=24,color=C.green})=>
