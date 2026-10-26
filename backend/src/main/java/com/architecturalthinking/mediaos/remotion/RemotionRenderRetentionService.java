@@ -16,6 +16,7 @@ public class RemotionRenderRetentionService {
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT01_TO_09_MASTER_ID = UUID.fromString("fd1046d0-6b20-4267-8135-8b67add2ca33");
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID = UUID.fromString("7e55c59a-3102-4d4c-b23e-96c68ad1f286");
+    private static final UUID DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID = UUID.fromString("3a09dbd5-7ef8-4c0e-9621-12ca8a4b99a0");
     private static final int MAX_DELETIONS_PER_RUN = 200;
     private static final int BATCH_SIZE = 8;
 
@@ -69,6 +70,7 @@ public class RemotionRenderRetentionService {
                           and r.video_data is not null
                           and r.id <> :directorLockedCumulativeMasterId
                           and r.id <> :directorLockedShot10MasterId
+                          and r.id <> :directorLockedShot11MasterId
                           and not exists (
                             select 1 from visual_shot_lock l where l.render_id=r.id
                           )
@@ -113,6 +115,7 @@ public class RemotionRenderRetentionService {
                         .param("projectId", PROJECT_ID)
                         .param("directorLockedCumulativeMasterId", DIRECTOR_LOCKED_EP001_SHOT01_TO_09_MASTER_ID)
                         .param("directorLockedShot10MasterId", DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID)
+                        .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                         .param("batchSize", Math.min(BATCH_SIZE, MAX_DELETIONS_PER_RUN - removed))
                         .query((rs, index) -> new Candidate(
                                 rs.getObject("id", UUID.class), rs.getLong("size_bytes")
@@ -130,6 +133,7 @@ public class RemotionRenderRetentionService {
                               and r.video_data is not null
                               and r.id <> :directorLockedCumulativeMasterId
                               and r.id <> :directorLockedShot10MasterId
+                          and r.id <> :directorLockedShot11MasterId
                               and not exists (
                                 select 1 from visual_shot_lock l where l.render_id=r.id
                               )
@@ -173,6 +177,7 @@ public class RemotionRenderRetentionService {
                             .param("projectId", PROJECT_ID)
                             .param("directorLockedCumulativeMasterId", DIRECTOR_LOCKED_EP001_SHOT01_TO_09_MASTER_ID)
                         .param("directorLockedShot10MasterId", DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID)
+                        .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                             .update();
                     if (affected > 0) {
                         removed++;
