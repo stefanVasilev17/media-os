@@ -48,7 +48,7 @@ const Panel: React.FC<{x: number;y: number;w: number;h: number;accent?: string;
 type SystemNode = {id:string; label:string; caption:string; x:number;y:number;w:number;h:number;
   color:string;};
 const nodes: SystemNode[] = [
-  {id:'assembly',label:'Request Assembly',caption:'Credentials · Headers · Context',x:505,y:321,w:273,h:133,color:C.cyan},
+  {id:'assembly',label:'Request Assembly',caption:'Payload · Headers · Context',x:505,y:321,w:273,h:133,color:C.cyan},
   {id:'network',label:'Network',caption:'Transit',x:825,y:321,w:177,h:133,color:C.cyan},
   {id:'gateway',label:'API Gateway',caption:'Entry and routing',x:1048,y:321,w:223,h:133,color:C.blue},
   {id:'balancer',label:'Load Balancer',caption:'Select destination',x:1320,y:321,w:255,h:133,color:C.blue},
@@ -76,9 +76,9 @@ const Node:React.FC<{node:SystemNode;t:number}> = ({node,t}) => {
       fill={node.color} fillOpacity={0.18} stroke={node.color} strokeWidth={2}/>
     <path d={`M ${node.x+33} ${node.y+47} h 21 M ${node.x+44} ${node.y+36} v 23`}
       stroke={node.color} strokeWidth={3} strokeLinecap="round" opacity={0.8}/>
-    <Text x={node.x+21} y={node.y+96} size={node.label.length>19?23:27}
+    <Text x={node.x+21} y={node.y+96} size={node.label.length>19?20:27}
       weight={860}>{node.label}</Text>
-    <Text x={node.x+21} y={node.y+121} size={18} color={C.secondary}>
+    <Text x={node.x+21} y={node.y+121} size={node.caption.length>23?15.5:18} color={C.secondary}>
       {node.caption}
     </Text>
     <circle cx={node.x+node.w-21} cy={node.y+22} r={6.5}
@@ -95,8 +95,7 @@ const paths = [
   {d:'M 1575 650 H 1630',a:45,b:49,c:C.cyan},
   {d:'M 1630 693 H 1575',a:50,b:54,c:C.green},
   {d:'M 1320 673 H 1300 V 880 H 1310',a:61,b:69,c:C.green},
-  {d:'M 1048 879 H 974',a:72,b:80,c:C.green},
-  {d:'M 716 876 C 583 876 513 782 407 772',a:78,b:84,c:C.green},
+  {d:'M 1048 879 C 816 879 656 762 407 772',a:72,b:80,c:C.green},
   {d:'M 411 746 C 511 746 580 869 716 869',a:83,b:90,c:C.purple},
   {d:'M 716 917 C 587 963 488 953 407 813',a:93,b:101,c:C.green},
 ];
