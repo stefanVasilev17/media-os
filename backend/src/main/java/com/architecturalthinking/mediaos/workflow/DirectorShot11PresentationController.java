@@ -20,6 +20,8 @@ public class DirectorShot11PresentationController {
         UUID.fromString("0f164b33-bd45-4afd-abc5-90bfba735d1f");
     private static final String COMPOSITION =
         "EP001-Shot11-RouteDecisionPresentationV1";
+    private static final String COMPOSITION_V2 =
+        "EP001-Shot11-RouteDecisionPresentationV2";
     private static final UUID[] CLIP_IDS = {
         UUID.fromString("bc6cc60f-7aad-4fe9-99c9-e61942d13d1e"),
         UUID.fromString("399da60c-1e63-457f-929d-5c67374519cb"),
@@ -155,6 +157,15 @@ public class DirectorShot11PresentationController {
 
     @PostMapping("/render-presentation-v1")
     public Map<String,Object> renderPreview() {
+        return renderPreviewFor(COMPOSITION);
+    }
+
+    @PostMapping("/render-presentation-v2")
+    public Map<String,Object> renderPreviewV2() {
+        return renderPreviewFor(COMPOSITION_V2);
+    }
+
+    private Map<String,Object> renderPreviewFor(String composition) {
         List<Voice> voices=exactApprovedVoices();
         String base=System.getenv().getOrDefault(
             "MEDIA_OS_PUBLIC_URL",
@@ -176,7 +187,7 @@ public class DirectorShot11PresentationController {
             "audioClips",audioClips
         );
         return renderer.ensureRender(
-            COMPOSITION,
+            composition,
             new RemotionRenderController.RenderRequest("FAST_PREVIEW",props)
         );
     }
