@@ -147,12 +147,14 @@ const Tick:React.FC<{x:number;y:number;r?:number;color?:string}>=
       stroke="#042C28" fill="none" strokeWidth={r*.19} strokeLinecap="round"
       strokeLinejoin="round"/></g>;
 
-const Tag:React.FC<{x:number;y:number;w:number;text:string;color?:string;opacity?:number}>=
-  ({x,y,w,text,color=C.cyan,opacity=1}) =>
+const Tag:React.FC<{x:number;y:number;w:number;text:string;color?:string;opacity?:number;check?:boolean}>=
+  ({x,y,w,text,color=C.cyan,opacity=1,check=false}) =>
   <g opacity={opacity}>
     <rect x={x} y={y} width={w} height={54} rx={14} fill="#0E2B49"
       stroke={color} strokeOpacity=".72" strokeWidth={2}/>
-    <T x={x+w/2} y={y+36} size={24} anchor="middle" color={color} weight={770}>{text}</T>
+    <T x={x+(w-(check?60:0))/2} y={y+36} size={24} anchor="middle"
+      color={color} weight={770}>{text}</T>
+    {check&&<Tick x={x+w-30} y={y+27} r={17} color={C.green}/>}
   </g>;
 
 const Arrow:React.FC<{d:string;color?:string;opacity?:number;width?:number}>=
@@ -160,13 +162,10 @@ const Arrow:React.FC<{d:string;color?:string;opacity?:number;width?:number}>=
   <path d={d} stroke={color} strokeOpacity={opacity} strokeWidth={width}
     strokeLinecap="round" strokeLinejoin="round" fill="none" markerEnd="url(#s10v8Arrow)"/>;
 
-const SceneLabel:React.FC<{index:string;title:string;caption:string}>=({index,title,caption})=>
+const SceneLabel:React.FC<{title:string;caption:string}>=({title,caption})=>
   <g>
-    <T x={132} y={164} size={21} weight={850} color={C.cyan} letterSpacing={3}>
-      {'SHOT 10 / '+index}
-    </T>
-    <T x={132} y={229} size={48} weight={870}>{title}</T>
-    <T x={134} y={270} size={25} color={C.secondary} weight={500}>{caption}</T>
+    <T x={132} y={199} size={48} weight={870}>{title}</T>
+    <T x={134} y={242} size={25} color={C.secondary} weight={500}>{caption}</T>
   </g>;
 
 const Landing:React.FC<{x:number;y:number;size?:number}>=({x,y,size=38})=>
@@ -185,7 +184,7 @@ const Scene01:React.FC<{t:number}>=({t})=>{
   const ex=smooth(t,16,19.2);
   const x=980+180*identity;
   return <g opacity={sceneOpacity(t,0,22.5,true)}>
-    <SceneLabel index="01" title="The password is verified. What's next?"
+    <SceneLabel title="The password is verified. What's next?"
       caption="The client still needs a way to be recognized."/>
     <Phone x={142} y={337} scale={.85} time={t}/>
     <Tag x={159} y={789} w={208} text="WAITING" color={C.secondary}/>
@@ -194,8 +193,7 @@ const Scene01:React.FC<{t:number}>=({t})=>{
       <T x={734} y={731} anchor="middle" size={34} weight={850}>Auth Service</T>
     </Tile>
     <g opacity={smooth(t,2.1,4.3)}>
-      <Tag x={580} y={765} w={306} text="Password verified" color={C.green}/>
-      <Tick x={861} y={792} r={18}/>
+      <Tag x={556} y={765} w={354} text="Password verified" color={C.green} check/>
     </g>
     <Arrow d="M 944 543 H 1207" color={C.cyan} opacity=".85"/>
     <g transform={'translate('+x+' 498)'} opacity={smooth(t,6,7)*(1-smooth(t,13,14))}>
@@ -226,7 +224,7 @@ const Scene02:React.FC<{t:number}>=({t})=>{
   const signed=smooth(t,35.3,39.8);
   const both=smooth(t,40,44.2);
   return <g opacity={sceneOpacity(t,21.65,46.6)}>
-    <SceneLabel index="02" title="Two ways to remember the login"
+    <SceneLabel title="Two ways to remember the login"
       caption="Alternatives, not two steps in the same flow."/>
     <Tile x={104} y={328} w={803} h={546} accent={C.cyan} fill="#14395E" opacity={left}>
       <T x={149} y={399} size={38} weight={865}>Server-side session</T>
@@ -274,7 +272,7 @@ const Scene03:React.FC<{t:number}>=({t})=>{
   const choices=smooth(t,53.7,57.7);
   const circ=2*Math.PI*228;
   return <g opacity={sceneOpacity(t,45.8,59.6)}>
-    <SceneLabel index="03" title="Access does not last forever"
+    <SceneLabel title="Access does not last forever"
       caption="Sessions and tokens have a defined lifetime."/>
     <g opacity={show}>
       <circle cx={959} cy={594} r={228} stroke="#33557A" strokeWidth={29} fill="none"/>
@@ -319,7 +317,7 @@ const Scene04:React.FC<{t:number}>=({t})=>{
   const pos=cubic(run);
   const arriving=smooth(t,69.4,71.4);
   return <g opacity={sceneOpacity(t,58.6,72,false,true)}>
-    <SceneLabel index="04" title="The response heads back to the phone"
+    <SceneLabel title="The response heads back to the phone"
       caption="The client has not changed screens yet."/>
     <g opacity={appear}>
       <Phone x={172} y={330} scale={.91} time={t}/>
@@ -378,12 +376,6 @@ export const Shot10SessionCreationPresentationV8:React.FC<Props>=({audioClips=[]
         {Array.from({length:18},(_,i)=><path key={'v'+i} d={'M '+(95+i*106)+' 0 V 1080'}/>)}
         {Array.from({length:10},(_,i)=><path key={'h'+i} d={'M 0 '+(52+i*110)+' H 1920'}/>)}
       </g>
-      <T x={132} y={68} size={19} color={C.secondary} weight={770} letterSpacing={2.6}>
-        ARCHITECTURAL THINKING / EP001
-      </T>
-      <T x={1785} y={68} size={19} color={C.secondary} weight={800}
-        anchor="end">SHOT 10 / DIRECTOR REVIEW</T>
-      <path d="M 132 91 H 1788" stroke={C.outline} strokeOpacity=".4" strokeWidth={2}/>
       {t<23.5&&<Scene01 t={t}/>}
       {t>21.5&&t<47.4&&<Scene02 t={t}/>}
       {t>45.6&&t<60.5&&<Scene03 t={t}/>}
