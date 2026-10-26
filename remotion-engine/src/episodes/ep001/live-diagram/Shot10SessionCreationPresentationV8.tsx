@@ -117,6 +117,20 @@ const Phone:React.FC<{x:number;y:number;scale?:number;waiting?:boolean;time?:num
     <path d="M 45 425 H 222" stroke={accent} opacity=".17" strokeWidth="4" strokeLinecap="round"/>
   </g>;
 
+const ClientDevice:React.FC<{x:number;y:number;scale?:number;accent?:string}>=
+  ({x,y,scale=1,accent=C.blue}) =>
+  <g transform={'translate('+x+' '+y+') scale('+scale+')'}>
+    <rect width="270" height="495" rx="42" fill="#071523" stroke="#84A0C4" strokeWidth="5"/>
+    <rect x="12" y="13" width="246" height="467" rx="31" fill="#EAF2FF"/>
+    <rect x="94" y="16" width="82" height="19" rx="9" fill="#071523"/>
+    <circle cx="135" cy="169" r="70" fill={accent} opacity=".19"/>
+    <Avatar x={95} y={130} size={80} color="#2E6499"/>
+    <rect x="54" y="276" width="166" height="14" rx="7" fill="#B6CDE7"/>
+    <rect x="54" y="314" width="128" height="12" rx="6" fill="#B6CDE7"/>
+    <rect x="54" y="352" width="151" height="12" rx="6" fill="#B6CDE7"/>
+    <rect x="95" y="460" width="81" height="6" rx="3" fill="#7C9CBB"/>
+  </g>;
+
 const Doc:React.FC<{x:number;y:number;scale?:number;color?:string}>=
   ({x,y,scale=1,color=C.text}) =>
   <g transform={'translate('+x+' '+y+') scale('+scale+')'}>
@@ -219,7 +233,7 @@ const Scene02:React.FC<{t:number}>=({t})=>{
       <Tag x={149} y={425} w={326} text="State stored on server" color={C.cyan}/>
       <Server x={191} y={541} scale={.83} accent={C.cyan}/>
       <T x={277} y={804} size={25} anchor="middle">Server</T>
-      <Phone x={635} y={548} scale={.43} waiting={false}/>
+      <ClientDevice x={635} y={548} scale={.43} accent={C.cyan}/>
       <T x={689} y={804} size={25} anchor="middle">Client</T>
       <Arrow d="M 631 696 H 461" color={C.cyan} opacity={id}/>
       <g opacity={id}>
@@ -240,7 +254,7 @@ const Scene02:React.FC<{t:number}>=({t})=>{
       <path d="M 1238 680 H 1345 M 1238 698 H 1316" stroke="#687AAA" strokeWidth="5"
         strokeLinecap="round"/>
       <g opacity={signed}><Tick x={1354} y={745} r={27} color={C.purple}/></g>
-      <Phone x={1550} y={548} scale={.43} waiting={false} accent={C.purple}/>
+      <ClientDevice x={1550} y={548} scale={.43} accent={C.purple}/>
       <T x={1606} y={804} size={25} anchor="middle">Client</T>
       <Arrow d="M 1394 690 H 1531" color={C.purple} opacity={signed}/>
     </Tile>
@@ -304,7 +318,7 @@ const Scene04:React.FC<{t:number}>=({t})=>{
   const run=smooth(t,61.3,70.1);
   const pos=cubic(run);
   const arriving=smooth(t,69.4,71.4);
-  return <g opacity={sceneOpacity(t,58.8,72,true,true)}>
+  return <g opacity={sceneOpacity(t,58.6,72,false,true)}>
     <SceneLabel index="04" title="The response heads back to the phone"
       caption="The client has not changed screens yet."/>
     <g opacity={appear}>
