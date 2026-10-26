@@ -292,7 +292,7 @@ const SceneOne:React.FC<{t:number}>=({t})=>{
      opacity={ease(t,9.8,11.7)}>
      <Txt x={1291} y={303} size={40} weight={855}>Token-based app</Txt>
      <Txt x={1292} y={345} size={24} color="#D1C8FF">Proof sent with API requests</Txt>
-     <g opacity={token}><Token x={1444} y={367} scale={.75}/></g>
+     <g opacity={token}><Token x={1444} y={355} scale={.75}/></g>
      <Pill x={1363} y={490} w={378} h={55} label="Access token"
        color={C.purple} opacity={token} fontSize={27}/>
      <DetailRow x={1288} y={570} w={532} accent={C.purple}
@@ -333,13 +333,13 @@ const SceneTwo:React.FC<{t:number}>=({t})=>{
    <Panel x={678} y={242} w={1165} h={706} accent={C.cyan} fill="#153A5F"
      opacity={routing}>
      <Txt x={720} y={310} size={38} weight={850}>What screen should the app display?</Txt>
-     <Panel x={718} y={350} w={533} h={569} accent={C.green}
+     <Panel x={718} y={350} w={533} h={589} accent={C.green}
        fill="#174D4E">
        <Pill x={736} y={367} w={497} h={56}
          label="SIGNED IN  →  DASHBOARD" color={C.green} fontSize={28}/>
        <Phone x={850} y={440} scale={.97} phase="dashboard" fillProgress={0}/>
      </Panel>
-     <Panel x={1270} y={350} w={535} h={569} accent={C.amber}
+     <Panel x={1270} y={350} w={535} h={589} accent={C.amber}
        fill="#384258" opacity={.65+.35*alternative}>
        <Pill x={1288} y={367} w={498} h={56}
          label="NOT SIGNED IN  →  LOGIN" color={C.amber} fontSize={28}/>
