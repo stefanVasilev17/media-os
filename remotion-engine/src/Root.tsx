@@ -33,6 +33,7 @@ import {Shot10SessionCreationShortV6} from './episodes/ep001/live-diagram/Shot10
 import {Shot10SessionCreationShortV7} from './episodes/ep001/live-diagram/Shot10SessionCreationShortV7';
 import {Shot10SessionCreationPresentationV8} from './episodes/ep001/live-diagram/Shot10SessionCreationPresentationV8';
 import {Shot11RouteDecisionPresentationV1} from './episodes/ep001/live-diagram/Shot11RouteDecisionPresentationV1';
+import {Shot11RouteDecisionPresentationV2} from './episodes/ep001/live-diagram/Shot11RouteDecisionPresentationV2';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -477,6 +478,15 @@ export const Root: React.FC = () => {
       <Composition
         id="EP001-Shot11-RouteDecisionPresentationV1"
         component={Shot11RouteDecisionPresentationV1}
+        durationInFrames={dynamicDuration ?? 2160}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:2160,audioClips:[]}}
+      />
+      <Composition
+        id="EP001-Shot11-RouteDecisionPresentationV2"
+        component={Shot11RouteDecisionPresentationV2}
         durationInFrames={dynamicDuration ?? 2160}
         fps={30}
         width={1920}
