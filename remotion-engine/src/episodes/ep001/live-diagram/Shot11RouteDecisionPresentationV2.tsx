@@ -300,7 +300,7 @@ const SceneTwo:React.FC<{t:number}>=({t})=>{
        fill="#195054">
        <Pill x={784} y={449} w={433} h={46} label="SIGNED IN  →  DASHBOARD"
          color={C.green} fontSize={22}/>
-       <Phone x={924} y={505} scale={.57} phase="dashboard" fillProgress={done}/>
+       <Phone x={924} y={492} scale={.57} phase="dashboard" fillProgress={done}/>
        <Pill x={836} y={774} w={330} h={32} label="Session confirmed"
          color={C.green} fontSize={19} opacity={comparison}/>
      </Panel>
@@ -308,7 +308,7 @@ const SceneTwo:React.FC<{t:number}>=({t})=>{
        fill="#3A4157" opacity={.58+.42*comparison}>
        <Pill x={1289} y={449} w={435} h={46} label="NOT SIGNED IN  →  LOGIN"
          color={C.amber} fontSize={22}/>
-       <Phone x={1426} y={505} scale={.57} phase="login"/>
+       <Phone x={1426} y={492} scale={.57} phase="login"/>
        <Pill x={1337} y={774} w={332} h={32} label="No authenticated state"
          color={C.amber} fontSize={19} opacity={comparison}/>
      </Panel>
