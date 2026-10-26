@@ -365,7 +365,7 @@ export const Shot11RouteDecisionPresentationV1:React.FC<Props>=({audioClips=[]})
        {Array.from({length:18},(_,i)=><path key={'v'+i}
          d={'M '+(95+i*106)+' 0 V 1080'}/>)}
        {Array.from({length:10},(_,i)=><path key={'h'+i}
-         d={'M 0 '+(52+i*110)+' H 1080'}/>)}
+         d={'M 0 '+(52+i*110)+' H 1920'}/>)}
      </g>
      {t<23.3&&<SceneOne t={t}/>}
      {t>21.4&&t<47.3&&<SceneTwo t={t}/>}
