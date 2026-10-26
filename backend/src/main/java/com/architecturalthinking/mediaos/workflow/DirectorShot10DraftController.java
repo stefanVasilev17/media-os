@@ -184,6 +184,15 @@ public class DirectorShot10DraftController {
 
     @PostMapping("/render-v7")
     public Map<String, Object> renderVoiceSyncedV7() {
+        return renderVoiceSynced("EP001-Shot10-SessionCreationShortV7", false);
+    }
+
+    @PostMapping("/render-presentation-v8")
+    public Map<String, Object> renderPresentationV8() {
+        return renderVoiceSynced("EP001-Shot10-SessionCreationPresentationV8", true);
+    }
+
+    private Map<String, Object> renderVoiceSynced(String compositionId, boolean requireDirectorV8) {
         record Draft(String payload, UUID studioId) {}
         Draft draft = db.sql("""
             select payload::text, studio_shot_id from episode_director_shot_draft
@@ -199,6 +208,9 @@ public class DirectorShot10DraftController {
             throw conflict("Stored SHOT 10 HEAR/SEE draft is invalid.");
         }
         validateDraft(payload, String.valueOf(overview.episode().get("title")));
+        if (requireDirectorV8 && !"V8".equals(payload.path("directorRevision").asText())) {
+            throw conflict("SHOT 10 presentation preview requires the approved V8 Director narration revision.");
+        }
         record Voice(int seq, UUID id, String narration, boolean approved, boolean generated, String alignment) {}
         List<Voice> voices = db.sql("""
             select sequence,id,narration,
@@ -246,7 +258,7 @@ public class DirectorShot10DraftController {
             ));
         }
         Map<String, Object> props = Map.of("durationInFrames", 2160, "audioClips", audio);
-        return renderer.ensureRender("EP001-Shot10-SessionCreationShortV7",
+        return renderer.ensureRender(compositionId,
             new RemotionRenderController.RenderRequest("FAST_PREVIEW", props));
     }
 
