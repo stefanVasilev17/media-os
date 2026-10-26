@@ -1,0 +1,39 @@
+name: EP001 SHOT12 Director Draft V1 Preview QA
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/shot12-recap-v1-preview-qa.yml'
+      - 'remotion-engine/src/episodes/ep001/live-diagram/Shot12CompleteLoginRecapV1.tsx'
+      - 'remotion-engine/src/Root.tsx'
+permissions:
+  contents: read
+jobs:
+  shot12-visual-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: remotion-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Remotion dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck Remotion engine
+        run: npm run typecheck
+      - name: Render three silent Director review frames
+        run: |
+          mkdir -p out/shot12-director-review
+          npx remotion still src/index.ts EP001-Shot12-CompleteLoginRecapV1 out/shot12-director-review/c01-dashboard.png --frame=330 --scale=0.5
+          npx remotion still src/index.ts EP001-Shot12-CompleteLoginRecapV1 out/shot12-director-review/c02-backend.png --frame=1590 --scale=0.5
+          npx remotion still src/index.ts EP001-Shot12-CompleteLoginRecapV1 out/shot12-director-review/c03-proof.png --frame=2670 --scale=0.5
+          npx remotion still src/index.ts EP001-Shot12-CompleteLoginRecapV1 out/shot12-director-review/final-dashboard.png --frame=3100 --scale=0.5
+      - name: Upload silent V1 visual frames
+        uses: actions/upload-artifact@v4
+        with:
+          name: ep001-shot12-v1-director-visual-frames
+          path: remotion-engine/out/shot12-director-review/*.png
+          retention-days: 14
