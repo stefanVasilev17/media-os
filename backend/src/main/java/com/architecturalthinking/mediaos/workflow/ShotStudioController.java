@@ -545,11 +545,14 @@ public class ShotStudioController {
         if(alignment==null||alignment.isBlank())return 0d;
         try {
             JsonNode root=json.readTree(alignment);
-            JsonNode endings=root.path("alignment").path("character_end_times");
-            if(!endings.isArray()||endings.isEmpty())endings=root.path("normalized_alignment").path("character_end_times");
-            if(!endings.isArray())return 0d;
             double end=0d;
-            for(JsonNode v:endings)if(v.isNumber())end=Math.max(end,v.asDouble());
+            for(String section:List.of("alignment","normalized_alignment")){
+                for(String key:List.of("character_end_times_seconds","character_end_times")){
+                    JsonNode endings=root.path(section).path(key);
+                    if(!endings.isArray())continue;
+                    for(JsonNode v:endings)if(v.isNumber())end=Math.max(end,v.asDouble());
+                }
+            }
             return Double.isFinite(end)&&end>0d?end+.3d:0d;
         }catch(Exception ignored){return 0d;}
     }
