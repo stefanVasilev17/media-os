@@ -249,8 +249,8 @@ const Scene02:React.FC<{t:number}>=({t})=>{
       <rect x={1089} y={550} width={290} height={222} rx={24} fill="#E3E7FF"
         stroke="#AFADFF" strokeWidth={4}/>
       <Doc x={1122} y={586} scale={.8} color="#4264A1"/>
-      <T x={1240} y={612} size={22} weight={820} color="#1D375A}>SIGNED</T>
-      <T x={1240} y={643} size={22} weight={820} color="#1D375A}>TOKEN</T>
+      <T x={1240} y={612} size={22} weight={820} color="#1D375A">SIGNED</T>
+      <T x={1240} y={643} size={22} weight={820} color="#1D375A">TOKEN</T>
       <path d="M 1238 680 H 1345 M 1238 698 H 1316" stroke="#687AAA" strokeWidth="5"
         strokeLinecap="round"/>
       <g opacity={signed}><Tick x={1354} y={745} r={27} color={C.purple}/></g>
