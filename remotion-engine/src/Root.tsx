@@ -9,6 +9,7 @@ import {NetworkTransitYoutubePreview,networkTransitYoutubePreviewSchema} from '.
 import {LoadBalancerYoutubePreview} from './episodes/ep001/live-diagram/LoadBalancerYoutubePreview';
 import {Shot01VoiceSynced, Shot02VoiceSynced, Shot03VoiceSynced, Shot04VoiceSynced, Shot05VoiceSynced, Shot06VoiceSynced, Shot07VoiceSynced, voiceSyncedShotSchema} from './episodes/ep001/live-diagram/VoiceSyncedShot';
 import {CurrentEpisodePreview, currentEpisodePreviewSchema} from './episodes/ep001/live-diagram/CurrentEpisodePreview';
+import {Shot04FinalPolish, Shot06FinalPolish, Shot07FinalPolish} from './episodes/ep001/live-diagram/FinalPolishSourceShots';
 import {UserDatabaseHappyPathV1} from './episodes/ep001/live-diagram/UserDatabaseHappyPathV1';
 import {UserDatabaseHappyPathV2} from './episodes/ep001/live-diagram/UserDatabaseHappyPathV2';
 import {Shot08V3PremiumSlice} from './episodes/ep001/live-diagram/Shot08V3PremiumSlice';
@@ -603,6 +604,15 @@ export const Root: React.FC = () => {
         schema={studioLivingMapDraftSchema}
         defaultProps={{shotKey:'',shotTitle:'Architecture',focusNode:'API Gateway',routeNodes:['Client','API Gateway','Auth Service'],cameraMode:'FOCUS',annotation:'',audioClips:[],durationInFrames:600}}
       />
+      <Composition
+        id="EP001-Shot04-FinalPolish" component={Shot04FinalPolish}
+        durationInFrames={2601} fps={30} width={1920} height={1080}/>
+      <Composition
+        id="EP001-Shot06-FinalPolish" component={Shot06FinalPolish}
+        durationInFrames={5137} fps={30} width={1920} height={1080}/>
+      <Composition
+        id="EP001-Shot07-FinalPolish" component={Shot07FinalPolish}
+        durationInFrames={4882} fps={30} width={1920} height={1080}/>
       <Composition
         id="EP001-Voice-CurrentPreview"
         component={CurrentEpisodePreview}
