@@ -347,7 +347,7 @@ const ReturnMap:React.FC<{
         <rect x={1635} y={552} width={199} height={153} rx={10}/>
       </clipPath>
     </defs>
-    <g opacity={waiting}>
+    <g opacity={waiting*(1-clamp(travel*9))}>
       <rect x={1363} y={507} width={231} height={207} rx={18}
         fill="#36DEB9" fillOpacity=".025" stroke="#46EBCB" strokeWidth={2.8}
         strokeOpacity=".86"/>
@@ -357,15 +357,15 @@ const ReturnMap:React.FC<{
       <Text x={1483} y={765} size={22} weight={800} anchor="middle"
         color="#5AEBD0" spacing={.5}>LOGIN WAITING</Text>
     </g>
-    <g opacity={clamp(travel*8)}>
+    <g opacity={clamp(travel*9)}>
       <path d="M 1483 613 H 1733" stroke="#275779" strokeWidth={2.2}
         fill="none" strokeDasharray="4 9" strokeLinecap="round"/>
       <path d={"M 1483 613 H "+Math.max(sourceX,packetX)}
         stroke="url(#v10-transfer)" strokeWidth={4.3}
         fill="none" strokeLinecap="round"/>
-      <circle cx={packetX} cy={lineY} r={17} fill="#29C8FC"
+      <circle cx={packetX} cy={lineY} r={17} fill="#48E6C1"
         fillOpacity={.16*moving}/>
-      <circle cx={packetX} cy={lineY} r={7.3} fill="#72E6FF"
+      <circle cx={packetX} cy={lineY} r={7.3} fill="#4CDEBF"
         stroke="#ECFFFF" strokeWidth={1.5} opacity={moving}/>
     </g>
     <g opacity={active}>
