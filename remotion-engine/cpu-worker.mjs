@@ -151,6 +151,21 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       } else {
         files.push(target);
       }
+      if (segment.shotKey === 'SHOT04_FINAL_POLISH' && segment.holdAfterFrames === 60) {
+        const still = path.join(tmpDir, 'shot04-final-hold-last-frame.png');
+        const hold = path.join(tmpDir, 'shot04-final-hold-2seconds.mp4');
+        const source = files[files.length - 1];
+        console.log('Adding Director-requested exact 2-second silent visual hold before API Gateway');
+        await runProcess('ffmpeg', ['-hide_banner','-loglevel','error',
+          '-sseof','-0.033333333','-i',source,'-frames:v','1','-y',still]);
+        await runProcess('ffmpeg', ['-hide_banner','-loglevel','error',
+          '-loop','1','-framerate','30','-i',still,
+          '-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000',
+          '-frames:v','60','-r','30','-c:v','libx264','-preset','veryfast','-crf','18',
+          '-pix_fmt','yuv420p','-c:a','aac','-b:a','160k',
+          '-shortest','-movflags','+faststart','-y',hold]);
+        files.push(hold);
+      }
       const percent = Math.max(5, Math.min(70, Math.round(((index + 1) / segments.length) * 60) + 5));
       await progress(job.renderId, percent);
     }
