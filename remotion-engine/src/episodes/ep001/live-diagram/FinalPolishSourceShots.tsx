@@ -2,6 +2,7 @@ import React from 'react';
 import {Html5Video, Html5Audio, useCurrentFrame, interpolate, Easing} from 'remotion';
 import {AT_FONT} from '../../../components/architectural-thinking';
 import {LoadBalancerFinalPolish} from './LoadBalancerFinalPolish';
+import {NetworkTransitFinalPolish} from './NetworkTransitFinalPolish';
 import {AuthServiceTier2FinalPolish} from './AuthServiceTier2FinalPolish';
 
 const BASE='https://media-os-backend-production.up.railway.app/api/v1/remotion/renders';
@@ -13,25 +14,12 @@ const fade=(frame:number,a:number,b:number)=>interpolate(frame,[a,b],[0,1],{
 const sourceVideoStyle:React.CSSProperties={
   position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'fill'};
 
-export const Shot04FinalPolish:React.FC=()=>{
- const frame=useCurrentFrame();
- const cue=fade(frame,555,590)*(1-fade(frame,1050,1095));
- return <div style={{position:'absolute',inset:0,background:'#05101D'}}>
-  <Html5Video src={ORIGINAL_SHOT04} style={sourceVideoStyle}/>
-  <div style={{position:'absolute',bottom:0,left:'17%',width:'66%',height:'16%',
-    background:'linear-gradient(0deg,#05101D 40%,rgba(5,16,29,.93) 65%,transparent)',
-    opacity:cue,pointerEvents:'none'}}/>
-  <div style={{position:'absolute',left:'27%',width:'46%',top:'75.5%',
-    boxSizing:'border-box',padding:'14px 22px',borderRadius:17,
-    border:'2px solid rgba(76,202,235,.72)',background:'rgba(4,18,35,.97)',
-    color:'#E6F8FF',fontSize:27,fontWeight:800,lineHeight:1.2,
-    fontFamily:AT_FONT,letterSpacing:'.01em',textAlign:'center',
-    textShadow:'0 0 18px rgba(76,202,235,.38)',
-    opacity:cue,pointerEvents:'none'}}>
-    DNS lookup complete · destination found
-  </div>
- </div>;
-};
+export const Shot04FinalPolish:React.FC=()=>(
+ <div style={{position:'absolute',inset:0,background:'#05101D'}}>
+  <Html5Audio src={ORIGINAL_SHOT04}/>
+  <NetworkTransitFinalPolish showGuides={false} anchors={{}}/>
+ </div>
+);
 
 export const Shot06FinalPolish:React.FC=()=>{
  const frame=useCurrentFrame();
