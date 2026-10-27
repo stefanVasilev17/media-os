@@ -220,7 +220,7 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       header.writeUInt16LE(16, 34);
       header.write('data', 36, 4, 'ascii');
       header.writeUInt32LE(wavDataBytes, 40);
-      const wav = await fs.open(sfxWav, 'w');
+      const wav = await fs.open(sfxWav, 'w+');
       try {
         await wav.write(header, 0, header.length, 0);
         await wav.truncate(44 + wavDataBytes);
