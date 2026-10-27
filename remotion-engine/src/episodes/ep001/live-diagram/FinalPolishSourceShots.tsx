@@ -18,6 +18,9 @@ export const Shot04FinalPolish:React.FC=()=>{
  const cue=fade(frame,555,590)*(1-fade(frame,1050,1095));
  return <div style={{position:'absolute',inset:0,background:'#05101D'}}>
   <Html5Video src={ORIGINAL_SHOT04} style={sourceVideoStyle}/>
+  <div style={{position:'absolute',bottom:0,left:'17%',width:'66%',height:'16%',
+    background:'linear-gradient(0deg,#05101D 40%,rgba(5,16,29,.93) 65%,transparent)',
+    opacity:cue,pointerEvents:'none'}}/>
   <div style={{position:'absolute',left:'27%',width:'46%',top:'75.5%',
     boxSizing:'border-box',padding:'14px 22px',borderRadius:17,
     border:'2px solid rgba(76,202,235,.72)',background:'rgba(4,18,35,.97)',
