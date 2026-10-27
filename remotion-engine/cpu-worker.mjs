@@ -183,64 +183,111 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
           || job.fps !== 30 || job.width !== 1920 || job.height !== 1080
           || job.durationInFrames !== 37703 || segments[0].normalizeVideoTo
           || segments[0].durationInFrames !== 37703) {
-        throw new Error('EP001 Sound Design V1 may only be derived from the precise Director-LOCKED audio master, with unchanged 37703-frame video.');
+        throw new Error('EP001 Sound Design V1 may only be derived from the exact Director-LOCKED audio master, with unchanged 37703-frame video.');
       }
+      const sampleRate = 48000;
       const cues = [
-        {at: 175.0, hz: 320, duration: .56, gain: .14, tag: 'request-assembly-dispatch'},
-        {at: 218.4, hz: 570, duration: .50, gain: .12, tag: 'dns-resolution-found'},
-        {at: 286.2, hz: 410, duration: .48, gain: .12, tag: 'gateway-receives-request'},
-        {at: 546.0, hz: 285, duration: .72, gain: .14, tag: 'load-balancer-choice'},
-        {at: 698.0, hz: 340, duration: .65, gain: .12, tag: 'database-account-lookup'},
-        {at: 996.0, hz: 660, duration: .76, gain: .15, tag: 'credentials-verified'},
-        {at: 1067.0, hz: 465, duration: .68, gain: .13, tag: 'authentication-state-created'},
-        {at: 1146.0, hz: 540, duration: .52, gain: .10, tag: 'protected-route-authorization'},
-        {at: 1237.0, hz: 620, duration: .93, gain: .14, tag: 'dashboard-private-data-reveal'},
+        {at: 175.0, hz: 320, duration: .56, gain: .020, tag: 'request-assembly-dispatch'},
+        {at: 218.4, hz: 570, duration: .50, gain: .016, tag: 'dns-resolution-found'},
+        {at: 286.2, hz: 410, duration: .48, gain: .018, tag: 'gateway-receives-request'},
+        {at: 546.0, hz: 285, duration: .72, gain: .022, tag: 'load-balancer-choice'},
+        {at: 698.0, hz: 340, duration: .65, gain: .018, tag: 'database-account-lookup'},
+        {at: 996.0, hz: 660, duration: .76, gain: .022, tag: 'credentials-verified'},
+        {at: 1067.0, hz: 465, duration: .68, gain: .018, tag: 'authentication-state-created'},
+        {at: 1146.0, hz: 540, duration: .52, gain: .014, tag: 'protected-route-authorization'},
+        {at: 1237.0, hz: 620, duration: .93, gain: .020, tag: 'dashboard-private-data-reveal'},
       ];
       const textureCues = [
-        {at: 175.0, duration: .38, gain: .08},
-        {at: 286.2, duration: .36, gain: .07},
-        {at: 546.0, duration: .40, gain: .07},
-        {at: 698.0, duration: .43, gain: .08},
+        {at:175.0, duration:.38, gain:.004},
+        {at:286.2, duration:.36, gain:.004},
+        {at:546.0, duration:.40, gain:.004},
+        {at:698.0, duration:.43, gain:.004},
       ];
-      const args = ['-hide_banner', '-loglevel', 'error', '-i', files[0]];
-      for (const cue of cues) {
-        args.push('-f','lavfi','-i',
-          'sine=frequency='+cue.hz+':sample_rate=48000:duration='+cue.duration);
+      const sfxWav = path.join(tmpDir, 'ep001-original-sfx-v1.wav');
+      const nSamples = Math.round(job.durationInFrames * sampleRate / job.fps);
+      const wavDataBytes = nSamples * 2;
+      const header = Buffer.alloc(44);
+      header.write('RIFF', 0, 4, 'ascii');
+      header.writeUInt32LE(wavDataBytes + 36, 4);
+      header.write('WAVE', 8, 4, 'ascii');
+      header.write('fmt ', 12, 4, 'ascii');
+      header.writeUInt32LE(16, 16);
+      header.writeUInt16LE(1, 20);
+      header.writeUInt16LE(1, 22);
+      header.writeUInt32LE(sampleRate, 24);
+      header.writeUInt32LE(sampleRate * 2, 28);
+      header.writeUInt16LE(2, 32);
+      header.writeUInt16LE(16, 34);
+      header.write('data', 36, 4, 'ascii');
+      header.writeUInt32LE(wavDataBytes, 40);
+      const wav = await fs.open(sfxWav, 'w');
+      try {
+        await wav.write(header, 0, header.length, 0);
+        await wav.truncate(44 + wavDataBytes);
+        const writeCue = async (cue, noise = false) => {
+          const start = Math.round(cue.at * sampleRate);
+          const count = Math.round(cue.duration * sampleRate);
+          if (start < 0 || start + count >= nSamples) throw new Error('Sound cue out of bounds: '+JSON.stringify(cue));
+          const samples = Buffer.alloc(count * 2);
+          let seed = 32749;
+          let filtered = 0;
+          for (let i = 0; i < count; i++) {
+            const t = i / sampleRate;
+            const attack = Math.min(1, t / .035);
+            const release = Math.min(1, (cue.duration - t) / (noise ? .16 : .28));
+            const envelope = Math.pow(Math.max(0, Math.min(attack, release)), 1.4);
+            let wave;
+            if (noise) {
+              seed = (Math.imul(seed, 1664525) + 1013904223) | 0;
+              const raw = (seed >>> 0) / 2147483648 - 1;
+              filtered = filtered * .91 + raw * .09;
+              wave = raw * .23 + filtered * .77;
+            } else {
+              const pitch = cue.hz * (1 + .07 * Math.exp(-t * 9));
+              const phase = 2 * Math.PI * (cue.hz * t + cue.hz * .07 * (1-Math.exp(-9*t)) / 9);
+              wave = Math.sin(phase) * .78 + Math.sin(phase*1.5) * .22;
+            }
+            samples.writeInt16LE(Math.max(-32767,Math.min(32767,
+              Math.round(wave * envelope * cue.gain * 32767))), i * 2);
+          }
+          await wav.write(samples, 0, samples.length, 44 + start * 2);
+        };
+        for (const cue of cues) await writeCue(cue);
+        for (const cue of textureCues) {
+          // Texture and main tone begin together; additive mix is generated in the same sparse PCM interval.
+          // Reconstruct existing sample values and sum only this local event window.
+          const begin = Math.round(cue.at * sampleRate),count = Math.round(cue.duration * sampleRate);
+          const scratch = Buffer.alloc(count * 2);
+          await wav.read(scratch,0,scratch.length,44+begin*2);
+          let seed=90091,filtered=0;
+          for(let i=0;i<count;i++){
+            seed=(Math.imul(seed,1664525)+1013904223)|0;
+            const raw=(seed>>>0)/2147483648-1;
+            filtered=.88*filtered+.12*raw;
+            const t=i/sampleRate;
+            const env=Math.max(0,Math.min(1,t/.05,(cue.duration-t)/.18));
+            const added=(.21*raw+.79*filtered)*env*cue.gain;
+            const current=scratch.readInt16LE(i*2)/32767;
+            scratch.writeInt16LE(Math.round(Math.max(-1,Math.min(1,current+added))*32767),i*2);
+          }
+          await wav.write(scratch,0,scratch.length,44+begin*2);
+        }
+      } finally {
+        await wav.close();
       }
-      for (const cue of textureCues) {
-        args.push('-f','lavfi','-i',
-          'anoisesrc=color=pink:amplitude=0.075:sample_rate=48000:duration='+cue.duration);
-      }
-      const filters = ['[0:a]aformat=sample_rates=48000:channel_layouts=stereo[voice]'];
-      const labels = ['[voice]'];
-      cues.forEach((cue,i) => {
-        const outStart = Math.max(.12,cue.duration-.27);
-        const fadeDur = Math.min(.24,cue.duration-outStart);
-        const label = 'tone'+i;
-        filters.push('['+(i+1)+':a]volume='+cue.gain+
-          ',afade=t=in:st=0:d=0.028,afade=t=out:st='+outStart+':d='+fadeDur+
-          ',adelay='+Math.round(cue.at*1000)+':all=1'+
-          ',aformat=sample_rates=48000:channel_layouts=stereo['+label+']');
-        labels.push('['+label+']');
-      });
-      textureCues.forEach((cue,i) => {
-        const label = 'air'+i;
-        filters.push('['+(1+cues.length+i)+':a]highpass=f=820,lowpass=f=3300'+
-          ',volume='+cue.gain+
-          ',afade=t=in:st=0:d=0.04,afade=t=out:st='+(cue.duration-.20)+':d=0.20'+
-          ',adelay='+Math.round(cue.at*1000)+':all=1'+
-          ',aformat=sample_rates=48000:channel_layouts=stereo['+label+']');
-        labels.push('['+label+']');
-      });
-      filters.push(labels.join('')+'amix=inputs='+labels.length+
-        ':duration=first:normalize=0,alimiter=limit=0.80:level=false[episode-sound]');
-      await progress(job.renderId, 75);
-      console.log('EP001 Sound Design V1: '+cues.length+' restrained original tonal motifs, '+
-        textureCues.length+' quiet movement textures, no music bed, no SFX during two-second Network hold.');
       console.log('EP001_SOUND_DESIGN_V1_CUES '+JSON.stringify(cues));
+      console.log('EP001 SFX sparse mono PCM track: '+nSamples+' samples, '+cues.length+
+        ' tonal accents, '+textureCues.length+' quiet air textures, no bed or music.');
+      await progress(job.renderId, 75);
       await runProcess('ffmpeg', [
-        ...args, '-filter_complex', filters.join(';'),
-        '-map','0:v:0', '-map','[episode-sound]',
+        '-hide_banner', '-loglevel', 'error',
+        '-i', files[0], '-i', sfxWav,
+        '-filter_complex',
+        '[0:a]aformat=sample_rates=48000:channel_layouts=stereo[voice];'+
+        '[1:a]aformat=sample_rates=48000:channel_layouts=stereo[sfx];'+
+        '[voice][sfx]amix=inputs=2:duration=first:normalize=0,'+
+        'alimiter=limit=0.80:level=false[episode_sound]',
+        '-map','0:v:0', '-map','[episode_sound]',
         '-c:v','copy', '-c:a','aac', '-b:a','192k', '-ar','48000',
         '-t',String(job.durationInFrames/job.fps),
         '-movflags','+faststart', '-y', outputPath,
