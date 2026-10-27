@@ -4,6 +4,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
+import {CLIP_PREVIEW_INPUT_KEY, resolveClipPreviewRange} from './clip-preview-range.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -292,6 +293,13 @@ async function addShot10V6SoundDesign(job, outputPath, inputProps) {
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
+  const frameRange = resolveClipPreviewRange(job.profile, inputProps, Number(job.durationInFrames), Number(job.fps));
+  if (frameRange && (job.compositionId === 'EP001-Voice-CurrentPreview'
+    || job.compositionId === 'EP001-Shot10-SessionCreationShortV6')) {
+    throw new Error('CLIP_PREVIEW cannot bypass cumulative or dedicated sound-design rendering.');
+  }
+  const compositionProps = frameRange ? {...inputProps} : inputProps;
+  if (frameRange) delete compositionProps[CLIP_PREVIEW_INPUT_KEY];
 
   console.log(
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
@@ -318,7 +326,7 @@ async function render(job) {
     const composition = await selectComposition({
       serveUrl,
       id: job.compositionId,
-      inputProps,
+      inputProps: compositionProps,
       browserExecutable: CHROMIUM_PATH,
       timeoutInMilliseconds: 120_000,
       logLevel: 'warn',
@@ -345,7 +353,8 @@ async function render(job) {
       serveUrl,
       codec: 'h264',
       outputLocation: outputPath,
-      inputProps,
+      inputProps: compositionProps,
+      frameRange: frameRange || undefined,
       browserExecutable: CHROMIUM_PATH,
       scale: widthScale,
       imageFormat: 'jpeg',
