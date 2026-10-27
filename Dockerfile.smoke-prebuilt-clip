@@ -19,6 +19,7 @@ WORKDIR /app
 RUN apk add --no-cache chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium setpriv
 COPY --from=validate-remotion /app/remotion-engine /app/remotion-engine
 COPY --from=validate-backend /tmp/clip-preview-backend-tests-passed /app/backend-tests-passed
+RUN test -s /app/backend-tests-passed
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/chromium-software-webgl.sh
 ENV CHROMIUM_PATH=/app/chromium-software-webgl.sh
