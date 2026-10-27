@@ -163,7 +163,7 @@ public class RemotionRenderController {
         }
     }
 
-    public record RenderRequest(String profile, Map<String, Object> inputProps) {}
+    public record RenderRequest(String profile, Map<String, Object> inputProps, Integer startFrame, Integer endFrame) {}
 
     @PostMapping("/compositions/{compositionId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -181,10 +181,32 @@ public class RemotionRenderController {
                 : request.profile().trim().toUpperCase();
         OutputProfile output = requireOutputProfile(profileName, composition);
         Map<String, Object> inputProps = request == null || request.inputProps() == null
-                ? Map.of()
+                ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(request.inputProps());
         int durationInFrames = resolveDurationInFrames(composition, inputProps);
         inputProps.put("durationInFrames", durationInFrames);
+        if (inputProps.containsKey(RemotionClipPreviewRange.INPUT_KEY)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reserved CLIP_PREVIEW metadata cannot be provided in inputProps.");
+        }
+        if ("CLIP_PREVIEW".equals(profileName)) {
+            if ("EP001-Voice-CurrentPreview".equals(compositionId)
+                    || "EP001-Shot10-SessionCreationShortV6".equals(compositionId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CLIP_PREVIEW is not supported for cumulative or dedicated sound-design compositions.");
+            }
+            try {
+                RemotionClipPreviewRange range = RemotionClipPreviewRange.validateRequest(
+                        request == null ? null : request.startFrame(),
+                        request == null ? null : request.endFrame(),
+                        durationInFrames,
+                        composition.fps()
+                );
+                inputProps.put(RemotionClipPreviewRange.INPUT_KEY, range.asMetadata());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+            }
+        } else if (request != null && (request.startFrame() != null || request.endFrame() != null)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startFrame and endFrame require CLIP_PREVIEW profile.");
+        }
         String renderHash = renderHash(compositionId, profileName, output, inputProps);
 
         Optional<RenderRow> existing = findByHash(renderHash);
@@ -255,7 +277,7 @@ public class RemotionRenderController {
         requireOutputProfile(profileName, composition);
         return jdbc.sql("""
                 select id, composition_id, render_key, engine_version, profile, status,
-                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       width, height, fps, duration_in_frames, input_props::text as input_props, progress, size_bytes, error,
                        created_at, finished_at
                 from remotion_render
                 where project_id=:projectId and composition_id=:compositionId and profile=:profile
@@ -283,7 +305,7 @@ public class RemotionRenderController {
                 "engine", "REMOTION_CPU_V1",
                 "engineVersion", engineVersion,
                 "compositions", COMPOSITIONS.keySet(),
-                "profiles", Arrays.asList("DRAFT", "FAST_PREVIEW", "REVIEW")
+                "profiles", Arrays.asList("CLIP_PREVIEW", "DRAFT", "FAST_PREVIEW", "REVIEW")
         );
     }
 
@@ -337,12 +359,12 @@ public class RemotionRenderController {
 
     private OutputProfile requireOutputProfile(String profile, CompositionProfile composition) {
         return switch (profile) {
-            case "DRAFT" -> new OutputProfile(960, 540);
+            case "CLIP_PREVIEW", "DRAFT" -> new OutputProfile(960, 540);
             case "FAST_PREVIEW" -> new OutputProfile(1280, 720);
             case "REVIEW" -> new OutputProfile(composition.width(), composition.height());
             default -> throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Remotion Engine v0.1 supports DRAFT, FAST_PREVIEW and REVIEW profiles only."
+                    "Remotion Engine v0.1 supports CLIP_PREVIEW, DRAFT, FAST_PREVIEW and REVIEW profiles only."
             );
         };
     }
@@ -389,7 +411,7 @@ public class RemotionRenderController {
     private Optional<RenderRow> findByHash(String renderHash) {
         return jdbc.sql("""
                 select id, composition_id, render_key, engine_version, profile, status,
-                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       width, height, fps, duration_in_frames, input_props::text as input_props, progress, size_bytes, error,
                        created_at, finished_at
                 from remotion_render
                 where project_id=:projectId and render_hash=:renderHash
@@ -403,7 +425,7 @@ public class RemotionRenderController {
     private Optional<RenderRow> findById(UUID renderId) {
         return jdbc.sql("""
                 select id, composition_id, render_key, engine_version, profile, status,
-                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       width, height, fps, duration_in_frames, input_props::text as input_props, progress, size_bytes, error,
                        created_at, finished_at
                 from remotion_render
                 where id=:id and project_id=:projectId
@@ -426,6 +448,7 @@ public class RemotionRenderController {
                 rs.getInt("height"),
                 rs.getInt("fps"),
                 rs.getInt("duration_in_frames"),
+                rs.getString("input_props"),
                 rs.getInt("progress"),
                 (Long) rs.getObject("size_bytes"),
                 rs.getString("error"),
@@ -445,8 +468,27 @@ public class RemotionRenderController {
         result.put("width", row.width());
         result.put("height", row.height());
         result.put("fps", row.fps());
-        result.put("durationInFrames", row.durationInFrames());
-        result.put("durationMs", Math.round(row.durationInFrames() * 1000d / row.fps()));
+        RemotionClipPreviewRange clip = null;
+        if ("CLIP_PREVIEW".equals(row.profile())) {
+            try {
+                Map<String, Object> storedProps = objectMapper.readValue(
+                        row.inputPropsJson(),
+                        new TypeReference<Map<String, Object>>() {}
+                );
+                clip = RemotionClipPreviewRange.fromStoredProps(storedProps)
+                        .orElseThrow(() -> new IllegalArgumentException("CLIP_PREVIEW metadata is absent."));
+            } catch (IOException | IllegalArgumentException ex) {
+                throw new IllegalStateException("Cannot read persisted CLIP_PREVIEW duration metadata.", ex);
+            }
+        }
+        int renderedFrames = clip == null ? row.durationInFrames() : clip.renderedFrames();
+        result.put("durationInFrames", renderedFrames);
+        result.put("durationMs", Math.round(renderedFrames * 1000d / row.fps()));
+        if (clip != null) {
+            result.put("sourceDurationInFrames", row.durationInFrames());
+            result.put("startFrame", clip.startFrame());
+            result.put("endFrame", clip.endFrame());
+        }
         result.put("progress", row.progress());
         result.put("sizeBytes", row.sizeBytes());
         result.put("error", row.error());
@@ -512,6 +554,7 @@ public class RemotionRenderController {
             int height,
             int fps,
             int durationInFrames,
+            String inputPropsJson,
             int progress,
             Long sizeBytes,
             String error,
