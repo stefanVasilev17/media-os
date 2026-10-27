@@ -1,5 +1,5 @@
 import React from 'react';
-import {Html5Video, useCurrentFrame, interpolate, Easing} from 'remotion';
+import {Html5Video, Html5Audio, useCurrentFrame, interpolate, Easing} from 'remotion';
 import {AT_FONT} from '../../../components/architectural-thinking';
 import {LoadBalancerFinalPolish} from './LoadBalancerFinalPolish';
 import {AuthServiceTier2FinalPolish} from './AuthServiceTier2FinalPolish';
@@ -36,7 +36,7 @@ export const Shot04FinalPolish:React.FC=()=>{
 export const Shot06FinalPolish:React.FC=()=>{
  const frame=useCurrentFrame();
  return <div style={{position:'absolute',inset:0,background:'#05101D'}}>
-  <Html5Video src={ORIGINAL_SHOT06} style={{...sourceVideoStyle,opacity:0}}/>
+  <Html5Audio src={ORIGINAL_SHOT06}/>
   <LoadBalancerFinalPolish durationInFrames={5137}
     clipStarts={[0,497,990,1617,2326,3154,4103]}
     anchors={{}}/>
@@ -45,7 +45,7 @@ export const Shot06FinalPolish:React.FC=()=>{
 
 export const Shot07FinalPolish:React.FC=()=>(
  <div style={{position:'absolute',inset:0,background:'#081B34'}}>
-  <Html5Video src={ORIGINAL_SHOT07} style={{...sourceVideoStyle,opacity:0}}/>
+  <Html5Audio src={ORIGINAL_SHOT07}/>
   <AuthServiceTier2FinalPolish durationInFrames={4882}
     clipStarts={[24,952,1821,2940,3915]} anchors={{}}/>
  </div>
