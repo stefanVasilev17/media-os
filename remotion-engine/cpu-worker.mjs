@@ -157,7 +157,12 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
         const source = files[files.length - 1];
         console.log('Adding Director-requested exact 2-second silent visual hold before API Gateway');
         await runProcess('ffmpeg', ['-hide_banner','-loglevel','error',
-          '-sseof','-0.033333333','-i',source,'-frames:v','1','-y',still]);
+          '-sseof','-1','-i',source,'-map','0:v:0',
+          '-frames:v','30','-update','1','-y',still]);
+        const stillStat = await fs.stat(still).catch(() => null);
+        if (!stillStat || stillStat.size < 1000) {
+          throw new Error('Director 2s hold: source last-frame PNG was not generated');
+        }
         await runProcess('ffmpeg', ['-hide_banner','-loglevel','error',
           '-loop','1','-framerate','30','-i',still,
           '-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000',
