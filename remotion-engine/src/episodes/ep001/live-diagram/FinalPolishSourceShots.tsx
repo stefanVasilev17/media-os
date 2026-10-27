@@ -2,7 +2,7 @@ import React from 'react';
 import {Html5Video, Html5Audio, useCurrentFrame, interpolate, Easing} from 'remotion';
 import {AT_FONT} from '../../../components/architectural-thinking';
 import {LoadBalancerFinalPolish} from './LoadBalancerFinalPolish';
-import {NetworkTransitFinalPolish} from './NetworkTransitFinalPolish';
+import {NetworkTransitScreenSafePolish} from './NetworkTransitScreenSafePolish';
 import {AuthServiceTier2FinalPolish} from './AuthServiceTier2FinalPolish';
 
 const BASE='https://media-os-backend-production.up.railway.app/api/v1/remotion/renders';
@@ -17,7 +17,7 @@ const sourceVideoStyle:React.CSSProperties={
 export const Shot04FinalPolish:React.FC=()=>(
  <div style={{position:'absolute',inset:0,background:'#05101D'}}>
   <Html5Audio src={ORIGINAL_SHOT04}/>
-  <NetworkTransitFinalPolish showGuides={false} anchors={{}}/>
+  <NetworkTransitScreenSafePolish showGuides={false} anchors={{}}/>
  </div>
 );
 
