@@ -59,3 +59,17 @@ The script compares equal frames at concurrency 1 and 2 and writes output MP4s p
 - Keep `remotion-engine/**` in backend Railway watch patterns until render-hash identity no longer depends on backend `RAILWAY_GIT_COMMIT_SHA` / build timestamp.
 - Keep just one render-worker replica during the controlled rendering benchmark.
 - Do not update LOCKED EP001 scene code to silence the documented TypeScript diagnostic; resolve this only via a separate explicitly approved visual-safe migration.
+
+## Independent CPU render benchmark (2026-10-27)
+
+A temporary Railway service `media-os-benchmark-once-20261027` was attached to the isolated GitHub branch `perf/isolated-remotion-benchmark-20261027`, with no database variables, no queue authentication key, no service dependencies, one replica, and restart policy NEVER. The service used a Dockerfile independent of the production render worker. Both runs completed, then the benchmark service was deleted to avoid ongoing cost.
+
+- Composition: `EP001-PhoneFirst-Youtube`.
+- Input: `{"showGuides":false}`; first 180 frames, scale `2/3`, H.264 `1280x720`, 30 FPS.
+- Rendering settings held constant except Chromium browser concurrency; `crf=18`, `x264Preset=veryfast`, encoding parallelism disabled, FFmpeg two threads.
+- Run 1: concurrency=1 **34.770774 s**; concurrency=2 **42.266257 s**; speedup (1/2) 0.823.
+- Run 2: concurrency=1 **13.391720 s**; concurrency=2 **13.743414 s**; speedup (1/2) 0.974.
+- All four files passed `ffprobe` assertions: H.264, 1280×720, 30 FPS, 180 encoded frames, nonempty MP4.
+- Cold/warm startup and host scheduling are significant sources of variation. The test has no frame-by-frame pixel equality validation or subjective visual/audio QA.
+- **Decision:** keep production `renderConcurrency=2` for now. Neither short-scene benchmark alone establishes optimal browser concurrency for longer, software-WebGL-heavy, or voice-synced shots. Test a representative longer shot with multiple alternating trials before adjusting production defaults.
+- Related proposed improvement: GitHub PR #97 (DRAFT) prepares reuse of the already built Remotion bundle and an opt-in 960×540 DRAFT profile. Not deployed to production; requires a safe worker render validation before merging.
