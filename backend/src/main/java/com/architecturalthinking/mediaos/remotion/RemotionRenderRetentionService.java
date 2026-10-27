@@ -19,6 +19,7 @@ public class RemotionRenderRetentionService {
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID = UUID.fromString("3a09dbd5-7ef8-4c0e-9621-12ca8a4b99a0");
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID = UUID.fromString("5d8c7db2-b34e-4781-af1a-2aa236691ea5");
     private static final UUID EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID = UUID.fromString("e03c87c6-3f68-40cb-adba-24020bca28af");
+    private static final UUID EP001_AUDIO_HEADROOM_QA_REVIEW_ID = UUID.fromString("96699a27-7615-4ce1-a092-53cdf1e9d1af");
     private static final int MAX_DELETIONS_PER_RUN = 200;
     private static final int BATCH_SIZE = 8;
 
@@ -75,6 +76,7 @@ public class RemotionRenderRetentionService {
                           and r.id <> :directorLockedShot11MasterId
                           and r.id <> :directorLockedShot12MasterId
                           and r.id <> :provisionalEpisodeAudioReviewId
+                          and r.id <> :audioHeadroomReviewId
                           and not exists (
                             select 1 from visual_shot_lock l where l.render_id=r.id
                           )
@@ -122,6 +124,7 @@ public class RemotionRenderRetentionService {
                         .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                         .param("directorLockedShot12MasterId", DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID)
                         .param("provisionalEpisodeAudioReviewId", EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID)
+                        .param("audioHeadroomReviewId", EP001_AUDIO_HEADROOM_QA_REVIEW_ID)
                         .param("batchSize", Math.min(BATCH_SIZE, MAX_DELETIONS_PER_RUN - removed))
                         .query((rs, index) -> new Candidate(
                                 rs.getObject("id", UUID.class), rs.getLong("size_bytes")
@@ -142,6 +145,7 @@ public class RemotionRenderRetentionService {
                           and r.id <> :directorLockedShot11MasterId
                           and r.id <> :directorLockedShot12MasterId
                           and r.id <> :provisionalEpisodeAudioReviewId
+                          and r.id <> :audioHeadroomReviewId
                               and not exists (
                                 select 1 from visual_shot_lock l where l.render_id=r.id
                               )
@@ -188,6 +192,7 @@ public class RemotionRenderRetentionService {
                         .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                         .param("directorLockedShot12MasterId", DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID)
                         .param("provisionalEpisodeAudioReviewId", EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID)
+                        .param("audioHeadroomReviewId", EP001_AUDIO_HEADROOM_QA_REVIEW_ID)
                             .update();
                     if (affected > 0) {
                         removed++;
