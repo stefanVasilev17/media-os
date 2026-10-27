@@ -201,22 +201,31 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
 
 function getServeUrl() {
   if (!serveUrlPromise) {
-    serveUrlPromise = bundle({
-      entryPoint: ENTRY_POINT,
-      rootDir: ENGINE_ROOT,
-      publicDir: null,
-      enableCaching: true,
-      onProgress: value => {
-        if (value === 100 || value % 20 < 1) console.log(`Remotion bundle progress=${Math.round(value)}%`);
-      },
-    }).catch(error => {
+    serveUrlPromise = (async () => {
+      const prebuiltPath = path.join(ENGINE_ROOT, 'build');
+      try {
+        await fs.access(path.join(prebuiltPath, 'index.html'));
+        console.log('Using prebuilt Remotion bundle from image: ' + prebuiltPath);
+        return prebuiltPath;
+      } catch {
+        console.log('Prebuilt Remotion bundle unavailable; bundling source.');
+        return bundle({
+          entryPoint: ENTRY_POINT,
+          rootDir: ENGINE_ROOT,
+          publicDir: null,
+          enableCaching: true,
+          onProgress: value => {
+            if (value === 100 || value % 20 < 1) console.log(`Remotion bundle progress=${Math.round(value)}%`);
+          },
+        });
+      }
+    })().catch(error => {
       serveUrlPromise = null;
       throw error;
     });
   }
   return serveUrlPromise;
 }
-
 
 async function addShot10V6SoundDesign(job, outputPath, inputProps) {
   if (job.compositionId !== 'EP001-Shot10-SessionCreationShortV6'
