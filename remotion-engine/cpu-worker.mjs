@@ -175,6 +175,27 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       await progress(job.renderId, percent);
     }
 
+    if (inputProps.audioMastering === true) {
+      if (inputProps.retimeVideoTo30fps === true
+          || segments.length !== 1 || files.length !== 1
+          || job.fps !== 30 || job.width !== 1920 || job.height !== 1080
+          || segments[0].normalizeVideoTo || job.durationInFrames !== 37703) {
+        throw new Error('Audio mastering accepts one existing validated EP001 1920x1080 30fps, 37703-frame derived composite only.');
+      }
+      console.log('EP001 optional final audio mastering: exact video bitstream copy, approved narration preserved; EBU R128 loudness normalization to -16 LUFS and -1.5 dBTP.');
+      await progress(job.renderId, 75);
+      await runProcess('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error', '-i', files[0],
+        '-map', '0:v:0', '-map', '0:a:0',
+        '-c:v', 'copy',
+        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
+        '-c:a', 'aac', '-ar', '48000', '-b:a', '192k',
+        '-movflags', '+faststart', '-y', outputPath,
+      ]);
+      await progress(job.renderId, 95);
+      return;
+    }
+
     if (inputProps.retimeVideoTo30fps === true) {
       if (segments.length !== 1 || files.length !== 1 || job.fps !== 30
           || job.width !== 1920 || job.height !== 1080
