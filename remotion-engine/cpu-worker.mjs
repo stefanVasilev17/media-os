@@ -169,6 +169,7 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
         '-vf', 'setpts=N/(30*TB)', '-fps_mode:v', 'cfr',
         '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
         '-pix_fmt', 'yuv420p', '-r', '30',
+        ...(inputProps.strictFrameCap === true ? ['-frames:v', String(job.durationInFrames)] : []),
         '-c:a', 'copy', '-movflags', '+faststart', '-y', outputPath,
       ]);
       await progress(job.renderId, 95);
