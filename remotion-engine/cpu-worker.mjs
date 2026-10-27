@@ -182,13 +182,14 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
           || segments[0].normalizeVideoTo || job.durationInFrames !== 37703) {
         throw new Error('Audio mastering accepts one existing validated EP001 1920x1080 30fps, 37703-frame derived composite only.');
       }
-      console.log('EP001 optional final audio mastering: exact video bitstream copy, approved narration preserved; EBU R128 loudness normalization to -16 LUFS and -1.5 dBTP.');
+      const audioTargetTruePeak = inputProps.audioMasteringTruePeak === -2 ? -2 : -1.5;
+      console.log(`EP001 optional audio mastering: stream-copy video with approved narration, normalize to -16 LUFS, pre-encode true peak target ${audioTargetTruePeak} dBTP.`);
       await progress(job.renderId, 75);
       await runProcess('ffmpeg', [
         '-hide_banner', '-loglevel', 'error', '-i', files[0],
         '-map', '0:v:0', '-map', '0:a:0',
         '-c:v', 'copy',
-        '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11',
+        '-af', `loudnorm=I=-16:TP=${audioTargetTruePeak}:LRA=11`,
         '-c:a', 'aac', '-ar', '48000', '-b:a', '192k',
         '-movflags', '+faststart', '-y', outputPath,
       ]);
