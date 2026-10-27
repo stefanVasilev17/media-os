@@ -3,6 +3,7 @@ WORKDIR /app/remotion-engine
 COPY remotion-engine/package*.json ./
 RUN npm install --no-audit --no-fund --prefer-offline
 COPY remotion-engine/ ./
+RUN node --test clip-preview-range.test.mjs
 RUN node build-typecheck-preflight.mjs
 RUN npm run build
 RUN npm prune --omit=dev
