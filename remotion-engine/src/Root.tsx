@@ -38,6 +38,7 @@ import {Shot11RouteDecisionPresentationV3} from './episodes/ep001/live-diagram/S
 import {Shot11RouteDecisionPresentationV4} from './episodes/ep001/live-diagram/Shot11RouteDecisionPresentationV4';
 import {Shot11RouteDecisionPresentationV5} from './episodes/ep001/live-diagram/Shot11RouteDecisionPresentationV5';
 import {Shot12CompleteLoginRecapV1, SHOT12_RECAP_V1_FRAMES} from './episodes/ep001/live-diagram/Shot12CompleteLoginRecapV1';
+import {Shot12CompleteLoginRecapV2, SHOT12_RECAP_V2_FRAMES} from './episodes/ep001/live-diagram/Shot12CompleteLoginRecapV2';
 import {StudioLivingMapDraftPreview, studioLivingMapDraftSchema} from './episodes/ep001/live-diagram/StudioLivingMapDraftPreview';
 import {StudioDirectorPlanPreview, studioDirectorPlanSchema} from './episodes/ep001/live-diagram/StudioDirectorPlanPreview';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
@@ -532,6 +533,15 @@ export const Root: React.FC = () => {
         width={1920}
         height={1080}
         defaultProps={{durationInFrames:SHOT12_RECAP_V1_FRAMES,audioClips:[]}}
+      />
+      <Composition
+        id="EP001-Shot12-CompleteLoginRecapV2"
+        component={Shot12CompleteLoginRecapV2}
+        durationInFrames={dynamicDuration ?? SHOT12_RECAP_V2_FRAMES}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:SHOT12_RECAP_V2_FRAMES,audioClips:[]}}
       />
       <Composition
         id="EP001-Studio-DirectorPlan"
