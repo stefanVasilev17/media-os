@@ -26,7 +26,8 @@ All three narration texts have been overwritten **only because their existing st
 - Renderer registration commit `834520fdf04c1c05237b56db8b1a7f87b0509b7d` successfully deployed on Railway backend.
 - Silent render UUID `4641805d-22b1-4d95-889c-115b2969e05b`, 3150 frames at 30fps, 1280×720 FAST_PREVIEW, 105 sec; QUEUED then RENDERING at 9% when checked; **not yet verified READY**.
 - Conditional URL after READY: https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/4641805d-22b1-4d95-889c-115b2969e05b/video
-- Only call it a playable video after live READY status / MP4 header and picture-frame QA.
+- **FINAL VERIFIED VIDEO STATUS:** Railway backend GET render status = `READY`; composition `EP001-Shot12-CompleteLoginRecapV1`, 3150 frames, 30fps, 1280×720, size 2,172,658 bytes. HTTP range request to `/video` returned 206, `Content-Type: video/mp4`, `Content-Range: bytes 0-63/2172658`, bytes 4–7 `ftyp`. The output is a real playable silent draft MP4, **not visually Director-approved**. Worker reports complete. Video URL above is active.
+- **LIMIT:** Header/metadata QA passed; no claim of complete pixel-by-pixel human viewing or polished visual QA without frame inspection.
 
 ## Immutable assets
 SHOT01–11 Director LOCKED masters and their voice files untouched. Old EP001 16-shot/failure plan remains superseded by Oct 21 successful-login-only editorial lock. SHOT12 visual preview not Director-approved.
