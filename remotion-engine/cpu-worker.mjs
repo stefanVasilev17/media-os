@@ -175,6 +175,80 @@ async function renderCumulativePreview(job, outputPath, inputProps) {
       await progress(job.renderId, percent);
     }
 
+    if (inputProps.soundDesign === 'EP001_SOUND_DESIGN_V1') {
+      const lockedAudioMasterUrl = BACKEND_URL + '/api/v1/remotion/renders/96699a27-7615-4ce1-a092-53cdf1e9d1af/video';
+      if (inputProps.audioMastering === true || inputProps.retimeVideoTo30fps === true
+          || segments.length !== 1 || files.length !== 1
+          || segments[0].videoUrl !== lockedAudioMasterUrl
+          || job.fps !== 30 || job.width !== 1920 || job.height !== 1080
+          || job.durationInFrames !== 37703 || segments[0].normalizeVideoTo
+          || segments[0].durationInFrames !== 37703) {
+        throw new Error('EP001 Sound Design V1 may only be derived from the precise Director-LOCKED audio master, with unchanged 37703-frame video.');
+      }
+      const cues = [
+        {at: 175.0, hz: 320, duration: .56, gain: .14, tag: 'request-assembly-dispatch'},
+        {at: 218.4, hz: 570, duration: .50, gain: .12, tag: 'dns-resolution-found'},
+        {at: 286.2, hz: 410, duration: .48, gain: .12, tag: 'gateway-receives-request'},
+        {at: 546.0, hz: 285, duration: .72, gain: .14, tag: 'load-balancer-choice'},
+        {at: 698.0, hz: 340, duration: .65, gain: .12, tag: 'database-account-lookup'},
+        {at: 996.0, hz: 660, duration: .76, gain: .15, tag: 'credentials-verified'},
+        {at: 1067.0, hz: 465, duration: .68, gain: .13, tag: 'authentication-state-created'},
+        {at: 1146.0, hz: 540, duration: .52, gain: .10, tag: 'protected-route-authorization'},
+        {at: 1237.0, hz: 620, duration: .93, gain: .14, tag: 'dashboard-private-data-reveal'},
+      ];
+      const textureCues = [
+        {at: 175.0, duration: .38, gain: .08},
+        {at: 286.2, duration: .36, gain: .07},
+        {at: 546.0, duration: .40, gain: .07},
+        {at: 698.0, duration: .43, gain: .08},
+      ];
+      const args = ['-hide_banner', '-loglevel', 'error', '-i', files[0]];
+      for (const cue of cues) {
+        args.push('-f','lavfi','-i',
+          'sine=frequency='+cue.hz+':sample_rate=48000:duration='+cue.duration);
+      }
+      for (const cue of textureCues) {
+        args.push('-f','lavfi','-i',
+          'anoisesrc=color=pink:amplitude=0.075:sample_rate=48000:duration='+cue.duration);
+      }
+      const filters = ['[0:a]aformat=sample_rates=48000:channel_layouts=stereo[voice]'];
+      const labels = ['[voice]'];
+      cues.forEach((cue,i) => {
+        const outStart = Math.max(.12,cue.duration-.27);
+        const fadeDur = Math.min(.24,cue.duration-outStart);
+        const label = 'tone'+i;
+        filters.push('['+(i+1)+':a]volume='+cue.gain+
+          ',afade=t=in:st=0:d=0.028,afade=t=out:st='+outStart+':d='+fadeDur+
+          ',adelay='+Math.round(cue.at*1000)+':all=1'+
+          ',aformat=sample_rates=48000:channel_layouts=stereo['+label+']');
+        labels.push('['+label+']');
+      });
+      textureCues.forEach((cue,i) => {
+        const label = 'air'+i;
+        filters.push('['+(1+cues.length+i)+':a]highpass=f=820,lowpass=f=3300'+
+          ',volume='+cue.gain+
+          ',afade=t=in:st=0:d=0.04,afade=t=out:st='+(cue.duration-.20)+':d=0.20'+
+          ',adelay='+Math.round(cue.at*1000)+':all=1'+
+          ',aformat=sample_rates=48000:channel_layouts=stereo['+label+']');
+        labels.push('['+label+']');
+      });
+      filters.push(labels.join('')+'amix=inputs='+labels.length+
+        ':duration=first:normalize=0,alimiter=limit=0.80:level=false[episode-sound]');
+      await progress(job.renderId, 75);
+      console.log('EP001 Sound Design V1: '+cues.length+' restrained original tonal motifs, '+
+        textureCues.length+' quiet movement textures, no music bed, no SFX during two-second Network hold.');
+      console.log('EP001_SOUND_DESIGN_V1_CUES '+JSON.stringify(cues));
+      await runProcess('ffmpeg', [
+        ...args, '-filter_complex', filters.join(';'),
+        '-map','0:v:0', '-map','[episode-sound]',
+        '-c:v','copy', '-c:a','aac', '-b:a','192k', '-ar','48000',
+        '-t',String(job.durationInFrames/job.fps),
+        '-movflags','+faststart', '-y', outputPath,
+      ]);
+      await progress(job.renderId, 95);
+      return;
+    }
+
     if (inputProps.audioMastering === true) {
       if (inputProps.retimeVideoTo30fps === true
           || segments.length !== 1 || files.length !== 1
