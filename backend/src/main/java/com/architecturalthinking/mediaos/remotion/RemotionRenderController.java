@@ -289,7 +289,7 @@ public class RemotionRenderController {
                 "engine", "REMOTION_CPU_V1",
                 "engineVersion", engineVersion,
                 "compositions", COMPOSITIONS.keySet(),
-                "profiles", Arrays.asList("FAST_PREVIEW", "REVIEW")
+                "profiles", Arrays.asList("DRAFT", "FAST_PREVIEW", "REVIEW")
         );
     }
 
@@ -343,11 +343,12 @@ public class RemotionRenderController {
 
     private OutputProfile requireOutputProfile(String profile, CompositionProfile composition) {
         return switch (profile) {
+            case "DRAFT" -> new OutputProfile(960, 540);
             case "FAST_PREVIEW" -> new OutputProfile(1280, 720);
             case "REVIEW" -> new OutputProfile(composition.width(), composition.height());
             default -> throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Remotion Engine v0.1 supports FAST_PREVIEW and REVIEW profiles only."
+                    "Remotion Engine v0.1 supports DRAFT, FAST_PREVIEW and REVIEW profiles only."
             );
         };
     }
