@@ -7,7 +7,14 @@ import {renderMedia, selectComposition} from '@remotion/renderer';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
-const WORKER_ID = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
+const WORKER_SERVICE_NAME = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
+const WORKER_REPLICA_ID = String(process.env.RAILWAY_REPLICA_ID || os.hostname()).trim();
+const WORKER_ID = `${WORKER_SERVICE_NAME}:${WORKER_REPLICA_ID}`.slice(0, 160);
+const configuredConcurrency = Number(process.env.MEDIA_OS_REMOTION_RENDER_CONCURRENCY || 2);
+if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1 || configuredConcurrency > 4) {
+  throw new Error('MEDIA_OS_REMOTION_RENDER_CONCURRENCY must be an integer from 1 to 4.');
+}
+const RENDER_CONCURRENCY = configuredConcurrency;
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
 const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_5';
@@ -280,6 +287,7 @@ async function render(job) {
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
   );
 
+  const renderStartedAt = Date.now();
   let heartbeatProgress = 5;
   const heartbeat = setInterval(() => {
     void progress(job.renderId, heartbeatProgress);
@@ -336,7 +344,7 @@ async function render(job) {
       x264Preset: 'veryfast',
       hardwareAcceleration: 'disable',
       overwrite: true,
-      concurrency: 1,
+      concurrency: RENDER_CONCURRENCY,
       disallowParallelEncoding: true,
       ffmpegOverride: ({args}) => {
         if (args.length === 0) return args;
@@ -366,12 +374,13 @@ async function render(job) {
     console.log(`Completed ${job.renderId}: ${sizeBytes} bytes`);
   } finally {
     clearInterval(heartbeat);
+    console.log(`REMOTION_RENDER_ELAPSED_SECONDS renderId=${job.renderId} elapsed=${((Date.now() - renderStartedAt) / 1000).toFixed(2)} concurrency=${RENDER_CONCURRENCY}`);
     await fs.rm(outputPath, {force: true}).catch(() => undefined);
   }
 }
 
 async function main() {
-  console.log(`MediaOS Remotion CPU worker online: ${WORKER_ID} version=${WORKER_VERSION}`);
+  console.log(`MediaOS Remotion CPU worker online: ${WORKER_ID} version=${WORKER_VERSION} renderConcurrency=${RENDER_CONCURRENCY}`);
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${CHROMIUM_PATH}`);
 
