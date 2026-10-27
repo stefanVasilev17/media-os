@@ -1,0 +1,28 @@
+FROM node:22-alpine AS validate-remotion
+WORKDIR /app/remotion-engine
+COPY remotion-engine/package*.json ./
+RUN npm install --no-audit --no-fund --prefer-offline
+COPY remotion-engine/ ./
+RUN node --test clip-preview-range.test.mjs
+RUN node build-typecheck-preflight.mjs
+RUN npm run build
+
+FROM maven:3.9-eclipse-temurin-21 AS validate-backend
+WORKDIR /backend
+COPY backend/pom.xml ./
+RUN mvn -B -q dependency:go-offline
+COPY backend/src ./src
+RUN mvn -B test && printf 'PASS' > /tmp/clip-preview-backend-tests-passed
+
+FROM node:22-alpine
+WORKDIR /app
+RUN apk add --no-cache chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium setpriv
+COPY --from=validate-remotion /app/remotion-engine /app/remotion-engine
+COPY --from=validate-backend /tmp/clip-preview-backend-tests-passed /app/backend-tests-passed
+COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
+RUN chmod +x /app/chromium-software-webgl.sh
+ENV CHROMIUM_PATH=/app/chromium-software-webgl.sh
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV GALLIUM_DRIVER=llvmpipe
+ENV MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+ENTRYPOINT ["node", "/app/remotion-engine/smoke-prebuilt-clip-preview.mjs"]
