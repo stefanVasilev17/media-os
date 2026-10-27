@@ -163,7 +163,11 @@ public class RemotionRenderController {
         }
     }
 
-    public record RenderRequest(String profile, Map<String, Object> inputProps, Integer startFrame, Integer endFrame) {}
+    public record RenderRequest(String profile, Map<String, Object> inputProps, Integer startFrame, Integer endFrame) {
+        public RenderRequest(String profile, Map<String, Object> inputProps) {
+            this(profile, inputProps, null, null);
+        }
+    }
 
     @PostMapping("/compositions/{compositionId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
