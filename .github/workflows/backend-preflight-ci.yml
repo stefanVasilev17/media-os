@@ -27,5 +27,7 @@ jobs:
           cache-dependency-path: backend/pom.xml
       - name: Check canonical Remotion registry against runtime asset catalog
         run: python3 scripts/check_asset_catalog.py
+      - name: Verify unique production memory IDs
+        run: python3 scripts/check_memory_ids.py
       - name: Compile and run unit tests
         run: mvn -B --no-transfer-progress clean verify
