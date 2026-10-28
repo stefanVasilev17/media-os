@@ -29,15 +29,18 @@ public class EpisodeWorkspaceService {
     private final ProductionMemoryService memory;
     private final CreativePolicyService policy;
     private final boolean creationEnabled;
+    private final boolean writesEnabled;
 
     public EpisodeWorkspaceService(JdbcClient jdbc, ObjectMapper mapper,
                                    ProductionMemoryService memory, CreativePolicyService policy,
-                                   @Value("${mediaos.episodes.creation-enabled:false}") boolean creationEnabled) {
+                                   @Value("${mediaos.episodes.creation-enabled:false}") boolean creationEnabled,
+                                   @Value("${mediaos.episodes.writes-enabled:false}") boolean writesEnabled) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.memory = memory;
         this.policy = policy;
         this.creationEnabled = creationEnabled;
+        this.writesEnabled = writesEnabled;
     }
 
     public List<Map<String, Object>> episodes() {
@@ -137,6 +140,7 @@ public class EpisodeWorkspaceService {
 
     @Transactional
     public Map<String, Object> create(String episodeNumber, String title, UUID auditId) {
+        requireWritesEnabled();
         if (!creationEnabled) throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Episode creation is disabled until legacy EP001 routing and preview authorization have been reviewed.");
         String number = episodeNumber == null ? "" : episodeNumber.trim().toUpperCase(Locale.ROOT);
@@ -174,6 +178,7 @@ public class EpisodeWorkspaceService {
 
     @Transactional
     public Map<String, Object> referenceAsset(UUID episodeId, String assetKey, String notes, UUID auditId) {
+        requireWritesEnabled();
         episode(episodeId);
         if (LEGACY_EPISODE_ID.equals(episodeId))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 uses the locked legacy asset workflow.");
@@ -199,6 +204,7 @@ public class EpisodeWorkspaceService {
     @Transactional
     public Map<String, Object> draft(UUID id, String rawStage, Map<String, Object> artifact,
                                      String summary, int expectedRevision, UUID auditId) {
+        requireWritesEnabled();
         episode(id);
         if (LEGACY_EPISODE_ID.equals(id))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 locked production uses legacy routes.");
@@ -244,6 +250,7 @@ public class EpisodeWorkspaceService {
     @Transactional
     public Map<String, Object> directorLock(UUID id, String rawStage, int expectedRevision,
                                             String decision, String directorNote, UUID auditId) {
+        requireWritesEnabled();
         episode(id);
         if (LEGACY_EPISODE_ID.equals(id))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot relock EP001 through episode workspace.");
@@ -283,6 +290,27 @@ public class EpisodeWorkspaceService {
         jdbc.sql("update episode set current_stage=:stage where id=:id")
                 .param("id", id).param("stage", stage).update();
         return context(id, "ALL");
+    }
+
+    @Transactional
+    public Map<String, Object> rememberEpisodeCorrection(UUID episodeId, String scope,
+                                                          String content, String source, UUID auditId) {
+        requireWritesEnabled();
+        episode(episodeId);
+        if (LEGACY_EPISODE_ID.equals(episodeId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 uses its locked legacy correction workflow.");
+        Map<String, Object> saved = memory.rememberCorrection(scope, content, source, episodeId, false);
+        event(episodeId, null, "EPISODE_MEMORY_CORRECTION", null, content, auditId);
+        return saved;
+    }
+
+    public boolean writesEnabled() {
+        return writesEnabled;
+    }
+
+    private void requireWritesEnabled() {
+        if (!writesEnabled) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Episode-aware creation and Director writes are disabled until the production safety gate is approved.");
     }
 
     @SuppressWarnings("unchecked")
