@@ -4,6 +4,7 @@ import com.architecturalthinking.mediaos.system.AiRuntimePolicyService;
 import com.architecturalthinking.mediaos.system.PreviewAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -112,10 +113,12 @@ class EpisodeScopedAgentServiceTest {
 
     @Test
     void runWithPaidAiOffNeverContactsModel() {
+        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Paid AI is OFF")).when(policy)
+                .requirePaidAiEnabled(anyString());
         assertThrows(ResponseStatusException.class, () ->
                 agent.run(ep2, "SCRIPT", "GENERATE", "", 0, UUID.randomUUID()));
         verify(creative, never()).generate(any(), any(), any(), any());
-        verify(workspace, never()).agentDraft(any(), any(), any(), any(), anyInt(), any());
+        verify(workspace, never()).agentDraft(any(), any(), any(), any(), anyInt(), any(), anyString(), anyString());
     }
 
     @Test
@@ -128,14 +131,14 @@ class EpisodeScopedAgentServiceTest {
                 .thenReturn(new CreativeAgentClient.AgentReply(
                         "Review this draft", "EP002 standalone authentication failure script", "",
                         "", "NONE", "", 0.95d, script));
-        when(workspace.agentDraft(eq(ep2), eq("SCRIPT"), eq(script), anyString(), eq(0), any()))
+        when(workspace.agentDraft(eq(ep2), eq("SCRIPT"), eq(script), anyString(), eq(0), any(), anyString(), anyString()))
                 .thenReturn(Map.of("stages", List.of()));
 
         var result = agent.run(ep2, "SCRIPT", "GENERATE", "", 0, UUID.randomUUID());
 
         assertThat(result.get("directorLocked")).isEqualTo(false);
         assertThat(result.get("status")).isEqualTo("READY_FOR_REVIEW");
-        verify(workspace).agentDraft(eq(ep2), eq("SCRIPT"), eq(script), anyString(), eq(0), any());
+        verify(workspace).agentDraft(eq(ep2), eq("SCRIPT"), eq(script), anyString(), eq(0), any(), anyString(), anyString());
         verify(workspace, never()).directorLock(any(), any(), anyInt(), any(), any(), any());
     }
 
@@ -148,6 +151,6 @@ class EpisodeScopedAgentServiceTest {
                         "", "NONE", "", 0.5d, Map.of("overview", "Missing timeline")));
         assertThrows(ResponseStatusException.class, () ->
                 agent.run(ep2, "SCRIPT", "GENERATE", "", 0, UUID.randomUUID()));
-        verify(workspace, never()).agentDraft(any(), any(), any(), any(), anyInt(), any());
+        verify(workspace, never()).agentDraft(any(), any(), any(), any(), anyInt(), any(), anyString(), anyString());
     }
 }
