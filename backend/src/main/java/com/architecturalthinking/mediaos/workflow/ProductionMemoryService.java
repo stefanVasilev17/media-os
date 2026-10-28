@@ -194,12 +194,15 @@ public class ProductionMemoryService {
                 where project_id=:projectId
                   and active=true
                   and scope=:scope
+                  and ((:scope='ALL' and episode_id is null)
+                       or (:scope<>'ALL' and episode_id=:episodeId))
                   and lower(content)=lower(:content)
                 order by created_at desc
                 limit 1
                 """)
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
                 .param("scope", scope)
+                .param("episodeId", ProductionOverviewService.EPISODE_ID)
                 .param("content", normalized)
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
