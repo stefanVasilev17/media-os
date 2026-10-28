@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getEpisodeWorkspace, listEpisodeWorkspaces, type EpisodeSummary, type WorkspaceContext } from '../api/episodeWorkspaceApi';
+import { getEpisodeLearning, getEpisodeWorkspace, listEpisodeWorkspaces, type EpisodeSummary, type WorkspaceContext, type EpisodeLearningReview } from '../api/episodeWorkspaceApi';
 import '../styles/episodeWorkspaces.css';
 
 export function EpisodeWorkspacesPage() {
   const [episodes, setEpisodes] = useState<EpisodeSummary[]>([]);
   const [selected, setSelected] = useState('');
   const [workspace, setWorkspace] = useState<WorkspaceContext | null>(null);
+  const [learning, setLearning] = useState<EpisodeLearningReview | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
@@ -24,10 +25,15 @@ export function EpisodeWorkspacesPage() {
     if (!selected) return;
     let active = true;
     setWorkspace(null);
+    setLearning(null);
     setError('');
-    getEpisodeWorkspace(selected).then(result => {
-      if (active) setWorkspace(result);
-    }).catch(err => { if (active) setError(String(err)); });
+    Promise.all([getEpisodeWorkspace(selected), getEpisodeLearning(selected)])
+      .then(([result, review]) => {
+        if (active) {
+          setWorkspace(result);
+          setLearning(review);
+        }
+      }).catch(err => { if (active) setError(String(err)); });
     return () => { active = false; };
   }, [selected]);
 
@@ -81,6 +87,29 @@ export function EpisodeWorkspacesPage() {
                   </div>
                 ))}
               </div>
+              <section className="episode-learning-review" aria-label="Episode Learning Review">
+                <div className="episode-learning-header">
+                  <div>
+                    <h3>Learning Review · Global Knowledge</h3>
+                    <p>Discoveries remain episode-specific until separately reviewed and promoted into canonical project memory.</p>
+                  </div>
+                  <span>{learning?.pendingCount ?? '–'} pending</span>
+                </div>
+                <div className="episode-learning-counters">
+                  <span>{learning?.globalRules.length ?? '–'} approved global rules</span>
+                  <span>{learning?.proposals.length ?? '–'} episode learning proposals</span>
+                </div>
+                {learning?.proposals.filter(p => p.status === 'PENDING').length === 0 &&
+                  <p className="episode-workspaces-hint">No unreviewed episode corrections. The next review is automatically queued when a new correction or stage LOCK is saved.</p>}
+                {learning?.proposals.filter(p => p.status === 'PENDING').map(proposal => (
+                  <div className="episode-learning-proposal" key={proposal.id}>
+                    <div><strong>{proposal.scope}</strong><span>Pending Director review</span></div>
+                    <p>{proposal.content}</p>
+                    <small>Source memory: {proposal.sourceRuleId}</small>
+                  </div>
+                ))}
+                <p className="episode-workspaces-hint">Global promotion is not automatic. Approval requires comparing existing project rules, an explicit Director decision and a separately secured authorization capability. This screen is read-only until role-based Director authentication is implemented.</p>
+              </section>
               <p className="episode-workspaces-hint">This screen is an inspection surface. Creating episodes, saving drafts and locking stages require audited API operations and explicit Director review. Legacy EP001 editors are not automatically redirected to other episodes.</p>
             </>
           )}
