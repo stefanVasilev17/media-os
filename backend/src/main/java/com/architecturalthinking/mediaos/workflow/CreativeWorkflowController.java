@@ -33,6 +33,7 @@ public class CreativeWorkflowController {
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
     private final ProductionMemoryService productionMemory;
+    private final CreativePolicyService creativePolicy;
     private final DirectorScriptAmendmentController directorAmendments;
 
     public CreativeWorkflowController(
@@ -41,6 +42,7 @@ public class CreativeWorkflowController {
             CreativeAgentClient creativeAgent,
             ProductionOverviewService overviewService,
             ProductionMemoryService productionMemory,
+            CreativePolicyService creativePolicy,
             DirectorScriptAmendmentController directorAmendments
     ) {
         this.jdbc = jdbc;
@@ -48,6 +50,7 @@ public class CreativeWorkflowController {
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
         this.productionMemory = productionMemory;
+        this.creativePolicy = creativePolicy;
         this.directorAmendments = directorAmendments;
     }
 
@@ -280,6 +283,7 @@ public class CreativeWorkflowController {
         context.put("lockedUpstreamHandoff", latestHandoffFor(key));
         context.put("creatorMemory", memories(key, 30));
         context.put("productionMemory", productionMemory.rulesFor(memoryScope(key)));
+        context.put("canonicalCreativePolicy", creativePolicy.current());
         context.put("productionOverview", overviewService.overview());
         return context;
     }
