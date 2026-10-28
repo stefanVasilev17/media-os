@@ -1,0 +1,49 @@
+name: MediaOS Backend Preflight CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-preflight-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Java 21 / Maven tests and packaging
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: media_os
+          POSTGRES_PASSWORD: media_os
+          POSTGRES_DB: media_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U media_os -d media_os"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI_POSTGRES_URL: jdbc:postgresql://localhost:5432/media_os
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Check canonical Remotion registry against runtime asset catalog
+        run: python3 scripts/check_asset_catalog.py
+      - name: Verify unique production memory IDs
+        run: python3 scripts/check_memory_ids.py
+      - name: Compile and run unit tests
+        run: mvn -B --no-transfer-progress clean verify

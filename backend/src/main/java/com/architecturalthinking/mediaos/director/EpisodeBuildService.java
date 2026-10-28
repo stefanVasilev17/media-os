@@ -3,6 +3,7 @@ package com.architecturalthinking.mediaos.director;
 import com.architecturalthinking.mediaos.system.AiRuntimePolicyService;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,7 @@ public class EpisodeBuildService {
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
     private final AiRuntimePolicyService aiPolicy;
+    private final ProductionMemoryService productionMemory;
     private final AtomicBoolean workerBusy = new AtomicBoolean(false);
 
     public EpisodeBuildService(
@@ -47,7 +49,8 @@ public class EpisodeBuildService {
             EpisodeBuildAgentClient buildAgent,
             CreativeAgentClient creativeAgent,
             ProductionOverviewService overviewService,
-            AiRuntimePolicyService aiPolicy
+            AiRuntimePolicyService aiPolicy,
+            ProductionMemoryService productionMemory
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
@@ -55,6 +58,7 @@ public class EpisodeBuildService {
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
         this.aiPolicy = aiPolicy;
+        this.productionMemory = productionMemory;
     }
 
     public Map<String, Object> state() {
@@ -71,12 +75,16 @@ public class EpisodeBuildService {
     }
 
     public Map<String, Object> generateTopics() {
+        productionMemory.preflight("ALL", "GENERATE_TOPIC_CANDIDATES");
         if (!buildAgent.configured()) {
             throw new ResponseStatusException(SERVICE_UNAVAILABLE, "Episode topic intelligence is not configured.");
         }
 
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("ALL"));
+        context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("currentEpisode", overviewService.episode());
         context.put("currentSource", overviewService.sourceSnapshot());
         context.put("existingTopics", topicCandidates());
@@ -122,7 +130,7 @@ public class EpisodeBuildService {
                     .param("seriesPath", clean(candidate.seriesPath()))
                     .param("thumbnailIdea", clean(candidate.thumbnailIdea()))
                     .param("complexity", normalizeComplexity(candidate.estimatedComplexity()))
-                    .param("minutes", clamp(candidate.recommendedBuildMinutes(), 15, 30))
+                    .param("minutes", clamp(candidate.recommendedBuildMinutes(), 9, 15))
                     .update();
         }
         return state();
@@ -139,7 +147,7 @@ public class EpisodeBuildService {
             throw new ResponseStatusException(CONFLICT, "The current Script or Scene already contains creator work. Review that work instead of replacing it with a new autonomous first pass.");
         }
 
-        int budgetMinutes = clamp(requestedBudgetMinutes <= 0 ? 20 : requestedBudgetMinutes, 15, 30);
+        int budgetMinutes = clamp(requestedBudgetMinutes <= 0 ? 13 : requestedBudgetMinutes, 9, 15);
         UUID runId = UUID.randomUUID();
         jdbc.sql("""
                 insert into episode_build_run(
@@ -210,6 +218,7 @@ public class EpisodeBuildService {
         try {
             markRunRunning(runId, step);
             markStepRunning(runId, step);
+            productionMemory.preflight("ALL", "AUTONOMOUS_BUILD_" + step);
             switch (step) {
                 case "TRUTH" -> runTruth(runId);
                 case "SCRIPT" -> runScript(runId);
@@ -234,6 +243,9 @@ public class EpisodeBuildService {
         context.put("sourceSnapshot", overviewService.sourceSnapshot());
         context.put("topic", currentTopic());
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("SCRIPT"));
+        context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionOverview", overviewService.overview());
         EpisodeBuildAgentClient.TruthAudit audit = buildAgent.auditTruth(context);
         Map<String, Object> artifact = objectMapper.convertValue(audit, new TypeReference<LinkedHashMap<String, Object>>() {});
@@ -284,7 +296,7 @@ public class EpisodeBuildService {
         }
 
         saveCreativeStage(runId, "SCRIPT", reply, List.of());
-        completeStep(runId, "SCRIPT", "Complete ~20-minute timecoded Script draft is ready for creator review.");
+        completeStep(runId, "SCRIPT", "Complete concise timecoded Script draft is ready for creator review.");
         advance(runId, "SCENE", 60);
     }
 
@@ -362,7 +374,7 @@ public class EpisodeBuildService {
         jdbc.sql("update episode set current_stage='SCRIPT_REVIEW' where id=:episodeId")
                 .param("episodeId", EPISODE_ID)
                 .update();
-        completeStep(runId, "HANDOFF", "Initial version complete. Review Script → Scene → Spline and lock only after creator approval.");
+        completeStep(runId, "HANDOFF", "Initial version complete. Review Script → Remotion visual plan and lock only after creator approval.");
     }
 
     private Map<String, Object> creativeContext(String key, Map<String, Object> stage) {
@@ -375,6 +387,9 @@ public class EpisodeBuildService {
         context.put("creatorMemory", creatorMemory(key));
         context.put("productionOverview", overviewService.overview());
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("SCRIPT".equals(key) ? "SCRIPT" : "VISUAL"));
+        context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         return context;
     }
 
@@ -441,9 +456,9 @@ public class EpisodeBuildService {
         List<String> failures = new ArrayList<>();
         if (artifact == null || artifact.isEmpty()) return List.of("Script artifact is empty.");
         int duration = number(artifact.get("targetDurationSeconds"));
-        if (duration < 1140 || duration > 1260) failures.add("Working duration must be 1140–1260 seconds.");
+        if (duration < 540 || duration > 900) failures.add("Future episodes must be 540–900 seconds, without changing already-locked EP001.");
         List<Map<String, Object>> timeline = mapList(artifact.get("timeline"));
-        if (timeline.size() < 24) failures.add("Timeline needs at least 24 controlled blocks.");
+        if (timeline.size() < Math.max(12, duration / 55)) failures.add("Timeline must have enough timed blocks for the chosen concise duration.");
         int expected = 0;
         int aha = 0;
         int reels = 0;
@@ -491,12 +506,12 @@ public class EpisodeBuildService {
             if (blank(shot.get("shotKey")) || blank(shot.get("script")) || blank(shot.get("voiceDirection"))
                     || blank(shot.get("camera")) || blank(shot.get("visualGoal")) || blank(shot.get("promptForSpline"))
                     || asList(shot.get("moves")).isEmpty()) {
-                failures.add("Every shot needs script, voice direction, moves, camera, visual goal, and a deterministic Spline prompt.");
+                failures.add("Every shot needs script, voice direction, moves, camera, visual goal, and a deterministic Remotion-first plan in the legacy prompt field.");
                 break;
             }
         }
         if (expected != expectedDuration) failures.add("Final Scene shot must end at the Script duration.");
-        if (blank(artifact.get("handoffPrompt"))) failures.add("Spline handoff prompt is missing.");
+        if (blank(artifact.get("handoffPrompt"))) failures.add("Remotion-first visual handoff prompt is missing.");
         return dedupe(failures);
     }
 

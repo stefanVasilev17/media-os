@@ -1,5 +1,8 @@
 package com.architecturalthinking.mediaos.director;
 
+import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.CreativePolicyService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
@@ -33,11 +36,16 @@ public class DirectorRoomController {
     private final JdbcClient jdbc;
     private final ObjectMapper objectMapper;
     private final DirectorAgentClient directorAgent;
+    private final ProductionMemoryService productionMemory;
+    private final CreativePolicyService creativePolicy;
 
-    public DirectorRoomController(JdbcClient jdbc, ObjectMapper objectMapper, DirectorAgentClient directorAgent) {
+    public DirectorRoomController(JdbcClient jdbc, ObjectMapper objectMapper, DirectorAgentClient directorAgent,
+                                  ProductionMemoryService productionMemory, CreativePolicyService creativePolicy) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.directorAgent = directorAgent;
+        this.productionMemory = productionMemory;
+        this.creativePolicy = creativePolicy;
     }
 
     public record MessageRequest(
@@ -227,6 +235,10 @@ public class DirectorRoomController {
         UUID threadId = directorThreadId();
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("episode", episodeSnapshot());
+        context.put("productionMemory", productionMemory.rulesFor("ALL"));
+        context.put("canonicalCreativePolicy", creativePolicy.current());
+        context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionMetrics", productionMetrics());
         context.put("lockedDecisions", proposalRows(threadId, true));
         context.put("openProposals", proposalRows(threadId, false));

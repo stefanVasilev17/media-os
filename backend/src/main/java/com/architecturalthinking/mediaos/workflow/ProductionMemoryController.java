@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -14,9 +15,11 @@ import java.util.Map;
 public class ProductionMemoryController {
 
     private final ProductionMemoryService memory;
+    private final CreativePolicyService policy;
 
-    public ProductionMemoryController(ProductionMemoryService memory) {
+    public ProductionMemoryController(ProductionMemoryService memory, CreativePolicyService policy) {
         this.memory = memory;
+        this.policy = policy;
     }
 
     public record PreflightRequest(@NotBlank String scope, @NotBlank String action) {}
@@ -25,6 +28,19 @@ public class ProductionMemoryController {
     @GetMapping("/rules")
     public List<Map<String, Object>> rules(@RequestParam(defaultValue = "ALL") String scope) {
         return memory.rulesFor(scope);
+    }
+
+    @GetMapping("/context")
+    public Map<String, Object> context(@RequestParam(defaultValue = "ALL") String scope) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("episodeId", ProductionOverviewService.EPISODE_ID);
+        result.put("policy", policy.current());
+        result.put("rules", memory.rulesFor(scope));
+        result.put("approvedAssets", memory.approvedAssets());
+        result.put("directorLockedShots", memory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
+        result.put("semanticApproval", false);
+        result.put("note", "Read-only context preview. An actual creation must pass an audited global preflight.");
+        return result;
     }
 
     @PostMapping("/preflight")

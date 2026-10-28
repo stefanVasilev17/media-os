@@ -33,6 +33,7 @@ public class CreativeWorkflowController {
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
     private final ProductionMemoryService productionMemory;
+    private final CreativePolicyService creativePolicy;
     private final DirectorScriptAmendmentController directorAmendments;
 
     public CreativeWorkflowController(
@@ -41,6 +42,7 @@ public class CreativeWorkflowController {
             CreativeAgentClient creativeAgent,
             ProductionOverviewService overviewService,
             ProductionMemoryService productionMemory,
+            CreativePolicyService creativePolicy,
             DirectorScriptAmendmentController directorAmendments
     ) {
         this.jdbc = jdbc;
@@ -48,6 +50,7 @@ public class CreativeWorkflowController {
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
         this.productionMemory = productionMemory;
+        this.creativePolicy = creativePolicy;
         this.directorAmendments = directorAmendments;
     }
 
@@ -280,6 +283,9 @@ public class CreativeWorkflowController {
         context.put("lockedUpstreamHandoff", latestHandoffFor(key));
         context.put("creatorMemory", memories(key, 30));
         context.put("productionMemory", productionMemory.rulesFor(memoryScope(key)));
+        context.put("canonicalCreativePolicy", creativePolicy.current());
+        context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionOverview", overviewService.overview());
         return context;
     }
@@ -374,13 +380,13 @@ public class CreativeWorkflowController {
     private List<String> validateScript(Map<String, Object> artifact) {
         List<String> missing = new ArrayList<>();
         int duration = number(artifact.get("targetDurationSeconds"));
-        if (duration < 1140 || duration > 1260) {
-            missing.add("Working Script duration must stay around 20 minutes (1140–1260 seconds). ");
+        if (duration < 540 || duration > 900) {
+            missing.add("Future Script duration must be 540–900 seconds (concise self-contained episodes); locked EP001 remains immutable. ");
         }
 
         List<Map<String, Object>> timeline = mapList(artifact.get("timeline"));
-        if (timeline.size() < 24) {
-            missing.add("The mandatory Script timeline needs enough timed blocks to control a 20-minute narration. ");
+        if (timeline.size() < Math.max(12, duration / 55)) {
+            missing.add("The Script needs sufficient timed blocks for its declared runtime. ");
             return missing;
         }
 
@@ -453,7 +459,7 @@ public class CreativeWorkflowController {
         if (listPassages > 2) missing.add("Narration may use no more than two list-style passages. ");
         if (aha < 3) missing.add("Preserve at least three explicit Aha moments. ");
         if (reels < 3) missing.add("Preserve at least three reel-ready moments. ");
-        if (narrationWords < 2200 || narrationWords > 3300) missing.add("Narration word count must plausibly support the 20-minute working draft (about 2200–3300 words). ");
+        if (narrationWords < duration * 100 / 60 || narrationWords > duration * 175 / 60) missing.add("Narration word count must plausibly support the declared runtime (about 100–175 spoken words per minute, allowing pauses). ");
         if (deliberatePauses < 3) missing.add("Mark deliberate '(pause)' beats after at least three strong ideas. ");
         if (blank(artifact.get("handoffPrompt"))) missing.add("Add the complete handoff prompt for Scene Agent. ");
         return dedupe(missing);
