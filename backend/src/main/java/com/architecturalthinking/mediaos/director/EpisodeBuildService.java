@@ -84,6 +84,7 @@ public class EpisodeBuildService {
         context.put("creativePolicy", creativePolicy());
         context.put("productionMemory", productionMemory.rulesFor("ALL"));
         context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("currentEpisode", overviewService.episode());
         context.put("currentSource", overviewService.sourceSnapshot());
         context.put("existingTopics", topicCandidates());
@@ -244,6 +245,7 @@ public class EpisodeBuildService {
         context.put("creativePolicy", creativePolicy());
         context.put("productionMemory", productionMemory.rulesFor("SCRIPT"));
         context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionOverview", overviewService.overview());
         EpisodeBuildAgentClient.TruthAudit audit = buildAgent.auditTruth(context);
         Map<String, Object> artifact = objectMapper.convertValue(audit, new TypeReference<LinkedHashMap<String, Object>>() {});
@@ -387,6 +389,7 @@ public class EpisodeBuildService {
         context.put("creativePolicy", creativePolicy());
         context.put("productionMemory", productionMemory.rulesFor("SCRIPT".equals(key) ? "SCRIPT" : "VISUAL"));
         context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         return context;
     }
 
