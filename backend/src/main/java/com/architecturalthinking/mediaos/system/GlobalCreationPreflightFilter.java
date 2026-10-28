@@ -52,19 +52,22 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         String scope = scopeFor(path);
         String action = (request.getMethod() + "_" + path.replaceAll("[^A-Za-z0-9]+", "_"))
                 .toUpperCase(Locale.ROOT);
+        Map<String, Object> result;
         try {
             UUID episodeId = episodeFor(request);
-            Map<String, Object> result = memory.preflight(scope, action, episodeId);
-            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT", result);
-            response.setHeader("X-MediaOS-Preflight", String.valueOf(result.get("auditId")));
-            chain.doFilter(request, response);
+            result = memory.preflight(scope, action, episodeId);
         } catch (ResponseStatusException ex) {
             reject(response, ex.getStatusCode().value(), "GLOBAL_CREATION_PREFLIGHT_BLOCKED", ex.getReason());
+            return;
         } catch (Exception ex) {
             // Never continue on missing DB, missing policy, or a failed audit write.
             reject(response, HttpStatus.SERVICE_UNAVAILABLE.value(), "GLOBAL_CREATION_PREFLIGHT_UNAVAILABLE",
                     "Canonical rules and production memory could not be verified.");
+            return;
         }
+        request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT", result);
+        response.setHeader("X-MediaOS-Preflight", String.valueOf(result.get("auditId")));
+        chain.doFilter(request, response);
     }
 
     private UUID episodeFor(HttpServletRequest request) {
