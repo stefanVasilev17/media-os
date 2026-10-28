@@ -79,7 +79,13 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
     private UUID episodeFor(HttpServletRequest request) {
         String raw = request.getHeader("X-MediaOS-Episode-Id");
-        if (raw == null || raw.isBlank()) return ProductionOverviewService.EPISODE_ID;
+        if (raw == null || raw.isBlank()) {
+            if (!memory.hasSingleEpisode()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Ambiguous episode routing. Explicit episode identity is required when multiple episodes exist.");
+            }
+            return ProductionOverviewService.EPISODE_ID;
+        }
         UUID id;
         try {
             id = UUID.fromString(raw.trim());
