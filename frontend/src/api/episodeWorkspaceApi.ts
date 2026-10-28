@@ -37,3 +37,28 @@ export function listEpisodeWorkspaces() {
 export function getEpisodeWorkspace(id: string) {
   return request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id) + '/context?scope=ALL');
 }
+
+export type EpisodeLearningProposal = {
+  id: string;
+  sourceRuleId: string;
+  scope: string;
+  content: string;
+  status: 'PENDING' | 'PROMOTED' | 'EPISODE_ONLY' | 'REJECTED' | 'ALREADY_GLOBAL';
+  classification: string;
+  reviewedBy: string | null;
+  reviewNote: string | null;
+  globalRuleId: string | null;
+};
+export type EpisodeLearningReview = {
+  episodeId: string;
+  pendingCount: number;
+  proposals: EpisodeLearningProposal[];
+  globalRules: Array<{ id: string; scope: string; content: string }>;
+  globalFingerprint: string;
+  automaticPromotion: false;
+  promotionEnabled: boolean;
+  note: string;
+};
+export function getEpisodeLearning(id: string) {
+  return request<EpisodeLearningReview>('/api/v1/episodes/' + encodeURIComponent(id) + '/learning');
+}
