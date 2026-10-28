@@ -166,7 +166,8 @@ public class EpisodeLearningService {
 
         // Serialize promotions for this project. Project policy edits outside this
         // endpoint are detected through the fingerprint before mutation.
-        jdbc.sql("select pg_advisory_xact_lock(90200123456789)").query(Long.class).single();
+        jdbc.sql("select pg_advisory_xact_lock(90200123456789)")
+                .query((rs, n) -> 1).single();
         List<Map<String, Object>> currentGlobals = globalRules();
         String actualFingerprint = fingerprint(currentGlobals);
         if (!actualFingerprint.equals(expectedFingerprint))
