@@ -38,7 +38,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        if (!request.getRequestURI().startsWith("/api/v1/")) return true;
+        if (!apiPath(request).startsWith("/api/v1/")) return true;
         return switch (request.getMethod().toUpperCase(Locale.ROOT)) {
             case "POST", "PUT", "PATCH", "DELETE" -> false;
             default -> true;
@@ -48,7 +48,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String path = request.getRequestURI();
+        String path = apiPath(request);
         String scope = scopeFor(path);
         String action = (request.getMethod() + "_" + path.replaceAll("[^A-Za-z0-9]+", "_"))
                 .toUpperCase(Locale.ROOT);
@@ -68,6 +68,13 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT", result);
         response.setHeader("X-MediaOS-Preflight", String.valueOf(result.get("auditId")));
         chain.doFilter(request, response);
+    }
+
+    private String apiPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String prefix = request.getContextPath();
+        return prefix != null && !prefix.isEmpty() && uri.startsWith(prefix)
+                ? uri.substring(prefix.length()) : uri;
     }
 
     private UUID episodeFor(HttpServletRequest request) {
