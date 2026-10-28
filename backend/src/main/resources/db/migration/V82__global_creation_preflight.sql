@@ -7,7 +7,7 @@ on conflict (id) do nothing;
 -- Canonical overlay explicitly supersedes contradictory legacy v2.1 instructions.
 -- Preserve historical fields rather than misrepresenting an incomplete v2.3 migration.
 update project_creative_policy
-set version='at-canonical-creation-overlay-v1-2026-10-28',
+set version=case when version like 'bible-v2.1-%' then 'at-canonical-creation-overlay-v1-2026-10-28' else version end,
     payload=payload || '{
       "creationPreflight":{"contract":"GLOBAL_CREATION_PREFLIGHT","version":1,"required":true,"failClosed":true,"authorityOrder":["Explicit Director LOCK and episode Truth","Canonical creation rules","Required Production Memory","Approved reusable assets","DRAFT proposals"],"interpretation":"Context-ready means required knowledge was loaded. It is NOT semantic approval of a generated artifact."},
       "canonicalCreationRules":{"supersedesConflictingLegacyPolicy":true,"engine":"Remotion-first; Spline only by explicit approval","story":"Human action then causal architecture then precise technical explanation and a complete payoff; repeat the world not the lesson","safety":"Preserve all locked work. DRAFTs do not become binding rules without Director approval.","reuse":"Check approved components, source shots, voice, camera and paths before introducing replacements.","research":"Truth Map and approved scope before script or scenes; separate facts and illustrative system assumptions.","voice":"Approved voice-word timing governs motion.","qa":"Technical and editorial QA, then explicit Director LOCK","durationDirection":"Director requested shorter future episodes and interview-grade engineering storytelling; detailed duration policy is DRAFT and must not retroactively change locked EP001."}
