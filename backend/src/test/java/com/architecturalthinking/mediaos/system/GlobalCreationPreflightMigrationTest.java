@@ -1,6 +1,13 @@
 package com.architecturalthinking.mediaos.system;
 
 import org.flywaydb.core.Flyway;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assumptions;
 
@@ -29,6 +36,19 @@ class GlobalCreationPreflightMigrationTest {
                 .load();
         flyway.migrate();
         flyway.validate();
+
+        ProductionMemoryService memory = new ProductionMemoryService(
+                JdbcClient.create(new DriverManagerDataSource(url, "media_os", "media_os")), new ObjectMapper());
+        List<Map<String, Object>> visualRules = memory.rulesFor("VISUAL");
+        assertThat(visualRules).extracting(rule -> String.valueOf(rule.get("scope")))
+                .contains("ALL", "SCRIPT", "VOICE", "VISUAL");
+        assertThat(memory.rulesFor("ALL").size()).isGreaterThanOrEqualTo(visualRules.size());
+
+        Map<String, Object> preflight = memory.preflight(
+                "VISUAL", "CI_REAL_POSTGRES_CONTEXT_CHECK", ProductionOverviewService.EPISODE_ID);
+        assertThat(preflight.get("status")).isEqualTo("CONTEXT_READY");
+        assertThat(preflight.get("semanticApproval")).isEqualTo(false);
+        assertThat(((Number) preflight.get("approvedAssetCount")).intValue()).isGreaterThanOrEqualTo(12);
 
         try (Connection connection = DriverManager.getConnection(url, "media_os", "media_os");
              Statement statement = connection.createStatement()) {
