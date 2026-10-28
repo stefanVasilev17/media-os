@@ -91,6 +91,22 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void operationalHeartbeatAndProgressDoNotFloodAuditTable() throws Exception {
+        for (String uri : new String[]{
+                "/api/v1/worker/runner/heartbeat",
+                "/api/v1/remotion/renders/worker/claim",
+                "/api/v1/remotion/renders/worker/abcd/progress",
+                "/api/v1/worker/spline/jobs/abcd/started"
+        }) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", uri);
+            MockFilterChain chain = new MockFilterChain();
+            filter.doFilter(request, new MockHttpServletResponse(), chain);
+            assertThat(chain.getRequest()).isSameAs(request);
+        }
+        verify(memory, never()).preflight(any(), any(), any());
+    }
+
+    @Test
     void readOnlyRequestsDoNotWriteAnAudit() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/creative/overview");
         MockHttpServletResponse response = new MockHttpServletResponse();
