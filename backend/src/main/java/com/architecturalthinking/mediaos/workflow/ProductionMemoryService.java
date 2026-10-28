@@ -62,6 +62,21 @@ public class ProductionMemoryService {
                 .list();
     }
 
+    public List<Map<String, Object>> approvedAssets() {
+        return jdbc.sql("""
+                select asset_key, status, source_path
+                from production_asset_catalog
+                where project_id=:projectId and status='LOCKED'
+                order by asset_key
+                """)
+                .param("projectId", ProductionOverviewService.PROJECT_ID)
+                .query((rs, n) -> Map.<String, Object>of(
+                        "assetKey", rs.getString("asset_key"),
+                        "status", rs.getString("status"),
+                        "sourcePath", rs.getString("source_path")
+                )).list();
+    }
+
     public Map<String, Object> preflight(String rawScope, String rawAction) {
         return preflight(rawScope, rawAction, ProductionOverviewService.EPISODE_ID);
     }
@@ -73,9 +88,13 @@ public class ProductionMemoryService {
         List<Map<String, Object>> rules = rulesFor(scope, episodeId);
         List<String> ids = rules.stream().map(rule -> String.valueOf(rule.get("id"))).toList();
 
-        String policyJson = jdbc.sql("select payload::text from project_creative_policy where project_id=:projectId")
+        Map<String, String> policyRow = jdbc.sql("select version, payload::text from project_creative_policy where project_id=:projectId")
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
-                .query(String.class).optional().orElse("");
+                .query((rs, n) -> Map.of("version", rs.getString("version"), "payload", rs.getString("payload")))
+                .optional().orElse(Map.of());
+        String policyJson = policyRow.getOrDefault("payload", "");
+        String policyVersion = policyRow.getOrDefault("version", "");
+        List<Map<String, Object>> approvedAssets = approvedAssets();
         boolean policyReady = false;
         try {
             var payload = objectMapper.readTree(policyJson);
@@ -93,11 +112,11 @@ public class ProductionMemoryService {
                 .param("episodeId", episodeId)
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
                 .query(Boolean.class).single();
-        boolean passed = policyReady && globalRulePresent && episodeExists;
+        boolean passed = policyReady && globalRulePresent && episodeExists && !approvedAssets.isEmpty();
         UUID auditId = UUID.randomUUID();
         jdbc.sql("""
-                insert into production_preflight_audit(id, episode_id, scope, action_key, rule_count, rule_ids, passed)
-                values (:id,:episodeId,:scope,:action,:count,cast(:ids as jsonb),:passed)
+                insert into production_preflight_audit(id, episode_id, scope, action_key, rule_count, rule_ids, passed, policy_version, approved_asset_count)
+                values (:id,:episodeId,:scope,:action,:count,cast(:ids as jsonb),:passed,:policyVersion,:assetCount)
                 """)
                 .param("id", auditId)
                 .param("episodeId", episodeId)
@@ -106,11 +125,13 @@ public class ProductionMemoryService {
                 .param("count", rules.size())
                 .param("ids", writeJson(ids))
                 .param("passed", passed)
+                .param("policyVersion", policyVersion)
+                .param("assetCount", approvedAssets.size())
                 .update();
 
         if (!passed) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "GLOBAL_CREATION_PREFLIGHT_BLOCKED: missing canonical policy, required memory rule, or valid episode. Audit=" + auditId);
+                    "GLOBAL_CREATION_PREFLIGHT_BLOCKED: missing canonical policy, required memory rule, valid episode, or approved asset catalog. Audit=" + auditId);
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("auditId", auditId);
@@ -121,6 +142,9 @@ public class ProductionMemoryService {
         result.put("ruleCount", rules.size());
         result.put("rules", rules);
         result.put("policyReady", true);
+        result.put("policyVersion", policyVersion);
+        result.put("approvedAssets", approvedAssets);
+        result.put("approvedAssetCount", approvedAssets.size());
         result.put("semanticApproval", false);
         return result;
     }
