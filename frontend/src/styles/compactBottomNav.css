@@ -4,9 +4,9 @@
   left: 50%;
   bottom: max(8px, env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  width: min(284px, calc(100% - 18px));
+  width: min(354px, calc(100% - 18px));
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 3px;
   padding: 5px;
   border-radius: 15px;
