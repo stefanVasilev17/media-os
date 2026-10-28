@@ -6,7 +6,7 @@ import sys
 
 root = Path(__file__).resolve().parents[2]
 registry = (root / "remotion-engine/src/components/architectural-thinking/registry.ts").read_text()
-catalog = (root / "backend/src/main/resources/db/migration/V84__approved_remotion_asset_catalog.sql").read_text()
+catalog = "\n".join(p.read_text() for p in sorted((root / "backend/src/main/resources/db/migration").glob("V*__*.sql")))
 keys = set(re.findall(r"^\s*(AT[A-Za-z0-9_]+):\s*\{", registry, re.MULTILINE))
 seeded = set(re.findall(r"'(AT[A-Za-z0-9_]+)','LOCKED'", catalog))
 if not keys or not seeded:
