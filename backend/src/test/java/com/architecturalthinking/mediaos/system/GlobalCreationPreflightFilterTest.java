@@ -4,6 +4,7 @@ import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -22,6 +23,12 @@ class GlobalCreationPreflightFilterTest {
 
     private final ProductionMemoryService memory = mock(ProductionMemoryService.class);
     private final GlobalCreationPreflightFilter filter = new GlobalCreationPreflightFilter(memory, new ObjectMapper());
+
+    @BeforeEach
+    void singleEpisodeFixture() {
+        when(memory.hasSingleEpisode()).thenReturn(true);
+    }
+
 
     @Test
     void blocksWritesWhenCanonicalRulesAreUnavailable() throws Exception {
@@ -65,6 +72,21 @@ class GlobalCreationPreflightFilterTest {
         assertThat(response.getStatus()).isEqualTo(409);
         assertThat(response.getContentAsString()).contains("cross-episode");
         verifyNoInteractions(memory);
+    }
+
+    @Test
+    void blocksAmbiguousCreationWhenMultipleEpisodesExist() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/creative/script/generate");
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(409);
+        assertThat(response.getContentAsString()).contains("Ambiguous episode routing");
+        assertThat(chain.getRequest()).isNull();
+        verify(memory, never()).preflight(any(), any(), any());
     }
 
     @Test
