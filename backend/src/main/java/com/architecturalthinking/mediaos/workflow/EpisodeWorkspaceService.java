@@ -248,9 +248,7 @@ public class EpisodeWorkspaceService {
         if (LEGACY_EPISODE_ID.equals(id))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot relock EP001 through episode workspace.");
         String stage = editableStage(rawStage);
-        if (!"DIRECTOR_APPROVE".equals(decision) || directorNote == null || directorNote.trim().length() < 10)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Explicit DIRECTOR_APPROVE decision and a meaningful review note are required.");
+        EpisodeWorkspaceRules.validateDirectorDecision(decision, directorNote);
         Map<String, Object> row = jdbc.sql("""
                 select current_revision, status, artifact::text
                 from production_stage where episode_id=:episodeId and stage_key=:stage for update
@@ -270,7 +268,7 @@ public class EpisodeWorkspaceService {
                     "Stage is locked, unreviewed or revision changed.");
         if (!"RESEARCH".equals(stage)) requireLocked(id, "RESEARCH");
         if ("SCENE".equals(stage)) requireLocked(id, "SCRIPT");
-        validateArtifactForDirectorLock(stage, castMap(row.get("artifact")));
+        EpisodeWorkspaceRules.validateArtifactForLock(stage, castMap(row.get("artifact")));
 
         int affected = jdbc.sql("""
                 update production_stage set status='LOCKED', locked_at=now(), updated_at=now(),
@@ -286,31 +284,6 @@ public class EpisodeWorkspaceService {
                 .param("id", id).param("stage", stage).update();
         return context(id, "ALL");
     }
-
-    private void validateArtifactForDirectorLock(String stage, Map<String, Object> artifact) {
-        if ("RESEARCH".equals(stage)) {
-            if (!nonBlank(artifact.get("centralQuestion")) || !nonBlank(artifact.get("viewerPromise"))
-                    || !listHas(artifact.get("truthMap"), 3) || !listHas(artifact.get("outOfScope"), 1)
-                    || !listHas(artifact.get("technicalSources"), 1))
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Research LOCK requires centralQuestion, viewerPromise, truthMap (3+), outOfScope and technicalSources.");
-        }
-        if ("SCRIPT".equals(stage)) {
-            if (!nonBlank(artifact.get("overview")) || !listHas(artifact.get("timeline"), 5)
-                    || !(artifact.get("targetDurationSeconds") instanceof Number duration)
-                    || duration.doubleValue() < 540 || duration.doubleValue() > 900)
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Script LOCK requires reviewed overview, 5+ timeline beats and 9–15 minute target.");
-        }
-        if ("SCENE".equals(stage)) {
-            if (!nonBlank(artifact.get("overview")) || !listHas(artifact.get("shots"), 3))
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Scene LOCK requires reviewed visual overview and 3+ fully planned shots.");
-        }
-    }
-
-    private boolean nonBlank(Object value) { return value instanceof String s && !s.trim().isBlank(); }
-    private boolean listHas(Object value, int min) { return value instanceof List<?> l && l.size() >= min; }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> castMap(Object o) {
@@ -328,11 +301,7 @@ public class EpisodeWorkspaceService {
     }
 
     private String editableStage(String stage) {
-        String key = stage == null ? "" : stage.trim().toUpperCase(Locale.ROOT);
-        if (!List.of("RESEARCH", "SCRIPT", "SCENE").contains(key))
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Only Research, Script and Scene use this draft gate. Voice and Visual require specialized QA.");
-        return key;
+        return EpisodeWorkspaceRules.editableStage(stage);
     }
 
     private void seedStage(UUID episodeId, String key, String agent, String label, int seq, String status) {
