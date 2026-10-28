@@ -23,7 +23,8 @@ class EpisodeScopedAgentServiceTest {
     private final CreativeAgentClient creative = mock(CreativeAgentClient.class);
     private final AiRuntimePolicyService policy = mock(AiRuntimePolicyService.class);
     private final PreviewAuthorizationService tokens = mock(PreviewAuthorizationService.class);
-    private final EpisodeScopedAgentService agent = new EpisodeScopedAgentService(workspace, creative, policy, tokens);
+    private final EpisodeLearningService learning = mock(EpisodeLearningService.class);
+    private final EpisodeScopedAgentService agent = new EpisodeScopedAgentService(workspace, creative, policy, tokens, learning);
 
     @BeforeEach
     void readyWorkspace() {
@@ -53,6 +54,7 @@ class EpisodeScopedAgentServiceTest {
         assertThat(result.get("canRun")).isEqualTo(false);
         assertThat(result.get("authorizationToken")).isNull();
         assertThat(result.get("upstreamRevision")).isEqualTo(1);
+        verify(learning).requireEarlierLearningReviewed(ep2);
         verifyNoInteractions(tokens);
         verify(creative, never()).generate(any(), any(), any(), any());
     }
