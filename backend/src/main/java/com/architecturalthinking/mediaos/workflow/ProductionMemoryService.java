@@ -245,7 +245,7 @@ public class ProductionMemoryService {
         String scope = raw == null ? "ALL" : raw.trim().toUpperCase(Locale.ROOT);
         return switch (scope) {
             case "SCRIPT", "VOICE", "VISUAL", "ALL" -> scope;
-            default -> "ALL";
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown Production Memory scope: " + scope);
         };
     }
 
