@@ -204,6 +204,17 @@ public class EpisodeWorkspaceService {
     @Transactional
     public Map<String, Object> draft(UUID id, String rawStage, Map<String, Object> artifact,
                                      String summary, int expectedRevision, UUID auditId) {
+        return saveDraft(id, rawStage, artifact, summary, expectedRevision, auditId, "DIRECTOR_SUBMITTED");
+    }
+
+    @Transactional
+    public Map<String, Object> agentDraft(UUID id, String rawStage, Map<String, Object> artifact,
+                                          String summary, int expectedRevision, UUID auditId) {
+        return saveDraft(id, rawStage, artifact, summary, expectedRevision, auditId, "EPISODE_SCOPED_AGENT");
+    }
+
+    private Map<String, Object> saveDraft(UUID id, String rawStage, Map<String, Object> artifact,
+                                          String summary, int expectedRevision, UUID auditId, String createdBy) {
         requireWritesEnabled();
         episode(id);
         if (LEGACY_EPISODE_ID.equals(id))
@@ -237,13 +248,14 @@ public class EpisodeWorkspaceService {
                 insert into production_stage_revision(id,production_stage_id,revision,
                                                       artifact,summary,change_summary,created_by)
                 select :id, s.id, s.current_revision,cast(:artifact as jsonb),:summary,
-                       'Episode-aware reviewed draft','DIRECTOR_SUBMITTED'
+                       'Episode-aware reviewed draft',:createdBy
                 from production_stage s where s.episode_id=:episodeId and s.stage_key=:stage
                 """)
                 .param("id", UUID.randomUUID()).param("episodeId", id)
                 .param("stage", stage).param("artifact", writeJson(artifact))
-                .param("summary", summary.trim()).update();
-        event(id, stage, "DRAFT_SAVED", expectedRevision + 1, summary.trim(), auditId);
+                .param("summary", summary.trim()).param("createdBy", createdBy).update();
+        event(id, stage, "EPISODE_SCOPED_AGENT".equals(createdBy) ? "AGENT_DRAFT_SAVED" : "DRAFT_SAVED",
+                expectedRevision + 1, summary.trim(), auditId);
         return context(id, "ALL");
     }
 
