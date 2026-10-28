@@ -285,6 +285,7 @@ public class CreativeWorkflowController {
         context.put("productionMemory", productionMemory.rulesFor(memoryScope(key)));
         context.put("canonicalCreativePolicy", creativePolicy.current());
         context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionOverview", overviewService.overview());
         return context;
     }
