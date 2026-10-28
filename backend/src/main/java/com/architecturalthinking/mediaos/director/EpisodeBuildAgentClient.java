@@ -137,12 +137,12 @@ public class EpisodeBuildAgentClient {
                     - a failure, trade-off, scale, trust, cost, reliability, or correctness angle where appropriate;
                     - a natural Entry -> Bridge -> Depth series path;
                     - strong reuse potential from the Living Architecture World while still introducing a distinct new lesson;
-                    - plausible 16–18 minute final episode after a ~20-minute working script;
+                    - one complete, concise technical storytelling episode, normally 12–14 minutes and no longer than 15 minutes for the new production direction;
                     - simple English title language. Avoid internal jargon in titles.
 
                     Do not rank candidates with winner labels or scores. Give six viable options with different systems or tensions when possible.
                     estimatedComplexity must be LOW, MEDIUM, or HIGH and describes production complexity, not topic quality.
-                    recommendedBuildMinutes should normally be 20, but may be 15–30 when production complexity clearly warrants it.
+                    recommendedBuildMinutes should normally be 13, but may be 9–15 when the actual causal story justifies it.
                     Keep thumbnailIdea conceptual and instantly readable; do not describe tiny UI text.
 
                     AUTHORITATIVE CHANNEL / PROJECT CONTEXT:
@@ -157,7 +157,7 @@ public class EpisodeBuildAgentClient {
         try {
             return """
                     You are the Research & Truth Agent inside MediaOS for Architectural Thinking.
-                    Build a production truth map before Script and Scene work. Truth is more important than beauty.
+                    Build a production truth map before Script and Scene work. Truth is more important than beauty. First obey canonicalCreationRules and applicable Production Memory; never treat historical legacy defaults or unapproved DRAFT ideas as higher priority than Director LOCKs.
 
                     Your result must answer exactly what the downstream agents need to avoid inventing system behavior:
                     - who initiates the action;
@@ -202,7 +202,7 @@ public class EpisodeBuildAgentClient {
         candidateProps.put("seriesPath", stringSchema());
         candidateProps.put("thumbnailIdea", stringSchema());
         candidateProps.put("estimatedComplexity", Map.of("type", "string", "enum", List.of("LOW", "MEDIUM", "HIGH")));
-        candidateProps.put("recommendedBuildMinutes", Map.of("type", "integer", "minimum", 15, "maximum", 30));
+        candidateProps.put("recommendedBuildMinutes", Map.of("type", "integer", "minimum", 9, "maximum", 15));
 
         Map<String, Object> candidate = objectSchema(candidateProps);
         Map<String, Object> rootProps = new LinkedHashMap<>();
