@@ -24,14 +24,17 @@ import java.util.UUID;
 public class EpisodeScopedAgentService {
     private static final UUID EP001 = ProductionOverviewService.EPISODE_ID;
     private final EpisodeWorkspaceService workspace;
+    private final EpisodeLearningService learning;
     private final CreativeAgentClient creative;
     private final AiRuntimePolicyService aiPolicy;
     private final PreviewAuthorizationService previewAuthorization;
 
     public EpisodeScopedAgentService(EpisodeWorkspaceService workspace, CreativeAgentClient creative,
                                      AiRuntimePolicyService aiPolicy,
-                                     PreviewAuthorizationService previewAuthorization) {
+                                     PreviewAuthorizationService previewAuthorization,
+                                     EpisodeLearningService learning) {
         this.workspace = workspace;
+        this.learning = learning;
         this.creative = creative;
         this.aiPolicy = aiPolicy;
         this.previewAuthorization = previewAuthorization;
@@ -148,6 +151,7 @@ public class EpisodeScopedAgentService {
         // memory, which already inherits applicable SCRIPT and VOICE rules.
         String memoryScope = "SCENE".equals(stage) ? "VISUAL" : "SCRIPT";
         Map<String, Object> episodeContext = workspace.context(id, memoryScope);
+        learning.requireEarlierLearningReviewed(id);
         Map<String, Object> stageRow = stage(episodeContext, stage);
         int revision = number(stageRow.get("revision"));
         if (revision != expectedRevision || "LOCKED".equals(stageRow.get("status")))
