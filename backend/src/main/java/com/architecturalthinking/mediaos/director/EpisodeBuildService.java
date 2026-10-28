@@ -128,7 +128,7 @@ public class EpisodeBuildService {
                     .param("seriesPath", clean(candidate.seriesPath()))
                     .param("thumbnailIdea", clean(candidate.thumbnailIdea()))
                     .param("complexity", normalizeComplexity(candidate.estimatedComplexity()))
-                    .param("minutes", clamp(candidate.recommendedBuildMinutes(), 15, 30))
+                    .param("minutes", clamp(candidate.recommendedBuildMinutes(), 9, 15))
                     .update();
         }
         return state();
@@ -145,7 +145,7 @@ public class EpisodeBuildService {
             throw new ResponseStatusException(CONFLICT, "The current Script or Scene already contains creator work. Review that work instead of replacing it with a new autonomous first pass.");
         }
 
-        int budgetMinutes = clamp(requestedBudgetMinutes <= 0 ? 20 : requestedBudgetMinutes, 15, 30);
+        int budgetMinutes = clamp(requestedBudgetMinutes <= 0 ? 13 : requestedBudgetMinutes, 9, 15);
         UUID runId = UUID.randomUUID();
         jdbc.sql("""
                 insert into episode_build_run(
@@ -370,7 +370,7 @@ public class EpisodeBuildService {
         jdbc.sql("update episode set current_stage='SCRIPT_REVIEW' where id=:episodeId")
                 .param("episodeId", EPISODE_ID)
                 .update();
-        completeStep(runId, "HANDOFF", "Initial version complete. Review Script → Scene → Spline and lock only after creator approval.");
+        completeStep(runId, "HANDOFF", "Initial version complete. Review Script → Remotion visual plan and lock only after creator approval.");
     }
 
     private Map<String, Object> creativeContext(String key, Map<String, Object> stage) {
@@ -500,12 +500,12 @@ public class EpisodeBuildService {
             if (blank(shot.get("shotKey")) || blank(shot.get("script")) || blank(shot.get("voiceDirection"))
                     || blank(shot.get("camera")) || blank(shot.get("visualGoal")) || blank(shot.get("promptForSpline"))
                     || asList(shot.get("moves")).isEmpty()) {
-                failures.add("Every shot needs script, voice direction, moves, camera, visual goal, and a deterministic Spline prompt.");
+                failures.add("Every shot needs script, voice direction, moves, camera, visual goal, and a deterministic Remotion-first plan in the legacy prompt field.");
                 break;
             }
         }
         if (expected != expectedDuration) failures.add("Final Scene shot must end at the Script duration.");
-        if (blank(artifact.get("handoffPrompt"))) failures.add("Spline handoff prompt is missing.");
+        if (blank(artifact.get("handoffPrompt"))) failures.add("Remotion-first visual handoff prompt is missing.");
         return dedupe(failures);
     }
 
