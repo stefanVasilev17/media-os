@@ -68,6 +68,13 @@ public class ProductionMemoryService {
                 .list();
     }
 
+    public boolean hasSingleEpisode() {
+        long count = jdbc.sql("select count(*) from episode where project_id=:projectId")
+                .param("projectId", ProductionOverviewService.PROJECT_ID)
+                .query(Long.class).single();
+        return count == 1L;
+    }
+
     public List<Map<String, Object>> approvedAssets() {
         return jdbc.sql("""
                 select asset_key, status, source_path
