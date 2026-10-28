@@ -17,7 +17,7 @@ This is a **precondition and context loading gate**, not an assertion that gener
 ## Covered operations
 
 - A global `OncePerRequestFilter` runs on all state-changing `/api/v1/**` endpoints (POST, PUT, PATCH, DELETE), including editor, Director, creation, render-queue and memory writes.
-- `ProductionMemoryService.preflight(scope, action, episodeId)` checks required global rule, canonical policy overlay and matching episode row; it writes `production_preflight_audit` with the result.
+- `ProductionMemoryService.preflight(scope, action, episodeId)` checks the required global rule, current canonical policy overlay, matching episode row, approved Remotion asset catalog and Director shot locks; it writes `production_preflight_audit` with the result.
 - Background `EpisodeBuildService` stages re-run preflight on each scheduled TRUTH, SCRIPT, SCENE and HANDOFF step, even if their initial HTTP request was audited earlier.
 - Script/Scene/Director and autonomous Topic/Truth Agent contexts include current policy and appropriate Production Memory (not merely a copy of the last conversation).
 - Stage-specific existing lock rules, source Truth Map, voice alignment, deterministic Remotion validation and Director approval remain separate gates.
@@ -33,16 +33,16 @@ This is a **precondition and context loading gate**, not an assertion that gener
 
 ## Known limitations / release blockers
 
-1. **Episode scoping:** Several existing APIs still use static EP001 IDs. This v1 intentionally **rejects** explicit cross-episode API writes instead of pretending EP002 is supported. A true EP002–EP005 episode-aware data model and endpoint migration is a separate prerequisite before using those legacy routes for additional episodes.
+1. **Episode scoping:** Several existing APIs still use static EP001 IDs. This v1 intentionally **rejects** explicit cross-episode API writes instead of pretending EP002 is supported. A true EP002–EP005 episode-aware data model and endpoint migration is a separate prerequisite before using those legacy routes for additional episodes. Once a second episode exists, implicit EP001 routing is denied.
 2. **Semantic compliance:** Neither a filter nor an AI prompt can mathematically prove arbitrary script/diagram correctness. Dedicated artifact-level validators and Director approval remain necessary; a rules-loaded audit is not a quality verdict.
 3. **Full historical ingestion:** V83 seeds key Director decisions into runtime memory. Not every historical GitHub production event has been transformed into structured DB rules; those events must remain consulted during specific episode planning and be indexed/validated over time.
-4. **External agents and direct writes:** The filter covers backend HTTP entry points and the known autonomous EpisodeBuild runner. Any external direct database writes, standalone GitHub operations or future worker creation routes must be instrumented separately, and must not be declared covered without tests.
-5. **Deploy:** The implementation must pass Maven CI and Director review before merging/deploying. Flyway V82/V83 will run at backend deployment; verify DB policy, audit records and API behavior in staging before production. Preserve a tested rollback for backend code; Flyway migrations are forward-only.
+4. **External agents and direct writes:** The filter covers backend HTTP entry points and the known autonomous EpisodeBuild runner. It does not cover undocumented external GitHub or DB mutations. Any external direct database writes, standalone GitHub operations or future worker creation routes must be instrumented separately, and must not be declared covered without tests.
+5. **Deploy:** The implementation must pass Maven CI and Director review before merging/deploying. Flyway V82–V85 will run at backend deployment; verify DB policy, audit records and API behavior in staging before production. Preserve a tested rollback for backend code; Flyway migrations are forward-only.
 
 ## Pre-production verification
 
-- [ ] `mvn clean verify` passes on Java 21.
-- [ ] Run Flyway against a staging PostgreSQL DB with V81 already applied; verify V82 and V83 complete.
+- [ ] GitHub Actions Java 21 `mvn clean verify` passes, including 8 filter tests, the isolated PostgreSQL migration test and both static registry/memory-ID consistency checks.
+- [ ] Run the automated isolated-Postgres-18 integration test (full Flyway V1–V85 history), followed by a separate staging migration dry-run from current production version V81. Verify V82–V85 complete.
 - [ ] POST creation with canonical policy and memory returns success and a valid audit id, with `passed=true`.
 - [ ] Disable required global memory rule in staging; verify HTTP 409 and audit `passed=false`.
 - [ ] Remove the canonical overlay in staging; verify fail-closed HTTP 409.
