@@ -19,7 +19,7 @@ class EpisodeWorkspaceServiceTest {
     private final ProductionMemoryService memory = mock(ProductionMemoryService.class);
     private final CreativePolicyService policy = mock(CreativePolicyService.class);
     private final EpisodeWorkspaceService safe = new EpisodeWorkspaceService(
-            jdbc, new ObjectMapper(), memory, policy, false, false);
+            jdbc, new ObjectMapper(), memory, policy, mock(EpisodeLearningService.class), false, false);
 
     @Test
     void creationCannotRunWithoutExplicitEnablement() {
