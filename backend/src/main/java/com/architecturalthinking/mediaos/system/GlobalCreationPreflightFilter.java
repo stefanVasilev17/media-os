@@ -85,30 +85,59 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     }
 
     private UUID episodeFor(HttpServletRequest request) {
+        String path = apiPath(request);
         String raw = request.getHeader("X-MediaOS-Episode-Id");
-        if (raw == null || raw.isBlank()) {
-            if (!memory.hasSingleEpisode()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Ambiguous episode routing. Explicit episode identity is required when multiple episodes exist.");
+        UUID headerId = null;
+        if (raw != null && !raw.isBlank()) {
+            try {
+                headerId = UUID.fromString(raw.trim());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID.");
             }
+        }
+
+        // New episode workspace URLs are the source of identity. Never trust a
+        // conflicting header and never let a missing header fall back to EP001.
+        java.util.regex.Matcher match = java.util.regex.Pattern
+                .compile("^/api/v1/episodes/([^/]+)(?:/.*)?$")
+                .matcher(path);
+        if (match.matches()) {
+            UUID pathId;
+            try {
+                pathId = UUID.fromString(match.group(1));
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID in URL.");
+            }
+            if (headerId != null && !headerId.equals(pathId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode ID header and URL disagree.");
+            }
+            return pathId;
+        }
+
+        // Creating a new episode is a project-level creation event. EP001 is
+        // only the audit anchor; the new episode is not present in the DB yet.
+        if (path.equals("/api/v1/episodes")) {
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode catalog creation is project-scoped.");
             return ProductionOverviewService.EPISODE_ID;
         }
-        UUID id;
-        try {
-            id = UUID.fromString(raw.trim());
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID.");
+
+        // Legacy routes still write EP001. Explicitly deny alternate IDs.
+        if (headerId != null) {
+            if (!ProductionOverviewService.EPISODE_ID.equals(headerId))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Legacy route targets EP001; refusing cross-episode write.");
+            return headerId;
         }
-        // Current MediaOS controllers still bind writes to EP001. Refuse a misleading
-        // alternate episode header rather than validating EP002 while writing EP001.
-        if (!ProductionOverviewService.EPISODE_ID.equals(id)) {
+        if (!memory.hasSingleEpisode()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Episode-scoped creation is not yet supported by this legacy route. Refusing cross-episode write.");
+                    "Ambiguous episode routing. Explicit EP001 identity is required for legacy writes.");
         }
-        return id;
+        return ProductionOverviewService.EPISODE_ID;
     }
 
     static String scopeFor(String path) {
+        if (path.matches("^/api/v1/episodes/[^/]+/stages/(script|scene|research|voice|visual)(?:/.*)?$")) return "ALL";
         if (path.startsWith("/api/v1/voice") || path.startsWith("/api/v1/studio")) return "VOICE";
         if (path.startsWith("/api/v1/visual") || path.startsWith("/api/v1/remotion")
                 || path.startsWith("/api/v1/spline") || path.startsWith("/api/v1/director-visual")) return "VISUAL";

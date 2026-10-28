@@ -82,11 +82,26 @@ public class AiSpendGuardAspect {
         Map<?, ?> context = args.length > 3 && args[3] instanceof Map<?, ?> map ? map : Map.of();
         boolean automaticRepair = "REVISE".equalsIgnoreCase(action)
                 && (context.containsKey("validationFailures") || context.containsKey("repairInstruction"));
+        if (context.containsKey("scopedEpisodeId") && currentRequest() == null)
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.PRECONDITION_REQUIRED,
+                    "Episode-scoped AI requires a request-bound single-use preview authorization.");
+        if (context.containsKey("scopedEpisodeId") && automaticRepair)
+            throw new ResponseStatusException(CONFLICT,
+                    "Episode-scoped automatic AI repair is disabled until separately authorized.");
         int outputLimit = "SCENE".equalsIgnoreCase(stage) ? 12000 : 14000;
         String operation = stage.toUpperCase() + "_" + action.toUpperCase();
-        String previewPayload = automaticRepair
-                ? null
-                : previewAuthorization.creativePayload(stage, action, message);
+        String previewPayload;
+        if (automaticRepair) {
+            previewPayload = null;
+        } else if (context.containsKey("scopedEpisodeId")) {
+            UUID episode = UUID.fromString(String.valueOf(context.get("scopedEpisodeId")));
+            int draftRevision = ((Number) context.get("scopedExpectedRevision")).intValue();
+            int upstreamRevision = ((Number) context.get("scopedUpstreamRevision")).intValue();
+            previewPayload = previewAuthorization.episodeCreativePayload(
+                    episode, stage, action, message, draftRevision, upstreamRevision);
+        } else {
+            previewPayload = previewAuthorization.creativePayload(stage, action, message);
+        }
         return guardedCall(
                 joinPoint,
                 stage.toUpperCase(),

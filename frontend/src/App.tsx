@@ -4,6 +4,7 @@ import { DirectorRoomPage } from './pages/DirectorRoomPage';
 import { SceneAgentPage } from './pages/SceneAgentPage';
 import { ScriptAgentPage } from './pages/ScriptAgentPage';
 import { ShotStudioPage } from './pages/ShotStudioPage';
+import { EpisodeWorkspacesPage } from './pages/EpisodeWorkspacesPage';
 import { VoiceAgentPage } from './pages/VoiceAgentPage';
 import { VisualAgentPage } from './pages/VisualAgentPage';
 import './styles/episodeSceneCompositor.css';
@@ -57,7 +58,9 @@ export function App() {
   }
 
   let page: ReactNode;
-  if (hash.startsWith('#/studio')) {
+  if (hash.startsWith('#/episodes')) {
+    page = <EpisodeWorkspacesPage />;
+  } else if (hash.startsWith('#/studio')) {
     page = <ShotStudioPage />;
   } else if (hash.startsWith('#/agents/script')) {
     page = <ScriptAgentPage />;

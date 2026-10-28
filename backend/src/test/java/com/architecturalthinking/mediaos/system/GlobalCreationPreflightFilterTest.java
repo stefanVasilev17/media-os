@@ -107,6 +107,66 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void episodePathCanCreateUsingOnlyThatEpisodesMemory() throws Exception {
+        UUID episode2 = UUID.fromString("33333333-3333-4333-8333-333333333333");
+        UUID audit = UUID.randomUUID();
+        MockHttpServletRequest request = new MockHttpServletRequest("POST",
+                "/api/v1/episodes/" + episode2 + "/stages/research/draft");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(memory.preflight(eq("ALL"), any(), eq(episode2)))
+                .thenReturn(Map.of("auditId", audit, "status", "CONTEXT_READY"));
+
+        MockFilterChain chain = new MockFilterChain();
+        filter.doFilter(request, response, chain);
+
+        assertThat(chain.getRequest()).isSameAs(request);
+        verify(memory).preflight(eq("ALL"), any(), eq(episode2));
+        assertThat(response.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+    }
+
+    @Test
+    void episodeHeaderCannotOverrideEpisodeUrlIdentity() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST",
+                "/api/v1/episodes/33333333-3333-4333-8333-333333333333/memory");
+        request.addHeader("X-MediaOS-Episode-Id", ProductionOverviewService.EPISODE_ID.toString());
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(409);
+        assertThat(response.getContentAsString()).contains("disagree");
+        assertThat(chain.getRequest()).isNull();
+        verify(memory, never()).preflight(any(), any(), any());
+    }
+
+    @Test
+    void malformedEpisodePathIsRejectedBeforeAnyWrite() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST",
+                "/api/v1/episodes/not-a-uuid/stages/script/draft");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, new MockFilterChain());
+        assertThat(response.getStatus()).isEqualTo(400);
+        verify(memory, never()).preflight(any(), any(), any());
+    }
+
+    @Test
+    void episodeCatalogCreationPreflightsAtProjectAnchorEvenWithMultipleEpisodes() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit = UUID.randomUUID();
+        when(memory.preflight(eq("ALL"), any(), eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId", audit));
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/episodes");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(chain.getRequest()).isSameAs(request);
+        verify(memory).preflight(eq("ALL"), any(), eq(ProductionOverviewService.EPISODE_ID));
+    }
+
+    @Test
     void readOnlyRequestsDoNotWriteAnAudit() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/creative/overview");
         MockHttpServletResponse response = new MockHttpServletResponse();

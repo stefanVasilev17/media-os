@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BrainCircuit, FileText, Mic2, Clapperboard, Layers3 } from 'lucide-react';
+import { BrainCircuit, FileText, Mic2, Clapperboard, Layers3, FolderKanban } from 'lucide-react';
 import '../styles/compactBottomNav.css';
 
 type NavItem = {
@@ -10,6 +10,12 @@ type NavItem = {
 };
 
 const items: NavItem[] = [
+  {
+    label: 'Episodes',
+    hash: '#/episodes',
+    icon: <FolderKanban size={17} />,
+    match: hash => hash.startsWith('#/episodes')
+  },
   {
     label: 'Director',
     hash: '#/',

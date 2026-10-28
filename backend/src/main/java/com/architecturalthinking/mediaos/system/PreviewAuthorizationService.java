@@ -97,6 +97,18 @@ public class PreviewAuthorizationService {
         return "REVISE".equals(normalizeOperation(action)) ? base + "\n" + clean(message) : base;
     }
 
+    public String episodeCreativePayload(UUID episodeId, String stageKey, String action,
+                                         String message, int expectedRevision, int upstreamRevision) {
+        if (episodeId == null || expectedRevision < 0 || upstreamRevision < 1)
+            throw new IllegalArgumentException("Scoped AI preview requires an episode, draft revision and locked upstream revision.");
+        return "EPISODE=" + episodeId
+                + "|STAGE=" + normalizeOperation(stageKey)
+                + "|ACTION=" + normalizeOperation(action)
+                + "|DRAFT_REVISION=" + expectedRevision
+                + "|UPSTREAM_REVISION=" + upstreamRevision
+                + "\\n" + clean(message);
+    }
+
     public String topicPayload() {
         return "TOPIC_CANDIDATES";
     }
