@@ -219,7 +219,7 @@ public class ProductionMemoryService {
                 """)
                 .param("id", id)
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
-                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("episodeId", "ALL".equals(scope) ? null : ProductionOverviewService.EPISODE_ID)
                 .param("scope", scope)
                 .param("content", normalized)
                 .param("source", source == null || source.isBlank() ? "Creator correction" : source.trim())
