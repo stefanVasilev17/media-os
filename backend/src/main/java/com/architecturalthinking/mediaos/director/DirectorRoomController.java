@@ -237,6 +237,7 @@ public class DirectorRoomController {
         context.put("productionMemory", productionMemory.rulesFor("ALL"));
         context.put("canonicalCreativePolicy", creativePolicy.current());
         context.put("approvedRemotionAssets", productionMemory.approvedAssets());
+        context.put("directorLockedShots", productionMemory.directorLockedShots(ProductionOverviewService.EPISODE_ID));
         context.put("productionMetrics", productionMetrics());
         context.put("lockedDecisions", proposalRows(threadId, true));
         context.put("openProposals", proposalRows(threadId, false));
