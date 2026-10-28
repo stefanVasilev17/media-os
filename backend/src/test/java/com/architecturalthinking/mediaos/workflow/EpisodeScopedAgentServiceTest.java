@@ -77,6 +77,38 @@ class EpisodeScopedAgentServiceTest {
     }
 
     @Test
+    void sceneAgentUsesInheritedVisualMemoryScopeAndSameEpisodeLockedScript() {
+        when(workspace.context(eq(ep2), eq("VISUAL"))).thenReturn(Map.of(
+                "episode", Map.of("id", ep2, "episodeNumber", "EP002"),
+                "policy", Map.of("version", "canonical-v1-2026-10-28"),
+                "rules", List.of(Map.of("scope", "ALL", "content", "Causality first")),
+                "directorLockedShots", List.of(),
+                "assetsAvailable", List.of(Map.of("assetKey", "ATPhone")),
+                "assetsReferenced", List.of(),
+                "stages", List.of(
+                        Map.of("stageKey", "RESEARCH", "status", "LOCKED", "revision", 1,
+                                "artifact", Map.of("truthMap", List.of("Auth", "Database", "Timeout"))),
+                        Map.of("stageKey", "SCRIPT", "status", "LOCKED", "revision", 2,
+                                "artifact", Map.of("overview", "Approved scoped EP002 narration")),
+                        Map.of("stageKey", "SCENE", "status", "WAITING", "revision", 0,
+                                "artifact", Map.of())
+                )));
+        var result = agent.preview(ep2, "scene", "GENERATE", "", 0);
+        assertThat(result.get("stage")).isEqualTo("SCENE");
+        assertThat(result.get("upstreamStage")).isEqualTo("SCRIPT");
+        assertThat(result.get("upstreamRevision")).isEqualTo(2);
+        verify(workspace).context(ep2, "VISUAL");
+    }
+
+    @Test
+    void sceneCannotRunBeforeScriptIsLocked() {
+        assertThrows(ResponseStatusException.class, () ->
+                agent.preview(ep2, "SCENE", "GENERATE", "", 0));
+        verify(workspace).context(ep2, "VISUAL");
+        verify(creative, never()).generate(any(), any(), any(), any());
+    }
+
+    @Test
     void noPathMayRunAgainstProtectedEp001() {
         assertThrows(ResponseStatusException.class, () ->
                 agent.preview(ProductionOverviewService.EPISODE_ID, "SCRIPT", "GENERATE", "", 0));
