@@ -210,7 +210,67 @@ public class EpisodeWorkspaceService {
     @Transactional
     public Map<String, Object> agentDraft(UUID id, String rawStage, Map<String, Object> artifact,
                                           String summary, int expectedRevision, UUID auditId) {
-        return saveDraft(id, rawStage, artifact, summary, expectedRevision, auditId, "EPISODE_SCOPED_AGENT");
+        return agentDraft(id, rawStage, artifact, summary, expectedRevision, auditId, "", "");
+    }
+
+    @Transactional
+    public Map<String, Object> agentDraft(UUID id, String rawStage, Map<String, Object> artifact,
+                                          String summary, int expectedRevision, UUID auditId,
+                                          String creatorCorrection, String agentReply) {
+        Map<String, Object> saved = saveDraft(id, rawStage, artifact, summary,
+                expectedRevision, auditId, "EPISODE_SCOPED_AGENT");
+        String key = EpisodeWorkspaceRules.editableStage(rawStage);
+        if (!List.of("SCRIPT", "SCENE").contains(key))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Unsupported episode agent conversation.");
+        UUID thread = agentThread(id, key);
+        if (creatorCorrection != null && !creatorCorrection.isBlank())
+            appendAgentMessage(thread, "USER", creatorCorrection);
+        if (agentReply != null && !agentReply.isBlank())
+            appendAgentMessage(thread, "AGENT", agentReply);
+        return saved;
+    }
+
+    public List<CreativeAgentClient.TranscriptMessage> agentTranscript(UUID id, String stage, int limit) {
+        episode(id);
+        if (LEGACY_EPISODE_ID.equals(id))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Use the legacy EP001 agent discussion.");
+        UUID thread = agentThread(id, EpisodeWorkspaceRules.editableStage(stage));
+        return jdbc.sql("""
+                select sender, content from (
+                    select id, sender, content, created_at
+                    from agent_message
+                    where thread_id=:thread and sender in ('USER','AGENT')
+                    order by created_at desc, id desc
+                    limit :limit
+                ) newest
+                order by created_at asc, id asc
+                """)
+                .param("thread", thread).param("limit", Math.max(1, Math.min(limit, 24)))
+                .query((rs, n) -> new CreativeAgentClient.TranscriptMessage(
+                        rs.getString("sender"), rs.getString("content")))
+                .list();
+    }
+
+    private UUID agentThread(UUID episodeId, String stage) {
+        String agentKey = "SCRIPT".equals(stage) ? "SCRIPT_AGENT" : "SCENE_AGENT";
+        return jdbc.sql("""
+                select t.id from agent_thread t join agent_profile p on p.id=t.agent_profile_id
+                where t.episode_id=:episodeId and p.agent_key=:agentKey
+                """)
+                .param("episodeId", episodeId).param("agentKey", agentKey)
+                .query(UUID.class).optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Episode-specific " + stage + " agent thread is missing."));
+    }
+
+    private void appendAgentMessage(UUID thread, String sender, String content) {
+        jdbc.sql("""
+                insert into agent_message(id,thread_id,sender,content)
+                values (:id,:thread,:sender,:content)
+                """)
+                .param("id", UUID.randomUUID())
+                .param("thread", thread).param("sender", sender)
+                .param("content", content).update();
     }
 
     private Map<String, Object> saveDraft(UUID id, String rawStage, Map<String, Object> artifact,
