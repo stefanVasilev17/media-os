@@ -25,5 +25,7 @@ jobs:
           java-version: '21'
           cache: maven
           cache-dependency-path: backend/pom.xml
+      - name: Check canonical Remotion registry against runtime asset catalog
+        run: python3 scripts/check_asset_catalog.py
       - name: Compile and run unit tests
         run: mvn -B --no-transfer-progress clean verify
