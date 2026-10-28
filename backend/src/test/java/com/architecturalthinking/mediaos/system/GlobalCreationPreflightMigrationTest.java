@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assumptions;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -17,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Executes the entire Flyway history against an isolated CI PostgreSQL instance.
@@ -69,6 +71,31 @@ class GlobalCreationPreflightMigrationTest {
                 assertThat(rows.getString("contract")).isEqualTo("GLOBAL_CREATION_PREFLIGHT");
                 assertThat(rows.getString("tool")).isEqualTo("Remotion-first");
                 assertThat(rows.getString("legacy_status")).isEqualTo("LEGACY_ONLY");
+            }
+        }
+
+        // Fail closed when the required project-wide rule is inactive.
+        // The isolated CI database is restored even if the negative assertion fails.
+        try (Connection connection = DriverManager.getConnection(url, "media_os", "media_os");
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    update production_memory_rule set active=false
+                    where content like 'GLOBAL_CREATION_PREFLIGHT:%'
+                    """);
+            try {
+                ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                        () -> memory.preflight("VISUAL", "CI_REQUIRED_RULE_DISABLED",
+                                ProductionOverviewService.EPISODE_ID));
+                assertThat(error.getStatusCode().value()).isEqualTo(409);
+                assertThat(number(statement, """
+                        select count(*) from production_preflight_audit
+                        where action_key='CI_REQUIRED_RULE_DISABLED' and passed=false
+                        """)).isEqualTo(1);
+            } finally {
+                statement.executeUpdate("""
+                        update production_memory_rule set active=true
+                        where content like 'GLOBAL_CREATION_PREFLIGHT:%'
+                        """);
             }
         }
     }
