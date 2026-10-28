@@ -1,7 +1,7 @@
 -- Seed a mandatory project-wide creation policy. Director LOCKs remain immutable.
 insert into production_memory_rule (id,project_id,episode_id,scope,rule_type,severity,content,source) values
-('90000000-0000-4000-8000-000000000011','11111111-1111-1111-1111-111111111111',null,'ALL','LOCK','REQUIRED','GLOBAL_CREATION_PREFLIGHT: Before any production write or agent generation, load canonical rules, applicable Production Memory, Director LOCKs, reusable assets, and approved truth/scope; block missing context; audit the operation. A DRAFT never overrides a LOCK.','Director instruction 2026-10-28'),
-('90000000-0000-4000-8000-000000000012','11111111-1111-1111-1111-111111111111',null,'ALL','CORRECTION','REQUIRED','All agents must load applicable Production Memory and director corrections, check reusable approved assets before creating anything new, and preserve locked artifacts.','Director instruction 2026-10-28')
+('90000000-0000-4000-8000-000000009111','11111111-1111-1111-1111-111111111111',null,'ALL','LOCK','REQUIRED','GLOBAL_CREATION_PREFLIGHT: Before any production write or agent generation, load canonical rules, applicable Production Memory, Director LOCKs, reusable assets, and approved truth/scope; block missing context; audit the operation. A DRAFT never overrides a LOCK.','Director instruction 2026-10-28'),
+('90000000-0000-4000-8000-000000009112','11111111-1111-1111-1111-111111111111',null,'ALL','CORRECTION','REQUIRED','All agents must load applicable Production Memory and director corrections, check reusable approved assets before creating anything new, and preserve locked artifacts.','Director instruction 2026-10-28')
 on conflict (id) do nothing;
 
 -- Canonical overlay explicitly supersedes contradictory legacy v2.1 instructions.
