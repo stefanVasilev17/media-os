@@ -39,7 +39,13 @@ public class ProductionMemoryService {
                 where project_id=:projectId
                   and active=true
                   and (episode_id is null or episode_id=:episodeId)
-                  and (scope='ALL' or scope=:scope)
+                  and (
+                    :scope='ALL'
+                    or scope='ALL'
+                    or scope=:scope
+                    or (scope='SCRIPT' and :scope in ('VOICE','VISUAL'))
+                    or (scope='VOICE' and :scope='VISUAL')
+                  )
                 order by
                   case severity when 'REQUIRED' then 0 else 1 end,
                   case rule_type when 'CORRECTION' then 0 when 'LOCK' then 1 when 'QA' then 2 else 3 end,
