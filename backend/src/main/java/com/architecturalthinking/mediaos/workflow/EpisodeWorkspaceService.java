@@ -154,6 +154,7 @@ public class EpisodeWorkspaceService {
                 .param("projectId", PROJECT_ID).param("number", number)
                 .query(Boolean.class).single();
         if (exists) throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode number already exists.");
+        learning.requireEarlierLearningReviewed(number);
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                 insert into episode(id, project_id, episode_number, title, current_stage, status)
