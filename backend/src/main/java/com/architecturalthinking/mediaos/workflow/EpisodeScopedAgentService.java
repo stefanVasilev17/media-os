@@ -144,7 +144,10 @@ public class EpisodeScopedAgentService {
         if (expectedRevision < 0)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Expected draft revision must be nonnegative.");
 
-        Map<String, Object> episodeContext = workspace.context(id, stage);
+        // Stage keys are not Production Memory scopes: Scene consumes VISUAL
+        // memory, which already inherits applicable SCRIPT and VOICE rules.
+        String memoryScope = "SCENE".equals(stage) ? "VISUAL" : "SCRIPT";
+        Map<String, Object> episodeContext = workspace.context(id, memoryScope);
         Map<String, Object> stageRow = stage(episodeContext, stage);
         int revision = number(stageRow.get("revision"));
         if (revision != expectedRevision || "LOCKED".equals(stageRow.get("status")))
