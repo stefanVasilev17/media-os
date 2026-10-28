@@ -103,6 +103,34 @@ public class EpisodeLearningService {
                 .query(Integer.class).single();
     }
 
+    /**
+     * A later episode cannot begin new AI planning while lessons from earlier
+     * episodes remain unclassified. Episode-only decisions clear this gate too.
+     */
+    public void requireEarlierLearningReviewed(UUID episodeId) {
+        requireEpisode(episodeId);
+        String number = jdbc.sql("select episode_number from episode where id=:id and project_id=:projectId")
+                .param("id", episodeId).param("projectId", PROJECT)
+                .query(String.class).single();
+        requireEarlierLearningReviewed(number);
+    }
+
+    public void requireEarlierLearningReviewed(String nextEpisodeNumber) {
+        if (nextEpisodeNumber == null || !nextEpisodeNumber.matches("EP[0-9]{3}"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Valid next episode number required.");
+        int pending = jdbc.sql("""
+                select count(*) from episode_learning_proposal p
+                join episode earlier on earlier.id=p.source_episode_id
+                where p.project_id=:projectId and p.status='PENDING'
+                  and earlier.project_id=:projectId and earlier.episode_number < :number
+                """).param("projectId", PROJECT).param("number", nextEpisodeNumber)
+                .query(Integer.class).single();
+        if (pending > 0)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "LEARNING_REVIEW_REQUIRED: " + pending
+                    + " earlier-episode lesson(s) need a Director decision before continuing.");
+    }
+
     public List<Map<String, Object>> proposals(UUID episodeId) {
         requireEpisode(episodeId);
         return jdbc.sql("""
