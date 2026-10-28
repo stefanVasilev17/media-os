@@ -80,6 +80,36 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void deniesCreationWhenDatabaseOrMemoryServiceIsUnavailable() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/voice-clips/generate");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(memory.preflight(eq("VOICE"), any(), eq(ProductionOverviewService.EPISODE_ID)))
+                .thenThrow(new IllegalStateException("Database unavailable"));
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(503);
+        assertThat(response.getContentAsString()).contains("GLOBAL_CREATION_PREFLIGHT_UNAVAILABLE");
+        assertThat(chain.getRequest()).isNull();
+    }
+
+    @Test
+    void cannotBypassPreflightUsingWebContextPath() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/mediaos/api/v1/studio/shots");
+        request.setContextPath("/mediaos");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        when(memory.preflight(eq("VOICE"), any(), eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId", UUID.randomUUID()));
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        verify(memory).preflight(eq("VOICE"), any(), eq(ProductionOverviewService.EPISODE_ID));
+        assertThat(chain.getRequest()).isSameAs(request);
+    }
+
+    @Test
     void businessExceptionIsNotMisreportedAsPreflightOutage() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/creative/script/generate");
         when(memory.preflight(eq("SCRIPT"), any(), eq(ProductionOverviewService.EPISODE_ID)))
