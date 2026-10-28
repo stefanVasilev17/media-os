@@ -28,17 +28,20 @@ public class EpisodeWorkspaceService {
     private final ObjectMapper mapper;
     private final ProductionMemoryService memory;
     private final CreativePolicyService policy;
+    private final EpisodeLearningService learning;
     private final boolean creationEnabled;
     private final boolean writesEnabled;
 
     public EpisodeWorkspaceService(JdbcClient jdbc, ObjectMapper mapper,
                                    ProductionMemoryService memory, CreativePolicyService policy,
+                                   EpisodeLearningService learning,
                                    @Value("${mediaos.episodes.creation-enabled:false}") boolean creationEnabled,
                                    @Value("${mediaos.episodes.writes-enabled:false}") boolean writesEnabled) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.memory = memory;
         this.policy = policy;
+        this.learning = learning;
         this.creationEnabled = creationEnabled;
         this.writesEnabled = writesEnabled;
     }
@@ -359,6 +362,9 @@ public class EpisodeWorkspaceService {
                 .param("revision", expectedRevision).update();
         if (affected != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "Concurrent stage update.");
         event(id, stage, "DIRECTOR_LOCKED", expectedRevision, directorNote.trim(), auditId);
+        // Stage completion must capture episode-specific lessons for review.
+        // Refresh NEVER promotes; only an authorized Director decision can.
+        learning.refresh(id, auditId);
         jdbc.sql("update episode set current_stage=:stage where id=:id")
                 .param("id", id).param("stage", stage).update();
         return context(id, "ALL");
@@ -373,6 +379,7 @@ public class EpisodeWorkspaceService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 uses its locked legacy correction workflow.");
         Map<String, Object> saved = memory.rememberCorrection(scope, content, source, episodeId, false);
         event(episodeId, null, "EPISODE_MEMORY_CORRECTION", null, content, auditId);
+        learning.refresh(episodeId, auditId);
         return saved;
     }
 
