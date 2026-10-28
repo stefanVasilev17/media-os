@@ -3,6 +3,7 @@ package com.architecturalthinking.mediaos.director;
 import com.architecturalthinking.mediaos.system.AiRuntimePolicyService;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,7 @@ public class EpisodeBuildService {
     private final CreativeAgentClient creativeAgent;
     private final ProductionOverviewService overviewService;
     private final AiRuntimePolicyService aiPolicy;
+    private final ProductionMemoryService productionMemory;
     private final AtomicBoolean workerBusy = new AtomicBoolean(false);
 
     public EpisodeBuildService(
@@ -47,7 +49,8 @@ public class EpisodeBuildService {
             EpisodeBuildAgentClient buildAgent,
             CreativeAgentClient creativeAgent,
             ProductionOverviewService overviewService,
-            AiRuntimePolicyService aiPolicy
+            AiRuntimePolicyService aiPolicy,
+            ProductionMemoryService productionMemory
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
@@ -55,6 +58,7 @@ public class EpisodeBuildService {
         this.creativeAgent = creativeAgent;
         this.overviewService = overviewService;
         this.aiPolicy = aiPolicy;
+        this.productionMemory = productionMemory;
     }
 
     public Map<String, Object> state() {
@@ -71,12 +75,14 @@ public class EpisodeBuildService {
     }
 
     public Map<String, Object> generateTopics() {
+        productionMemory.preflight("ALL", "GENERATE_TOPIC_CANDIDATES");
         if (!buildAgent.configured()) {
             throw new ResponseStatusException(SERVICE_UNAVAILABLE, "Episode topic intelligence is not configured.");
         }
 
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("ALL"));
         context.put("currentEpisode", overviewService.episode());
         context.put("currentSource", overviewService.sourceSnapshot());
         context.put("existingTopics", topicCandidates());
@@ -210,6 +216,7 @@ public class EpisodeBuildService {
         try {
             markRunRunning(runId, step);
             markStepRunning(runId, step);
+            productionMemory.preflight("ALL", "AUTONOMOUS_BUILD_" + step);
             switch (step) {
                 case "TRUTH" -> runTruth(runId);
                 case "SCRIPT" -> runScript(runId);
@@ -234,6 +241,7 @@ public class EpisodeBuildService {
         context.put("sourceSnapshot", overviewService.sourceSnapshot());
         context.put("topic", currentTopic());
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("SCRIPT"));
         context.put("productionOverview", overviewService.overview());
         EpisodeBuildAgentClient.TruthAudit audit = buildAgent.auditTruth(context);
         Map<String, Object> artifact = objectMapper.convertValue(audit, new TypeReference<LinkedHashMap<String, Object>>() {});
@@ -375,6 +383,7 @@ public class EpisodeBuildService {
         context.put("creatorMemory", creatorMemory(key));
         context.put("productionOverview", overviewService.overview());
         context.put("creativePolicy", creativePolicy());
+        context.put("productionMemory", productionMemory.rulesFor("SCRIPT".equals(key) ? "SCRIPT" : "VISUAL"));
         return context;
     }
 
