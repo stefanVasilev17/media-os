@@ -77,6 +77,25 @@ public class ProductionMemoryService {
                 )).list();
     }
 
+    public List<Map<String, Object>> directorLockedShots(UUID episodeId) {
+        if (episodeId == null) throw new IllegalArgumentException("Episode ID required.");
+        return jdbc.sql("""
+                select shot_key, script_revision, render_id, locked_at
+                from visual_shot_lock
+                where episode_id=:episodeId
+                order by script_revision, shot_key
+                """)
+                .param("episodeId", episodeId)
+                .query((rs, n) -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("shotKey", rs.getString("shot_key"));
+                    row.put("scriptRevision", rs.getInt("script_revision"));
+                    row.put("renderId", rs.getObject("render_id", UUID.class));
+                    row.put("lockedAt", rs.getObject("locked_at", OffsetDateTime.class));
+                    return row;
+                }).list();
+    }
+
     public Map<String, Object> preflight(String rawScope, String rawAction) {
         return preflight(rawScope, rawAction, ProductionOverviewService.EPISODE_ID);
     }
@@ -95,6 +114,7 @@ public class ProductionMemoryService {
         String policyJson = policyRow.getOrDefault("payload", "");
         String policyVersion = policyRow.getOrDefault("version", "");
         List<Map<String, Object>> approvedAssets = approvedAssets();
+        List<Map<String, Object>> lockedShots = directorLockedShots(episodeId);
         boolean policyReady = false;
         try {
             var payload = objectMapper.readTree(policyJson);
@@ -145,6 +165,7 @@ public class ProductionMemoryService {
         result.put("policyVersion", policyVersion);
         result.put("approvedAssets", approvedAssets);
         result.put("approvedAssetCount", approvedAssets.size());
+        result.put("directorLockedShots", lockedShots);
         result.put("semanticApproval", false);
         return result;
     }
