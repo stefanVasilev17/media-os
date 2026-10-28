@@ -91,9 +91,8 @@ public class EpisodeWorkspaceController {
 
     @PostMapping("/{episodeId}/memory")
     public Map<String, Object> correction(@PathVariable UUID episodeId,
-                                          @Valid @RequestBody CorrectionRequest req) {
-        workspace.episode(episodeId);
-        return memory.rememberCorrection(req.scope(), req.content(), req.source(), episodeId, false);
+                                          @Valid @RequestBody CorrectionRequest req, HttpServletRequest request) {
+        return workspace.rememberEpisodeCorrection(episodeId, req.scope(), req.content(), req.source(), auditId(request));
     }
 
     @SuppressWarnings("unchecked")
