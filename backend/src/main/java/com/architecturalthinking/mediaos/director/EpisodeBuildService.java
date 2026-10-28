@@ -292,7 +292,7 @@ public class EpisodeBuildService {
         }
 
         saveCreativeStage(runId, "SCRIPT", reply, List.of());
-        completeStep(runId, "SCRIPT", "Complete ~20-minute timecoded Script draft is ready for creator review.");
+        completeStep(runId, "SCRIPT", "Complete concise timecoded Script draft is ready for creator review.");
         advance(runId, "SCENE", 60);
     }
 
@@ -450,9 +450,9 @@ public class EpisodeBuildService {
         List<String> failures = new ArrayList<>();
         if (artifact == null || artifact.isEmpty()) return List.of("Script artifact is empty.");
         int duration = number(artifact.get("targetDurationSeconds"));
-        if (duration < 1140 || duration > 1260) failures.add("Working duration must be 1140–1260 seconds.");
+        if (duration < 540 || duration > 900) failures.add("Future episodes must be 540–900 seconds, without changing already-locked EP001.");
         List<Map<String, Object>> timeline = mapList(artifact.get("timeline"));
-        if (timeline.size() < 24) failures.add("Timeline needs at least 24 controlled blocks.");
+        if (timeline.size() < Math.max(12, duration / 55)) failures.add("Timeline must have enough timed blocks for the chosen concise duration.");
         int expected = 0;
         int aha = 0;
         int reels = 0;
