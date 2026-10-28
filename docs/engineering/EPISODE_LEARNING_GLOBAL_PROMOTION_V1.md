@@ -15,6 +15,14 @@ A new episode **does not** start from a blank knowledge base. It reads every act
 - On its next preflight, EP003 automatically reads the newly approved project-wide rule through the existing `ProductionMemoryService.rulesFor` lookup.
 - Review history records source episode, source rule, classification, decision, reviewer attribution, review note, preflight audit, time and global rule ID.
 
+## Fail-closed handoff to the next episode
+
+- When creating EP003 (or later) the workspace checks `episode_learning_proposal` for `PENDING` items from earlier numbered episodes. If any exist, episode kickoff returns HTTP 409 `LEARNING_REVIEW_REQUIRED`.
+- When the Script or Scene Agent prepares work for an existing later episode, it performs the same earlier-episode check before any paid AI authorization. This catches EP003 workspaces created before EP002 later produced a new lesson.
+- `KEEP_EPISODE` and `REJECT` are valid reviewed resolutions: not every lesson should become a global rule. The gate clears only when all earlier lessons have a final Director decision.
+- This is a *knowledge handoff* gate, not an excuse to copy whole scripts, shots or locked EP001 material across episodes. It is enabled only in the new episode-aware backend routes.
+- At publication, the dedicated future QA workflow must additionally enforce completion of that episode's own learning review. That final publication gate is not yet implemented.
+
 ## Mandatory safety
 Promotion is disabled by default, even if an episode is writable. Required QA-only flags:
 - `MEDIAOS_EPISODES_WRITES_ENABLED=true`
