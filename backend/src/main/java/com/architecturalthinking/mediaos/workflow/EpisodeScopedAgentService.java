@@ -84,9 +84,11 @@ public class EpisodeScopedAgentService {
         if (!creative.configured()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                 "The episode creative agent is not configured.");
 
-        List<CreativeAgentClient.TranscriptMessage> transcript =
-                "REVISE".equals(run.action()) ? List.of(new CreativeAgentClient.TranscriptMessage("USER", run.message()))
-                        : List.of();
+        List<CreativeAgentClient.TranscriptMessage> transcript = new ArrayList<>();
+        if ("REVISE".equals(run.action())) {
+            transcript.addAll(workspace.agentTranscript(episodeId, run.stage(), 12));
+            transcript.add(new CreativeAgentClient.TranscriptMessage("USER", run.message()));
+        }
 
         // The spending aspect consumes an episode-bound single-use preview token
         // immediately before the model call, and records token usage in MediaOS.
@@ -104,7 +106,7 @@ public class EpisodeScopedAgentService {
                 reply.summary() == null || reply.summary().isBlank()
                         ? "Agent produced a reviewable " + run.stage() + " draft."
                         : reply.summary(),
-                expectedRevision, auditId);
+                expectedRevision, auditId, run.message(), reply.reply());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("episodeId", episodeId);
         result.put("stage", run.stage());
