@@ -92,7 +92,7 @@ public class CreativeAgentClient {
             modelContext.remove("rules");
             modelContext.remove("productionMemory");
             payload.put("instructions", instructions(stageKey, action, modelContext)
-                    + "\\n\\n" + rulesAppendix);
+                    + System.lineSeparator().repeat(2) + rulesAppendix);
 
             List<Map<String, Object>> input = new ArrayList<>();
             if (transcript.isEmpty()) {
