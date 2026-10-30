@@ -29,16 +29,19 @@ public class ShotRevisionAgentController {
     private final AiRuntimePolicyService policy;
     private final PreviewAuthorizationService authorizations;
     private final ShotQualityGateService quality;
+    private final ShotPromptContextService firstPass;
 
     public ShotRevisionAgentController(ShotRevisionService revisions, EpisodeWorkspaceService episodes,
                                        ShotRevisionAiClient ai, AiRuntimePolicyService policy,
-                                       PreviewAuthorizationService authorizations, ShotQualityGateService quality) {
+                                       PreviewAuthorizationService authorizations, ShotQualityGateService quality,
+                                       ShotPromptContextService firstPass) {
         this.revisions = revisions;
         this.episodes = episodes;
         this.ai = ai;
         this.policy = policy;
         this.authorizations = authorizations;
         this.quality = quality;
+        this.firstPass = firstPass;
     }
 
     public record ChatRequest(@NotBlank @Size(max=6000) String message) {}
@@ -98,17 +101,28 @@ public class ShotRevisionAgentController {
         requireWrites();
         checkAiOn(request.aiEnabled());
         ShotRevisionService.Context context = verifyRevision(episodeId, shotKey, request.expectedRevision());
+        var selected = context.draft() != null ? context.draft() : context.approved();
+        String currentNarration = selected == null ? context.originalNarration() : selected.narration();
+        var packaged = firstPass.prepare(episodeId, shotKey, request.message(), currentNarration);
+        String snapshotFingerprint = quality.fingerprint(episodeId) + "|" + packaged.fingerprint();
         String payload = previewPayload(episodeId, shotKey, request.expectedRevision(),
-                context.scriptRevision(), request.message(), quality.fingerprint(episodeId));
+                context.scriptRevision(), request.message(), snapshotFingerprint);
         var authorization = authorizations.issue(OPERATION, payload);
-        return Map.of(
-                "canRun", true,
-                "model", ai.model(),
-                "estimatedMaxOutputTokens", 5500,
-                "zeroTokenPreview", true,
-                "requiresExplicitApproval", true,
-                "authorizationToken", authorization.token().toString(),
-                "authorizationExpiresAt", authorization.expiresAt().toString());
+        Map<String, Object> preview = new LinkedHashMap<>();
+        preview.put("canRun", true);
+        preview.put("model", ai.model());
+        preview.put("estimatedMaxOutputTokens", 5500);
+        preview.put("zeroTokenPreview", true);
+        preview.put("requiresExplicitApproval", true);
+        preview.put("authorizationToken", authorization.token().toString());
+        preview.put("authorizationExpiresAt", authorization.expiresAt().toString());
+        preview.put("canonicalPolicyVersion", packaged.policyVersion());
+        preview.put("mandatoryRulesIncluded", packaged.mandatoryRuleCount());
+        preview.put("additionalRulesIncluded", packaged.optionalRuleCount());
+        preview.put("ruleContextCharacters", packaged.promptCharacters());
+        preview.put("contextFingerprint", packaged.fingerprint());
+        preview.put("ruleIds", packaged.memoryRuleIds());
+        return preview;
     }
 
     @PostMapping("/ai/run")
@@ -120,11 +134,13 @@ public class ShotRevisionAgentController {
                 || !(audit.get("auditId") instanceof UUID))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Audited production preflight required.");
         ShotRevisionService.Context context = verifyRevision(episodeId, shotKey, request.expectedRevision());
-        authorizations.consume(http.getHeader(AiSpendGuardAspect.PREVIEW_AUTHORIZATION_HEADER),
-                OPERATION, previewPayload(episodeId, shotKey, request.expectedRevision(),
-                        context.scriptRevision(), request.message(), quality.fingerprint(episodeId)));
         var base = context.draft() != null ? context.draft() : context.approved();
         String narration = base == null ? context.originalNarration() : base.narration();
+        var packaged = firstPass.prepare(episodeId, shotKey, request.message(), narration);
+        String snapshotFingerprint = quality.fingerprint(episodeId) + "|" + packaged.fingerprint();
+        authorizations.consume(http.getHeader(AiSpendGuardAspect.PREVIEW_AUTHORIZATION_HEADER),
+                OPERATION, previewPayload(episodeId, shotKey, request.expectedRevision(),
+                        context.scriptRevision(), request.message(), snapshotFingerprint));
         String voice = base == null ? "calm, conversational, confident" : base.voiceDirection();
         String visual = base == null ? "" : base.visualDirection();
 
@@ -137,13 +153,23 @@ public class ShotRevisionAgentController {
         promptContext.put("currentVoiceDirection", voice);
         promptContext.put("currentVisualDirection", visual);
         promptContext.put("approvedSource", context.approved() == null ? "ORIGINAL_LOCKED_SCRIPT" : "SHOT_REVISION_LOCK");
-        promptContext.put("policy", episodes.context(episodeId, "ALL").get("policy"));
-        promptContext.put("rules", episodes.context(episodeId, "ALL").get("rules"));
+        promptContext.put("canonicalPolicyVersion", packaged.policyVersion());
+        promptContext.put("appliedProductionMemoryRuleIds", packaged.memoryRuleIds());
+        promptContext.put("compiledRuleFingerprint", packaged.fingerprint());
         promptContext.put("sourceRule", "Only this shot may change. Director LOCK is required to publish changes.");
         promptContext.put("deterministicChecks", quality.assertions(episodeId));
         Object existingMessages = revisions.state(episodeId, shotKey).get("messages");
         if (existingMessages instanceof List<?> history) {
-            promptContext.put("recentConversation", history.subList(Math.max(0, history.size() - 10), history.size()));
+            List<Map<String, String>> summary = new java.util.ArrayList<>();
+            for (Object item : history.subList(Math.max(0, history.size() - 4), history.size())) {
+                if (item instanceof Map<?, ?> msg) {
+                    String role = String.valueOf(msg.getOrDefault("sender", "SYSTEM"));
+                    String text = String.valueOf(msg.getOrDefault("content", ""));
+                    summary.add(Map.of("sender", role, "content",
+                            text.length() > 1200 ? text.substring(0, 1200) : text));
+                }
+            }
+            promptContext.put("recentConversation", summary);
         }
 
 
@@ -151,7 +177,7 @@ public class ShotRevisionAgentController {
         AiUsageCapture.clear();
         ShotRevisionAiClient.Suggestion suggestion;
         try {
-            suggestion = ai.revise(request.message(), promptContext);
+            suggestion = ai.revise(request.message(), promptContext, packaged.appendix());
             AiUsageCapture.Usage usage = AiUsageCapture.take();
             if (usage != null) policy.recordUsage(call, usage.inputTokens(), usage.outputTokens(),
                     usage.totalTokens(), usage.cachedInputTokens(), usage.reasoningTokens());
