@@ -40,6 +40,8 @@ public class EpisodeDirectorOverviewController {
         private boolean voiceGenerated;
         private boolean videoLocked;
         private boolean videoDraft;
+        private int lockedRevision;
+        private String visualDirection = "";
 
         private Shot(String key) {
             this.key = key;
@@ -53,11 +55,13 @@ public class EpisodeDirectorOverviewController {
             out.put("narration", narration);
             out.put("startSecond", startSecond);
             out.put("endSecond", endSecond);
-            out.put("voiceStatus", voiceStatus(voiceTotal, voiceApproved));
-            out.put("videoStatus", videoLocked ? "LOCKED" : "PENDING");
+            out.put("voiceStatus", lockedRevision > 0 ? "PENDING" : voiceStatus(voiceTotal, voiceApproved));
+            out.put("videoStatus", videoLocked && lockedRevision == 0 ? "LOCKED" : "PENDING");
             out.put("voiceProgress", voiceApproved + "/" + voiceTotal);
             out.put("voiceHasDraft", voiceGenerated);
             out.put("videoHasDraft", videoDraft);
+            out.put("shotRevision", lockedRevision);
+            out.put("visualDirection", visualDirection);
             return out;
         }
     }
@@ -174,11 +178,30 @@ public class EpisodeDirectorOverviewController {
                     return key;
                 }).list();
 
+        // An approved script correction supersedes old audio/render approvals only for
+        // the Director status model. The previous recordings and LOCKs remain untouched.
+        jdbc.sql("""
+                select distinct on (shot_key) shot_key,revision,narration,visual_direction
+                from episode_shot_revision
+                where episode_id=:episode and status='LOCKED'
+                order by shot_key,revision desc
+                """).param("episode", episodeId)
+                .query((rs, n) -> {
+                    String key = shotKey(rs.getString("shot_key"));
+                    if (key != null && shots.containsKey(key)) {
+                        Shot shot = shots.get(key);
+                        shot.lockedRevision = rs.getInt("revision");
+                        shot.narration = rs.getString("narration");
+                        shot.visualDirection = rs.getString("visual_direction");
+                    }
+                    return key;
+                }).list();
+
         List<Map<String, Object>> orderedShots = shots.values().stream()
                 .sorted(Comparator.comparingInt(s -> Integer.parseInt(s.key.substring(5))))
                 .map(Shot::toMap).toList();
-        long voiceLocked = shots.values().stream().filter(s -> s.voiceTotal > 0 && s.voiceTotal == s.voiceApproved).count();
-        long videoLocked = shots.values().stream().filter(s -> s.videoLocked).count();
+        long voiceLocked = shots.values().stream().filter(s -> s.lockedRevision == 0 && s.voiceTotal > 0 && s.voiceTotal == s.voiceApproved).count();
+        long videoLocked = shots.values().stream().filter(s -> s.lockedRevision == 0 && s.videoLocked).count();
 
         List<Map<String, Object>> stageSummary = new ArrayList<>();
         for (Map<String, Object> stage : stages) {
