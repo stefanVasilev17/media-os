@@ -90,6 +90,15 @@ public class ShotRevisionService {
     }
 
     @Transactional
+    public void recordAiConversation(UUID episodeId, String shotKey, String request, String reply) {
+        context(episodeId, shotKey);
+        if (request == null || reply == null || reply.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incomplete AI conversation.");
+        appendMessage(episodeId, shotKey, "USER", request.trim(), "OPENAI");
+        appendMessage(episodeId, shotKey, "AGENT", reply.trim(), "OPENAI");
+    }
+
+    @Transactional
     public Map<String, Object> saveDraft(UUID episodeId, String shotKey, int expectedRevision,
                                          String narration, String voiceDirection, String visualDirection,
                                          String changeSummary, String source) {
