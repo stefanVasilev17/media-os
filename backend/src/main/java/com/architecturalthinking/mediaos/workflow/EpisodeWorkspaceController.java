@@ -24,7 +24,12 @@ public class EpisodeWorkspaceController {
         this.director = director;
     }
 
-    public record CreateRequest(@NotBlank String episodeNumber, @NotBlank String title) {}
+    public record CreateRequest(@NotBlank String episodeNumber,
+                                @NotBlank String title,
+                                @NotBlank String brief,
+                                String sources) {}
+    public record BriefRevisionRequest(@NotBlank String brief, String sources,
+                                       @NotNull @Min(1) Integer expectedRevision) {}
     public record DraftRequest(@NotNull Map<String, Object> artifact, @NotBlank String summary,
                                @NotNull @Min(0) Integer expectedRevision) {}
     public record LockRequest(@NotNull @Min(1) Integer expectedRevision,
@@ -59,9 +64,28 @@ public class EpisodeWorkspaceController {
         });
     }
 
+    @GetMapping("/next-number")
+    public Map<String,String> nextNumber() {
+        return Map.of("episodeNumber", workspace.nextEpisodeNumber());
+    }
+
     @PostMapping
     public Map<String, Object> create(@Valid @RequestBody CreateRequest req, HttpServletRequest request) {
-        return workspace.create(req.episodeNumber(), req.title(), auditId(request));
+        return workspace.create(req.episodeNumber(), req.title(), req.brief(),
+                req.sources(), auditId(request));
+    }
+
+    @GetMapping("/{episodeId}/brief")
+    public Map<String,Object> brief(@PathVariable UUID episodeId) {
+        return workspace.brief(episodeId);
+    }
+
+    @PutMapping("/{episodeId}/brief")
+    public Map<String,Object> reviseBrief(@PathVariable UUID episodeId,
+                     @Valid @RequestBody BriefRevisionRequest req,
+                     HttpServletRequest request) {
+        return workspace.reviseBrief(episodeId, req.brief(), req.sources(),
+                req.expectedRevision(), auditId(request));
     }
 
     @GetMapping("/{episodeId}")
