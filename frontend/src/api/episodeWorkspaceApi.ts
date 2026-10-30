@@ -1,6 +1,7 @@
 export type EpisodeSummary = {
   id: string; episodeNumber: string; title: string;
   status: string; currentStage: string; sourceVersion: string | null;
+  fullyLocked: boolean;
 };
 export type WorkspaceStage = {
   stageKey: string; displayName: string; sequence: number;
