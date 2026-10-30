@@ -20,6 +20,15 @@ export type ShotRevisionState = {
   effectiveNarration: string;
   effectiveVisualDirection: string;
   voiceVideoRequiresNewApproval: boolean;
+  qualityReport: {
+    passed: boolean;
+    assertionCount: number;
+    ruleFingerprint: string;
+    violations: Array<{
+      assertionId: string; memoryRuleId: string; target: string;
+      predicate: string; literalValue: string; sourceRule: string;
+    }>;
+  };
   messages: Array<{ sender: 'USER' | 'AGENT' | 'SYSTEM'; content: string; source: string; createdAt: string }>;
   writesEnabled: boolean;
   paidAiEnabled: boolean;
