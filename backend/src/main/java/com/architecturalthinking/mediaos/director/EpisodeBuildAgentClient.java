@@ -1,6 +1,8 @@
 package com.architecturalthinking.mediaos.director;
 
 import com.architecturalthinking.mediaos.system.AiUsageCapture;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -25,16 +27,19 @@ public class EpisodeBuildAgentClient {
     private static final String DEFAULT_MODEL = "gpt-5.6-sol";
 
     private final ObjectMapper objectMapper;
+    private final ShotPromptContextService firstPass;
     private final HttpClient httpClient;
     private final String apiKey;
     private final String model;
 
     public EpisodeBuildAgentClient(
             ObjectMapper objectMapper,
+            ShotPromptContextService firstPass,
             @Value("${OPENAI_API_KEY:}") String apiKey,
             @Value("${MEDIA_OS_EPISODE_BUILD_MODEL:gpt-5.6-sol}") String model
     ) {
         this.objectMapper = objectMapper;
+        this.firstPass = firstPass;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
@@ -49,9 +54,13 @@ public class EpisodeBuildAgentClient {
     }
 
     public TopicBatch suggestTopics(Map<String, Object> context) {
+        String rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                "TOPIC", "TOPIC_CANDIDATES",
+                "Suggest evergreen architecture topics with high reuse and human/business relevance.", "")
+                .appendix();
         return request(
                 "topic_candidates",
-                topicInstructions(context),
+                topicInstructions(context) + System.lineSeparator().repeat(2) + rules,
                 topicFormat(),
                 TopicBatch.class,
                 9000
@@ -59,9 +68,13 @@ public class EpisodeBuildAgentClient {
     }
 
     public TruthAudit auditTruth(Map<String, Object> context) {
+        String topic = String.valueOf(context.getOrDefault("topic", ""));
+        String rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                "TRUTH", "RESEARCH_TRUTH_AUDIT",
+                "Audit the technical truth for the selected episode.", topic).appendix();
         return request(
                 "truth_audit",
-                truthInstructions(context),
+                truthInstructions(context) + System.lineSeparator().repeat(2) + rules,
                 truthFormat(),
                 TruthAudit.class,
                 9000
