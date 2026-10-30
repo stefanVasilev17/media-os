@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class CreativeAgentClient {
@@ -25,16 +26,19 @@ public class CreativeAgentClient {
     private static final String DEFAULT_MODEL = "gpt-5.6-sol";
 
     private final ObjectMapper objectMapper;
+    private final ShotPromptContextService firstPass;
     private final HttpClient httpClient;
     private final String apiKey;
     private final String model;
 
     public CreativeAgentClient(
             ObjectMapper objectMapper,
+            ShotPromptContextService firstPass,
             @Value("${OPENAI_API_KEY:}") String apiKey,
             @Value("${MEDIA_OS_CREATIVE_MODEL:gpt-5.6-sol}") String model
     ) {
         this.objectMapper = objectMapper;
+        this.firstPass = firstPass;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
         this.httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
@@ -66,7 +70,29 @@ public class CreativeAgentClient {
             payload.put("model", model);
             payload.put("max_output_tokens", "SCENE".equals(stageKey) ? 12000 : 14000);
             payload.put("reasoning", Map.of("effort", "medium"));
-            payload.put("instructions", instructions(stageKey, action, context));
+            String rulesAppendix;
+            Map<String, Object> modelContext = new LinkedHashMap<>(context);
+            if (context.get("scopedEpisodeId") != null) {
+                if (!(context.get("firstPassPromptAppendix") instanceof String prepared)
+                        || prepared.isBlank() || !context.containsKey("scopedQualityContextHash"))
+                    throw new IllegalStateException("Scoped episode rule package is missing. No paid request can be sent.");
+                rulesAppendix = prepared;
+            } else {
+                String latestRequest = transcript.stream()
+                        .filter(m -> "USER".equalsIgnoreCase(m.sender()))
+                        .map(TranscriptMessage::content)
+                        .reduce((previous, current) -> current).orElse(
+                                "Generate " + stageKey + " using the locked upstream context.");
+                rulesAppendix = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        stageKey, stageKey, latestRequest,
+                        String.valueOf(context.getOrDefault("summary", ""))).appendix();
+            }
+            modelContext.remove("firstPassPromptAppendix");
+            modelContext.remove("scopedQualityContextHash");
+            modelContext.remove("rules");
+            modelContext.remove("productionMemory");
+            payload.put("instructions", instructions(stageKey, action, modelContext)
+                    + "\\n\\n" + rulesAppendix);
 
             List<Map<String, Object>> input = new ArrayList<>();
             if (transcript.isEmpty()) {
