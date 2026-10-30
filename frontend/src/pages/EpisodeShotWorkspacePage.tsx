@@ -53,10 +53,25 @@ export function EpisodeShotWorkspacePage({
           </section>
           <section className="episode-hub-section">
             <h2>{shot.title}</h2>
+            {shot.shotRevision > 0 && <p className="shot-revision-notice">
+              Director-LOCKED shot revision v{shot.shotRevision} is active. This corrected text is now the
+              Voice/Video handoff. Previous generated media is preserved and needs new approval.
+            </p>}
+            {kind === 'voice' && shot.shotRevision > 0 && <div className="episode-hub-empty">
+              <strong>Updated voice direction:</strong> {shot.voiceDirection || 'Calm, conversational, confident'}
+            </div>}
+            {kind === 'video' && <div className="episode-hub-empty" style={{ whiteSpace: 'pre-wrap' }}>
+              {shot.visualDirection || 'No Director-LOCKED visual revision has been published for this shot yet.'}
+            </div>}
             {kind === 'voice' && <div className="episode-hub-empty" style={{ whiteSpace: 'pre-wrap' }}>
               {shot.narration || 'No episode-specific locked narration has been imported into MediaOS yet.'}
             </div>}
           </section>
+          <div className="shot-revision-actions" style={{ marginTop: 14 }}>
+            <button type="button" onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shotKey); }}>
+              Open Revision Chat
+            </button>
+          </div>
           <div className="episode-hub-empty" style={{ marginTop: 20 }}>
             {label} generation and Director approval for this episode are not enabled yet.
             This isolated workspace does not use the EP001 production API. The next platform phase will add
