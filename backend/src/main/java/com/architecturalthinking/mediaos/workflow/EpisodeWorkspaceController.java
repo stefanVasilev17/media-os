@@ -15,10 +15,13 @@ import java.util.UUID;
 public class EpisodeWorkspaceController {
     private final EpisodeWorkspaceService workspace;
     private final ProductionMemoryService memory;
+    private final EpisodeDirectorOverviewController director;
 
-    public EpisodeWorkspaceController(EpisodeWorkspaceService workspace, ProductionMemoryService memory) {
+    public EpisodeWorkspaceController(EpisodeWorkspaceService workspace, ProductionMemoryService memory,
+                                      EpisodeDirectorOverviewController director) {
         this.workspace = workspace;
         this.memory = memory;
+        this.director = director;
     }
 
     public record CreateRequest(@NotBlank String episodeNumber, @NotBlank String title) {}
@@ -32,7 +35,28 @@ public class EpisodeWorkspaceController {
 
     @GetMapping
     public List<Map<String, Object>> episodes() {
-        return workspace.episodes();
+        return workspace.episodes().stream().map(source -> {
+            Map<String, Object> result = new java.util.LinkedHashMap<>(source);
+            boolean allStagesLocked = Boolean.TRUE.equals(result.remove("allStagesLocked"));
+            boolean complete = allStagesLocked
+                    && allShotsLocked(director.overview((UUID) result.get("id")));
+            result.put("fullyLocked", complete);
+            return result;
+        }).toList();
+    }
+
+    static boolean fullyLocked(boolean allStagesLocked, Map<String, Object> overview) {
+        return allStagesLocked && allShotsLocked(overview);
+    }
+
+    static boolean allShotsLocked(Map<String, Object> overview) {
+        Object shots = overview.get("shots");
+        if (!(shots instanceof List<?> items) || items.isEmpty()) return false;
+        return items.stream().allMatch(shot -> {
+            if (!(shot instanceof Map<?, ?> details)) return false;
+            return "LOCKED".equals(details.get("voiceStatus"))
+                    && "LOCKED".equals(details.get("videoStatus"));
+        });
     }
 
     @PostMapping

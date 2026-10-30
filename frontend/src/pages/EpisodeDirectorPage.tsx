@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleDot, Clapperboard, Mic2, RefreshCw, MessageSquareText } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { getEpisodeDirectorOverview, episodeShotRoute, shotRevisionRoute, type EpisodeDirectorOverview } from '../api/episodeDirectorApi';
 import '../styles/episodeDirectorHub.css';
+import '../styles/episodeDirectorQuiet.css';
 
 function Status({ state }: { state: string }) {
   const locked = state === 'LOCKED';
-  return (
-    <span className={'episode-hub-status ' + (locked ? 'locked' : 'pending')}>
-      {locked ? <CheckCircle2 size={14} /> : <CircleDot size={14} />}
-      {locked ? 'LOCKED' : 'PENDING'}
-    </span>
-  );
+  return <span className={locked ? 'director-status-locked' : 'director-status-pending'}>
+    {locked ? 'Locked' : 'Pending'}
+  </span>;
 }
 
 export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
@@ -34,97 +32,70 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
   useEffect(() => { void refresh(); }, [episodeId]);
 
   return (
-    <main className="media-os-page episode-hub">
-      <header className="episode-hub-header">
-        <div>
-          <button className="episode-hub-back" type="button" onClick={() => { window.location.hash = '#/episodes'; }}>
-            <ArrowLeft size={15} /> All episodes
-          </button>
-          <span>{overview?.episode.episodeNumber || 'EPISODE'} / DIRECTOR OVERVIEW</span>
-          <h1>{overview?.episode.title || 'Opening episode…'}</h1>
-          <p>Production decisions, each shot's actual Voice and Video status, and one-click navigation.</p>
-        </div>
-        <button type="button" className="episode-hub-secondary" onClick={() => void refresh()}>
-          <RefreshCw size={16} /> Refresh
+    <main className="media-os-page episode-hub director-quiet">
+      <nav className="director-quiet-topbar" aria-label="Director navigation">
+        <button type="button" onClick={() => { window.location.hash = '#/episodes'; }}>
+          <ArrowLeft size={18} /> Episodes
         </button>
-      </header>
+        <button type="button" disabled={busy} onClick={() => void refresh()}>Refresh</button>
+      </nav>
+
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
-      {busy && <p className="episode-hub-loading">Loading Director data…</p>}
-      {overview && (
-        <>
-          <section className="episode-hub-stats" aria-label="Episode progress">
-            <div><span>Shots</span><strong>{overview.counts.total}</strong></div>
-            <div><span>Voice LOCKED</span><strong>{overview.counts.voiceLocked} / {overview.counts.total}</strong></div>
-            <div><span>Video LOCKED</span><strong>{overview.counts.videoLocked} / {overview.counts.total}</strong></div>
-          </section>
-          <section className="episode-hub-section">
-            <h2>Production stages</h2>
-            <div className="episode-hub-stage-row">
-              {overview.stages.map(stage => (
-                <div className="episode-hub-stage" key={stage.stageKey}>
-                  <span>{stage.displayName}</span>
-                  <Status state={stage.status} />
-                </div>
-              ))}
-            </div>
-          </section>
-          <section className="episode-hub-section">
-            <div className="episode-hub-section-title">
-              <h2>Shot-by-shot production</h2>
-              <span>Green = Director-approved · Orange = pending</span>
-            </div>
-            {overview.shots.length === 0 && (
-              <div className="episode-hub-empty">
-                No shot data has been imported into this episode yet. A Script LOCK in a different tool does not automatically create MediaOS shot records.
+      {busy && <p className="director-quiet-loading">Loading…</p>}
+
+      {overview && <div>
+        <header className="director-quiet-header">
+          <h1>{overview.episode.episodeNumber} — {overview.episode.title}</h1>
+          <p>
+            {overview.counts.voiceLocked} of {overview.counts.total} Voice locked
+            <span aria-hidden="true"> · </span>
+            {overview.counts.videoLocked} of {overview.counts.total} Video locked
+          </p>
+        </header>
+
+        <section className="director-quiet-shots" aria-label="Shots">
+          <h2>Shots</h2>
+          {overview.shots.length === 0 && <p>No shots have been added.</p>}
+          {overview.shots.map(shot => (
+            <article className="director-quiet-shot" key={shot.shotKey}>
+              <div className="director-quiet-shot-name">
+                <strong>{shot.shotKey}</strong>
+                <span>{shot.title}</span>
               </div>
-            )}
-            <div className="episode-hub-shots">
-              {overview.shots.map(shot => (
-                <article className="episode-hub-shot" key={shot.shotKey}>
-                  <div className="episode-hub-shot-title">
-                    <strong>{shot.shotKey}</strong>
-                    <span>{shot.title}</span>
-                  <button type="button" className="episode-hub-revision-action"
-                    onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shot.shotKey); }}>
-                    <MessageSquareText size={15} /> Revision Chat
-                    {shot.shotRevision > 0 && <span>v{shot.shotRevision} LOCKED</span>}
-                  </button>
-                  </div>
-                  <div className="episode-hub-shot-links">
-                    <button
-                      type="button"
-                      className="episode-hub-action"
-                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'voice', shot.shotKey, shot.shotRevision > 0); }}
-                    >
-                      <Mic2 size={16} />
-                      <span>Voice</span>
-                      <Status state={shot.voiceStatus} />
-                      <ArrowRight size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className="episode-hub-action"
-                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'video', shot.shotKey, shot.shotRevision > 0); }}
-                    >
-                      <Clapperboard size={16} />
-                      <span>Video</span>
-                      <Status state={shot.videoStatus} />
-                      <ArrowRight size={15} />
-                    </button>
-                  </div>
-                </article>
-              ))}
+              <div className="director-quiet-shot-actions">
+                <button type="button"
+                  onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shot.shotKey); }}>
+                  Edit{shot.shotRevision > 0 ? ' v' + shot.shotRevision : ''}
+                </button>
+                <button type="button"
+                  onClick={() => {
+                    window.location.hash = episodeShotRoute(
+                      episodeId, overview.legacyEpisode, 'voice', shot.shotKey, shot.shotRevision > 0);
+                  }}>
+                  <span>Voice</span><Status state={shot.voiceStatus} /><ArrowRight size={17} />
+                </button>
+                <button type="button"
+                  onClick={() => {
+                    window.location.hash = episodeShotRoute(
+                      episodeId, overview.legacyEpisode, 'video', shot.shotKey, shot.shotRevision > 0);
+                  }}>
+                  <span>Video</span><Status state={shot.videoStatus} /><ArrowRight size={17} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <details className="director-quiet-details">
+          <summary>Production stages</summary>
+          {overview.stages.map(stage => (
+            <div key={stage.stageKey}>
+              <span>{stage.displayName}</span>
+              <Status state={stage.status}/>
             </div>
-          </section>
-          {!overview.voiceVideoWriteReady && (
-            <p className="episode-hub-footnote">
-              Revised, Director-approved narration can now be generated through the isolated Episode Voice workflow.
-              Full episode-scoped Video/Remotion generation and Video LOCK still require the next production integration.
-              Legacy EP001 generators are never reused for another episode.
-            </p>
-          )}
-        </>
-      )}
+          ))}
+        </details>
+      </div>}
     </main>
   );
 }

@@ -48,8 +48,13 @@ public class EpisodeWorkspaceService {
 
     public List<Map<String, Object>> episodes() {
         return jdbc.sql("""
-                select id, episode_number, title, status, current_stage, source_of_truth_version
-                from episode where project_id=:projectId order by episode_number
+                select e.id, e.episode_number, e.title, e.status,
+                       e.current_stage, e.source_of_truth_version,
+                       (select count(*) > 0
+                               and count(*) = count(*) filter (where s.status='LOCKED')
+                        from production_stage s where s.episode_id=e.id) as all_stages_locked
+                from episode e where e.project_id=:projectId
+                order by e.episode_number desc
                 """)
                 .param("projectId", PROJECT_ID)
                 .query((rs, n) -> {
@@ -60,6 +65,7 @@ public class EpisodeWorkspaceService {
                     row.put("status", rs.getString("status"));
                     row.put("currentStage", rs.getString("current_stage"));
                     row.put("sourceVersion", rs.getString("source_of_truth_version"));
+                    row.put("allStagesLocked", rs.getBoolean("all_stages_locked"));
                     return row;
                 }).list();
     }
