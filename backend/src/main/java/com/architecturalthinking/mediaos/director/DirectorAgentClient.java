@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.director;
 
 import com.architecturalthinking.mediaos.system.AiUsageCapture;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ public class DirectorAgentClient {
 
     private final ObjectMapper objectMapper;
     private final ProductionOverviewService overviewService;
+    private final ShotPromptContextService firstPass;
     private final HttpClient httpClient;
     private final String apiKey;
     private final String model;
@@ -34,11 +36,13 @@ public class DirectorAgentClient {
     public DirectorAgentClient(
             ObjectMapper objectMapper,
             ProductionOverviewService overviewService,
+            ShotPromptContextService firstPass,
             @Value("${OPENAI_API_KEY:}") String apiKey,
             @Value("${MEDIA_OS_DIRECTOR_MODEL:gpt-5.6-sol}") String model
     ) {
         this.objectMapper = objectMapper;
         this.overviewService = overviewService;
+        this.firstPass = firstPass;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.model = model == null || model.isBlank() ? DEFAULT_MODEL : model.trim();
         this.httpClient = HttpClient.newBuilder()
@@ -66,7 +70,15 @@ public class DirectorAgentClient {
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("model", model);
             payload.put("max_output_tokens", 3000);
-            payload.put("instructions", instructions(mode, enrichedContext));
+            String directorMessage = transcript.stream()
+                    .filter(m -> "USER".equalsIgnoreCase(m.sender()))
+                    .map(TranscriptMessage::content)
+                    .reduce((older, latest) -> latest)
+                    .orElse("Review the current production status.");
+            var compiled = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                    "DIRECTOR", "DIRECTOR", directorMessage, "");
+            payload.put("instructions", instructions(mode, enrichedContext)
+                    + System.lineSeparator().repeat(2) + compiled.appendix());
 
             List<Map<String, Object>> input = new ArrayList<>();
             for (TranscriptMessage message : transcript) {
