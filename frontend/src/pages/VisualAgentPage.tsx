@@ -410,7 +410,12 @@ export function VisualAgentPage() {
         const shot07Index = importedDirectorVoicePack.ready
           ? directorBundles.findIndex(bundle => bundle.key === 'SHOT 07')
           : -1;
-        setSelectedIndex(shot07Index >= 0 ? shot07Index : firstPending === -1 ? 0 : firstPending);
+        const requestedShot = new URLSearchParams(window.location.hash.split('?', 2)[1] || '').get('shot');
+        const requestedIndex = requestedShot
+          ? directorBundles.findIndex(bundle => bundle.key === requestedShot)
+          : -1;
+        setSelectedIndex(requestedIndex >= 0 ? requestedIndex
+          : shot07Index >= 0 ? shot07Index : firstPending === -1 ? 0 : firstPending);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Visual Agent.');
       } finally {
