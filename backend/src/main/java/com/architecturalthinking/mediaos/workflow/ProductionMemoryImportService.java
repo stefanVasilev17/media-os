@@ -384,7 +384,7 @@ public class ProductionMemoryImportService {
         if (!found) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown memory import batch.");
     }
 
-    private void validate(Candidate c) {
+    static void validate(Candidate c) {
         if (!c.candidateKey().matches("[A-Za-z0-9_-]{4,90}")
                 || !("GLOBAL".equals(c.episode()) || c.episode().matches("EP[0-9]{3}"))
                 || !SCOPES.contains(c.scope()) || !TYPES.contains(c.type())
