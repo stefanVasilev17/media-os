@@ -136,6 +136,40 @@ public class EpisodeResearchAgentService {
                 "draftRevision", expectedRevision+1, "workspace", updated);
     }
 
+    public Map<String,Object> attachSources(UUID episodeId, int expectedRevision,
+                                             String sourceNotes, UUID auditId) {
+        if (!enabled || !workspace.writesEnabled())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Research edits are disabled.");
+        if (episodeId == null || ProductionOverviewService.EPISODE_ID.equals(episodeId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 is protected.");
+        if (auditId == null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Audited Director action required.");
+        String verified = EpisodeWorkspaceService.validatedSources(sourceNotes);
+        List<String> references = verified.lines().map(String::trim)
+                .filter(line -> !line.isBlank()).limit(20).toList();
+        if (references.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide technical references.");
+        Map<String,Object> context = workspace.context(episodeId,"ALL");
+        Map<?,?> stage = null;
+        for (Object item : (List<?>) context.get("stages"))
+            if (item instanceof Map<?,?> row && "RESEARCH".equals(row.get("stageKey")))
+                stage = row;
+        if (stage == null || !"READY_FOR_REVIEW".equals(stage.get("status"))
+                || !(stage.get("revision") instanceof Number revision)
+                || revision.intValue() != expectedRevision || expectedRevision < 1
+                || !(stage.get("artifact") instanceof Map<?,?> draft))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Research is locked or the draft revision changed.");
+        Map<String,Object> revised = new LinkedHashMap<>();
+        draft.forEach((key,value) -> revised.put(String.valueOf(key),value));
+        revised.put("technicalSources", references);
+        revised.put("technicalSourcesStatus", "DIRECTOR_ADDED_REQUIRES_INDEPENDENT_VERIFICATION");
+        revised.put("sourceCorrectionByDirector", true);
+        return workspace.draft(episodeId, "RESEARCH", revised,
+                "Director added technical references to the Research DRAFT.",
+                expectedRevision, auditId);
+    }
+
     public static Map<String,Object> researchArtifact(
             EpisodeBuildAgentClient.TruthAudit proposed, Prepared prepared) {
         Map<String,Object> artifact = new LinkedHashMap<>();
