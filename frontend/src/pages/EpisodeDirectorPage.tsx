@@ -118,7 +118,9 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
           </section>
           {!overview.voiceVideoWriteReady && (
             <p className="episode-hub-footnote">
-              This episode's Voice and Video production require episode-scoped runtimes. EP001 generation controls cannot be reused across episodes.
+              Revised, Director-approved narration can now be generated through the isolated Episode Voice workflow.
+              Full episode-scoped Video/Remotion generation and Video LOCK still require the next production integration.
+              Legacy EP001 generators are never reused for another episode.
             </p>
           )}
         </>
