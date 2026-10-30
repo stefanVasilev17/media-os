@@ -106,7 +106,7 @@ public class EpisodeResearchAgentService {
         AiUsageCapture.clear();
         EpisodeBuildAgentClient.TruthAudit proposal;
         try {
-            proposal = research.auditTruthForEpisode(episodeId, input, prepared.brief() + "\n" + prepared.sources());
+            proposal = research.auditTruthForEpisode(episodeId, input, prepared.rulesAppendix());
             var usage = AiUsageCapture.take();
             if (usage != null)
                 paid.recordUsage(callId, usage.inputTokens(), usage.outputTokens(),
@@ -235,12 +235,12 @@ public class EpisodeResearchAgentService {
                 +"|BRIEF_REV="+briefRevision+"|BRIEF_SHA="+hash(brief+"\n"+sources)
                 +"|RULES="+compiled.fingerprint();
         return new Prepared(episode, String.valueOf(episode.get("title")), brief, sources,
-                briefRevision, compiled.fingerprint(), compiled.mandatoryRuleCount(),
+                briefRevision, compiled.fingerprint(), compiled.appendix(), compiled.mandatoryRuleCount(),
                 payload, List.copyOf(assets), sourceEntries);
     }
 
     public record Prepared(Map<String,Object> episode, String title, String brief, String sources,
-                           int briefRevision, String rulesFingerprint, int mandatoryRules,
+                           int briefRevision, String rulesFingerprint, String rulesAppendix, int mandatoryRules,
                            String payload, List<Map<String,Object>> assets, List<String> sourceEntries) {}
 
     private static String hash(String data) {
