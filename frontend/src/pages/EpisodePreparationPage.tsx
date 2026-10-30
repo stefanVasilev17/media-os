@@ -77,6 +77,7 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
   const [original, setOriginal] = useState<EpisodeBrief | null>(null);
   const [idea, setIdea] = useState('');
   const [sources, setSources] = useState('');
+  const [amendedSources, setAmendedSources] = useState('');
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState<AgentPreview | null>(null);
   const [previewStage, setPreviewStage] = useState<PreparationStage | null>(null);
@@ -135,7 +136,8 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
   const upstreamLocked = !upstream || context?.stages.some(item =>
     item.stageKey === upstream && item.status === 'LOCKED');
   const readyToLock = current?.status === 'READY_FOR_REVIEW' && (current.revision || 0) > 0;
-  const hasSources = !!original?.sources.trim();
+  const researchSources = listValue(context?.stages.find(item => item.stageKey === 'RESEARCH')?.artifact?.technicalSources);
+  const hasSources = researchSources.length > 0;
   const canApprove = readyToLock && approvalNote.trim().length >= 10;
 
   async function requestPreview() {
@@ -212,9 +214,24 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
               </div>
               {active && item && <>
                 {item.revision > 0 && <ReviewArtifact stage={stage} state={item}/>}
-                {stage === 'RESEARCH' && !hasSources && <p className="episode-preparation-message">
-                  Add and verify technical sources before approving Research. AI text alone is not a verified source.
-                </p>}
+                {stage === 'RESEARCH' && !hasSources && <>
+                  <p className="episode-preparation-message">
+                    Research needs technical references before Director LOCK. AI output is not a verified source.
+                  </p>
+                  {item.revision > 0 && <form className="episode-preparation-form"
+                    onSubmit={event => {
+                      event.preventDefault();
+                      void perform(() => episodePreparationApi.attachResearchSources(
+                        episodeId,item.revision,amendedSources));
+                    }}>
+                    <label htmlFor="research-source-notes">Add technical references</label>
+                    <textarea id="research-source-notes" rows={3} value={amendedSources}
+                      onChange={event => setAmendedSources(event.target.value)}
+                      placeholder="One official reference or technical source per line." />
+                    <button type="submit" className="episode-preparation-primary"
+                      disabled={busy || !amendedSources.trim()}>Save references (no AI cost)</button>
+                  </form>}
+                </>}
                 {!upstreamLocked && <p className="episode-preparation-message">
                   Approve {upstream} before generating this stage.
                 </p>}
