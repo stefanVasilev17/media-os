@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Clapperboard, Mic2 } from 'lucide-react';
 import { episodeDirectorRoute, shotRevisionRoute, getEpisodeDirectorOverview, type EpisodeDirectorOverview } from '../api/episodeDirectorApi';
+import { ActiveRuleStudioRules } from '../components/ActiveRuleStudioRules';
 import '../styles/episodeDirectorHub.css';
 import '../styles/shotRevisionAgent.css';
 
@@ -52,6 +53,7 @@ export function EpisodeShotWorkspacePage({
             <div><span>Shot</span><strong>{shot.shotKey}</strong></div>
             <div><span>{label} status</span><strong>{kind === 'voice' ? shot.voiceStatus : shot.videoStatus}</strong></div>
           </section>
+          <ActiveRuleStudioRules episodeId={episodeId} scope={kind === "voice" ? "VOICE" : "VISUAL"} />
           <section className="episode-hub-section">
             <h2>{shot.title}</h2>
             {shot.shotRevision > 0 && <p className="shot-revision-notice">
