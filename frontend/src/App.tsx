@@ -80,7 +80,7 @@ export function App() {
   const shotKey = routeParams.get('shot') || '';
   let page: ReactNode;
 
-  const preparationRoute = /^#\\/episodes\\/([0-9a-fA-F-]{36})\\/prepare(?:\\?|$)/.exec(hash);
+  const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
   if (hash === '#/episodes/new') {
     page = <EpisodeNewPage />;
   } else if (preparationRoute) {
