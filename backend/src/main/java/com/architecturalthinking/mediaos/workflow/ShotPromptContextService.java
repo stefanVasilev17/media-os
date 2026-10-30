@@ -28,13 +28,10 @@ public class ShotPromptContextService {
 
     private final ProductionMemoryService memory;
     private final CreativePolicyService policies;
-    private final ObjectMapper mapper;
 
-    public ShotPromptContextService(ProductionMemoryService memory, CreativePolicyService policies,
-                                    ObjectMapper mapper) {
+    public ShotPromptContextService(ProductionMemoryService memory, CreativePolicyService policies) {
         this.memory = memory;
         this.policies = policies;
-        this.mapper = mapper;
     }
 
     public record PreparedPrompt(String appendix, String fingerprint, String policyVersion,
