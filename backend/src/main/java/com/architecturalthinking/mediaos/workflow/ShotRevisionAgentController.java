@@ -157,7 +157,12 @@ public class ShotRevisionAgentController {
         promptContext.put("appliedProductionMemoryRuleIds", packaged.memoryRuleIds());
         promptContext.put("compiledRuleFingerprint", packaged.fingerprint());
         promptContext.put("sourceRule", "Only this shot may change. Director LOCK is required to publish changes.");
-        promptContext.put("deterministicChecks", quality.assertions(episodeId));
+        promptContext.put("deterministicChecks", quality.assertions(episodeId).stream()
+                .map(check -> Map.of(
+                        "target", check.target(),
+                        "predicate", check.predicate(),
+                        "literal", check.literalValue()))
+                .toList());
         Object existingMessages = revisions.state(episodeId, shotKey).get("messages");
         if (existingMessages instanceof List<?> history) {
             List<Map<String, String>> summary = new java.util.ArrayList<>();
