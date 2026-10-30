@@ -32,6 +32,7 @@ public class EpisodeDirectorOverviewController {
     private static final class Shot {
         private final String key;
         private String title;
+        private String narration = "";
         private int startSecond = -1;
         private int endSecond = -1;
         private int voiceTotal;
@@ -49,6 +50,7 @@ public class EpisodeDirectorOverviewController {
             Map<String, Object> out = new LinkedHashMap<>();
             out.put("shotKey", key);
             out.put("title", title);
+            out.put("narration", narration);
             out.put("startSecond", startSecond);
             out.put("endSecond", endSecond);
             out.put("voiceStatus", voiceStatus(voiceTotal, voiceApproved));
@@ -79,6 +81,8 @@ public class EpisodeDirectorOverviewController {
                 String title = string(block.get("sectionTitle"));
                 if (title.isBlank()) title = string(block.get("title"));
                 if (!title.isBlank()) shot.title = title;
+                String narration = string(block.get("narration"));
+                if (!narration.isBlank()) shot.narration += (shot.narration.isEmpty() ? "" : "\\n\\n") + narration;
                 if (block.get("startSecond") instanceof Number start)
                     shot.startSecond = shot.startSecond < 0 ? start.intValue() : Math.min(shot.startSecond, start.intValue());
                 if (block.get("endSecond") instanceof Number end)
