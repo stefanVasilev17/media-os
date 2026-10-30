@@ -298,6 +298,26 @@ public class EpisodeWorkspaceService {
     }
 
     @Transactional
+    public Map<String, Object> draftResearchForBrief(UUID episodeId, Map<String, Object> artifact,
+                                                      String summary, int expectedResearchRevision,
+                                                      int expectedBriefRevision, UUID auditId) {
+        requireWritesEnabled();
+        episode(episodeId);
+        if (LEGACY_EPISODE_ID.equals(episodeId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 is protected.");
+        Integer liveBriefRevision = jdbc.sql("""
+                select revision from episode_brief where episode_id=:episode for update
+                """).param("episode", episodeId).query(Integer.class).optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Episode Brief is unavailable."));
+        if (liveBriefRevision != expectedBriefRevision)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Episode Brief changed while Research was being prepared. No stale DRAFT saved.");
+        return saveDraft(episodeId, "RESEARCH", artifact, summary,
+                expectedResearchRevision, auditId, "DIRECTOR_SUBMITTED");
+    }
+
+    @Transactional
     public Map<String, Object> draft(UUID id, String rawStage, Map<String, Object> artifact,
                                      String summary, int expectedRevision, UUID auditId) {
         return saveDraft(id, rawStage, artifact, summary, expectedRevision, auditId, "DIRECTOR_SUBMITTED");
