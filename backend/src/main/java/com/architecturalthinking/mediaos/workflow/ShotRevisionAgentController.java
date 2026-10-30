@@ -137,6 +137,11 @@ public class ShotRevisionAgentController {
         promptContext.put("policy", episodes.context(episodeId, "ALL").get("policy"));
         promptContext.put("rules", episodes.context(episodeId, "ALL").get("rules"));
         promptContext.put("sourceRule", "Only this shot may change. Director LOCK is required to publish changes.");
+        Object existingMessages = revisions.state(episodeId, shotKey).get("messages");
+        if (existingMessages instanceof List<?> history) {
+            promptContext.put("recentConversation", history.subList(Math.max(0, history.size() - 10), history.size()));
+        }
+
 
         UUID call = policy.beginCall("SHOT_REVISION", OPERATION, ai.model(), 5500);
         AiUsageCapture.clear();
