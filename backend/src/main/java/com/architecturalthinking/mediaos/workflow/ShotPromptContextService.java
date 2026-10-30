@@ -153,8 +153,13 @@ public class ShotPromptContextService {
         return switch (stageKey.toUpperCase(Locale.ROOT)) {
             case "TOPIC" -> false;
             case "TRUTH", "SCRIPT" -> "SCRIPT".equals(ruleScope);
+            case "VOICE" -> "SCRIPT".equals(ruleScope) || "VOICE".equals(ruleScope)
+                    || "VOICE_VISUAL".equals(ruleScope);
+            case "VIDEO", "VISUAL" -> "SCRIPT".equals(ruleScope) || "VISUAL".equals(ruleScope)
+                    || "VOICE_VISUAL".equals(ruleScope);
             case "SCENE", "SHOT", "DIRECTOR" ->
-                    "SCRIPT".equals(ruleScope) || "VOICE".equals(ruleScope) || "VISUAL".equals(ruleScope);
+                    "SCRIPT".equals(ruleScope) || "VOICE".equals(ruleScope)
+                    || "VISUAL".equals(ruleScope) || "VOICE_VISUAL".equals(ruleScope);
             default -> throw new IllegalArgumentException("Unsupported generation stage: " + stageKey);
         };
     }
