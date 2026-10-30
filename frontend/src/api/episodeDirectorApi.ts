@@ -1,6 +1,7 @@
 export type EpisodeDirectorShot = {
   shotKey: string;
   title: string;
+  narration: string;
   startSecond: number;
   endSecond: number;
   voiceStatus: 'LOCKED' | 'PENDING';
