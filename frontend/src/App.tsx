@@ -4,6 +4,7 @@ import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
 import { EpisodeDirectorPage } from './pages/EpisodeDirectorPage';
 import { EpisodeShotWorkspacePage } from './pages/EpisodeShotWorkspacePage';
 import { ShotRevisionAgentPage } from './pages/ShotRevisionAgentPage';
+import { EpisodeRevisionVoicePage } from './pages/EpisodeRevisionVoicePage';
 import { SceneAgentPage } from './pages/SceneAgentPage';
 import { ScriptAgentPage } from './pages/ScriptAgentPage';
 import { ShotStudioPage } from './pages/ShotStudioPage';
@@ -79,7 +80,9 @@ export function App() {
     page = <ShotRevisionAgentPage key={hash} episodeId={episodeId} shotKey={shotKey} />;
   } else if (episodeId && section === 'director') {
     page = <EpisodeDirectorPage episodeId={episodeId} />;
-  } else if (episodeId && (section === 'voice' || section === 'video')) {
+  } else if (episodeId && section === 'voice') {
+    page = <EpisodeRevisionVoicePage key={hash} episodeId={episodeId} shotKey={shotKey} />;
+  } else if (episodeId && section === 'video') {
     page = <EpisodeShotWorkspacePage episodeId={episodeId} kind={section} shotKey={shotKey} />;
   } else if (hash === '#/' || hash === '' || hash.startsWith('#/episodes')) {
     page = <EpisodeSelectorPage />;
