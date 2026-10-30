@@ -84,8 +84,7 @@ public class CreativeAgentClient {
                         .reduce((previous, current) -> current).orElse(
                                 "Generate " + stageKey + " using the locked upstream context.");
                 rulesAppendix = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
-                        stageKey, stageKey, latestRequest,
-                        String.valueOf(context.getOrDefault("summary", ""))).appendix();
+                        stageKey, stageKey, latestRequest, "").appendix();
             }
             modelContext.remove("firstPassPromptAppendix");
             modelContext.remove("scopedQualityContextHash");
