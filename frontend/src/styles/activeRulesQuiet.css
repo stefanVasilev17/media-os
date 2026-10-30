@@ -1,0 +1,10 @@
+.active-rules-quiet { margin: 30px 0 34px; padding: 19px 0; border-top: 1px solid #32485d; border-bottom: 1px solid #32485d; }
+.active-rules-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.active-rules-heading button {
+  background: transparent; color: #d5e6f2; border: 0; padding: 8px 0;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.active-rules-heading button:last-child { color: #a2bfda; font-weight: 500; }
+.active-rules-heading button:hover { color: white; text-decoration: underline; text-underline-offset: 5px; }
+.active-rules-list { max-width: 820px; padding-top: 12px; }
+.active-rules-list p { font-size: 16px; line-height: 1.7; color: #c9d7e5; padding: 12px 0; margin: 0; border-top: 1px solid #263b50; }
