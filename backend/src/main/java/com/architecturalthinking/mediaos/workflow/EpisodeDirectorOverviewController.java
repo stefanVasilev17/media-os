@@ -82,7 +82,7 @@ public class EpisodeDirectorOverviewController {
                 if (title.isBlank()) title = string(block.get("title"));
                 if (!title.isBlank()) shot.title = title;
                 String narration = string(block.get("narration"));
-                if (!narration.isBlank()) shot.narration += (shot.narration.isEmpty() ? "" : "\\n\\n") + narration;
+                if (!narration.isBlank()) shot.narration += (shot.narration.isEmpty() ? "" : System.lineSeparator().repeat(2)) + narration;
                 if (block.get("startSecond") instanceof Number start)
                     shot.startSecond = shot.startSecond < 0 ? start.intValue() : Math.min(shot.startSecond, start.intValue());
                 if (block.get("endSecond") instanceof Number end)
