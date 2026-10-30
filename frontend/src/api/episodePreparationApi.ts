@@ -76,6 +76,9 @@ export const episodePreparationApi = {
       : request<unknown>(base + '/agents/' + stage.toLowerCase() + '/run','POST',
           { action:'GENERATE',expectedRevision,message:'' },previewToken);
   },
+  attachResearchSources: (id: string, expectedRevision: number, sources: string) =>
+    request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
+      + '/research/sources','PUT',{ expectedRevision,sources }),
   approveStage: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE',
                  expectedRevision: number, directorNote: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
