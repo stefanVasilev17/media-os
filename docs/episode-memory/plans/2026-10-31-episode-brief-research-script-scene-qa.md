@@ -51,3 +51,26 @@ Provide an episode-scoped intake that connects a Director-written brief to the E
 - Historical EP001 does not get a new Brief retroactively.
 - Source notes supplied later amend Research DRAFT only, not the original Brief. Both are versioned.
 - Actual proof-of-source retrieval, technical citation checking, end-to-end autonomous multi-stage chaining and fully automatic Voice/Remotion production are separate future steps. This version intentionally preserves Director approval between Research/Script/Scene.
+
+## 2026-10-31 QA execution status — source review and regression additions
+
+**Executed so far:** GitHub repository/source review, API-contract inspection, structural consistency checks on modified files, and commit of new backend and frontend regression test cases. **NOT executed:** Maven `verify`, TypeScript/Vite build, Flyway V93 on PostgreSQL, browser rendering, integration tests or a real API model request. There were no recorded GitHub Actions runs for this draft head when checked. Do not present this draft as QA-passed or deployment-ready.
+
+**Critical findings fixed in draft:**
+1. `EpisodeWorkspaceService` was accidentally duplicated and contained malformed SQL during early development. Rebuilt from the clean parent branch, preserving one copy of preexisting workflow methods. Full compile remains needed to verify.
+2. Research Preview compiled one First-Pass rule package but the paid agent recomputed it with a different subject. Now the identical preview-bound appendix is passed unchanged into the OpenAI request, so selection and fingerprint correspond.
+3. Research could finish an OpenAI call after the Director modified the source brief, saving stale facts. New `draftResearchForBrief` holds a database row lock and refuses a mismatched brief revision in the same transaction as writing the Research DRAFT.
+4. An AI Research proposal with an empty out-of-scope boundary, or with no source references, could leave Director LOCK blocked. The UI now supports no-token, Director-authored boundaries and references before a new LOCK attempt.
+5. The initial Script/Scene preparation UI offered fresh generation and lock but not scoped revisions. It now uses the existing REVISE mode, explicit original-correction text, independent Preview and paid confirmation.
+6. Added Vitest tests for episode isolation, scoped agent routes and exact Preview/run messages, and Java tests for default-off write guards, brief validation and no unverified citations presented as verified.
+
+**Remaining blockers before any deployment:**
+- The project workflows `.github/workflows/backend-preflight-ci.yml` and `episode-director-frontend-ci.yml` exist, but no successful run has been observed for PR #109. Trigger and inspect both on GitHub or stage locally with Java 21 + PostgreSQL and Node 22.
+- Authenticate Director operations with real user identity; global creation preflight is not authentication. Add rate-limits, CSRF/origin enforcement and director review audit identity.
+- Validate that Java 21 compilation and all dependent Draft PRs #100–#108 are compatible, especially prompt assembly and Production Memory migrations.
+- Confirm live database schema supports V93 and that the new FK and table are created in migration order.
+- Research has **no trusted live source retrieval**. A human must independently verify every reference before locking; a source string and model confidence are not proof.
+- Research correction and Script/Scene revision drafts must be inspected visually and QA-checked for semantics; structure alone does not guarantee truthful content.
+- Avoid testing by enabling paid AI in production. Use isolated, disposable staging episode IDs only after the owner approves budget and access controls.
+
+**Release decision: BLOCKED — retain Draft status.** Neither prior LOCKed media nor production PostgreSQL is touched by this QA review.
