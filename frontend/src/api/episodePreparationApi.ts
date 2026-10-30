@@ -76,6 +76,19 @@ export const episodePreparationApi = {
       : request<unknown>(base + '/agents/' + stage.toLowerCase() + '/run','POST',
           { action:'GENERATE',expectedRevision,message:'' },previewToken);
   },
+  saveResearchBoundaries: (
+    id: string, artifact: Record<string, unknown>, summary: string,
+    expectedRevision: number, boundaries: string[]
+  ) => request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
+      + '/stages/research/draft','POST',{
+        expectedRevision,
+        summary: summary || 'Director clarified the boundaries of the Research Truth Map.',
+        artifact: {
+          ...artifact,
+          outOfScope: boundaries,
+          directorRefinement: 'DIRECTOR_REVIEWED_SCOPE_BOUNDARIES'
+        }
+      }),
   attachResearchSources: (id: string, expectedRevision: number, sources: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
       + '/research/sources','PUT',{ expectedRevision,sources }),
