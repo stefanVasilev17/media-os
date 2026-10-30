@@ -57,7 +57,7 @@ public class EpisodeDirectorOverviewController {
             out.put("narration", narration);
             out.put("startSecond", startSecond);
             out.put("endSecond", endSecond);
-            out.put("voiceStatus", lockedRevision > 0 ? (revisedVoiceApproved ? "LOCKED" : "PENDING") : voiceStatus(voiceTotal, voiceApproved));
+            out.put("voiceStatus", effectiveVoiceStatus(lockedRevision, revisedVoiceApproved, voiceTotal, voiceApproved));
             out.put("videoStatus", videoLocked && lockedRevision == 0 ? "LOCKED" : "PENDING");
             out.put("voiceProgress", voiceApproved + "/" + voiceTotal);
             out.put("voiceHasDraft", voiceGenerated);
@@ -248,6 +248,13 @@ public class EpisodeDirectorOverviewController {
 
     private static String string(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    static String effectiveVoiceStatus(int lockedRevision, boolean revisedVoiceApproved,
+                                       int originalTotal, int originalApproved) {
+        return lockedRevision > 0
+                ? (revisedVoiceApproved ? "LOCKED" : "PENDING")
+                : voiceStatus(originalTotal, originalApproved);
     }
 
     static String voiceStatus(int total, int approved) {
