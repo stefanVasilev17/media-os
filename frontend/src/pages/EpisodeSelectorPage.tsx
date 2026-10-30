@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, FolderOpen, LoaderCircle, RefreshCw } from 'lucide-react';
+import { ArrowRight, FolderOpen, LoaderCircle, RefreshCw, BookOpenCheck } from 'lucide-react';
 import { listEpisodeWorkspaces, type EpisodeSummary } from '../api/episodeWorkspaceApi';
 import { episodeDirectorRoute } from '../api/episodeDirectorApi';
 import '../styles/episodeDirectorHub.css';
@@ -59,6 +59,12 @@ export function EpisodeSelectorPage() {
           </button>
         ))}
       </section>
+      <div style={{ marginTop: 24 }}>
+        <button type="button" className="episode-hub-secondary"
+          onClick={() => { window.location.hash = '#/memory-import'; }}>
+          <BookOpenCheck size={17} /> Production Memory — Import & Review
+        </button>
+      </div>
       <p className="episode-hub-footnote">
         Only episodes registered in MediaOS appear here. Opening an episode never creates or imports another episode's assets.
       </p>
