@@ -70,7 +70,7 @@ class EpisodeResearchAgentServiceTest {
         var ready=new EpisodeResearchAgentService.Prepared(
                 Map.of("id", episode),"Why Redis Fails","Explain Redis failure",
                 "https://redis.io/docs/latest/",
-                1,"fingerprint",3,"payload",List.of(),
+                1,"fingerprint","Mandatory first-pass rules text",3,"payload",List.of(),
                 List.of("https://redis.io/docs/latest/"));
         Map<String,Object> artifact=EpisodeResearchAgentService.researchArtifact(truth,ready);
         assertEquals("DIRECTOR_SUPPLIED_UNVERIFIED",artifact.get("technicalSourcesStatus"));
