@@ -57,6 +57,28 @@ class EpisodeWorkspaceServiceTest {
     }
 
     @Test
+    void newResearchDraftNeedsTheProductionWriteGateBeforeAnyDatabaseWork() {
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> safe.draftResearchForBrief(UUID.randomUUID(), Map.of(
+                        "truthMap", java.util.List.of("A", "B", "C")),
+                        "No source should be saved while writes are off.",
+                        0, 1, UUID.randomUUID()));
+        assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    void newEpisodeCannotBeCreatedFromShortUnreviewedBrief() {
+        assertThrows(ResponseStatusException.class,
+                () -> EpisodeWorkspaceService.validatedBrief("Not enough"));
+        assertThat(EpisodeWorkspaceService.validatedBrief(
+                "  Explain the full cache failure recovery path.  "))
+                .isEqualTo("Explain the full cache failure recovery path.");
+        assertThrows(ResponseStatusException.class,
+                () -> EpisodeWorkspaceService.validatedSources("x".repeat(12001)));
+    }
+
+    @Test
     void noSilentAssetLinkCreationWhenGated() {
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
                 () -> safe.referenceAsset(UUID.randomUUID(), "ATPhone", "", UUID.randomUUID()));
