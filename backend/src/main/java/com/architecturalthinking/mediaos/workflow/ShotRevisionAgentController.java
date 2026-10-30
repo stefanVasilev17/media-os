@@ -163,8 +163,8 @@ public class ShotRevisionAgentController {
             List<Map<String, String>> summary = new java.util.ArrayList<>();
             for (Object item : history.subList(Math.max(0, history.size() - 4), history.size())) {
                 if (item instanceof Map<?, ?> msg) {
-                    String role = String.valueOf(msg.getOrDefault("sender", "SYSTEM"));
-                    String text = String.valueOf(msg.getOrDefault("content", ""));
+                    String role = msg.get("sender") == null ? "SYSTEM" : String.valueOf(msg.get("sender"));
+                    String text = msg.get("content") == null ? "" : String.valueOf(msg.get("content"));
                     summary.add(Map.of("sender", role, "content",
                             text.length() > 1200 ? text.substring(0, 1200) : text));
                 }
