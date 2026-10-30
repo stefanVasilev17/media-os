@@ -3,6 +3,7 @@ export type EpisodeDirectorShot = {
   title: string;
   narration: string;
   visualDirection: string;
+  voiceDirection: string;
   shotRevision: number;
   startSecond: number;
   endSecond: number;
