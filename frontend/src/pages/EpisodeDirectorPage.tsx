@@ -84,12 +84,12 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
                   <div className="episode-hub-shot-title">
                     <strong>{shot.shotKey}</strong>
                     <span>{shot.title}</span>
-                  </div>
                   <button type="button" className="episode-hub-revision-action"
                     onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shot.shotKey); }}>
                     <MessageSquareText size={15} /> Revision Chat
                     {shot.shotRevision > 0 && <span>v{shot.shotRevision} LOCKED</span>}
                   </button>
+                  </div>
                   <div className="episode-hub-shot-links">
                     <button
                       type="button"
