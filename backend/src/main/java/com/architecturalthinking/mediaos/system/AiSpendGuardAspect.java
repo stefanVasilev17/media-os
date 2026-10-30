@@ -110,6 +110,18 @@ public class AiSpendGuardAspect {
             String ruleFingerprint = String.valueOf(context.getOrDefault("scopedQualityContextHash", ""));
             if (ruleFingerprint.isBlank()) throw new ResponseStatusException(CONFLICT,
                     "Episode-scoped creative generation must include a verified first-pass Production Memory fingerprint.");
+            String source = "";
+            if (context.get("currentStage") instanceof Map<?, ?> stageData && stageData.get("summary") != null) {
+                source = String.valueOf(stageData.get("summary"));
+            }
+            String effectiveRequest = message.isBlank()
+                    ? "Create the complete " + stage.toUpperCase() + " artifact from the authoritative locked upstream handoff."
+                    : message;
+            String refreshed = firstPass.prepareForStage(episode, stage.toUpperCase(), stage.toUpperCase(),
+                    effectiveRequest, source).fingerprint();
+            if (!refreshed.equals(ruleFingerprint))
+                throw new ResponseStatusException(CONFLICT,
+                        "Production Memory changed since Preview. Regenerate the zero-token preview before a paid request.");
             previewPayload = previewAuthorization.episodeCreativePayload(
                     episode, stage, action, message, draftRevision, upstreamRevision)
                     + "|RULES=" + ruleFingerprint;
