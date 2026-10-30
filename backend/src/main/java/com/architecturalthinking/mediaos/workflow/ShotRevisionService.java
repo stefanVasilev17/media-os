@@ -138,8 +138,6 @@ public class ShotRevisionService {
                 .param("narration", narration.trim()).param("voice", nonNull(voiceDirection))
                 .param("visual", nonNull(visualDirection)).param("summary", nonNull(changeSummary)).update();
 
-        if ("OPENAI".equals(source))
-            appendMessage(episodeId, shotKey, "AGENT", nonNull(changeSummary), "OPENAI");
         return state(episodeId, shotKey);
     }
 
