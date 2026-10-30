@@ -201,11 +201,14 @@ public class ProductionMemoryImportService {
                     row.put("reviewedBy", rs.getString("reviewed_by"));
                     row.put("reviewedAt", rs.getString("reviewed_at") == null ? null
                             : rs.getObject("reviewed_at", OffsetDateTime.class).toString());
-                    var comparison = compare(rs.getString("target_episode"),
-                            rs.getString("scope"), rs.getString("proposed_rule"));
-                    row.put("comparison", comparison);
                     return row;
                 }).list();
+        for (Map<String, Object> candidate : candidates) {
+            candidate.put("comparison", compare(
+                    (String) candidate.get("targetEpisode"),
+                    (String) candidate.get("scope"),
+                    (String) candidate.get("proposedRule")));
+        }
         return Map.of("batchId", batchId.toString(), "writesEnabled", writesAvailable(),
                 "automaticActivation", false, "candidates", candidates);
     }
@@ -240,6 +243,10 @@ public class ProductionMemoryImportService {
         if (!"PENDING".equals(row.get("status")))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This candidate was already reviewed and is immutable.");
+        // Use the same project advisory lock as Episode Learning global promotion,
+        // so two reviewed imports cannot race into duplicate active rules.
+        jdbc.sql("select pg_advisory_xact_lock(90200123456789)")
+                .query((rs, n) -> 1).single();
         Comparison check = compare((String)row.get("episode"), (String)row.get("scope"),
                 (String)row.get("content"));
         if (!check.fingerprint().equals(expectedFingerprint))
@@ -337,7 +344,7 @@ public class ProductionMemoryImportService {
                 "GLOBAL".equals(target) || episodeId != null, episodeId);
     }
 
-    private static double similarity(String a, String b) {
+    static double similarity(String a, String b) {
         Set<String> l = words(a);
         Set<String> r = words(b);
         if (l.isEmpty() || r.isEmpty()) return 0.0;
@@ -355,7 +362,7 @@ public class ProductionMemoryImportService {
         return terms;
     }
 
-    private static String normalize(String s) {
+    static String normalize(String s) {
         return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").trim();
     }
 
