@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { episodeDirectorRoute, episodeShotRoute } from './episodeDirectorApi';
+import { episodeDirectorRoute, episodeShotRoute, shotRevisionRoute } from './episodeDirectorApi';
 
 const ep001 = '22222222-2222-2222-2222-222222222222';
 const ep003 = '33333333-3333-4333-8333-333333333333';
@@ -17,6 +17,20 @@ describe('episode-aware Director routes', () => {
   it('opens exact EP001 video shot in its legacy Visual Agent', () => {
     expect(episodeShotRoute(ep001, true, 'video', 'SHOT 12'))
       .toBe('#/agents/visual?episodeId=' + ep001 + '&shot=SHOT+12');
+  });
+
+  it('opens the one-shot Revision Agent in the selected episode', () => {
+    expect(shotRevisionRoute(ep003, 'SHOT 03')).toBe(
+      '#/episodes/' + ep003 + '/revision?shot=SHOT%2003'
+    );
+  });
+
+  it('uses the isolated handoff after revising an EP001 shot', () => {
+    const voice = episodeShotRoute(ep001, true, 'voice', 'SHOT 12', true);
+    const video = episodeShotRoute(ep001, true, 'video', 'SHOT 12', true);
+    expect(voice).toContain('#/episodes/' + ep001 + '/voice?');
+    expect(video).toContain('#/episodes/' + ep001 + '/video?');
+    expect(voice).not.toContain('#/agents/');
   });
 
   it('never reuses the EP001 generator routes for EP003', () => {
