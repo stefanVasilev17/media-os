@@ -45,6 +45,7 @@ public class ProductionMemoryService {
                     or scope=:scope
                     or (scope='SCRIPT' and :scope in ('VOICE','VISUAL'))
                     or (scope='VOICE' and :scope='VISUAL')
+                    or (scope='VOICE_VISUAL' and :scope in ('VOICE','VISUAL'))
                   )
                 order by
                   case severity when 'REQUIRED' then 0 else 1 end,
@@ -250,7 +251,7 @@ public class ProductionMemoryService {
     private String normalizeScope(String raw) {
         String scope = raw == null ? "ALL" : raw.trim().toUpperCase(Locale.ROOT);
         return switch (scope) {
-            case "SCRIPT", "VOICE", "VISUAL", "ALL" -> scope;
+            case "SCRIPT", "VOICE", "VISUAL", "VOICE_VISUAL", "ALL" -> scope;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown Production Memory scope: " + scope);
         };
     }
