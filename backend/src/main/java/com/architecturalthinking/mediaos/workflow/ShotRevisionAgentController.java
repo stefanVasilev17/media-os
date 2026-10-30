@@ -162,7 +162,10 @@ public class ShotRevisionAgentController {
 
         revisions.saveDraft(episodeId, shotKey, request.expectedRevision(), suggestion.narration(),
                 suggestion.voiceDirection(), suggestion.visualDirection(), suggestion.changeSummary(), "OPENAI");
-        revisions.recordAiConversation(episodeId, shotKey, request.message(), suggestion.reply());
+        revisions.recordAiConversation(episodeId, shotKey, request.message(),
+                suggestion.reply() + System.lineSeparator() + System.lineSeparator()
+                    + "REVISED ENGLISH NARRATION (DRAFT):" + System.lineSeparator()
+                    + suggestion.narration());
         Map<String, Object> result = new LinkedHashMap<>(revisions.state(episodeId, shotKey));
         result.put("agentReply", suggestion.reply());
         result.put("directorLocked", false);
