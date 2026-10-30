@@ -39,3 +39,8 @@
 .shot-revision-chat-approval button:hover:not(:disabled) { background:#327457; }
 .shot-revision-chat-approval button:disabled { opacity:.45; cursor:not-allowed; }
 .shot-revision-message.agent p { overflow-wrap:anywhere; }
+
+.shot-revision-quality { border:1px solid #334f68; border-radius:10px; padding:13px; background:#112434; display:flex; flex-wrap:wrap; align-items:center; gap:9px; }
+.shot-revision-quality > strong { font-size:13px; }
+.shot-revision-quality > p { flex-basis:100%; font-size:12px; line-height:1.65; color:#b7cde1; margin:0; }
+.shot-revision-quality > p.episode-hub-error { color:#ffd2b7; }

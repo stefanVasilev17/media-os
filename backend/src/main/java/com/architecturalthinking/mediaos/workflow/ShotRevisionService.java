@@ -21,13 +21,15 @@ public class ShotRevisionService {
     private final ObjectMapper mapper;
     private final EpisodeWorkspaceService workspaces;
     private final EpisodeDirectorOverviewController director;
+    private final ShotQualityGateService quality;
 
     public ShotRevisionService(JdbcClient jdbc, ObjectMapper mapper, EpisodeWorkspaceService workspaces,
-                               EpisodeDirectorOverviewController director) {
+                               EpisodeDirectorOverviewController director, ShotQualityGateService quality) {
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.workspaces = workspaces;
         this.director = director;
+        this.quality = quality;
     }
 
     public record Revision(int revision, int scriptRevision, String status, String narration,
@@ -76,6 +78,11 @@ public class ShotRevisionService {
         result.put("effectiveVisualDirection", c.approved() == null ? "" : c.approved().visualDirection());
         result.put("voiceVideoRequiresNewApproval", c.approved() != null);
         result.put("messages", messages(episodeId, shotKey));
+        var inspected = c.draft() != null ? c.draft() : c.approved();
+        result.put("qualityReport", quality.inspect(episodeId,
+                inspected == null ? c.originalNarration() : inspected.narration(),
+                inspected == null ? "" : inspected.voiceDirection(),
+                inspected == null ? "" : inspected.visualDirection()));
         result.put("autoAiGeneration", false);
         return result;
     }
@@ -112,6 +119,8 @@ public class ShotRevisionService {
         if (changeSummary != null && changeSummary.length() > 2000)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Change summary is too long.");
 
+        quality.requirePass(episodeId, narration, voiceDirection, visualDirection);
+
         // Serialize all revisions for this episode. Old LOCK snapshots are retained.
         jdbc.sql("select id from episode where id=:id for update")
                 .param("id", episodeId).query(UUID.class).single();
@@ -146,6 +155,10 @@ public class ShotRevisionService {
         Context c = context(episodeId, shotKey);
         if (note == null || note.trim().length() < 10 || note.length() > 1500)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Director LOCK requires a clear approval note.");
+        if (c.draft() == null || c.draft().revision() != expectedRevision)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only the current DRAFT may be locked.");
+        quality.requirePass(episodeId, c.draft().narration(), c.draft().voiceDirection(),
+                c.draft().visualDirection());
         int updated = jdbc.sql("""
                 update episode_shot_revision
                 set status='LOCKED',locked_at=now(),director_note=:note,updated_at=now()

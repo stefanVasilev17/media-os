@@ -28,15 +28,17 @@ public class ShotRevisionAgentController {
     private final ShotRevisionAiClient ai;
     private final AiRuntimePolicyService policy;
     private final PreviewAuthorizationService authorizations;
+    private final ShotQualityGateService quality;
 
     public ShotRevisionAgentController(ShotRevisionService revisions, EpisodeWorkspaceService episodes,
                                        ShotRevisionAiClient ai, AiRuntimePolicyService policy,
-                                       PreviewAuthorizationService authorizations) {
+                                       PreviewAuthorizationService authorizations, ShotQualityGateService quality) {
         this.revisions = revisions;
         this.episodes = episodes;
         this.ai = ai;
         this.policy = policy;
         this.authorizations = authorizations;
+        this.quality = quality;
     }
 
     public record ChatRequest(@NotBlank @Size(max=6000) String message) {}
@@ -59,6 +61,7 @@ public class ShotRevisionAgentController {
         result.put("paidAiEnabled", policy.paidAiEnabled());
         result.put("aiConfigured", ai.configured());
         result.put("aiModel", ai.model());
+        result.put("qualityRuleFingerprint", quality.fingerprint(episodeId));
         return result;
     }
 
@@ -96,7 +99,7 @@ public class ShotRevisionAgentController {
         checkAiOn(request.aiEnabled());
         ShotRevisionService.Context context = verifyRevision(episodeId, shotKey, request.expectedRevision());
         String payload = previewPayload(episodeId, shotKey, request.expectedRevision(),
-                context.scriptRevision(), request.message());
+                context.scriptRevision(), request.message(), quality.fingerprint(episodeId));
         var authorization = authorizations.issue(OPERATION, payload);
         return Map.of(
                 "canRun", true,
@@ -119,7 +122,7 @@ public class ShotRevisionAgentController {
         ShotRevisionService.Context context = verifyRevision(episodeId, shotKey, request.expectedRevision());
         authorizations.consume(http.getHeader(AiSpendGuardAspect.PREVIEW_AUTHORIZATION_HEADER),
                 OPERATION, previewPayload(episodeId, shotKey, request.expectedRevision(),
-                        context.scriptRevision(), request.message()));
+                        context.scriptRevision(), request.message(), quality.fingerprint(episodeId)));
         var base = context.draft() != null ? context.draft() : context.approved();
         String narration = base == null ? context.originalNarration() : base.narration();
         String voice = base == null ? "calm, conversational, confident" : base.voiceDirection();
@@ -137,6 +140,7 @@ public class ShotRevisionAgentController {
         promptContext.put("policy", episodes.context(episodeId, "ALL").get("policy"));
         promptContext.put("rules", episodes.context(episodeId, "ALL").get("rules"));
         promptContext.put("sourceRule", "Only this shot may change. Director LOCK is required to publish changes.");
+        promptContext.put("deterministicChecks", quality.assertions(episodeId));
         Object existingMessages = revisions.state(episodeId, shotKey).get("messages");
         if (existingMessages instanceof List<?> history) {
             promptContext.put("recentConversation", history.subList(Math.max(0, history.size() - 10), history.size()));
@@ -160,6 +164,10 @@ public class ShotRevisionAgentController {
             AiUsageCapture.clear();
         }
 
+        // Deterministic checks cost no further AI tokens. Never persist a failing
+        // candidate, and never auto-regenerate with another paid request.
+        quality.requirePass(episodeId, suggestion.narration(),
+                suggestion.voiceDirection(), suggestion.visualDirection());
         revisions.saveDraft(episodeId, shotKey, request.expectedRevision(), suggestion.narration(),
                 suggestion.voiceDirection(), suggestion.visualDirection(), suggestion.changeSummary(), "OPENAI");
         revisions.recordAiConversation(episodeId, shotKey, request.message(),
@@ -195,7 +203,13 @@ public class ShotRevisionAgentController {
     }
 
     static String previewPayload(UUID episode, String shot, int revision, int scriptRevision, String message) {
+        return previewPayload(episode, shot, revision, scriptRevision, message, "");
+    }
+
+    static String previewPayload(UUID episode, String shot, int revision, int scriptRevision,
+                                 String message, String ruleFingerprint) {
         return "EPISODE=" + episode + "|SHOT=" + shot + "|REVISION=" + revision
-                + "|SCRIPT=" + scriptRevision + "|PROMPT=" + message.trim();
+                + "|SCRIPT=" + scriptRevision + "|RULES=" + ruleFingerprint
+                + "|PROMPT=" + message.trim();
     }
 }
