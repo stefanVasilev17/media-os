@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleDot, Clapperboard, Mic2, RefreshCw } from 'lucide-react';
-import { getEpisodeDirectorOverview, episodeShotRoute, type EpisodeDirectorOverview } from '../api/episodeDirectorApi';
+import { ArrowLeft, ArrowRight, CheckCircle2, CircleDot, Clapperboard, Mic2, RefreshCw, MessageSquareText } from 'lucide-react';
+import { getEpisodeDirectorOverview, episodeShotRoute, shotRevisionRoute, type EpisodeDirectorOverview } from '../api/episodeDirectorApi';
 import '../styles/episodeDirectorHub.css';
 
 function Status({ state }: { state: string }) {
@@ -84,12 +84,17 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
                   <div className="episode-hub-shot-title">
                     <strong>{shot.shotKey}</strong>
                     <span>{shot.title}</span>
+                  <button type="button" className="episode-hub-revision-action"
+                    onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shot.shotKey); }}>
+                    <MessageSquareText size={15} /> Revision Chat
+                    {shot.shotRevision > 0 && <span>v{shot.shotRevision} LOCKED</span>}
+                  </button>
                   </div>
                   <div className="episode-hub-shot-links">
                     <button
                       type="button"
                       className="episode-hub-action"
-                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'voice', shot.shotKey); }}
+                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'voice', shot.shotKey, shot.shotRevision > 0); }}
                     >
                       <Mic2 size={16} />
                       <span>Voice</span>
@@ -99,7 +104,7 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
                     <button
                       type="button"
                       className="episode-hub-action"
-                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'video', shot.shotKey); }}
+                      onClick={() => { window.location.hash = episodeShotRoute(episodeId, overview.legacyEpisode, 'video', shot.shotKey, shot.shotRevision > 0); }}
                     >
                       <Clapperboard size={16} />
                       <span>Video</span>

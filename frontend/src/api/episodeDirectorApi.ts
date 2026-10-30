@@ -2,6 +2,9 @@ export type EpisodeDirectorShot = {
   shotKey: string;
   title: string;
   narration: string;
+  visualDirection: string;
+  voiceDirection: string;
+  shotRevision: number;
   startSecond: number;
   endSecond: number;
   voiceStatus: 'LOCKED' | 'PENDING';
@@ -38,9 +41,12 @@ export async function getEpisodeDirectorOverview(episodeId: string): Promise<Epi
 
 export const episodeDirectorRoute = (episodeId: string) => '#/episodes/' + encodeURIComponent(episodeId) + '/director';
 
-export function episodeShotRoute(episodeId: string, legacyEpisode: boolean, kind: 'voice' | 'video', shotKey: string) {
+export const shotRevisionRoute = (episodeId: string, shotKey: string) =>
+  '#/episodes/' + encodeURIComponent(episodeId) + '/revision?shot=' + encodeURIComponent(shotKey);
+
+export function episodeShotRoute(episodeId: string, legacyEpisode: boolean, kind: 'voice' | 'video', shotKey: string, hasNewRevision = false) {
   const params = new URLSearchParams({ episodeId, shot: shotKey });
-  if (legacyEpisode) {
+  if (legacyEpisode && !hasNewRevision) {
     return (kind === 'voice' ? '#/agents/voice?' : '#/agents/visual?') + params.toString();
   }
   return '#/episodes/' + encodeURIComponent(episodeId) + '/' + kind + '?' + params.toString();
