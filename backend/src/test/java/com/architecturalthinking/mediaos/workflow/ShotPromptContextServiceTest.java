@@ -91,6 +91,60 @@ class ShotPromptContextServiceTest {
     }
 
     @Test
+    void topicAgentReceivesOnlyGlobalRulesNotShotSpecificScriptMemory() {
+        var rules = List.of(
+                rule("R-001", "ALL", "REQUIRED", "Evergreen viewer entry before depth."),
+                rule("R-002", "SCRIPT", "REQUIRED", "Define latency within its scene."),
+                rule("R-003", "VISUAL", "REQUIRED", "Only animate the failure path."));
+        var prompt = ShotPromptContextService.assembleForStage(
+                EP002, "TOPIC", "TOPIC_CANDIDATES", "Propose a user-focused topic.", "",
+                policy(), rules);
+        assertEquals(1, prompt.mandatoryRuleCount());
+        assertTrue(prompt.appendix().contains("Evergreen viewer entry"));
+        assertFalse(prompt.appendix().contains("Define latency"));
+        assertFalse(prompt.appendix().contains("animate the failure"));
+    }
+
+    @Test
+    void scriptAgentReceivesGlobalAndNarrationRulesButNotVisualOnlyRules() {
+        var rules = List.of(
+                rule("R-001", "ALL", "REQUIRED", "Use a clear viewer promise."),
+                rule("R-002", "SCRIPT", "REQUIRED", "Every new term gets a plain explanation."),
+                rule("R-003", "VOICE", "REQUIRED", "Audio must have a natural performance."),
+                rule("R-004", "VISUAL", "REQUIRED", "Move the camera only at focus changes."));
+        var script = ShotPromptContextService.assembleForStage(
+                EP002, "SCRIPT", "SCRIPT", "Fix the causal explanation.", "",
+                policy(), rules);
+        assertEquals(2, script.mandatoryRuleCount());
+        assertFalse(script.appendix().contains("Audio must"));
+        assertFalse(script.appendix().contains("Move the camera"));
+    }
+
+    @Test
+    void sceneAgentReceivesGlobalScriptVoiceAndVisualProductionRules() {
+        var rules = List.of(
+                rule("R-001", "ALL", "REQUIRED", "Protect existing Director LOCKs."),
+                rule("R-002", "SCRIPT", "REQUIRED", "Preserve narration."),
+                rule("R-003", "VOICE", "REQUIRED", "Align movement to word timing."),
+                rule("R-004", "VISUAL", "REQUIRED", "Stay Remotion-first."));
+        var scene = ShotPromptContextService.assembleForStage(
+                EP002, "SCENE", "SCENE", "Create a scene for this narration.", "",
+                policy(), rules);
+        assertEquals(4, scene.mandatoryRuleCount());
+        assertTrue(scene.appendix().contains("Stay Remotion-first."));
+    }
+
+    @Test
+    void stageScopeChangesFingerprintEvenForSameGlobalRule() {
+        var rules = List.of(rule("R-001", "ALL", "REQUIRED", "Keep the viewer in mind."));
+        var topic = ShotPromptContextService.assembleForStage(
+                EP002, "TOPIC", "TOPIC_CANDIDATES", "Propose topics.", "", policy(), rules);
+        var script = ShotPromptContextService.assembleForStage(
+                EP002, "SCRIPT", "SCRIPT", "Propose topics.", "", policy(), rules);
+        assertNotEquals(topic.fingerprint(), script.fingerprint());
+    }
+
+    @Test
     void missingCanonicalPolicyBlocksPaidCall() {
         assertThrows(ResponseStatusException.class, () -> ShotPromptContextService.assemble(
                 EP002, "SHOT 10", "Explain P95.", "",
