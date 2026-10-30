@@ -15,6 +15,13 @@ class EpisodeDirectorOverviewControllerTest {
     }
 
     @Test
+    void oldApprovedAudioMustNotTurnRevisedScriptGreen() {
+        assertEquals("PENDING", EpisodeDirectorOverviewController.effectiveVoiceStatus(2, false, 7, 7));
+        assertEquals("LOCKED", EpisodeDirectorOverviewController.effectiveVoiceStatus(2, true, 7, 0));
+        assertEquals("LOCKED", EpisodeDirectorOverviewController.effectiveVoiceStatus(0, false, 3, 3));
+    }
+
+    @Test
     void directorShotLinksUseCanonicalShotKeys() {
         assertEquals("SHOT 12", EpisodeDirectorOverviewController.shotKey("SHOT 12"));
         assertEquals("SHOT 02", EpisodeDirectorOverviewController.shotKey("shot 2"));
