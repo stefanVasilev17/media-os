@@ -41,6 +41,7 @@ public class EpisodeDirectorOverviewController {
         private boolean videoLocked;
         private boolean videoDraft;
         private int lockedRevision;
+        private boolean revisedVoiceApproved;
         private String visualDirection = "";
         private String voiceDirection = "";
 
@@ -56,7 +57,7 @@ public class EpisodeDirectorOverviewController {
             out.put("narration", narration);
             out.put("startSecond", startSecond);
             out.put("endSecond", endSecond);
-            out.put("voiceStatus", lockedRevision > 0 ? "PENDING" : voiceStatus(voiceTotal, voiceApproved));
+            out.put("voiceStatus", lockedRevision > 0 ? (revisedVoiceApproved ? "LOCKED" : "PENDING") : voiceStatus(voiceTotal, voiceApproved));
             out.put("videoStatus", videoLocked && lockedRevision == 0 ? "LOCKED" : "PENDING");
             out.put("voiceProgress", voiceApproved + "/" + voiceTotal);
             out.put("voiceHasDraft", voiceGenerated);
@@ -200,10 +201,29 @@ public class EpisodeDirectorOverviewController {
                     return key;
                 }).list();
 
+        jdbc.sql("""
+                select v.shot_key,v.shot_revision
+                from episode_revision_voice_take v
+                join episode_shot_revision r
+                  on r.episode_id=v.episode_id
+                  and r.shot_key=v.shot_key and r.revision=v.shot_revision
+                where v.episode_id=:episode and v.approved_at is not null
+                  and r.status='LOCKED'
+                """).param("episode", episodeId)
+                .query((rs, n) -> {
+                    String key = shotKey(rs.getString("shot_key"));
+                    if (key != null && shots.containsKey(key)) {
+                        Shot shot = shots.get(key);
+                        if (shot.lockedRevision == rs.getInt("shot_revision"))
+                            shot.revisedVoiceApproved = true;
+                    }
+                    return key;
+                }).list();
+
         List<Map<String, Object>> orderedShots = shots.values().stream()
                 .sorted(Comparator.comparingInt(s -> Integer.parseInt(s.key.substring(5))))
                 .map(Shot::toMap).toList();
-        long voiceLocked = shots.values().stream().filter(s -> s.lockedRevision == 0 && s.voiceTotal > 0 && s.voiceTotal == s.voiceApproved).count();
+        long voiceLocked = shots.values().stream().filter(s -> s.lockedRevision > 0 ? s.revisedVoiceApproved : s.voiceTotal > 0 && s.voiceTotal == s.voiceApproved).count();
         long videoLocked = shots.values().stream().filter(s -> s.lockedRevision == 0 && s.videoLocked).count();
 
         List<Map<String, Object>> stageSummary = new ArrayList<>();
