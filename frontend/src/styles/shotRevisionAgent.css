@@ -32,3 +32,10 @@
 .episode-hub-revision-action { display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; max-width:max-content; font-size:12px; color:#b9d9f2; background:#193248; border:1px solid #396180; border-radius:7px; padding:7px 9px; margin-top:7px; cursor:pointer; }
 .episode-hub-revision-action:hover { background:#285176; }
 .episode-hub-revision-action span { font-size:10px; font-weight:800; color:#8fefb8; white-space:nowrap; }
+
+.shot-revision-chat-approval { margin-top:12px; padding:12px; background:#173b2d; border:1px solid #3a8159; border-radius:9px; }
+.shot-revision-chat-approval p { margin:0 0 11px; line-height:1.55; color:#caebd8; font-size:12px; }
+.shot-revision-chat-approval button { display:inline-flex; align-items:center; gap:9px; font-weight:750; font-size:13px; cursor:pointer; border:1px solid #57ad83; background:#256048; color:#effff7; border-radius:8px; padding:10px 13px; }
+.shot-revision-chat-approval button:hover:not(:disabled) { background:#327457; }
+.shot-revision-chat-approval button:disabled { opacity:.45; cursor:not-allowed; }
+.shot-revision-message.agent p { overflow-wrap:anywhere; }
