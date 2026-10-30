@@ -66,6 +66,7 @@ public class DirectorAgentClient {
         try {
             Map<String, Object> enrichedContext = new LinkedHashMap<>(context);
             enrichedContext.put("productionOverview", overviewService.overview());
+            enrichedContext.remove("productionMemory");
 
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("model", model);
