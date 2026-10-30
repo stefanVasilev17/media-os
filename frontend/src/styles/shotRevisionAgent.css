@@ -28,3 +28,7 @@
 .shot-revision-handoff p:first-child { display:flex; align-items:center; gap:6px; font-weight:750; }
 .shot-revision-handoff > div { display:flex; gap:8px; flex-wrap:wrap; }
 @media(max-width:920px){ .shot-revision-layout { grid-template-columns:1fr; } .shot-revision-panel { padding:15px; } }
+
+.episode-hub-revision-action { display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; max-width:max-content; font-size:12px; color:#b9d9f2; background:#193248; border:1px solid #396180; border-radius:7px; padding:7px 9px; margin-top:7px; cursor:pointer; }
+.episode-hub-revision-action:hover { background:#285176; }
+.episode-hub-revision-action span { font-size:10px; font-weight:800; color:#8fefb8; white-space:nowrap; }
