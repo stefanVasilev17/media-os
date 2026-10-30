@@ -85,13 +85,13 @@ export function App() {
   } else if (!legacyEpisodeAllowed(hash)) {
     page = <EpisodeSelectorPage />;
   } else if (hash.startsWith('#/studio')) {
-    page = <ShotStudioPage />;
+    page = <ShotStudioPage key={hash} />;
   } else if (hash.startsWith('#/agents/script')) {
     page = <ScriptAgentPage />;
   } else if (hash.startsWith('#/agents/voice')) {
-    page = <VoiceAgentPage />;
+    page = <VoiceAgentPage key={hash} />;
   } else if (hash.startsWith('#/agents/visual')) {
-    page = <VisualAgentPage />;
+    page = <VisualAgentPage key={hash} />;
   } else if (hash.startsWith('#/agents/scene')) {
     page = <SceneAgentPage />;
   } else if (hash.startsWith('#/agents/spline')) {
