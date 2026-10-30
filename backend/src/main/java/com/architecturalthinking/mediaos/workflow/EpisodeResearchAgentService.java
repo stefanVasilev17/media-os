@@ -129,8 +129,8 @@ public class EpisodeResearchAgentService {
         Map<String,Object> artifact = researchArtifact(proposal, prepared);
         String summary = proposal.summary();
         if (summary.length() > 1900) summary = summary.substring(0, 1900);
-        Map<String,Object> updated = workspace.draft(episodeId, "RESEARCH", artifact,
-                summary, expectedRevision, auditedPreflight);
+        Map<String,Object> updated = workspace.draftResearchForBrief(episodeId, artifact,
+                summary, expectedRevision, prepared.briefRevision(), auditedPreflight);
         return Map.of("episodeId", episodeId, "stage", "RESEARCH",
                 "status", "READY_FOR_REVIEW", "directorLocked", false,
                 "draftRevision", expectedRevision+1, "workspace", updated);
