@@ -63,3 +63,16 @@
   .episode-selector-row { grid-template-columns: 73px minmax(0,1fr) 22px; gap: 12px; padding: 24px 4px; }
   .episode-selector-id { font-size: 16px; }
 }
+
+.episode-selector-row.fully-locked {
+  border: 2px solid #4da978;
+  border-radius: 8px;
+  margin: 14px 0;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+.episode-selector-row.fully-locked:hover,
+.episode-selector-row.fully-locked:focus-visible {
+  border-color: #82d7a5;
+  background: #142d28;
+}
