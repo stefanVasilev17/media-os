@@ -40,16 +40,30 @@ public class ShotPromptContextService {
 
     public PreparedPrompt prepare(UUID episodeId, String shotKey, String directorMessage,
                                   String currentNarration) {
-        List<Map<String, Object>> rules = memory.rulesFor("ALL", episodeId);
-        Map<String, Object> policy = policies.current();
-        return assemble(episodeId, shotKey, directorMessage, currentNarration, policy, rules);
+        return prepareForStage(episodeId, "SHOT", shotKey, directorMessage, currentNarration);
     }
 
-    // Pure version for regression tests: no network or AI tokens.
+    public PreparedPrompt prepareForStage(UUID episodeId, String stageKey, String subject,
+                                          String creatorMessage, String sourceText) {
+        List<Map<String, Object>> rules = memory.rulesFor("ALL", episodeId);
+        Map<String, Object> policy = policies.current();
+        return assembleForStage(episodeId, stageKey, subject, creatorMessage, sourceText, policy, rules);
+    }
+
     static PreparedPrompt assemble(UUID episodeId, String shotKey, String directorMessage,
                                    String currentNarration, Map<String, Object> policy,
                                    List<Map<String, Object>> rules) {
-        if (episodeId == null || shotKey == null || shotKey.isBlank()
+        return assembleForStage(episodeId, "SHOT", shotKey, directorMessage,
+                currentNarration, policy, rules);
+    }
+
+    static PreparedPrompt assembleForStage(UUID episodeId, String stageKey, String subject,
+                                           String directorMessage, String currentNarration,
+                                           Map<String, Object> policy, List<Map<String, Object>> rules) {
+
+    // Pure version for regression tests: no network or AI tokens.
+        if (episodeId == null || subject == null || subject.isBlank()
+                || stageKey == null || stageKey.isBlank()
                 || directorMessage == null || directorMessage.isBlank()) {
             throw new IllegalArgumentException("Episode, shot and original Director request are required.");
         }
@@ -93,8 +107,7 @@ public class ShotPromptContextService {
             String scope = clean(rule.get("scope")).toUpperCase(Locale.ROOT);
             String severity = clean(rule.get("severity")).toUpperCase(Locale.ROOT);
             String content = clean(rule.get("content")).replaceAll("\\s+", " ");
-            if (id.isBlank() || content.isBlank() || !(scope.equals("ALL") || scope.equals("SCRIPT")
-                    || scope.equals("VOICE") || scope.equals("VISUAL"))) continue;
+            if (id.isBlank() || content.isBlank() || !relevantScope(stageKey, scope)) continue;
             if (!dedup.add(scope + "|" + content.toLowerCase(Locale.ROOT))) continue;
 
             String formatted = "- [" + id + "] " + scope + "/" + severity + ": " + content + "\n";
@@ -126,13 +139,24 @@ public class ShotPromptContextService {
                 Do not silently drop a required rule or invent a substitute.
 
                 EPISODE / SHOT:
-                """ + episodeId + " / " + shotKey + "\n" +
+                """ + episodeId + " / " + stageKey + " / " + subject + "\n" +
                 "CANONICAL POLICY v" + policyVersion + ":\n" + canonicalJson + "\n\n" +
                 "ACTIVE MANDATORY PRODUCTION MEMORY RULES:\n" + must +
                 (optionalCount == 0 ? "" : "\nRELEVANT ADDITIONAL RULES:\n" + optional) +
                 "\nEND OF MEDIAOS PRODUCTION CONTRACT.";
         return new PreparedPrompt(appendix, sha256(appendix), policyVersion,
                 requiredCount, optionalCount, appendix.length(), List.copyOf(ids));
+    }
+
+    private static boolean relevantScope(String stageKey, String ruleScope) {
+        if ("ALL".equals(ruleScope)) return true;
+        return switch (stageKey.toUpperCase(Locale.ROOT)) {
+            case "TOPIC" -> false;
+            case "TRUTH", "SCRIPT" -> "SCRIPT".equals(ruleScope);
+            case "SCENE", "SHOT", "DIRECTOR" ->
+                    "SCRIPT".equals(ruleScope) || "VOICE".equals(ruleScope) || "VISUAL".equals(ruleScope);
+            default -> throw new IllegalArgumentException("Unsupported generation stage: " + stageKey);
+        };
     }
 
     private static boolean relevant(Map<String, Object> rule, Set<String> words) {
