@@ -82,6 +82,9 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState<AgentPreview | null>(null);
   const [previewStage, setPreviewStage] = useState<PreparationStage | null>(null);
+  const [previewAction, setPreviewAction] = useState<'GENERATE' | 'REVISE'>('GENERATE');
+  const [revising, setRevising] = useState(false);
+  const [correction, setCorrection] = useState('');
   const [approvalNote, setApprovalNote] = useState('');
   const [approvalOpen, setApprovalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -120,6 +123,8 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
       await load();
       setPreview(null);
       setPreviewStage(null);
+      setRevising(false);
+      setCorrection('');
       setApprovalOpen(false);
       setApprovalNote('');
       setEditing(false);
@@ -144,12 +149,20 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
 
   async function requestPreview() {
     if (!currentStage || !current || busy) return;
+    const action = revising && currentStage !== 'RESEARCH' ? 'REVISE' : 'GENERATE';
+    const message = action === 'REVISE' ? correction.trim() : '';
+    if (action === 'REVISE' && !message) {
+      setError('Write the correction before preparing a revision.');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
-      const response = await episodePreparationApi.preview(episodeId,currentStage,current.revision);
+      const response = await episodePreparationApi.preview(
+        episodeId,currentStage,current.revision,action,message);
       setPreview(response);
       setPreviewStage(currentStage);
+      setPreviewAction(action);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
     } finally { setBusy(false); }
@@ -259,22 +272,43 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                 </p>}
 
                 {upstreamLocked && !approvalOpen && <>
+                  {readyToLock && stage !== 'RESEARCH' && !revising &&
+                    <button type="button" className="episode-preparation-secondary"
+                      onClick={() => { setRevising(true);setPreview(null);setPreviewStage(null); }}>
+                      Improve Draft
+                    </button>}
+                  {revising && stage !== 'RESEARCH' && <div className="episode-preparation-form">
+                    <label htmlFor="episode-creator-correction">Describe your correction</label>
+                    <textarea id="episode-creator-correction" rows={4} maxLength={6000}
+                      value={correction} onChange={event => {
+                        setCorrection(event.target.value);
+                        setPreview(null);setPreviewStage(null);
+                      }}
+                      placeholder="Пример: SHOT 04 трябва да обясни защо retry влошава проблема."/>
+                    <button type="button" className="episode-preparation-secondary"
+                      onClick={() => { setRevising(false);setCorrection('');
+                        setPreview(null);setPreviewStage(null); }}>Cancel revision</button>
+                  </div>}
                   <div className="episode-preparation-actions">
-                    {!preview || previewStage !== stage
-                      ? <button type="button" className="episode-preparation-secondary"
-                          disabled={busy} onClick={() => void requestPreview()}>
-                          Preview Generation
-                        </button>
-                      : <button type="button" className="episode-preparation-primary"
-                          disabled={busy || !preview.canRun || !preview.authorizationToken}
-                          onClick={() => void perform(() => episodePreparationApi.generate(
-                            episodeId,stage,item.revision,preview.authorizationToken!))}>
-                          Generate DRAFT (paid AI)
-                        </button>}
-                    {readyToLock && <button type="button" className="episode-preparation-secondary"
-                      disabled={busy} onClick={() => {
-                        setApprovalOpen(true);setPreview(null);setPreviewStage(null);
-                      }}>Review & Lock</button>}
+                    {(!readyToLock || revising || stage === 'RESEARCH') &&
+                      (!preview || previewStage !== stage
+                        ? <button type="button" className="episode-preparation-secondary"
+                            disabled={busy || (revising && !correction.trim())}
+                            onClick={() => void requestPreview()}>
+                            Preview {revising ? 'Revision' : 'Generation'}
+                          </button>
+                        : <button type="button" className="episode-preparation-primary"
+                            disabled={busy || !preview.canRun || !preview.authorizationToken}
+                            onClick={() => void perform(() => episodePreparationApi.generate(
+                              episodeId,stage,item.revision,preview.authorizationToken!,
+                              previewAction,previewAction === 'REVISE' ? correction.trim() : ''))}>
+                            {revising ? 'Generate Revision' : 'Generate Draft'} (paid AI)
+                          </button>)}
+                    {readyToLock && !revising &&
+                      <button type="button" className="episode-preparation-secondary"
+                        disabled={busy} onClick={() => {
+                          setApprovalOpen(true);setPreview(null);setPreviewStage(null);
+                        }}>Review & Lock</button>}
                   </div>
                   {preview && previewStage === stage && !preview.canRun &&
                     <p className="episode-preparation-message">{preview.blockers.join(' ')}</p>}
