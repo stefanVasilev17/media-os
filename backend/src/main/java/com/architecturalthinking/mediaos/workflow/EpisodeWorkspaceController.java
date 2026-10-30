@@ -39,13 +39,17 @@ public class EpisodeWorkspaceController {
             Map<String, Object> result = new java.util.LinkedHashMap<>(source);
             boolean allStagesLocked = Boolean.TRUE.equals(result.remove("allStagesLocked"));
             boolean complete = allStagesLocked
-                    && fullyLocked(director.overview((UUID) result.get("id")));
+                    && allShotsLocked(director.overview((UUID) result.get("id")));
             result.put("fullyLocked", complete);
             return result;
         }).toList();
     }
 
-    static boolean fullyLocked(Map<String, Object> overview) {
+    static boolean fullyLocked(boolean allStagesLocked, Map<String, Object> overview) {
+        return allStagesLocked && allShotsLocked(overview);
+    }
+
+    static boolean allShotsLocked(Map<String, Object> overview) {
         Object shots = overview.get("shots");
         if (!(shots instanceof List<?> items) || items.isEmpty()) return false;
         return items.stream().allMatch(shot -> {
