@@ -61,6 +61,30 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
     }
   }
 
+  const draftDirty = Boolean(state?.draft) && (
+    narration !== state!.draft!.narration ||
+    voice !== (state!.draft!.voiceDirection || 'calm, conversational, confident') ||
+    visual !== (state!.draft!.visualDirection || '') ||
+    changeSummary !== (state!.draft!.changeSummary || '')
+  );
+
+  async function approveAndOpenVoice() {
+    if (!state?.draft || busy || draftDirty) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const note = 'Director approved revised script and production handoff from Revision Chat for ' + shotKey + '.';
+      await shotRevisionApi.lock(episodeId, shotKey, state.draft.revision, note);
+      window.location.hash = '#/episodes/' + encodeURIComponent(episodeId)
+        + '/voice?shot=' + encodeURIComponent(shotKey);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function previewAi() {
     if (!state || !aiOn || !message.trim() || busy) return;
     setBusy(true);
@@ -144,6 +168,16 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
                   <div key={entry.createdAt + index} className={'shot-revision-message ' + entry.sender.toLowerCase()}>
                     <span>{entry.sender === 'USER' ? 'Director' : entry.sender === 'AGENT' ? 'OpenAI' : 'MediaOS'}</span>
                     <p>{entry.content}</p>
+                    {entry.sender === 'AGENT' && index === state.messages.length - 1 && state.draft && (
+                      <div className="shot-revision-chat-approval">
+                        <p>Review this proposed English narration. Approving it makes the saved DRAFT the active
+                          shot revision and opens the exact Voice screen. It does not generate audio.</p>
+                        <button type="button" disabled={!canEdit || draftDirty}
+                          onClick={() => void approveAndOpenVoice()}>
+                          <CheckCircle2 size={16} /> Approve → Open Voice
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -207,7 +241,15 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
                 </button>
               </div>
               <hr className="shot-revision-divider" />
-              <label className="shot-revision-label" htmlFor="shot-revision-lock-note">Director approval note</label>
+              {state.draft && <button type="button" className="shot-revision-lock"
+                disabled={!canEdit || draftDirty}
+                onClick={() => void approveAndOpenVoice()}>
+                <CheckCircle2 size={16} /> Approve → Open Voice
+              </button>}
+              {state.draft && draftDirty && <p className="shot-revision-explain">
+                Save your editor changes as a new DRAFT before approval. Unsaved edits are never published.
+              </p>}
+              <label className="shot-revision-label" htmlFor="shot-revision-lock-note">Optional detailed Director LOCK note</label>
               <textarea id="shot-revision-lock-note" rows={3} value={lockNote}
                 disabled={!canEdit || !state.draft} onChange={event => setLockNote(event.target.value)}
                 placeholder="I approve this narration and the matching Voice/Visual plan." />
