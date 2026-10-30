@@ -22,11 +22,23 @@ public class EpisodeResearchAgentController {
     }
 
     public record Request(@NotNull @Min(0) Integer expectedRevision) {}
+    public record SourcesRequest(@NotNull @Min(1) Integer expectedRevision,
+                                 @NotNull String sources) {}
 
     @PostMapping("/preview")
     public Map<String,Object> preview(@PathVariable UUID episodeId,
                                       @Valid @RequestBody Request request) {
         return agent.preview(episodeId, request.expectedRevision());
+    }
+
+    @PutMapping("/sources")
+    public Map<String,Object> sources(@PathVariable UUID episodeId,
+                                      @Valid @RequestBody SourcesRequest req,
+                                      HttpServletRequest http) {
+        Object preflight = http.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
+        if (!(preflight instanceof Map<?,?> audit) || !(audit.get("auditId") instanceof UUID auditId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Audited Director action required.");
+        return agent.attachSources(episodeId, req.expectedRevision(),req.sources(),auditId);
     }
 
     @PostMapping("/run")
