@@ -58,9 +58,11 @@ public class EpisodeBuildAgentClient {
                 "TOPIC", "TOPIC_CANDIDATES",
                 "Suggest evergreen architecture topics with high reuse and human/business relevance.", "")
                 .appendix();
+        Map<String, Object> compact = new LinkedHashMap<>(context);
+        compact.remove("productionMemory");
         return request(
                 "topic_candidates",
-                topicInstructions(context) + System.lineSeparator().repeat(2) + rules,
+                topicInstructions(compact) + System.lineSeparator().repeat(2) + rules,
                 topicFormat(),
                 TopicBatch.class,
                 9000
@@ -72,9 +74,11 @@ public class EpisodeBuildAgentClient {
         String rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
                 "TRUTH", "RESEARCH_TRUTH_AUDIT",
                 "Audit the technical truth for the selected episode.", topic).appendix();
+        Map<String, Object> compact = new LinkedHashMap<>(context);
+        compact.remove("productionMemory");
         return request(
                 "truth_audit",
-                truthInstructions(context) + System.lineSeparator().repeat(2) + rules,
+                truthInstructions(compact) + System.lineSeparator().repeat(2) + rules,
                 truthFormat(),
                 TruthAudit.class,
                 9000
