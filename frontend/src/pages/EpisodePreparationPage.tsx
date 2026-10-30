@@ -78,6 +78,7 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
   const [idea, setIdea] = useState('');
   const [sources, setSources] = useState('');
   const [amendedSources, setAmendedSources] = useState('');
+  const [scopeBoundary, setScopeBoundary] = useState('');
   const [editing, setEditing] = useState(false);
   const [preview, setPreview] = useState<AgentPreview | null>(null);
   const [previewStage, setPreviewStage] = useState<PreparationStage | null>(null);
@@ -138,6 +139,7 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
   const readyToLock = current?.status === 'READY_FOR_REVIEW' && (current.revision || 0) > 0;
   const researchSources = listValue(context?.stages.find(item => item.stageKey === 'RESEARCH')?.artifact?.technicalSources);
   const hasSources = researchSources.length > 0;
+  const hasBoundary = listValue(context?.stages.find(item => item.stageKey === 'RESEARCH')?.artifact?.outOfScope).length > 0;
   const canApprove = readyToLock && approvalNote.trim().length >= 10;
 
   async function requestPreview() {
@@ -232,6 +234,26 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                       disabled={busy || !amendedSources.trim()}>Save references (no AI cost)</button>
                   </form>}
                 </>}
+                {stage === 'RESEARCH' && item.revision > 0 && !hasBoundary && <>
+                  <p className="episode-preparation-message">
+                    Define at least one topic outside this episode's scope before approval.
+                  </p>
+                  <form className="episode-preparation-form"
+                    onSubmit={event => {
+                      event.preventDefault();
+                      const boundaries = scopeBoundary.split('\n').map(x => x.trim()).filter(Boolean);
+                      if (boundaries.length === 0) return;
+                      void perform(() => episodePreparationApi.saveResearchBoundaries(
+                        episodeId,item.artifact,item.summary,item.revision,boundaries));
+                    }}>
+                    <label htmlFor="research-scope-boundary">Out-of-scope boundaries</label>
+                    <textarea id="research-scope-boundary" rows={3} value={scopeBoundary}
+                      onChange={event => setScopeBoundary(event.target.value)}
+                      placeholder="One clear topic we will not explain in this episode."/>
+                    <button type="submit" className="episode-preparation-primary"
+                      disabled={busy || !scopeBoundary.trim()}>Save boundaries (no AI cost)</button>
+                  </form>
+                </>}
                 {!upstreamLocked && <p className="episode-preparation-message">
                   Approve {upstream} before generating this stage.
                 </p>}
@@ -266,7 +288,7 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                     placeholder="Кои факти и резултати провери и одобряваш?" />
                   <div className="episode-preparation-actions">
                     <button type="button" className="episode-preparation-primary"
-                      disabled={!canApprove || busy || (stage === 'RESEARCH' && !hasSources)}
+                      disabled={!canApprove || busy || (stage === 'RESEARCH' && (!hasSources || !hasBoundary))}
                       onClick={() => void perform(() => episodePreparationApi.approveStage(
                         episodeId,stage,item.revision,approvalNote))}>Director LOCK</button>
                     <button type="button" className="episode-preparation-secondary"
