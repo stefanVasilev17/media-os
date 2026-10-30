@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, FolderOpen, LoaderCircle, RefreshCw, BookOpenCheck } from 'lucide-react';
+import { ArrowRight, FolderOpen, LoaderCircle, RefreshCw, BookOpenCheck, MessageSquareText } from 'lucide-react';
 import { listEpisodeWorkspaces, type EpisodeSummary } from '../api/episodeWorkspaceApi';
 import { episodeDirectorRoute } from '../api/episodeDirectorApi';
 import '../styles/episodeDirectorHub.css';
@@ -63,6 +63,11 @@ export function EpisodeSelectorPage() {
         <button type="button" className="episode-hub-secondary"
           onClick={() => { window.location.hash = '#/memory-import'; }}>
           <BookOpenCheck size={17} /> Production Memory — Import & Review
+        </button>
+        <button type="button" className="episode-hub-secondary"
+          style={{ marginLeft: 9 }}
+          onClick={() => { window.location.hash = '#/rule-studio'; }}>
+          <MessageSquareText size={17} /> Rule Studio — Write a rule with AI
         </button>
       </div>
       <p className="episode-hub-footnote">
