@@ -147,11 +147,6 @@ export function DirectorRuleStudioPage() {
       {accessOpen && <section className="rule-studio-disclosure" aria-label="Director access">
         <h2>Director access</h2>
         <div className="rule-studio-field">
-          <label htmlFor="rule-studio-reviewer">Reviewer</label>
-          <input id="rule-studio-reviewer" value={reviewer} maxLength={120}
-            onChange={event => setReviewer(event.target.value)} />
-        </div>
-        <div className="rule-studio-field">
           <label htmlFor="rule-studio-secret">Director authorization</label>
           <input id="rule-studio-secret" type="password" autoComplete="off"
             value={director} onChange={event => setDirector(event.target.value)} />
@@ -286,6 +281,11 @@ export function DirectorRuleStudioPage() {
 
         {reviewOpen && proposal.status === 'DRAFT' && <div className="rule-studio-review">
           <h3>{reviewDecision === 'APPROVE' ? 'Approve rule' : 'Reject rule'}</h3>
+          <div className="rule-studio-field">
+            <label htmlFor="rule-studio-reviewer">Reviewer</label>
+            <input id="rule-studio-reviewer" value={reviewer} maxLength={120}
+              onChange={event => setReviewer(event.target.value)} />
+          </div>
           <label className="rule-studio-checkbox">
             <input type="checkbox" checked={compared}
               onChange={event => setCompared(event.target.checked)} />
