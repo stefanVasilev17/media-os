@@ -37,7 +37,9 @@ export function EpisodeSelectorPage() {
         {[...episodes]
           .sort((a, b) => b.episodeNumber.localeCompare(a.episodeNumber, undefined, { numeric: true }))
           .map(episode => (
-          <button type="button" className="episode-selector-row"
+          <button type="button"
+            className={episode.fullyLocked ? 'episode-selector-row fully-locked' : 'episode-selector-row'}
+            aria-label={episode.episodeNumber + ' — ' + episode.title + (episode.fullyLocked ? ', fully locked' : '')}
             key={episode.id}
             onClick={() => { window.location.hash = episodeDirectorRoute(episode.id); }}>
             <span className="episode-selector-id">{episode.episodeNumber}</span>
