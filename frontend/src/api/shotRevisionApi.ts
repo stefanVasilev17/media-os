@@ -44,6 +44,12 @@ export type AiPreview = {
   requiresExplicitApproval: boolean;
   authorizationToken: string;
   authorizationExpiresAt: string;
+  canonicalPolicyVersion: string;
+  mandatoryRulesIncluded: number;
+  additionalRulesIncluded: number;
+  ruleContextCharacters: number;
+  contextFingerprint: string;
+  ruleIds: string[];
 };
 
 function url(episodeId: string, shotKey: string) {

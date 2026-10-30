@@ -157,7 +157,7 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
               </div>
               <p className="shot-revision-explain">
                 {aiOn
-                  ? 'Uses the configured OpenAI API, not this live ChatGPT conversation. Each paid request needs a fresh preview and confirmation.'
+                  ? 'Your message stays unchanged. MediaOS automatically adds the canonical production rules and relevant approved corrections before the first OpenAI API request. The current ChatGPT conversation is not directly connected. Each paid request needs preview and confirmation.'
                   : 'Manual notes only. No OpenAI requests or AI charges.'}
               </p>
               <div className="shot-revision-messages" aria-live="polite">
@@ -207,7 +207,18 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
               {aiOn && (!state.paidAiEnabled || !state.aiConfigured) && (
                 <p className="shot-revision-explain">OpenAI API or MediaOS Paid AI is currently disabled. Manual revision remains available when episode writes are enabled.</p>
               )}
-              {preview && <p className="shot-revision-explain">Model: {preview.model}. Up to {preview.estimatedMaxOutputTokens} output tokens; token expires at {preview.authorizationExpiresAt}. No generation has started.</p>}
+              {preview && (
+                <div className="shot-revision-quality">
+                  <strong>First-Pass Production Rules — included automatically</strong>
+                  <span className="episode-hub-status locked">CONTEXT READY</span>
+                  <p>Canonical policy: {preview.canonicalPolicyVersion}. Before your exact message is sent,
+                    the model receives {preview.mandatoryRulesIncluded} required Production Memory rules
+                    and {preview.additionalRulesIncluded} relevant additional rules.
+                    No extra AI request was needed to assemble this context.</p>
+                  <p>Model: {preview.model}. Up to {preview.estimatedMaxOutputTokens} output tokens.
+                    Authorization expires at {preview.authorizationExpiresAt}. Generation has not started.</p>
+                </div>
+              )}
             </section>
             <section className="shot-revision-panel">
               <div className="shot-revision-heading"><h2>Director Review</h2>
