@@ -87,12 +87,12 @@ public class EpisodeBuildAgentClient {
 
     public TruthAudit auditTruthForEpisode(java.util.UUID episodeId,
                                           Map<String, Object> context,
-                                          String sourceBrief) {
+                                          String mandatoryProductionRules) {
         if (episodeId == null || ProductionOverviewService.EPISODE_ID.equals(episodeId))
             throw new IllegalArgumentException("Scoped Research cannot use the protected EP001 build path.");
-        String canonicalRules = firstPass.prepareForStage(episodeId, "TRUTH",
-                "RESEARCH", "Prepare technical Research for the new episode.",
-                sourceBrief).appendix();
+        if (mandatoryProductionRules == null || mandatoryProductionRules.isBlank())
+            throw new IllegalStateException(
+                    "Paid Research requires the unchanged, preview-authorized First-Pass rule package.");
         Map<String,Object> compact = new LinkedHashMap<>(context);
         compact.remove("productionMemory");
         return request("episode_scoped_truth", truthInstructions(compact)
@@ -105,7 +105,7 @@ public class EpisodeBuildAgentClient {
                   technical sources before locking the Research artifact.
                   Only use the requested episode; no EP001 script, memory locks or context.
                   """
-                + System.lineSeparator().repeat(2) + canonicalRules,
+                + System.lineSeparator().repeat(2) + mandatoryProductionRules,
                 truthFormat(), TruthAudit.class, 9000);
     }
 
