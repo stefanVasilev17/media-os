@@ -28,21 +28,15 @@ export function EpisodeSelectorPage() {
     <main className="media-os-page episode-hub episode-selector-quiet">
       <header className="episode-selector-header">
         <h1>Episodes</h1>
-        <nav aria-label="Production settings" className="episode-selector-nav">
-          <button type="button" onClick={() => { window.location.hash = '#/rule-studio'; }}>
-            Rule Studio
-          </button>
-          <button type="button" onClick={() => { window.location.hash = '#/memory-import'; }}>
-            Import
-          </button>
-        </nav>
       </header>
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
       {busy && <p className="episode-selector-message">Loading episodes…</p>}
       {!busy && episodes.length === 0 &&
         <p className="episode-selector-message">No episodes yet.</p>}
       <section className="episode-selector-list" aria-label="Choose an episode">
-        {episodes.map(episode => (
+        {[...episodes]
+          .sort((a, b) => b.episodeNumber.localeCompare(a.episodeNumber, undefined, { numeric: true }))
+          .map(episode => (
           <button type="button" className="episode-selector-row"
             key={episode.id}
             onClick={() => { window.location.hash = episodeDirectorRoute(episode.id); }}>
