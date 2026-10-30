@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Clapperboard, Mic2 } from 'lucide-react';
 import { episodeDirectorRoute, shotRevisionRoute, getEpisodeDirectorOverview, type EpisodeDirectorOverview } from '../api/episodeDirectorApi';
 import '../styles/episodeDirectorHub.css';
+import '../styles/shotRevisionAgent.css';
 
 export function EpisodeShotWorkspacePage({
   episodeId,
