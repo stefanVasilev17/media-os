@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, CircleDot, Headphones, LoaderCircle, Mic2, RefreshCw } from 'lucide-react';
 import { episodeDirectorRoute, shotRevisionRoute } from '../api/episodeDirectorApi';
 import { episodeRevisionVoiceApi, type EpisodeRevisionVoice } from '../api/episodeRevisionVoiceApi';
+import { ActiveRuleStudioRules } from '../components/ActiveRuleStudioRules';
 import '../styles/episodeDirectorHub.css';
 import '../styles/shotRevisionAgent.css';
 
@@ -69,6 +70,7 @@ export function EpisodeRevisionVoicePage({ episodeId, shotKey }: { episodeId: st
             <div><span>Script revision</span><strong>v{voice.shotRevision}</strong></div>
             <div><span>Voice</span><strong>{voice.voiceApproved ? 'APPROVED' : 'PENDING'}</strong></div>
           </section>
+          <ActiveRuleStudioRules episodeId={episodeId} scope="VOICE" />
           <div className="shot-revision-layout">
             <section className="shot-revision-panel">
               <h2>Approved English narration</h2>
