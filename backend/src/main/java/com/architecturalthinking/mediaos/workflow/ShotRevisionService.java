@@ -78,6 +78,11 @@ public class ShotRevisionService {
         result.put("effectiveVisualDirection", c.approved() == null ? "" : c.approved().visualDirection());
         result.put("voiceVideoRequiresNewApproval", c.approved() != null);
         result.put("messages", messages(episodeId, shotKey));
+        var inspected = c.draft() != null ? c.draft() : c.approved();
+        result.put("qualityReport", quality.inspect(episodeId,
+                inspected == null ? c.originalNarration() : inspected.narration(),
+                inspected == null ? "" : inspected.voiceDirection(),
+                inspected == null ? "" : inspected.visualDirection()));
         result.put("autoAiGeneration", false);
         return result;
     }
