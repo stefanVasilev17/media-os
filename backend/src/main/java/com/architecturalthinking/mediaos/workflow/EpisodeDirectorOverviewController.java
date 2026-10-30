@@ -42,6 +42,7 @@ public class EpisodeDirectorOverviewController {
         private boolean videoDraft;
         private int lockedRevision;
         private String visualDirection = "";
+        private String voiceDirection = "";
 
         private Shot(String key) {
             this.key = key;
@@ -62,6 +63,7 @@ public class EpisodeDirectorOverviewController {
             out.put("videoHasDraft", videoDraft);
             out.put("shotRevision", lockedRevision);
             out.put("visualDirection", visualDirection);
+            out.put("voiceDirection", voiceDirection);
             return out;
         }
     }
@@ -181,7 +183,7 @@ public class EpisodeDirectorOverviewController {
         // An approved script correction supersedes old audio/render approvals only for
         // the Director status model. The previous recordings and LOCKs remain untouched.
         jdbc.sql("""
-                select distinct on (shot_key) shot_key,revision,narration,visual_direction
+                select distinct on (shot_key) shot_key,revision,narration,voice_direction,visual_direction
                 from episode_shot_revision
                 where episode_id=:episode and status='LOCKED'
                 order by shot_key,revision desc
@@ -193,6 +195,7 @@ public class EpisodeDirectorOverviewController {
                         shot.lockedRevision = rs.getInt("revision");
                         shot.narration = rs.getString("narration");
                         shot.visualDirection = rs.getString("visual_direction");
+                        shot.voiceDirection = rs.getString("voice_direction");
                     }
                     return key;
                 }).list();
