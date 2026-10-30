@@ -1,0 +1,39 @@
+.memory-import { max-width:1280px; }
+.memory-import-panel { background:#101f30; border:1px solid #284159; border-radius:14px; padding:22px; margin-bottom:18px; display:flex; flex-direction:column; gap:13px; }
+.memory-import-panel h2 { font-size:17px; margin:0; display:flex; align-items:center; gap:9px; }
+.memory-import-panel > p, .memory-import-detail > p { color:#adc2d6; font-size:13px; line-height:1.55; margin:0; overflow-wrap:anywhere; }
+.memory-import-panel input[type=file] { color:#c9ddee; border:1px dashed #456681; border-radius:9px; padding:13px; max-width:100%; }
+.memory-import-preview { border:1px solid #355d68; background:#152e35; padding:14px; border-radius:9px; display:flex; flex-direction:column; gap:7px; font-size:13px; }
+.memory-import-preview span, .memory-import-preview p { color:#aac7d1; margin:0; }
+.memory-import-credentials { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+.memory-import-credentials label { color:#b5cde3; font-size:12px; font-weight:700; display:flex; flex-direction:column; gap:6px; }
+.memory-import-credentials input, .memory-import-detail textarea { background:#0a1623; border:1px solid #385775; border-radius:8px; color:#e5f2ff; padding:11px 13px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; }
+.memory-import-primary, .memory-import-actions button { border-radius:9px; color:#edf6ff; font-size:12px; font-weight:750; cursor:pointer; border:1px solid #427ba6; background:#234763; padding:11px 13px; display:inline-flex; justify-content:center; align-items:center; gap:7px; }
+.memory-import-primary { align-self:flex-start; }
+.memory-import-primary:hover:not(:disabled), .memory-import-actions button:hover:not(:disabled) { background:#306287; }
+.memory-import-primary:disabled, .memory-import-actions button:disabled { opacity:.45; cursor:not-allowed; }
+.memory-import-warning { display:flex; align-items:flex-start; gap:7px; color:#ffd4a0 !important; border:1px solid #84572d; background:#33291e; padding:12px; border-radius:8px; }
+.memory-import-batches { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); }
+.memory-import-batch { display:flex; flex-direction:column; text-align:left; gap:7px; color:#d9e9f9; padding:13px; border-radius:10px; background:#14273b; border:1px solid #34516b; cursor:pointer; }
+.memory-import-batch.active, .memory-import-batch:hover { border-color:#79acd5; background:#1a344b; }
+.memory-import-batch span { color:#a0bad0; font-size:12px; }
+.memory-import-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:9px; }
+.memory-import-heading > span { font-size:12px; font-weight:700; color:#a6bdd3; }
+.memory-import-candidates { display:flex; flex-direction:column; gap:10px; }
+.memory-import-candidate { border:1px solid #2a4560; background:#0e1e30; border-radius:11px; padding:15px; }
+.memory-import-candidate > p { color:#e4ecf6; line-height:1.6; font-size:13px; margin:12px 0 4px; }
+.memory-import-candidate-toggle { width:100%; display:flex; justify-content:space-between; align-items:center; gap:9px; background:none; border:none; color:inherit; text-align:left; cursor:pointer; padding:0; }
+.memory-import-candidate-toggle > span:first-child { display:flex; flex-direction:column; gap:4px; }
+.memory-import-candidate-toggle strong { color:#b8d8f4; font-size:13px; }
+.memory-import-candidate-toggle small { color:#8fb1ce; font-size:11px; }
+.memory-import-detail { margin-top:15px; border-top:1px solid #324e68; padding-top:13px; display:flex; flex-direction:column; gap:12px; }
+.memory-import-detail code { word-break:break-all; font-size:11px; }
+.memory-import-overlap { background:#172a3e; border:1px solid #34516d; border-radius:8px; padding:10px; }
+.memory-import-overlap small { color:#8eb4d2; }
+.memory-import-overlap p { color:#dae7f5; line-height:1.55; font-size:12px; margin:6px 0 0; }
+.memory-import-compared { color:#cde0f0; font-size:12px; display:flex; gap:10px; align-items:flex-start; line-height:1.55; }
+.memory-import-compared input { accent-color:#66c29e; }
+.memory-import-actions { display:flex; gap:9px; flex-wrap:wrap; }
+.memory-import-actions button:last-child { background:#43282a; border-color:#824148; }
+.memory-import-actions button:last-child:hover:not(:disabled) { background:#64383c; }
+@media(max-width:750px){ .memory-import-panel { padding:15px; } .memory-import-credentials { grid-template-columns:1fr; } }
