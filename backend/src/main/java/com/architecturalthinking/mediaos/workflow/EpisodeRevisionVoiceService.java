@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -21,15 +23,17 @@ public class EpisodeRevisionVoiceService {
     private final EpisodeWorkspaceService episodes;
     private final ElevenLabsTextToSpeechService elevenLabs;
     private final ObjectMapper mapper;
+    private final TransactionTemplate transaction;
 
     public EpisodeRevisionVoiceService(JdbcClient jdbc, ShotRevisionService revisions,
                                        EpisodeWorkspaceService episodes, ElevenLabsTextToSpeechService elevenLabs,
-                                       ObjectMapper mapper) {
+                                       ObjectMapper mapper, PlatformTransactionManager transactionManager) {
         this.jdbc = jdbc;
         this.revisions = revisions;
         this.episodes = episodes;
         this.elevenLabs = elevenLabs;
         this.mapper = mapper;
+        this.transaction = new TransactionTemplate(transactionManager);
     }
 
     public Map<String, Object> state(UUID episodeId, String shotKey) {
@@ -90,12 +94,11 @@ public class EpisodeRevisionVoiceService {
         } catch (IllegalStateException error) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "ElevenLabs generation failed.", error);
         }
-        saveTake(episodeId, shotKey, expectedRevision, generated);
+        transaction.executeWithoutResult(status -> saveTake(episodeId, shotKey, expectedRevision, generated));
         return state(episodeId, shotKey);
     }
 
-    @Transactional
-    protected void saveTake(UUID episodeId, String shotKey, int expectedRevision,
+    private void saveTake(UUID episodeId, String shotKey, int expectedRevision,
                             ElevenLabsTextToSpeechService.GenerationResult generated) {
         // Changes during an external paid TTS request must never attach the result to a newer revision.
         jdbc.sql("select id from episode where id=:episode for update")
