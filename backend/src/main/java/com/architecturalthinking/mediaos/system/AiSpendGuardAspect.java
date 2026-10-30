@@ -3,6 +3,8 @@ package com.architecturalthinking.mediaos.system;
 import com.architecturalthinking.mediaos.director.DirectorAgentClient;
 import com.architecturalthinking.mediaos.director.EpisodeBuildAgentClient;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -25,13 +27,16 @@ public class AiSpendGuardAspect {
 
     private final AiRuntimePolicyService policyService;
     private final PreviewAuthorizationService previewAuthorization;
+    private final ShotPromptContextService firstPass;
 
     public AiSpendGuardAspect(
             AiRuntimePolicyService policyService,
-            PreviewAuthorizationService previewAuthorization
+            PreviewAuthorizationService previewAuthorization,
+            ShotPromptContextService firstPass
     ) {
         this.policyService = policyService;
         this.previewAuthorization = previewAuthorization;
+        this.firstPass = firstPass;
     }
 
     @Around("execution(public * com.architecturalthinking.mediaos.director.DirectorAgentClient.generate(..))")
@@ -49,6 +54,8 @@ public class AiSpendGuardAspect {
                 3000,
                 false,
                 previewAuthorization.directorPayload(mode, message)
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "DIRECTOR", "DIRECTOR", message, "").fingerprint()
         );
     }
 
@@ -63,6 +70,9 @@ public class AiSpendGuardAspect {
                 9000,
                 false,
                 previewAuthorization.topicPayload()
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "TOPIC", "TOPIC_CANDIDATES",
+                        "Suggest evergreen architecture topics with high reuse and human/business relevance.", "").fingerprint()
         );
     }
 
@@ -104,7 +114,12 @@ public class AiSpendGuardAspect {
                     episode, stage, action, message, draftRevision, upstreamRevision)
                     + "|RULES=" + ruleFingerprint;
         } else {
-            previewPayload = previewAuthorization.creativePayload(stage, action, message);
+            String request = message.isBlank()
+                    ? "Generate " + stage + " using the locked upstream context."
+                    : message;
+            previewPayload = previewAuthorization.creativePayload(stage, action, message)
+                    + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                    stage, stage, request, "").fingerprint();
         }
         return guardedCall(
                 joinPoint,
