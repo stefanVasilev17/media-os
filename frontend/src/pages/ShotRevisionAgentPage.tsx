@@ -69,7 +69,7 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
   );
 
   async function approveAndOpenVoice() {
-    if (!state?.draft || busy || draftDirty) return;
+    if (!state?.draft || busy || draftDirty || !state.qualityReport.passed) return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -172,7 +172,7 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
                       <div className="shot-revision-chat-approval">
                         <p>Review this proposed English narration. Approving it makes the saved DRAFT the active
                           shot revision and opens the exact Voice screen. It does not generate audio.</p>
-                        <button type="button" disabled={!canEdit || draftDirty}
+                        <button type="button" disabled={!canEdit || draftDirty || !state.qualityReport.passed}
                           onClick={() => void approveAndOpenVoice()}>
                           <CheckCircle2 size={16} /> Approve → Open Voice
                         </button>
@@ -216,6 +216,28 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
                   : state.approved
                     ? <span className="episode-hub-status locked"><CheckCircle2 size={14} /> LOCKED</span>
                     : <span className="episode-hub-status pending">NO REVISION</span>}
+              </div>
+              <div className="shot-revision-quality" role="status">
+                <strong>Regression Quality Gate</strong>
+                <span className={'episode-hub-status ' + (
+                  state.qualityReport.passed && state.qualityReport.assertionCount > 0 ? 'locked' : 'pending')}>
+                  {state.qualityReport.assertionCount === 0
+                    ? 'NO EXECUTABLE TESTS'
+                    : state.qualityReport.passed ? 'CHECKS PASSED' : 'BLOCKED'}
+                </span>
+                <p>{state.qualityReport.assertionCount} relevant deterministic assertion(s).
+                  {state.qualityReport.assertionCount === 0
+                    ? ' The system cannot prove that old mistakes are prevented until Director-approved regression rules are registered.'
+                    : state.qualityReport.passed
+                      ? ' Automated checks passed. Editorial and technical meaning still need Director review.'
+                      : ' Existing or newly approved rules reject this saved candidate.'}
+                </p>
+                {!state.qualityReport.passed && state.qualityReport.violations.map(issue => (
+                  <p key={issue.assertionId} className="episode-hub-error">
+                    {issue.target}: {issue.predicate} — “{issue.literalValue}”
+                    (Production Memory {issue.memoryRuleId})
+                  </p>
+                ))}
               </div>
               <p className="shot-revision-explain">The original locked Script stays intact. You are editing a new shot revision.</p>
               <label className="shot-revision-label" htmlFor="shot-revision-narration">Full English narration</label>
