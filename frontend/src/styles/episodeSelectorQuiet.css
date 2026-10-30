@@ -76,3 +76,6 @@
   border-color: #82d7a5;
   background: #142d28;
 }
+
+.episode-selector-create { background:#254e6f; border:1px solid #4b7896; border-radius:9px; padding:12px 20px; font-size:16px; font-weight:600; color:white; cursor:pointer; }
+.episode-selector-create:hover { background:#32658e; }
