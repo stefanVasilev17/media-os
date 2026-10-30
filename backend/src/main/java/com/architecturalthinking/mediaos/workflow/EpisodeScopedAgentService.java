@@ -28,16 +28,18 @@ public class EpisodeScopedAgentService {
     private final CreativeAgentClient creative;
     private final AiRuntimePolicyService aiPolicy;
     private final PreviewAuthorizationService previewAuthorization;
+    private final ShotPromptContextService firstPass;
 
     public EpisodeScopedAgentService(EpisodeWorkspaceService workspace, CreativeAgentClient creative,
                                      AiRuntimePolicyService aiPolicy,
                                      PreviewAuthorizationService previewAuthorization,
-                                     EpisodeLearningService learning) {
+                                     EpisodeLearningService learning, ShotPromptContextService firstPass) {
         this.workspace = workspace;
         this.learning = learning;
         this.creative = creative;
         this.aiPolicy = aiPolicy;
         this.previewAuthorization = previewAuthorization;
+        this.firstPass = firstPass;
     }
 
     public Map<String, Object> preview(UUID episodeId, String rawStage, String rawAction,
@@ -64,12 +66,16 @@ public class EpisodeScopedAgentService {
         result.put("maxOutputTokens", "SCRIPT".equals(run.stage()) ? 14000 : 12000);
         result.put("automaticDirectorLock", false);
         result.put("contextRuleCount", run.ruleCount());
+        result.put("firstPassMandatoryRules", run.firstPass().mandatoryRuleCount());
+        result.put("firstPassAdditionalRules", run.firstPass().optionalRuleCount());
+        result.put("firstPassFingerprint", run.firstPass().fingerprint());
         result.put("contextApprovedAssetCount", run.assetCount());
 
         if (blockers.isEmpty()) {
             var issued = previewAuthorization.issue(run.operation(),
                     previewAuthorization.episodeCreativePayload(episodeId, run.stage(), run.action(),
-                            run.message(), expectedRevision, run.upstreamRevision()));
+                            run.message(), expectedRevision, run.upstreamRevision())
+                            + "|RULES=" + run.firstPass().fingerprint());
             result.put("authorizationToken", issued.token());
             result.put("authorizationExpiresAt", issued.expiresAt());
             result.put("authorizationSingleUse", true);
@@ -189,8 +195,16 @@ public class EpisodeScopedAgentService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Required Production Memory or approved asset catalog is unavailable.");
 
+        String effectiveRequest = prompt.isBlank()
+                ? "Create the complete " + stage + " artifact from the authoritative locked upstream handoff."
+                : prompt;
+        var compiled = firstPass.prepareForStage(id, stage, stage, effectiveRequest,
+                String.valueOf(stageRow.getOrDefault("summary", "")));
+        authoritative.put("firstPassPromptAppendix", compiled.appendix());
+        authoritative.put("scopedQualityContextHash", compiled.fingerprint());
+
         return new Prepared(stage, action, prompt, stage + "_" + action, upstream,
-                priorRevision, ruleCount, assetCount, authoritative);
+                priorRevision, ruleCount, assetCount, authoritative, compiled);
     }
 
     private Map<String, Object> stage(Map<String, Object> context, String key) {
@@ -211,5 +225,6 @@ public class EpisodeScopedAgentService {
 
     private record Prepared(String stage, String action, String message, String operation,
                             String upstreamStage, int upstreamRevision, int ruleCount,
-                            int assetCount, Map<String, Object> modelContext) {}
+                            int assetCount, Map<String, Object> modelContext,
+                            ShotPromptContextService.PreparedPrompt firstPass) {}
 }

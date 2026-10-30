@@ -4,6 +4,7 @@ import com.architecturalthinking.mediaos.director.DirectorAgentClient;
 import com.architecturalthinking.mediaos.director.EpisodeBuildAgentClient;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ public class AgentActionPreviewController {
     private final DirectorAgentClient directorAgent;
     private final EpisodeBuildAgentClient buildAgent;
     private final CreativeAgentClient creativeAgent;
+    private final ShotPromptContextService firstPass;
 
     public AgentActionPreviewController(
             JdbcClient jdbc,
@@ -39,7 +41,8 @@ public class AgentActionPreviewController {
             PreviewAuthorizationService previewAuthorization,
             DirectorAgentClient directorAgent,
             EpisodeBuildAgentClient buildAgent,
-            CreativeAgentClient creativeAgent
+            CreativeAgentClient creativeAgent,
+            ShotPromptContextService firstPass
     ) {
         this.jdbc = jdbc;
         this.aiPolicy = aiPolicy;
@@ -47,6 +50,7 @@ public class AgentActionPreviewController {
         this.directorAgent = directorAgent;
         this.buildAgent = buildAgent;
         this.creativeAgent = creativeAgent;
+        this.firstPass = firstPass;
     }
 
     public record DirectorPreviewRequest(
@@ -96,7 +100,11 @@ public class AgentActionPreviewController {
                 "Does not spend anything during this preview."
         ));
         result.put("locksAutomatically", false);
-        attachAuthorization(result, blockers, operation, previewAuthorization.directorPayload(mode, message));
+        var rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                "DIRECTOR", "DIRECTOR", message.isBlank() ? "Review the current production status." : message, "");
+        addRulesSummary(result, rules);
+        attachAuthorization(result, blockers, operation,
+                previewAuthorization.directorPayload(mode, message) + "|RULES=" + rules.fingerprint());
         return result;
     }
 
@@ -146,7 +154,13 @@ public class AgentActionPreviewController {
                 "Does not lock the stage automatically."
         ));
         result.put("locksAutomatically", false);
-        attachAuthorization(result, blockers, operation, previewAuthorization.creativePayload(key, action, message));
+        String request = message.isBlank()
+                ? "Generate " + key + " using the locked upstream context."
+                : message;
+        var rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID, key, key, request, "");
+        addRulesSummary(result, rules);
+        attachAuthorization(result, blockers, operation,
+                previewAuthorization.creativePayload(key, action, message) + "|RULES=" + rules.fingerprint());
         return result;
     }
 
@@ -181,8 +195,21 @@ public class AgentActionPreviewController {
                 "Does not change the current episode or lock a decision."
         ));
         result.put("locksAutomatically", false);
-        attachAuthorization(result, blockers, operation, previewAuthorization.topicPayload());
+        var rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                "TOPIC", "TOPIC_CANDIDATES",
+                "Suggest evergreen architecture topics with high reuse and human/business relevance.", "");
+        addRulesSummary(result, rules);
+        attachAuthorization(result, blockers, operation,
+                previewAuthorization.topicPayload() + "|RULES=" + rules.fingerprint());
         return result;
+    }
+
+    private void addRulesSummary(Map<String, Object> preview, ShotPromptContextService.PreparedPrompt rules) {
+        preview.put("canonicalPolicyVersion", rules.policyVersion());
+        preview.put("mandatoryRulesIncluded", rules.mandatoryRuleCount());
+        preview.put("additionalRulesIncluded", rules.optionalRuleCount());
+        preview.put("ruleContextCharacters", rules.promptCharacters());
+        preview.put("ruleFingerprint", rules.fingerprint());
     }
 
     private void attachAuthorization(

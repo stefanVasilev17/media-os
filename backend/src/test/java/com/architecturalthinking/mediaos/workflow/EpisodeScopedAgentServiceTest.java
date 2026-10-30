@@ -24,10 +24,15 @@ class EpisodeScopedAgentServiceTest {
     private final AiRuntimePolicyService policy = mock(AiRuntimePolicyService.class);
     private final PreviewAuthorizationService tokens = mock(PreviewAuthorizationService.class);
     private final EpisodeLearningService learning = mock(EpisodeLearningService.class);
-    private final EpisodeScopedAgentService agent = new EpisodeScopedAgentService(workspace, creative, policy, tokens, learning);
+    private final ShotPromptContextService firstPass = mock(ShotPromptContextService.class);
+    private final EpisodeScopedAgentService agent = new EpisodeScopedAgentService(workspace, creative, policy, tokens, learning, firstPass);
 
     @BeforeEach
     void readyWorkspace() {
+        when(firstPass.prepareForStage(eq(ep2), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(new ShotPromptContextService.PreparedPrompt(
+                        "MANDATORY RULES FOR THIS EPISODE", "test-policy-hash", "canonical-v1",
+                        4, 2, 32, List.of("R1", "R2")));
         when(workspace.writesEnabled()).thenReturn(true);
         when(workspace.context(eq(ep2), anyString())).thenReturn(Map.of(
                 "episode", Map.of("id", ep2, "episodeNumber", "EP002"),
@@ -67,7 +72,7 @@ class EpisodeScopedAgentServiceTest {
         var issued = new PreviewAuthorizationService.IssuedAuthorization(token, OffsetDateTime.now().plusMinutes(5));
         when(tokens.episodeCreativePayload(ep2, "SCRIPT", "GENERATE", "", 0, 1))
                 .thenReturn("SCOPED_PAYLOAD_FOR_EP002");
-        when(tokens.issue("SCRIPT_GENERATE", "SCOPED_PAYLOAD_FOR_EP002")).thenReturn(issued);
+        when(tokens.issue("SCRIPT_GENERATE", "SCOPED_PAYLOAD_FOR_EP002|RULES=test-policy-hash")).thenReturn(issued);
 
         var result = agent.preview(ep2, "SCRIPT", "GENERATE", "", 0);
 
@@ -75,6 +80,9 @@ class EpisodeScopedAgentServiceTest {
         assertThat(result.get("authorizationToken")).isEqualTo(token);
         assertThat(result.get("episodeId")).isEqualTo(ep2);
         verify(tokens).episodeCreativePayload(ep2, "SCRIPT", "GENERATE", "", 0, 1);
+        assertThat(result.get("firstPassFingerprint")).isEqualTo("test-policy-hash");
+        assertThat(result.get("firstPassMandatoryRules")).isEqualTo(4);
+        verify(tokens).issue("SCRIPT_GENERATE", "SCOPED_PAYLOAD_FOR_EP002|RULES=test-policy-hash");
         verify(creative, never()).generate(any(), any(), any(), any());
     }
 

@@ -3,6 +3,8 @@ package com.architecturalthinking.mediaos.system;
 import com.architecturalthinking.mediaos.director.DirectorAgentClient;
 import com.architecturalthinking.mediaos.director.EpisodeBuildAgentClient;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -25,13 +27,16 @@ public class AiSpendGuardAspect {
 
     private final AiRuntimePolicyService policyService;
     private final PreviewAuthorizationService previewAuthorization;
+    private final ShotPromptContextService firstPass;
 
     public AiSpendGuardAspect(
             AiRuntimePolicyService policyService,
-            PreviewAuthorizationService previewAuthorization
+            PreviewAuthorizationService previewAuthorization,
+            ShotPromptContextService firstPass
     ) {
         this.policyService = policyService;
         this.previewAuthorization = previewAuthorization;
+        this.firstPass = firstPass;
     }
 
     @Around("execution(public * com.architecturalthinking.mediaos.director.DirectorAgentClient.generate(..))")
@@ -49,6 +54,8 @@ public class AiSpendGuardAspect {
                 3000,
                 false,
                 previewAuthorization.directorPayload(mode, message)
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "DIRECTOR", "DIRECTOR", message, "").fingerprint()
         );
     }
 
@@ -63,6 +70,9 @@ public class AiSpendGuardAspect {
                 9000,
                 false,
                 previewAuthorization.topicPayload()
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "TOPIC", "TOPIC_CANDIDATES",
+                        "Suggest evergreen architecture topics with high reuse and human/business relevance.", "").fingerprint()
         );
     }
 
@@ -97,10 +107,31 @@ public class AiSpendGuardAspect {
             UUID episode = UUID.fromString(String.valueOf(context.get("scopedEpisodeId")));
             int draftRevision = ((Number) context.get("scopedExpectedRevision")).intValue();
             int upstreamRevision = ((Number) context.get("scopedUpstreamRevision")).intValue();
+            String ruleFingerprint = String.valueOf(context.getOrDefault("scopedQualityContextHash", ""));
+            if (ruleFingerprint.isBlank()) throw new ResponseStatusException(CONFLICT,
+                    "Episode-scoped creative generation must include a verified first-pass Production Memory fingerprint.");
+            String source = "";
+            if (context.get("currentStage") instanceof Map<?, ?> stageData && stageData.get("summary") != null) {
+                source = String.valueOf(stageData.get("summary"));
+            }
+            String effectiveRequest = message.isBlank()
+                    ? "Create the complete " + stage.toUpperCase() + " artifact from the authoritative locked upstream handoff."
+                    : message;
+            String refreshed = firstPass.prepareForStage(episode, stage.toUpperCase(), stage.toUpperCase(),
+                    effectiveRequest, source).fingerprint();
+            if (!refreshed.equals(ruleFingerprint))
+                throw new ResponseStatusException(CONFLICT,
+                        "Production Memory changed since Preview. Regenerate the zero-token preview before a paid request.");
             previewPayload = previewAuthorization.episodeCreativePayload(
-                    episode, stage, action, message, draftRevision, upstreamRevision);
+                    episode, stage, action, message, draftRevision, upstreamRevision)
+                    + "|RULES=" + ruleFingerprint;
         } else {
-            previewPayload = previewAuthorization.creativePayload(stage, action, message);
+            String request = message.isBlank()
+                    ? "Generate " + stage + " using the locked upstream context."
+                    : message;
+            previewPayload = previewAuthorization.creativePayload(stage, action, message)
+                    + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                    stage, stage, request, "").fingerprint();
         }
         return guardedCall(
                 joinPoint,
