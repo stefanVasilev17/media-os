@@ -51,7 +51,7 @@ public class EpisodeDirectorOverviewController {
             out.put("title", title);
             out.put("startSecond", startSecond);
             out.put("endSecond", endSecond);
-            out.put("voiceStatus", voiceTotal > 0 && voiceApproved == voiceTotal ? "LOCKED" : "PENDING");
+            out.put("voiceStatus", voiceStatus(voiceTotal, voiceApproved));
             out.put("videoStatus", videoLocked ? "LOCKED" : "PENDING");
             out.put("voiceProgress", voiceApproved + "/" + voiceTotal);
             out.put("voiceHasDraft", voiceGenerated);
@@ -200,7 +200,11 @@ public class EpisodeDirectorOverviewController {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
-    private static String shotKey(Object candidate) {
+    static String voiceStatus(int total, int approved) {
+        return total > 0 && approved == total ? "LOCKED" : "PENDING";
+    }
+
+    static String shotKey(Object candidate) {
         Matcher match = SHOT_KEY.matcher(string(candidate));
         if (!match.matches()) return null;
         int number = Integer.parseInt(match.group(1));
