@@ -61,20 +61,23 @@ export const episodePreparationApi = {
       'PUT',{ brief, sources, expectedRevision }),
   context: (id: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id) + '/context?scope=ALL'),
-  preview: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE', expectedRevision: number) => {
+  preview: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE',
+            expectedRevision: number, action: 'GENERATE' | 'REVISE' = 'GENERATE',
+            message = '') => {
     const base = '/api/v1/episodes/' + encodeURIComponent(id);
     return stage === 'RESEARCH'
       ? request<AgentPreview>(base + '/research/preview','POST',{ expectedRevision })
       : request<AgentPreview>(base + '/agents/' + stage.toLowerCase() + '/preview',
-          'POST',{ action:'GENERATE',expectedRevision,message:'' });
+          'POST',{ action,expectedRevision,message });
   },
   generate: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE',
-             expectedRevision: number, previewToken: string) => {
+             expectedRevision: number, previewToken: string,
+             action: 'GENERATE' | 'REVISE' = 'GENERATE', message = '') => {
     const base = '/api/v1/episodes/' + encodeURIComponent(id);
     return stage === 'RESEARCH'
       ? request<unknown>(base + '/research/run','POST',{ expectedRevision },previewToken)
       : request<unknown>(base + '/agents/' + stage.toLowerCase() + '/run','POST',
-          { action:'GENERATE',expectedRevision,message:'' },previewToken);
+          { action,expectedRevision,message },previewToken);
   },
   saveResearchBoundaries: (
     id: string, artifact: Record<string, unknown>, summary: string,
