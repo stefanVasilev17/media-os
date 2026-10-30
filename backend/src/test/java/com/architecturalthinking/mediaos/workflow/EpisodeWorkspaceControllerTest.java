@@ -14,7 +14,7 @@ class EpisodeWorkspaceControllerTest {
 
     @Test
     void fullyLockedRequiresAtLeastOneShotAndEveryVoiceAndVideoLocked() {
-        assertFalse(EpisodeWorkspaceController.fullyLocked(Map.of("shots", List.of())));
+        assertFalse(EpisodeWorkspaceController.fullyLocked(true, Map.of("shots", List.of())));
         assertTrue(EpisodeWorkspaceController.fullyLocked(Map.of(
                 "shots", List.of(shot("LOCKED", "LOCKED"), shot("LOCKED", "LOCKED")))));
         assertFalse(EpisodeWorkspaceController.fullyLocked(Map.of(
