@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { AppBottomNav } from './components/AppBottomNav';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
+import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
 import { EpisodeDirectorPage } from './pages/EpisodeDirectorPage';
 import { EpisodeShotWorkspacePage } from './pages/EpisodeShotWorkspacePage';
 import { ShotRevisionAgentPage } from './pages/ShotRevisionAgentPage';
@@ -77,7 +78,9 @@ export function App() {
   const shotKey = routeParams.get('shot') || '';
   let page: ReactNode;
 
-  if (hash.startsWith('#/memory-import')) {
+  if (hash.startsWith('#/rule-studio')) {
+    page = <DirectorRuleStudioPage />;
+  } else if (hash.startsWith('#/memory-import')) {
     page = <ProductionMemoryImportPage />;
   } else if (episodeId && section === 'revision') {
     page = <ShotRevisionAgentPage key={hash} episodeId={episodeId} shotKey={shotKey} />;
