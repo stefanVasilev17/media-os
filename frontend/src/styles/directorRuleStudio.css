@@ -1,0 +1,38 @@
+.rule-studio {max-width:1420px}
+.rule-studio-columns{display:grid;grid-template-columns:minmax(320px,0.93fr) minmax(380px,1.07fr);gap:18px;align-items:start}
+.rule-studio-panel{display:flex;flex-direction:column;gap:13px;padding:22px;border:1px solid #294159;border-radius:13px;background:#101f30;color:#e5effc}
+.rule-studio-panel h2{font-size:17px;margin:0;display:flex;gap:9px;align-items:center}
+.rule-studio-panel label:not(.rule-studio-toggle):not(.rule-studio-compared){display:flex;flex-direction:column;gap:7px;color:#b4cadf;font-size:12px;font-weight:700}
+.rule-studio-panel textarea,.rule-studio-panel input:not([type=checkbox]),.rule-studio-panel select{width:100%;box-sizing:border-box;border:1px solid #365571;border-radius:9px;color:#eaf4ff;background:#0a1828;padding:11px 12px;font-size:13px;font-family:inherit;line-height:1.58}
+.rule-studio-panel textarea{resize:vertical}
+.rule-studio-panel input:focus-visible,.rule-studio-panel textarea:focus-visible,.rule-studio-panel select:focus-visible{outline:2px solid #88bce4;outline-offset:2px}
+.rule-studio-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rule-studio-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border:1px solid #50758d;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:800}
+.rule-studio-toggle input,.rule-studio-compared input{accent-color:#62b4ed}
+.rule-studio-message{border-radius:11px;border:1px solid #36546d;padding:14px}
+.rule-studio-message.director{background:#162c42}
+.rule-studio-message.agent{background:#132e32;border-color:#38706c}
+.rule-studio-message>span{font-size:10px;font-weight:800;letter-spacing:.1em;color:#9cc1e1;display:flex;align-items:center;gap:6px}
+.rule-studio-message.agent>p{font-size:13px;color:#e5f1f1;line-height:1.62;white-space:pre-wrap}
+.rule-studio-message.agent>strong{font-size:11px;color:#afdccf;letter-spacing:.06em}
+.rule-studio-message blockquote{font-size:14px;line-height:1.7;color:#fff;border-left:3px solid #67c7a4;padding:12px 14px;margin:12px 0;background:#1a4140;border-radius:5px;white-space:pre-wrap}
+.rule-studio-muted{color:#9caec1;font-size:12px;line-height:1.55;margin:0}
+.rule-studio-warning{color:#ffdcad;background:#382b1d;border:1px solid #8a6434;border-radius:9px;padding:12px;font-size:12px;line-height:1.55}
+.rule-studio-notice{color:#b9ead4;background:#19362c;border:1px solid #418464;border-radius:9px;padding:12px;font-size:13px}
+.rule-studio-context{background:#13283c;border:1px solid #315273;border-radius:9px;padding:13px;color:#d2e4f6}
+.rule-studio-context strong{font-size:13px}
+.rule-studio-context p{font-size:12px;line-height:1.6;margin:8px 0 0;color:#bacddd}
+.rule-studio-context small{color:#84b7d5}
+.rule-studio-context button{margin-top:10px;border-radius:7px;border:1px solid #416e90;background:#1b3f5b;color:#ebf5ff;cursor:pointer;padding:8px}
+.rule-studio-actions{display:flex;gap:9px;flex-wrap:wrap}
+.rule-studio-actions button,.rule-studio-primary{border:1px solid #4880a5;border-radius:9px;background:#234663;color:#eff8ff;padding:10px 12px;font-size:12px;font-weight:750;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.rule-studio-actions button:hover:not(:disabled),.rule-studio-primary:hover:not(:disabled){background:#30678a}
+.rule-studio-actions button:disabled,.rule-studio-primary:disabled{cursor:not-allowed;opacity:.45}
+.rule-studio-actions .rule-studio-primary{background:#215942;border-color:#408d67}
+.rule-studio-compared{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#c4daec;line-height:1.55;cursor:pointer}
+.rule-studio-approved{display:flex;gap:9px;align-items:flex-start;padding:13px;background:#173c2c;border:1px solid #3b8d61;border-radius:9px;color:#b9f2d3;font-size:12px;line-height:1.6}
+.rule-studio-history{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:9px}
+.rule-studio-history button{display:flex;flex-direction:column;gap:8px;padding:14px;background:#142b42;border-radius:9px;border:1px solid #385c7c;color:#e5f1fd;text-align:left;cursor:pointer}
+.rule-studio-history strong{font-size:11px;color:#9bbfde}
+.rule-studio-history span{font-size:12px;line-height:1.55}
+@media(max-width:900px){.rule-studio-columns{grid-template-columns:1fr}.rule-studio-panel{padding:15px}}
