@@ -3,6 +3,7 @@ import { AppBottomNav } from './components/AppBottomNav';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
 import { EpisodeDirectorPage } from './pages/EpisodeDirectorPage';
 import { EpisodeShotWorkspacePage } from './pages/EpisodeShotWorkspacePage';
+import { ShotRevisionAgentPage } from './pages/ShotRevisionAgentPage';
 import { SceneAgentPage } from './pages/SceneAgentPage';
 import { ScriptAgentPage } from './pages/ScriptAgentPage';
 import { ShotStudioPage } from './pages/ShotStudioPage';
@@ -67,14 +68,16 @@ export function App() {
     );
   }
 
-  const episodePath = /^#\/episodes\/([0-9a-fA-F-]{36})\/(director|voice|video)(?:\?|$)/.exec(hash);
+  const episodePath = /^#\/episodes\/([0-9a-fA-F-]{36})\/(director|voice|video|revision)(?:\?|$)/.exec(hash);
   const episodeId = episodePath?.[1];
   const section = episodePath?.[2];
   const routeParams = new URLSearchParams(hash.split('?', 2)[1] || '');
   const shotKey = routeParams.get('shot') || '';
   let page: ReactNode;
 
-  if (episodeId && section === 'director') {
+  if (episodeId && section === 'revision') {
+    page = <ShotRevisionAgentPage key={hash} episodeId={episodeId} shotKey={shotKey} />;
+  } else if (episodeId && section === 'director') {
     page = <EpisodeDirectorPage episodeId={episodeId} />;
   } else if (episodeId && (section === 'voice' || section === 'video')) {
     page = <EpisodeShotWorkspacePage episodeId={episodeId} kind={section} shotKey={shotKey} />;
