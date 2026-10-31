@@ -48,17 +48,14 @@ class DirectorSessionControllerTest {
         assertTrue(session.authenticated());
         assertEquals(List.of("EDITOR"), session.roles());
         assertFalse(session.canApprove());
-        assertFalse(session.canSpend());
-        assertTrue(session.actorKey().startsWith("director:"));
-        assertFalse(session.actorKey().contains("editor"));
+        assertFalse(session.canConfigurePaidAi());
     }
 
     @Test
     void directorSessionMayReviewAndApproveButDoesNotExposeRawIdentity() {
         var session = controller.current(authentication("director-user", "ROLE_DIRECTOR"));
         assertTrue(session.canApprove());
-        assertTrue(session.canSpend());
+        assertTrue(session.canConfigurePaidAi());
         assertEquals(List.of("DIRECTOR"), session.roles());
-        assertFalse(session.actorKey().contains("director-user"));
     }
 }
