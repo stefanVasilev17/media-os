@@ -27,3 +27,13 @@ The isolated QA backend at PR #110 commit `2731837df1ebb0f3fee07bdf01bb6ae188870
 Read the QA backend HTTP log for `POST /api/v1/remotion/renders/worker/claim` after the issuance time and the worker runtime log. If the claim is no longer 401, mark credential contract proven for an *empty queue*. Then separately prepare an authentic one-shot QA render fixture and expiry/rotation test; do not use EP001 assets.
 
 **Operational caution:** credential metadata in QA is auditable and short-lived, but do not copy QA credentials to production, don't commit them to GitHub or chat, and do not weaken the default-deny Spring Security rules.
+
+## Live QA root cause and configuration correction — 2026-10-31
+
+- After initial issuance, the first worker poll still returned HTTP **401**. A separate **read-only database SHA-256 / worker ID** comparison proved the stored active `REMOTION_CPU` credential's token digest and worker ID both match the current QA worker environment references. The worker ID is `mediaos-qa-cpu-worker-01`; the credential remains unexpired and has exactly one `ISSUED` audit entry.
+- A secure comparison of the two QA legacy worker keys returned **MATCH** without displaying either secret.
+- The decisive QA backend configuration finding was **`MEDIAOS_WORKER_AUTH_ENABLED=false`**, while local Director auth was true and external Director security false. Under these settings `WorkloadSecurityConfiguration` is inactive and the local session filter does not authorize the CPU worker endpoint. This explains why a valid credential by itself did not end the 401s.
+- Updated **only the isolated QA worker** to reference the QA backend's existing legacy key via Railway reference; its new deployment `6415a3e5-4e09-4594-9e97-c6f5b0ddc411` reached SUCCESS, with existing authentication still intact.
+- Staged and committed the QA backend configuration change **`MEDIAOS_WORKER_AUTH_ENABLED=true`**; deployment `ea0324b8-c1dc-4792-854b-146a5a2718b5` was triggered. **Do not mark fixed until the new deployment is SUCCESS and at least one *post-deploy* CPU `/claim` request returns its expected successful empty-queue response.**
+- Refrain from using prior `401` samples as evidence against the new backend because they were recorded before the new runtime became live. No security guard was removed or disabled.
+- This operation is **QA-only**, never production, and does not authorize EP002 media generation or a production release. The temporary 12-hour QA credential expires on 2026-11-01 at 07:40:36 UTC; renewal/rotation and genuine disposable render QA remain open gates.
