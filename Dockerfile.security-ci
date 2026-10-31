@@ -6,6 +6,14 @@ COPY frontend/ ./
 COPY remotion-engine/cpu-worker.mjs /qa-cpu-worker.mjs
 RUN node --check /qa-cpu-worker.mjs && npm run build && npm test
 
+FROM node:22 AS remotion-verify
+WORKDIR /remotion-engine
+COPY remotion-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY remotion-engine/ ./
+RUN node --max-old-space-size=768 build-typecheck-preflight.mjs \
+    && printf 'REMOTION_QA_TYPECHECK_PASS\n' > /qa-remotion-types-passed
+
 FROM python:3.12-alpine AS gpu-verify
 WORKDIR /gpu
 COPY gpu-render-worker/handler.py ./
@@ -31,6 +39,7 @@ RUN set -eu; \
     sh -c 'mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN FULL TEST SUITE PASSED"'
 
 FROM alpine:3.20
+COPY --from=remotion-verify /qa-remotion-types-passed /qa-remotion-types-passed
 COPY --from=gpu-verify /gpu-qa-passed /qa-gpu-test-result
 COPY --from=frontend-verify /frontend/dist /qa-frontend-build
 COPY --from=verify /workspace/backend/target/surefire-reports /qa-test-reports
