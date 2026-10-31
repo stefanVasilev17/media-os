@@ -50,6 +50,11 @@ function ManualLockedScriptImport({
 
   return (
     <main className="production-page script-import-page">
+      <nav className="script-import-nav" aria-label="Script navigation">
+        <button type="button" onClick={() => {
+          window.location.hash = '#/episodes/' + state.episode.id + '/director';
+        }}>← Director Overview</button>
+      </nav>
       <header className="production-header">
         <div>
           <span>{state.episode.episodeNumber} · SCRIPT AGENT</span>
