@@ -58,3 +58,13 @@ GPU workers currently receive render-specific callback tokens through Runpod dis
 4. Log in using *QA-only* credentials, verify Director action, refresh/reopen Safari, wait for idle timeout, then verify 401 and logout. Verify CSRF rejection and locked account behavior.
 5. Rehearse offline recovery and credential rotation on a disposable copy; revoke existing sessions. Do not run the offline CLI against production database.
 6. Only after all tests pass, prepare explicit Director go/no-go and production rollback. No release is implied by a green CI build.
+
+
+## Verified isolated CI run — 2026-10-31
+
+- **Pinned code commit:** `03bde1aedc393527f99f495c1e4f25f20d49054a`.
+- **Railway QA build-only service:** `mediaos-workload-client-ci-pr110-temp` deployment `39d7acee-b795-4b9e-8186-224fbe1d2e01`. Status **SUCCESS**; a separate temporary PostgreSQL 16 ran inside the Docker build (no connection to persistent QA/production Postgres).
+- Docker executed the full `mvn test` stage with `CI_POSTGRES_URL`, so compilation, all existing Java regression tests, V1–V103 Flyway migrations and offline issue/revoke audit tests completed with exit code 0. Railway returned a successful build status; its available captured logs do not expose a reliable aggregate Java test count for this build, so this record makes **no unsupported exact-count assertion**.
+- Node 22 checked syntax for `remotion-engine/cpu-worker.mjs`; TypeScript/Vite build and **12 frontend Vitest tests** passed.
+- PowerShell worker scripts were changed only at their HTTP header construction points. They have not been run against the real Windows/Spline installation and remain subject to user-side Windows QA.
+- No live credentials were provisioned, no worker flags activated, no Runpod/AI spend, no EP001 modifications or production deploy.
