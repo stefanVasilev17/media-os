@@ -1,0 +1,11 @@
+You tap Login. A loading spinner appears… and keeps turning.
+
+A few seconds pass. Then ten. The screen doesn’t move forward, and it doesn’t tell you what’s wrong.
+
+Behind that screen, the server responsible for signing you in is still running. Its routine health checks are passing. Nothing appears to have crashed.
+
+And yet, your login is still waiting for an answer.
+
+How can a server appear perfectly healthy while the very thing it’s supposed to do isn’t working?
+
+To understand what’s really happening, we need to go back to nine o’clock.
