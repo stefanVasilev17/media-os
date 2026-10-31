@@ -10,10 +10,14 @@ import runpod
 REQUEST_TIMEOUT = int(os.environ.get("MEDIA_OS_GPU_HTTP_TIMEOUT_SECONDS", "60"))
 
 
-def worker_headers(callback_token: str):
-    return {
-        "X-Media-OS-GPU-Token": callback_token,
-    }
+def worker_headers(callback_token: str, workload_token: str = "", worker_id: str = ""):
+    headers = {"X-Media-OS-GPU-Token": callback_token}
+    if bool(workload_token) != bool(worker_id):
+        raise ValueError("GPU scoped worker credentials must be provided together.")
+    if workload_token:
+        headers["X-MediaOS-Workload-Token"] = workload_token
+        headers["X-Worker-Id"] = worker_id
+    return headers
 
 
 def ensure_gpu_available():
@@ -51,20 +55,22 @@ def api_prefix(render_mode: str) -> str:
     return "/api/v1/spline/gpu-renders"
 
 
-def get_work(backend_url: str, render_id: str, callback_token: str, render_mode: str):
+def get_work(backend_url: str, render_id: str, callback_token: str, render_mode: str,
+             workload_token: str = "", worker_id: str = ""):
     response = requests.get(
         f"{backend_url}{api_prefix(render_mode)}/{render_id}/work",
-        headers=worker_headers(callback_token),
+        headers=worker_headers(callback_token, workload_token, worker_id),
         timeout=REQUEST_TIMEOUT,
     )
     response.raise_for_status()
     return response.json()
 
 
-def mark_started(backend_url: str, render_id: str, callback_token: str, render_mode: str):
+def mark_started(backend_url: str, render_id: str, callback_token: str, render_mode: str,
+                 workload_token: str = "", worker_id: str = ""):
     response = requests.post(
         f"{backend_url}{api_prefix(render_mode)}/{render_id}/start",
-        headers=worker_headers(callback_token),
+        headers=worker_headers(callback_token, workload_token, worker_id),
         timeout=REQUEST_TIMEOUT,
     )
     response.raise_for_status()
@@ -76,11 +82,13 @@ def mark_failed(
     callback_token: str,
     message: str,
     render_mode: str,
+    workload_token: str = "",
+    worker_id: str = "",
 ):
     try:
         response = requests.post(
             f"{backend_url}{api_prefix(render_mode)}/{render_id}/fail",
-            headers={**worker_headers(callback_token), "Content-Type": "application/json"},
+            headers={**worker_headers(callback_token, workload_token, worker_id), "Content-Type": "application/json"},
             data=json.dumps({"error": message[:1800]}),
             timeout=REQUEST_TIMEOUT,
         )
@@ -95,11 +103,13 @@ def upload_video(
     callback_token: str,
     video_path: Path,
     render_mode: str,
+    workload_token: str = "",
+    worker_id: str = "",
 ):
     with video_path.open("rb") as video:
         response = requests.put(
             f"{backend_url}{api_prefix(render_mode)}/{render_id}/complete",
-            headers={**worker_headers(callback_token), "Content-Type": "video/mp4"},
+            headers={**worker_headers(callback_token, workload_token, worker_id), "Content-Type": "video/mp4"},
             data=video,
             timeout=max(REQUEST_TIMEOUT, 180),
         )
@@ -213,6 +223,8 @@ def handler(job):
     render_id = str(input_data.get("renderId") or "").strip()
     callback_token = str(input_data.get("callbackToken") or "").strip()
     backend_url = str(input_data.get("backendUrl") or "").strip().rstrip("/")
+    workload_token = str(input_data.get("workloadToken") or "").strip()
+    worker_id = str(input_data.get("workloadWorkerId") or "").strip()
 
     if not render_id:
         raise ValueError("input.renderId is required.")
@@ -220,12 +232,21 @@ def handler(job):
         raise ValueError("input.callbackToken is required.")
     if not backend_url.startswith("https://"):
         raise ValueError("input.backendUrl must be an HTTPS URL.")
+    if bool(workload_token) != bool(worker_id):
+        raise ValueError("Incomplete scoped GPU workload identity.")
+    if workload_token and (
+        not worker_id == "runpod-gpu:" + render_id
+        or not __import__("re").fullmatch(r"[A-Za-z0-9_-]{43,128}", workload_token)
+    ):
+        raise ValueError("Invalid render-scoped GPU workload identity.")
 
     try:
         gpu = ensure_gpu_available()
         print(f"GPU ready renderMode={render_mode}: {gpu}", flush=True)
-        work = get_work(backend_url, render_id, callback_token, render_mode)
-        mark_started(backend_url, render_id, callback_token, render_mode)
+        work = get_work(backend_url, render_id, callback_token, render_mode,
+                        workload_token, worker_id)
+        mark_started(backend_url, render_id, callback_token, render_mode,
+                     workload_token, worker_id)
 
         with tempfile.TemporaryDirectory(prefix=f"media-os-{render_mode}-{render_id}-") as directory:
             output_path = Path(directory) / ("preview.mp4" if render_mode == "remotion" else "shot.mp4")
@@ -240,6 +261,8 @@ def handler(job):
                 callback_token,
                 output_path,
                 render_mode,
+                workload_token,
+                worker_id,
             )
             return {
                 "renderId": render_id,
@@ -251,7 +274,8 @@ def handler(job):
     except Exception as error:
         message = str(error) or error.__class__.__name__
         print(f"{render_mode} render failed: {message}", flush=True)
-        mark_failed(backend_url, render_id, callback_token, message, render_mode)
+        mark_failed(backend_url, render_id, callback_token, message, render_mode,
+                    workload_token, worker_id)
         raise
 
 
