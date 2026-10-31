@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import {
   ensureLocalCsrf, installLocalSessionFetch, loadLocalSession,
-  loginLocal, logoutLocal, onSessionExpired, type DirectorSession
+  loginLocal, logoutLocal, redeemDirectorClaim, onSessionExpired, type DirectorSession
 } from './localSession';
 import '../styles/localDirectorAuth.css';
 
@@ -39,6 +39,26 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
         if (!mode.localAuthentication) throw new Error('Local authentication is disabled.');
         installLocalSessionFetch();
         await ensureLocalCsrf();
+        const claimMatch = /^#\\/claim\\?token=([A-Za-z0-9_-]{43})$/.exec(window.location.hash);
+        if (claimMatch) {
+          try {
+            const verified = await redeemDirectorClaim(claimMatch[1]);
+            window.history.replaceState(null, '', window.location.pathname + '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare');
+            if (!cancelled) {
+              setSession(verified);
+              setState('authenticated');
+              setMessage('');
+            }
+            return;
+          } catch {
+            window.history.replaceState(null, '', window.location.pathname + '#/');
+            if (!cancelled) {
+              setMessage('Activation link is invalid, expired, or already used.');
+              setState('login');
+            }
+            return;
+          }
+        }
         const current = await loadLocalSession();
         if (cancelled) return;
         setSession(current);
