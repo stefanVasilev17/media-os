@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         excludeFilters = @ComponentScan.Filter(
                 type = FilterType.ASSIGNABLE_TYPE,
                 classes = GlobalCreationPreflightFilter.class))
-@Import(DirectorSecurityConfiguration.class)
+@Import({DirectorSecurityConfiguration.class, DirectorHttpAuthorizationTest.SecurityProbeController.class})
 @TestPropertySource(properties = {
         "mediaos.director-security.enabled=true",
         "mediaos.director-security.issuer-uri=https://id.example",
@@ -39,7 +39,7 @@ class DirectorHttpAuthorizationTest {
     @MockitoBean JwtDecoder decoder;
 
     @RestController
-    static class SecurityProbeController {
+    public static class SecurityProbeController {
         @GetMapping("/api/v1/episodes/security-probe")
         String read() { return "ok"; }
 
