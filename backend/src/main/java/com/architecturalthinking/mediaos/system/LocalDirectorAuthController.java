@@ -31,7 +31,13 @@ public class LocalDirectorAuthController {
         this.contexts = contexts;
     }
 
-    public record Login(String username, String password, String totpCode) {}
+    public record Login(String username, String password, String totpCode, boolean rememberDevice) {
+        public Login(String username, String password, String totpCode) {
+            this(username, password, totpCode, false);
+        }
+    }
+    static final String REMEMBER_ABSOLUTE_EXPIRY = "MEDIAOS_REMEMBER_ABSOLUTE_EXPIRY";
+    static final int REMEMBER_SECONDS = 30 * 24 * 60 * 60;
     public record Mode(boolean localAuthentication, boolean requiresTotp) {}
 
     @GetMapping("/mode")
@@ -63,6 +69,14 @@ public class LocalDirectorAuthController {
         SecurityContextHolder.setContext(context);
         var session = request.getSession(true);
         request.changeSessionId();
+        if (login.rememberDevice()) {
+            session.setMaxInactiveInterval(REMEMBER_SECONDS);
+            session.setAttribute(REMEMBER_ABSOLUTE_EXPIRY,
+                    Math.addExact(System.currentTimeMillis(), REMEMBER_SECONDS * 1000L));
+        } else {
+            session.setMaxInactiveInterval(1800);
+            session.removeAttribute(REMEMBER_ABSOLUTE_EXPIRY);
+        }
         contexts.saveContext(context, request, response);
         return new DirectorSessionController.Session(true, List.of("DIRECTOR"), true, true);
     }
