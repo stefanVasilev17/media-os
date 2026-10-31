@@ -76,6 +76,11 @@ class LocalDirectorHttpLifecycleTest {
         public String permittedMutation() {
             return "allowed";
         }
+
+        @PostMapping("/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/render-qa")
+        public String reviewedQaRenderRoute() {
+            return "qa-allowed";
+        }
     }
 
     @Autowired private MockMvc mvc;
@@ -149,6 +154,33 @@ class LocalDirectorHttpLifecycleTest {
                 | (hash[offset + 3] & 255);
         Arrays.fill(secret, (byte) 0);
         return "%06d".formatted(value % 1_000_000);
+    }
+
+    @Test
+    void shotQaRenderRouteRequiresDirectorSessionAndCsrf() throws Exception {
+        String qaPath = "/api/v1/episodes/" + UUID.randomUUID()
+                + "/shot-revisions/SHOT%2001/render-qa";
+        Csrf token = csrf();
+
+        mvc.perform(post(qaPath)
+                        .cookie(token.cookie())
+                        .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isUnauthorized());
+
+        MvcResult loggedIn = login(token, PASSWORD, currentCode());
+        assertEquals(200, loggedIn.getResponse().getStatus());
+        Cookie session = loggedIn.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+
+        mvc.perform(post(qaPath).cookie(session))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(post(qaPath)
+                        .cookie(session, token.cookie())
+                        .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .content().string("qa-allowed"));
     }
 
     @Test
