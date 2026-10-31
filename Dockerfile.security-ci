@@ -12,13 +12,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY backend/pom.xml ./pom.xml
 COPY backend/src ./src
+COPY --from=frontend-verify /frontend/dist /qa-frontend-build
+ENV MAVEN_OPTS="-Xmx512m"
 RUN set -eu; \
     pg_version="$(ls /etc/postgresql | head -1)"; \
     pg_ctlcluster "$pg_version" main start; \
     runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
     runuser -u postgres -- createdb -O media_os media_os; \
     CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
-    sh -c 'mvn -B -ntp -Dstyle.color=never test > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN FULL TEST SUITE PASSED"'
+    sh -c 'mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN FULL TEST SUITE PASSED"'
 
 FROM alpine:3.20
 COPY --from=frontend-verify /frontend/dist /qa-frontend-build
