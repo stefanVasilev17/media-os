@@ -150,7 +150,7 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
           <p>The episode Script must be Director-LOCKED before you can revise {shotKey}. No shot changes have been made.</p>
           <div>
             <button type="button" onClick={() => { window.location.hash = scriptGateRoute; }}>
-              Open Script preparation
+              {scriptGateRoute.includes('/agents/script') ? 'Open Script Agent' : 'Open Episode Preparation'}
             </button>
             <button type="button" onClick={() => { window.location.hash = episodeDirectorRoute(episodeId); }}>
               Back to Director
