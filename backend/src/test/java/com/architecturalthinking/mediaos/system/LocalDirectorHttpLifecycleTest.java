@@ -235,9 +235,50 @@ class LocalDirectorHttpLifecycleTest {
                     .query(Long.class).single());
             assertEquals(401, login(tokenForCsrf, PASSWORD, currentCode())
                     .getResponse().getStatus());
+
+            String credentialHashBeforeRelogin = jdbc.sql(
+                    "select password_hash from mediaos_local_director where id=:id")
+                    .param("id", accountId).query(String.class).single();
+            byte[] nextBytes = new byte[32];
+            Arrays.fill(nextBytes, (byte) 8);
+            String nextToken = java.util.Base64.getUrlEncoder().withoutPadding()
+                    .encodeToString(nextBytes);
+            String nextDigest = java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(nextToken.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
+            jdbc.sql("""
+                    insert into mediaos_director_claim_invite
+                        (token_hash,email,username,director_id,expires_at)
+                    values (:digest,'qa-owner@example.invalid','qa.director-owner',:director,
+                            now() + interval '1 hour')
+                    """).param("digest", nextDigest).param("director", accountId).update();
+            MvcResult secondClaim = mvc.perform(post("/api/v1/auth/claim/redeem")
+                            .cookie(tokenForCsrf.cookie())
+                            .header("X-XSRF-TOKEN", tokenForCsrf.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(
+                                    new LocalDirectorClaimController.Claim(nextToken))))
+                    .andExpect(status().isOk()).andReturn();
+            Cookie secondSession = secondClaim.getResponse().getCookie("MEDIAOS_SESSION");
+            assertNotNull(secondSession);
+            mvc.perform(get("/api/v1/security/session").cookie(secondSession))
+                    .andExpect(status().isOk());
+            mvc.perform(get("/api/v1/security/session").cookie(rememberedSession))
+                    .andExpect(status().isOk());
+            String credentialHashAfterRelogin = jdbc.sql(
+                    "select password_hash from mediaos_local_director where id=:id")
+                    .param("id", accountId).query(String.class).single();
+            assertEquals(credentialHashBeforeRelogin, credentialHashAfterRelogin);
+            mvc.perform(post("/api/v1/auth/claim/redeem")
+                            .cookie(tokenForCsrf.cookie())
+                            .header("X-XSRF-TOKEN", tokenForCsrf.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(
+                                    new LocalDirectorClaimController.Claim(nextToken))))
+                    .andExpect(status().isUnauthorized());
         } finally {
-            jdbc.sql("delete from mediaos_director_claim_invite where token_hash=:hash")
-                    .param("hash", digest).update();
+            jdbc.sql("delete from mediaos_director_claim_invite where director_id=:director")
+                    .param("director", accountId).update();
         }
     }
 
