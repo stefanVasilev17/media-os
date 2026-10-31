@@ -1,5 +1,8 @@
 # Architectural Thinking — EP002 Creative Treatment & 12-Shot Story Architecture (DRAFT v0.2)
 
+> **NON-CANONICAL / DO NOT USE FOR PRODUCTION:** Director reports an already LOCKED EP002 script (~14 minutes) in MediaOS PostgreSQL. This assistant-generated 12-shot creative treatment was produced without consulting that script. It MUST NOT replace, overwrite, inform production agents, or be presented as the approved script. The authoritative version must be identified and read from the production database first. This branch is not merged.
+
+
 **Date:** 2026-10-31
 **Status:** DRAFT / DIRECTOR REVIEW — NOT SCRIPT LOCKED, NOT VOICE LOCKED, NOT VISUAL LOCKED.
 **Canonical episode:** EP002
