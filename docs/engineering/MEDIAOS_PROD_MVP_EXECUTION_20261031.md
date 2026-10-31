@@ -60,3 +60,15 @@
 - The earlier QA deployment of PR #109 passed TypeScript/Vite and 138 Java tests (0 failures, 0 errors, 1 skipped), with Flyway V93 and PostgreSQL Online.
 - These results predate this new security branch. **They are NOT build evidence for its new files or V94 migration.**
 - No QA database fixture, authenticated end-to-end test, video approval flow, merge or production deploy has been executed in this branch.
+
+
+## Stage 1 security implementation update — 2026-10-31
+
+- Global creation preflight is ordered AFTER Spring Security so unauthorized requests cannot produce a canonical creation audit merely by calling a mutation endpoint.
+- `DirectorIdentity.requireDirector()` reads only the verified `JwtAuthenticationToken` and a trusted `ROLE_DIRECTOR` grant. It derives an opaque stable audit display key from verified issuer + subject.
+- Episode stage `directorLock` now rejects a missing Director identity at service boundary; a successful `DIRECTOR_LOCKED` event records verified issuer and subject in the same transaction.
+- Learning decisions preserve the legacy capability as an additional gate but require verified Director membership. The caller-provided `reviewedBy` is ignored; the service stores the verified actor and opaque audit name.
+- `V95__director_actor_audit.sql` adds nullable actor provenance columns without rewriting existing immutable events.
+- Added tests for non-Director stage locks, anonymous/capability-only Learning decisions and issuer/audience identity validation.
+- **Unverified**: new security code has not completed Java 21 Maven, Flyway V94/V95, integration HTTP tests, frontend login, all legacy endpoint inventory, or QA deploy. The previously successful 138 tests belong to PR #109, NOT this security branch.
+- No changes to EP001 files or production, no new QA deployment. PR #110 remains DRAFT.
