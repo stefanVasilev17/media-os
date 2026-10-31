@@ -726,3 +726,107 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   background:#224e70;color:#f6fbff;border:1px solid #487e9f;
   border-radius:9px;padding:12px 20px;
 }
+
+
+/* EP001 manual Script import — quiet Director-aligned presentation. */
+.script-import-page {
+  width: min(900px, 100%);
+  padding: 34px 28px calc(110px + env(safe-area-inset-bottom));
+}
+.script-import-page .production-header { margin-bottom: 34px; }
+.script-import-page .production-header span {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: .06em;
+  color: #99c1dc;
+}
+.script-import-page .production-header h1 {
+  margin: 14px 0 11px;
+  font-size: clamp(32px, 5vw, 43px);
+  line-height: 1.2;
+}
+.script-import-page .production-header p {
+  font-size: 16px;
+  line-height: 1.55;
+  color: #bdcede;
+}
+.script-import-page .manual-script-import-card {
+  padding: 25px 0 30px;
+  border: 0;
+  border-top: 1px solid #35485d;
+  border-radius: 0;
+  background: transparent;
+}
+.script-import-page .manual-script-import-copy > span {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #92b8d1;
+}
+.script-import-page .manual-script-import-copy h2 {
+  margin: 13px 0 14px;
+  font-size: 23px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.script-import-page .manual-script-import-copy p {
+  max-width: 750px;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #b8c8d8;
+}
+.script-import-page .manual-script-primary {
+  margin-top: 27px;
+  min-height: 49px;
+  padding: 12px 19px;
+  font-size: 16px;
+  font-weight: 650;
+  border-color: #4b7896;
+  border-radius: 9px;
+  background: #305b78;
+  color: #f2f7fb;
+  cursor: pointer;
+}
+.script-import-page .manual-script-primary:focus-visible,
+.script-import-page .manual-script-openai summary:focus-visible {
+  outline: 2px solid #77bce5;
+  outline-offset: 3px;
+}
+.script-import-page .manual-script-openai {
+  display: block;
+  margin-top: 4px;
+  padding: 17px 0;
+  border: 0;
+  border-top: 1px solid #35485d;
+  border-bottom: 1px solid #35485d;
+  border-radius: 0;
+  background: transparent;
+}
+.script-import-page .manual-script-openai summary {
+  cursor: pointer;
+  color: #bdcede;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.script-import-page .manual-script-openai p {
+  margin: 13px 0;
+  max-width: 700px;
+  color: #a9bcce;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.script-import-page .manual-script-openai button {
+  min-height: 44px;
+  padding: 10px 13px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #dfecf9;
+  border-color: #40617c;
+}
+@media (max-width: 600px) {
+  .script-import-page { padding: 28px 20px calc(110px + env(safe-area-inset-bottom)); }
+  .script-import-page .production-header { margin-bottom: 25px; }
+  .script-import-page .manual-script-import-card { padding-top: 23px; }
+  .script-import-page .manual-script-primary { max-width: 100%; }
+}
