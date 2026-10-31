@@ -63,3 +63,12 @@ This composition is intentionally QA-only, with a visible on-video QA watermark.
 6. **GPU / Runpod remains out of scope.** The existing Railway Remotion CPU rendering worker is our current renderer.
 
 **No permanent QA service, production deployment or EP001 source/data modification is authorized by this document.**
+
+
+## Director HTTP boundary verification — 2026-10-31
+
+- Added `LocalDirectorHttpLifecycleTest.shotQaRenderRouteRequiresDirectorSessionAndCsrf` with a disposable Local Director login and a probe controller using the exact new `POST /api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/render-qa` **route shape**.
+- It verifies an anonymous POST with valid CSRF returns **401**, an authenticated Director POST without CSRF returns **403**, and an authenticated Director POST with valid CSRF is authorized. This checks the **HTTP security route**, not the real controller's database write; the separate `EpisodeShotQaRenderIntakeTest` covers the business rules and PostgreSQL inserts.
+- A first attempt used a pre-encoded space in the MockMvc URI and incorrectly double-encoded it, causing the probe to fail before it reached Spring MVC. The test URL was corrected to a safe `SHOT-01` probe segment, without changing production authorization logic.
+- **Verified code commit:** `e5641e0768bbc0cf2d00095cdf93243d78246840`. Isolated Railway build service `mediaos-shot-qa-route-ci-pr110-temp`, deployment `6eb561ad-e1ac-4802-8dc5-d99e1baaed38`: **215 Java tests, 0 failures, 0 errors, 0 skipped**, Maven SUCCESS on disposable PostgreSQL 16, including V1–V103; frontend 12 Vitest tests; Remotion typecheck with zero *new* diagnostics. The final image has no running backend or database.
+- Local authentication and QA render intake remain disabled on existing QA/production. EP001 remains immutable and no live media generation has been performed.
