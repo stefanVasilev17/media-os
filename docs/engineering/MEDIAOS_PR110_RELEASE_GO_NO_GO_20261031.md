@@ -129,3 +129,13 @@ No other QA services, production variables, producer scripts, Director-LOCKED EP
 **Operational risk:** The existing QA `REMOTION_CPU` credential expires **2026-11-01 07:40:36 UTC**. Before any QA acceptance test after this time, securely reissue and provision a new token through the audited credential runbook; do not weaken worker auth or silently extend the existing token expiry without a rotation audit. Production needs a sustainable rotation plan before any GO.
 
 **Production release remains NO-GO**, despite the successful isolated lifecycle Java tests, real Remotion H.264 engine test, Director TOTP/CSRF smoke, QA DB backup/restore and these post-activation access checks. The migration-on-production-copy/rollback rehearsal, real iPhone Safari test, dependency advisory remediation/acceptance, full native approved fixture acceptance and credential rotation are still pending.
+
+## 2026-10-31 EP002 QA workspace creation and Research review gate — verified
+
+**Supersedes earlier statements in this cumulative report that QA has no EP002 episode.** QA now contains EP001 and **EP002**; official EP002 UUID `95b8a4a2-728e-47fe-ad4c-a16748773588`, `DRAFT`. Using the native authenticated Director creation endpoint, EP002 was registered with its exact approved working title, source-linked director brief, and seven freshly initialized stages **without inherited LOCKs**. Original immutable English EP002 Script Pass v4.0 remains source of truth in GitHub; creating an episode **does not** convert the GitHub editorial approval to a native database-stage LOCK.
+
+A separate authenticated `RESEARCH/draft` API operation imported **10** source-bound truth-map statements from the existing approved v4.0 script, with explicit out-of-scope and unverified provenance notes. Verified Research **revision 1 = READY_FOR_REVIEW, NOT LOCKED**; Script/Scene/Voice/Visual/QA/Publish remain pending. No AI narration generation, provider spending, Director stage approval, voice approval or render queue entry occurred.
+
+Actual proof, source guardrails and next legitimate human review action: [MEDIAOS_EP002_QA_WORKSPACE_ACTIVATION_20261031.md](./MEDIAOS_EP002_QA_WORKSPACE_ACTIVATION_20261031.md). Direct QA page: https://qa-media-os-backend-qa.up.railway.app/#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare . All one-time authentication/episode/research helper services were deleted with no volumes; QA/production deployment distinction preserved.
+
+**Production remains NO-GO.** Next Director review: open QA Research revision 1 and independently approve it if correct, then import exact native SCRIPT and SCENE drafts without AI rewriting. Do not impersonate Director approvals merely to clear the render gate.
