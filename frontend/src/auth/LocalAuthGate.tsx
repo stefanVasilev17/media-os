@@ -39,7 +39,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
         if (!mode.localAuthentication) throw new Error('Local authentication is disabled.');
         installLocalSessionFetch();
         await ensureLocalCsrf();
-        const claimMatch = /^#\\/claim\\?token=([A-Za-z0-9_-]{43})$/.exec(window.location.hash);
+        const claimMatch = /^#\/claim\?token=([A-Za-z0-9_-]{43})$/.exec(window.location.hash);
         if (claimMatch) {
           try {
             const verified = await redeemDirectorClaim(claimMatch[1]);
