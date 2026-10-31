@@ -64,7 +64,6 @@ class LocalDirectorHttpLifecycleTest {
             DirectorSessionController.class,
             LocalDirectorLoginService.class,
             LocalDirectorLoginThrottle.class,
-            LocalSocketPeerCaptureFilter.class,
             LocalTotpCrypto.class,
             LocalDirectorSessionRevalidationFilter.class,
             ProbeController.class
@@ -208,17 +207,17 @@ class LocalDirectorHttpLifecycleTest {
     }
 
     @Test
-    void spoofedForwardedAddressCannotChangeTheRateLimitBucket() throws Exception {
+    void forgedForwardedHeadersCannotAvoidTheGlobalLoginLimit() throws Exception {
         Csrf csrf = csrf();
         String username = "spoof_probe_" + UUID.randomUUID();
         String json = mapper.writeValueAsString(
                 new LocalDirectorAuthController.Login(username, "incorrect", "000000"));
+        String hash = bucketHash(LocalDirectorLoginThrottle.GLOBAL_BUCKET);
+        int initial = jdbc.sql("""
+                select attempts from mediaos_local_login_throttle where bucket_hash=:hash
+                """).param("hash", hash).query(Integer.class).optional().orElse(0);
 
         mvc.perform(post("/api/v1/auth/login")
-                        .with(request -> {
-                            request.setRemoteAddr("203.0.113.45");
-                            return request;
-                        })
                         .header("X-Forwarded-For", "192.0.2.92")
                         .header("Forwarded", "for=192.0.2.92;proto=https")
                         .cookie(csrf.cookie())
@@ -227,14 +226,18 @@ class LocalDirectorHttpLifecycleTest {
                         .content(json))
                 .andExpect(status().isUnauthorized());
 
-        String expectedHash = bucketHash("address:203.0.113.45");
-        String spoofHash = bucketHash("address:192.0.2.92");
-        assertEquals(1, jdbc.sql("""
-                select count(*) from mediaos_local_login_throttle where bucket_hash=:hash
-                """).param("hash", expectedHash).query(Integer.class).single());
-        assertEquals(0, jdbc.sql("""
-                select count(*) from mediaos_local_login_throttle where bucket_hash=:hash
-                """).param("hash", spoofHash).query(Integer.class).single());
+        mvc.perform(post("/api/v1/auth/login")
+                        .header("X-Forwarded-For", "198.51.100.22")
+                        .header("Forwarded", "for=198.51.100.22;proto=https")
+                        .cookie(csrf.cookie())
+                        .header("X-XSRF-TOKEN", csrf.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isUnauthorized());
+
+        assertEquals(initial + 2, jdbc.sql("""
+                select attempts from mediaos_local_login_throttle where bucket_hash=:hash
+                """).param("hash", hash).query(Integer.class).single());
     }
 
     @Test
