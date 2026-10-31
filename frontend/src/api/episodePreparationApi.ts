@@ -95,6 +95,12 @@ export const episodePreparationApi = {
   attachResearchSources: (id: string, expectedRevision: number, sources: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
       + '/research/sources','PUT',{ expectedRevision,sources }),
+  importVerbatimScriptDraft: (id: string, expectedRevision: number, artifact: Record<string, unknown>) =>
+    request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
+      + '/stages/script/draft','POST',{
+        artifact,expectedRevision,
+        summary: 'EP002 Director Full Script v4.0, eleven verbatim shots; native Script DRAFT for review only. No AI, no native LOCK.'
+      }),
   approveStage: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE',
                  expectedRevision: number, directorNote: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
