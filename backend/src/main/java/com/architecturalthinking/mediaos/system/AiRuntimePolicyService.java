@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.system;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -52,7 +53,9 @@ public class AiRuntimePolicyService {
         );
     }
 
+    @Transactional
     public Map<String, Object> update(Boolean paidAiEnabled, Boolean autoRepairEnabled) {
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
         Policy current = policy();
         boolean nextPaid = paidAiEnabled == null ? current.paidAiEnabled() : paidAiEnabled;
         boolean nextRepair = autoRepairEnabled == null ? current.autoRepairEnabled() : autoRepairEnabled;
@@ -67,6 +70,22 @@ public class AiRuntimePolicyService {
                 """)
                 .param("paid", nextPaid)
                 .param("repair", nextRepair)
+                .update();
+
+        jdbc.sql("""
+                insert into ai_runtime_policy_change_audit(
+                    id, actor_issuer, actor_subject,
+                    previous_paid_ai_enabled, next_paid_ai_enabled,
+                    previous_auto_repair_enabled, next_auto_repair_enabled)
+                values (:id,:issuer,:subject,:previousPaid,:nextPaid,:previousRepair,:nextRepair)
+                """)
+                .param("id", UUID.randomUUID())
+                .param("issuer", actor.issuer())
+                .param("subject", actor.subject())
+                .param("previousPaid", current.paidAiEnabled())
+                .param("nextPaid", nextPaid)
+                .param("previousRepair", current.autoRepairEnabled())
+                .param("nextRepair", nextRepair)
                 .update();
         return snapshot();
     }
