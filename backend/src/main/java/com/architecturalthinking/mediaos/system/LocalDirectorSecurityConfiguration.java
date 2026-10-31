@@ -53,6 +53,9 @@ public class LocalDirectorSecurityConfiguration {
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .securityContext(context -> context.securityContextRepository(repository))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, reason) ->
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED)))
                 .authorizeHttpRequests(authorization -> authorization
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
