@@ -52,7 +52,7 @@ describe('EP002 source-exact Director-approved Visual Pass v1.0 import', () => {
     const markdown = plan.originalApprovedVisualPassMarkdown as string;
     expect(markdown).toContain('ONE persistent Remotion');
     expect(markdown).toContain('SHOT10');
-    expect(markdown).toContain('Director v4.0');
+    expect(markdown).toContain('Director-LOCKED full-episode EP002 Script v4.0');
     expect(markdown).toContain('8/8');
     expect(markdown).toContain('Request A');
     expect(markdown).toContain('Request B');
