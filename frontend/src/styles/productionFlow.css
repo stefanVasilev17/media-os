@@ -830,3 +830,26 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   .script-import-page .manual-script-import-card { padding-top: 23px; }
   .script-import-page .manual-script-primary { max-width: 100%; }
 }
+
+.script-import-page .script-import-nav { margin: 0 0 38px; }
+.script-import-page .script-import-nav button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #bdcede;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.script-import-page .script-import-nav button:hover { color: #fff; }
+.script-import-page .script-import-nav button:focus-visible {
+  outline: 2px solid #77bce5;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .script-import-page .script-import-nav { margin-bottom: 28px; }
+}
