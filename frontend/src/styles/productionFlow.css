@@ -853,3 +853,68 @@ button:disabled { opacity:.35; cursor:not-allowed; }
 @media (max-width: 600px) {
   .script-import-page .script-import-nav { margin-bottom: 28px; }
 }
+
+
+.voice-prerequisite {
+  max-width: 1000px;
+  padding-top: 38px;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom));
+}
+.voice-prerequisite-nav {
+  margin: 0 0 58px;
+}
+.voice-prerequisite-nav button {
+  min-height: 44px;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: #bdcede;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.voice-prerequisite-header h1 {
+  margin: 0 0 30px;
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 680;
+  line-height: 1.22;
+  letter-spacing: -.035em;
+}
+.voice-prerequisite-gate {
+  border-top: 1px solid #35485d;
+  padding-top: 29px;
+  max-width: 790px;
+}
+.voice-prerequisite-gate h2 {
+  margin: 0 0 20px;
+  font-size: clamp(25px, 4vw, 32px);
+  line-height: 1.3;
+  font-weight: 650;
+}
+.voice-prerequisite-gate p {
+  margin: 0 0 30px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: #bdcede;
+}
+.voice-prerequisite-gate button {
+  min-height: 46px;
+  padding: 11px 18px;
+  border: 1px solid #487596;
+  border-radius: 9px;
+  color: #f2f7fb;
+  background: #305b78;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.voice-prerequisite button:focus-visible {
+  outline: 2px solid #77bce5;
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .voice-prerequisite { padding-top: 30px; }
+  .voice-prerequisite-nav { margin-bottom: 42px; }
+  .voice-prerequisite-gate { padding-top: 24px; }
+}
