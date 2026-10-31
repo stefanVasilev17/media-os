@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { WorkspaceContext, WorkspaceStage } from '../api/episodeWorkspaceApi';
 import { episodePreparationApi, type AgentPreview, type EpisodeBrief } from '../api/episodePreparationApi';
+import { buildVerbatimEp002ScriptDraft, EP002_QA_EPISODE_ID } from '../lib/ep002LockedScriptImport';
 import '../styles/episodeDirectorHub.css';
 import '../styles/episodePreparationQuiet.css';
 
@@ -271,6 +272,21 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                   Approve {upstream} before generating this stage.
                 </p>}
 
+                {stage === 'SCRIPT' && upstreamLocked && !approvalOpen &&
+                  episodeId === EP002_QA_EPISODE_ID &&
+                  item.revision === 0 && item.status !== 'LOCKED' && <>
+                    <p className="episode-preparation-message">
+                      The Director-approved Full Script Pass v4.0 is ready in GitHub.
+                      Import its 11 exact English narration shots into MediaOS for review.
+                      No paid AI, no narration changes, no automatic Director LOCK.
+                    </p>
+                    <button type="button" className="episode-preparation-primary"
+                      disabled={busy}
+                      onClick={() => void perform(() => episodePreparationApi.importVerbatimScriptDraft(
+                        episodeId,item.revision,buildVerbatimEp002ScriptDraft()))}>
+                      Import approved EP002 Script v4.0 (no AI cost)
+                    </button>
+                  </>}
                 {upstreamLocked && !approvalOpen && <>
                   {readyToLock && stage !== 'RESEARCH' && !revising &&
                     <button type="button" className="episode-preparation-secondary"
