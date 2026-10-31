@@ -58,3 +58,33 @@ EP002 `Why Login Fails Even When the Server Is Healthy` has a **GitHub Director 
 **Remaining blocker before real CPU-render acceptance:** the documented `AT-EpisodeShot-QA` storyboard intake requires a **separate, disposable EP002+ episode** with properly Director-approved Script/Scene stages, locked current shot revision and approved voice take. QA currently has no such ready fixture. Never run a legacy EP001-bound composition as a substitute or bypass Director-gated creation and voice approval by inserting ad hoc production records. Test the approved intake route and CPU `claim → progress → complete → secured retrieval` only after the disposable episode has passed those gates. Voice generation could use ElevenLabs credits and needs its own approved test authorization.
 
 **Release decision remains NO-GO** for production pending genuine disposable render, secure worker credential rotation beyond 24 hours, HTTPS real-device Director acceptance, production-schema-copy migration rehearsal with rollback, and final Director release approval. All temporary Railway QA diagnostic/probe functions were deleted. Production services and EP001 protected assets remain unchanged.
+
+## Additional verified QA — Director login, true video rendering and backup/restore (2026-10-31)
+
+**Scope guard:** This section describes three isolated real tests. It does **not** claim full MediaOS Director-approved E2E media pipeline acceptance, production migration replay, iPhone Safari acceptance or production release.
+
+### Real QA Director HTTPS login and CSRF smoke — PASS
+
+- A disposable Railway QA-only Function made real HTTPS calls to the running local Director implementation using **existing QA bootstrap account credentials/TOTP via private Railway variable references**. No password, TOTP secret, TOTP code, cookie value, CSRF token or session identifier was logged or committed.
+- Results: `GET /api/v1/auth/csrf` **200**, `XSRF-TOKEN` cookie present, `GET /api/v1/security/session` before login **401**, password+TOTP `POST /api/v1/auth/login` **200**, authenticated `GET /api/v1/security/session` **200**, authenticated `GET /api/v1/episodes` **200**, authenticated `PUT` to an intentionally **nonexistent episode ID** without CSRF header **403**, `POST /api/v1/auth/logout` **200**, session after logout **401**.
+- The negative write path targeted a nonexistent UUID deliberately, so it could not accidentally modify an episode even in the event of a CSRF regression. No content creation occurred. Function deleted following verification.
+- **Not verified:** real iPhone/Safari cookies/UI, idle timeout expiry, account lockout and offline recovery/rotation.
+
+### Real Remotion independent MP4 smoke — PASS
+
+- Independent disposable Railway QA **build-only** service from isolated Git branch `qa/ep002-render-engine-smoke-20261031` at commit `af91a70b61da134083738daa1bbc0da12a4ab9ff`; build deployment `d3231842-9ebb-4bfd-8b0e-b65b0feafe28`.
+- Its `Dockerfile.episode-qa-render-smoke` bundles the source, invokes real Chromium/Remotion H.264 renderer on the new `AT-EpisodeShot-QA` composition with *synthetic* new-episode props, then probes the output file with **FFprobe**, checking every metric before logging `QA_RENDER_SMOKE_COMPLETE=PASS`.
+- Verified: `QA_RENDER_SMOKE_COMPOSITION=PASS`, `QA_RENDER_SMOKE_MP4=PASS`, H.264, 1280×720, **150 video frames at 30 fps = 5 seconds**, **36,059 bytes**. Generated MP4 was deleted in the build. The temporary Railway service was deleted after reading passing build logs; this did **not** write an EP001/EP002 media asset or call the backend, voice provider, or database.
+- **Security triage:** the image's npm prune output included **“10 high severity vulnerabilities”** from installed Node dependencies. This is not an exploit assessment; an audited dependency report is required before production release. No dependency modifications were automatically made.
+- **Not verified:** actual authenticated MediaOS episode-scoped queue submission, CPU `claim → progress → complete` on a real queued task, authenticated video retrieval, or final EP002 creative output. The existing episode-aware `render-qa` contract requires an authenticated Director, explicit QA flag, native Script+Scene+Shot LOCK and an approved source voice take. Do not bypass these with ad hoc rows in the persistent QA app or invent Director voice approval.
+
+### PostgreSQL QA backup/restore rehearsal — PASS
+
+- A one-time **QA-only** PostgreSQL 16 client container connected to `qa-postgres.railway.internal` with QA secret references, explicitly refused any unexpected source DB name/host, and used `pg_dump -Fc` to snapshot `media_os_qa` without modifying it.
+- Restored into independently created `qa_restore_smoke_20261031` database, verified identical **episode count=1** and Flyway `max(installed_rank)=103`. Logged `QA_DB_RESTORE_DUMP=PASS`, `QA_DB_RESTORE_IMPORT=PASS`, `QA_DB_RESTORE_VERIFY=PASS`, `QA_DB_RESTORE_SMOKE_COMPLETE=PASS`.
+- Temporary database was dropped via exit cleanup, and a separate read-only SQL verifier returned `QA_RESTORE_TEMP_DATABASE_ABSENT=true`. Both temporary Railway services were deleted. The active QA database, production database, production services and EP001 assets were not modified.
+- **Not verified:** actual *production-schema-copy* upgrade from prior live Flyway state (e.g. V93) to V103, production backup restoration, production cutover rollback or permission tests on the production dataset.
+
+### Updated release gate
+
+**QA auth and standalone technical renderer are PASS. Production remains NO-GO.** The remaining critical work is (1) native end-to-end Director-approved disposable episode QA render/secure retrieval with no false LOCKs; (2) sustainable secure worker credential issuance/rotation (temporary token expiry 2026-11-01 07:40:36 UTC); (3) real-device iPhone Safari Director auth acceptance; (4) isolated **production-copy** Flyway V94–V103 migration + rollback rehearsal and backup validation; (5) npm dependency advisory triage and (6) explicit tested-release Director approval. No PR merge or production deployment was performed in these QA tests.
