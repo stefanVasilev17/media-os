@@ -1,6 +1,5 @@
 package com.architecturalthinking.mediaos.system;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -17,7 +16,8 @@ import java.util.Locale;
 @ConditionalOnProperty(name = "mediaos.local-auth.enabled", havingValue = "true")
 public class LocalDirectorLoginThrottle {
     static final int USERNAME_LIMIT = 12;
-    static final int ADDRESS_LIMIT = 100;
+    static final int GLOBAL_LIMIT = 100;
+    static final String GLOBAL_BUCKET = "global:login";
 
     private final JdbcClient jdbc;
 
@@ -25,12 +25,8 @@ public class LocalDirectorLoginThrottle {
         this.jdbc = jdbc;
     }
 
-    public void check(HttpServletRequest request, String username) {
-        Object originalPeer = request.getAttribute(
-                LocalSocketPeerCaptureFilter.SOCKET_PEER_ATTRIBUTE);
-        String address = originalPeer instanceof String peer && !peer.isBlank()
-                ? peer : "unknown";
-        if (increment("address:" + address) > ADDRESS_LIMIT) deny();
+    public void check(String username) {
+        if (increment(GLOBAL_BUCKET) > GLOBAL_LIMIT) deny();
         String normalized = username == null ? "" : username.strip().toLowerCase(Locale.ROOT);
         if (increment("account:" + normalized) > USERNAME_LIMIT) deny();
     }
