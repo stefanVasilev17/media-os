@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @Service
 @ConditionalOnProperty(name = "mediaos.local-auth.enabled", havingValue = "true")
-public final class LocalDirectorLoginService {
+public class LocalDirectorLoginService {
     private static final int MAX_FAILURES = 5;
     private static final int LOCK_SECONDS = 900;
     private final JdbcClient jdbc;
