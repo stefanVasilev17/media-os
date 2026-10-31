@@ -72,3 +72,14 @@
 - Added tests for non-Director stage locks, anonymous/capability-only Learning decisions and issuer/audience identity validation.
 - **Unverified**: new security code has not completed Java 21 Maven, Flyway V94/V95, integration HTTP tests, frontend login, all legacy endpoint inventory, or QA deploy. The previously successful 138 tests belong to PR #109, NOT this security branch.
 - No changes to EP001 files or production, no new QA deployment. PR #110 remains DRAFT.
+
+
+## Stage 1 paid AI authorization hardening — 2026-10-31
+
+- Added Flyway V96 for `ai_preview_authorization.actor_issuer` and `actor_subject`. Existing unbound preview rows remain legacy but cannot match the new consumption condition.
+- A paid preview authorization is issued only to a verified Director, and consumption requires the *same* issuer and subject in addition to operation, payload, READY status, and expiry. The one-use update still happens atomically.
+- Added Flyway V97 for immutable `ai_runtime_policy_change_audit` rows containing the authenticated Director actor and before/after Paid AI and Auto Repair values.
+- AI spend policy changes now require `DirectorIdentity.requireDirector()` inside `AiRuntimePolicyService.update()` and the policy mutation + audit insert are transactional.
+- Added `PreviewAuthorizationActorTest`, `AiRuntimePolicyAuthorizationTest` and `DirectorHttpAuthorizationTest`. The HTTP test exercises access rules with mock JWT authorities; it does **not** replace actual signed JWT signature/issuer/audience integration tests.
+- **No migration applied, no tests executed on the security branch, and no QA/production deployment.** Do not claim these test cases passed.
+- Remaining security work: prove actual Spring Security startup/filter ordering and signed OIDC JWT parsing, director membership provisioning + MFA, frontend sign-in, service/worker identity and endpoint inventory, rate limits, origin/CSRF policy, actor-bound spend ledger for model execution, staging migration and full e2e regression.
