@@ -183,21 +183,22 @@ class EpisodeShotQaRenderIntakeTest {
         assertEquals("RUNNING", worker.progress(renderId, "qa-fixture-worker-secret",
                 "qa-cpu-fixture", new RemotionCpuWorkerController.ProgressRequest(46)).get("status"));
 
-        byte[] syntheticValidMp4 = java.util.Base64.getDecoder().decode("AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMUbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAj90cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAG3bWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABYm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAASJzdGJsAAAAvnN0c2QAAAAAAAAAAQAAAK5hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MS4xOS4xMDEgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANGF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADAAg8SJZYAQAGaOvjyyLA/fj4AAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAABYoAAAAAAAAABhzdHRzAAAAAAAAAAEAAAABAABAAAAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAUc3RzegAAAAAAAALFAAAAAQAAABRzdGNvAAAAAAAAAAEAAANEAAAAYXVkdGEAAABZbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAsaWxzdAAAACSpdG9vAAAAHGRhdGEAAAABAAAAAExhdmY2MS43LjEwMwAAAAhmcmVlAAACzW1kYXQAAAKtBgX//6ncRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTY0IHIzMTA4IDMxZTE5ZjkgLSBILjI2NC9NUEVHLTQgQVZDIGNvZGVjIC0gQ29weWxlZnQgMjAwMy0yMDIzIC0gaHR0cDovL3d3dy52aWRlb2xhbi5vcmcveDI2NC5odG1sIC0gb3B0aW9uczogY2FiYWM9MSByZWY9MyBkZWJsb2NrPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTEgcW1jPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0yIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJfZnJhbWVzPTMgYl9weXJhbWlkPTIgYl9hZGFwdD0xIGJfYmlhcz0wIGRpcmVjdD0xIHdlaWdodGI9MSBvcGVuX2dvcD0wIHdlaWdodHA9MiBrZXlpbnQ9MjUwIGtleWludF9taW49MSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAABBliIQAFf/+98nvwKbr29+B");
-        assertEquals(1545, syntheticValidMp4.length);
-        var finished = worker.complete(renderId, "qa-fixture-worker-secret", "qa-cpu-fixture", syntheticValidMp4);
+        byte[] syntheticMp4Payload = new byte[]{
+                0,0,0,24,102,116,121,112,105,115,111,109,0,0,2,0,105,115,111,109,105,115,111,50
+        };
+        var finished = worker.complete(renderId, "qa-fixture-worker-secret", "qa-cpu-fixture", syntheticMp4Payload);
         assertEquals("READY", finished.get("status"));
-        assertEquals(syntheticValidMp4.length, finished.get("sizeBytes"));
+        assertEquals(syntheticMp4Payload.length, finished.get("sizeBytes"));
 
         var renderer = new RemotionRenderController(jdbc, new ObjectMapper(), null, storage);
         var completeVideo = renderer.video(renderId, null);
         assertEquals(HttpStatus.OK, completeVideo.getStatusCode());
-        assertArrayEquals(syntheticValidMp4, completeVideo.getBody());
+        assertArrayEquals(syntheticMp4Payload, completeVideo.getBody());
         assertEquals("video/mp4", completeVideo.getHeaders().getContentType().toString());
 
         var range = renderer.video(renderId, "bytes=0-15");
         assertEquals(HttpStatus.PARTIAL_CONTENT, range.getStatusCode());
-        assertArrayEquals(java.util.Arrays.copyOfRange(syntheticValidMp4, 0, 16), range.getBody());
+        assertArrayEquals(java.util.Arrays.copyOfRange(syntheticMp4Payload, 0, 16), range.getBody());
 
         var empty = worker.claim("qa-fixture-worker-secret", "qa-cpu-fixture");
         assertEquals(HttpStatus.NO_CONTENT, empty.getStatusCode());
