@@ -44,7 +44,7 @@ export function EpisodeSelectorPage() {
             aria-label={episode.episodeNumber + ' — ' + episode.title + (episode.fullyLocked ? ', fully locked' : '')}
             key={episode.id}
             onClick={() => {
-              window.location.hash = episode.episodeNumber !== 'EP001'
+              window.location.hash = episode.hasBrief === true
                 && ['RESEARCH','SCRIPT','SCENE'].includes(episode.currentStage)
                   ? '#/episodes/' + episode.id + '/prepare'
                   : episodeDirectorRoute(episode.id);
