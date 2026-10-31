@@ -48,7 +48,7 @@ public class LocalDirectorAuthController {
     public DirectorSessionController.Session login(@RequestBody Login login,
                                                   HttpServletRequest request,
                                                   HttpServletResponse response) {
-        throttle.check(request, login.username());
+        throttle.check(login.username());
         LocalDirectorLoginService.Attempt attempt = logins.verify(
                 login.username(), login.password(), login.totpCode());
         if (!attempt.success()) {
