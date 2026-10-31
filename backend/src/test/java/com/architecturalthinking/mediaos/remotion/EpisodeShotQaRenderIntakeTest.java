@@ -106,6 +106,22 @@ class EpisodeShotQaRenderIntakeTest {
     }
 
     @Test
+    void legacyEp001IsRejectedBeforeAnyDatabaseMutation() {
+        bootstrap();
+        login();
+        var controller = controller(true, true, true);
+        UUID legacyId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
+                () -> controller.queue(legacyId, SHOT, request())).getStatusCode());
+        assertEquals(0, jdbc.sql("""
+                select count(*) from remotion_render
+                where project_id=:project and episode_id=:episode
+                  and composition_id='AT-EpisodeShot-QA'
+                """).param("project", PROJECT).param("episode", legacyId)
+                .query(Integer.class).single());
+    }
+
+    @Test
     void lockedScriptSceneShotAndVoiceAreAllRequired() {
         bootstrap();
         seedLockedEpisode();
