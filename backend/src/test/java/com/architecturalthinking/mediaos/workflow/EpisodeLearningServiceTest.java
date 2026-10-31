@@ -55,6 +55,18 @@ class EpisodeLearningServiceTest {
     }
 
     @Test
+    void correctLegacyCapabilityIsNotEnoughWithoutVerifiedDirectorIdentity() {
+        String capability = "QA-approved-director-secret-longer-than-32-characters";
+        EpisodeLearningService learning = new EpisodeLearningService(jdbc, true, true, capability);
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> learning.decide(episode, proposal, "KEEP_EPISODE",
+                        "Reviewed the lesson carefully against the current policy.",
+                        "Forged Director", true, "fingerprint", capability, audit));
+        assertThat(error.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
     void shortSecretCannotUnlockGlobalPromotion() {
         EpisodeLearningService learning = new EpisodeLearningService(jdbc, true, true, "insecure");
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
