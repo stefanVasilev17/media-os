@@ -28,6 +28,17 @@ public class LocalDirectorSessionRevalidationFilter extends OncePerRequestFilter
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         var auth = SecurityContextHolder.getContext().getAuthentication();
+        var session = request.getSession(false);
+        if (session != null && auth instanceof UsernamePasswordAuthenticationToken local
+                && local.isAuthenticated() && local.getPrincipal() instanceof LocalDirectorPrincipal) {
+            Object deadline = session.getAttribute(LocalDirectorAuthController.REMEMBER_ABSOLUTE_EXPIRY);
+            if (deadline instanceof Long until && System.currentTimeMillis() >= until) {
+                session.invalidate();
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Remembered device session expired.");
+                return;
+            }
+        }
         if (auth instanceof UsernamePasswordAuthenticationToken local
                 && local.isAuthenticated()
                 && local.getPrincipal() instanceof LocalDirectorPrincipal principal
