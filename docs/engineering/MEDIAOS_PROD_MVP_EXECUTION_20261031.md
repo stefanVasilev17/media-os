@@ -109,3 +109,6 @@ The first OIDC draft authorized every `/api/v1/**` mutation for a Director. This
 - Verified the current GitHub Draft PR branch and files, not an executable build. The local container has Java 21 but lacks Maven and project dependencies; direct GitHub networking from that container is unavailable. The existing Railway QA must remain pinned to PR #109 until explicit isolated security testing is arranged.
 - **Important:** all automation/background AI calling legacy methods now fails closed on this branch. This is intentional and cannot be released until workload identity and reviewed worker permissions are implemented.
 - **Remaining blockers:** Maven compilation, unit/HTTP integration suite, signed OIDC JWT verification, full Flyway V94–V97 staging migration, security smoke tests, frontend login, worker identity, and explicit Director release approval.
+
+
+- AI spending policy changes now acquire a database row lock before reading and updating values; this serializes competing Director switches and keeps previous/next audit records consistent. The policy must exist; missing configuration fails closed.
