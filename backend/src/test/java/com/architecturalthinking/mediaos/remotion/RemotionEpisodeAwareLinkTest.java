@@ -127,6 +127,10 @@ class RemotionEpisodeAwareLinkTest {
                 select remotion_render_id from voice_shot_workflow
                 where episode_id=:episode and shot_key=:shot and script_revision=:revision
                 """).param("episode", episode).param("shot", shot)
-                .param("revision", revision).query(UUID.class).single();
+                .param("revision", revision)
+                .query((rs, row) -> java.util.Optional.ofNullable(
+                        rs.getObject("remotion_render_id", UUID.class)))
+                .single()
+                .orElse(null);
     }
 }
