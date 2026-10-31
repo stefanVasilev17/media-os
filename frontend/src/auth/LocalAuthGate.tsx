@@ -43,7 +43,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
         if (claimMatch) {
           try {
             const verified = await redeemDirectorClaim(claimMatch[1]);
-            window.history.replaceState(null, '', window.location.pathname + '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare');
+            window.location.replace(window.location.pathname + '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare');
             if (!cancelled) {
               setSession(verified);
               setState('authenticated');
