@@ -59,3 +59,12 @@ Keep `mediaos.episodes.creation-enabled`, `mediaos.episodes.writes-enabled`, `me
 7. Require a separate Director go/no-go to merge, deploy and enable writes.
 
 No real login, OIDC connection, QA write flags, paid AI generation or production deployment has been activated merely by committing the code.
+
+
+## Verified build evidence — 2026-10-31
+
+- Temporary **build-only** Railway QA service `mediaos-local-auth-ci-pr110-temp` used pinned commit `78590782dc3829c94cbdf7c689e749e1f7ea5df3` in deployment `b8caff10-dc29-49c2-980c-51fa0cc00ac3`.
+- **Java 21 Maven + disposable PostgreSQL 16:** 191 tests passed, 0 failures, 0 errors, 0 skipped. Build SUCCESS, including V1–V99 migration checks and local TOTP/password integration.
+- **Frontend:** TypeScript/Vite build SUCCESS and 12 Vitest tests passed.
+- Initial local auth compilation and test failures were corrected in the draft branch, including preserving the exact reviewed API write allowlist and fixing mismatched test constructor calls.
+- Test evidence does **not** imply live login/session/cookie/CSRF HTTP integration has passed: this remains a release blocker. No user account was provisioned in an existing database, no production deployment and no feature flag activation occurred.
