@@ -86,7 +86,12 @@ if (-not [string]::IsNullOrWhiteSpace($codexCommand)) {
   $env:CODEX_COMMAND = $codexCommand.Trim()
 }
 
-$headers = @{ "X-Worker-Key" = $workerKey }
+$headers = @{ "X-Worker-Key" = $workerKey; "X-Worker-Id" = $workerId }
+$runnerCredential = [Environment]::GetEnvironmentVariable("MEDIA_OS_RUNNER_WORKLOAD_TOKEN", "User")
+if ([string]::IsNullOrWhiteSpace($runnerCredential)) { $runnerCredential = $env:MEDIA_OS_RUNNER_WORKLOAD_TOKEN }
+if (-not [string]::IsNullOrWhiteSpace($runnerCredential)) {
+  $headers["X-MediaOS-Workload-Token"] = $runnerCredential.Trim()
+}
 $currentCommit = "unknown"
 $lastReleaseSync = [DateTime]::MinValue
 $lastHeartbeat = [DateTime]::MinValue

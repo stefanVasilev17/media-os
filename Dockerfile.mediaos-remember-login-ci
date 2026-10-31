@@ -1,0 +1,30 @@
+FROM node:22-alpine AS frontend-ci
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm install --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build && npm test && echo 'REMEMBER_DEVICE_FRONTEND=PASS'
+
+FROM maven:3.9-eclipse-temurin-21 AS backend-ci
+WORKDIR /workspace/backend
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+COPY --from=frontend-ci /frontend/dist /qa-frontend-dist
+ENV MAVEN_OPTS="-Xmx512m"
+RUN set -eu; \
+    pg_version="$(ls /etc/postgresql | head -1)"; \
+    pg_ctlcluster "$pg_version" main start; \
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+    mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m \
+        -Dtest=LocalDirectorHttpLifecycleTest test > /tmp/remember-auth.log 2>&1 \
+    || { echo 'REMEMBER_DEVICE_BACKEND=FAIL'; tail -130 /tmp/remember-auth.log; exit 1; }; \
+    grep 'Tests run:' /tmp/remember-auth.log | tail -2; \
+    echo 'REMEMBER_DEVICE_BACKEND=PASS'
+FROM alpine:3.20
+COPY --from=backend-ci /qa-frontend-dist /qa-frontend-dist
+RUN adduser -D -H ci
+USER ci
+CMD ["sh","-c","echo 'QA-only remember device CI complete'; sleep 20"]

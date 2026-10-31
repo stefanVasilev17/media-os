@@ -168,19 +168,22 @@ public class AiSpendGuardAspect {
             throw new ResponseStatusException(CONFLICT, reason + " Review the validation failure first, then decide whether another model call is worth it.");
         }
 
-        if (!automaticRepair && previewPayload != null && currentRequest() != null) {
-            try {
-                previewAuthorization.consume(currentPreviewToken(), operation, previewPayload);
-            } catch (ResponseStatusException ex) {
-                policyService.recordBlocked(
-                        agentKey,
-                        operation,
-                        model,
-                        requestedOutputTokenLimit,
-                        "Backend preview authorization rejected the paid action before any API request was sent."
-                );
-                throw ex;
-            }
+        if (automaticRepair || previewPayload == null || currentRequest() == null) {
+            String reason = "A verified interactive Director request and a matching one-use preview are required. "
+                    + "Automatic/background paid AI needs separately approved workload authorization.";
+            policyService.recordBlocked(agentKey, operation, model, requestedOutputTokenLimit, reason);
+            throw new ResponseStatusException(
+                    org.springframework.http.HttpStatus.PRECONDITION_REQUIRED, reason);
+        }
+
+        DirectorIdentity.requireDirector();
+        try {
+            previewAuthorization.consume(currentPreviewToken(), operation, previewPayload);
+        } catch (ResponseStatusException ex) {
+            policyService.recordBlocked(
+                    agentKey, operation, model, requestedOutputTokenLimit,
+                    "Backend preview authorization rejected the paid action before any API request was sent.");
+            throw ex;
         }
 
         UUID callId = policyService.beginCall(agentKey, operation, model, requestedOutputTokenLimit);

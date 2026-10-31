@@ -21,7 +21,6 @@ import java.util.UUID;
 public class RemotionCpuWorkerController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final int MAX_VIDEO_BYTES = 256 * 1024 * 1024;
 
     private final JdbcClient jdbc;
@@ -65,7 +64,7 @@ public class RemotionCpuWorkerController {
                 .update();
 
         Map<String, Object> work = jdbc.sql("""
-                select id, composition_id, render_key, engine_version, input_props::text as input_props,
+                select id, episode_id, composition_id, render_key, engine_version, input_props::text as input_props,
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
@@ -77,6 +76,7 @@ public class RemotionCpuWorkerController {
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("renderId", rs.getObject("id", UUID.class));
+                    row.put("episodeId", rs.getObject("episode_id", UUID.class));
                     row.put("compositionId", rs.getString("composition_id"));
                     row.put("renderKey", rs.getString("render_key"));
                     row.put("engineVersion", rs.getString("engine_version"));
@@ -201,18 +201,21 @@ public class RemotionCpuWorkerController {
         }
     }
 
-    private void linkVoiceWorkflowRender(UUID renderId) {
+    void linkVoiceWorkflowRender(UUID renderId) {
         jdbc.sql("""
-                select input_props::text
+                select episode_id, input_props::text as input_props
                 from remotion_render
-                where id=:id and project_id=:projectId
+                where id=:id and project_id=:projectId and status='SUCCEEDED'
                 """)
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
-                .query(String.class)
+                .query((rs, row) -> new RenderLinkSource(
+                        rs.getObject("episode_id", UUID.class),
+                        rs.getString("input_props")))
                 .optional()
-                .ifPresent(json -> {
-                    Map<String, Object> props = readMap(json);
+                .ifPresent(source -> {
+                    if (source.episodeId() == null) return;
+                    Map<String, Object> props = readMap(source.inputProps());
                     String shotKey = String.valueOf(props.getOrDefault("shotKey", "")).trim();
                     int scriptRevision = intValue(props.get("scriptRevision"), 0);
                     int generationRevision = intValue(props.get("generationRevision"), 0);
@@ -229,15 +232,25 @@ public class RemotionCpuWorkerController {
                             where episode_id=:episodeId
                               and script_revision=:scriptRevision
                               and shot_key=:shotKey
+                              and exists (
+                                  select 1 from remotion_render r
+                                  where r.id=:renderId
+                                    and r.project_id=:projectId
+                                    and r.episode_id=voice_shot_workflow.episode_id
+                                    and r.status='SUCCEEDED'
+                              )
                             """)
                             .param("renderId", renderId)
+                            .param("projectId", PROJECT_ID)
                             .param("generationRevision", generationRevision)
-                            .param("episodeId", EP001_ID)
+                            .param("episodeId", source.episodeId())
                             .param("scriptRevision", scriptRevision)
                             .param("shotKey", shotKey)
                             .update();
                 });
     }
+
+    private record RenderLinkSource(UUID episodeId, String inputProps) {}
 
     private int intValue(Object value, int fallback) {
         if (value instanceof Number number) return number.intValue();

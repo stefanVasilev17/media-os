@@ -1,0 +1,48 @@
+FROM node:22-alpine AS frontend-verify
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+COPY remotion-engine/cpu-worker.mjs /qa-cpu-worker.mjs
+RUN node --check /qa-cpu-worker.mjs && npm run build && npm test
+
+FROM node:22 AS remotion-verify
+WORKDIR /remotion-engine
+COPY remotion-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY remotion-engine/ ./
+RUN node --max-old-space-size=768 build-typecheck-preflight.mjs \
+    && printf 'REMOTION_QA_TYPECHECK_PASS\n' > /qa-remotion-types-passed
+
+FROM python:3.12-alpine AS gpu-verify
+WORKDIR /gpu
+COPY gpu-render-worker/handler.py ./
+COPY gpu-render-worker/test_scoped_headers.py ./
+RUN python3 -m py_compile handler.py && python3 -m unittest -v test_scoped_headers.py \
+    && printf 'GPU_SCOPED_HEADERS_PASS\n' > /gpu-qa-passed
+
+FROM maven:3.9-eclipse-temurin-21 AS verify
+WORKDIR /workspace/backend
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+COPY --from=frontend-verify /frontend/dist /qa-frontend-build
+ENV MAVEN_OPTS="-Xmx512m"
+RUN set -eu; \
+    pg_version="$(ls /etc/postgresql | head -1)"; \
+    pg_ctlcluster "$pg_version" main start; \
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+    sh -c 'mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN FULL TEST SUITE PASSED"'
+
+FROM alpine:3.20
+COPY --from=remotion-verify /qa-remotion-types-passed /qa-remotion-types-passed
+COPY --from=gpu-verify /gpu-qa-passed /qa-gpu-test-result
+COPY --from=frontend-verify /frontend/dist /qa-frontend-build
+COPY --from=verify /workspace/backend/target/surefire-reports /qa-test-reports
+RUN adduser -D -H verify
+USER verify
+CMD ["sh", "-c", "echo 'MediaOS build verification complete. No application or PostgreSQL server in runtime.'; sleep 300"]

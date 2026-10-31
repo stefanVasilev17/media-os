@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.workflow;
 
+import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -183,14 +184,14 @@ public class EpisodeLearningService {
                                        String note, String reviewer, boolean comparedExistingRules,
                                        String expectedFingerprint, String authorization, UUID auditId) {
         requireDirectorCapability(authorization);
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
         requireEpisode(episodeId);
         String decision = action == null ? "" : action.trim().toUpperCase(Locale.ROOT);
         if (!List.of("PROMOTE_GLOBAL", "KEEP_EPISODE", "REJECT").contains(decision))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported learning decision.");
         if (note == null || note.trim().length() < 15 || note.length() > 3000)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A meaningful Director review note is required.");
-        if (reviewer == null || reviewer.trim().length() < 3 || reviewer.length() > 120)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reviewer attribution required.");
+        // The optional client display name is not an identity or an audit source.
 
         // Serialize promotions for this project. Project policy edits outside this
         // endpoint are detected through the fingerprint before mutation.
@@ -268,12 +269,14 @@ public class EpisodeLearningService {
         jdbc.sql("""
                 update episode_learning_proposal
                 set status=:status, classification=:classification, review_note=:note,
-                    reviewed_by=:reviewer, reviewed_at=now(), updated_at=now(),
+                    reviewed_by=:reviewer, actor_issuer=:actorIssuer,
+                    actor_subject=:actorSubject, reviewed_at=now(), updated_at=now(),
                     global_rule_id=:globalId, preflight_audit_id=:auditId
                 where id=:id and project_id=:projectId and status='PENDING'
                 """).param("id", proposalId).param("projectId", PROJECT)
                 .param("status", status).param("classification", classification)
-                .param("note", note.trim()).param("reviewer", reviewer.trim())
+                .param("note", note.trim()).param("reviewer", actor.auditName())
+                .param("actorIssuer", actor.issuer()).param("actorSubject", actor.subject())
                 .param("globalId", globalId).param("auditId", auditId).update();
         return Map.of("proposalId", proposalId, "sourceEpisodeId", episodeId,
                 "decision", decision, "status", status,

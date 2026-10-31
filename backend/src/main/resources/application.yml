@@ -9,6 +9,9 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  session:
+    jdbc:
+      initialize-schema: never
   servlet:
     multipart:
       max-file-size: 100MB
@@ -27,3 +30,5 @@ management:
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+
+  

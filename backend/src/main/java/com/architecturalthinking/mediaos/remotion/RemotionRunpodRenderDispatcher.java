@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.system.GpuWorkloadGrantService;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,14 @@ public class RemotionRunpodRenderDispatcher {
     private final String endpointId;
     private final String apiKey;
     private final String publicUrl;
+    @org.springframework.beans.factory.annotation.Value("${mediaos.worker-auth.enabled:false}")
+    private boolean scopedWorkerAuthentication;
+    private GpuWorkloadGrantService gpuGrants;
+
+    @Autowired(required = false)
+    public void setGpuWorkloadGrants(GpuWorkloadGrantService gpuGrants) {
+        this.gpuGrants = gpuGrants;
+    }
 
     public RemotionRunpodRenderDispatcher(
             ObjectMapper objectMapper,
@@ -52,12 +62,22 @@ public class RemotionRunpodRenderDispatcher {
             );
         }
 
+        GpuWorkloadGrantService.Grant grant = null;
+        boolean accepted = false;
         try {
+            if (scopedWorkerAuthentication) {
+                if (gpuGrants == null) throw new IllegalStateException("Scoped GPU credentials are not configured.");
+                grant = gpuGrants.issue(renderId, "REMOTION_GPU", Duration.ofMinutes(40));
+            }
             Map<String, Object> input = new LinkedHashMap<>();
             input.put("mode", "remotion");
             input.put("renderId", renderId.toString());
             input.put("callbackToken", callbackToken);
             input.put("backendUrl", publicUrl);
+            if (grant != null) {
+                input.put("workloadToken", grant.token());
+                input.put("workloadWorkerId", grant.workerId());
+            }
 
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("input", input);
@@ -76,8 +96,7 @@ public class RemotionRunpodRenderDispatcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String detail = response.body() == null ? "" : response.body().trim();
-                if (detail.length() > 800) detail = detail.substring(0, 800);
+                String detail = "Provider rejected dispatch";
                 throw new IllegalStateException(
                         "RunPod rejected the Remotion render job: HTTP " + response.statusCode() + " " + detail
                 );
@@ -91,6 +110,7 @@ public class RemotionRunpodRenderDispatcher {
             if (jobId.isBlank()) {
                 throw new IllegalStateException("RunPod accepted the Remotion render request without returning a job id.");
             }
+            accepted = true;
             return jobId;
         } catch (ResponseStatusException ex) {
             throw ex;
@@ -102,6 +122,14 @@ public class RemotionRunpodRenderDispatcher {
                             : ex.getMessage(),
                     ex
             );
+        } finally {
+            if (!accepted && grant != null && gpuGrants != null) {
+                try {
+                    gpuGrants.revoke(grant.id());
+                } catch (RuntimeException ignored) {
+                    // Do not replace the original dispatch failure or expose tokens in error logs.
+                }
+            }
         }
     }
 }
