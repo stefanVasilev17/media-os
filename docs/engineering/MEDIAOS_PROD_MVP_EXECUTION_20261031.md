@@ -128,3 +128,17 @@ On the isolated Railway QA project, the pinned security commit `13a3d74cb260e957
 - The temporary CI Dockerfile has a separate Maven/PostgreSQL build stage; the final image carries only Surefire reports, not an application or database.
 - **Still required before QA writes:** approved OIDC provider and MFA; React authentication lifecycle; end-to-end signed-token + project-member endpoint tests; secure worker identity; account bootstrap procedure; real frontend authentication checks. Complete a subsequent copy-of-schema migration rehearsal in an isolated database before production. No feature flags enabled.
 - All security work is restricted to **Draft PR #110**. EP001 and production remain immutable. Existing Railway visual QA preview on PR #109 remains untouched.
+
+
+## Stage 1 combined offline recovery, worker audit and HTTPS-mobile plan — 2026-10-31
+
+**Verified build:** isolated, build-only Railway QA service `mediaos-final-security-ci-pr110-temp`, pinned commit `05cd2b00e06e48df7e0e305ca194c15d9a5fcb3c`, deployment `a14c8778-76f1-45f8-a982-ceee81e36fc9`. Java 21 Maven + disposable PostgreSQL 16: **200 tests, 0 failures, 0 errors, 0 skipped; BUILD SUCCESS**. Frontend Vite/TypeScript build and Vitest (2 test files, 12 tests) also succeeded.
+
+Delivered in draft PR #110:
+- `V101__local_director_offline_maintenance_audit.sql`; `LocalDirectorOfflineMaintenance`; interactive `LocalDirectorOfflineCli`. Transactions perform credential reset and AES-256-GCM key rotation, revoke all account JDBC sessions and write durable audit events with no secret values. PostgreSQL test confirms wrong old key fully rolls back without revoking sessions or creating audit; after success old key fails, new key works, credential recovery resets password/TOTP, sessions are deleted and audit stays.
+- `MEDIAOS_DIRECTOR_OFFLINE_RECOVERY_RUNBOOK_20261031.md`: isolated terminal runbook, explicit database backup/shutdown, offline UUID confirmation and no reset endpoint. An **actual operator account recovery has not been run**.
+- `MEDIAOS_WORKER_ENDPOINT_AUTH_REVIEW_20261031.md`: source-level worker route inventory; Spline/Remotion/runner callbacks and GPU work GET are explicitly **DENY** in both verified JWT and local session modes. HTTP tests enforce GPU GET deny. **Worker workload credentials and full video callbacks are NOT yet implemented.**
+- `MEDIAOS_LOCAL_AUTH_HTTPS_MOBILE_ACCEPTANCE_20261031.md`: precise Safari/Chrome, HTTPS cookies, browser reload, 30-minute inactivity and backend-restart acceptance. **Real iPhone Safari checks have NOT been executed**, as the local auth branch has not been deployed with an ephemeral Director. MockMvc secure-cookie tests cannot substitute for browser validation.
+- No EP001 changes, no existing QA application deployment, no production deployment, no real Director credentials, no paid AI/Voice/Render access. PR #110 remains **DRAFT**.
+
+**Stage 1 remains conditionally incomplete** until approved isolated HTTPS mobile session test, confirmed offline recovery on disposable deployment, and approved workload identity for all required worker flows. This build is not a go-live authorization; the current worker-deny posture would block automated render/voice operations. Stage 2 full Shot workflow is not yet demonstrated.
