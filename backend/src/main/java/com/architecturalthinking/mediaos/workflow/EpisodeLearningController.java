@@ -25,7 +25,7 @@ public class EpisodeLearningController {
     }
 
     public record DecisionRequest(@NotBlank String action, @NotBlank String reviewNote,
-                                  @NotBlank String reviewedBy,
+                                  String reviewedBy,
                                   boolean comparedExistingRules,
                                   @NotBlank String expectedGlobalFingerprint) {}
 
@@ -46,7 +46,7 @@ public class EpisodeLearningController {
                                        String directorCapability,
                                        HttpServletRequest request) {
         return learning.decide(episodeId, proposalId, body.action(), body.reviewNote(),
-                body.reviewedBy(), body.comparedExistingRules(), body.expectedGlobalFingerprint(),
+                null, body.comparedExistingRules(), body.expectedGlobalFingerprint(),
                 directorCapability, audit(request));
     }
 
