@@ -1,12 +1,6 @@
 name: MediaOS Episode Director Frontend CI
 
 on:
-  push:
-    branches:
-      - 'feature/episode-brief-research-handoff-20261031'
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/episode-director-frontend-ci.yml'
   pull_request:
     paths:
       - 'frontend/**'
