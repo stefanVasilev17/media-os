@@ -17,6 +17,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -54,6 +55,18 @@ class WorkloadHttpAuthorizationTest {
 
         @PostMapping("/api/v1/worker/runner/heartbeat")
         String heartbeat() { return "heartbeat"; }
+
+        @PostMapping("/api/v1/remotion/renders/worker/claim")
+        String cpuClaim() { return "claim"; }
+
+        @PostMapping("/api/v1/remotion/renders/worker/{renderId}/progress")
+        String cpuProgress() { return "progress"; }
+
+        @PutMapping("/api/v1/remotion/renders/worker/{renderId}/complete")
+        String cpuComplete() { return "complete"; }
+
+        @PostMapping("/api/v1/remotion/renders/worker/{renderId}/fail")
+        String cpuFail() { return "fail"; }
 
         @PostMapping("/api/v1/episodes")
         String episode() { return "episode"; }
@@ -121,6 +134,85 @@ class WorkloadHttpAuthorizationTest {
                         .header("X-Worker-Id",workerId)
                         .header("X-MediaOS-Workload-Token",token))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void cpuWorkerIsAllowedOnlyItsExactOperationsWithMatchingLegacyIdentity() throws Exception {
+        UUID cpuId = UUID.randomUUID();
+        String cpuWorkerId = "remotion-cpu-qa:" + cpuId;
+        String cpuToken = "abcdefghijklmnopABCDEFGHIJKLMNOP0123456789-_C";
+        UUID renderId = UUID.randomUUID();
+
+        jdbc.sql("""
+                insert into mediaos_worker_credential
+                    (id,worker_id,token_hash,scope,job_id,active,expires_at)
+                values (:id,:worker,:hash,'REMOTION_CPU',null,true,now()+interval '30 minutes')
+                """)
+                .param("id", cpuId).param("worker", cpuWorkerId)
+                .param("hash", WorkloadCredentialService.sha256(cpuToken)).update();
+        try {
+            mvc.perform(post("/api/v1/remotion/renders/worker/claim")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("claim"));
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/" + renderId + "/progress")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isOk());
+
+            mvc.perform(put("/api/v1/remotion/renders/worker/" + renderId + "/complete")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isOk());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/" + renderId + "/fail")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isOk());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/claim")
+                            .header("X-Media-OS-Worker", "another-worker")
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isUnauthorized());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/claim")
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isUnauthorized());
+
+            mvc.perform(get("/api/v1/remotion/renders/worker/claim")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/" + renderId + "/complete")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/" + renderId + "/other")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isForbidden());
+
+            mvc.perform(post("/api/v1/episodes")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isForbidden());
+        } finally {
+            jdbc.sql("delete from mediaos_worker_credential where id=:id")
+                    .param("id", cpuId).update();
+        }
     }
 
     @Test
