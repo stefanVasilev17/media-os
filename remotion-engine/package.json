@@ -10,7 +10,8 @@
     "still:slice": "remotion still EP001-VerticalSlice out/ep001-vertical-slice.png --frame=1200",
     "typecheck": "tsc --noEmit",
     "render:shot01": "remotion render EP001-PhoneFirst-Youtube out/ep001-phone-first-youtube.mp4",
-    "render:shot02": "remotion render EP001-RequestAssembly-Youtube out/ep001-request-assembly-youtube.mp4"
+    "render:shot02": "remotion render EP001-RequestAssembly-Youtube out/ep001-request-assembly-youtube.mp4",
+    "render:scene01-02": "remotion render EP001-Scene01-02-Continuity out/ep001-scene01-02-continuity.mp4"
   },
   "dependencies": {
     "@react-three/fiber": "9.2.0",
