@@ -116,3 +116,15 @@ The first OIDC draft authorized every `/api/v1/**` mutation for a Director. This
 ## Verified Maven security build — 2026-10-31
 
 On the isolated Railway QA project, the pinned security commit `13a3d74cb260e957c0efa00d57f5ffe5f95c673d` passed Java 21 Maven tests. Focused Director HTTP tests: 9 passed, 0 failures, 0 errors. Full Maven test command: SUCCESS, confirmed by successful Docker verification stage. The test-only service was removed after verification. No production changes or database migration occurred. Remaining blockers: OIDC/MFA, database migration testing, frontend login, worker authorization and end-to-end QA. PR #110 remains Draft.
+
+
+## Verified PostgreSQL and signed-JWT security integration — 2026-10-31
+
+- **Build proof:** Railway QA project `MediaOS-Preflight-QA-20261028`, isolated temporary build-only service `mediaos-security-migration-ci-pr110-temp`, deployment `3ebb3fae-da5a-4417-bd17-842679182f40`, pinned GitHub commit `49205d968b9b49beb59c3b2003f482e605e2b64b`.
+- Maven 3.9, Java 21, local disposable PostgreSQL **16.15** running inside the Docker build stage. The database uses no Railway connection, existing QA database, credentials, domain, or production data.
+- **183 tests, 0 failures, 0 errors, 0 skipped. Maven BUILD SUCCESS.**
+- `SignedDirectorJwtVerificationTest`: **7 passed**, using locally generated ephemeral RSA key pairs and signed RS256 JWTs. Accepts trusted signature; rejects foreign signature, tampered payload, expired token, future `nbf`, wrong issuer/audience, and missing subject. This tests JWT verification but **not** a live external OIDC provider or hosted JWKS fetching.
+- `DirectorSecurityMigrationTest`: **2 passed**, validating full Flyway **V1–V97** on new PostgreSQL and checking no auto-provisioned Director membership, new audit columns, issuer/subject/active role checks and successful migration. Existing `GlobalCreationPreflightMigrationTest` also passed with the disposable PostgreSQL.
+- The temporary CI Dockerfile has a separate Maven/PostgreSQL build stage; the final image carries only Surefire reports, not an application or database.
+- **Still required before QA writes:** approved OIDC provider and MFA; React authentication lifecycle; end-to-end signed-token + project-member endpoint tests; secure worker identity; account bootstrap procedure; real frontend authentication checks. Complete a subsequent copy-of-schema migration rehearsal in an isolated database before production. No feature flags enabled.
+- All security work is restricted to **Draft PR #110**. EP001 and production remain immutable. Existing Railway visual QA preview on PR #109 remains untouched.
