@@ -1,6 +1,9 @@
 package com.architecturalthinking.mediaos.system;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+import java.time.Instant;
 
 import java.util.List;
 
@@ -29,6 +32,29 @@ class DirectorSecurityConfigurationTest {
         assertThrows(IllegalStateException.class,
                 () -> configuration.verifiedDirectorDecoder(
                         "https://id.example", "https://id.example/jwks.json", ""));
+    }
+
+    private Jwt token(String issuer, String audience, String subject) {
+        return Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .issuer(issuer)
+                .subject(subject)
+                .audience(List.of(audience))
+                .issuedAt(Instant.now().minusSeconds(10))
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build();
+    }
+
+    @Test
+    void validatesIssuerAudienceAndSubjectIndependentlyOfSignatureDecoder() {
+        var validator = DirectorSecurityConfiguration.requiredJwtClaims(
+                "https://identity.example", "mediaos-api");
+        assertEquals(false, validator.validate(
+                token("https://identity.example", "mediaos-api", "director-42")).hasErrors());
+        assertEquals(true, validator.validate(
+                token("https://other-issuer.example", "mediaos-api", "director-42")).hasErrors());
+        assertEquals(true, validator.validate(
+                token("https://identity.example", "different-app", "director-42")).hasErrors());
     }
 
     @Test
