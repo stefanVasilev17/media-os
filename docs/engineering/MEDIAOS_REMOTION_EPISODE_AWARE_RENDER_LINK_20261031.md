@@ -30,3 +30,14 @@ Build verification uses disposable PostgreSQL inside `Dockerfile.security-ci`, f
 4. **Release:** validate migration/rollback and backup/restore on disposable data, require separate Director sign-off before merging or deploying PR #110. The existing Railway `media-os-render-worker` stays on `main` until authorized.
 
 **Note:** Correct linking is a foundation, not an end-to-end EP002 render workflow; do not treat green database tests as proof the EP002 Remotion composition exists.
+
+
+## Verified CI acceptance — 2026-10-31
+
+- **Tested code commit:** `f49212019bb787eeb8860e655263ed21d7a26f4d`.
+- **Temporary Railway QA build service:** `mediaos-episode-aware-link-ci-pr110-temp`, deployment `7a6f6a8a-391a-4688-885c-d1c98ce84346`.
+- **Maven/Java 21 + disposable PostgreSQL 16:** **210 tests passed, 0 failures, 0 errors, 0 skipped**; entire Docker build **SUCCESS**; Flyway 103 migrations validated.
+- The frontend TypeScript/Vite and Vitest stages and CPU worker Node syntax checks also ran successfully within the same Docker build.
+- First run discovered a test-only Spring `JdbcClient.query(UUID.class).single()` limitation when a deliberately unlinked shot has NULL `remotion_render_id`. The test was corrected to query an Optional nullable UUID; the actual production controller logic did not require changing. The full second run passed.
+- QA data consisted only of temporary random episode UUIDs, shots and render IDs. It did not modify EP001 records, any existing persistent QA database, or the live `media-os-render-worker`.
+- **Not yet tested:** creation of EP002 Remotion compositions and shot renders, a live HTTPS CPU-worker render, iPhone Safari authentication, full Shot Studio/Voice/Video Review lifecycle.
