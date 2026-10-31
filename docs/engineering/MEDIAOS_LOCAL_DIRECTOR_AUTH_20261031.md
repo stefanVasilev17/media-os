@@ -68,3 +68,19 @@ No real login, OIDC connection, QA write flags, paid AI generation or production
 - **Frontend:** TypeScript/Vite build SUCCESS and 12 Vitest tests passed.
 - Initial local auth compilation and test failures were corrected in the draft branch, including preserving the exact reviewed API write allowlist and fixing mismatched test constructor calls.
 - Test evidence does **not** imply live login/session/cookie/CSRF HTTP integration has passed: this remains a release blocker. No user account was provisioned in an existing database, no production deployment and no feature flag activation occurred.
+
+
+## Real HTTP lifecycle verification — 2026-10-31
+
+**Verified commit:** `89d091f12a4c6a59a91d4b7503408fd2eb3cf558`.
+**Isolated build:** `mediaos-local-http-ci-pr110-temp`, deployment `ee135e4e-fec5-4b82-a15d-5c8fe23890aa` in the isolated Railway QA project. No domain, environment secrets, connection to QA or production PostgreSQL, or AI generation. PostgreSQL 16 ran only inside the build process.
+
+- Java 21 Maven **194 tests, 0 failures, 0 errors, 0 skipped; Docker build SUCCESS**.
+- Node 22 TypeScript/Vite and frontend Vitest also completed successfully.
+- New `LocalDirectorHttpLifecycleTest` started an isolated Spring web/security context against local PostgreSQL and passed all three real MockMvc HTTP tests.
+- Verified unauthenticated `GET /api/v1/security/session` returns **401**; login without CSRF returns **403**; wrong password and wrong TOTP return **401**.
+- Verified correct password + TOTP issues a Secure and HttpOnly PostgreSQL session cookie, authenticated session has Director capabilities, authorized Director API path works with CSRF, missing CSRF yields **403**, and internal worker callbacks remain **403**.
+- Verified Logout makes the previous session unusable; used TOTP step cannot be replayed; deactivated Director account loses authenticated access.
+- Issues discovered and fixed during this test cycle: missing `@Autowired` on the production LocalDirectorLoginService constructor, `@Transactional` CGLIB proxying of final classes, JPA auto-configuration in the JDBC-only test context, and overly long Spring Session principal naming (now stable UUID).
+- **Still required**: explicit time-expired session regression (the 30-minute timeout is configured but not separately tested), login rate limits, browser-on-iPhone UI and cookie behavior, secret/key recovery and rotation procedures, security review of all privileged routes and workload identities, and separate Director approval before any environment flag is enabled.
+- No existing database was written to; no account was bootstrapped outside the disposable PostgreSQL database. Existing PR #109 visual QA and production remain unchanged. PR #110 remains Draft.
