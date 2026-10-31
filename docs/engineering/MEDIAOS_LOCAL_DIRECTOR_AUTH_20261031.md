@@ -91,9 +91,9 @@ No real login, OIDC connection, QA write flags, paid AI generation or production
 **Build proof:** isolated Railway QA build-only service `mediaos-local-session-ci-pr110-temp`, deployment `91c31940-0645-4a1a-b7ed-1eb5a1bcb34d`, tested commit `e51bb8804e3d77da5b9f73df75b6c482b7e17660`. Docker build completed successfully on Java 21 and a disposable PostgreSQL 16 database. Frontend TypeScript/Vitest completed successfully.
 
 - **196 Java tests passed, 0 failures, 0 errors, 0 skipped.** Previous 194 tests remain green.
-- Added `V100__local_director_login_throttle.sql`: atomic PostgreSQL counters, SHA-256 hashed bucket identifiers, a rolling 15-minute window, max 12 attempts per normalized username and max 100 per observed client address; exceeding a limit returns HTTP 429.
+- Added `V100__local_director_login_throttle.sql`: atomic PostgreSQL counters, SHA-256 hashed bucket identifiers, a rolling 15-minute window, max 12 attempts per normalized username and max 100 requests globally; exceeding a limit returns HTTP 429.
 - Login throttle also applies to nonexistent accounts; counters work across multiple Java instances and are not reset by process restart. Existing per-account lock after five failures remains independently active.
-- The observed IP is `HttpServletRequest.getRemoteAddr()`. **Before production**, verify Railway reverse-proxy trusted forwarded-header handling, or clients may share an address or spoof it; never trust arbitrary client-supplied `X-Forwarded-For` without a trusted proxy.
+- **Proxy correction:** An attempted socket-peer filter was rejected when an integration test showed forwarded-header processing could interfere with the expected address. The filter was removed. Login throttling relies on account and global database buckets, and therefore does **not** trust `X-Forwarded-For`, `Forwarded` or `getRemoteAddr()`. The global limit can temporarily deny login for legitimate users after sustained attack traffic; this is an explicit operational tradeoff for the single-Director MVP.
 - Added a real HTTP regression proving the `SPRING_SESSION.MAX_INACTIVE_INTERVAL` for Director is **1800 seconds** and a forcibly expired persisted session no longer authenticates.
 - Added a real HTTP regression proving 12 failed attempts against an **unknown username** return 401, with the next attempt rejected with 429. The account name is isolated per test.
 - The JDBC table needs a retention policy (e.g., remove stale buckets older than 48 hours) before a long-lived release; no scheduled deletion was enabled during this security check.
@@ -111,3 +111,13 @@ There is intentionally **no public password-reset or MFA-reset endpoint**.
 6. Confirm recovery and session revocation with isolated PostgreSQL tests. Never operate directly on production PostgreSQL or production accounts during QA.
 
 **Remaining Stage 1 acceptance gates:** real mobile browser behavior on HTTPS, trusted proxy/client-address verification, stable session lifecycle across process restart/redeployment, offline recovery/key-rotation drill, full endpoint/worker authorization inventory, and explicit Director release approval. Local auth remains **OFF** everywhere outside disposable tests; no merge or production rollout is authorized.
+
+
+## Proxy-independent login throttling and retention — verified 2026-10-31
+
+- **Build evidence:** disposable Railway QA build `e1bfa9a3-9af6-497f-93f6-599e487d4a62` found a failure in the spoofed-forwarded-header test, demonstrating that the proposed early socket-peer capture could not be relied upon in the Spring filter chain. That design was **removed**, not waived.
+- Corrected implementation: PostgreSQL atomic 15-minute buckets are **global (100 attempts)** and per normalized account (12 attempts). Because client IP address is not involved, changing or forging forwarded IP headers cannot evade the global limiter.
+- **Verified:** pinned commit `451aa5c672d9c51a6254bfbaa855398381353018`, temporary Railway QA service `mediaos-proxy-safety-ci-pr110-temp`, deployment `8dc3d29e-2f27-4959-ad73-8fd79af56006`. **198 Java tests passed, 0 failures, 0 errors, 0 skipped**, full Maven SUCCESS with PostgreSQL inside the Docker build. Frontend TypeScript/Vite and Vitest passed.
+- Added opt-in-local-auth scheduled maintenance to delete throttle buckets whose last update is older than 48 hours, running every six hours by default. An integration test verifies older rows are deleted while recent rows remain.
+- Local auth is still **disabled by default**; this CI does not prove a live HTTPS browser login, browser cookie behavior across Railway proxy, or a credential recovery drill. The temporary CI service has no domain, secrets, persistent Postgres connection, or AI generation.
+- **Remaining Stage 1 blockers:** explicit offline credential recovery/rotation implementation and test; real browser HTTPS mobile smoke test; worker/callback identity and endpoint inventory; separate Director authorization for any QA feature activation or release.
