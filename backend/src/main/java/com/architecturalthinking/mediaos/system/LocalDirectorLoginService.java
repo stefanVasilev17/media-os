@@ -31,6 +31,7 @@ public final class LocalDirectorLoginService {
     private record Account(UUID id, String username, String passwordHash, String totpSecret,
                            boolean active, int failures, OffsetDateTime lockedUntil, long lastTotpStep) {}
 
+    @org.springframework.beans.factory.annotation.Autowired
     public LocalDirectorLoginService(JdbcClient jdbc, PasswordEncoder passwords, LocalTotpCrypto crypto) {
         this(jdbc, passwords, crypto, Clock.systemUTC());
     }
