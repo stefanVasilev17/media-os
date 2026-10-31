@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { WorkspaceContext, WorkspaceStage } from '../api/episodeWorkspaceApi';
 import { episodePreparationApi, type AgentPreview, type EpisodeBrief } from '../api/episodePreparationApi';
 import { buildVerbatimEp002ScriptDraft, EP002_QA_EPISODE_ID } from '../lib/ep002LockedScriptImport';
+import { buildApprovedEp002SceneDraft } from '../lib/ep002ApprovedVisualPassImport';
 import '../styles/episodeDirectorHub.css';
 import '../styles/episodePreparationQuiet.css';
 
@@ -56,6 +57,12 @@ function ReviewArtifact({ stage, state }: { stage: PreparationStage; state: Work
                   <p>{stringValue((item as Record<string,unknown>).narration)
                       || stringValue((item as Record<string,unknown>).visualGoal)
                       || stringValue((item as Record<string,unknown>).summary)}</p>
+                  {stage === 'SCENE' && stringValue((item as Record<string,unknown>).visualPlanMarkdown) && (
+                    <details className="episode-preparation-details">
+                      <summary>Full SHOT choreography — camera, objects and HEAR → SEE actions</summary>
+                      <pre>{stringValue((item as Record<string,unknown>).visualPlanMarkdown)}</pre>
+                    </details>
+                  )}
                 </div>
               : null}
         </div>
@@ -285,6 +292,22 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                       onClick={() => void perform(() => episodePreparationApi.importVerbatimScriptDraft(
                         episodeId,item.revision,buildVerbatimEp002ScriptDraft()))}>
                       Import approved EP002 Script v4.0 (no AI cost)
+                    </button>
+                  </>}
+                {stage === 'SCENE' && upstreamLocked && !approvalOpen &&
+                  episodeId === EP002_QA_EPISODE_ID &&
+                  item.revision === 0 && item.status !== 'LOCKED' && <>
+                    <p className="episode-preparation-message">
+                      The Director approved the NEW EP002 Visual Pass v1.0.
+                      Import the complete 11-SHOT, 59-beat HEAR → SEE plan,
+                      with original camera and asset directions unchanged.
+                      No paid AI and no automatic native Scene LOCK.
+                    </p>
+                    <button type="button" className="episode-preparation-primary"
+                      disabled={busy}
+                      onClick={() => void perform(() => episodePreparationApi.importApprovedVisualPassDraft(
+                        episodeId, item.revision, buildApprovedEp002SceneDraft()))}>
+                      Import approved EP002 Visual Pass v1.0 (no AI cost)
                     </button>
                   </>}
                 {upstreamLocked && !approvalOpen && <>
