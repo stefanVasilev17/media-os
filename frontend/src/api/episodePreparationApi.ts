@@ -101,6 +101,13 @@ export const episodePreparationApi = {
         artifact,expectedRevision,
         summary: 'EP002 Director Full Script v4.0, eleven verbatim shots; native Script DRAFT for review only. No AI, no native LOCK.'
       }),
+  importApprovedVisualPassDraft: (id: string, expectedRevision: number,
+                                   artifact: Record<string, unknown>) =>
+    request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
+      + '/stages/scene/draft','POST',{
+        artifact, expectedRevision,
+        summary: 'EP002 Director-approved NEW Visual Pass v1.0, source-exact 11 SHOTs and 59 visual beats, imported for native SCENE review without paid AI or automatic native LOCK.'
+      }),
   approveStage: (id: string, stage: 'RESEARCH' | 'SCRIPT' | 'SCENE',
                  expectedRevision: number, directorNote: string) =>
     request<WorkspaceContext>('/api/v1/episodes/' + encodeURIComponent(id)
