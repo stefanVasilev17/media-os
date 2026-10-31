@@ -18,10 +18,12 @@ public final class DirectorSessionController {
 
     @GetMapping
     public Session current(Authentication authentication) {
-        if (!(authentication instanceof JwtAuthenticationToken jwt)
-                || !jwt.isAuthenticated()
-                || jwt.getToken().getIssuer() == null
-                || jwt.getToken().getSubject() == null) {
+        boolean local = authentication instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken token
+                && token.isAuthenticated() && token.getPrincipal() instanceof LocalDirectorPrincipal;
+        boolean jwtValid = authentication instanceof JwtAuthenticationToken jwt
+                && jwt.isAuthenticated() && jwt.getToken().getIssuer() != null
+                && jwt.getToken().getSubject() != null;
+        if (!local && !jwtValid) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "An authenticated project session is required.");
         }
 
