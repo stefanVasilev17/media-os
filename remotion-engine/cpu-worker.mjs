@@ -9,7 +9,10 @@ const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backe
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
 const WORKER_SERVICE_NAME = String(process.env.RAILWAY_SERVICE_NAME || 'media-os-remotion-cpu-worker').trim();
 const WORKER_REPLICA_ID = String(process.env.RAILWAY_REPLICA_ID || os.hostname()).trim();
-const WORKER_ID = `${WORKER_SERVICE_NAME}:${WORKER_REPLICA_ID}`.slice(0, 160);
+const WORKER_ID = String(process.env.MEDIA_OS_REMOTION_WORKER_ID || `${WORKER_SERVICE_NAME}:${WORKER_REPLICA_ID}`).trim().slice(0, 160);
+if (!/^[A-Za-z0-9._:-]{1,160}$/.test(WORKER_ID)) {
+  throw new Error('Remotion worker ID must contain 1-160 characters from A-Z, a-z, 0-9, dot, underscore, colon or hyphen.');
+}
 const configuredConcurrency = Number(process.env.MEDIA_OS_REMOTION_RENDER_CONCURRENCY || 2);
 if (!Number.isInteger(configuredConcurrency) || configuredConcurrency < 1 || configuredConcurrency > 4) {
   throw new Error('MEDIA_OS_REMOTION_RENDER_CONCURRENCY must be an integer from 1 to 4.');
