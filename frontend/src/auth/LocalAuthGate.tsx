@@ -41,9 +41,20 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
         await ensureLocalCsrf();
         const claimMatch = /^#\/claim\?token=([A-Za-z0-9_-]{43})$/.exec(window.location.hash);
         if (claimMatch) {
+          const destination = '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare';
           try {
+            const existing = await loadLocalSession();
+            if (existing?.authenticated) {
+              window.history.replaceState(null, '', window.location.pathname + destination);
+              if (!cancelled) {
+                setSession(existing);
+                setState('authenticated');
+                setMessage('');
+              }
+              return;
+            }
             const verified = await redeemDirectorClaim(claimMatch[1]);
-            window.location.replace(window.location.pathname + '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare');
+            window.history.replaceState(null, '', window.location.pathname + destination);
             if (!cancelled) {
               setSession(verified);
               setState('authenticated');
@@ -52,9 +63,16 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
             return;
           } catch {
             window.history.replaceState(null, '', window.location.pathname + '#/');
+            const recovery = await loadLocalSession().catch(() => null);
             if (!cancelled) {
-              setMessage('Activation link is invalid, expired, or already used.');
-              setState('login');
+              if (recovery?.authenticated) {
+                setSession(recovery);
+                setState('authenticated');
+                setMessage('');
+              } else {
+                setMessage('This one-time link has already been used or is no longer valid. Open MediaOS using your normal bookmark, or request a new private sign-in link.');
+                setState('login');
+              }
             }
             return;
           }
