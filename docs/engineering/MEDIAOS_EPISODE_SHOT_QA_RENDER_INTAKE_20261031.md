@@ -49,7 +49,9 @@ This composition is intentionally QA-only, with a visible on-video QA watermark.
 - Three initial integration tests against a disposable PostgreSQL 16 database check queued render manifest and audit, idempotency, disabled flags and lack of Director identity, and rejection of missing Script/Scene/Shot/Voice locks.
 - A separate regression verifies the immutable EP001 UUID is explicitly rejected without queuing any QA composition.
 - `Dockerfile.security-ci` now includes Remotion's existing `build-typecheck-preflight.mjs`, which accepts only the documented EP001 baseline diagnostic and fails on any new TypeScript error. Java 21/Maven, frontend build/Vitest and the existing offline Python test suite run in the same test-only Docker build.
-- The first full code build passed **213 Java tests, 0 failures, 0 errors** with 103 Flyway migrations, frontend build/Vitest and zero new Remotion TypeScript errors. The additional EP001-denial regression was added afterward and must have a separate green run to be considered verified.
+- The first full code build passed **213 Java tests, 0 failures, 0 errors**, with 103 Flyway migrations, frontend/Vitest and zero new Remotion TypeScript errors.
+- A separate follow-up build including the new EP001 immutability regression passed **214 Java tests, 0 failures, 0 errors, 0 skipped**; full Docker build SUCCESS. Verified code commit `f336bc3a1146427c6cc880350b9475460b866447`, temporary Railway build-only service `mediaos-episode-shot-qa-intake-ci-pr110-temp`, deployment `940307a3-a4dc-42d4-bd5e-775fb95a71eb`. Includes PostgreSQL 16 with 103 migrations, Remotion typecheck, Node syntax, frontend build/Vitest and offline GPU Python regression. GPU remains out of scope.
+- EP001 is explicitly rejected before any database mutation; no protected episode is used as a test fixture.
 
 ## Remaining gates
 
