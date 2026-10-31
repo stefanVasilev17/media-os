@@ -76,3 +76,26 @@
   border-color: #82d7a5;
   background: #142d28;
 }
+
+.episode-selector-create { background:#254e6f; border:1px solid #4b7896; border-radius:9px; padding:12px 20px; font-size:16px; font-weight:600; color:white; cursor:pointer; }
+.episode-selector-create:hover { background:#32658e; }
+
+@media(max-width:600px){
+ .episode-selector-quiet { padding-top:26px; }
+ .episode-selector-header {
+   flex-direction:row;
+   align-items:center;
+   justify-content:space-between;
+   gap:12px;
+   padding-bottom:30px;
+ }
+ .episode-selector-header h1 { font-size:clamp(29px,8vw,36px); }
+ .episode-selector-create {
+   flex-shrink:0;
+   padding:10px 12px;
+   min-height:44px;
+   font-size:15px;
+   border-radius:8px;
+ }
+ .episode-selector-row { padding:22px 3px; }
+}

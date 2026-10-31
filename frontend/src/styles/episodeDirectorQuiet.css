@@ -74,3 +74,37 @@
   .director-quiet-shot-actions button svg { display: none; }
   .director-quiet-shot-name span { font-size: 18px; }
 }
+
+.director-quiet-header-actions { display:flex;align-items:center;gap:24px; }
+.director-quiet-tools { position:relative;font-size:16px;color:#bdcede; }
+.director-quiet-tools summary { cursor:pointer;padding:9px 0; }
+.director-quiet-tools-menu {
+  position:absolute;right:0;top:100%;z-index:10;min-width:170px;padding:8px 14px;
+  border:1px solid #32485d;border-radius:10px;background:#0d1827;
+  box-shadow:0 12px 30px rgba(0,0,0,.26);
+}
+.director-quiet-tools-menu button { display:block;width:100%;text-align:left;min-height:42px; }
+.director-quiet-shot-actions button:disabled {
+  opacity:.42;cursor:not-allowed;border-bottom-color:transparent;
+}
+@media(max-width:550px) {
+  .director-quiet-shot-actions {
+    grid-template-columns:1fr 1fr;gap:8px 18px;
+  }
+  .director-quiet-shot-actions button:first-child {
+    grid-column:1/-1;justify-content:flex-start;
+    padding:8px 0;min-height:44px;
+  }
+  .director-quiet-shot-actions button:not(:first-child) {
+    min-height:48px;display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid #283d4f;
+  }
+  .director-quiet-header-actions{gap:17px;}
+}
+
+.director-quiet-edit-hint {
+  color: #bdcede;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: -10px 0 25px;
+}

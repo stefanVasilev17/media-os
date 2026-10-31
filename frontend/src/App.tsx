@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { AppBottomNav } from './components/AppBottomNav';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
+import { EpisodeNewPage } from './pages/EpisodeNewPage';
+import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
 import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
 import { EpisodeDirectorPage } from './pages/EpisodeDirectorPage';
@@ -78,7 +79,12 @@ export function App() {
   const shotKey = routeParams.get('shot') || '';
   let page: ReactNode;
 
-  if (hash.startsWith('#/rule-studio')) {
+  const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
+  if (hash === '#/episodes/new') {
+    page = <EpisodeNewPage />;
+  } else if (preparationRoute) {
+    page = <EpisodePreparationPage episodeId={preparationRoute[1]} />;
+  } else if (hash.startsWith('#/rule-studio')) {
     page = <DirectorRuleStudioPage />;
   } else if (hash.startsWith('#/memory-import')) {
     page = <ProductionMemoryImportPage />;
@@ -115,7 +121,6 @@ export function App() {
   return (
     <div className="media-os-product-shell">
       {page}
-      <AppBottomNav currentHash={hash} />
     </div>
   );
 }

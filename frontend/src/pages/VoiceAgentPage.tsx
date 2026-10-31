@@ -466,7 +466,33 @@ export function VoiceAgentPage() {
   }
 
   if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
-  if (!script || !script.artifact || bundles.length === 0) return <main className="production-loading"><strong>{error || 'Voice Agent unavailable.'}</strong></main>;
+  if (!script || !script.artifact || bundles.length === 0) {
+    const needsScript = error === 'Script must be LOCKED before Voice Agent.';
+    const episodeId = new URLSearchParams(window.location.hash.split('?', 2)[1] || '')
+      .get('episodeId') || '22222222-2222-2222-2222-222222222222';
+    const directorRoute = '#/episodes/' + encodeURIComponent(episodeId) + '/director';
+    return <main className="media-os-page voice-prerequisite">
+      <nav className="voice-prerequisite-nav" aria-label="Voice navigation">
+        <button type="button" onClick={() => { window.location.hash = directorRoute; }}>
+          ← Director Overview
+        </button>
+      </nav>
+      <header className="voice-prerequisite-header">
+        <h1>{routeTargetRef.current.shotKey
+          ? routeTargetRef.current.shotKey + ' — Voice'
+          : 'Voice Agent'}</h1>
+      </header>
+      <section className="voice-prerequisite-gate">
+        <h2>{needsScript ? 'Script approval required' : 'Voice workspace unavailable'}</h2>
+        <p>{needsScript
+          ? 'The episode Script must be Director-LOCKED before Voice production can begin. No voice generation was started by opening this screen.'
+          : error || 'Open Director Overview to check the production stages.'}</p>
+        {needsScript && <button type="button" onClick={() => {
+          window.location.hash = '#/agents/script?episodeId=' + encodeURIComponent(episodeId);
+        }}>Open Script Agent</button>}
+      </section>
+    </main>;
+  }
 
   const approvedInShot = shotClips.filter(clip => clip.approved).length;
   const shotReady = Boolean(currentShot && shotState[currentShot.key]?.visualSyncReady);

@@ -28,6 +28,8 @@ export function EpisodeSelectorPage() {
     <main className="media-os-page episode-hub episode-selector-quiet">
       <header className="episode-selector-header">
         <h1>Episodes</h1>
+        <button type="button" className="episode-selector-create"
+          onClick={() => { window.location.hash = '#/episodes/new'; }}>+ New Episode</button>
       </header>
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
       {busy && <p className="episode-selector-message">Loading episodes…</p>}
@@ -41,7 +43,12 @@ export function EpisodeSelectorPage() {
             className={episode.fullyLocked ? 'episode-selector-row fully-locked' : 'episode-selector-row'}
             aria-label={episode.episodeNumber + ' — ' + episode.title + (episode.fullyLocked ? ', fully locked' : '')}
             key={episode.id}
-            onClick={() => { window.location.hash = episodeDirectorRoute(episode.id); }}>
+            onClick={() => {
+              window.location.hash = episode.hasBrief === true
+                && ['RESEARCH','SCRIPT','SCENE'].includes(episode.currentStage)
+                  ? '#/episodes/' + episode.id + '/prepare'
+                  : episodeDirectorRoute(episode.id);
+            }}>
             <span className="episode-selector-id">{episode.episodeNumber}</span>
             <strong>{episode.title}</strong>
             <ArrowRight size={22} aria-hidden="true"/>

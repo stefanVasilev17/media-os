@@ -50,6 +50,7 @@ public class EpisodeWorkspaceService {
         return jdbc.sql("""
                 select e.id, e.episode_number, e.title, e.status,
                        e.current_stage, e.source_of_truth_version,
+                       exists(select 1 from episode_brief b where b.episode_id=e.id) as has_brief,
                        (select count(*) > 0
                                and count(*) = count(*) filter (where s.status='LOCKED')
                         from production_stage s where s.episode_id=e.id) as all_stages_locked
@@ -65,6 +66,7 @@ public class EpisodeWorkspaceService {
                     row.put("status", rs.getString("status"));
                     row.put("currentStage", rs.getString("current_stage"));
                     row.put("sourceVersion", rs.getString("source_of_truth_version"));
+                    row.put("hasBrief", rs.getBoolean("has_brief"));
                     row.put("allStagesLocked", rs.getBoolean("all_stages_locked"));
                     return row;
                 }).list();
@@ -150,6 +152,87 @@ public class EpisodeWorkspaceService {
     @Transactional
     public Map<String, Object> create(String episodeNumber, String title, UUID auditId) {
         requireWritesEnabled();
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "New episodes require a Director Episode Brief; use the four-field creation API.");
+    }
+
+    public String nextEpisodeNumber() {
+        int next = jdbc.sql("""
+                select coalesce(max(substring(episode_number from 3)::integer), 1) + 1
+                from episode
+                where project_id=:project and episode_number ~ '^EP[0-9]{3}$'
+                """).param("project", PROJECT_ID).query(Integer.class).single();
+        if (next > 999) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Episode number capacity exhausted.");
+        return String.format(Locale.ROOT, "EP%03d", Math.max(2, next));
+    }
+
+    public Map<String, Object> brief(UUID episodeId) {
+        episode(episodeId);
+        return jdbc.sql("""
+                select episode_id,brief_text,source_notes,revision,updated_at
+                from episode_brief where episode_id=:episode
+                """).param("episode", episodeId)
+                .query((rs,n) -> {
+                    Map<String,Object> row = new LinkedHashMap<>();
+                    row.put("episodeId", rs.getObject("episode_id", UUID.class).toString());
+                    row.put("brief", rs.getString("brief_text"));
+                    row.put("sources", rs.getString("source_notes"));
+                    row.put("revision", rs.getInt("revision"));
+                    row.put("updatedAt", rs.getObject("updated_at", OffsetDateTime.class).toString());
+                    return row;
+                }).optional().orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND,
+                            "No Episode Brief has been created for this episode."));
+    }
+
+    @Transactional
+    public Map<String, Object> reviseBrief(UUID episodeId, String brief, String sources,
+                                           int expectedRevision, UUID auditId) {
+        requireWritesEnabled();
+        episode(episodeId);
+        if (LEGACY_EPISODE_ID.equals(episodeId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP001 source is locked; it is not editable by the new brief workflow.");
+        String verified = validatedBrief(brief);
+        String notes = validatedSources(sources);
+        int count = jdbc.sql("""
+                update episode_brief b set brief_text=:brief,source_notes=:sources,
+                    revision=b.revision+1,updated_at=now()
+                where b.episode_id=:episode and b.revision=:expected
+                  and exists(select 1 from production_stage s
+                    where s.episode_id=:episode and s.stage_key='RESEARCH'
+                      and s.current_revision=0 and s.status in ('DRAFT','WAITING'))
+                """).param("episode", episodeId).param("expected", expectedRevision)
+                .param("brief", verified).param("sources", notes).update();
+        if (count != 1)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Brief changed or Research started. Refresh before editing.");
+        event(episodeId, "RESEARCH", "EPISODE_BRIEF_REVISED", expectedRevision+1,
+                "Director revised the pre-Research brief.", auditId);
+        return brief(episodeId);
+    }
+
+    public static String validatedBrief(String value) {
+        String brief = value == null ? "" : value.trim();
+        if (brief.length() < 20 || brief.length() > 10000)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Episode idea must be between 20 and 10000 characters.");
+        return brief;
+    }
+
+    public static String validatedSources(String value) {
+        String notes = value == null ? "" : value.trim();
+        if (notes.length() > 12000)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Episode references must be at most 12000 characters.");
+        return notes;
+    }
+
+    @Transactional
+    public Map<String, Object> create(String episodeNumber, String title, String brief,
+                                      String sources, UUID auditId) {
+        requireWritesEnabled();
         if (!creationEnabled) throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Episode creation is disabled until legacy EP001 routing and preview authorization have been reviewed.");
         String number = episodeNumber == null ? "" : episodeNumber.trim().toUpperCase(Locale.ROOT);
@@ -160,6 +243,8 @@ public class EpisodeWorkspaceService {
                 .param("projectId", PROJECT_ID).param("number", number)
                 .query(Boolean.class).single();
         if (exists) throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode number already exists.");
+        String checkedBrief = validatedBrief(brief);
+        String checkedSources = validatedSources(sources);
         learning.requireEarlierLearningReviewed(number);
         UUID id = UUID.randomUUID();
         jdbc.sql("""
@@ -168,6 +253,12 @@ public class EpisodeWorkspaceService {
                 """)
                 .param("id", id).param("projectId", PROJECT_ID)
                 .param("number", number).param("title", name).update();
+
+        jdbc.sql("""
+                insert into episode_brief(episode_id,project_id,brief_text,source_notes)
+                values(:episode,:project,:brief,:sources)
+                """).param("episode", id).param("project", PROJECT_ID)
+                .param("brief", checkedBrief).param("sources", checkedSources).update();
 
         seedStage(id, "RESEARCH", null, "Research / Truth Map", 10, "DRAFT");
         seedStage(id, "SCRIPT", "SCRIPT_AGENT", "Script", 20, "WAITING");
@@ -209,6 +300,26 @@ public class EpisodeWorkspaceService {
                 .update();
         event(episodeId, null, "APPROVED_ASSET_REUSED", null, assetKey, auditId);
         return context(episodeId, "VISUAL");
+    }
+
+    @Transactional
+    public Map<String, Object> draftResearchForBrief(UUID episodeId, Map<String, Object> artifact,
+                                                      String summary, int expectedResearchRevision,
+                                                      int expectedBriefRevision, UUID auditId) {
+        requireWritesEnabled();
+        episode(episodeId);
+        if (LEGACY_EPISODE_ID.equals(episodeId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "EP001 is protected.");
+        Integer liveBriefRevision = jdbc.sql("""
+                select revision from episode_brief where episode_id=:episode for update
+                """).param("episode", episodeId).query(Integer.class).optional()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Episode Brief is unavailable."));
+        if (liveBriefRevision != expectedBriefRevision)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Episode Brief changed while Research was being prepared. No stale DRAFT saved.");
+        return saveDraft(episodeId, "RESEARCH", artifact, summary,
+                expectedResearchRevision, auditId, "DIRECTOR_SUBMITTED");
     }
 
     @Transactional

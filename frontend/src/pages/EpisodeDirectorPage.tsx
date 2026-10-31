@@ -15,6 +15,7 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
   const [overview, setOverview] = useState<EpisodeDirectorOverview | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
+  const scriptLocked = overview?.stages.some(stage => stage.stageKey === 'SCRIPT' && stage.status === 'LOCKED') ?? false;
 
   async function refresh() {
     setBusy(true);
@@ -37,7 +38,18 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
         <button type="button" onClick={() => { window.location.hash = '#/episodes'; }}>
           <ArrowLeft size={18} /> Episodes
         </button>
-        <button type="button" disabled={busy} onClick={() => void refresh()}>Refresh</button>
+        <div className="director-quiet-header-actions">
+          {overview?.legacyEpisode && <details className="director-quiet-tools">
+            <summary>Tools</summary>
+            <div className="director-quiet-tools-menu">
+              <button type="button" onClick={() => { window.location.hash = '#/studio?episodeId=' + episodeId; }}>Shot Studio</button>
+              <button type="button" onClick={() => { window.location.hash = '#/agents/script?episodeId=' + episodeId; }}>Script</button>
+              <button type="button" onClick={() => { window.location.hash = '#/agents/visual?episodeId=' + episodeId; }}>Visual</button>
+              <button type="button" onClick={() => { window.location.hash = '#/agents/voice?episodeId=' + episodeId; }}>Voice</button>
+            </div>
+          </details>}
+          <button type="button" disabled={busy} onClick={() => void refresh()}>Refresh</button>
+        </div>
       </nav>
 
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
@@ -55,6 +67,11 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
 
         <section className="director-quiet-shots" aria-label="Shots">
           <h2>Shots</h2>
+          {!scriptLocked && overview.shots.length > 0 && (
+            <p id="director-script-lock-hint" className="director-quiet-edit-hint">
+              Script must be LOCKED before you can edit shots.
+            </p>
+          )}
           {overview.shots.length === 0 && <p>No shots have been added.</p>}
           {overview.shots.map(shot => (
             <article className="director-quiet-shot" key={shot.shotKey}>
@@ -64,6 +81,9 @@ export function EpisodeDirectorPage({ episodeId }: { episodeId: string }) {
               </div>
               <div className="director-quiet-shot-actions">
                 <button type="button"
+                  disabled={!scriptLocked}
+                  aria-describedby={!scriptLocked ? 'director-script-lock-hint' : undefined}
+                  title={!scriptLocked ? 'Director-LOCK the Script before revising this shot' : undefined}
                   onClick={() => { window.location.hash = shotRevisionRoute(episodeId, shot.shotKey); }}>
                   Edit{shot.shotRevision > 0 ? ' v' + shot.shotRevision : ''}
                 </button>

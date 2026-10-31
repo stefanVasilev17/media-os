@@ -154,10 +154,10 @@ public class AgentActionPreviewController {
                 "Does not lock the stage automatically."
         ));
         result.put("locksAutomatically", false);
-        String request = message.isBlank()
+        String promptText = message.isBlank()
                 ? "Generate " + key + " using the locked upstream context."
                 : message;
-        var rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID, key, key, request, "");
+        var rules = firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID, key, key, promptText, "");
         addRulesSummary(result, rules);
         attachAuthorization(result, blockers, operation,
                 previewAuthorization.creativePayload(key, action, message) + "|RULES=" + rules.fingerprint());

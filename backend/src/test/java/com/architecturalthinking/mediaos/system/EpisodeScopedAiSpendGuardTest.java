@@ -1,6 +1,7 @@
 package com.architecturalthinking.mediaos.system;
 
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ class EpisodeScopedAiSpendGuardTest {
                 Map.of("scopedEpisodeId", UUID.randomUUID().toString(),
                         "scopedExpectedRevision", 0, "scopedUpstreamRevision", 1)
         });
-        var aspect = new AiSpendGuardAspect(policy, tokens);
+        var aspect = new AiSpendGuardAspect(policy, tokens, mock(ShotPromptContextService.class));
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
                 () -> aspect.guardCreativeAgent(joinPoint));
         assertThat(error.getStatusCode()).isEqualTo(HttpStatus.PRECONDITION_REQUIRED);

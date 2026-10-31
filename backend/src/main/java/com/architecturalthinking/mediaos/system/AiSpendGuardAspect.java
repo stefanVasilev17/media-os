@@ -107,7 +107,8 @@ public class AiSpendGuardAspect {
             UUID episode = UUID.fromString(String.valueOf(context.get("scopedEpisodeId")));
             int draftRevision = ((Number) context.get("scopedExpectedRevision")).intValue();
             int upstreamRevision = ((Number) context.get("scopedUpstreamRevision")).intValue();
-            String ruleFingerprint = String.valueOf(context.getOrDefault("scopedQualityContextHash", ""));
+            Object fingerprintValue = context.get("scopedQualityContextHash");
+            String ruleFingerprint = fingerprintValue instanceof String value ? value : "";
             if (ruleFingerprint.isBlank()) throw new ResponseStatusException(CONFLICT,
                     "Episode-scoped creative generation must include a verified first-pass Production Memory fingerprint.");
             String source = "";

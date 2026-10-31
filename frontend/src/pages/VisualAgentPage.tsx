@@ -872,7 +872,21 @@ export function VisualAgentPage() {
 
   if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
   if (!script || !script.artifact || !visual || !currentShot) {
-    return <main className="production-loading"><strong>{error || 'Visual Agent unavailable.'}</strong></main>;
+    const needsScript = error === 'Script must be LOCKED before Visual Agent.';
+    return <main className="media-os-page visual-prerequisite">
+      <button type="button" onClick={() => {
+        window.location.hash = '#/episodes/22222222-2222-2222-2222-222222222222/director';
+      }}>← Director Overview</button>
+      <h1>{needsScript ? 'Script approval required' : 'Visual workspace unavailable'}</h1>
+      <p>{needsScript
+        ? 'The episode Script must be Director-LOCKED before Visual production can begin.'
+        : error || 'Open Director Overview to review the production stages.'}</p>
+      <button type="button" onClick={() => {
+        window.location.hash = needsScript
+          ? '#/agents/script?episodeId=22222222-2222-2222-2222-222222222222'
+          : '#/episodes/22222222-2222-2222-2222-222222222222/director';
+      }}>{needsScript ? 'Open Script Agent' : 'Back to Director'}</button>
+    </main>;
   }
 
   const qaPassed = visual.shots.filter(shot => shot.qaStatus === 'PASS').length;
