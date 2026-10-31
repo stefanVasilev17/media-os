@@ -34,7 +34,11 @@ public class WorkloadSecurityConfiguration {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new WorkloadIdentityFilter(credentials),
                     UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth.anyRequest().hasRole("WORKER"));
+            .authorizeHttpRequests(auth -> auth.anyRequest().access((authentication, context) ->
+                    new org.springframework.security.authorization.AuthorizationDecision(
+                            context.getRequest().getAttribute(
+                                    WorkloadIdentityFilter.VERIFIED_WORKER)
+                                    instanceof WorkloadCredentialService.Identity)));
         return http.build();
     }
 }
