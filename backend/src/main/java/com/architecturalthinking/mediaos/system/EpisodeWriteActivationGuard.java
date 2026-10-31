@@ -10,12 +10,13 @@ public final class EpisodeWriteActivationGuard {
             @Value("${mediaos.episodes.writes-enabled:false}") boolean writesEnabled,
             @Value("${mediaos.episode-research.enabled:false}") boolean researchEnabled,
             @Value("${mediaos.learning.promotion-enabled:false}") boolean learningPromotionEnabled,
-            @Value("${mediaos.director-security.enabled:false}") boolean identitySecurityEnabled) {
+            @Value("${mediaos.director-security.enabled:false}") boolean identitySecurityEnabled,
+            @Value("${mediaos.local-auth.enabled:false}") boolean localSecurityEnabled) {
         if ((creationEnabled || writesEnabled || researchEnabled || learningPromotionEnabled)
-                && !identitySecurityEnabled) {
+                && !(identitySecurityEnabled || localSecurityEnabled)) {
             throw new IllegalStateException(
                     "MediaOS Episode write/research/learning flags require verified Director security. "
-                    + "Keep all new Episode mutations disabled until OIDC and membership are configured.");
+                    + "Keep all new Episode mutations disabled until verified local or OIDC identity security is configured.");
         }
     }
 }
