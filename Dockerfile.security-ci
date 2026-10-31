@@ -2,6 +2,11 @@ FROM maven:3.9-eclipse-temurin-21 AS verify
 WORKDIR /workspace/backend
 COPY backend/pom.xml ./pom.xml
 COPY backend/src ./src
+RUN mvn -B -ntp -Dstyle.color=never -Dtest=DirectorHttpAuthorizationTest test || { \
+    echo "=== Director HTTP TEST FAILURE DETAILS ==="; \
+    sed -n '1,170p' target/surefire-reports/com.architecturalthinking.mediaos.system.DirectorHttpAuthorizationTest.txt; \
+    exit 1; \
+  }
 RUN mvn -B -ntp -Dstyle.color=never test
 
 FROM alpine:3.20
