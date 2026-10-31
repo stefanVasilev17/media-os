@@ -35,6 +35,10 @@ function headers(extra = {}) {
   return {
     'X-Media-OS-Worker-Key': WORKER_KEY,
     'X-Media-OS-Worker': WORKER_ID,
+    ...(process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN?.trim()
+      ? {'X-Worker-Id': WORKER_ID,
+         'X-MediaOS-Workload-Token': process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN.trim()}
+      : {}),
     ...extra,
   };
 }
