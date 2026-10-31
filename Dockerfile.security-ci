@@ -1,0 +1,10 @@
+FROM maven:3.9-eclipse-temurin-21 AS verify
+WORKDIR /workspace/backend
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+RUN mvn -B -ntp -Dstyle.color=never test
+
+FROM alpine:3.20
+RUN adduser -D -H verify
+USER verify
+CMD ["sh", "-c", "echo 'MediaOS security CI build only. No application, DB access, or API is running.'; sleep 300"]
