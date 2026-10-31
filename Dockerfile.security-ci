@@ -6,6 +6,13 @@ COPY frontend/ ./
 COPY remotion-engine/cpu-worker.mjs /qa-cpu-worker.mjs
 RUN node --check /qa-cpu-worker.mjs && npm run build && npm test
 
+FROM python:3.12-alpine AS gpu-verify
+WORKDIR /gpu
+COPY gpu-render-worker/handler.py ./
+COPY gpu-render-worker/test_scoped_headers.py ./
+RUN python3 -m py_compile handler.py && python3 -m unittest -v test_scoped_headers.py \
+    && printf 'GPU_SCOPED_HEADERS_PASS\n' > /gpu-qa-passed
+
 FROM maven:3.9-eclipse-temurin-21 AS verify
 WORKDIR /workspace/backend
 RUN apt-get update \
@@ -24,6 +31,7 @@ RUN set -eu; \
     sh -c 'mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN FULL TEST SUITE PASSED"'
 
 FROM alpine:3.20
+COPY --from=gpu-verify /gpu-qa-passed /qa-gpu-test-result
 COPY --from=frontend-verify /frontend/dist /qa-frontend-build
 COPY --from=verify /workspace/backend/target/surefire-reports /qa-test-reports
 RUN adduser -D -H verify
