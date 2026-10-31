@@ -31,6 +31,7 @@ export function ShotStudioPage() {
   const [directorPlan,setDirectorPlan]=useState<DirectorVisualPlanState|null>(null);
   const [sourceVoice,setSourceVoice]=useState<VoiceClipState[]>([]);
   const studioRouteTargetRef = useRef(studioRouteTarget());
+  const addShotDetailsRef = useRef<HTMLDetailsElement>(null);
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
   const clip=useMemo(()=>shot?.clips.find(x=>x.id===clipId),[shot,clipId]);
@@ -120,7 +121,11 @@ export function ShotStudioPage() {
     if(busy)return;
     setBusy(true);setError('');
     try{const created=await studio.createShot(title);await refresh();setShotId(created.id);setNewTitle('');
+      addShotDetailsRef.current?.removeAttribute('open');
       setMessage(created.shotKey+' created. Add the first voice clip.');
+      if(window.matchMedia('(max-width: 850px)').matches){
+        window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
+      }
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
@@ -186,16 +191,24 @@ export function ShotStudioPage() {
           <div className="studio-shot-list">
             {shots.filter(s=>!s.sourceShotKey).map(s=><button key={s.id} type="button"
               className={'studio-shot-tab '+(s.id===shotId?'selected':'')}
-              onClick={()=>{setShotId(s.id);setMessage('');setError('');}}>
+              onClick={()=>{
+                setShotId(s.id);setMessage('');setError('');
+                if(window.matchMedia('(max-width: 850px)').matches){
+                  window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
+                }
+              }}>
               <strong>{s.shotKey}</strong><span>{s.title}</span>
             </button>)}
           </div>
-          <div className="studio-add-shot">
-            <label htmlFor="new-shot-title">Add another shot</label>
-            <input id="new-shot-title" maxLength={240} value={newTitle} placeholder="e.g. Payment Authorization"
-              onChange={e=>setNewTitle(e.target.value)}/>
-            <button type="button" disabled={busy} onClick={()=>void createShot()}><Plus size={16}/> Create Shot</button>
-          </div>
+          <details className="studio-add-shot" ref={addShotDetailsRef}>
+            <summary><Plus size={17} aria-hidden="true"/> Add another shot</summary>
+            <div className="studio-add-shot-fields">
+              <label htmlFor="new-shot-title">Shot title</label>
+              <input id="new-shot-title" maxLength={240} value={newTitle} placeholder="e.g. Payment Authorization"
+                onChange={e=>setNewTitle(e.target.value)}/>
+              <button type="button" disabled={busy} onClick={()=>void createShot()}><Plus size={16}/> Create Shot</button>
+            </div>
+          </details>
         </aside>
         <section className="studio-content" id="studio-working-editor">
           {!shot?<div className="studio-empty">
