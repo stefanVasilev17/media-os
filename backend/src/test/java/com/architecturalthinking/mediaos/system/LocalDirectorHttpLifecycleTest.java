@@ -159,7 +159,7 @@ class LocalDirectorHttpLifecycleTest {
     @Test
     void shotQaRenderRouteRequiresDirectorSessionAndCsrf() throws Exception {
         String qaPath = "/api/v1/episodes/" + UUID.randomUUID()
-                + "/shot-revisions/SHOT%2001/render-qa";
+                + "/shot-revisions/SHOT-01/render-qa";
         Csrf token = csrf();
 
         mvc.perform(post(qaPath)
