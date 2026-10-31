@@ -79,34 +79,42 @@ public class LocalDirectorClaimController {
             throw invalid();
         }
 
-        // Claim ownership of the original QA Director identity, keeping prior
-        // Director decision attribution. Invalidate bootstrap credentials.
-        byte[] passwordBytes = new byte[48];
-        byte[] totpBytes = new byte[32];
-        random.nextBytes(passwordBytes);
-        random.nextBytes(totpBytes);
-        String randomPassword = java.util.Base64.getUrlEncoder()
-                .withoutPadding().encodeToString(passwordBytes);
-        String randomTotp = base32(totpBytes);
-        java.util.Arrays.fill(passwordBytes, (byte) 0);
-        java.util.Arrays.fill(totpBytes, (byte) 0);
+        String currentUsername = jdbc.sql("""
+                select username from mediaos_local_director
+                 where id=:id and active=true for update
+                """).param("id", invite.directorId())
+                .query(String.class).optional().orElse(null);
+        if (currentUsername == null) throw invalid();
 
-        int changed = jdbc.sql("""
-                update mediaos_local_director
-                   set username=:username, password_hash=:password,
-                       totp_secret_encrypted=:totp, failed_attempts=0,
-                       locked_until=null, last_totp_step=-1, updated_at=now()
-                 where id=:id and active=true
-                """)
-                .param("username", invite.username())
-                .param("password", passwords.encode(randomPassword))
-                .param("totp", totpCrypto.encrypt(randomTotp))
-                .param("id", invite.directorId())
-                .update();
-        if (changed != 1) throw invalid();
-
-        jdbc.sql("delete from SPRING_SESSION where PRINCIPAL_NAME=:id")
-                .param("id", invite.directorId().toString()).update();
+        // First claim takes over the original QA bootstrap account. Later
+        // privately issued one-use links sign in the SAME owner without
+        // rotating credentials or invalidating other active devices.
+        if (!currentUsername.equals(invite.username())) {
+            byte[] passwordBytes = new byte[48];
+            byte[] totpBytes = new byte[32];
+            random.nextBytes(passwordBytes);
+            random.nextBytes(totpBytes);
+            String randomPassword = java.util.Base64.getUrlEncoder()
+                    .withoutPadding().encodeToString(passwordBytes);
+            String randomTotp = base32(totpBytes);
+            java.util.Arrays.fill(passwordBytes, (byte) 0);
+            java.util.Arrays.fill(totpBytes, (byte) 0);
+            int changed = jdbc.sql("""
+                    update mediaos_local_director
+                       set username=:username, password_hash=:password,
+                           totp_secret_encrypted=:totp, failed_attempts=0,
+                           locked_until=null, last_totp_step=-1, updated_at=now()
+                     where id=:id and active=true
+                    """)
+                    .param("username", invite.username())
+                    .param("password", passwords.encode(randomPassword))
+                    .param("totp", totpCrypto.encrypt(randomTotp))
+                    .param("id", invite.directorId())
+                    .update();
+            if (changed != 1) throw invalid();
+            jdbc.sql("delete from SPRING_SESSION where PRINCIPAL_NAME=:id")
+                    .param("id", invite.directorId().toString()).update();
+        }
 
         int used = jdbc.sql("""
                 update mediaos_director_claim_invite set consumed_at=now()
