@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, Bot, CheckCircle2, CircleDot, LoaderCircle, Lock, MessageSquare, Mic2, Clapperboard, RefreshCw, Save } from 'lucide-react';
-import { episodeDirectorRoute } from '../api/episodeDirectorApi';
+import { episodeDirectorRoute, getEpisodeDirectorOverview } from '../api/episodeDirectorApi';
 import { shotRevisionApi, type AiPreview, type ShotRevisionState } from '../api/shotRevisionApi';
 import '../styles/episodeDirectorHub.css';
 import '../styles/shotRevisionAgent.css';
@@ -19,6 +19,7 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [scriptGateRoute, setScriptGateRoute] = useState('');
 
   const apply = useCallback((next: ShotRevisionState) => {
     setState(next);
@@ -31,8 +32,19 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
   }, []);
 
   const refresh = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    setScriptGateRoute('');
+    setState(null);
     try {
-      setError('');
+      const overview = await getEpisodeDirectorOverview(episodeId).catch(() => null);
+      if (overview && !overview.stages.some(stage =>
+        stage.stageKey === 'SCRIPT' && stage.status === 'LOCKED')) {
+        setScriptGateRoute(overview.legacyEpisode
+          ? '#/agents/script?episodeId=' + encodeURIComponent(episodeId)
+          : '#/episodes/' + encodeURIComponent(episodeId) + '/prepare');
+        return;
+      }
       apply(await shotRevisionApi.state(episodeId, shotKey));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load Shot Revision Agent.');
@@ -132,9 +144,23 @@ export function ShotRevisionAgentPage({ episodeId, shotKey }: { episodeId: strin
         <h1>{shotKey} — Revision</h1>
         {state?.title && <p>{state.title}</p>}
       </header>
+      {!loading && scriptGateRoute && !state && (
+        <section className="shot-revision-prerequisite" aria-labelledby="shot-revision-script-required">
+          <h2 id="shot-revision-script-required">Script approval required</h2>
+          <p>The episode Script must be Director-LOCKED before you can revise {shotKey}. No shot changes have been made.</p>
+          <div>
+            <button type="button" onClick={() => { window.location.hash = scriptGateRoute; }}>
+              Open Script preparation
+            </button>
+            <button type="button" onClick={() => { window.location.hash = episodeDirectorRoute(episodeId); }}>
+              Back to Director
+            </button>
+          </div>
+        </section>
+      )}
       {error && <div role="alert" className="shot-revision-error">
-        <p>{error === 'Conflict' || error.includes('HTTP 409')
-          ? 'Shot revision requires a Director-LOCKED Script. If the Script changed, a new rebase may be required.'
+        <p>{error === 'Conflict' || error === 'HTTP 409'
+          ? 'The saved revision may have changed. Refresh to load the latest data before editing.'
           : error}</p>
         {!state && <button type="button" onClick={() => {
           window.location.hash = episodeDirectorRoute(episodeId);
