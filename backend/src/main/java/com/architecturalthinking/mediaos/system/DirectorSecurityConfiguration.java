@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -22,7 +21,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 
 import java.util.List;
-import java.util.function.Function;
 
 @Configuration
 @EnableWebSecurity
@@ -82,14 +80,16 @@ public class DirectorSecurityConfiguration {
             throw new IllegalStateException("Director identity needs a trusted HTTPS issuer, JWKS URL, and API audience.");
         }
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-        OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+        decoder.setJwtValidator(requiredJwtClaims(issuer, audience));
+        return decoder;
+    }
+
+    static OAuth2TokenValidator<Jwt> requiredJwtClaims(String issuer, String audience) {
+        return new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefaultWithIssuer(issuer),
                 new JwtClaimValidator<List<String>>(JwtClaimNames.AUD,
                         audiences -> audiences != null && audiences.contains(audience)),
                 new JwtClaimValidator<String>(JwtClaimNames.SUB,
-                        subject -> subject != null && !subject.isBlank())
-        );
-        decoder.setJwtValidator(validator);
-        return decoder;
+                        subject -> subject != null && !subject.isBlank()));
     }
 }
