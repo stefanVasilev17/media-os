@@ -1,0 +1,9 @@
+FROM maven:3.9-eclipse-temurin-21
+WORKDIR /backend
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+ENV MAVEN_OPTS="-Xmx512m"
+RUN mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m -Dtest=EpisodeDirectorOverviewControllerTest test > /tmp/shot-index-tests.log 2>&1 \
+    || { echo EP002_DIRECTOR_SHOT_INDEX_CI=FAIL; tail -120 /tmp/shot-index-tests.log; exit 1; }
+RUN grep 'Tests run:' /tmp/shot-index-tests.log | tail -2 && echo EP002_DIRECTOR_SHOT_INDEX_CI=PASS
+CMD ["sh","-c","echo CI_COMPLETED; sleep 20"]
