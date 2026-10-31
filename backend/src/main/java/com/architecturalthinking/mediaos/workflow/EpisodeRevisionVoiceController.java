@@ -23,8 +23,8 @@ public class EpisodeRevisionVoiceController {
         this.voices = voices;
     }
 
-    public record GenerateRequest(@NotNull @Min(1) Integer expectedRevision) {}
-    public record ApproveRequest(@NotNull @Min(1) Integer expectedRevision,
+    public record GenerateRequest(@NotNull @Min(0) Integer expectedRevision) {}
+    public record ApproveRequest(@NotNull @Min(0) Integer expectedRevision,
                                  @NotNull UUID takeId,
                                  String decision) {}
 
