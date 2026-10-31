@@ -129,3 +129,59 @@
   .studio-plan-beat{display:block}
   .studio-plan-beat>span{display:block;margin-bottom:7px}
 }
+
+.studio-page{max-width:1200px;padding-top:30px}
+.studio-hero{margin-bottom:36px}
+.studio-hero h1{margin:24px 0 0;font-size:clamp(32px,5vw,43px)}
+.studio-back{
+  border:0;background:none;color:#c1d4e6;padding:9px 0;
+  font-size:16px;font-weight:560;min-height:44px;cursor:pointer;
+}
+.studio-shell{gap:40px}
+.studio-sidebar,.studio-panel{
+  background:none;
+  border:0;border-top:1px solid #35485d;border-radius:0;
+  padding:24px 0;
+}
+.studio-sidebar{top:20px}
+.studio-originals{border-bottom:1px solid #35485d;margin-bottom:24px;padding-bottom:16px}
+.studio-originals>summary{font-size:18px;font-weight:620;cursor:pointer;padding:12px 0}
+.studio-originals .studio-legacy-mirror{padding-top:18px}
+.studio-originals .studio-legacy-mirror>.studio-section-head,
+.studio-originals .studio-legacy-mirror>.studio-muted{display:none}
+.studio-shot-list{margin:12px 0}
+.studio-shot-tab{
+  border:0;border-bottom:1px solid #34475a;border-radius:0;
+  background:transparent;padding:18px 4px;
+}
+.studio-shot-tab.selected{background:#142a3b;border-color:#5a8da9}
+.studio-shot-tab strong{font-size:18px}
+.studio-shot-tab span{font-size:16px}
+.studio-section-head h2,.studio-section-head h3{font-size:22px}
+.studio-section-head span,.studio-muted,.studio-panel>p,.studio-shot-head p{
+  font-size:16px;line-height:1.65;
+}
+.studio-sidebar label,.studio-panel label{font-size:16px;font-weight:600}
+.studio-clip-tabs button{font-size:16px;font-weight:600}
+.studio-clip-tabs small{font-size:14px;letter-spacing:0}
+.studio-shot-head>span{font-size:16px;letter-spacing:0}
+.studio-status{font-size:16px;padding:0;background:transparent}
+.studio-clip-editor{
+  border:0;border-top:1px solid #34475a;background:transparent;
+  border-radius:0;padding:20px 0;
+}
+.studio-legacy strong,.studio-legacy p,.studio-legacy-clip-toggle span,
+.studio-legacy-clip-toggle strong,.studio-legacy-detail .studio-section-head strong,
+.studio-legacy-audio label{font-size:16px;letter-spacing:0}
+.studio-legacy-detail{border:0;background:transparent}
+.studio-director-workflow,.studio-director-plan,.studio-reuse-panel{
+  background:transparent;border:1px solid #35485d;border-radius:9px;
+}
+.studio-director-workflow>p,.studio-reuse-panel p{font-size:16px}
+.studio-alert{font-size:16px}
+@media(max-width:850px){
+ .studio-shell{gap:20px}
+ .studio-sidebar,.studio-panel{padding:19px 0}
+ .studio-page{padding:24px 18px 90px}
+ .studio-hero{margin-bottom:28px}
+}
