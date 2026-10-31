@@ -26,8 +26,10 @@ public class LocalDirectorLoginThrottle {
     }
 
     public void check(HttpServletRequest request, String username) {
-        String address = request.getRemoteAddr();
-        if (address == null || address.isBlank()) address = "unknown";
+        Object originalPeer = request.getAttribute(
+                LocalSocketPeerCaptureFilter.SOCKET_PEER_ATTRIBUTE);
+        String address = originalPeer instanceof String peer && !peer.isBlank()
+                ? peer : "unknown";
         if (increment("address:" + address) > ADDRESS_LIMIT) deny();
         String normalized = username == null ? "" : username.strip().toLowerCase(Locale.ROOT);
         if (increment("account:" + normalized) > USERNAME_LIMIT) deny();
