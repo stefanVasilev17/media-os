@@ -28,7 +28,7 @@ Provide an episode-scoped intake that connects a Director-written brief to the E
 - `mediaos.episodes.creation-enabled=false`, `mediaos.episodes.writes-enabled=false` and `mediaos.episode-research.enabled=false` by default. Paid AI OFF is an additional independent safeguard.
 - A global preflight audits all writes and binds the URL episode to actual episode context. RESEARCH run additionally requires a valid single-use authorization from preview (5-minute expiry), live first-pass hash and ledger capture; no paid reruns/repairs.
 - Research preflight never uses `EpisodeBuildService.startCurrentEpisode`; that service remains EP001-only.
-- Staging security review required before enablement (authentication, CSRF/origin, rate limits, audit identity).
+- Staging security review required before enablement (authentication, CSRF/origin, rate limits, audit identity). GitHub Actions will not be used for this project unless the Director later explicitly changes that decision.
 - Source URL strings are unverified Director-supplied leads; OpenAI is **not** browsing the web, and source verification is **not** performed by this PR. Director must inspect references and resolve uncertainties before approving truth.
 - No automatic generation of Voice, no Remotion build, no new asset creation, no Director auto-LOCK.
 
@@ -65,7 +65,7 @@ Provide an episode-scoped intake that connects a Director-written brief to the E
 6. Added Vitest tests for episode isolation, scoped agent routes and exact Preview/run messages, and Java tests for default-off write guards, brief validation and no unverified citations presented as verified.
 
 **Remaining blockers before any deployment:**
-- The project workflows `.github/workflows/backend-preflight-ci.yml` and `episode-director-frontend-ci.yml` exist, but no successful run has been observed for PR #109. Trigger and inspect both on GitHub or stage locally with Java 21 + PostgreSQL and Node 22.
+- GitHub Actions are deliberately not in use by Director decision. Do not trigger or recommend them. Verify Java 21/Maven, Node 22/TypeScript/Vite/Vitest and PostgreSQL/Flyway using local or explicitly authorized isolated QA tooling.
 - Authenticate Director operations with real user identity; global creation preflight is not authentication. Add rate-limits, CSRF/origin enforcement and director review audit identity.
 - Validate that Java 21 compilation and all dependent Draft PRs #100–#108 are compatible, especially prompt assembly and Production Memory migrations.
 - Confirm live database schema supports V93 and that the new FK and table are created in migration order.
@@ -80,7 +80,11 @@ Provide an episode-scoped intake that connects a Director-written brief to the E
 - Episode listing now emits `hasBrief`; older EP001/EP002 rows without the new V93 brief are routed to their Director Overview rather than opening a broken new-episode preparation page. New episodes use the new preparation route only when the V93 source brief exists.
 - Three-field legacy `EpisodeWorkspaceService.create(number,title,auditId)` keeps its default-off write gate and rejects creation without a Director Brief. No empty-brief rows are permitted.
 - A simple Research artifact or a list of source URLs is NOT fact-checking. The Director must inspect evidence and explicitly LOCK. Revision source changes are checked transactionally.
-- Both backend and frontend CI YAML files have temporary `push` filters scoped exclusively to `feature/episode-brief-research-handoff-20261031`. GitHub Actions STILL reports **zero workflow runs** on that branch; source changes alone cannot be called successful CI. Remove the branch-specific push filters before merging the feature into the mainline.
-- GitHub Actions workflow_dispatch is configured in these files, but the connected toolset does not expose a dispatch action. An authorized operator can select the branch on GitHub Actions and run the backend preflight and Episode Director frontend workflows manually, then inspect their logs.
+- Director explicitly declined GitHub Actions on 2026-10-31. The temporary branch-specific `push` filters were reverted, leaving workflow files identical to the parent branch. Do not enable GitHub Actions, add CI triggers, or request manual workflow runs for this MediaOS work.
+- Validation must use alternatives **without GitHub Actions**: Java 21/Maven local or isolated runner, Node 22/npm build and Vitest, PostgreSQL/Flyway against disposable local/QA database, then isolated end-to-end checks. Do not deploy to Railway or run paid OpenAI calls unless the Director authorizes them.
 - Railway project `MediaOS-Preflight-QA-20261028` was inspected read-only; it does not expose a deploy-ready backend QA service for this branch. No Railway resources were created, changed, deployed, restarted, or billed by this QA review.
 - Release remains **BLOCKED** pending successful Java21/Maven tests, TypeScript/Vite build, Flyway migration and isolated staging end-to-end validation; ensure no live OpenAI use, production DB mutation or Director LOCK updates while evaluating.
+
+## Director QA policy — no GitHub Actions
+
+The Director explicitly does not want to enable or use GitHub Actions. **No GitHub Actions activation or CI run is required, expected or recommended**. The same quality gates apply via alternative execution: compile Java 21, run Maven tests, compile TypeScript/Vite, run Vitest, and verify Flyway migrations against a disposable PostgreSQL database, all with no production writes. Until those checks execute, the PR stays DRAFT and release stays BLOCKED. Do not create or modify infrastructure without Director approval.
