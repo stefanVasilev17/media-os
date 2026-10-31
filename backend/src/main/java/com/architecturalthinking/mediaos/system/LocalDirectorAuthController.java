@@ -37,7 +37,7 @@ public class LocalDirectorAuthController {
     }
 
     @GetMapping("/csrf")
-    public java.util.Map<String, String> csrf(CsrfToken token) {
+    public java.util.Map<String, String> csrf(@RequestAttribute("_csrf") CsrfToken token) {
         return java.util.Map.of("token", token.getToken(), "header", token.getHeaderName());
     }
 
