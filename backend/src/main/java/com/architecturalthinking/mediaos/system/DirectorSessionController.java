@@ -13,8 +13,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/security/session")
 public final class DirectorSessionController {
-    public record Session(boolean authenticated, String actorKey,
-                          List<String> roles, boolean canApprove, boolean canSpend) {}
+    public record Session(boolean authenticated,
+                          List<String> roles, boolean canApprove, boolean canConfigurePaidAi) {}
 
     @GetMapping
     public Session current(Authentication authentication) {
@@ -38,9 +38,7 @@ public final class DirectorSessionController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Active project membership required.");
         }
 
-        String actorKey = DirectorIdentity.stableAuditName(
-                jwt.getToken().getIssuer().toString(), jwt.getToken().getSubject());
         boolean director = roles.contains("DIRECTOR");
-        return new Session(true, actorKey, roles, director, director);
+        return new Session(true, roles, director, director);
     }
 }
