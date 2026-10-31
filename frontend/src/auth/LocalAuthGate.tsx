@@ -13,6 +13,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
+  const [rememberDevice, setRememberDevice] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -56,7 +57,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
     setBusy(true);
     setMessage('');
     try {
-      const authenticated = await loginLocal(username.trim(), password, totpCode);
+      const authenticated = await loginLocal(username.trim(), password, totpCode, rememberDevice);
       setSession(authenticated);
       setPassword('');
       setTotpCode('');
@@ -118,7 +119,13 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
             autoComplete="one-time-code" maxLength={6} value={totpCode}
             onChange={event => setTotpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
             required />
-          {message && <p className="local-director-error" role="alert">{message}</p>}
+          <label className="local-director-remember" htmlFor="remember-device">
+            <input id="remember-device" type="checkbox" checked={rememberDevice}
+              onChange={event => setRememberDevice(event.target.checked)} />
+            <span>Remember this device for 30 days</span>
+          </label>
+          <p className="local-director-remember-note">For your private device only. You can sign out at any time.</p>
+          {message && <p className="local-director-error" role="alert">{message}</p>
           <button type="submit" disabled={busy}>{busy ? 'Checking…' : 'Sign in securely'}</button>
         </form>
       </>}
