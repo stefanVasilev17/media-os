@@ -40,47 +40,67 @@ class DirectorHttpAuthorizationTest {
 
     @RestController
     static class SecurityProbeController {
-        @GetMapping("/api/v1/security-probe")
+        @GetMapping("/api/v1/episodes/security-probe")
         String read() { return "ok"; }
 
-        @PostMapping(value = "/api/v1/security-probe", produces = MediaType.TEXT_PLAIN_VALUE)
+        @PostMapping(value = "/api/v1/episodes/security-probe", produces = MediaType.TEXT_PLAIN_VALUE)
         String write() { return "updated"; }
+
+        @PostMapping("/api/v1/worker/runner/heartbeat")
+        String worker() { return "worker"; }
+
+        @PostMapping("/api/v1/unreviewed")
+        String unreviewed() { return "should-not-run"; }
     }
 
     @Test
     void anonymousCannotReadProjectData() throws Exception {
-        mvc.perform(get("/api/v1/security-probe"))
+        mvc.perform(get("/api/v1/episodes/security-probe"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void anonymousCannotWriteProjectData() throws Exception {
-        mvc.perform(post("/api/v1/security-probe"))
+        mvc.perform(post("/api/v1/episodes/security-probe"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void viewerMayReadButCannotWrite() throws Exception {
         var viewer = jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"));
-        mvc.perform(get("/api/v1/security-probe").with(viewer))
+        mvc.perform(get("/api/v1/episodes/security-probe").with(viewer))
                 .andExpect(status().isOk());
-        mvc.perform(post("/api/v1/security-probe").with(
+        mvc.perform(post("/api/v1/episodes/security-probe").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void editorCannotPerformPrivilegedMutation() throws Exception {
-        mvc.perform(post("/api/v1/security-probe").with(
+        mvc.perform(post("/api/v1/episodes/security-probe").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_EDITOR"))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void directorCanReachAnExplicitlyPermittedMutation() throws Exception {
-        mvc.perform(post("/api/v1/security-probe").with(
+        mvc.perform(post("/api/v1/episodes/security-probe").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void evenDirectorCannotInvokeAnInternalWorkerCallback() throws Exception {
+        mvc.perform(post("/api/v1/worker/runner/heartbeat").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void evenDirectorCannotWriteThroughAnUnreviewedApiRoute() throws Exception {
+        mvc.perform(post("/api/v1/unreviewed").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
