@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.workflow;
 
+import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -444,6 +445,7 @@ public class EpisodeWorkspaceService {
     public Map<String, Object> directorLock(UUID id, String rawStage, int expectedRevision,
                                             String decision, String directorNote, UUID auditId) {
         requireWritesEnabled();
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
         episode(id);
         if (LEGACY_EPISODE_ID.equals(id))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot relock EP001 through episode workspace.");
@@ -479,7 +481,7 @@ public class EpisodeWorkspaceService {
                 .param("episodeId", id).param("stage", stage)
                 .param("revision", expectedRevision).update();
         if (affected != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "Concurrent stage update.");
-        event(id, stage, "DIRECTOR_LOCKED", expectedRevision, directorNote.trim(), auditId);
+        directorEvent(id, stage, "DIRECTOR_LOCKED", expectedRevision, directorNote.trim(), auditId, actor);
         // Stage completion must capture episode-specific lessons for review.
         // Refresh NEVER promotes; only an authorized Director decision can.
         learning.refresh(id, auditId);
@@ -540,6 +542,21 @@ public class EpisodeWorkspaceService {
                 .param("label", label).param("seq", seq)
                 .param("route", "#/episodes/" + episodeId + "/stages/" + key.toLowerCase(Locale.ROOT))
                 .param("status", status).update();
+    }
+
+    private void directorEvent(UUID episodeId, String stage, String type, Integer revision,
+                               String note, UUID auditId, DirectorIdentity.Actor actor) {
+        jdbc.sql("""
+                insert into episode_workspace_event(
+                    id,episode_id,stage_key,event_type,revision,note,preflight_audit_id,
+                    actor_issuer,actor_subject)
+                values (:id,:episodeId,:stage,:event,:revision,:note,:audit,:issuer,:subject)
+                """)
+                .param("id", UUID.randomUUID()).param("episodeId", episodeId)
+                .param("stage", stage).param("event", type).param("revision", revision)
+                .param("note", note).param("audit", auditId)
+                .param("issuer", actor.issuer()).param("subject", actor.subject())
+                .update();
     }
 
     private void event(UUID episodeId, String stage, String type, Integer revision, String note, UUID auditId) {
