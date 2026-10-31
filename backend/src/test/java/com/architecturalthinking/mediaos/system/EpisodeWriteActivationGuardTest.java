@@ -15,25 +15,25 @@ class EpisodeWriteActivationGuardTest {
     @Test
     void rejectsEpisodeCreationWithoutDirectorIdentity() {
         assertThrows(IllegalStateException.class,
-                () -> new EpisodeWriteActivationGuard(true, false, false, false, false, false);
+                () -> new EpisodeWriteActivationGuard(true, false, false, false, false, false));
     }
 
     @Test
     void rejectsEpisodeWritesWithoutDirectorIdentity() {
         assertThrows(IllegalStateException.class,
-                () -> new EpisodeWriteActivationGuard(false, true, false, false, false, false);
+                () -> new EpisodeWriteActivationGuard(false, true, false, false, false, false));
     }
 
     @Test
     void rejectsPaidResearchActivationWithoutDirectorIdentity() {
         assertThrows(IllegalStateException.class,
-                () -> new EpisodeWriteActivationGuard(false, false, true, false, false, false);
+                () -> new EpisodeWriteActivationGuard(false, false, true, false, false, false));
     }
 
     @Test
     void rejectsLearningPromotionWithoutDirectorIdentity() {
         assertThrows(IllegalStateException.class,
-                () -> new EpisodeWriteActivationGuard(false, false, false, true, false, false);
+                () -> new EpisodeWriteActivationGuard(false, false, false, true, false, false));
     }
 
     @Test
