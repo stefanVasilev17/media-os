@@ -25,7 +25,8 @@ import java.util.UUID;
  * Autonomous background jobs separately run the same preflight at execution time.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 20)
+// Spring Security must authorize the request before this filter writes an audit record.
+@Order(Ordered.LOWEST_PRECEDENCE - 100)
 public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
     private final ProductionMemoryService memory;
