@@ -165,6 +165,30 @@ public class EpisodeDirectorOverviewController {
                         return key;
                     }).list();
 
+            // Episode-aware original Script takes are separate from revision-specific voice
+            // and cannot silently change the EP001 voice/visual workflows.
+            jdbc.sql("""
+                    select shot_key,
+                           count(*) filter (where approved_at is not null) as approved,
+                           count(*) as total
+                    from episode_locked_script_voice_take
+                    where episode_id=:episode and script_revision=:revision
+                    group by shot_key
+                    """)
+                    .param("episode", episodeId).param("revision", revision)
+                    .query((rs, n) -> {
+                        String key = shotKey(rs.getString("shot_key"));
+                        if (key != null) {
+                            Shot shot = shots.get(key);
+                            if (shot != null && shot.voiceTotal == 0) {
+                                shot.voiceTotal = 1;
+                                shot.voiceApproved = rs.getInt("approved") > 0 ? 1 : 0;
+                                shot.voiceGenerated = rs.getInt("total") > 0;
+                            }
+                        }
+                        return key;
+                    }).list();
+
             jdbc.sql("""
                     select shot_key from visual_shot_lock
                     where episode_id=:episodeId and script_revision=:revision
