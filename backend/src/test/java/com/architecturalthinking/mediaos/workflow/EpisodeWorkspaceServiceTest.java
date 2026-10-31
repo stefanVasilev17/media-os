@@ -48,6 +48,17 @@ class EpisodeWorkspaceServiceTest {
     }
 
     @Test
+    void directorLockRequiresVerifiedRoleBeforeAnyDatabaseAccess() {
+        EpisodeWorkspaceService writable = new EpisodeWorkspaceService(
+                jdbc, new ObjectMapper(), memory, policy, mock(EpisodeLearningService.class), false, true);
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> writable.directorLock(UUID.randomUUID(), "RESEARCH", 1,
+                        "DIRECTOR_APPROVE", "Reviewed the entire proposed Truth Map.", UUID.randomUUID()));
+        assertThat(error.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
     void noEpisodeMemoryWritesWithoutEnablement() {
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
                 () -> safe.rememberEpisodeCorrection(UUID.randomUUID(), "SCRIPT",
