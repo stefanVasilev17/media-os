@@ -40,6 +40,8 @@ public class LocalDirectorSecurityConfiguration {
         cookie.setUseSecureCookie(true);
         cookie.setSameSite("Lax");
         cookie.setCookiePath("/");
+        // Persistent cookie is inert after the server-side session expires or is revoked.
+        cookie.setCookieMaxAge(30 * 24 * 60 * 60);
         return cookie;
     }
 
