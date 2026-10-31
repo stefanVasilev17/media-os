@@ -79,6 +79,16 @@ class PreviewAuthorizationActorTest {
     }
 
     @Test
+    void sameDirectorCanConsumeAnUnexpiredMatchingTokenOnce() {
+        mockSql(1, 1);
+        director("director-A");
+        var issued = previews.issue("SCRIPT_GENERATE", "payload");
+        assertDoesNotThrow(() -> previews.consume(
+                issued.token().toString(), "SCRIPT_GENERATE", "payload"));
+        verify(statement, times(2)).param("actorSubject", "director-A");
+    }
+
+    @Test
     void anotherDirectorCannotConsumeOriginalPreviewAuthorization() {
         mockSql(1, 0, 0);
         director("director-A");
