@@ -24,19 +24,24 @@ public class EpisodeRevisionVoiceService {
     private final ElevenLabsTextToSpeechService elevenLabs;
     private final ObjectMapper mapper;
     private final TransactionTemplate transaction;
+    private final EpisodeLockedScriptVoiceService originals;
 
     public EpisodeRevisionVoiceService(JdbcClient jdbc, ShotRevisionService revisions,
                                        EpisodeWorkspaceService episodes, ElevenLabsTextToSpeechService elevenLabs,
-                                       ObjectMapper mapper, PlatformTransactionManager transactionManager) {
+                                       ObjectMapper mapper, PlatformTransactionManager transactionManager,
+                                       EpisodeLockedScriptVoiceService originals) {
         this.jdbc = jdbc;
         this.revisions = revisions;
         this.episodes = episodes;
         this.elevenLabs = elevenLabs;
         this.mapper = mapper;
         this.transaction = new TransactionTemplate(transactionManager);
+        this.originals = originals;
     }
 
     public Map<String, Object> state(UUID episodeId, String shotKey) {
+        if (revisions.context(episodeId, shotKey).approved() == null)
+            return originals.state(episodeId, shotKey);
         ShotRevisionService.Revision approved = requiredLockedRevision(episodeId, shotKey);
         List<Map<String, Object>> takes = jdbc.sql("""
                 select id,take_number,content_type,file_name,model_id,voice_id,
@@ -76,6 +81,7 @@ public class EpisodeRevisionVoiceService {
     }
 
     public Map<String, Object> generate(UUID episodeId, String shotKey, int expectedRevision) {
+        if (expectedRevision == 0) return originals.generate(episodeId, shotKey);
         requireWrites();
         ShotRevisionService.Revision shot = requiredLockedRevision(episodeId, shotKey);
         if (shot.revision() != expectedRevision)
@@ -141,6 +147,7 @@ public class EpisodeRevisionVoiceService {
 
     @Transactional
     public Map<String, Object> approve(UUID episodeId, String shotKey, int expectedRevision, UUID takeId) {
+        if (expectedRevision == 0) return originals.approve(episodeId, shotKey, takeId);
         requireWrites();
         jdbc.sql("select id from episode where id=:episode for update")
                 .param("episode", episodeId).query(UUID.class).single();
@@ -162,6 +169,8 @@ public class EpisodeRevisionVoiceService {
     }
 
     public byte[] audio(UUID episodeId, String shotKey, UUID takeId) {
+        if (originals.ownsTake(episodeId, shotKey, takeId))
+            return originals.audio(episodeId, shotKey, takeId);
         requiredLockedRevision(episodeId, shotKey);
         return jdbc.sql("""
                 select audio from episode_revision_voice_take
@@ -172,6 +181,8 @@ public class EpisodeRevisionVoiceService {
     }
 
     public String audioContentType(UUID episodeId, String shotKey, UUID takeId) {
+        if (originals.ownsTake(episodeId, shotKey, takeId))
+            return originals.audioContentType(episodeId, shotKey, takeId);
         requiredLockedRevision(episodeId, shotKey);
         return jdbc.sql("""
                 select content_type from episode_revision_voice_take
