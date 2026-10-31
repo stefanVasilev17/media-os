@@ -81,6 +81,7 @@ public class LocalDirectorSecurityConfiguration {
                                 "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/ai/run",
                                 "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/voice/generate",
                                 "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/voice/approve",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/render-qa",
                                 "/api/v1/episodes/{episodeId}/quality-assertions",
                                 "/api/v1/previews/director",
                                 "/api/v1/previews/creative/{stageKey}")
