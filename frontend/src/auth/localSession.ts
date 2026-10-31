@@ -55,11 +55,11 @@ export async function ensureLocalCsrf() {
   await response.json();
 }
 
-export async function loginLocal(username: string, password: string, totpCode: string) {
+export async function loginLocal(username: string, password: string, totpCode: string, rememberDevice: boolean) {
   const response = await fetch('/api/v1/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, totpCode })
+    body: JSON.stringify({ username, password, totpCode, rememberDevice })
   });
   if (response.status === 401) throw new Error('Incorrect login or verification code.');
   if (!response.ok) throw new Error('Login unavailable. Please try again.');
