@@ -41,6 +41,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = apiPath(request);
         if (!path.startsWith("/api/v1/")) return true;
+        if (path.startsWith("/api/v1/auth/")) return true;
         // Telemetry and non-artifact worker progress must not grow the audit table
         // on every poll. The creation request and final render write remain guarded.
         if (path.equals("/api/v1/worker/runner/heartbeat")
