@@ -13,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
- * Director identity comes only from a verified JWT and locally granted
+ * Director identity comes from a verified local session or signed JWT with a trusted
  * ROLE_DIRECTOR membership. A preflight ID, header, or JSON reviewer name
  * is never proof of the actor's identity.
  */
@@ -24,6 +24,15 @@ public final class DirectorIdentity {
 
     public static Actor requireDirector() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken local
+                && local.isAuthenticated()
+                && local.getPrincipal() instanceof LocalDirectorPrincipal principal
+                && local.getAuthorities().stream().anyMatch(
+                    authority -> "ROLE_DIRECTOR".equals(authority.getAuthority()))) {
+            String issuer = "urn:mediaos:local";
+            String subject = principal.id().toString();
+            return new Actor(issuer, subject, stableAuditName(issuer, subject));
+        }
         if (!(authentication instanceof JwtAuthenticationToken token)
                 || !token.isAuthenticated()
                 || token.getAuthorities().stream()
