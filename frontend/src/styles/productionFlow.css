@@ -709,3 +709,20 @@ button:disabled { opacity:.35; cursor:not-allowed; }
   .shot06-director-review-top { flex-direction: column; gap: 11px; }
   .shot06-director-review-top > strong { font-size: 9px; }
 }
+
+.visual-prerequisite {
+  min-height:65vh;max-width:820px;padding-top:52px;
+}
+.visual-prerequisite h1 {
+  font-size:clamp(30px,5vw,42px);line-height:1.2;letter-spacing:-.035em;
+  margin:48px 0 20px;
+}
+.visual-prerequisite p { color:#bdcddb;font-size:18px;line-height:1.75;margin:0 0 32px; }
+.visual-prerequisite button {
+  border:0;background:transparent;color:#bbd5e7;font:inherit;font-size:16px;
+  min-height:44px;padding:10px 0;cursor:pointer;text-align:left;
+}
+.visual-prerequisite button:last-child {
+  background:#224e70;color:#f6fbff;border:1px solid #487e9f;
+  border-radius:9px;padding:12px 20px;
+}
