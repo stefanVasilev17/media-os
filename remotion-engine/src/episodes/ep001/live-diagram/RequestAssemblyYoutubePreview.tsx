@@ -10,6 +10,7 @@ import {
   ATSecondaryStack,
 } from '../../../components/architectural-thinking';
 import {SHOT02, SHOT02_FPS} from './shot02Timing';
+import {SHOT01_DURATION_FRAMES} from './shot01Timing';
 
 export const requestAssemblyYoutubePreviewSchema = z.object({showGuides:z.boolean()});
 type Props = z.infer<typeof requestAssemblyYoutubePreviewSchema>;
@@ -21,6 +22,8 @@ const pulse = (frame:number,start:number,end:number,fade=14)=>Math.min(out(frame
 
 export const RequestAssemblyYoutubePreview: React.FC<Props> = ({showGuides}) => {
   const frame = useCurrentFrame();
+  const continuityFrame = frame + SHOT01_DURATION_FRAMES;
+  const requestHintCarry = (1-out(frame,0,90))*.20;
   const originShift = ease(frame,SHOT02.origin.shiftStart,SHOT02.origin.shiftEnd);
   const validate = pulse(frame,SHOT02.origin.validateStart,SHOT02.origin.validateEnd);
   const submit = pulse(frame,SHOT02.origin.submitStart,SHOT02.origin.submitEnd);
@@ -48,7 +51,7 @@ export const RequestAssemblyYoutubePreview: React.FC<Props> = ({showGuides}) => 
     <ATBackground>
       <div style={{position:'absolute',inset:0,opacity:originOpacity,transform:`translateX(${-590*originShift}px) scale(${originScale})`,transformOrigin:'50% 48%',zIndex:3}}>
         <ATSecondaryStack
-          frame={frame}
+          frame={continuityFrame}
           intent={1}
           height={panelHeight}
           panelTop={panelTop}
@@ -60,7 +63,7 @@ export const RequestAssemblyYoutubePreview: React.FC<Props> = ({showGuides}) => 
           ]}
         />
         <ATPhone
-          frame={frame}
+          frame={continuityFrame}
           reveal={1}
           credential={1}
           ui={1}
@@ -74,6 +77,8 @@ export const RequestAssemblyYoutubePreview: React.FC<Props> = ({showGuides}) => 
           spinner={1}
         />
       </div>
+
+      <div style={{position:'absolute',right:84,bottom:58,opacity:requestHintCarry,fontFamily:AT_FONT,fontSize:17,fontWeight:650,letterSpacing:'.06em',color:'#8AA9C8',zIndex:9}}>REQUEST ASSEMBLY →</div>
 
       <div style={{opacity:assemblyHero}}>
         <ATRequestAssemblyPanel
