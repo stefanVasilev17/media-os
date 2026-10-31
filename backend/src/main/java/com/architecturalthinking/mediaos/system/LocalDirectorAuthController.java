@@ -20,11 +20,14 @@ import java.util.List;
 @ConditionalOnProperty(name = "mediaos.local-auth.enabled", havingValue = "true")
 public class LocalDirectorAuthController {
     private final LocalDirectorLoginService logins;
+    private final LocalDirectorLoginThrottle throttle;
     private final SecurityContextRepository contexts;
 
     public LocalDirectorAuthController(LocalDirectorLoginService logins,
+                                       LocalDirectorLoginThrottle throttle,
                                        SecurityContextRepository contexts) {
         this.logins = logins;
+        this.throttle = throttle;
         this.contexts = contexts;
     }
 
@@ -45,6 +48,7 @@ public class LocalDirectorAuthController {
     public DirectorSessionController.Session login(@RequestBody Login login,
                                                   HttpServletRequest request,
                                                   HttpServletResponse response) {
+        throttle.check(request, login.username());
         LocalDirectorLoginService.Attempt attempt = logins.verify(
                 login.username(), login.password(), login.totpCode());
         if (!attempt.success()) {
