@@ -63,6 +63,7 @@ class LocalDirectorHttpLifecycleTest {
             LocalDirectorAuthController.class,
             DirectorSessionController.class,
             LocalDirectorLoginService.class,
+            LocalDirectorLoginThrottle.class,
             LocalTotpCrypto.class,
             LocalDirectorSessionRevalidationFilter.class,
             ProbeController.class
@@ -148,6 +149,52 @@ class LocalDirectorHttpLifecycleTest {
                 | (hash[offset + 3] & 255);
         Arrays.fill(secret, (byte) 0);
         return "%06d".formatted(value % 1_000_000);
+    }
+
+    @Test
+    void anExpiredDatabaseSessionCannotKeepDirectorRights() throws Exception {
+        Csrf csrf = csrf();
+        MvcResult response = login(csrf, PASSWORD, currentCode());
+        assertEquals(200, response.getResponse().getStatus());
+        Cookie cookie = response.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(cookie);
+        int updated = jdbc.sql("""
+                update SPRING_SESSION
+                set LAST_ACCESS_TIME=0, EXPIRY_TIME=0
+                where SESSION_ID=:id
+                """)
+                .param("id", cookie.getValue()).update();
+        assertEquals(1, updated, "The login must create a real JDBC session.");
+
+        mvc.perform(get("/api/v1/security/session").cookie(cookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void databaseThrottleBlocksRepeatedAttemptsAgainstUnknownUsername() throws Exception {
+        Csrf csrf = csrf();
+        String otherUsername = "unknown_" + UUID.randomUUID();
+        String json = mapper.writeValueAsString(
+                new LocalDirectorAuthController.Login(otherUsername, "invalid", "000000"));
+
+        for (int i = 0; i < LocalDirectorLoginThrottle.USERNAME_LIMIT; i++) {
+            mvc.perform(post("/api/v1/auth/login")
+                            .cookie(csrf.cookie())
+                            .header("X-XSRF-TOKEN", csrf.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        mvc.perform(post("/api/v1/auth/login")
+                        .cookie(csrf.cookie())
+                        .header("X-XSRF-TOKEN", csrf.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isTooManyRequests());
+
+        mvc.perform(get("/api/v1/security/session"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
