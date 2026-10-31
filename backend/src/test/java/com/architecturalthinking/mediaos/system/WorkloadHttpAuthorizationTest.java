@@ -116,6 +116,10 @@ class WorkloadHttpAuthorizationTest {
         mvc.perform(post("/api/v1/episodes")
                         .header("X-Worker-Id",workerId)
                         .header("X-MediaOS-Workload-Token",token))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/security/session")
+                        .header("X-Worker-Id",workerId)
+                        .header("X-MediaOS-Workload-Token",token))
                 .andExpect(status().isUnauthorized());
     }
 
