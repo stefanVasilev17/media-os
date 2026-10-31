@@ -33,6 +33,10 @@ public final class DirectorMembershipService {
                 .param("subject", subject)
                 .query(String.class)
                 .list();
+        return trustedAuthorities(roles);
+    }
+
+    static List<GrantedAuthority> trustedAuthorities(List<String> roles) {
         return roles.stream()
                 .filter(role -> role.equals("VIEWER") || role.equals("EDITOR") || role.equals("DIRECTOR"))
                 .map(role -> (GrantedAuthority) new SimpleGrantedAuthority("ROLE_" + role))
