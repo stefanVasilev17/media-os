@@ -55,6 +55,7 @@ public class LocalDirectorSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(authorization -> authorization
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/**").permitAll()
                         .anyRequest().denyAll());
