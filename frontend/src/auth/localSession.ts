@@ -66,6 +66,20 @@ export async function loginLocal(username: string, password: string, totpCode: s
   return response.json() as Promise<DirectorSession>;
 }
 
+export async function redeemDirectorClaim(token: string): Promise<DirectorSession> {
+  const response = await fetch('/api/v1/auth/claim/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+    cache: 'no-store'
+  });
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Activation link is invalid or expired.');
+  }
+  if (!response.ok) throw new Error('Account activation is unavailable.');
+  return response.json() as Promise<DirectorSession>;
+}
+
 export async function logoutLocal() {
   const response = await fetch('/api/v1/auth/logout', { method: 'POST' });
   if (!response.ok) throw new Error('Could not sign out securely.');
