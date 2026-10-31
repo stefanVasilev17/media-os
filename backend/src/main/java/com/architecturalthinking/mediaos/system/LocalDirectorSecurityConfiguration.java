@@ -56,19 +56,6 @@ public class LocalDirectorSecurityConfiguration {
                 .authorizeHttpRequests(authorization -> authorization
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
-                        .requestMatchers("/api/v1/**").denyAll()
-                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                        .anyRequest().denyAll());
-        return http.build();
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "mediaos.director-security.enabled", havingValue = "true")
-    SecurityFilterChain verifiedDirector(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(authorization -> authorization
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/api/v1/worker/**", "/api/v1/remotion/renders/worker/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
@@ -106,4 +93,5 @@ public class LocalDirectorSecurityConfiguration {
                 ;
         return http.build();
     }
+
 }
