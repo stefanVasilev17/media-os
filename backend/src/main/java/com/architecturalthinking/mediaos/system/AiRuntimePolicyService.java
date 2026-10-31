@@ -53,10 +53,26 @@ public class AiRuntimePolicyService {
         );
     }
 
+    private Policy policyForUpdate() {
+        return jdbc.sql("""
+                select paid_ai_enabled, auto_repair_enabled, updated_at
+                from ai_runtime_policy
+                where id = 1
+                for update
+                """)
+                .query((rs, rowNum) -> new Policy(
+                        rs.getBoolean("paid_ai_enabled"),
+                        rs.getBoolean("auto_repair_enabled"),
+                        rs.getObject("updated_at", OffsetDateTime.class)))
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(
+                        CONFLICT, "AI spending policy is not initialized."));
+    }
+
     @Transactional
     public Map<String, Object> update(Boolean paidAiEnabled, Boolean autoRepairEnabled) {
         DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
-        Policy current = policy();
+        Policy current = policyForUpdate();
         boolean nextPaid = paidAiEnabled == null ? current.paidAiEnabled() : paidAiEnabled;
         boolean nextRepair = autoRepairEnabled == null ? current.autoRepairEnabled() : autoRepairEnabled;
         if (!nextPaid) nextRepair = false;
