@@ -27,3 +27,14 @@ The Runpod Python handler checks that both identity fields are present together,
 5. **Credential rotation:** do not disclose worker secrets in chats, GitHub, screenshots, logs or application responses. Use the protected Runpod job payload and vault-controlled runtime configuration only after security review. GPU job payload currently contains callback secrets and the new worker secret; ensure Runpod operator/audit access is appropriately restricted.
 
 Passing automated tests **does not** mean any live provider, Safari browser or Windows/Spline worker is validated.
+
+
+## Verified CI — 2026-10-31
+
+**Pinned source commit:** `dd870f5b2e1a1e1f4ba66d5992731d2abf54edca`.
+**Isolated build:** temporary Railway QA build-only service `mediaos-gpu-scoped-ci-pr110-temp`, deployment `cd5de441-6ef2-44e1-ade8-41b817ca1eb4`, status **SUCCESS**.
+**Java:** 208 tests passed, 0 failures, 0 errors, 0 skipped; Maven full test suite SUCCESS against disposable PostgreSQL 16, including V1–V103 Flyway.
+**Frontend:** TypeScript/Vite build and 12 Vitest tests succeeded.
+**GPU Python:** `handler.py` compiled and 4 isolated unit tests passed. Tests validate legacy headers, paired scoped credentials, render identity binding and propagation through mocked Runpod callbacks.
+
+The successful build **did not** launch a GPU worker, use a Runpod endpoint, enable local authentication, issue credentials into QA/production or carry out an HTTPS/iPhone Safari login. The last two must be tested separately before Stage 1 sign-off.
