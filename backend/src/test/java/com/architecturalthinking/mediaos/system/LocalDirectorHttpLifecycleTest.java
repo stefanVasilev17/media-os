@@ -184,6 +184,39 @@ class LocalDirectorHttpLifecycleTest {
     }
 
     @Test
+    void rememberedDirectorKeepsSecurePersistentCookieAndThirtyDayServerSession() throws Exception {
+        Csrf token = csrf();
+        String loginJson = mapper.writeValueAsString(
+                new LocalDirectorAuthController.Login(username, PASSWORD, currentCode(), true));
+        MvcResult login = mvc.perform(post("/api/v1/auth/login")
+                        .cookie(token.cookie())
+                        .header("X-XSRF-TOKEN", token.token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson))
+                .andExpect(status().isOk()).andReturn();
+        Cookie session = login.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+        assertTrue(session.getSecure());
+        assertTrue(session.isHttpOnly());
+        assertEquals(30 * 24 * 60 * 60, session.getMaxAge());
+        int inactiveInterval = jdbc.sql("""
+                select MAX_INACTIVE_INTERVAL from SPRING_SESSION
+                where PRINCIPAL_NAME=:principal
+                """).param("principal", accountId.toString())
+                .query(Integer.class).single();
+        assertEquals(30 * 24 * 60 * 60, inactiveInterval);
+        mvc.perform(get("/api/v1/security/session").cookie(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.authenticated").value(true));
+        mvc.perform(post("/api/v1/auth/logout")
+                        .cookie(session, token.cookie())
+                        .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/security/session").cookie(session))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void anExpiredDatabaseSessionCannotKeepDirectorRights() throws Exception {
         Csrf csrf = csrf();
         MvcResult response = login(csrf, PASSWORD, currentCode());
