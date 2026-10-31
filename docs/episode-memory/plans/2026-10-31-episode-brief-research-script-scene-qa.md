@@ -74,3 +74,13 @@ Provide an episode-scoped intake that connects a Director-written brief to the E
 - Avoid testing by enabling paid AI in production. Use isolated, disposable staging episode IDs only after the owner approves budget and access controls.
 
 **Release decision: BLOCKED — retain Draft status.** Neither prior LOCKed media nor production PostgreSQL is touched by this QA review.
+
+## 2026-10-31 additional QA findings / run blocker
+
+- Episode listing now emits `hasBrief`; older EP001/EP002 rows without the new V93 brief are routed to their Director Overview rather than opening a broken new-episode preparation page. New episodes use the new preparation route only when the V93 source brief exists.
+- Three-field legacy `EpisodeWorkspaceService.create(number,title,auditId)` keeps its default-off write gate and rejects creation without a Director Brief. No empty-brief rows are permitted.
+- A simple Research artifact or a list of source URLs is NOT fact-checking. The Director must inspect evidence and explicitly LOCK. Revision source changes are checked transactionally.
+- Both backend and frontend CI YAML files have temporary `push` filters scoped exclusively to `feature/episode-brief-research-handoff-20261031`. GitHub Actions STILL reports **zero workflow runs** on that branch; source changes alone cannot be called successful CI. Remove the branch-specific push filters before merging the feature into the mainline.
+- GitHub Actions workflow_dispatch is configured in these files, but the connected toolset does not expose a dispatch action. An authorized operator can select the branch on GitHub Actions and run the backend preflight and Episode Director frontend workflows manually, then inspect their logs.
+- Railway project `MediaOS-Preflight-QA-20261028` was inspected read-only; it does not expose a deploy-ready backend QA service for this branch. No Railway resources were created, changed, deployed, restarted, or billed by this QA review.
+- Release remains **BLOCKED** pending successful Java21/Maven tests, TypeScript/Vite build, Flyway migration and isolated staging end-to-end validation; ensure no live OpenAI use, production DB mutation or Director LOCK updates while evaluating.
