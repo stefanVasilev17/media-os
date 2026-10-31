@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -56,7 +57,7 @@ class LocalDirectorHttpLifecycleTest {
     private static final String PASSWORD = "temporary-test-only-strong-password";
 
     @SpringBootConfiguration
-    @EnableAutoConfiguration(exclude = HibernateJpaAutoConfiguration.class)
+    @EnableAutoConfiguration(exclude = {HibernateJpaAutoConfiguration.class, JpaRepositoriesAutoConfiguration.class})
     @Import({
             LocalDirectorSecurityConfiguration.class,
             LocalDirectorAuthController.class,
