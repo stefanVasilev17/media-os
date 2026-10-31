@@ -112,3 +112,7 @@ The first OIDC draft authorized every `/api/v1/**` mutation for a Director. This
 
 
 - AI spending policy changes now acquire a database row lock before reading and updating values; this serializes competing Director switches and keeps previous/next audit records consistent. The policy must exist; missing configuration fails closed.
+
+## Verified Maven security build — 2026-10-31
+
+On the isolated Railway QA project, the pinned security commit `13a3d74cb260e957c0efa00d57f5ffe5f95c673d` passed Java 21 Maven tests. Focused Director HTTP tests: 9 passed, 0 failures, 0 errors. Full Maven test command: SUCCESS, confirmed by successful Docker verification stage. The test-only service was removed after verification. No production changes or database migration occurred. Remaining blockers: OIDC/MFA, database migration testing, frontend login, worker authorization and end-to-end QA. PR #110 remains Draft.
