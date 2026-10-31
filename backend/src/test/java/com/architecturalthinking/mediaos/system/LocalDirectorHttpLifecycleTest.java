@@ -50,6 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "mediaos.local-auth.enabled=true",
         "mediaos.director-security.enabled=false",
         "mediaos.local-auth.bootstrap.enabled=false",
+        "mediaos.local-auth.claim-enabled=true",
         "mediaos.local-auth.totp-encryption-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 })
 class LocalDirectorHttpLifecycleTest {
@@ -61,6 +62,7 @@ class LocalDirectorHttpLifecycleTest {
     @Import({
             LocalDirectorSecurityConfiguration.class,
             LocalDirectorAuthController.class,
+            LocalDirectorClaimController.class,
             DirectorSessionController.class,
             LocalDirectorLoginService.class,
             LocalDirectorLoginThrottle.class,
@@ -181,6 +183,62 @@ class LocalDirectorHttpLifecycleTest {
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .content().string("qa-allowed"));
+    }
+
+    @Test
+    void oneTimeEmailClaimTransfersQaBootstrapToRememberedOwnerOnlyOnce() throws Exception {
+        byte[] tokenBytes = new byte[32];
+        Arrays.fill(tokenBytes, (byte) 7);
+        String token = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+        String digest = java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(token.getBytes(java.nio.charset.StandardCharsets.US_ASCII)));
+        jdbc.sql("""
+                insert into mediaos_director_claim_invite
+                    (token_hash,email,username,director_id,expires_at)
+                values (:digest,'qa-owner@example.invalid','qa.director-owner',:director,
+                        now() + interval '1 hour')
+                """).param("digest", digest).param("director", accountId).update();
+        try {
+            Csrf tokenForCsrf = csrf();
+            MvcResult claim = mvc.perform(post("/api/v1/auth/claim/redeem")
+                            .cookie(tokenForCsrf.cookie())
+                            .header("X-XSRF-TOKEN", tokenForCsrf.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(
+                                    new LocalDirectorClaimController.Claim(token))))
+                    .andExpect(status().isOk()).andReturn();
+
+            Cookie rememberedSession = claim.getResponse().getCookie("MEDIAOS_SESSION");
+            assertNotNull(rememberedSession);
+            assertTrue(rememberedSession.getSecure());
+            assertTrue(rememberedSession.isHttpOnly());
+            assertEquals(30 * 24 * 60 * 60, rememberedSession.getMaxAge());
+            assertEquals("qa.director-owner", jdbc.sql(
+                    "select username from mediaos_local_director where id=:id")
+                    .param("id", accountId).query(String.class).single());
+            assertNotNull(jdbc.sql(
+                    "select consumed_at from mediaos_director_claim_invite where token_hash=:hash")
+                    .param("hash", digest).query(java.time.OffsetDateTime.class).single());
+
+            mvc.perform(get("/api/v1/security/session").cookie(rememberedSession))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.authenticated").value(true));
+            mvc.perform(post("/api/v1/auth/claim/redeem")
+                            .cookie(tokenForCsrf.cookie())
+                            .header("X-XSRF-TOKEN", tokenForCsrf.token())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(
+                                    new LocalDirectorClaimController.Claim(token))))
+                    .andExpect(status().isUnauthorized());
+            assertEquals(1L, jdbc.sql("select count(*) from mediaos_local_director")
+                    .query(Long.class).single());
+            assertEquals(401, login(tokenForCsrf, PASSWORD, currentCode())
+                    .getResponse().getStatus());
+        } finally {
+            jdbc.sql("delete from mediaos_director_claim_invite where token_hash=:hash")
+                    .param("hash", digest).update();
+        }
     }
 
     @Test
