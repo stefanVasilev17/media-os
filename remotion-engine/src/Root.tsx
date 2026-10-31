@@ -1,4 +1,5 @@
 import React from 'react';
+import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -62,6 +63,23 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="AT-EpisodeShot-QA"
+        component={EpisodeShotQaPreview}
+        durationInFrames={dynamicDuration ?? 150}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          episodeId: '',
+          shotKey: 'SHOT 01',
+          shotTitle: 'Architecture storyboard',
+          shotRevision: 1,
+          scriptRevision: 1,
+          visualDirection: '',
+          durationInFrames: 150,
+        }}
+      />
       <Composition
         id="EP001-VerticalSlice"
         component={VerticalSlice}
