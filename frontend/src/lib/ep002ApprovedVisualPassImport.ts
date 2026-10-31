@@ -30,7 +30,7 @@ export function buildApprovedEp002SceneDraft(): Record<string, unknown> {
   if (sectionStart < 0 || sectionEnd <= sectionStart ||
       !approvedMarkdown.includes('## 0. Why this new plan exists') ||
       !approvedMarkdown.includes('## 5. Explicit Director decision required') ||
-      !approvedMarkdown.includes('one persistent Remotion') ||
+      !approvedMarkdown.includes('ONE persistent Remotion') ||
       !approvedMarkdown.includes('SHOT10') ||
       metadataMatches.length !== 11 || allBeatCount !== 59) {
     throw new Error('Approved EP002 visual source failed validation. Nothing was imported.');
