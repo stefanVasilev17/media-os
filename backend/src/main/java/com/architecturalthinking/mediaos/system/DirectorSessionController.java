@@ -27,7 +27,7 @@ public final class DirectorSessionController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "An authenticated project session is required.");
         }
 
-        List<String> roles = jwt.getAuthorities().stream()
+        List<String> roles = authentication.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .filter(value -> value.equals("ROLE_VIEWER")
                         || value.equals("ROLE_EDITOR")
