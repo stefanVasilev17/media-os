@@ -97,3 +97,15 @@ The first OIDC draft authorized every `/api/v1/**` mutation for a Director. This
 **Important operational impact:** Legacy EP001 mutation API, worker callbacks, Video/Voice routes outside the allowlist and some currently supported actions will be intentionally unavailable if this security branch is deployed. This is a fail-closed interim posture, **not the final functional permission matrix**. Worker automation requires a separate workload-identity model. Do not deploy this security branch to the existing visual QA or to production. Before the complete production MVP, explicitly inventory all endpoint method/path combinations, implement reviewed role mappings and test the real workflow using an isolated staging environment.
 
 **Status remains unverified:** newly added security tests have not been executed and Flyway V94-V97 has not been applied.
+
+
+## Stage 1 security hardening — continued (2026-10-31)
+
+- Updated `EpisodeWriteActivationGuard` to cover the separately configured `mediaos.learning.promotion-enabled` flag; updated its constructor tests and added a negative test.
+- Added authenticated `GET /api/v1/security/session` to return project role capabilities for future OIDC UI integration. It deliberately does **not** expose raw JWT claims or an actor identifier. This does not implement a login flow.
+- Removed the wildcard `POST /api/v1/episodes/**` permission. Mutations now match a reviewed, explicit list of Episode, Research, Script/Scene, Shot Revision, Voice, Learning and quality assertion paths. Any unlisted write defaults to deny even for Director; legacy/workers remain denied.
+- Closed a paid AI bypass in `AiSpendGuardAspect`: when a model call has no interactive request, no authorized preview payload, or is an automatic repair without workload authorization, execution is blocked **before** the model call. A valid interactive request now always requires a verified Director plus one-use token consumption.
+- Added `AiSpendFailClosedTest` and `DirectorSessionControllerTest`; updated HTTP tests to assert known Episode writes are allowed for Director while an unknown nested route is refused.
+- Verified the current GitHub Draft PR branch and files, not an executable build. The local container has Java 21 but lacks Maven and project dependencies; direct GitHub networking from that container is unavailable. The existing Railway QA must remain pinned to PR #109 until explicit isolated security testing is arranged.
+- **Important:** all automation/background AI calling legacy methods now fails closed on this branch. This is intentional and cannot be released until workload identity and reviewed worker permissions are implemented.
+- **Remaining blockers:** Maven compilation, unit/HTTP integration suite, signed OIDC JWT verification, full Flyway V94–V97 staging migration, security smoke tests, frontend login, worker identity, and explicit Director release approval.
