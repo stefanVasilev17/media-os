@@ -323,6 +323,11 @@ class LocalDirectorHttpLifecycleTest {
                         .header("X-XSRF-TOKEN", token.token()))
                 .andExpect(status().isForbidden());
 
+        mvc.perform(get("/api/v1/remotion/gpu-renders/ci-render/work").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/spline/gpu-renders/ci-render/work").cookie(sessionCookie))
+                .andExpect(status().isForbidden());
+
         mvc.perform(post("/api/v1/auth/logout")
                         .cookie(sessionCookie, token.cookie())
                         .header("X-XSRF-TOKEN", token.token()))
