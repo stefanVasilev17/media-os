@@ -3,7 +3,8 @@ WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
-RUN npm run build && npm test
+COPY remotion-engine/cpu-worker.mjs /qa-cpu-worker.mjs
+RUN node --check /qa-cpu-worker.mjs && npm run build && npm test
 
 FROM maven:3.9-eclipse-temurin-21 AS verify
 WORKDIR /workspace/backend
