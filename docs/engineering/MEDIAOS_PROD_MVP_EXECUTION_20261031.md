@@ -83,3 +83,17 @@
 - Added `PreviewAuthorizationActorTest`, `AiRuntimePolicyAuthorizationTest` and `DirectorHttpAuthorizationTest`. The HTTP test exercises access rules with mock JWT authorities; it does **not** replace actual signed JWT signature/issuer/audience integration tests.
 - **No migration applied, no tests executed on the security branch, and no QA/production deployment.** Do not claim these test cases passed.
 - Remaining security work: prove actual Spring Security startup/filter ordering and signed OIDC JWT parsing, director membership provisioning + MFA, frontend sign-in, service/worker identity and endpoint inventory, rate limits, origin/CSRF policy, actor-bound spend ledger for model execution, staging migration and full e2e regression.
+
+
+## HTTP mutation allowlist review — 2026-10-31
+
+The first OIDC draft authorized every `/api/v1/**` mutation for a Director. This was too broad: future API endpoints and legacy worker callbacks could inherit permission without review. It now:
+- explicitly denies `/api/v1/worker/**` and `/api/v1/remotion/renders/worker/**`;
+- allows authenticated project members to read the normal API (subject to later read-data classification);
+- allows only Director `POST /api/v1/episodes[/**]`, `POST /api/v1/previews/**`, and `PUT /api/v1/episodes/**` or `PUT /api/v1/system/ai-control`;
+- denies all other API mutations by default, even for Director, until reviewed and approved;
+- adds HTTP test cases for worker callback denial and a newly introduced unreviewed mutation.
+
+**Important operational impact:** Legacy EP001 mutation API, worker callbacks, Video/Voice routes outside the allowlist and some currently supported actions will be intentionally unavailable if this security branch is deployed. This is a fail-closed interim posture, **not the final functional permission matrix**. Worker automation requires a separate workload-identity model. Do not deploy this security branch to the existing visual QA or to production. Before the complete production MVP, explicitly inventory all endpoint method/path combinations, implement reviewed role mappings and test the real workflow using an isolated staging environment.
+
+**Status remains unverified:** newly added security tests have not been executed and Flyway V94-V97 has not been applied.
