@@ -1,6 +1,7 @@
 package com.architecturalthinking.mediaos.system;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,7 +33,7 @@ public class DirectorSecurityConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(name = "mediaos.director-security.enabled", havingValue = "false", matchIfMissing = true)
+    @ConditionalOnExpression("!${mediaos.director-security.enabled:false} && !${mediaos.local-auth.enabled:false}")
     SecurityFilterChain lockedWithoutIdentity(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
