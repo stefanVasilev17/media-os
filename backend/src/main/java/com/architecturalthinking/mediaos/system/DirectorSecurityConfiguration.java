@@ -52,7 +52,8 @@ public class DirectorSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorization -> authorization
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/api/v1/worker/**", "/api/v1/remotion/renders/worker/**").denyAll()
+                        .requestMatchers("/api/v1/worker/**", "/api/v1/remotion/renders/worker/**",
+                                "/api/v1/remotion/gpu-renders/**", "/api/v1/spline/gpu-renders/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
