@@ -43,7 +43,6 @@ public class LocalDirectorSessionRevalidationFilter extends OncePerRequestFilter
                 && local.isAuthenticated()
                 && local.getPrincipal() instanceof LocalDirectorPrincipal principal
                 && !accounts.isActive(principal.id())) {
-            var session = request.getSession(false);
             if (session != null) session.invalidate();
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Director session was revoked.");
