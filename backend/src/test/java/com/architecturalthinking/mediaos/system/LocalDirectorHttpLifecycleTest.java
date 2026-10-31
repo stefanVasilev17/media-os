@@ -158,13 +158,22 @@ class LocalDirectorHttpLifecycleTest {
         assertEquals(200, response.getResponse().getStatus());
         Cookie cookie = response.getResponse().getCookie("MEDIAOS_SESSION");
         assertNotNull(cookie);
+        int configuredTimeout = jdbc.sql("""
+                select MAX_INACTIVE_INTERVAL
+                from SPRING_SESSION
+                where PRINCIPAL_NAME=:principal
+                """)
+                .param("principal", accountId.toString())
+                .query(Integer.class).single();
+        assertEquals(1800, configuredTimeout, "Director sessions must expire after 30 minutes of inactivity.");
+
         int updated = jdbc.sql("""
                 update SPRING_SESSION
                 set LAST_ACCESS_TIME=0, EXPIRY_TIME=0
-                where SESSION_ID=:id
+                where PRINCIPAL_NAME=:principal
                 """)
-                .param("id", cookie.getValue()).update();
-        assertEquals(1, updated, "The login must create a real JDBC session.");
+                .param("principal", accountId.toString()).update();
+        assertEquals(1, updated, "The login must create one JDBC session for this Director.");
 
         mvc.perform(get("/api/v1/security/session").cookie(cookie))
                 .andExpect(status().isUnauthorized());
