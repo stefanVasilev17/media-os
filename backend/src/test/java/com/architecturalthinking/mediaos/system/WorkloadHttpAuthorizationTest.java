@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "mediaos.local-auth.totp-encryption-key=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 })
 class WorkloadHttpAuthorizationTest {
-    @SpringBootConfiguration
+    @Configuration
     @EnableAutoConfiguration(exclude={HibernateJpaAutoConfiguration.class, JpaRepositoriesAutoConfiguration.class})
     @Import({LocalDirectorSecurityConfiguration.class, WorkloadSecurityConfiguration.class,
             WorkloadCredentialService.class, ProbeController.class})
