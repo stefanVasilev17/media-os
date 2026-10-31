@@ -151,6 +151,7 @@ public class EpisodeWorkspaceService {
 
     @Transactional
     public Map<String, Object> create(String episodeNumber, String title, UUID auditId) {
+        requireWritesEnabled();
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "New episodes require a Director Episode Brief; use the four-field creation API.");
     }
