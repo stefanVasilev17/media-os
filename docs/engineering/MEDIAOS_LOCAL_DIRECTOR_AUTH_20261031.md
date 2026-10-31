@@ -84,3 +84,30 @@ No real login, OIDC connection, QA write flags, paid AI generation or production
 - Issues discovered and fixed during this test cycle: missing `@Autowired` on the production LocalDirectorLoginService constructor, `@Transactional` CGLIB proxying of final classes, JPA auto-configuration in the JDBC-only test context, and overly long Spring Session principal naming (now stable UUID).
 - **Still required**: explicit time-expired session regression (the 30-minute timeout is configured but not separately tested), login rate limits, browser-on-iPhone UI and cookie behavior, secret/key recovery and rotation procedures, security review of all privileged routes and workload identities, and separate Director approval before any environment flag is enabled.
 - No existing database was written to; no account was bootstrapped outside the disposable PostgreSQL database. Existing PR #109 visual QA and production remain unchanged. PR #110 remains Draft.
+
+
+## Session expiry and persistent login throttling — verified 2026-10-31
+
+**Build proof:** isolated Railway QA build-only service `mediaos-local-session-ci-pr110-temp`, deployment `91c31940-0645-4a1a-b7ed-1eb5a1bcb34d`, tested commit `e51bb8804e3d77da5b9f73df75b6c482b7e17660`. Docker build completed successfully on Java 21 and a disposable PostgreSQL 16 database. Frontend TypeScript/Vitest completed successfully.
+
+- **196 Java tests passed, 0 failures, 0 errors, 0 skipped.** Previous 194 tests remain green.
+- Added `V100__local_director_login_throttle.sql`: atomic PostgreSQL counters, SHA-256 hashed bucket identifiers, a rolling 15-minute window, max 12 attempts per normalized username and max 100 per observed client address; exceeding a limit returns HTTP 429.
+- Login throttle also applies to nonexistent accounts; counters work across multiple Java instances and are not reset by process restart. Existing per-account lock after five failures remains independently active.
+- The observed IP is `HttpServletRequest.getRemoteAddr()`. **Before production**, verify Railway reverse-proxy trusted forwarded-header handling, or clients may share an address or spoof it; never trust arbitrary client-supplied `X-Forwarded-For` without a trusted proxy.
+- Added a real HTTP regression proving the `SPRING_SESSION.MAX_INACTIVE_INTERVAL` for Director is **1800 seconds** and a forcibly expired persisted session no longer authenticates.
+- Added a real HTTP regression proving 12 failed attempts against an **unknown username** return 401, with the next attempt rejected with 429. The account name is isolated per test.
+- The JDBC table needs a retention policy (e.g., remove stale buckets older than 48 hours) before a long-lived release; no scheduled deletion was enabled during this security check.
+- No external identity API, no payments, no deployment to the existing QA app or production, no real user credentials, no EP001 changes.
+
+## Local Director account recovery and key custody — runbook (not yet rehearsed)
+
+There is intentionally **no public password-reset or MFA-reset endpoint**.
+
+1. Before enabling local login for a real Director, store the strong password and a separate offline copy of the TOTP enrollment seed inside a secure password manager. Keep a second secure backup of the 32-byte `MEDIAOS_LOCAL_AUTH_TOTP_ENCRYPTION_KEY` and protected database backup/recovery procedures. Do **not** commit any of these values or paste them into chat, support messages or screenshots.
+2. If the password is lost but the offline encrypted backup contains the original credential, restore from the password manager; do not deploy a bypass or temporary access token.
+3. If the TOTP device is lost but the offline TOTP enrollment seed still exists, enroll a new authenticator using the original seed, while retaining the existing encrypted database secret. Confirm sign-in on a separate QA copy before using the real account.
+4. If both password and TOTP seed are irretrievable, **do not** enable the one-time first-account bootstrap against a nonempty database, delete the existing account or disable MFA to gain access. This requires a separately implemented and reviewed **offline administrative recovery/credential-rotation procedure**, with explicit Director approval, database backup, forced session revocation, and a complete audit. Until such a procedure has been implemented and rehearsed, recovery remains a release blocker.
+5. If the TOTP encryption key is lost, the existing encrypted TOTP seed cannot be decrypted; restore the protected key backup or use that separately approved offline recovery procedure. A future key-rotation utility must atomically re-encrypt valid stored seeds and prove old keys cannot be used.
+6. Confirm recovery and session revocation with isolated PostgreSQL tests. Never operate directly on production PostgreSQL or production accounts during QA.
+
+**Remaining Stage 1 acceptance gates:** real mobile browser behavior on HTTPS, trusted proxy/client-address verification, stable session lifecycle across process restart/redeployment, offline recovery/key-rotation drill, full endpoint/worker authorization inventory, and explicit Director release approval. Local auth remains **OFF** everywhere outside disposable tests; no merge or production rollout is authorized.
