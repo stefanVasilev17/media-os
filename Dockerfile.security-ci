@@ -1,16 +1,20 @@
 FROM maven:3.9-eclipse-temurin-21 AS verify
 WORKDIR /workspace/backend
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql \
+    && rm -rf /var/lib/apt/lists/*
 COPY backend/pom.xml ./pom.xml
 COPY backend/src ./src
-RUN mvn -B -ntp -Dstyle.color=never -Dtest=DirectorHttpAuthorizationTest test || { \
-    echo "=== Director HTTP TEST FAILURE DETAILS ==="; \
-    sed -n '1,170p' target/surefire-reports/com.architecturalthinking.mediaos.system.DirectorHttpAuthorizationTest.txt; \
-    exit 1; \
-  }
-RUN mvn -B -ntp -Dstyle.color=never test
+RUN set -eu; \
+    pg_version="$(ls /etc/postgresql | head -1)"; \
+    pg_ctlcluster "$pg_version" main start; \
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+    mvn -B -ntp -Dstyle.color=never test
 
 FROM alpine:3.20
 COPY --from=verify /workspace/backend/target/surefire-reports /qa-test-reports
 RUN adduser -D -H verify
 USER verify
-CMD ["sh", "-c", "echo 'MediaOS security CI build only. No application, DB access, or API is running.'; sleep 300"]
+CMD ["sh", "-c", "echo 'MediaOS build verification complete. No application or PostgreSQL server in runtime.'; sleep 300"]
