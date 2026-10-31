@@ -88,3 +88,25 @@ EP002 `Why Login Fails Even When the Server Is Healthy` has a **GitHub Director 
 ### Updated release gate
 
 **QA auth and standalone technical renderer are PASS. Production remains NO-GO.** The remaining critical work is (1) native end-to-end Director-approved disposable episode QA render/secure retrieval with no false LOCKs; (2) sustainable secure worker credential issuance/rotation (temporary token expiry 2026-11-01 07:40:36 UTC); (3) real-device iPhone Safari Director auth acceptance; (4) isolated **production-copy** Flyway V94–V103 migration + rollback rehearsal and backup validation; (5) npm dependency advisory triage and (6) explicit tested-release Director approval. No PR merge or production deployment was performed in these QA tests.
+
+## QA 2026-10-31: isolated native render lifecycle contract and npm security triage
+
+**Isolation:** test implementation is on a separate, **unmerged** branch `qa/ep002-native-render-lifecycle-test-20261031`, at test/Dockerfile commit `88081d969c7eedee9f4ecea30d1114b6c604196a`. QA compilation/testing occurred in a **one-time** Railway build service with its own PostgreSQL 16 cluster; the original QA and production databases were not used for test writes. This test branch does not modify EP001 source or approved assets.
+
+### Native Java + PostgreSQL lifecycle tests — PASS
+
+The original `EpisodeShotQaRenderIntakeTest` suite now includes a synthetic-fixture integration test for `EpisodeShotQaRenderController.queue` → `RemotionCpuWorkerController.claim` → `progress` → `complete` → `RemotionRenderController.video` (full and byte-range video retrieval). The test explicitly verifies invalid worker-key rejection and that the empty queue returns HTTP 204. The synthetic Director/Voice approvals are created **only inside the disposable JUnit test fixture**, not in any persistent MediaOS episode, not an actual Director decision. The test's media payload is deliberately synthetic/opaque; it tests transfer/storage/retrieval contracts, **not MP4 codec validity**.
+
+**Observed Railway CI build logs:** `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`, `EP002_LIFECYCLE_TEST=PASS` in isolated build deployment `b593fc03-c902-4a47-a766-86a69f6ceba5`. Together with the **previous independent** real Chromium/Remotion H.264 MP4 smoke, this validates the renderer and DB/API lifecycle **as separate tests**. The original QA backend has **not** been driven through a single real HTTP end-to-end Director-approved episode render; that remains an open release gate.
+
+### npm dependency audit — confirmed findings, no automatic changes
+
+A separate one-time QA build on `qa/ep002-native-render-lifecycle-test-20261031`, code `Dockerfile.ep002-npm-audit-ci` commit `754b2383d6d6693b70737ac0eaadb3ea3ecc6822`, executed `npm audit --json` after installing the repository-declared Remotion and frontend packages.
+
+- **Remotion:** 10 package entries at severity `high`, 0 critical. Affected names returned: `@remotion/bundler`, `@remotion/cli`, `@remotion/codemods`, `@remotion/elevenlabs`, `@remotion/media`, `@remotion/openai-whisper`, `@remotion/studio`, `@remotion/studio-protocol`, `@remotion/studio-server`, and `zod`. This is **10 affected package records**, not necessarily 10 distinct underlying advisories or 10 exploitable vulnerabilities.
+- **Frontend:** 0 high, 0 critical, 0 total in the same dependency audit.
+- The suggested fixes for some Remotion direct dependencies involve a potentially incompatible package version change according to `npm audit`. No `npm audit fix`, lockfile rewrite, npm upgrade or EP001 visual source change was performed.
+- **Before production:** review the specific underlying advisories, real runtime exposure, supported Remotion release compatibility, and safe patch plan; rerun rendering/EP001 visual regression afterward. A high-level npm audit count alone neither proves exploitability nor permits ignoring the findings.
+
+**Release state: still NO-GO.** Remaining: a genuine Director-approved test in the live QA MediaOS instance or equivalent audited full HTTP queue→worker→valid MP4→retrieval test; secure worker credential renewal/rotation; real-device Safari acceptance; production-copy V94–V103 schema migration and backup/rollback rehearsal; dependency advisories resolution/acceptance; explicit reviewed Director production GO. Existing EP002 v4.0 GitHub Director LOCK does **not** automatically constitute a native MediaOS `production_stage` LOCK.
+
