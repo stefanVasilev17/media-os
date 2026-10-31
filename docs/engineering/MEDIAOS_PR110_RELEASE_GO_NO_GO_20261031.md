@@ -110,3 +110,22 @@ A separate one-time QA build on `qa/ep002-native-render-lifecycle-test-20261031`
 
 **Release state: still NO-GO.** Remaining: a genuine Director-approved test in the live QA MediaOS instance or equivalent audited full HTTP queue→worker→valid MP4→retrieval test; secure worker credential renewal/rotation; real-device Safari acceptance; production-copy V94–V103 schema migration and backup/rollback rehearsal; dependency advisories resolution/acceptance; explicit reviewed Director production GO. Existing EP002 v4.0 GitHub Director LOCK does **not** automatically constitute a native MediaOS `production_stage` LOCK.
 
+
+## Isolated QA episode intake activation — 2026-10-31
+
+**Initial read-only gate audit:** `MEDIAOS_LOCAL_AUTH_ENABLED=true`, `MEDIAOS_WORKER_AUTH_ENABLED=true`, but `MEDIAOS_EPISODES_CREATION_ENABLED=false`, `MEDIAOS_EPISODES_WRITES_ENABLED=false`, `MEDIAOS_REMOTION_QA_INTAKE_ENABLED=false`. PostgreSQL contained only `EP001`, exactly one active `REMOTION_CPU` credential and zero `remotion_render` rows. The audit was a read-only transaction in an ephemeral Railway Function subsequently deleted.
+
+**QA-only action, explicitly not production:** staged and committed exactly these three `qa-media-os-backend` environment flags to `true`:
+- `MEDIAOS_EPISODES_CREATION_ENABLED=true`
+- `MEDIAOS_EPISODES_WRITES_ENABLED=true`
+- `MEDIAOS_REMOTION_QA_INTAKE_ENABLED=true`
+
+No other QA services, production variables, producer scripts, Director-LOCKED EP001 assets or database episode rows were modified by this activation. The fresh QA backend deployment `db1a4a75-88a6-4dd4-bd74-5174cae776fa` finished **SUCCESS**; Spring started and the first post-rollout `POST /api/v1/remotion/renders/worker/claim` returned **204** at 20:50:17 UTC, confirming the scoped/legacy worker authentication remained valid.
+
+**Post-activation HTTPS negative security regression:** isolated anonymous probes returned `/actuator/health` **200**, `/api/v1/auth/mode` **200**; anonymous `GET /api/v1/episodes` **401**, anonymous `POST /api/v1/episodes` **401**, anonymous `POST /api/v1/episodes/{nonexistent-uuid}/shot-revisions/SHOT%2001/render-qa` **401**, and anonymous `POST /api/v1/remotion/renders/worker/claim` **401**. Overall `QA_POST_ACTIVATION_NEGATIVE_BOUNDARIES=PASS`. The disposable probe service was deleted.
+
+**Important current boundary:** These flags make the native Director-gated QA authoring and storyboard intake **available** for a separate, reviewed EP002+ fixture; no new episode has been created or marked LOCKED, no voice take was generated or approved, and no new render was queued in persistent QA. A full HTTP-positive end-to-end acceptance still requires genuine Director stage/shot/voice approvals or a properly authorized disposable test fixture. Never invent an approval event, import EP002 GitHub creative lock as database stage LOCK without a reviewed activation path, or use EP001 for this test.
+
+**Operational risk:** The existing QA `REMOTION_CPU` credential expires **2026-11-01 07:40:36 UTC**. Before any QA acceptance test after this time, securely reissue and provision a new token through the audited credential runbook; do not weaken worker auth or silently extend the existing token expiry without a rotation audit. Production needs a sustainable rotation plan before any GO.
+
+**Production release remains NO-GO**, despite the successful isolated lifecycle Java tests, real Remotion H.264 engine test, Director TOTP/CSRF smoke, QA DB backup/restore and these post-activation access checks. The migration-on-production-copy/rollback rehearsal, real iPhone Safari test, dependency advisory remediation/acceptance, full native approved fixture acceptance and credential rotation are still pending.
