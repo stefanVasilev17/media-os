@@ -77,6 +77,9 @@ export function EpisodeRevisionVoicePage({ episodeId, shotKey }: { episodeId: st
                 () => episodeRevisionVoiceApi.generate(episodeId, shotKey, voice.shotRevision),
                 'New take ready for review.'
               )}>Generate with ElevenLabs</button>
+            {voice.blockedReason && <p role="status" className="voice-quiet-notice">
+              {voice.blockedReason}
+            </p>}
             {!voice.configured && <p role="status" className="voice-quiet-notice">
               ElevenLabs is not connected.
             </p>}

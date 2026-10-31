@@ -68,4 +68,40 @@ class EpisodeLockedScriptVoiceServiceTest {
         assertEquals(sha, EpisodeLockedScriptVoiceService.narrationHash(source));
         assertNotEquals(sha, EpisodeLockedScriptVoiceService.narrationHash(source + " "));
     }
+    @Test
+    void initialLockedScriptIsReadableWithoutAnyShotRevision() {
+        ShotRevisionService.Context original = new ShotRevisionService.Context(
+                1, "SHOT 01", "The Login That Keeps Waiting",
+                "You tap Login. A loading spinner appears.", null, null);
+        assertNull(EpisodeLockedScriptVoiceService.readinessBlocker(original, true));
+    }
+
+    @Test
+    void missingVisualPlanDoesNotMakeReadinessLookLikeMissingRevision() {
+        ShotRevisionService.Context original = new ShotRevisionService.Context(
+                1, "SHOT 01", "The Login That Keeps Waiting",
+                "You tap Login. A loading spinner appears.", null, null);
+        assertTrue(EpisodeLockedScriptVoiceService.readinessBlocker(original, false)
+                .contains("Visual Plan must be Director-LOCKED"));
+    }
+
+    @Test
+    void unapprovedDraftDoesNotPermitGeneratingFromOriginalLockedScript() {
+        ShotRevisionService.Revision draft = new ShotRevisionService.Revision(
+                1, 1, "DRAFT", "Revised narration", "", "", "", null);
+        ShotRevisionService.Context pending = new ShotRevisionService.Context(
+                1, "SHOT 01", "The Login That Keeps Waiting",
+                "You tap Login. A loading spinner appears.", draft, null);
+        assertTrue(EpisodeLockedScriptVoiceService.readinessBlocker(pending, true)
+                .contains("unapproved revision DRAFT"));
+    }
+
+    @Test
+    void originalLockedScriptRequiresNonemptyNarration() {
+        ShotRevisionService.Context empty = new ShotRevisionService.Context(
+                1, "SHOT 01", "The Login That Keeps Waiting", "", null, null);
+        assertTrue(EpisodeLockedScriptVoiceService.readinessBlocker(empty, true)
+                .contains("narration is missing"));
+    }
+
 }

@@ -54,24 +54,35 @@ public class EpisodeLockedScriptVoiceService {
         }
     }
 
-    private Source requireSource(UUID episodeId, String shotKey) {
+    private record SourceInspection(Source source, String blockedReason) {}
+
+    static String readinessBlocker(ShotRevisionService.Context context, boolean visualPlanLocked) {
+        if (context.approved() != null)
+            return "This shot has an approved revision. Open Voice for the approved revision.";
+        if (context.draft() != null)
+            return "This shot has an unapproved revision DRAFT. Finish Director review in Revision Chat before generating original-script audio.";
+        if (!visualPlanLocked)
+            return "The episode-level Visual Plan must be Director-LOCKED before Voice generation.";
+        if (context.originalNarration() == null || context.originalNarration().isBlank())
+            return "Original locked narration is missing.";
+        return null;
+    }
+
+    private SourceInspection inspectSource(UUID episodeId, String shotKey) {
         ShotRevisionService.Context context = revisions.context(episodeId, shotKey);
-        if (context.approved() != null || context.draft() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "This shot has a separate revision. Finish its Director review before creating new audio.");
-        }
-        var stages = episodes.stages(episodeId);
-        boolean lockedScene = stages.stream().anyMatch(stage ->
+        boolean visualPlanLocked = episodes.stages(episodeId).stream().anyMatch(stage ->
                 "SCENE".equals(stage.get("stageKey")) && "LOCKED".equals(stage.get("status")));
-        if (!lockedScene)
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "The episode-level Visual Plan must be Director-LOCKED before Voice production.");
-        String narration = context.originalNarration();
-        if (narration == null || narration.isBlank())
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Original locked narration is missing.");
-        // The source is the script stage itself, never a synthetic shot revision.
-        return new Source(context.scriptRevision(), narration,
+        String narration = context.originalNarration() == null ? "" : context.originalNarration();
+        Source source = new Source(context.scriptRevision(), narration,
                 voiceDirection(episodeId, shotKey), narrationHash(narration));
+        return new SourceInspection(source, readinessBlocker(context, visualPlanLocked));
+    }
+
+    private Source requireSource(UUID episodeId, String shotKey) {
+        SourceInspection inspection = inspectSource(episodeId, shotKey);
+        if (inspection.blockedReason() != null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, inspection.blockedReason());
+        return inspection.source();
     }
 
     private String voiceDirection(UUID episodeId, String shotKey) {
@@ -90,7 +101,8 @@ public class EpisodeLockedScriptVoiceService {
     }
 
     public Map<String, Object> state(UUID episodeId, String shotKey) {
-        Source src = requireSource(episodeId, shotKey);
+        SourceInspection inspection = inspectSource(episodeId, shotKey);
+        Source src = inspection.source();
         List<Map<String, Object>> takes = jdbc.sql("""
                 select id,take_number,content_type,file_name,model_id,voice_id,generated_at,approved_at
                 from episode_locked_script_voice_take
@@ -123,7 +135,9 @@ public class EpisodeLockedScriptVoiceService {
         result.put("source", "DIRECTOR_LOCKED_ORIGINAL_SCRIPT");
         result.put("narration", src.narration());
         result.put("voiceDirection", src.voiceDirection());
-        result.put("canGenerate", episodes.writesEnabled() && elevenLabs.configured() && !approved);
+        result.put("blockedReason", inspection.blockedReason());
+        result.put("canGenerate", inspection.blockedReason() == null
+                && episodes.writesEnabled() && elevenLabs.configured() && !approved);
         result.put("configured", elevenLabs.configured());
         result.put("takes", takes);
         result.put("voiceApproved", approved);
