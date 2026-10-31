@@ -4,6 +4,7 @@ import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
 import {PhoneFirstYoutubePreview, phoneFirstYoutubePreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstYoutubePreview';
 import {RequestAssemblyYoutubePreview, requestAssemblyYoutubePreviewSchema} from './episodes/ep001/live-diagram/RequestAssemblyYoutubePreview';
+import {Episode001FirstTwoShots, episode001FirstTwoShotsSchema} from './episodes/ep001/live-diagram/Episode001FirstTwoShots';
 import {SHOT01_DURATION_FRAMES, SHOT01_FPS} from './episodes/ep001/live-diagram/shot01Timing';
 import {SHOT02_DURATION_FRAMES, SHOT02_FPS} from './episodes/ep001/live-diagram/shot02Timing';
 import {VerticalSlice, verticalSliceSchema} from './episodes/ep001/vertical-slice/VerticalSlice';
@@ -73,6 +74,16 @@ export const Root: React.FC = () => {
         defaultProps={{
           showGuides: false,
         }}
+      />
+      <Composition
+        id="EP001-Scene01-02-Continuity"
+        component={Episode001FirstTwoShots}
+        durationInFrames={SHOT01_DURATION_FRAMES + SHOT02_DURATION_FRAMES}
+        fps={SHOT01_FPS}
+        width={1920}
+        height={1080}
+        schema={episode001FirstTwoShotsSchema}
+        defaultProps={{showGuides:false}}
       />
       <Composition
         id="EP001-PhoneFirst-Youtube"
