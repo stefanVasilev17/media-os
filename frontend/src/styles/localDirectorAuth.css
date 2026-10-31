@@ -29,6 +29,17 @@
   background: #205e9a; color: #fff; border-radius: 11px; font-weight: 720;
 }
 .local-director-card form button:disabled { opacity: .55; }
+.local-director-card .local-director-remember {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  color: #d5dfed; font-size: 13px; font-weight: 600;
+}
+.local-director-card .local-director-remember input {
+  width: 19px; height: 19px; min-height: 19px; flex: none; margin: 0;
+  accent-color: #6da9e5;
+}
+.local-director-card .local-director-remember-note {
+  margin: 0; font-size: 12px; line-height: 1.45;
+}
 .local-director-card .local-director-error { color: #ffa8a9; margin: 7px 0 0; }
 .local-director-signout {
   position: fixed; z-index: 120; top: max(12px, env(safe-area-inset-top));
