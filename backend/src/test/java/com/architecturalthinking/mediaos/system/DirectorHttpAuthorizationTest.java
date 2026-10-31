@@ -93,6 +93,16 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
+    void signedDirectorTokenCannotClaimGpuRenderWork() throws Exception {
+        mvc.perform(get("/api/v1/remotion/gpu-renders/test-render/work").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/spline/gpu-renders/test-render/work").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void evenDirectorCannotInvokeAnInternalWorkerCallback() throws Exception {
         mvc.perform(post("/api/v1/worker/runner/heartbeat").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
