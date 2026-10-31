@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/api/v1/episodes/{episodeId}/director-overview")
 public class EpisodeDirectorOverviewController {
-    private static final Pattern SHOT_KEY = Pattern.compile("^SHOT\\s+([0-9]{1,3})$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SHOT_KEY = Pattern.compile("^SHOT\\s*([0-9]{1,3})$", Pattern.CASE_INSENSITIVE);
 
     private final EpisodeWorkspaceService episodes;
     private final JdbcClient jdbc;
@@ -90,10 +90,31 @@ public class EpisodeDirectorOverviewController {
                 if (!title.isBlank()) shot.title = title;
                 String narration = string(block.get("narration"));
                 if (!narration.isBlank()) shot.narration += (shot.narration.isEmpty() ? "" : System.lineSeparator().repeat(2)) + narration;
-                if (block.get("startSecond") instanceof Number start)
-                    shot.startSecond = shot.startSecond < 0 ? start.intValue() : Math.min(shot.startSecond, start.intValue());
-                if (block.get("endSecond") instanceof Number end)
-                    shot.endSecond = Math.max(shot.endSecond, end.intValue());
+                String voiceDirection = string(block.get("voiceDirection"));
+                if (!voiceDirection.isBlank()) shot.voiceDirection = voiceDirection;
+                int start = block.get("startSecond") instanceof Number n
+                        ? n.intValue() : editorialSecond(block.get("editorialStart"));
+                if (start >= 0) shot.startSecond = shot.startSecond < 0 ? start : Math.min(shot.startSecond, start);
+                int end = block.get("endSecond") instanceof Number n
+                        ? n.intValue() : editorialSecond(block.get("editorialEnd"));
+                if (end >= 0) shot.endSecond = Math.max(shot.endSecond, end);
+            }
+            break;
+        }
+
+        // Approved SCENE choreography augments script shots without creating voice/video approvals.
+        for (Map<String, Object> stage : stages) {
+            if (!"SCENE".equals(stage.get("stageKey")) || !"LOCKED".equals(stage.get("status"))) continue;
+            Object artifact = stage.get("artifact");
+            if (!(artifact instanceof Map<?, ?> data) || !(data.get("shots") instanceof List<?> plans)) break;
+            for (Object entry : plans) {
+                if (!(entry instanceof Map<?, ?> plan)) continue;
+                String key = shotKey(plan.get("shotKey"));
+                if (key == null) continue;
+                Shot shot = shots.get(key);
+                if (shot == null) continue;
+                String approvedVisual = string(plan.get("visualPlanMarkdown"));
+                if (!approvedVisual.isBlank()) shot.visualDirection = approvedVisual;
             }
             break;
         }
@@ -259,6 +280,13 @@ public class EpisodeDirectorOverviewController {
 
     static String voiceStatus(int total, int approved) {
         return total > 0 && approved == total ? "LOCKED" : "PENDING";
+    }
+
+    static int editorialSecond(Object value) {
+        if (!(value instanceof String text) || !text.matches("\\d{2}:\\d{2}")) return -1;
+        int minutes = Integer.parseInt(text.substring(0, 2));
+        int seconds = Integer.parseInt(text.substring(3));
+        return seconds < 60 ? minutes * 60 + seconds : -1;
     }
 
     static String shotKey(Object candidate) {
