@@ -26,3 +26,12 @@ Transfer the approved **Director Full Script Pass v4.0** into the native episode
 5. Next `SCENE` draft requires visual choreography from Director v4.0; the locked narration manifest itself must **not** be mistaken for full visual directions.
 
 **Production safety:** QA only; never change EP001 or production; no paid generation. Passing automated frontend tests or successful QA deployment alone does **not** mean the user already imported a draft or issued a LOCK.
+
+## Actual QA deployment / CI verification — 2026-11-01
+
+- Isolated disposable frontend CI at commit `c620600b6d8750ed833b6944976aa7dbc5b4e995` confirmed `npm run build` and **13 of 13 Vitest tests PASS**, including exact byte-for-byte string equality for all eleven approved narration entries and retained revision/timing/word metadata. No paid generation.
+- Pinned the isolated QA `qa-media-os-backend` service to that tested commit. Railway deployment `ff20b5db-860c-49c6-a7c1-8f86645668be` reached **SUCCESS**; Spring Boot startup successful.
+- Independent live public HTTPS smoke confirmed `GET /` 200, released JavaScript bundle includes `Import approved EP002 Script v4.0 (no AI cost)`, `GET /api/v1/auth/mode` 200, and **anonymous** `POST /api/v1/episodes/{EP002_UUID}/stages/script/draft` **401**, proving the feature does not silently grant unauthenticated writes.
+- One-time read-only SQL QA PostgreSQL preflight explicitly confirmed only EP001 and EP002 exist; native EP002 `RESEARCH` **LOCKED revision 1**, `SCRIPT` **WAITING revision 0**, `SCENE` **WAITING revision 0**; no draft was overwritten. All temporary QA CI/preflight/smoke Railway services deleted, no volumes.
+- Final Railway read: all three QA services and all three production services SUCCESS; no pending Railway changes. **Production NOT deployed, EP001 unchanged**.
+- **User action remains mandatory:** The new Director button must be clicked once in the authenticated EP002 QA interface to invoke the audited native DRAFT API. The above verification is NOT evidence that this step was clicked or that SCRIPT is already READY_FOR_REVIEW, and is definitely NOT a Director LOCK.
