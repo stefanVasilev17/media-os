@@ -64,7 +64,7 @@ public class RemotionCpuWorkerController {
                 .update();
 
         Map<String, Object> work = jdbc.sql("""
-                select id, composition_id, render_key, engine_version, input_props::text as input_props,
+                select id, episode_id, composition_id, render_key, engine_version, input_props::text as input_props,
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
@@ -76,6 +76,7 @@ public class RemotionCpuWorkerController {
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("renderId", rs.getObject("id", UUID.class));
+                    row.put("episodeId", rs.getObject("episode_id", UUID.class));
                     row.put("compositionId", rs.getString("composition_id"));
                     row.put("renderKey", rs.getString("render_key"));
                     row.put("engineVersion", rs.getString("engine_version"));
