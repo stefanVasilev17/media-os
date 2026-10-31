@@ -54,10 +54,33 @@ public class DirectorSecurityConfiguration {
                         .requestMatchers("/api/v1/worker/**", "/api/v1/remotion/renders/worker/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/episodes", "/api/v1/episodes/**")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/episodes",
+                                "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
+                                "/api/v1/episodes/{episodeId}/stages/{stageKey}/director-lock",
+                                "/api/v1/episodes/{episodeId}/assets/{assetKey}/reuse",
+                                "/api/v1/episodes/{episodeId}/memory",
+                                "/api/v1/episodes/{episodeId}/research/preview",
+                                "/api/v1/episodes/{episodeId}/research/run",
+                                "/api/v1/episodes/{episodeId}/agents/{stageKey}/preview",
+                                "/api/v1/episodes/{episodeId}/agents/{stageKey}/run",
+                                "/api/v1/episodes/{episodeId}/learning/refresh",
+                                "/api/v1/episodes/{episodeId}/learning/{proposalId}/decision",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/messages",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/director-lock",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/ai/preview",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/ai/run",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/voice/generate",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/voice/approve",
+                                "/api/v1/episodes/{episodeId}/quality-assertions",
+                                "/api/v1/previews/director",
+                                "/api/v1/previews/creative/{stageKey}")
                             .hasRole("DIRECTOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/previews/**").hasRole("DIRECTOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/episodes/**", "/api/v1/system/ai-control")
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/v1/episodes/{episodeId}/brief",
+                                "/api/v1/episodes/{episodeId}/research/sources",
+                                "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/draft",
+                                "/api/v1/system/ai-control")
                             .hasRole("DIRECTOR")
                         .requestMatchers("/api/v1/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/**").permitAll()
