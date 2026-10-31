@@ -1,6 +1,12 @@
 name: MediaOS Backend Preflight CI
 
 on:
+  push:
+    branches:
+      - 'feature/episode-brief-research-handoff-20261031'
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-preflight-ci.yml'
   pull_request:
     paths:
       - 'backend/**'
