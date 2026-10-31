@@ -188,7 +188,6 @@ export function ShotStudioPage() {
               className={'studio-shot-tab '+(s.id===shotId?'selected':'')}
               onClick={()=>{setShotId(s.id);setMessage('');setError('');}}>
               <strong>{s.shotKey}</strong><span>{s.title}</span>
-              <small>{s.clips.length} clips · {s.clips.filter(c=>c.approvedAt).length} voices approved</small>
             </button>)}
           </div>
           <div className="studio-add-shot">
