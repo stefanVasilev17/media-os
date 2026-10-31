@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { AppBottomNav } from './components/AppBottomNav';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
@@ -122,7 +121,6 @@ export function App() {
   return (
     <div className="media-os-product-shell">
       {page}
-      <AppBottomNav currentHash={hash} />
     </div>
   );
 }
