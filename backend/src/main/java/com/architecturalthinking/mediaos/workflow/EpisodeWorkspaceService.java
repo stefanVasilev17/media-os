@@ -50,6 +50,7 @@ public class EpisodeWorkspaceService {
         return jdbc.sql("""
                 select e.id, e.episode_number, e.title, e.status,
                        e.current_stage, e.source_of_truth_version,
+                       exists(select 1 from episode_brief b where b.episode_id=e.id) as has_brief,
                        (select count(*) > 0
                                and count(*) = count(*) filter (where s.status='LOCKED')
                         from production_stage s where s.episode_id=e.id) as all_stages_locked
@@ -65,6 +66,7 @@ public class EpisodeWorkspaceService {
                     row.put("status", rs.getString("status"));
                     row.put("currentStage", rs.getString("current_stage"));
                     row.put("sourceVersion", rs.getString("source_of_truth_version"));
+                    row.put("hasBrief", rs.getBoolean("has_brief"));
                     row.put("allStagesLocked", rs.getBoolean("all_stages_locked"));
                     return row;
                 }).list();
@@ -147,8 +149,10 @@ public class EpisodeWorkspaceService {
                 )).list();
     }
 
+    @Transactional
     public Map<String, Object> create(String episodeNumber, String title, UUID auditId) {
-        return create(episodeNumber, title, "", "", auditId);
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "New episodes require a Director Episode Brief; use the four-field creation API.");
     }
 
     public String nextEpisodeNumber() {
