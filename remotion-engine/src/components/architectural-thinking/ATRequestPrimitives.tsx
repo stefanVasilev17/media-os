@@ -52,7 +52,7 @@ export type ATRequestPacketProps = {
 };
 
 export const ATRequestPacket: React.FC<ATRequestPacketProps> = ({frame,formation,travel}) => {
-  const x = 1130 + travel*405;
+  const x = 1130 + travel*300;
   const y = 486 - travel*18;
   const runner = ((frame*8)%250)-80;
   return (
