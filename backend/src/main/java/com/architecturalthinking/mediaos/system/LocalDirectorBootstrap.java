@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Component
 @ConditionalOnProperty(name = "mediaos.local-auth.bootstrap.enabled", havingValue = "true")
-public final class LocalDirectorBootstrap implements ApplicationRunner {
+public class LocalDirectorBootstrap implements ApplicationRunner {
     private final JdbcClient jdbc;
     private final PasswordEncoder passwords;
     private final LocalTotpCrypto crypto;
