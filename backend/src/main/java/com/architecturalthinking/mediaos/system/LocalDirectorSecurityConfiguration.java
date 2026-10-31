@@ -59,7 +59,7 @@ public class LocalDirectorSecurityConfiguration {
                         .authenticationEntryPoint((request, response, reason) ->
                                 response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED)))
                 .authorizeHttpRequests(authorization -> authorization
-                        .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login", "/api/v1/auth/claim/redeem").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
                         .requestMatchers("/api/v1/worker/**", "/api/v1/remotion/renders/worker/**",
                                 "/api/v1/remotion/gpu-renders/**", "/api/v1/spline/gpu-renders/**").denyAll()
