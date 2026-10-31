@@ -125,7 +125,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
             <span>Remember this device for 30 days</span>
           </label>
           <p className="local-director-remember-note">For your private device only. You can sign out at any time.</p>
-          {message && <p className="local-director-error" role="alert">{message}</p>
+          {message && <p className="local-director-error" role="alert">{message}</p>}
           <button type="submit" disabled={busy}>{busy ? 'Checking…' : 'Sign in securely'}</button>
         </form>
       </>}
