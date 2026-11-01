@@ -54,6 +54,17 @@ class EpisodeWriteActivationGuardTest {
     }
 
     @Test
+    void ep002VoiceOnlyRequiresVerifiedIdentityAtStartup() {
+        assertThrows(IllegalStateException.class,
+                () -> new EpisodeWriteActivationGuard(
+                        false, false, false, false, false, false, false, true));
+        assertDoesNotThrow(() -> new EpisodeWriteActivationGuard(
+                false, false, false, false, false, false, true, true));
+        assertDoesNotThrow(() -> new EpisodeWriteActivationGuard(
+                false, false, false, false, false, true, false, true));
+    }
+
+    @Test
     void allowsActivationOnlyWhenIdentitySecurityIsConfigured() {
         assertDoesNotThrow(() -> new EpisodeWriteActivationGuard(true, true, true, true, true, false));
     }
