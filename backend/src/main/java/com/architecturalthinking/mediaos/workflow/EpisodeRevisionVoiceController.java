@@ -23,7 +23,11 @@ public class EpisodeRevisionVoiceController {
         this.voices = voices;
     }
 
-    public record GenerateRequest(@NotNull @Min(0) Integer expectedRevision) {}
+    public record GenerateRequest(@NotNull @Min(0) Integer expectedRevision, UUID requestId) {
+        public GenerateRequest(Integer expectedRevision) {
+            this(expectedRevision, null);
+        }
+    }
     public record ApproveRequest(@NotNull @Min(0) Integer expectedRevision,
                                  @NotNull UUID takeId,
                                  String decision) {}
@@ -37,7 +41,7 @@ public class EpisodeRevisionVoiceController {
     public Map<String, Object> generate(@PathVariable UUID episodeId, @PathVariable String shotKey,
                                         @Valid @RequestBody GenerateRequest request, HttpServletRequest http) {
         requirePreflight(http);
-        return voices.generate(episodeId, shotKey, request.expectedRevision());
+        return voices.generate(episodeId, shotKey, request.expectedRevision(), request.requestId());
     }
 
     @PostMapping("/approve")

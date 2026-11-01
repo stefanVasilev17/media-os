@@ -26,12 +26,14 @@ public class EpisodeRevisionVoiceService {
     private final TransactionTemplate transaction;
     private final EpisodeLockedScriptVoiceService originals;
     private final Ep002VoiceIdentityGuard identityGuard;
+    private final Ep002VoiceSpendGate spendGate;
 
     public EpisodeRevisionVoiceService(JdbcClient jdbc, ShotRevisionService revisions,
                                        EpisodeWorkspaceService episodes, ElevenLabsTextToSpeechService elevenLabs,
                                        ObjectMapper mapper, PlatformTransactionManager transactionManager,
                                        EpisodeLockedScriptVoiceService originals,
-                                       Ep002VoiceIdentityGuard identityGuard) {
+                                       Ep002VoiceIdentityGuard identityGuard,
+                                       Ep002VoiceSpendGate spendGate) {
         this.jdbc = jdbc;
         this.revisions = revisions;
         this.episodes = episodes;
@@ -40,6 +42,7 @@ public class EpisodeRevisionVoiceService {
         this.transaction = new TransactionTemplate(transactionManager);
         this.originals = originals;
         this.identityGuard = identityGuard;
+        this.spendGate = spendGate;
     }
 
     public Map<String, Object> state(UUID episodeId, String shotKey) {
@@ -69,6 +72,7 @@ public class EpisodeRevisionVoiceService {
                 }).list();
         Ep002VoiceIdentityGuard.Check continuity = identityGuard.inspect(
                 String.valueOf(episodes.episode(episodeId).get("episodeNumber")));
+        Ep002VoiceSpendGate.Decision spending = spendGate.inspect(episodeId, shotKey, approved.narration());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("episodeId", episodeId.toString());
         result.put("episodeNumber", episodes.episode(episodeId).get("episodeNumber"));
@@ -76,9 +80,12 @@ public class EpisodeRevisionVoiceService {
         result.put("shotRevision", approved.revision());
         result.put("narration", approved.narration());
         result.put("voiceDirection", approved.voiceDirection());
-        result.put("blockedReason", continuity.blockedReason());
+        result.put("blockedReason", continuity.blockedReason() != null
+                ? continuity.blockedReason() : spending.blockedReason());
+        if ("EP002".equals(result.get("episodeNumber")))
+            result.put("generationStatus", spendGate.status(episodeId, shotKey));
         result.put("ep001VoiceIdentityVerified", continuity.verified());
-        result.put("canGenerate", continuity.verified() && episodes.writesEnabled() && elevenLabs.configured()
+        result.put("canGenerate", continuity.verified() && spending.allowed() && elevenLabs.configured()
                 && takes.stream().noneMatch(take -> take.get("approvedAt") != null));
         result.put("configured", elevenLabs.configured());
         result.put("takes", takes);
@@ -88,8 +95,12 @@ public class EpisodeRevisionVoiceService {
     }
 
     public Map<String, Object> generate(UUID episodeId, String shotKey, int expectedRevision) {
-        if (expectedRevision == 0) return originals.generate(episodeId, shotKey);
-        requireWrites();
+        return generate(episodeId, shotKey, expectedRevision, null);
+    }
+
+    public Map<String, Object> generate(UUID episodeId, String shotKey, int expectedRevision, UUID requestId) {
+        if (expectedRevision == 0) return originals.generate(episodeId, shotKey, requestId);
+        spendGate.requireWrite(episodeId);
         identityGuard.requireVerified(String.valueOf(episodes.episode(episodeId).get("episodeNumber")));
         ShotRevisionService.Revision shot = requiredLockedRevision(episodeId, shotKey);
         if (shot.revision() != expectedRevision)
@@ -99,16 +110,20 @@ public class EpisodeRevisionVoiceService {
         if (alreadyApproved(episodeId, shotKey, expectedRevision))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Voice is already approved for this revision.");
         // The TTS client may add an allowed performance tag, but it never modifies the stored narration.
+        spendGate.reserve(episodeId, shotKey, expectedRevision, shot.narration(), requestId);
         ElevenLabsTextToSpeechService.GenerationResult generated;
         try {
             generated = elevenLabs.generate(shotKey, shot.narration(), "", "", Map.of(),
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
-        } catch (IllegalArgumentException error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage(), error);
-        } catch (IllegalStateException error) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "ElevenLabs generation failed.", error);
+            ElevenLabsTextToSpeechService.GenerationResult accepted = generated;
+            transaction.executeWithoutResult(status -> {
+                saveTake(episodeId, shotKey, expectedRevision, accepted);
+                spendGate.completed(requestId);
+            });
+        } catch (RuntimeException failure) {
+            spendGate.uncertain(requestId);
+            throw failure;
         }
-        transaction.executeWithoutResult(status -> saveTake(episodeId, shotKey, expectedRevision, generated));
         return state(episodeId, shotKey);
     }
 
@@ -156,7 +171,7 @@ public class EpisodeRevisionVoiceService {
     @Transactional
     public Map<String, Object> approve(UUID episodeId, String shotKey, int expectedRevision, UUID takeId) {
         if (expectedRevision == 0) return originals.approve(episodeId, shotKey, takeId);
-        requireWrites();
+        spendGate.requireWrite(episodeId);
         jdbc.sql("select id from episode where id=:episode for update")
                 .param("episode", episodeId).query(UUID.class).single();
         ShotRevisionService.Revision shot = requiredLockedRevision(episodeId, shotKey);
@@ -217,9 +232,4 @@ public class EpisodeRevisionVoiceService {
         return context.approved();
     }
 
-    private void requireWrites() {
-        if (!episodes.writesEnabled())
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Episode Voice writes are disabled until the safety rollout gate is approved.");
-    }
 }

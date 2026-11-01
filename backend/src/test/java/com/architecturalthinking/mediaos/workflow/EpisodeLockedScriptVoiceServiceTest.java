@@ -20,7 +20,7 @@ class EpisodeLockedScriptVoiceServiceTest {
         return new EpisodeRevisionVoiceService(mock(JdbcClient.class), revisions,
                 mock(EpisodeWorkspaceService.class), mock(ElevenLabsTextToSpeechService.class),
                 new ObjectMapper(), mock(PlatformTransactionManager.class), originals,
-                mock(Ep002VoiceIdentityGuard.class));
+                mock(Ep002VoiceIdentityGuard.class), mock(Ep002VoiceSpendGate.class));
     }
 
     @Test
@@ -43,9 +43,9 @@ class EpisodeLockedScriptVoiceServiceTest {
         ShotRevisionService revisions = mock(ShotRevisionService.class);
         EpisodeLockedScriptVoiceService originals = mock(EpisodeLockedScriptVoiceService.class);
         Map<String, Object> expected = Map.of("source", "DIRECTOR_LOCKED_ORIGINAL_SCRIPT");
-        when(originals.generate(episode, "SHOT 01")).thenReturn(expected);
+        when(originals.generate(episode, "SHOT 01", null)).thenReturn(expected);
         assertEquals(expected, routed(revisions, originals).generate(episode, "SHOT 01", 0));
-        verify(originals).generate(episode, "SHOT 01");
+        verify(originals).generate(episode, "SHOT 01", null);
         verifyNoInteractions(revisions);
     }
 

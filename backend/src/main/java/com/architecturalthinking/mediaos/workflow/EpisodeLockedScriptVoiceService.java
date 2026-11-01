@@ -29,13 +29,15 @@ public class EpisodeLockedScriptVoiceService {
     private final ObjectMapper mapper;
     private final TransactionTemplate transaction;
     private final Ep002VoiceIdentityGuard identityGuard;
+    private final Ep002VoiceSpendGate spendGate;
 
     public EpisodeLockedScriptVoiceService(JdbcClient jdbc, ShotRevisionService revisions,
                                            EpisodeWorkspaceService episodes,
                                            ElevenLabsTextToSpeechService elevenLabs,
                                            ObjectMapper mapper,
                                            PlatformTransactionManager transactionManager,
-                                           Ep002VoiceIdentityGuard identityGuard) {
+                                           Ep002VoiceIdentityGuard identityGuard,
+                                           Ep002VoiceSpendGate spendGate) {
         this.jdbc = jdbc;
         this.revisions = revisions;
         this.episodes = episodes;
@@ -43,6 +45,7 @@ public class EpisodeLockedScriptVoiceService {
         this.mapper = mapper;
         this.transaction = new TransactionTemplate(transactionManager);
         this.identityGuard = identityGuard;
+        this.spendGate = spendGate;
     }
 
     public record Source(int scriptRevision, String narration, String voiceDirection,
@@ -131,6 +134,7 @@ public class EpisodeLockedScriptVoiceService {
                     return take;
                 }).list();
         boolean approved = takes.stream().anyMatch(item -> item.get("approvedAt") != null);
+        Ep002VoiceSpendGate.Decision spending = spendGate.inspect(episodeId, shotKey, src.narration());
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("episodeId", episodeId.toString());
         result.put("episodeNumber", episodes.episode(episodeId).get("episodeNumber"));
@@ -141,10 +145,13 @@ public class EpisodeLockedScriptVoiceService {
         result.put("narration", src.narration());
         result.put("voiceDirection", src.voiceDirection());
         result.put("blockedReason", inspection.blockedReason() != null
-                ? inspection.blockedReason() : continuity.blockedReason());
+                ? inspection.blockedReason() : continuity.blockedReason() != null
+                ? continuity.blockedReason() : spending.blockedReason());
+        if ("EP002".equals(result.get("episodeNumber")))
+            result.put("generationStatus", spendGate.status(episodeId, shotKey));
         result.put("ep001VoiceIdentityVerified", continuity.verified());
         result.put("canGenerate", inspection.blockedReason() == null
-                && continuity.verified() && episodes.writesEnabled() && elevenLabs.configured() && !approved);
+                && continuity.verified() && spending.allowed() && elevenLabs.configured() && !approved);
         result.put("configured", elevenLabs.configured());
         result.put("takes", takes);
         result.put("voiceApproved", approved);
@@ -153,26 +160,33 @@ public class EpisodeLockedScriptVoiceService {
     }
 
     public Map<String, Object> generate(UUID episodeId, String shotKey) {
-        if (!episodes.writesEnabled())
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode Voice writes are disabled.");
+        return generate(episodeId, shotKey, null);
+    }
+
+    public Map<String, Object> generate(UUID episodeId, String shotKey, UUID requestId) {
+        spendGate.requireWrite(episodeId);
         Source src = requireSource(episodeId, shotKey);
         identityGuard.requireVerified(String.valueOf(episodes.episode(episodeId).get("episodeNumber")));
         if (!elevenLabs.configured())
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "ElevenLabs is not configured.");
         if (approved(episodeId, shotKey, src))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Original Voice is already approved.");
+        spendGate.reserve(episodeId, shotKey, 0, src.narration(), requestId);
         ElevenLabsTextToSpeechService.GenerationResult generated;
         try {
             // The saved narration remains byte-for-byte unchanged; the permitted v4 tone tag
             // is only applied to the outgoing TTS request by the existing ElevenLabs service.
             generated = elevenLabs.generate(shotKey, src.narration(), "", "", Map.of(),
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
-        } catch (IllegalArgumentException invalid) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, invalid.getMessage(), invalid);
-        } catch (IllegalStateException failed) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "ElevenLabs generation failed.", failed);
+            ElevenLabsTextToSpeechService.GenerationResult accepted = generated;
+            transaction.executeWithoutResult(status -> {
+                saveTake(episodeId, shotKey, src, accepted);
+                spendGate.completed(requestId);
+            });
+        } catch (RuntimeException failure) {
+            spendGate.uncertain(requestId);
+            throw failure;
         }
-        transaction.executeWithoutResult(status -> saveTake(episodeId, shotKey, src, generated));
         return state(episodeId, shotKey);
     }
 
@@ -216,8 +230,7 @@ public class EpisodeLockedScriptVoiceService {
 
     @Transactional
     public Map<String, Object> approve(UUID episodeId, String shotKey, UUID takeId) {
-        if (!episodes.writesEnabled())
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode Voice writes are disabled.");
+        spendGate.requireWrite(episodeId);
         jdbc.sql("select id from episode where id=:episode for update")
                 .param("episode", episodeId).query(UUID.class).single();
         Source src = requireSource(episodeId, shotKey);

@@ -20,6 +20,7 @@ export type EpisodeRevisionVoice = {
   blockedReason?: string | null;
   configured: boolean;
   ep001VoiceIdentityVerified?: boolean;
+  generationStatus?: string;
   takes: EpisodeVoiceTake[];
   voiceApproved: boolean;
   voiceModel: string;
@@ -51,8 +52,9 @@ async function request<T>(url: string, method = 'GET', body?: unknown): Promise<
 export const episodeRevisionVoiceApi = {
   state: (episodeId: string, shotKey: string) =>
     request<EpisodeRevisionVoice>(base(episodeId, shotKey)),
-  generate: (episodeId: string, shotKey: string, expectedRevision: number) =>
-    request<EpisodeRevisionVoice>(base(episodeId, shotKey) + '/generate', 'POST', { expectedRevision }),
+  generate: (episodeId: string, shotKey: string, expectedRevision: number, requestId: string) =>
+    request<EpisodeRevisionVoice>(base(episodeId, shotKey) + '/generate', 'POST',
+      { expectedRevision, requestId }),
   approve: (episodeId: string, shotKey: string, expectedRevision: number, takeId: string) =>
     request<EpisodeRevisionVoice>(base(episodeId, shotKey) + '/approve', 'POST',
       { expectedRevision, takeId, decision: 'DIRECTOR_APPROVE' }),

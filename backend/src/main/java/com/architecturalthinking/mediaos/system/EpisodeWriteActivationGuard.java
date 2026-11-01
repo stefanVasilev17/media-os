@@ -14,8 +14,9 @@ public final class EpisodeWriteActivationGuard {
             @Value("${mediaos.learning.promotion-enabled:false}") boolean learningPromotionEnabled,
             @Value("${mediaos.director-security.enabled:false}") boolean identitySecurityEnabled,
             @Value("${mediaos.local-auth.enabled:false}") boolean localSecurityEnabled,
-            @Value("${mediaos.google-auth.enabled:false}") boolean googleSecurityEnabled) {
-        if ((creationEnabled || writesEnabled || researchEnabled || learningPromotionEnabled)
+            @Value("${mediaos.google-auth.enabled:false}") boolean googleSecurityEnabled,
+            @Value("${mediaos.ep002.voice.writes-enabled:false}") boolean ep002VoiceWritesEnabled) {
+        if ((creationEnabled || writesEnabled || researchEnabled || learningPromotionEnabled || ep002VoiceWritesEnabled)
                 && !(identitySecurityEnabled || localSecurityEnabled || googleSecurityEnabled)) {
             throw new IllegalStateException(
                     "MediaOS Episode mutations require verified Director security. "
@@ -27,6 +28,14 @@ public final class EpisodeWriteActivationGuard {
                                 boolean researchEnabled, boolean learningPromotionEnabled,
                                 boolean identitySecurityEnabled, boolean localSecurityEnabled) {
         this(creationEnabled, writesEnabled, researchEnabled, learningPromotionEnabled,
-                identitySecurityEnabled, localSecurityEnabled, false);
+                identitySecurityEnabled, localSecurityEnabled, false, false);
+    }
+    EpisodeWriteActivationGuard(boolean creationEnabled, boolean writesEnabled,
+                                boolean researchEnabled, boolean learningPromotionEnabled,
+                                boolean identitySecurityEnabled, boolean localSecurityEnabled,
+                                boolean googleSecurityEnabled) {
+        this(creationEnabled, writesEnabled, researchEnabled, learningPromotionEnabled,
+                identitySecurityEnabled, localSecurityEnabled, googleSecurityEnabled, false);
     }
 }
+

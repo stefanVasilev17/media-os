@@ -80,10 +80,20 @@ export function EpisodeRevisionVoicePage({ episodeId, shotKey }: { episodeId: st
           <div className="voice-quiet-actions">
             <button type="button" className="voice-quiet-primary"
               disabled={busy || !voice.canGenerate}
-              onClick={() => void execute(
-                () => episodeRevisionVoiceApi.generate(episodeId, shotKey, voice.shotRevision),
-                'New take ready for review.'
-              )}>Generate with ElevenLabs</button>
+              onClick={() => {
+                if (!window.confirm('This action sends a paid ElevenLabs request for one SHOT. Continue?')) return;
+                const requestId = crypto.randomUUID();
+                void execute(
+                  () => episodeRevisionVoiceApi.generate(episodeId, shotKey, voice.shotRevision, requestId),
+                  'New take ready for review.'
+                );
+              }}>Generate with ElevenLabs</button>
+            {voice.episodeNumber === 'EP002' && voice.generationStatus
+              && voice.generationStatus !== 'NONE' && (
+                <p role="status" className="voice-quiet-notice">
+                  Latest ElevenLabs request: {voice.generationStatus}.
+                </p>
+              )}
             {voice.blockedReason && <p role="status" className="voice-quiet-notice">
               {voice.blockedReason}
             </p>}
