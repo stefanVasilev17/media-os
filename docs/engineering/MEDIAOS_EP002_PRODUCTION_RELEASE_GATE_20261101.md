@@ -19,7 +19,7 @@
 | Current release diff | QA candidate versus `main`: 519 ahead, 2 behind, 225 changed files at kickoff; final exact PR diff must be rechecked | REVIEW REQUIRED |
 | Unit tests | Previous isolated QA Docker build for Voice fix: 226 Java tests, 0 failures/errors, 28 skipped; frontend 15 passed | PRIOR EVIDENCE ONLY |
 | Production Director login | Production backend environment contains no `MEDIAOS_LOCAL_AUTH_ENABLED` or `MEDIAOS_DIRECTOR_SECURITY_ENABLED` | BLOCKED |
-| Production database | Read-only production PostgreSQL dump successfully restored into transient isolated PostgreSQL 18; Flyway V85→V105 PASS with selected EP001 hash invariants. **No retained backup** | PASS (copy rehearsal only) |
+| Production recovery snapshot | Read-only production dump uploaded to private Railway S3 bucket, downloaded back and SHA-256 verified; isolated PostgreSQL 18 restore and V85→V105 Flyway validation PASS; 817,308,076 bytes | PASS (one-time recovery copy) |
 | Scoped render workers | Prior QA temporary credential documented to expire 2026-11-01 07:40 UTC; no proven sustainable production rotation | BLOCKED |
 | Remotion package audit | Earlier audit reported ten high-severity package entries (not confirmed exploitability); remediation or reviewed acceptance missing | BLOCKED |
 | Real Director-approved HTTP render | Java synthetic fixture and independent MP4 smoke are not a full live QA approved render | BLOCKED |
@@ -47,7 +47,7 @@
 
 ## Current next engineering task
 
-Prepare a clean, isolated preproduction test of candidate backend + PostgreSQL and a source-inventory/CI package. A production-schema-copy migration needs approved backup handling; a temporary blank PostgreSQL build verifies compilation and migration naming but **does not** clear that gate. Full rollout remains NO-GO while any mandatory item is incomplete.
+The isolated Java/PG18 candidate build, actual production-schema-copy V85→V105 migration, and a retained private S3 dump with re-download SHA-256/restore checks have passed. Next: native PITR or independent off-platform protection, Director identity provisioning and Safari acceptance, secure workload token rotation, complete Director-approved video/voice E2E acceptance, security advisory triage and final release GO. Full rollout remains NO-GO while any mandatory item is incomplete.
 
 **Do not merge this Draft PR into `main` or stage changes in the Railway production environment based on a green build alone.**
 
@@ -64,3 +64,9 @@ The guarded `ProductionCloneUpgradeAcceptanceTest` verified the restored Flyway 
 A first isolated attempt stopped **after** successful read-only backup, before restore, due to an ephemeral directory ownership error. The script was corrected and the second pass above completed successfully. The first temporary service was deleted, and the second must also be removed after recording evidence. There is **no persistent copy** from this rehearsal; the script securely restricts local backup permissions and deletes its volatile dump on exit. This is **not** a disaster-recovery backup or proof of rollback time. No EP001 rows were written or modified in production.
 
 **Production release still NO-GO** until a separately retained encrypted backup with verified restore, production Director identity and emergency recovery, worker credential rotation, genuine Director-approved media workflow, advisories review, and final Director authorization for the exact release candidate.
+
+## Later superseding update — retained private recovery backup, 2026-11-01
+
+The earlier passage about an ephemeral-only dump records the **prior** rehearsal. A second, separately executed production read-only backup has now been uploaded into the private Railway `mediaos-production-recovery` bucket and retained. The archive was independently downloaded and SHA-256 verified (**817,308,076 bytes; SHA-256 `784be788d64f9103e2f2c571d99353d348dd3d4721b0a8f9d61024add612c101`**), restored to disposable PostgreSQL 18 and passed the same guarded V85→V105 / EP001 content-invariance test. One-time helper deleted; durable bucket retained. See `MEDIAOS_PRODUCTION_RECOVERY_BACKUP_EVIDENCE_20261101.md`.
+
+This confirms **one** successfully restored recovery point. The bucket is private and platform AES-256 encrypted at rest, but not client-side encrypted, externally replicated, object-locked or automatically versioned. **Do not conflate the S3 backup with native Postgres PITR, off-platform recovery or proven low-downtime production cutover.** Scheduled backups, restore runbooks, release-time snapshots, independent credential recovery and actual actor onboarding remain separate operational controls. Production auth/worker/paid-operation settings and `main` were not changed. **PR #112 remains DRAFT/NO-GO.**
