@@ -34,6 +34,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     private static final UUID RENDER_PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final java.util.regex.Pattern FINAL_REMOTION_CALLBACK = java.util.regex.Pattern.compile(
             "^/api/v1/remotion/(?:renders/worker|gpu-renders)/([0-9a-fA-F-]{36})/(complete|fail|start)$");
+    private static final java.util.regex.Pattern LEGACY_SPLINE_GPU_CALLBACK = java.util.regex.Pattern.compile(
+            "^/api/v1/spline/gpu-renders/([0-9a-fA-F-]{36})/(start|complete|fail)$");
     private final ProductionMemoryService memory;
     private final ObjectMapper mapper;
     private final JdbcClient jdbc;
@@ -135,6 +137,35 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                         "Worker render episode and header disagree.");
             }
             return episodeId;
+        }
+
+        java.util.regex.Matcher splineGpu = LEGACY_SPLINE_GPU_CALLBACK.matcher(path);
+        if (splineGpu.matches()) {
+            if (jdbc == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Spline GPU episode lookup is unavailable.");
+            }
+            UUID renderId = UUID.fromString(splineGpu.group(1));
+            boolean legacyShot = jdbc.sql("""
+                    select exists (
+                      select 1 from spline_shot_render r
+                      join production_job p on p.id=r.shot_id and p.project_id=r.project_id
+                      where r.id=:render and r.project_id=:project
+                        and p.task_type='CREATE_RUNTIME_SHOT_V1'
+                    )
+                    """)
+                    .param("render", renderId)
+                    .param("project", RENDER_PROJECT_ID)
+                    .query(Boolean.class).single();
+            if (!legacyShot) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Spline GPU callback is not linked to a verified legacy EP001 render.");
+            }
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Legacy Spline GPU callback cannot target another episode.");
+            }
+            return ProductionOverviewService.EPISODE_ID;
         }
 
         // New episode workspace URLs are the source of identity. Never trust a
