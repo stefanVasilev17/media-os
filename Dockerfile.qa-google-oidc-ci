@@ -3,6 +3,9 @@ WORKDIR /frontend
 COPY frontend/package.json ./package.json
 RUN npm install --no-audit --no-fund
 COPY frontend/ ./
+COPY remotion-engine/worker-token-rotation.mjs /worker-qa/worker-token-rotation.mjs
+COPY remotion-engine/worker-token-rotation.test.mjs /worker-qa/worker-token-rotation.test.mjs
+RUN node --test /worker-qa/worker-token-rotation.test.mjs
 RUN npm run build && npm test && printf 'GOOGLE_FRONTEND_BUILD_AND_TESTS=PASS\n' > /frontend-ok
 
 FROM postgres:18 AS java

@@ -4,6 +4,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
+import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -21,6 +22,10 @@ const RENDER_CONCURRENCY = configuredConcurrency;
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
 const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_5';
+const workloadTokens = createWorkerTokenTransport(
+  process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN,
+  process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT,
+);
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
@@ -38,16 +43,15 @@ function headers(extra = {}) {
   return {
     'X-Media-OS-Worker-Key': WORKER_KEY,
     'X-Media-OS-Worker': WORKER_ID,
-    ...(process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN?.trim()
-      ? {'X-Worker-Id': WORKER_ID,
-         'X-MediaOS-Workload-Token': process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN.trim()}
+    ...(Object.keys(workloadTokens.scopedHeaders()).length > 0
+      ? {'X-Worker-Id': WORKER_ID, ...workloadTokens.scopedHeaders()}
       : {}),
     ...extra,
   };
 }
 
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await workloadTokens.request(url, options);
   if (response.status === 204) return null;
   const text = await response.text();
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${text.slice(0, 1600)}`);
@@ -88,7 +92,7 @@ async function fail(renderId, error) {
 
 async function complete(renderId, outputPath) {
   const bytes = await fs.readFile(outputPath);
-  const response = await fetch(`${BACKEND_URL}/api/v1/remotion/renders/worker/${renderId}/complete`, {
+  const response = await workloadTokens.request(`${BACKEND_URL}/api/v1/remotion/renders/worker/${renderId}/complete`, {
     method: 'PUT',
     headers: headers({
       'Content-Type': 'video/mp4',

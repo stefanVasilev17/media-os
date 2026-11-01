@@ -53,6 +53,9 @@ class GoogleWorkerChainRoutingTest {
         @GetMapping("/api/v1/remotion/gpu-renders/{id}/work")
         String work() { return "test"; }
 
+        @GetMapping("/api/v1/spline/gpu-renders/{id}/work")
+        String splineWork() { return "legacy-spline"; }
+
         @GetMapping("/api/v1/episodes")
         String episodes() { return "private"; }
     }
@@ -81,6 +84,43 @@ class GoogleWorkerChainRoutingTest {
                             .header("X-MediaOS-Workload-Token", token))
                     .andExpect(status().isOk());
             mvc.perform(get("/api/v1/remotion/gpu-renders/" + UUID.randomUUID() + "/work")
+                            .header("X-Worker-Id", workerId)
+                            .header("X-MediaOS-Workload-Token", token))
+                    .andExpect(status().isUnauthorized());
+            mvc.perform(get("/api/v1/episodes")
+                            .header("X-Worker-Id", workerId)
+                            .header("X-MediaOS-Workload-Token", token))
+                    .andExpect(status().isUnauthorized());
+        } finally {
+            jdbc.sql("delete from mediaos_worker_credential where id=:id")
+                    .param("id", credential).update();
+        }
+    }
+
+    @Test
+    void splineGpuCredentialIsJobScopedAndCannotReachDirectorApi() throws Exception {
+        UUID job = UUID.randomUUID();
+        UUID credential = UUID.randomUUID();
+        String workerId = "qa-spline-" + credential;
+        String token = "ci-spline-" + "B".repeat(50);
+        jdbc.sql("""
+                insert into mediaos_worker_credential
+                    (id,worker_id,token_hash,scope,job_id,active,expires_at)
+                values (:id,:worker,:hash,'SPLINE_GPU',:job,true,now()+interval '10 minutes')
+                """)
+                .param("id", credential).param("worker", workerId)
+                .param("hash", WorkloadCredentialService.sha256(token))
+                .param("job", job).update();
+        try {
+            mvc.perform(get("/api/v1/spline/gpu-renders/" + job + "/work")
+                            .header("X-Worker-Id", workerId)
+                            .header("X-MediaOS-Workload-Token", token))
+                    .andExpect(status().isOk());
+            mvc.perform(get("/api/v1/remotion/gpu-renders/" + job + "/work")
+                            .header("X-Worker-Id", workerId)
+                            .header("X-MediaOS-Workload-Token", token))
+                    .andExpect(status().isUnauthorized());
+            mvc.perform(get("/api/v1/spline/gpu-renders/" + UUID.randomUUID() + "/work")
                             .header("X-Worker-Id", workerId)
                             .header("X-MediaOS-Workload-Token", token))
                     .andExpect(status().isUnauthorized());
