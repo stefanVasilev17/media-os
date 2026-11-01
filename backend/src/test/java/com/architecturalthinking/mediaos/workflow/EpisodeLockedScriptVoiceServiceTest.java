@@ -19,7 +19,8 @@ class EpisodeLockedScriptVoiceServiceTest {
                                                EpisodeLockedScriptVoiceService originals) {
         return new EpisodeRevisionVoiceService(mock(JdbcClient.class), revisions,
                 mock(EpisodeWorkspaceService.class), mock(ElevenLabsTextToSpeechService.class),
-                new ObjectMapper(), mock(PlatformTransactionManager.class), originals);
+                new ObjectMapper(), mock(PlatformTransactionManager.class), originals,
+                mock(Ep002VoiceIdentityGuard.class));
     }
 
     @Test
