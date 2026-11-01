@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @RestController
 @ConditionalOnProperty(name = "MEDIAOS_CPU_WORKER_BOOTSTRAP_ENABLED", havingValue = "true")
-public final class CpuWorkerCredentialLeaseController {
+public class CpuWorkerCredentialLeaseController {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_LIFETIME_MINUTES = 60;
     private final JdbcClient jdbc;
