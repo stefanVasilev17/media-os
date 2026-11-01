@@ -77,7 +77,7 @@ echo 'EP002_FRESH_DB_MARKER_AND_BOOT=PASS'
 query() { runuser -u postgres -- psql -h 127.0.0.1 -d mediaos_voice_clone -At -c "$1"; }
 [ "$(query 'select version from flyway_schema_history where success=true order by installed_rank desc limit 1')" = 106 ]
 echo 'EP002_FRESH_FLYWAY_V106=PASS'
-[ "$(query 'select count(*) from public.mediaos_voice_database_identity')" = 1 ]
+[ "$(query 'select count(*) from mediaos_voice_guard.database_identity')" = 1 ]
 [ "$(query "select count(*) from episode where episode_number='EP002'")" = 0 ]
 [ "$(query 'select count(*) from ep002_voice_generation_ledger')" = 0 ]
 echo 'EP002_FRESH_ZERO_PAID_REQUESTS=PASS'
