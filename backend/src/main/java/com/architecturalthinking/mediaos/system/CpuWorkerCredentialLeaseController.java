@@ -32,7 +32,7 @@ public final class CpuWorkerCredentialLeaseController {
     public record Lease(String token, OffsetDateTime expiresAt) {}
 
     public CpuWorkerCredentialLeaseController(JdbcClient jdbc,
-            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String bootstrapSecret,
+            @Value("${MEDIAOS_CPU_WORKER_BOOTSTRAP_SECRET:}") String bootstrapSecret,
             @Value("${MEDIAOS_CPU_WORKER_ALLOWED_ID:}") String allowedWorkerId,
             @Value("${mediaos.worker-auth.enabled:false}") boolean workerAuthEnabled) {
         if (!workerAuthEnabled || bootstrapSecret == null || bootstrapSecret.length() < 32
