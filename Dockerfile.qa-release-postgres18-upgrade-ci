@@ -1,0 +1,23 @@
+FROM postgres:18
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /workspace/backend
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jdk-headless maven \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+ENV MAVEN_OPTS="-Xmx512m"
+RUN set -eu; \
+    java -version; \
+    mkdir -p /tmp/pg-release-ci; \
+    chown postgres:postgres /tmp/pg-release-ci; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D /tmp/pg-release-ci -A trust > /tmp/pg-init.log; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/pg_ctl -D /tmp/pg-release-ci -o "-h 127.0.0.1 -p 5432" -w start; \
+    runuser -u postgres -- psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -h 127.0.0.1 -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+      mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/release-pg18-tests.log 2>&1 \
+      || { echo RELEASE_PG18_TESTS=FAIL; tail -160 /tmp/release-pg18-tests.log; exit 1; }; \
+    grep 'Tests run:' /tmp/release-pg18-tests.log | tail -1; \
+    echo RELEASE_PG18_UPGRADE_AND_FULL_TESTS=PASS
+CMD ["sh", "-c", "echo BUILD_ONLY_RELEASE_VERIFIED; sleep 15"]
