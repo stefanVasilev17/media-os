@@ -3,5 +3,9 @@ WORKDIR /workspace
 COPY ops/release/ep002-voice-isolated-entrypoint.sh ./ep002-voice-isolated-entrypoint.sh
 COPY ops/release/test-ep002-voice-isolated-entrypoint.sh ./test-isolation.sh
 RUN chmod 700 ./ep002-voice-isolated-entrypoint.sh ./test-isolation.sh
-RUN ./test-isolation.sh
+COPY ops/release/ep002-voice-clone-bootstrap.sql ./ep002-voice-clone-bootstrap.sql
+COPY ops/release/ep002-voice-bootstrap-target-only.sh ./ep002-voice-bootstrap-target-only.sh
+COPY ops/release/test-ep002-voice-bootstrap-target-only.sh ./test-ep002-voice-bootstrap-target-only.sh
+RUN chmod 700 ./ep002-voice-bootstrap-target-only.sh ./test-ep002-voice-bootstrap-target-only.sh
+RUN ./test-isolation.sh && ./test-ep002-voice-bootstrap-target-only.sh
 CMD ["sh","-c","echo EP002_VOICE_ISOLATION_QA_IMAGE=PASS; sleep 12"]
