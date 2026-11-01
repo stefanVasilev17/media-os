@@ -41,6 +41,7 @@ echo "READ_ONLY_SOURCE_BACKUP=PASS"
 unset PGHOST PGPORT PGDATABASE PGUSER PGPASSWORD PGOPTIONS SOURCE_PASSWORD
 
 mkdir -p "$LOCAL_DB_DIR"
+chown postgres:postgres "$STAGE_DIR"
 chown -R postgres:postgres "$LOCAL_DB_DIR"
 runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D "$LOCAL_DB_DIR" -A trust > /dev/null
 runuser -u postgres -- /usr/lib/postgresql/18/bin/pg_ctl -D "$LOCAL_DB_DIR" -o "-h 127.0.0.1 -p 5432" -w start > /dev/null
