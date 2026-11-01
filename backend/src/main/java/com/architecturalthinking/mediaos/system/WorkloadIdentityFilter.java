@@ -22,6 +22,11 @@ public final class WorkloadIdentityFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
+        if ("POST".equals(request.getMethod())
+                && "/api/v1/worker/remotion/cpu/lease".equals(request.getRequestURI())) {
+            chain.doFilter(request, response);
+            return;
+        }
         WorkloadRoute route = WorkloadRoute.resolve(request.getMethod(), request.getRequestURI());
         if (route == null) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
