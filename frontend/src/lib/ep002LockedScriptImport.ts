@@ -51,3 +51,17 @@ export function buildVerbatimEp002ScriptDraft() {
     }))
   };
 }
+
+export function canImportEp002Source(
+  episodeNumber: string | undefined,
+  stage: 'SCRIPT' | 'SCENE',
+  revision: number,
+  status: string,
+  upstreamLocked: boolean
+): boolean {
+  return episodeNumber === 'EP002'
+    && (stage === 'SCRIPT' || stage === 'SCENE')
+    && Number.isInteger(revision) && revision === 0
+    && status !== 'LOCKED'
+    && upstreamLocked;
+}
