@@ -1,0 +1,5 @@
+FROM postgres:18
+COPY ops/release/ep002-production-catalog-readonly.sh /workspace/read-catalog.sh
+USER root
+RUN chmod 700 /workspace/read-catalog.sh
+ENTRYPOINT ["/bin/sh", "/workspace/read-catalog.sh"]
