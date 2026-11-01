@@ -1,0 +1,13 @@
+FROM postgres:18
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /workspace/backend
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jdk-headless maven coreutils \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+COPY ops/release/production-clone-upgrade-rehearsal.sh /workspace/run-clone.sh
+RUN mvn -B -ntp -Dstyle.color=never -DskipTests test-compile > /tmp/clone-build.log 2>&1 \
+    || { tail -120 /tmp/clone-build.log; exit 1; }
+RUN chmod 700 /workspace/run-clone.sh
+ENTRYPOINT ["/bin/bash", "/workspace/run-clone.sh"]
