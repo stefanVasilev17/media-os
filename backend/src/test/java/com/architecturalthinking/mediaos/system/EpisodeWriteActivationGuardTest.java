@@ -42,6 +42,18 @@ class EpisodeWriteActivationGuardTest {
     }
 
     @Test
+    void allowsEpisodeVoiceOnlyWithGoogleDirectorSecurity() {
+        assertDoesNotThrow(() -> new EpisodeWriteActivationGuard(
+                false, true, false, false, false, false, true));
+    }
+
+    @Test
+    void rejectsWritesWithoutAnyAuthenticatedDirectorMode() {
+        assertThrows(IllegalStateException.class, () -> new EpisodeWriteActivationGuard(
+                false, true, false, false, false, false, false));
+    }
+
+    @Test
     void allowsActivationOnlyWhenIdentitySecurityIsConfigured() {
         assertDoesNotThrow(() -> new EpisodeWriteActivationGuard(true, true, true, true, true, false));
     }
