@@ -6,6 +6,7 @@ import { EpisodeDirectorPage } from './pages/EpisodeDirectorPage';
 import { EpisodeRevisionVoicePage } from './pages/EpisodeRevisionVoicePage';
 import { ShotRevisionAgentPage } from './pages/ShotRevisionAgentPage';
 import { EpisodeShotWorkspacePage } from './pages/EpisodeShotWorkspacePage';
+import { findEp002ForVoiceMvp, isEp002VoiceWorkspace } from './lib/voiceMvpSafety';
 import './styles/episodeDirectorHub.css';
 
 function Ep002Home() {
@@ -16,7 +17,7 @@ function Ep002Home() {
   useEffect(() => {
     let active = true;
     void listEpisodeWorkspaces()
-      .then(episodes => { if (active) setEpisode(episodes.find(row => row.episodeNumber === 'EP002') ?? null); })
+      .then(episodes => { if (active) setEpisode(findEp002ForVoiceMvp(episodes)); })
       .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'Could not read episodes.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -50,7 +51,7 @@ function Ep002Guard({ episodeId, children }: { episodeId: string; children: Reac
     let active = true;
     setAccess('checking');
     void listEpisodeWorkspaces().then(episodes => {
-      if (active) setAccess(episodes.some(e => e.id === episodeId && e.episodeNumber === 'EP002')
+      if (active) setAccess(isEp002VoiceWorkspace(episodes, episodeId)
         ? 'allowed' : 'denied');
     }).catch(() => { if (active) setAccess('failed'); });
     return () => { active = false; };
