@@ -14,6 +14,12 @@ export function createWorkerTokenTransport(primaryToken, rotatedToken, nextToken
   }
 
   return {
+    installToken(token) {
+      if (!valid(token)) return false;
+      activeToken = token;
+      return true;
+    },
+
     scopedHeaders() {
       return activeToken ? {'X-MediaOS-Workload-Token': activeToken} : {};
     },
