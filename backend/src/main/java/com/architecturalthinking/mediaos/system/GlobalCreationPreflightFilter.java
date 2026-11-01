@@ -32,8 +32,8 @@ import java.util.UUID;
 public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
     private static final UUID RENDER_PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private static final java.util.regex.Pattern FINAL_CPU_CALLBACK = java.util.regex.Pattern.compile(
-            "^/api/v1/remotion/renders/worker/([0-9a-fA-F-]{36})/(complete|fail)$");
+    private static final java.util.regex.Pattern FINAL_REMOTION_CALLBACK = java.util.regex.Pattern.compile(
+            "^/api/v1/remotion/(?:renders/worker|gpu-renders)/([0-9a-fA-F-]{36})/(complete|fail|start)$");
     private final ProductionMemoryService memory;
     private final ObjectMapper mapper;
     private final JdbcClient jdbc;
@@ -113,7 +113,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
         // Worker final callbacks must use their persisted render's episode, not the
         // old single-episode fallback. A forged episode header cannot override it.
-        java.util.regex.Matcher finalCpu = FINAL_CPU_CALLBACK.matcher(path);
+        java.util.regex.Matcher finalCpu = FINAL_REMOTION_CALLBACK.matcher(path);
         if (finalCpu.matches()) {
             if (jdbc == null) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -129,7 +129,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                     .query(UUID.class)
                     .optional()
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
-                            "Final worker callback requires a stored episode-scoped render."));
+                            "Remotion worker callback requires a stored episode-scoped render."));
             if (headerId != null && !headerId.equals(episodeId)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Worker render episode and header disagree.");
