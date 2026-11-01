@@ -1,6 +1,7 @@
 package com.architecturalthinking.mediaos.system;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -17,10 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@EnabledIfEnvironmentVariable(named = "CI_POSTGRES_URL", matches = ".+")
 @SpringBootTest(classes = GoogleWorkerChainRoutingTest.App.class,
         webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
+        "spring.datasource.url=${CI_POSTGRES_URL}",
+        "spring.datasource.username=media_os",
+        "spring.datasource.password=media_os",
+        "spring.jpa.hibernate.ddl-auto=none",
+        "spring.session.jdbc.initialize-schema=never",
         "mediaos.local-auth.enabled=false",
         "mediaos.director-security.enabled=false",
         "mediaos.google-auth.enabled=true",
@@ -35,7 +42,8 @@ class GoogleWorkerChainRoutingTest {
             HibernateJpaAutoConfiguration.class, JpaRepositoriesAutoConfiguration.class
     })
     @Import({GoogleDirectorSecurityConfiguration.class,
-            WorkloadSecurityConfiguration.class, WorkerProbe.class})
+            WorkloadSecurityConfiguration.class,
+            WorkloadCredentialService.class, WorkerProbe.class})
     static class App {}
 
     @RestController
