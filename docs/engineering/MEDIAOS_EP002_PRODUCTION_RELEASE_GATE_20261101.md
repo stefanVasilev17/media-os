@@ -70,3 +70,18 @@ A first isolated attempt stopped **after** successful read-only backup, before r
 The earlier passage about an ephemeral-only dump records the **prior** rehearsal. A second, separately executed production read-only backup has now been uploaded into the private Railway `mediaos-production-recovery` bucket and retained. The archive was independently downloaded and SHA-256 verified (**817,308,076 bytes; SHA-256 `784be788d64f9103e2f2c571d99353d348dd3d4721b0a8f9d61024add612c101`**), restored to disposable PostgreSQL 18 and passed the same guarded V85→V105 / EP001 content-invariance test. One-time helper deleted; durable bucket retained. See `MEDIAOS_PRODUCTION_RECOVERY_BACKUP_EVIDENCE_20261101.md`.
 
 This confirms **one** successfully restored recovery point. The bucket is private and platform AES-256 encrypted at rest, but not client-side encrypted, externally replicated, object-locked or automatically versioned. **Do not conflate the S3 backup with native Postgres PITR, off-platform recovery or proven low-downtime production cutover.** Scheduled backups, restore runbooks, release-time snapshots, independent credential recovery and actual actor onboarding remain separate operational controls. Production auth/worker/paid-operation settings and `main` were not changed. **PR #112 remains DRAFT/NO-GO.**
+
+
+## Director decision — defer Google OAuth configuration (2026-11-01)
+
+**Decision:** Google login is intentionally deferred until the Director needs it. Do **not** request Google Cloud OAuth client ID/secret, add Google/Director auth environment variables, activate OAuth, perform account enrollment, force login, or trigger a production redeploy solely for authentication. Google OIDC code has passed isolated CI and is merged from PR #113 into this **release candidate branch**, **not `main`**.
+
+**Production now:** the existing `main` deployment remains online, operating with its current behavior. Preserve existing EP001 data and LOCKs. Do not describe the candidate as production-deployed or the new EP002 features as available in production.
+
+**Release boundary:** this is *not* permission to deploy the new security stack without authentication. On the candidate, `lockedWithoutIdentity` denies `/api/v1/**` when local, bearer-OIDC and Google modes are all disabled. Publishing the full candidate while OAuth is deferred would lock API access. Do not bypass this gate, temporarily grant anonymous Director rights, hardcode credentials, or change production environment flags to force a green deployment.
+
+**While Google is deferred:** proceed with independent release-readiness work that is safe without sign-in, including worker-auth compatibility and credential rotation test plans, dependency/security triage, EP001 immutability checks, deploy/rollback planning, and EP002 voice/video QA acceptance that does not change production. Do not treat these as authorizations for paid API use or production data writes.
+
+**When login is actually needed:** provision a Google Cloud web OAuth client out of band, store confidential values only in Railway, use the verified production callback URI, restrict access to the approved verified Google account and subject, execute negative-account, CSRF, Safari, expiry and session-revocation tests, then obtain a separate Director GO for the exact production release commit and deployment.
+
+**Status:** current production LIVE and unchanged; upgraded release candidate remains DRAFT / NO-GO. Authentication requirement is **DEFERRED BY DIRECTOR**, not passed or removed.
