@@ -5,6 +5,7 @@ import {spawn} from 'node:child_process';
 import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
+import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -26,11 +27,24 @@ const NEXT_TOKEN_FILE = String(process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_
 if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
   throw new Error('MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT_FILE must be an absolute path.');
 }
+const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
+let leaseClient;
 const workloadTokens = createWorkerTokenTransport(
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN,
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT,
-  NEXT_TOKEN_FILE ? async () => (await fs.readFile(NEXT_TOKEN_FILE, 'utf8')).trim() : null,
+  AUTO_LEASE
+    ? async () => leaseClient.refresh(true)
+    : NEXT_TOKEN_FILE
+      ? async () => (await fs.readFile(NEXT_TOKEN_FILE, 'utf8')).trim()
+      : null,
 );
+leaseClient = createCpuWorkerLeaseClient({
+  backendUrl: BACKEND_URL,
+  workerId: WORKER_ID,
+  workerKey: WORKER_KEY,
+  transport: workloadTokens,
+  enabled: AUTO_LEASE,
+});
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
 
@@ -64,6 +78,7 @@ async function requestJson(url, options = {}) {
 }
 
 async function claim() {
+  await leaseClient.refresh();
   return requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/claim`, {
     method: 'POST',
     headers: headers(),
@@ -72,6 +87,7 @@ async function claim() {
 
 async function progress(renderId, value) {
   try {
+    await leaseClient.refresh();
     await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/${renderId}/progress`, {
       method: 'POST',
       headers: headers({'Content-Type': 'application/json'}),
@@ -85,6 +101,7 @@ async function progress(renderId, value) {
 async function fail(renderId, error) {
   const message = error instanceof Error ? error.stack || error.message : String(error);
   try {
+    await leaseClient.refresh();
     await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/${renderId}/fail`, {
       method: 'POST',
       headers: headers({'Content-Type': 'application/json'}),
@@ -96,6 +113,7 @@ async function fail(renderId, error) {
 }
 
 async function complete(renderId, outputPath) {
+  await leaseClient.refresh();
   const bytes = await fs.readFile(outputPath);
   const response = await workloadTokens.request(`${BACKEND_URL}/api/v1/remotion/renders/worker/${renderId}/complete`, {
     method: 'PUT',
