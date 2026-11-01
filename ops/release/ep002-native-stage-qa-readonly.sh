@@ -45,5 +45,27 @@ select 'EP002_SCENE_DATA='
   || '|visual_beats:' || coalesce(artifact->>'visualBeatCount','not_imported')
 from production_stage
 where episode_id='95b8a4a2-728e-47fe-ad4c-a16748773588' and stage_key='SCENE';
+select 'EP002_DIRECTOR_LOCK_AUDIT=' || s.stage_key
+  || '|events:' || count(e.id)
+  || '|verified_actor:' || coalesce(bool_and(e.actor_issuer is not null
+      and e.actor_subject is not null), false)
+  || '|preflight_linked:' || coalesce(bool_and(e.preflight_audit_id is not null), false)
+  || '|revision_matched:' || coalesce(bool_and(e.revision=s.current_revision), false)
+from production_stage s
+left join episode_workspace_event e
+  on e.episode_id=s.episode_id and e.stage_key=s.stage_key
+  and e.event_type='DIRECTOR_LOCKED'
+where s.episode_id='95b8a4a2-728e-47fe-ad4c-a16748773588'
+  and s.stage_key in ('RESEARCH','SCRIPT','SCENE')
+group by s.stage_key order by s.stage_key;
+select 'EP002_STAGE_REVISION_MATCH=' || s.stage_key
+  || '|count:' || count(r.id)
+  || '|source_equal:' || coalesce(bool_and(r.artifact=s.artifact),false)
+from production_stage s
+left join production_stage_revision r
+  on r.production_stage_id=s.id and r.revision=s.current_revision
+where s.episode_id='95b8a4a2-728e-47fe-ad4c-a16748773588'
+  and s.stage_key in ('RESEARCH','SCRIPT','SCENE')
+group by s.stage_key order by s.stage_key;
 SQL
 echo "EP002_QA_NATIVE_STAGE_AUDIT=PASS_READ_ONLY_QUERY"
