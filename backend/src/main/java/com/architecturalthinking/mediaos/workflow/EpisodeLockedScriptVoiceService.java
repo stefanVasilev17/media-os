@@ -166,7 +166,7 @@ public class EpisodeLockedScriptVoiceService {
             // The saved narration remains byte-for-byte unchanged; the permitted v4 tone tag
             // is only applied to the outgoing TTS request by the existing ElevenLabs service.
             generated = elevenLabs.generate(shotKey, src.narration(), "", "", Map.of(),
-                    "calm, conversational, confident");
+                    ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
         } catch (IllegalArgumentException invalid) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, invalid.getMessage(), invalid);
         } catch (IllegalStateException failed) {
