@@ -1,14 +1,15 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   ensureLocalCsrf, installLocalSessionFetch, loadLocalSession,
   loginLocal, logoutLocal, redeemDirectorClaim, onSessionExpired, type DirectorSession
 } from './localSession';
 import '../styles/localDirectorAuth.css';
 
-type State = 'checking' | 'disabled' | 'login' | 'authenticated' | 'unavailable';
+type State = 'checking' | 'disabled' | 'login' | 'google-login' | 'authenticated' | 'unavailable';
 
 export function LocalAuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>('checking');
+  const modeRef = useRef<'local' | 'google'>('local');
   const [session, setSession] = useState<DirectorSession | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +25,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
       setPassword('');
       setTotpCode('');
       setMessage('Your session has expired. Sign in again.');
-      setState('login');
+      setState(modeRef.current === 'google' ? 'google-login' : 'login');
     };
     const off = onSessionExpired(expire);
     async function initialize() {
@@ -35,10 +36,28 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
           return;
         }
         if (!response.ok) throw new Error('Authentication is not ready.');
-        const mode = await response.json() as { localAuthentication: boolean };
-        if (!mode.localAuthentication) throw new Error('Local authentication is disabled.');
+        const mode = await response.json() as {
+          localAuthentication: boolean;
+          googleAuthentication?: boolean;
+        };
+        const useGoogle = mode.googleAuthentication === true;
+        if (!mode.localAuthentication && !useGoogle) {
+          throw new Error('Director authentication is not available.');
+        }
+        modeRef.current = useGoogle ? 'google' : 'local';
         installLocalSessionFetch();
         await ensureLocalCsrf();
+        if (useGoogle) {
+          const current = await loadLocalSession();
+          if (cancelled) return;
+          if (new URLSearchParams(window.location.search).get('googleAuth') === 'denied') {
+            window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+            setMessage('This Google account is not authorized for MediaOS.');
+          }
+          setSession(current);
+          setState(current ? 'authenticated' : 'google-login');
+          return;
+        }
         const claimMatch = /^#\/claim\?token=([A-Za-z0-9_-]{43})$/.exec(window.location.hash);
         if (claimMatch) {
           const destination = '#/episodes/95b8a4a2-728e-47fe-ad4c-a16748773588/prepare';
@@ -118,7 +137,7 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
       setPassword('');
       setTotpCode('');
       await ensureLocalCsrf();
-      setState('login');
+      setState(modeRef.current === 'google' ? 'google-login' : 'login');
       setMessage('');
     } catch {
       setMessage('Could not sign out. Please retry.');
@@ -142,7 +161,12 @@ export function LocalAuthGate({ children }: { children: ReactNode }) {
       <div className="local-director-eyebrow">MEDIAOS / DIRECTOR</div>
       <h1>{state === 'checking' ? 'Checking session' : state === 'unavailable' ? 'Login unavailable' : 'Director Login'}</h1>
       {state === 'checking' && <p>Checking your secure session…</p>}
-      {state === 'unavailable' && <p>Local authentication could not be verified. No production actions are available.</p>}
+      {state === 'unavailable' && <p>Director authentication could not be verified. No production actions are available.</p>}
+      {state === 'google-login' && <>
+        <p>Use your approved Google account to access the Director workspace. No separate MediaOS password is required.</p>
+        {message && <p className="local-director-error" role="alert">{message}</p>}
+        <button type="button" onClick={() => window.location.assign('/oauth2/authorization/google')}>Continue with Google</button>
+      </>}
       {state === 'login' && <>
         <p>Sign in with your Director password and the six-digit code from your authenticator.</p>
         <form onSubmit={event => void submit(event)}>
