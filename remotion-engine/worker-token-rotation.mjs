@@ -32,7 +32,7 @@ export function createWorkerTokenTransport(primaryToken, rotatedToken, nextToken
       }
 
       const nextToken = await nextCredential();
-      if (!nextToken || nextToken === activeToken || !valid(nextToken)) {
+      if (!nextToken || nextToken === sentToken || !valid(nextToken)) {
         return first;
       }
 
