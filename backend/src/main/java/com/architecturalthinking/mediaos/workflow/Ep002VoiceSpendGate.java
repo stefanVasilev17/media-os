@@ -49,13 +49,13 @@ public class Ep002VoiceSpendGate {
                     "A previous ElevenLabs request is still in flight or its charge is uncertain. "
                     + "Do not retry until the Director reconciles that request.");
         }
-        Integer takes = jdbc.sql("""
+        Long takes = jdbc.sql("""
                 select
                   (select count(*) from episode_locked_script_voice_take
                     where episode_id=:episode and shot_key=:shot)
                  +(select count(*) from episode_revision_voice_take
                     where episode_id=:episode and shot_key=:shot)
-                """).param("episode", episodeId).param("shot", shotKey).query(Integer.class).single();
+                """).param("episode", episodeId).param("shot", shotKey).query(Long.class).single();
         if (takes >= MAX_TAKES_PER_SHOT) {
             return new Decision(false, "EP002 safety limit: maximum 3 recorded takes per SHOT.");
         }
