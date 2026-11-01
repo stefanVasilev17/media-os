@@ -19,7 +19,7 @@
 | Current release diff | QA candidate versus `main`: 519 ahead, 2 behind, 225 changed files at kickoff; final exact PR diff must be rechecked | REVIEW REQUIRED |
 | Unit tests | Previous isolated QA Docker build for Voice fix: 226 Java tests, 0 failures/errors, 28 skipped; frontend 15 passed | PRIOR EVIDENCE ONLY |
 | Production Director login | Production backend environment contains no `MEDIAOS_LOCAL_AUTH_ENABLED` or `MEDIAOS_DIRECTOR_SECURITY_ENABLED` | BLOCKED |
-| Production database | Live Flyway version, backup/restore, schema-copy migration and EP001 hash baseline not yet inspected | BLOCKED |
+| Production database | Read-only production PostgreSQL dump successfully restored into transient isolated PostgreSQL 18; Flyway V85→V105 PASS with selected EP001 hash invariants. **No retained backup** | PASS (copy rehearsal only) |
 | Scoped render workers | Prior QA temporary credential documented to expire 2026-11-01 07:40 UTC; no proven sustainable production rotation | BLOCKED |
 | Remotion package audit | Earlier audit reported ten high-severity package entries (not confirmed exploitability); remediation or reviewed acceptance missing | BLOCKED |
 | Real Director-approved HTTP render | Java synthetic fixture and independent MP4 smoke are not a full live QA approved render | BLOCKED |
@@ -50,3 +50,17 @@
 Prepare a clean, isolated preproduction test of candidate backend + PostgreSQL and a source-inventory/CI package. A production-schema-copy migration needs approved backup handling; a temporary blank PostgreSQL build verifies compilation and migration naming but **does not** clear that gate. Full rollout remains NO-GO while any mandatory item is incomplete.
 
 **Do not merge this Draft PR into `main` or stage changes in the Railway production environment based on a green build alone.**
+
+## Production-copy upgrade rehearsal — PASS (2026-11-01)
+
+A temporary **private, no-public-domain Railway production-project service** used credential *references* to perform only a read-only `pg_dump` from the existing production PostgreSQL 18. No production backend/database source, environment flags, media or rows were changed. Its volatile dump was restored inside the temporary container to a separate PostgreSQL 18 database at `127.0.0.1`; there was no Flyway connection to the live production database.
+
+The guarded `ProductionCloneUpgradeAcceptanceTest` verified the restored Flyway baseline was exactly **V85** before applying V86–V105. After `migrate` and `validate`, version **V105** was verified with all 20 new migrations successful. Checksums of the existing EP001 episode row, studio shots, studio audio/narration, clip revision history and visual revision history matched the pre-upgrade copy. Runtime evidence from the one-time service:
+- `READ_ONLY_SOURCE_BACKUP=PASS`
+- `PRODUCTION_COPY_RESTORED_TO_ISOLATED_POSTGRES18=PASS`
+- `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`
+- `LOCAL_CLONE_UPGRADE_V85_TO_V105_AND_EP001_HASHES=PASS`
+
+A first isolated attempt stopped **after** successful read-only backup, before restore, due to an ephemeral directory ownership error. The script was corrected and the second pass above completed successfully. The first temporary service was deleted, and the second must also be removed after recording evidence. There is **no persistent copy** from this rehearsal; the script securely restricts local backup permissions and deletes its volatile dump on exit. This is **not** a disaster-recovery backup or proof of rollback time. No EP001 rows were written or modified in production.
+
+**Production release still NO-GO** until a separately retained encrypted backup with verified restore, production Director identity and emergency recovery, worker credential rotation, genuine Director-approved media workflow, advisories review, and final Director authorization for the exact release candidate.
