@@ -46,7 +46,7 @@ class LegacySplineGpuEpisodePreflightTest {
                     insert into episode (id,project_id,episode_number,title,current_stage,status)
                     values (:id,:project,:number,'Disposable EP002 regression','QA','DRAFT')
                     """).param("id", episode2).param("project", project)
-                    .param("number", "CI-" + episode2).update();
+                    .param("number", "CI-" + episode2.toString().substring(0, 18)).update();
             jdbc.sql("""
                     insert into production_job
                       (id,project_id,agent_key,task_type,target,instructions,status)
