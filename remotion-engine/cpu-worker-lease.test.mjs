@@ -81,3 +81,35 @@ test('parallel renewals request only one new scoped token', async () => {
   await Promise.all([client.refresh(), client.refresh(), client.refresh()]);
   assert.equal(requests, 1);
 });
+
+test('a scoped 401 is repaired by a newly issued lease without a worker restart', async () => {
+  let leaseRequests = 0;
+  let workRequests = 0;
+  let client;
+  const transport = createWorkerTokenTransport(token('A'), '',
+      async () => client.refresh(true));
+  client = createCpuWorkerLeaseClient({
+    backendUrl: 'https://example.test', workerId: 'remotion-cpu-production',
+    workerKey: 'A'.repeat(64), transport, enabled: true,
+    clock: () => Date.parse('2026-11-01T20:00:00Z'),
+    fetchImpl: async () => {
+      leaseRequests++;
+      return {ok: true, status: 200, json: async () => ({
+        token: token('B'), expiresAt: '2026-11-01T21:00:00Z',
+      })};
+    },
+  });
+  const result = await transport.request('/worker/claim', {
+    method: 'POST', headers: transport.scopedHeaders(),
+  }, async (_url, options) => {
+    workRequests++;
+    return {
+      status: options.headers['X-MediaOS-Workload-Token'] === token('B') ? 204 : 401,
+      ok: options.headers['X-MediaOS-Workload-Token'] === token('B'),
+    };
+  });
+  assert.equal(result.status, 204);
+  assert.equal(leaseRequests, 1);
+  assert.equal(workRequests, 2);
+  assert.equal(transport.scopedHeaders()['X-MediaOS-Workload-Token'], token('B'));
+});
