@@ -90,7 +90,7 @@ public class ElevenLabsTextToSpeechService {
         return isV4() || modelId.startsWith("eleven_v3");
     }
 
-    private static final String SAFE_V4_DIRECTION = "calm, conversational, confident";
+    public static final String EP001_LOCKED_DELIVERY_TAG = "calm, conversational, confident";
 
     private boolean isV4() {
         return modelId.startsWith("eleven_v4");
@@ -102,10 +102,10 @@ public class ElevenLabsTextToSpeechService {
                 .replace("[", "")
                 .replace("]", "")
                 .replaceAll("\\s+", " ");
-        if (isV4() && !SAFE_V4_DIRECTION.equals(direction)) {
+        if (isV4() && !EP001_LOCKED_DELIVERY_TAG.equals(direction)) {
             throw new IllegalArgumentException(
                     "Unsafe Eleven v4 performance direction blocked before API call. "
-                            + "Allowed production tag: " + SAFE_V4_DIRECTION
+                            + "Allowed production tag: " + EP001_LOCKED_DELIVERY_TAG
             );
         }
         return "[" + direction + "] " + narration;

@@ -33,6 +33,21 @@ public final class DirectorIdentity {
             String subject = principal.id().toString();
             return new Actor(issuer, subject, stableAuditName(issuer, subject));
         }
+        if (authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken google
+                && google.isAuthenticated()
+                && "google".equals(google.getAuthorizedClientRegistrationId())
+                && google.getAuthorities().stream().anyMatch(
+                    authority -> "ROLE_DIRECTOR".equals(authority.getAuthority()))
+                && google.getPrincipal() instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser user
+                && user.getIdToken() != null
+                && ("https://accounts.google.com".equals(user.getIdToken().getClaimAsString("iss"))
+                    || "accounts.google.com".equals(user.getIdToken().getClaimAsString("iss")))
+                && Boolean.TRUE.equals(user.getIdToken().getClaim("email_verified"))
+                && user.getSubject() != null && !user.getSubject().isBlank()) {
+            String issuer = "https://accounts.google.com";
+            String subject = user.getSubject();
+            return new Actor(issuer, subject, stableAuditName(issuer, subject));
+        }
         if (!(authentication instanceof JwtAuthenticationToken token)
                 || !token.isAuthenticated()
                 || token.getAuthorities().stream()

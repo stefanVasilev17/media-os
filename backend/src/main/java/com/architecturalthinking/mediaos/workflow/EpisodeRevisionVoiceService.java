@@ -25,11 +25,13 @@ public class EpisodeRevisionVoiceService {
     private final ObjectMapper mapper;
     private final TransactionTemplate transaction;
     private final EpisodeLockedScriptVoiceService originals;
+    private final Ep002VoiceIdentityGuard identityGuard;
 
     public EpisodeRevisionVoiceService(JdbcClient jdbc, ShotRevisionService revisions,
                                        EpisodeWorkspaceService episodes, ElevenLabsTextToSpeechService elevenLabs,
                                        ObjectMapper mapper, PlatformTransactionManager transactionManager,
-                                       EpisodeLockedScriptVoiceService originals) {
+                                       EpisodeLockedScriptVoiceService originals,
+                                       Ep002VoiceIdentityGuard identityGuard) {
         this.jdbc = jdbc;
         this.revisions = revisions;
         this.episodes = episodes;
@@ -37,6 +39,7 @@ public class EpisodeRevisionVoiceService {
         this.mapper = mapper;
         this.transaction = new TransactionTemplate(transactionManager);
         this.originals = originals;
+        this.identityGuard = identityGuard;
     }
 
     public Map<String, Object> state(UUID episodeId, String shotKey) {
@@ -64,6 +67,8 @@ public class EpisodeRevisionVoiceService {
                     item.put("approvedAt", approvedAt == null ? null : approvedAt.toString());
                     return item;
                 }).list();
+        Ep002VoiceIdentityGuard.Check continuity = identityGuard.inspect(
+                String.valueOf(episodes.episode(episodeId).get("episodeNumber")));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("episodeId", episodeId.toString());
         result.put("episodeNumber", episodes.episode(episodeId).get("episodeNumber"));
@@ -71,7 +76,9 @@ public class EpisodeRevisionVoiceService {
         result.put("shotRevision", approved.revision());
         result.put("narration", approved.narration());
         result.put("voiceDirection", approved.voiceDirection());
-        result.put("canGenerate", episodes.writesEnabled() && elevenLabs.configured()
+        result.put("blockedReason", continuity.blockedReason());
+        result.put("ep001VoiceIdentityVerified", continuity.verified());
+        result.put("canGenerate", continuity.verified() && episodes.writesEnabled() && elevenLabs.configured()
                 && takes.stream().noneMatch(take -> take.get("approvedAt") != null));
         result.put("configured", elevenLabs.configured());
         result.put("takes", takes);
@@ -83,6 +90,7 @@ public class EpisodeRevisionVoiceService {
     public Map<String, Object> generate(UUID episodeId, String shotKey, int expectedRevision) {
         if (expectedRevision == 0) return originals.generate(episodeId, shotKey);
         requireWrites();
+        identityGuard.requireVerified(String.valueOf(episodes.episode(episodeId).get("episodeNumber")));
         ShotRevisionService.Revision shot = requiredLockedRevision(episodeId, shotKey);
         if (shot.revision() != expectedRevision)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Shot revision changed. Reload before ElevenLabs generation.");
@@ -94,7 +102,7 @@ public class EpisodeRevisionVoiceService {
         ElevenLabsTextToSpeechService.GenerationResult generated;
         try {
             generated = elevenLabs.generate(shotKey, shot.narration(), "", "", Map.of(),
-                    "calm, conversational, confident");
+                    ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
         } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage(), error);
         } catch (IllegalStateException error) {
