@@ -9,6 +9,9 @@ declare
   ep002_total bigint;
   source_version text;
 begin
+  if current_setting('mediaos.ep002_voice_target_bootstrap', true) is distinct from 'confirmed' then
+    raise exception 'Refusing isolated Voice bootstrap without target-only session authorization';
+  end if;
   select count(*) into ep001_total from episode where episode_number='EP001';
   select count(*) into ep002_total from episode where episode_number='EP002';
   select version into source_version
