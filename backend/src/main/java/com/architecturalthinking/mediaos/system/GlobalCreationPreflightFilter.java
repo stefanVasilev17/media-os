@@ -8,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -29,12 +31,23 @@ import java.util.UUID;
 @Order(Ordered.LOWEST_PRECEDENCE - 100)
 public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
+    private static final UUID RENDER_PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final java.util.regex.Pattern FINAL_REMOTION_CALLBACK = java.util.regex.Pattern.compile(
+            "^/api/v1/remotion/(?:renders/worker|gpu-renders)/([0-9a-fA-F-]{36})/(complete|fail|start)$");
     private final ProductionMemoryService memory;
     private final ObjectMapper mapper;
+    private final JdbcClient jdbc;
 
-    public GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper) {
+    @Autowired
+    public GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper,
+                                         JdbcClient jdbc) {
         this.memory = memory;
         this.mapper = mapper;
+        this.jdbc = jdbc;
+    }
+
+    GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper) {
+        this(memory, mapper, null);
     }
 
     @Override
@@ -96,6 +109,32 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             } catch (IllegalArgumentException ex) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID.");
             }
+        }
+
+        // Worker final callbacks must use their persisted render's episode, not the
+        // old single-episode fallback. A forged episode header cannot override it.
+        java.util.regex.Matcher finalCpu = FINAL_REMOTION_CALLBACK.matcher(path);
+        if (finalCpu.matches()) {
+            if (jdbc == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Worker render episode lookup is unavailable.");
+            }
+            UUID renderId = UUID.fromString(finalCpu.group(1));
+            UUID episodeId = jdbc.sql("""
+                    select episode_id from remotion_render
+                    where id=:render and project_id=:project
+                    """)
+                    .param("render", renderId)
+                    .param("project", RENDER_PROJECT_ID)
+                    .query(UUID.class)
+                    .optional()
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Remotion worker callback requires a stored episode-scoped render."));
+            if (headerId != null && !headerId.equals(episodeId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Worker render episode and header disagree.");
+            }
+            return episodeId;
         }
 
         // New episode workspace URLs are the source of identity. Never trust a

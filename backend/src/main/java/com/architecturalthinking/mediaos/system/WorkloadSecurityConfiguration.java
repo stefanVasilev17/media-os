@@ -16,9 +16,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WorkloadSecurityConfiguration {
     public WorkloadSecurityConfiguration(
             @Value("${mediaos.local-auth.enabled:false}") boolean localAuth,
-            @Value("${mediaos.director-security.enabled:false}") boolean externalAuth) {
-        if (!localAuth || externalAuth) {
-            throw new IllegalStateException("Worker authentication requires exclusive local Director mode.");
+            @Value("${mediaos.director-security.enabled:false}") boolean externalAuth,
+            @Value("${mediaos.google-auth.enabled:false}") boolean googleAuth) {
+        if ((localAuth ? 1 : 0) + (externalAuth ? 1 : 0) + (googleAuth ? 1 : 0) != 1) {
+            throw new IllegalStateException(
+                    "Scoped worker authentication requires exactly one verified Director identity mode.");
         }
     }
 
