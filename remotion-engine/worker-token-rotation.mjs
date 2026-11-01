@@ -20,7 +20,7 @@ export function createWorkerTokenTransport(primaryToken, rotatedToken, nextToken
         : '';
       const nextToken = provided || stagedToken;
       if (!nextToken || nextToken === activeToken
-          || !/^[A-Za-z0-9_-]{43,128}$/.test(nextToken)) {
+         ) {
         return first;
       }
 
