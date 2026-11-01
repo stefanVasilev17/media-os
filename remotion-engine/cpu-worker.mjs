@@ -41,7 +41,7 @@ const workloadTokens = createWorkerTokenTransport(
 leaseClient = createCpuWorkerLeaseClient({
   backendUrl: BACKEND_URL,
   workerId: WORKER_ID,
-  workerKey: WORKER_KEY,
+  workerKey: String(process.env.MEDIA_OS_CPU_WORKER_BOOTSTRAP_SECRET || '').trim(),
   transport: workloadTokens,
   enabled: AUTO_LEASE,
 });
