@@ -113,3 +113,22 @@ test('a scoped 401 is repaired by a newly issued lease without a worker restart'
   assert.equal(workRequests, 2);
   assert.equal(transport.scopedHeaders()['X-MediaOS-Workload-Token'], token('B'));
 });
+
+test('old backend 403 temporarily keeps legacy CPU worker polling during rolling deploy', async () => {
+  let calls = 0;
+  const {transport, client} = setup(async () => {
+    calls++;
+    return {ok: false, status: 403};
+  });
+  assert.equal(await client.refresh(), null);
+  assert.deepEqual(transport.scopedHeaders(), {});
+  await client.refresh();
+  assert.equal(calls, 1);
+});
+
+test('403 cannot silently downgrade after a scoped token is installed', async () => {
+  const {transport, client} = setup(async () => ({ok: false, status: 403}));
+  transport.installToken(token('S'));
+  await assert.rejects(client.refresh(), /rejected \(403\)/);
+  assert.equal(transport.scopedHeaders()['X-MediaOS-Workload-Token'], token('S'));
+});
