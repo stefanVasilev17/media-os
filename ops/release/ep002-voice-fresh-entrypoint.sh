@@ -56,7 +56,8 @@ export PGOPTIONS="-c statement_timeout=10000 -c lock_timeout=3000"
 
 state="$(psql -X -w -A -t -v ON_ERROR_STOP=1 <<'SQL'
 select case
-  when to_regclass('public.mediaos_voice_database_identity') is not null then 'MARKED'
+  when to_regclass('mediaos_voice_guard.database_identity') is not null then 'MARKED'
+  when to_regnamespace('mediaos_voice_guard') is not null then 'REFUSE'
   when to_regclass('public.flyway_schema_history') is not null then 'REFUSE'
   when (select count(*) from pg_catalog.pg_class c
       join pg_catalog.pg_namespace n on n.oid=c.relnamespace
@@ -75,7 +76,8 @@ do $guard$
 begin
   if current_database() <> 'mediaos_voice_clone'
     or to_regclass('public.flyway_schema_history') is not null
-    or to_regclass('public.mediaos_voice_database_identity') is not null
+    or to_regclass('mediaos_voice_guard.database_identity') is not null
+    or to_regnamespace('mediaos_voice_guard') is not null
     or (select count(*) from pg_catalog.pg_class c
         join pg_catalog.pg_namespace n on n.oid=c.relnamespace
         where n.nspname='public' and c.relkind in ('r','p','v','m','f','S')) <> 0 then
@@ -83,12 +85,13 @@ begin
   end if;
 end
 $guard$;
-create table public.mediaos_voice_database_identity (
+create schema mediaos_voice_guard;
+create table mediaos_voice_guard.database_identity (
   singleton_id integer primary key check (singleton_id=1),
   marker char(64) not null,
   created_at timestamptz not null default now()
 );
-insert into public.mediaos_voice_database_identity (singleton_id,marker)
+insert into mediaos_voice_guard.database_identity (singleton_id,marker)
 values (1,:'marker');
 commit;
 SQL
@@ -99,7 +102,7 @@ esac
 
 export PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=10000"
 check="$(psql -X -w -A -t -v ON_ERROR_STOP=1 -v marker="$MEDIAOS_VOICE_DB_MARKER" <<'SQL'
-select case when (select count(*) from public.mediaos_voice_database_identity
+select case when (select count(*) from mediaos_voice_guard.database_identity
   where singleton_id=1 and marker=:'marker')=1
 then 'MATCH' else 'REFUSE' end;
 SQL
