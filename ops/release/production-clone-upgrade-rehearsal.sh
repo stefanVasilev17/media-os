@@ -61,4 +61,4 @@ timeout 900 mvn -B -ntp -Dstyle.color=never -Dtest=ProductionCloneUpgradeAccepta
       exit 1
     }
 grep 'Tests run:' /tmp/clone-upgrade-test.log | tail -1
-echo "LOCAL_CLONE_UPGRADE_V85_TO_V105_AND_EP001_HASHES=PASS"
+echo "LOCAL_CLONE_UPGRADE_V85_TO_V106_AND_EP001_HASHES=PASS"
