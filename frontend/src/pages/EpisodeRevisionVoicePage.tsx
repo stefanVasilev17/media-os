@@ -63,6 +63,13 @@ export function EpisodeRevisionVoicePage({ episodeId, shotKey }: { episodeId: st
           </p>
         </header>
 
+        {voice.episodeNumber === 'EP002' && (
+          <p role="status" className="voice-quiet-notice">
+            {voice.ep001VoiceIdentityVerified
+              ? 'EP001 narrator identity verified: same ElevenLabs voice and model. Final accent and delivery still require listening review.'
+              : 'EP001 narrator identity is not verified. Generation is blocked until the EP001 reference matches.'}
+          </p>
+        )}
         <section className="voice-quiet-narration">
           <h2>Narration</h2>
           <p>{voice.narration}</p>
