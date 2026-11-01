@@ -42,7 +42,7 @@ esac
   refuse "Voice-only service must not accept rendering workers"
 if [ "${MEDIAOS_EP002_VOICE_WRITES_ENABLED:-false}" = "true" ] ||
    [ "${MEDIAOS_EPISODES_CREATION_ENABLED:-false}" = "true" ] ||
-   [ "${MEDIAOS_EPISODES_WRITES_ENABLED:-false}" = "true"; then
+   [ "${MEDIAOS_EPISODES_WRITES_ENABLED:-false}" = "true" ]; then
   [ "${MEDIAOS_GOOGLE_AUTH_ENABLED:-false}" = "true" ] ||
     refuse "Google Director authentication is required for any episode writes"
 fi
@@ -69,8 +69,7 @@ case "$state" in
   EMPTY)
     [ "${MEDIAOS_VOICE_AUTHORIZE_FRESH_SCHEMA:-}" = "CREATE_ONLY_ON_EMPTY_EP002_POSTGRES" ] ||
       refuse "fresh schema creation needs explicit destination-only authorization"
-    psql -X -w -v ON_ERROR_STOP=1 -v marker="$MEDIAOS_VOICE_DB_MARKER" >/dev/null <<'SQL' ||
-      refuse "failed to mark the isolated database"
+    psql -X -w -v ON_ERROR_STOP=1 -v marker="$MEDIAOS_VOICE_DB_MARKER" >/dev/null <<'SQL'
 begin;
 do $guard$
 begin
