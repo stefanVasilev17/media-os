@@ -22,9 +22,14 @@ const RENDER_CONCURRENCY = configuredConcurrency;
 const POLL_MS = Math.max(500, Number(process.env.MEDIA_OS_RENDER_POLL_MS || 1500));
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH || '/usr/bin/chromium';
 const WORKER_VERSION = 'REMOTION_CPU_WORKER_V1_5';
+const NEXT_TOKEN_FILE = String(process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT_FILE || '').trim();
+if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
+  throw new Error('MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT_FILE must be an absolute path.');
+}
 const workloadTokens = createWorkerTokenTransport(
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN,
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT,
+  NEXT_TOKEN_FILE ? async () => (await fs.readFile(NEXT_TOKEN_FILE, 'utf8')).trim() : null,
 );
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
