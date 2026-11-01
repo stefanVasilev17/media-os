@@ -1,6 +1,7 @@
 package com.architecturalthinking.mediaos.system;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,7 +37,9 @@ public class WorkloadSecurityConfiguration {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(new WorkloadIdentityFilter(credentials),
                     UsernamePasswordAuthenticationFilter.class)
-            .authorizeHttpRequests(auth -> auth.anyRequest().access((authentication, context) ->
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.POST, "/api/v1/worker/remotion/cpu/lease").permitAll()
+                .anyRequest().access((authentication, context) ->
                     new org.springframework.security.authorization.AuthorizationDecision(
                             context.getRequest().getAttribute(
                                     WorkloadIdentityFilter.VERIFIED_WORKER)
