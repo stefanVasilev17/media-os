@@ -19,7 +19,8 @@ export function createCpuWorkerLeaseClient({
       },
       cache: 'no-store',
     });
-    if (response.status === 404) {
+    if (response.status === 404
+        || (response.status === 403 && !transport.scopedHeaders()['X-MediaOS-Workload-Token'])) {
       refreshAt = clock() + 10_000;
       return null;
     }
