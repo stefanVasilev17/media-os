@@ -31,3 +31,14 @@ The Architectural Thinking Core Production Bible v2.3 defines the EP001 narrator
 
 - Previous isolated PostgreSQL 18 candidate build, production-schema-copy V85→V105 rehearsal, and retained verified private recovery snapshot have passed.
 - This voice continuity change is checked in a separate QA build-only environment with no paid provider calls and no production deploy. **It does not prove a real EP002 ElevenLabs audio take or acoustic match.**
+
+## Actual production EP001 voice identity inspection — PASS (2026-11-01)
+
+Executed a one-time **private, read-only** verification service against the live production PostgreSQL. PostgreSQL session used `default_transaction_read_only=on`, query timeout and only `SELECT` statements. It compared the exact current production backend `ELEVENLABS_VOICE_ID` and `ELEVENLABS_MODEL_ID` (from Railway variable references) against distinct final approved EP001 voice/model metadata, **without printing any credential or identifier**. Observed:
+- `EP001_APPROVED_VOICE_PROFILES=1`
+- `EP001_VOICE_MATCHES_RUNTIME=YES`
+- `EP001_VOICE_REFERENCE_READ_ONLY_CHECK=COMPLETE`
+
+The one-time service was removed after observing the result and had no attached volumes or public domain. Production EP001 and backend were not modified. This verifies exactly **voice identity and model identity**; it does not prove the saved EP001 clip used the currently configured numeric stability/similarity settings and cannot prove identical acoustic accent or rhythm. Keep mandatory final-EP001/first-EP002 A/B listening before the first paid EP002 take approval.
+
+The isolated PostgreSQL 18 + frontend build for the implementation passed **242 Java tests, 0 failures, 0 errors, 1 opt-in skipped**; frontend TypeScript/Vite and Vitest **15/15 PASS**. The source commit containing the voice backend and tests was `07b18b5991dd4844badb142991b5d73e36bd2231`; the later UI label and runbook also passed a pinned build at `1552d7a07b7e61ebf5a6e15a9bc0e819033c84d4`. The two subsequent operational-only files are a read-only audit script/Dockerfile and do not change runtime backend semantics.
