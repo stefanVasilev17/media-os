@@ -104,7 +104,7 @@ class ProductionUpgradeV85ToV105Test {
                     .load();
             upgrade.migrate();
             upgrade.validate();
-            assertEquals("105", upgrade.info().current().getVersion().toString());
+            assertEquals("106", upgrade.info().current().getVersion().toString());
 
             try (Connection db = DriverManager.getConnection(url, USER, PASSWORD)) {
                 db.setSchema(schema);
@@ -134,10 +134,10 @@ class ProductionUpgradeV85ToV105Test {
                 try (Statement statement = db.createStatement();
                      ResultSet result = statement.executeQuery("""
                         select count(*) from flyway_schema_history
-                        where version::integer between 86 and 105 and success=true
+                        where version::integer between 86 and 106 and success=true
                         """)) {
                     assertTrue(result.next());
-                    assertEquals(20, result.getInt(1));
+                    assertEquals(21, result.getInt(1));
                 }
             }
         } finally {
