@@ -102,7 +102,7 @@ public class EpisodeRevisionVoiceService {
         ElevenLabsTextToSpeechService.GenerationResult generated;
         try {
             generated = elevenLabs.generate(shotKey, shot.narration(), "", "", Map.of(),
-                    "calm, conversational, confident");
+                    ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
         } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, error.getMessage(), error);
         } catch (IllegalStateException error) {
