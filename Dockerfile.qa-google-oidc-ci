@@ -14,6 +14,7 @@ COPY backend/pom.xml ./pom.xml
 COPY backend/src ./src
 COPY --from=frontend /frontend-ok /frontend-ok
 ENV MAVEN_OPTS="-Xmx512m"
+RUN echo EP002_WORKER_SECURITY_CI_REVISION=20261101_v3
 RUN set -eu; \
     mkdir -p /tmp/pg-google; \
     chown postgres:postgres /tmp/pg-google; \
