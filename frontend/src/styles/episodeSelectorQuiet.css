@@ -99,3 +99,12 @@
  }
  .episode-selector-row { padding:22px 3px; }
 }
+
+.episode-selector-name{display:flex;flex-direction:column;gap:8px;min-width:0}
+.episode-selector-name small{font-size:13px;color:#aac3d4;line-height:1.5;font-weight:450}
+@media(max-width:600px){
+  .episode-selector-quiet{padding-top:85px}
+  .episode-selector-header{align-items:flex-start}
+  .episode-selector-name small{font-size:12px}
+  .episode-selector-row{grid-template-columns:63px minmax(0,1fr) 22px;gap:10px}
+}
