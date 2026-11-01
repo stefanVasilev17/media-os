@@ -1,0 +1,12 @@
+FROM postgres:18
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates coreutils \
+  && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/recovery-venv \
+  && /opt/recovery-venv/bin/pip install --no-cache-dir 'boto3==1.40.61'
+WORKDIR /workspace
+COPY ops/release/backup_to_railway_bucket.py /workspace/backup_to_railway_bucket.py
+COPY ops/release/ep002-readonly-production-backup-and-target-restore.sh /workspace/run.sh
+RUN chmod 700 /workspace/run.sh
+ENTRYPOINT ["/bin/bash", "/workspace/run.sh"]
