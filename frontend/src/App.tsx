@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
+import { EpisodeProductionLibraryPage } from './pages/EpisodeProductionLibraryPage';
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
@@ -80,7 +81,9 @@ export function App() {
   let page: ReactNode;
 
   const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
-  if (hash === '#/episodes/new') {
+  if (hash === '#/library/EP001' || hash === '#/library/EP002') {
+    page = <EpisodeProductionLibraryPage episodeKey={hash.endsWith('EP001') ? 'EP001' : 'EP002'} />;
+  } else if (hash === '#/episodes/new') {
     page = <EpisodeNewPage />;
   } else if (preparationRoute) {
     page = <EpisodePreparationPage episodeId={preparationRoute[1]} />;

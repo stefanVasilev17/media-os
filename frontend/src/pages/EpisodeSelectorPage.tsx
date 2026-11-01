@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { listEpisodeWorkspaces, type EpisodeSummary } from '../api/episodeWorkspaceApi';
 import { episodeDirectorRoute } from '../api/episodeDirectorApi';
+import { ep001, ep002 } from '../lib/episodeProductionLibrary';
 import '../styles/episodeDirectorHub.css';
 import '../styles/episodeSelectorQuiet.css';
 
@@ -34,9 +35,19 @@ export function EpisodeSelectorPage() {
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
       {busy && <p className="episode-selector-message">Loading episodes…</p>}
       {!busy && episodes.length === 0 &&
-        <p className="episode-selector-message">No episodes yet.</p>}
+        <p className="episode-selector-message">No native production episodes found. The approved source library is still available.</p>}
       <section className="episode-selector-list" aria-label="Choose an episode">
-        {[...episodes]
+        <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP001';}}>
+          <span className="episode-selector-id">EP001</span>
+          <span className="episode-selector-name"><strong>{ep001.title}</strong><small>Current 12-SHOT production · LOCKED sources, voice and videos</small></span>
+          <ArrowRight size={22} aria-hidden="true"/>
+        </button>
+        <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP002';}}>
+          <span className="episode-selector-id">EP002</span>
+          <span className="episode-selector-name"><strong>{ep002.title}</strong><small>{episodes.some(row=>row.episodeNumber==='EP002')?'Production workspace +':'Source library · not yet registered in production'} · 11 locked script SHOTs / 59 approved visual beats</small></span>
+          <ArrowRight size={22} aria-hidden="true"/>
+        </button>
+        {[...episodes].filter(episode => !['EP001','EP002'].includes(episode.episodeNumber))
           .sort((a, b) => b.episodeNumber.localeCompare(a.episodeNumber, undefined, { numeric: true }))
           .map(episode => (
           <button type="button"
