@@ -69,7 +69,18 @@ class WorkerFinalCallbackEpisodePreflightTest {
                 assertEquals(audit.toString(), response.getHeader("X-MediaOS-Preflight"));
                 assertEquals(200, response.getStatus());
             }
-            verify(memory, times(2)).preflight(eq("VISUAL"), anyString(), eq(second));
+            for (String operation : new String[]{"start", "complete", "fail"}) {
+                String method = "complete".equals(operation) ? "PUT" : "POST";
+                var request = new MockHttpServletRequest(method,
+                        "/api/v1/remotion/gpu-renders/" + render + "/" + operation);
+                var response = new MockHttpServletResponse();
+                var chain = new MockFilterChain();
+                filter.doFilter(request, response, chain);
+                assertSame(request, chain.getRequest());
+                assertEquals(audit.toString(), response.getHeader("X-MediaOS-Preflight"));
+                assertEquals(200, response.getStatus());
+            }
+            verify(memory, times(5)).preflight(eq("VISUAL"), anyString(), eq(second));
             verify(memory, never()).preflight(eq("VISUAL"), anyString(), eq(first));
 
             var forged = new MockHttpServletRequest("PUT",
