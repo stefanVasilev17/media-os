@@ -15,7 +15,7 @@ COPY backend/src ./src
 COPY --from=frontend /frontend-ok /frontend-ok
 ENV MAVEN_OPTS="-Xmx512m"
 RUN echo EP002_WORKER_SECURITY_CI_REVISION=20261101_v3
-RUN set -eu; \
+RUN set -eu; echo WORKER_SECURITY_TEST_FORCE_20261101_V4; \
     mkdir -p /tmp/pg-google; \
     chown postgres:postgres /tmp/pg-google; \
     runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D /tmp/pg-google -A trust >/dev/null; \
