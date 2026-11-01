@@ -2,7 +2,6 @@ package com.architecturalthinking.mediaos.system;
 
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 
@@ -23,9 +22,9 @@ final class GoogleDirectorIdentityPolicy {
     }
 
     boolean allowed(OidcIdToken token) {
-        if (token == null || token.getIssuer() == null
+        if (token == null || token.getClaimAsString("iss") == null
                 || !List.of("https://accounts.google.com", "accounts.google.com")
-                        .contains(token.getIssuer().toString())) {
+                        .contains(token.getClaimAsString("iss"))) {
             return false;
         }
         if (!token.getAudience().contains(clientId)
