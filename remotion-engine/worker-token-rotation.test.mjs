@@ -60,3 +60,41 @@ test('does not retry a 401 without proof that the active token was sent', async 
   });
   assert.equal(count, 1);
 });
+
+test('reads a newly issued scoped token after 401 without restarting the worker', async () => {
+  let mountedToken = 'rotated-token';
+  const transport = createWorkerTokenTransport('old-token', '', async () => mountedToken);
+  const sent = [];
+  const send = async (_url, options) => {
+    sent.push(options.headers['X-MediaOS-Workload-Token']);
+    return {status: sent.length === 1 ? 401 : 204, ok: sent.length !== 1};
+  };
+  const response = await transport.request('/worker/claim', {
+    method: 'POST', headers: transport.scopedHeaders(),
+  }, send);
+  assert.equal(response.status, 204);
+  assert.deepEqual(sent, ['old-token', 'rotated-token']);
+  assert.equal(transport.scopedHeaders()['X-MediaOS-Workload-Token'], 'rotated-token');
+});
+
+test('does not retry with the same mounted token or rotate on failure', async () => {
+  const transport = createWorkerTokenTransport('current', '', async () => 'current');
+  let count = 0;
+  await transport.request('/worker/claim', {
+    method: 'POST', headers: transport.scopedHeaders(),
+  }, async () => {
+    count++;
+    return {status: 401, ok: false};
+  });
+  assert.equal(count, 1);
+});
+
+test('mounted-token provider is never called for successful requests', async () => {
+  const transport = createWorkerTokenTransport('current', '', async () => {
+    throw new Error('provider must not be called');
+  });
+  const result = await transport.request('/worker/claim', {
+    method: 'POST', headers: transport.scopedHeaders(),
+  }, async () => ({status: 204, ok: true}));
+  assert.equal(result.status, 204);
+});
