@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import approved from '../data/EP002_FullScript_v4_0_LOCKED.json';
 import {
   buildVerbatimEp002ScriptDraft,
+  canImportEp002Source,
   EP002_QA_EPISODE_ID,
   EP002_LOCKED_MANIFEST_BLOB_SHA
 } from './ep002LockedScriptImport';
@@ -31,4 +32,14 @@ describe('EP002 source-exact Director script import', () => {
       expect(shot.audioStatus).toBe('NOT_GENERATED');
     });
   });
+  it('can prepare source-exact EP002 in production even when its UUID differs from QA', () => {
+    expect(canImportEp002Source('EP002', 'SCRIPT', 0, 'WAITING', true)).toBe(true);
+    expect(canImportEp002Source('EP002', 'SCENE', 0, 'WAITING', true)).toBe(true);
+    expect(canImportEp002Source('EP002', 'SCRIPT', 1, 'LOCKED', true)).toBe(false);
+    expect(canImportEp002Source('EP002', 'SCENE', 1, 'READY_FOR_REVIEW', true)).toBe(false);
+    expect(canImportEp002Source('EP002', 'SCENE', 0, 'WAITING', false)).toBe(false);
+    expect(canImportEp002Source('EP001', 'SCRIPT', 0, 'WAITING', true)).toBe(false);
+    expect(canImportEp002Source('EP003', 'SCENE', 0, 'WAITING', true)).toBe(false);
+  });
+
 });

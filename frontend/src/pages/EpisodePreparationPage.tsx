@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { WorkspaceContext, WorkspaceStage } from '../api/episodeWorkspaceApi';
 import { episodePreparationApi, type AgentPreview, type EpisodeBrief } from '../api/episodePreparationApi';
-import { buildVerbatimEp002ScriptDraft, EP002_QA_EPISODE_ID } from '../lib/ep002LockedScriptImport';
+import { buildVerbatimEp002ScriptDraft, canImportEp002Source } from '../lib/ep002LockedScriptImport';
 import { buildApprovedEp002SceneDraft } from '../lib/ep002ApprovedVisualPassImport';
 import '../styles/episodeDirectorHub.css';
 import '../styles/episodePreparationQuiet.css';
@@ -279,13 +279,13 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                   Approve {upstream} before generating this stage.
                 </p>}
 
-                {stage === 'SCRIPT' && upstreamLocked && !approvalOpen &&
-                  episodeId === EP002_QA_EPISODE_ID &&
-                  item.revision === 0 && item.status !== 'LOCKED' && <>
+                {stage === 'SCRIPT' && !approvalOpen &&
+                  canImportEp002Source(context?.episode.episodeNumber, 'SCRIPT',
+                    item.revision, item.status, Boolean(upstreamLocked)) && <>
                     <p className="episode-preparation-message">
                       The Director-approved Full Script Pass v4.0 is ready in GitHub.
                       Import its 11 exact English narration shots into MediaOS for review.
-                      No paid AI, no narration changes, no automatic Director LOCK.
+                      No paid AI, no narration changes, no automatic Director LOCK. QA approvals do not automatically become production approvals.
                     </p>
                     <button type="button" className="episode-preparation-primary"
                       disabled={busy}
@@ -294,14 +294,14 @@ export function EpisodePreparationPage({ episodeId }: { episodeId: string }) {
                       Import approved EP002 Script v4.0 (no AI cost)
                     </button>
                   </>}
-                {stage === 'SCENE' && upstreamLocked && !approvalOpen &&
-                  episodeId === EP002_QA_EPISODE_ID &&
-                  item.revision === 0 && item.status !== 'LOCKED' && <>
+                {stage === 'SCENE' && !approvalOpen &&
+                  canImportEp002Source(context?.episode.episodeNumber, 'SCENE',
+                    item.revision, item.status, Boolean(upstreamLocked)) && <>
                     <p className="episode-preparation-message">
                       The Director approved the NEW EP002 Visual Pass v1.0.
                       Import the complete 11-SHOT, 59-beat HEAR → SEE plan,
                       with original camera and asset directions unchanged.
-                      No paid AI and no automatic native Scene LOCK.
+                      No paid AI and no automatic native Scene LOCK. Review and approve this production workspace explicitly.
                     </p>
                     <button type="button" className="episode-preparation-primary"
                       disabled={busy}
