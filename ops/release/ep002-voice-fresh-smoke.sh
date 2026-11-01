@@ -21,7 +21,16 @@ export MEDIAOS_EPISODES_CREATION_ENABLED=false
 export MEDIAOS_EPISODES_WRITES_ENABLED=false
 export MEDIAOS_WORKER_AUTH_ENABLED=false
 
-echo '127.0.0.1 ep002-voice-qa.railway.internal' >>/etc/hosts
+printf '127.0.0.1 ep002-voice-qa.railway.internal\n' >/tmp/voice-qa-hosts
+export JAVA_TOOL_OPTIONS=-Djdk.net.hosts.file=/tmp/voice-qa-hosts
+mkdir -p /tmp/voice-qa-bin
+cat >/tmp/voice-qa-bin/psql <<'QA_PSQL'
+#!/bin/sh
+export PGHOST=127.0.0.1
+exec /usr/bin/psql "$@"
+QA_PSQL
+chmod 700 /tmp/voice-qa-bin/psql
+export PATH=/tmp/voice-qa-bin:$PATH
 mkdir -p /tmp/fresh-voice-db
 chown postgres:postgres /tmp/fresh-voice-db
 runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D /tmp/fresh-voice-db -A trust >/dev/null
