@@ -31,6 +31,7 @@ export function ShotStudioPage() {
   const [directorPlan,setDirectorPlan]=useState<DirectorVisualPlanState|null>(null);
   const [sourceVoice,setSourceVoice]=useState<VoiceClipState[]>([]);
   const studioRouteTargetRef = useRef(studioRouteTarget());
+  const addShotDetailsRef = useRef<HTMLDetailsElement>(null);
 
   const shot=useMemo(()=>shots.find(x=>x.id===shotId),[shots,shotId]);
   const clip=useMemo(()=>shot?.clips.find(x=>x.id===clipId),[shot,clipId]);
@@ -120,7 +121,11 @@ export function ShotStudioPage() {
     if(busy)return;
     setBusy(true);setError('');
     try{const created=await studio.createShot(title);await refresh();setShotId(created.id);setNewTitle('');
+      addShotDetailsRef.current?.removeAttribute('open');
       setMessage(created.shotKey+' created. Add the first voice clip.');
+      if(window.matchMedia('(max-width: 850px)').matches){
+        window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
+      }
     }catch(e){setError(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
@@ -166,39 +171,44 @@ export function ShotStudioPage() {
   return (
     <main className="studio-page">
       <header className="studio-hero">
-        <div><span className="studio-eyebrow">MEDIAOS / EP001 / SHOT-BASED PRODUCTION</span>
+        <div>
+          <button type="button" className="studio-back" onClick={() => {
+            window.location.hash = '#/episodes/22222222-2222-2222-2222-222222222222/director';
+          }}>← Director Overview</button>
           <h1>Shot Studio</h1>
-          <p>Create shots and voice clips from approved ChatGPT scripts. Edit content in MediaOS — no GitHub commits or JSON imports.</p>
         </div>
-        <div className="studio-stage-tag">VNext · Production workspace</div>
       </header>
       {error&&<div className="studio-alert studio-error" role="alert">{error}</div>}
       {message&&<div className="studio-alert studio-success" role="status">{message}</div>}
       <div className="studio-shell">
         <aside className="studio-sidebar">
-          <LegacyShotMirror workingCopies={shots.filter(s=>Boolean(s.sourceShotKey))} onOpenEditor={openOriginalEditor} />
+          <details className="studio-originals">
+            <summary>Original shots</summary>
+            <LegacyShotMirror workingCopies={shots.filter(s=>Boolean(s.sourceShotKey))} onOpenEditor={openOriginalEditor} />
+          </details>
           <div className="studio-section-head"><h2>New Studio Shots</h2><span>{shots.filter(s=>!s.sourceShotKey).length}</span></div>
-          <p className="studio-muted">Choose any original shot above to unlock and edit it, or create a new one below. Approved videos remain protected.</p>
           {loading&&<p className="studio-muted">Loading shots…</p>}
           <div className="studio-shot-list">
             {shots.filter(s=>!s.sourceShotKey).map(s=><button key={s.id} type="button"
               className={'studio-shot-tab '+(s.id===shotId?'selected':'')}
-              onClick={()=>{setShotId(s.id);setMessage('');setError('');}}>
+              onClick={()=>{
+                setShotId(s.id);setMessage('');setError('');
+                if(window.matchMedia('(max-width: 850px)').matches){
+                  window.requestAnimationFrame(()=>document.getElementById('studio-working-editor')?.scrollIntoView({behavior:'smooth',block:'start'}));
+                }
+              }}>
               <strong>{s.shotKey}</strong><span>{s.title}</span>
-              <small>{s.clips.length} clips · {s.clips.filter(c=>c.approvedAt).length} voices approved</small>
             </button>)}
           </div>
-          <div className="studio-add-shot">
-            <label htmlFor="new-shot-title">Add another shot</label>
-            <input id="new-shot-title" maxLength={240} value={newTitle} placeholder="e.g. Payment Authorization"
-              onChange={e=>setNewTitle(e.target.value)}/>
-            <button type="button" disabled={busy} onClick={()=>void createShot()}><Plus size={16}/> Create Shot</button>
-          </div>
-          <div className="studio-legacy">
-            <strong>EP001 approved production</strong>
-            <p>Previous Director locks, voice approvals and rendered shots have not been changed.</p>
-            <button type="button" onClick={()=>{window.location.hash='#/agents/script';}}>Open existing Script <ArrowRight size={14}/></button>
-          </div>
+          <details className="studio-add-shot" ref={addShotDetailsRef}>
+            <summary><Plus size={17} aria-hidden="true"/> Add another shot</summary>
+            <div className="studio-add-shot-fields">
+              <label htmlFor="new-shot-title">Shot title</label>
+              <input id="new-shot-title" maxLength={240} value={newTitle} placeholder="e.g. Payment Authorization"
+                onChange={e=>setNewTitle(e.target.value)}/>
+              <button type="button" disabled={busy} onClick={()=>void createShot()}><Plus size={16}/> Create Shot</button>
+            </div>
+          </details>
         </aside>
         <section className="studio-content" id="studio-working-editor">
           {!shot?<div className="studio-empty">

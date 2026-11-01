@@ -1,0 +1,4 @@
+FROM postgres:16-alpine
+COPY ops/release/ep002-native-stage-qa-readonly.sh /workspace/ep002-audit.sh
+RUN chmod 700 /workspace/ep002-audit.sh
+ENTRYPOINT ["/bin/sh", "/workspace/ep002-audit.sh"]

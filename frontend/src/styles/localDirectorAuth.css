@@ -1,0 +1,53 @@
+.local-director-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 18px 48px;
+  background: radial-gradient(circle at 20% 0%, rgba(69,112,198,.13),transparent 42%), #070b13;
+  color: #f2f5fb;
+}
+.local-director-card {
+  width: min(420px, 100%);
+  padding: 34px 28px;
+  border: 1px solid rgba(169,193,225,.12);
+  border-radius: 20px;
+  background: #0d1420;
+  box-shadow: 0 30px 80px rgba(0,0,0,.20);
+}
+.local-director-eyebrow { font-size: 11px; letter-spacing: .14em; color: #7caee1; font-weight: 750; }
+.local-director-card h1 { font-size: 30px; letter-spacing: -.025em; margin: 16px 0 12px; }
+.local-director-card p { color: #9baac0; line-height: 1.65; font-size: 14px; }
+.local-director-card form { display: grid; gap: 9px; margin-top: 24px; }
+.local-director-card label { color: #bcc9db; font-size: 12px; font-weight: 650; margin-top: 10px; }
+.local-director-card input {
+  width: 100%; min-height: 47px; border-radius: 10px; padding: 10px 13px;
+  border: 1px solid #29354a; background: #090f19; color: #f0f5ff; font-size: 16px;
+}
+.local-director-card input:focus-visible { outline: 2px solid #6da9e5; outline-offset: 2px; }
+.local-director-card form button {
+  margin-top: 18px; min-height: 48px; border: 1px solid #4b91cf;
+  background: #205e9a; color: #fff; border-radius: 11px; font-weight: 720;
+}
+.local-director-card form button:disabled { opacity: .55; }
+.local-director-card .local-director-remember {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  color: #d5dfed; font-size: 13px; font-weight: 600;
+}
+.local-director-card .local-director-remember input {
+  width: 19px; height: 19px; min-height: 19px; flex: none; margin: 0;
+  accent-color: #6da9e5;
+}
+.local-director-card .local-director-remember-note {
+  margin: 0; font-size: 12px; line-height: 1.45;
+}
+.local-director-card .local-director-error { color: #ffa8a9; margin: 7px 0 0; }
+.local-director-signout {
+  position: fixed; z-index: 120; top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  border: 1px solid #29384f; background: #0a1320; color: #c6d7ea;
+  border-radius: 11px; min-height: 34px; padding: 5px 13px; font-size: 12px;
+}
+@media (max-width: 540px) {
+  .local-director-card { padding: 28px 21px; }
+  .local-director-card h1 { font-size: 27px; }
+}

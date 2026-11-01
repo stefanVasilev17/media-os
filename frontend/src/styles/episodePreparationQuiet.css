@@ -1,0 +1,74 @@
+.episode-preparation { max-width: 980px; }
+.episode-preparation-nav { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:8px 0 48px; }
+.episode-preparation-nav button, .episode-preparation-secondary {
+  border:0; background:transparent; color:#bad0e2; font:inherit;
+  font-size:16px; font-weight:560; cursor:pointer; padding:8px 0;
+  display:inline-flex; align-items:center; gap:9px;
+}
+.episode-preparation-nav button:hover,.episode-preparation-secondary:hover { color:#fff; text-decoration:underline; text-underline-offset:4px; }
+.episode-preparation-header h1 {
+  font-size:clamp(32px,4vw,43px); letter-spacing:-.035em; line-height:1.2; margin:0 0 19px; font-weight:700;
+}
+.episode-preparation-header p { font-size:19px; color:#a7c3da; margin:0 0 44px; }
+.episode-preparation-form { display:flex; flex-direction:column; gap:17px; max-width:850px; }
+.episode-preparation-form label,.episode-preparation-approval label {
+  font-size:16px; font-weight:600; color:#d6e4f0;
+}
+.episode-preparation input,.episode-preparation textarea {
+  background:#0b1826; color:#eff6ff; border:1px solid #3d5268; border-radius:10px;
+  padding:15px 17px; font:inherit; font-size:17px; line-height:1.65;
+  width:100%; box-sizing:border-box; resize:vertical;
+}
+.episode-preparation input:focus-visible,.episode-preparation textarea:focus-visible {
+  outline:2px solid #7cafd2; outline-offset:2px;
+}
+.episode-preparation input::placeholder,.episode-preparation textarea::placeholder { color:#91a6ba; }
+.episode-preparation-primary {
+  padding:13px 23px; min-height:48px; align-self:flex-start;
+  border-radius:9px; border:1px solid #669ac0; background:#2b648b;
+  font:inherit; font-size:16px; font-weight:650; color:#fff; cursor:pointer;
+}
+.episode-preparation-primary:hover:not(:disabled) { background:#397cab; }
+.episode-preparation-primary:disabled,.episode-preparation-secondary:disabled { opacity:.45; cursor:not-allowed; }
+.episode-preparation-brief { border-top:1px solid #35495c; padding:31px 0 37px; }
+.episode-preparation-brief h2,.episode-preparation-pipeline>h2 {
+  font-size:25px; font-weight:650; margin:0 0 20px;
+}
+.episode-preparation-brief p {
+  margin:0; font-size:17px; line-height:1.85; color:#dbe8f2; white-space:pre-wrap;
+}
+.episode-preparation-section-heading {
+  display:flex; justify-content:space-between; align-items:center; gap:22px;
+}
+.episode-preparation-pipeline { border-top:1px solid #35495c; padding-top:34px; }
+.episode-preparation-stage { border-top:1px solid #334657; padding:28px 0; }
+.episode-preparation-stage-title {
+  display:flex; justify-content:space-between; align-items:baseline; gap:20px;
+}
+.episode-preparation-stage h3 { font-size:21px; font-weight:620; margin:0 0 12px; }
+.episode-preparation-stage-title span { font-size:16px; font-weight:580; }
+.episode-preparation-locked { color:#7dcba3; }
+.episode-preparation-pending { color:#c4cfd9; }
+.episode-preparation-actions { display:flex; align-items:center; flex-wrap:wrap; gap:22px; margin-top:26px; }
+.episode-preparation-message { font-size:16px; line-height:1.7; color:#c9d7e3; }
+.episode-preparation-artifact { padding:16px 0 12px; max-width:850px; }
+.episode-preparation-artifact>h3 { font-size:20px; margin:18px 0; }
+.episode-preparation-artifact-row { padding:14px 0; border-bottom:1px solid #273c50; }
+.episode-preparation-artifact-row strong { font-size:17px; }
+.episode-preparation-artifact-row p { margin:6px 0; font-size:16px; color:#d8e4ef; line-height:1.7; white-space:pre-wrap; }
+.episode-preparation-details { padding:20px 0; color:#d4e2ed; font-size:16px; }
+.episode-preparation-details summary { cursor:pointer; font-weight:570; }
+.episode-preparation-details pre {
+  overflow-x:auto; white-space:pre-wrap; overflow-wrap:anywhere;
+  line-height:1.7; font-size:15px; color:#c9d8e4;
+  background:#0c1a28; padding:20px 15px; border-radius:8px;
+}
+.episode-preparation-approval {
+  display:flex; flex-direction:column; gap:17px; border-top:1px solid #334657;
+  padding:26px 0; max-width:850px;
+}
+@media(max-width:620px){
+  .episode-preparation-nav { margin-bottom:30px; }
+  .episode-preparation-header h1 { font-size:30px; }
+  .episode-preparation-stage-title span { font-size:16px; }
+}

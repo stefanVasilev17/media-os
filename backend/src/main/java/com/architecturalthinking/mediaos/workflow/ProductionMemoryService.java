@@ -45,6 +45,7 @@ public class ProductionMemoryService {
                     or scope=:scope
                     or (scope='SCRIPT' and :scope in ('VOICE','VISUAL'))
                     or (scope='VOICE' and :scope='VISUAL')
+                    or (scope='VOICE_VISUAL' and :scope in ('VOICE','VISUAL'))
                   )
                 order by
                   case severity when 'REQUIRED' then 0 else 1 end,
@@ -184,7 +185,14 @@ public class ProductionMemoryService {
     }
 
     public Map<String, Object> rememberCorrection(String rawScope, String content, String source) {
+        return rememberCorrection(rawScope, content, source, ProductionOverviewService.EPISODE_ID, "ALL".equalsIgnoreCase(rawScope));
+    }
+
+    public Map<String, Object> rememberCorrection(String rawScope, String content, String source, UUID episodeId, boolean projectWide) {
+        if (!projectWide && episodeId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Explicit episode ID required.");
+        if (projectWide && episodeId == null) episodeId = ProductionOverviewService.EPISODE_ID;
         String scope = normalizeScope(rawScope);
+        UUID targetEpisode = projectWide ? null : episodeId;
         String normalized = content == null ? "" : content.trim();
         if (normalized.isBlank()) throw new IllegalArgumentException("Correction cannot be blank.");
 
@@ -194,15 +202,14 @@ public class ProductionMemoryService {
                 where project_id=:projectId
                   and active=true
                   and scope=:scope
-                  and ((:scope='ALL' and episode_id is null)
-                       or (:scope<>'ALL' and episode_id=:episodeId))
+                  and episode_id is not distinct from :targetEpisode
                   and lower(content)=lower(:content)
                 order by created_at desc
                 limit 1
                 """)
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
                 .param("scope", scope)
-                .param("episodeId", ProductionOverviewService.EPISODE_ID)
+                .param("targetEpisode", targetEpisode)
                 .param("content", normalized)
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
@@ -229,13 +236,13 @@ public class ProductionMemoryService {
                 """)
                 .param("id", id)
                 .param("projectId", ProductionOverviewService.PROJECT_ID)
-                .param("episodeId", "ALL".equals(scope) ? null : ProductionOverviewService.EPISODE_ID)
+                .param("episodeId", targetEpisode)
                 .param("scope", scope)
                 .param("content", normalized)
                 .param("source", source == null || source.isBlank() ? "Creator correction" : source.trim())
                 .update();
 
-        return rulesFor(scope).stream()
+        return rulesFor(scope, episodeId).stream()
                 .filter(rule -> id.equals(rule.get("id")))
                 .findFirst()
                 .orElse(Map.of("id", id, "scope", scope, "type", "CORRECTION", "content", normalized));
@@ -244,7 +251,7 @@ public class ProductionMemoryService {
     private String normalizeScope(String raw) {
         String scope = raw == null ? "ALL" : raw.trim().toUpperCase(Locale.ROOT);
         return switch (scope) {
-            case "SCRIPT", "VOICE", "VISUAL", "ALL" -> scope;
+            case "SCRIPT", "VOICE", "VISUAL", "VOICE_VISUAL", "ALL" -> scope;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown Production Memory scope: " + scope);
         };
     }

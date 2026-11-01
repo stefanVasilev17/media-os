@@ -3,6 +3,8 @@ package com.architecturalthinking.mediaos.system;
 import com.architecturalthinking.mediaos.director.DirectorAgentClient;
 import com.architecturalthinking.mediaos.director.EpisodeBuildAgentClient;
 import com.architecturalthinking.mediaos.workflow.CreativeAgentClient;
+import com.architecturalthinking.mediaos.workflow.ShotPromptContextService;
+import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -25,13 +27,16 @@ public class AiSpendGuardAspect {
 
     private final AiRuntimePolicyService policyService;
     private final PreviewAuthorizationService previewAuthorization;
+    private final ShotPromptContextService firstPass;
 
     public AiSpendGuardAspect(
             AiRuntimePolicyService policyService,
-            PreviewAuthorizationService previewAuthorization
+            PreviewAuthorizationService previewAuthorization,
+            ShotPromptContextService firstPass
     ) {
         this.policyService = policyService;
         this.previewAuthorization = previewAuthorization;
+        this.firstPass = firstPass;
     }
 
     @Around("execution(public * com.architecturalthinking.mediaos.director.DirectorAgentClient.generate(..))")
@@ -49,6 +54,8 @@ public class AiSpendGuardAspect {
                 3000,
                 false,
                 previewAuthorization.directorPayload(mode, message)
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "DIRECTOR", "DIRECTOR", message, "").fingerprint()
         );
     }
 
@@ -63,6 +70,9 @@ public class AiSpendGuardAspect {
                 9000,
                 false,
                 previewAuthorization.topicPayload()
+                        + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                        "TOPIC", "TOPIC_CANDIDATES",
+                        "Suggest evergreen architecture topics with high reuse and human/business relevance.", "").fingerprint()
         );
     }
 
@@ -82,11 +92,48 @@ public class AiSpendGuardAspect {
         Map<?, ?> context = args.length > 3 && args[3] instanceof Map<?, ?> map ? map : Map.of();
         boolean automaticRepair = "REVISE".equalsIgnoreCase(action)
                 && (context.containsKey("validationFailures") || context.containsKey("repairInstruction"));
+        if (context.containsKey("scopedEpisodeId") && currentRequest() == null)
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.PRECONDITION_REQUIRED,
+                    "Episode-scoped AI requires a request-bound single-use preview authorization.");
+        if (context.containsKey("scopedEpisodeId") && automaticRepair)
+            throw new ResponseStatusException(CONFLICT,
+                    "Episode-scoped automatic AI repair is disabled until separately authorized.");
         int outputLimit = "SCENE".equalsIgnoreCase(stage) ? 12000 : 14000;
         String operation = stage.toUpperCase() + "_" + action.toUpperCase();
-        String previewPayload = automaticRepair
-                ? null
-                : previewAuthorization.creativePayload(stage, action, message);
+        String previewPayload;
+        if (automaticRepair) {
+            previewPayload = null;
+        } else if (context.containsKey("scopedEpisodeId")) {
+            UUID episode = UUID.fromString(String.valueOf(context.get("scopedEpisodeId")));
+            int draftRevision = ((Number) context.get("scopedExpectedRevision")).intValue();
+            int upstreamRevision = ((Number) context.get("scopedUpstreamRevision")).intValue();
+            Object fingerprintValue = context.get("scopedQualityContextHash");
+            String ruleFingerprint = fingerprintValue instanceof String value ? value : "";
+            if (ruleFingerprint.isBlank()) throw new ResponseStatusException(CONFLICT,
+                    "Episode-scoped creative generation must include a verified first-pass Production Memory fingerprint.");
+            String source = "";
+            if (context.get("currentStage") instanceof Map<?, ?> stageData && stageData.get("summary") != null) {
+                source = String.valueOf(stageData.get("summary"));
+            }
+            String effectiveRequest = message.isBlank()
+                    ? "Create the complete " + stage.toUpperCase() + " artifact from the authoritative locked upstream handoff."
+                    : message;
+            String refreshed = firstPass.prepareForStage(episode, stage.toUpperCase(), stage.toUpperCase(),
+                    effectiveRequest, source).fingerprint();
+            if (!refreshed.equals(ruleFingerprint))
+                throw new ResponseStatusException(CONFLICT,
+                        "Production Memory changed since Preview. Regenerate the zero-token preview before a paid request.");
+            previewPayload = previewAuthorization.episodeCreativePayload(
+                    episode, stage, action, message, draftRevision, upstreamRevision)
+                    + "|RULES=" + ruleFingerprint;
+        } else {
+            String request = message.isBlank()
+                    ? "Generate " + stage + " using the locked upstream context."
+                    : message;
+            previewPayload = previewAuthorization.creativePayload(stage, action, message)
+                    + "|RULES=" + firstPass.prepareForStage(ProductionOverviewService.EPISODE_ID,
+                    stage, stage, request, "").fingerprint();
+        }
         return guardedCall(
                 joinPoint,
                 stage.toUpperCase(),
@@ -121,19 +168,22 @@ public class AiSpendGuardAspect {
             throw new ResponseStatusException(CONFLICT, reason + " Review the validation failure first, then decide whether another model call is worth it.");
         }
 
-        if (!automaticRepair && previewPayload != null && currentRequest() != null) {
-            try {
-                previewAuthorization.consume(currentPreviewToken(), operation, previewPayload);
-            } catch (ResponseStatusException ex) {
-                policyService.recordBlocked(
-                        agentKey,
-                        operation,
-                        model,
-                        requestedOutputTokenLimit,
-                        "Backend preview authorization rejected the paid action before any API request was sent."
-                );
-                throw ex;
-            }
+        if (automaticRepair || previewPayload == null || currentRequest() == null) {
+            String reason = "A verified interactive Director request and a matching one-use preview are required. "
+                    + "Automatic/background paid AI needs separately approved workload authorization.";
+            policyService.recordBlocked(agentKey, operation, model, requestedOutputTokenLimit, reason);
+            throw new ResponseStatusException(
+                    org.springframework.http.HttpStatus.PRECONDITION_REQUIRED, reason);
+        }
+
+        DirectorIdentity.requireDirector();
+        try {
+            previewAuthorization.consume(currentPreviewToken(), operation, previewPayload);
+        } catch (ResponseStatusException ex) {
+            policyService.recordBlocked(
+                    agentKey, operation, model, requestedOutputTokenLimit,
+                    "Backend preview authorization rejected the paid action before any API request was sent.");
+            throw ex;
         }
 
         UUID callId = policyService.beginCall(agentKey, operation, model, requestedOutputTokenLimit);

@@ -8,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.Ordered;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -25,21 +27,36 @@ import java.util.UUID;
  * Autonomous background jobs separately run the same preflight at execution time.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 20)
+// Spring Security must authorize the request before this filter writes an audit record.
+@Order(Ordered.LOWEST_PRECEDENCE - 100)
 public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
+    private static final UUID RENDER_PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final java.util.regex.Pattern FINAL_REMOTION_CALLBACK = java.util.regex.Pattern.compile(
+            "^/api/v1/remotion/(?:renders/worker|gpu-renders)/([0-9a-fA-F-]{36})/(complete|fail|start)$");
+    private static final java.util.regex.Pattern LEGACY_SPLINE_GPU_CALLBACK = java.util.regex.Pattern.compile(
+            "^/api/v1/spline/gpu-renders/([0-9a-fA-F-]{36})/(start|complete|fail)$");
     private final ProductionMemoryService memory;
     private final ObjectMapper mapper;
+    private final JdbcClient jdbc;
 
-    public GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper) {
+    @Autowired
+    public GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper,
+                                         JdbcClient jdbc) {
         this.memory = memory;
         this.mapper = mapper;
+        this.jdbc = jdbc;
+    }
+
+    GlobalCreationPreflightFilter(ProductionMemoryService memory, ObjectMapper mapper) {
+        this(memory, mapper, null);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = apiPath(request);
         if (!path.startsWith("/api/v1/")) return true;
+        if (path.startsWith("/api/v1/auth/")) return true;
         // Telemetry and non-artifact worker progress must not grow the audit table
         // on every poll. The creation request and final render write remain guarded.
         if (path.equals("/api/v1/worker/runner/heartbeat")
@@ -85,30 +102,114 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     }
 
     private UUID episodeFor(HttpServletRequest request) {
+        String path = apiPath(request);
         String raw = request.getHeader("X-MediaOS-Episode-Id");
-        if (raw == null || raw.isBlank()) {
-            if (!memory.hasSingleEpisode()) {
+        UUID headerId = null;
+        if (raw != null && !raw.isBlank()) {
+            try {
+                headerId = UUID.fromString(raw.trim());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID.");
+            }
+        }
+
+        // Worker final callbacks must use their persisted render's episode, not the
+        // old single-episode fallback. A forged episode header cannot override it.
+        java.util.regex.Matcher finalCpu = FINAL_REMOTION_CALLBACK.matcher(path);
+        if (finalCpu.matches()) {
+            if (jdbc == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Worker render episode lookup is unavailable.");
+            }
+            UUID renderId = UUID.fromString(finalCpu.group(1));
+            UUID episodeId = jdbc.sql("""
+                    select episode_id from remotion_render
+                    where id=:render and project_id=:project
+                    """)
+                    .param("render", renderId)
+                    .param("project", RENDER_PROJECT_ID)
+                    .query(UUID.class)
+                    .optional()
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                            "Remotion worker callback requires a stored episode-scoped render."));
+            if (headerId != null && !headerId.equals(episodeId)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Ambiguous episode routing. Explicit episode identity is required when multiple episodes exist.");
+                        "Worker render episode and header disagree.");
+            }
+            return episodeId;
+        }
+
+        java.util.regex.Matcher splineGpu = LEGACY_SPLINE_GPU_CALLBACK.matcher(path);
+        if (splineGpu.matches()) {
+            if (jdbc == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Spline GPU episode lookup is unavailable.");
+            }
+            UUID renderId = UUID.fromString(splineGpu.group(1));
+            boolean legacyShot = jdbc.sql("""
+                    select exists (
+                      select 1 from spline_shot_render r
+                      join production_job p on p.id=r.shot_id and p.project_id=r.project_id
+                      where r.id=:render and r.project_id=:project
+                        and p.task_type='CREATE_RUNTIME_SHOT_V1'
+                    )
+                    """)
+                    .param("render", renderId)
+                    .param("project", RENDER_PROJECT_ID)
+                    .query(Boolean.class).single();
+            if (!legacyShot) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Spline GPU callback is not linked to a verified legacy EP001 render.");
+            }
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Legacy Spline GPU callback cannot target another episode.");
             }
             return ProductionOverviewService.EPISODE_ID;
         }
-        UUID id;
-        try {
-            id = UUID.fromString(raw.trim());
-        } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID.");
+
+        // New episode workspace URLs are the source of identity. Never trust a
+        // conflicting header and never let a missing header fall back to EP001.
+        java.util.regex.Matcher match = java.util.regex.Pattern
+                .compile("^/api/v1/episodes/([^/]+)(?:/.*)?$")
+                .matcher(path);
+        if (match.matches()) {
+            UUID pathId;
+            try {
+                pathId = UUID.fromString(match.group(1));
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid episode ID in URL.");
+            }
+            if (headerId != null && !headerId.equals(pathId)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode ID header and URL disagree.");
+            }
+            return pathId;
         }
-        // Current MediaOS controllers still bind writes to EP001. Refuse a misleading
-        // alternate episode header rather than validating EP002 while writing EP001.
-        if (!ProductionOverviewService.EPISODE_ID.equals(id)) {
+
+        // Creating a new episode is a project-level creation event. EP001 is
+        // only the audit anchor; the new episode is not present in the DB yet.
+        if (path.equals("/api/v1/episodes")) {
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode catalog creation is project-scoped.");
+            return ProductionOverviewService.EPISODE_ID;
+        }
+
+        // Legacy routes still write EP001. Explicitly deny alternate IDs.
+        if (headerId != null) {
+            if (!ProductionOverviewService.EPISODE_ID.equals(headerId))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Legacy route targets EP001; refusing cross-episode write.");
+            return headerId;
+        }
+        if (!memory.hasSingleEpisode()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Episode-scoped creation is not yet supported by this legacy route. Refusing cross-episode write.");
+                    "Ambiguous episode routing. Explicit EP001 identity is required for legacy writes.");
         }
-        return id;
+        return ProductionOverviewService.EPISODE_ID;
     }
 
     static String scopeFor(String path) {
+        if (path.matches("^/api/v1/episodes/[^/]+/stages/(script|scene|research|voice|visual)(?:/.*)?$")) return "ALL";
         if (path.startsWith("/api/v1/voice") || path.startsWith("/api/v1/studio")) return "VOICE";
         if (path.startsWith("/api/v1/visual") || path.startsWith("/api/v1/remotion")
                 || path.startsWith("/api/v1/spline") || path.startsWith("/api/v1/director-visual")) return "VISUAL";

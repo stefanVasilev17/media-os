@@ -410,7 +410,12 @@ export function VisualAgentPage() {
         const shot07Index = importedDirectorVoicePack.ready
           ? directorBundles.findIndex(bundle => bundle.key === 'SHOT 07')
           : -1;
-        setSelectedIndex(shot07Index >= 0 ? shot07Index : firstPending === -1 ? 0 : firstPending);
+        const requestedShot = new URLSearchParams(window.location.hash.split('?', 2)[1] || '').get('shot');
+        const requestedIndex = requestedShot
+          ? directorBundles.findIndex(bundle => bundle.key === requestedShot)
+          : -1;
+        setSelectedIndex(requestedIndex >= 0 ? requestedIndex
+          : shot07Index >= 0 ? shot07Index : firstPending === -1 ? 0 : firstPending);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : 'Could not initialize Visual Agent.');
       } finally {
@@ -867,7 +872,21 @@ export function VisualAgentPage() {
 
   if (loading) return <main className="production-loading"><LoaderCircle className="spin" size={22} /></main>;
   if (!script || !script.artifact || !visual || !currentShot) {
-    return <main className="production-loading"><strong>{error || 'Visual Agent unavailable.'}</strong></main>;
+    const needsScript = error === 'Script must be LOCKED before Visual Agent.';
+    return <main className="media-os-page visual-prerequisite">
+      <button type="button" onClick={() => {
+        window.location.hash = '#/episodes/22222222-2222-2222-2222-222222222222/director';
+      }}>← Director Overview</button>
+      <h1>{needsScript ? 'Script approval required' : 'Visual workspace unavailable'}</h1>
+      <p>{needsScript
+        ? 'The episode Script must be Director-LOCKED before Visual production can begin.'
+        : error || 'Open Director Overview to review the production stages.'}</p>
+      <button type="button" onClick={() => {
+        window.location.hash = needsScript
+          ? '#/agents/script?episodeId=22222222-2222-2222-2222-222222222222'
+          : '#/episodes/22222222-2222-2222-2222-222222222222/director';
+      }}>{needsScript ? 'Open Script Agent' : 'Back to Director'}</button>
+    </main>;
   }
 
   const qaPassed = visual.shots.filter(shot => shot.qaStatus === 'PASS').length;

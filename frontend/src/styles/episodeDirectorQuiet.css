@@ -1,0 +1,110 @@
+.director-quiet { max-width: 1150px; }
+.director-quiet-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 9px 0 50px;
+}
+.director-quiet-topbar button {
+  display: inline-flex; gap: 8px; align-items: center;
+  background: none; border: 0; padding: 9px 0;
+  color: #bdcede; font-size: 16px; font-weight: 550; cursor: pointer;
+}
+.director-quiet-topbar button:hover { color: #fff; }
+.director-quiet-topbar button:disabled { opacity: .45; cursor: not-allowed; }
+.director-quiet-header { margin-bottom: 48px; }
+.director-quiet-header h1 {
+  margin: 0 0 22px;
+  font-size: clamp(29px, 4vw, 43px);
+  letter-spacing: -.035em;
+  font-weight: 680;
+  line-height: 1.22;
+}
+.director-quiet-header p { font-size: 18px; color: #bed0e0; margin: 0; line-height: 1.6; }
+.director-quiet-header p span { padding: 0 12px; }
+.director-quiet-shots h2 { font-size: 25px; font-weight: 650; margin: 0 0 24px; }
+.director-quiet-shot {
+  border-top: 1px solid #34485a;
+  display: grid; grid-template-columns: minmax(210px, 1fr) minmax(450px, 1.12fr);
+  gap: 28px; align-items: center; padding: 26px 0;
+}
+.director-quiet-shot:last-child { border-bottom: 1px solid #34485a; }
+.director-quiet-shot-name { display: flex; flex-direction: column; gap: 8px; }
+.director-quiet-shot-name strong {
+  font-size: 17px; font-weight: 650; color: #8fc1e4;
+}
+.director-quiet-shot-name span { font-size: 19px; font-weight: 600; line-height: 1.45; }
+.director-quiet-shot-actions {
+  display: grid; grid-template-columns: minmax(80px, .6fr) minmax(150px, 1fr) minmax(150px, 1fr);
+  gap: 15px; align-items: center;
+}
+.director-quiet-shot-actions button {
+  color: #e1edf6;
+  font: inherit;
+  font-size: 16px;
+  padding: 14px 4px;
+  min-height: 48px;
+  background: transparent;
+  border: 0; border-bottom: 1px solid transparent;
+  display: flex; justify-content: space-between; gap: 9px; align-items: center;
+  cursor: pointer; text-align: left;
+}
+.director-quiet-shot-actions button:hover,
+.director-quiet-shot-actions button:focus-visible { border-bottom-color: #7dabc8; color: white; }
+.director-status-locked { font-size: 16px; font-weight: 600; color: #7bd3a5; }
+.director-status-pending { font-size: 16px; font-weight: 600; color: #f4b974; }
+.director-quiet-details { margin: 44px 0; max-width: 580px; color: #bbcbdc; font-size: 16px; }
+.director-quiet-details summary { cursor: pointer; padding: 12px 0; font-size: 17px; }
+.director-quiet-details > div {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 0; border-top: 1px solid #34485a;
+}
+.director-quiet-loading { font-size: 17px; color: #bdcede; }
+@media(max-width:920px){
+  .director-quiet-shot { grid-template-columns: 1fr; gap: 14px; }
+  .director-quiet-shot-actions { max-width: 640px; }
+}
+@media(max-width:550px){
+  .director-quiet-topbar { margin-bottom: 27px; }
+  .director-quiet-header { margin-bottom: 30px; }
+  .director-quiet-header p { font-size: 16px; }
+  .director-quiet-shot-actions { grid-template-columns: 60px minmax(0,1fr) minmax(0,1fr); gap: 11px; }
+  .director-quiet-shot-actions button { font-size: 15px; }
+  .director-status-locked,.director-status-pending { font-size: 15px; }
+  .director-quiet-shot-actions button svg { display: none; }
+  .director-quiet-shot-name span { font-size: 18px; }
+}
+
+.director-quiet-header-actions { display:flex;align-items:center;gap:24px; }
+.director-quiet-tools { position:relative;font-size:16px;color:#bdcede; }
+.director-quiet-tools summary { cursor:pointer;padding:9px 0; }
+.director-quiet-tools-menu {
+  position:absolute;right:0;top:100%;z-index:10;min-width:170px;padding:8px 14px;
+  border:1px solid #32485d;border-radius:10px;background:#0d1827;
+  box-shadow:0 12px 30px rgba(0,0,0,.26);
+}
+.director-quiet-tools-menu button { display:block;width:100%;text-align:left;min-height:42px; }
+.director-quiet-shot-actions button:disabled {
+  opacity:.42;cursor:not-allowed;border-bottom-color:transparent;
+}
+@media(max-width:550px) {
+  .director-quiet-shot-actions {
+    grid-template-columns:1fr 1fr;gap:8px 18px;
+  }
+  .director-quiet-shot-actions button:first-child {
+    grid-column:1/-1;justify-content:flex-start;
+    padding:8px 0;min-height:44px;
+  }
+  .director-quiet-shot-actions button:not(:first-child) {
+    min-height:48px;display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid #283d4f;
+  }
+  .director-quiet-header-actions{gap:17px;}
+}
+
+.director-quiet-edit-hint {
+  color: #bdcede;
+  font-size: 16px;
+  line-height: 1.55;
+  margin: -10px 0 25px;
+}

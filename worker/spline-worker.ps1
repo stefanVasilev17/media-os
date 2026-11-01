@@ -668,6 +668,13 @@ $headers = @{
   "X-Worker-Key" = $workerKey
   "X-Worker-Id" = $workerId
 }
+if (-not [string]::IsNullOrWhiteSpace($env:MEDIA_OS_SPLINE_WORKLOAD_TOKEN)) {
+  $headers["X-MediaOS-Workload-Token"] = $env:MEDIA_OS_SPLINE_WORKLOAD_TOKEN.Trim()
+}
+$snapshotHeaders = $headers.Clone()
+if (-not [string]::IsNullOrWhiteSpace($env:MEDIA_OS_SPLINE_SNAPSHOT_WORKLOAD_TOKEN)) {
+  $snapshotHeaders["X-MediaOS-Workload-Token"] = $env:MEDIA_OS_SPLINE_SNAPSHOT_WORKLOAD_TOKEN.Trim()
+}
 
 function Invoke-WorkerPost {
   param(
@@ -731,7 +738,7 @@ while ($true) {
       $snapshot = Capture-SplineWindowSnapshot
       $uploadUri = "$baseUrl/api/v1/worker/spline/snapshot/$($job.id)?width=$($snapshot.Width)&height=$($snapshot.Height)"
 
-      Invoke-WebRequest -Method Post -Uri $uploadUri -Headers $headers -ContentType "image/png" -InFile $snapshot.Path -UseBasicParsing | Out-Null
+      Invoke-WebRequest -Method Post -Uri $uploadUri -Headers $snapshotHeaders -ContentType "image/png" -InFile $snapshot.Path -UseBasicParsing | Out-Null
       $timer.Stop()
 
       Invoke-WorkerPost -Path "/api/v1/worker/spline/jobs/$($job.id)/complete" -Body @{

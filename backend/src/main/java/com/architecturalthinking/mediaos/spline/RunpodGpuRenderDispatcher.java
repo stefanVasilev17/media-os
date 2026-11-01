@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.spline;
 
+import com.architecturalthinking.mediaos.system.GpuWorkloadGrantService;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,14 @@ public class RunpodGpuRenderDispatcher {
     private final String endpointId;
     private final String apiKey;
     private final String publicUrl;
+    @org.springframework.beans.factory.annotation.Value("${mediaos.worker-auth.enabled:false}")
+    private boolean scopedWorkerAuthentication;
+    private GpuWorkloadGrantService gpuGrants;
+
+    @Autowired(required = false)
+    public void setGpuWorkloadGrants(GpuWorkloadGrantService gpuGrants) {
+        this.gpuGrants = gpuGrants;
+    }
 
     public RunpodGpuRenderDispatcher(
             ObjectMapper objectMapper,
@@ -52,11 +62,21 @@ public class RunpodGpuRenderDispatcher {
             );
         }
 
+        GpuWorkloadGrantService.Grant grant = null;
+        boolean accepted = false;
         try {
+            if (scopedWorkerAuthentication) {
+                if (gpuGrants == null) throw new IllegalStateException("Scoped GPU credentials are not configured.");
+                grant = gpuGrants.issue(renderId, "SPLINE_GPU", Duration.ofMinutes(20));
+            }
             Map<String, Object> input = new LinkedHashMap<>();
             input.put("renderId", renderId.toString());
             input.put("callbackToken", callbackToken);
             input.put("backendUrl", publicUrl);
+            if (grant != null) {
+                input.put("workloadToken", grant.token());
+                input.put("workloadWorkerId", grant.workerId());
+            }
 
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("input", input);
@@ -75,8 +95,7 @@ public class RunpodGpuRenderDispatcher {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                String detail = response.body() == null ? "" : response.body().trim();
-                if (detail.length() > 800) detail = detail.substring(0, 800);
+                String detail = "Provider rejected dispatch";
                 throw new IllegalStateException("Runpod rejected the render job: HTTP " + response.statusCode() + " " + detail);
             }
 
@@ -88,6 +107,7 @@ public class RunpodGpuRenderDispatcher {
             if (jobId.isBlank()) {
                 throw new IllegalStateException("Runpod accepted the request without returning a job id.");
             }
+            accepted = true;
             return jobId;
         } catch (ResponseStatusException ex) {
             throw ex;
@@ -99,6 +119,14 @@ public class RunpodGpuRenderDispatcher {
                             : ex.getMessage(),
                     ex
             );
+        } finally {
+            if (!accepted && grant != null && gpuGrants != null) {
+                try {
+                    gpuGrants.revoke(grant.id());
+                } catch (RuntimeException ignored) {
+                    // Do not replace the original dispatch failure or expose tokens in error logs.
+                }
+            }
         }
     }
 }

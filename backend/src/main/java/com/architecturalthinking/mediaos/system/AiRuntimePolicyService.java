@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.system;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
@@ -52,8 +53,26 @@ public class AiRuntimePolicyService {
         );
     }
 
+    private Policy policyForUpdate() {
+        return jdbc.sql("""
+                select paid_ai_enabled, auto_repair_enabled, updated_at
+                from ai_runtime_policy
+                where id = 1
+                for update
+                """)
+                .query((rs, rowNum) -> new Policy(
+                        rs.getBoolean("paid_ai_enabled"),
+                        rs.getBoolean("auto_repair_enabled"),
+                        rs.getObject("updated_at", OffsetDateTime.class)))
+                .optional()
+                .orElseThrow(() -> new ResponseStatusException(
+                        CONFLICT, "AI spending policy is not initialized."));
+    }
+
+    @Transactional
     public Map<String, Object> update(Boolean paidAiEnabled, Boolean autoRepairEnabled) {
-        Policy current = policy();
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
+        Policy current = policyForUpdate();
         boolean nextPaid = paidAiEnabled == null ? current.paidAiEnabled() : paidAiEnabled;
         boolean nextRepair = autoRepairEnabled == null ? current.autoRepairEnabled() : autoRepairEnabled;
         if (!nextPaid) nextRepair = false;
@@ -67,6 +86,22 @@ public class AiRuntimePolicyService {
                 """)
                 .param("paid", nextPaid)
                 .param("repair", nextRepair)
+                .update();
+
+        jdbc.sql("""
+                insert into ai_runtime_policy_change_audit(
+                    id, actor_issuer, actor_subject,
+                    previous_paid_ai_enabled, next_paid_ai_enabled,
+                    previous_auto_repair_enabled, next_auto_repair_enabled)
+                values (:id,:issuer,:subject,:previousPaid,:nextPaid,:previousRepair,:nextRepair)
+                """)
+                .param("id", UUID.randomUUID())
+                .param("issuer", actor.issuer())
+                .param("subject", actor.subject())
+                .param("previousPaid", current.paidAiEnabled())
+                .param("nextPaid", nextPaid)
+                .param("previousRepair", current.autoRepairEnabled())
+                .param("nextRepair", nextRepair)
                 .update();
         return snapshot();
     }

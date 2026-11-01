@@ -50,6 +50,11 @@ function ManualLockedScriptImport({
 
   return (
     <main className="production-page script-import-page">
+      <nav className="script-import-nav" aria-label="Script navigation">
+        <button type="button" onClick={() => {
+          window.location.hash = '#/episodes/' + state.episode.id + '/director';
+        }}>← Director Overview</button>
+      </nav>
       <header className="production-header">
         <div>
           <span>{state.episode.episodeNumber} · SCRIPT AGENT</span>
@@ -62,22 +67,12 @@ function ManualLockedScriptImport({
 
       <section className="manual-script-import-card">
         <div className="manual-script-import-copy">
-          <span>MANUAL FIRST · NO OPENAI CALL</span>
-          <h2>Import the director-approved canonical narration.</h2>
+          <span>MANUAL IMPORT · NO AI CALL</span>
+          <h2>Import the approved Script</h2>
           <p>
-            MediaOS validates episode identity, the full 20-minute contiguous timeline, every narration block,
-            and the FULLY_LOCKED declaration. A successful import creates a Script revision and immediately locks it.
+            MediaOS checks the episode identity, complete 20-minute timeline, narration blocks and FULLY_LOCKED declaration.
+            A valid import creates a new Script revision and locks it.
           </p>
-        </div>
-
-        <div className="manual-script-import-flow">
-          <div><strong>1</strong><span>Choose LOCKED Script JSON</span></div>
-          <i>→</i>
-          <div><strong>2</strong><span>Validate + store revision</span></div>
-          <i>→</i>
-          <div><strong>3</strong><span>Open read-only timeline</span></div>
-          <i>→</i>
-          <div><strong>4</strong><span>Voice Agent becomes ready</span></div>
         </div>
 
         <input
@@ -94,14 +89,11 @@ function ManualLockedScriptImport({
         </button>
       </section>
 
-      <section className="manual-script-openai">
-        <div>
-          <span>ALTERNATIVE INPUT</span>
-          <strong>MediaOS can still create or revise a Script through the OpenAI Responses API.</strong>
-          <p>We are deliberately not using that path for this first EP001 test.</p>
-        </div>
-        <button type="button" onClick={onOpenAiMode}><Bot size={15} /> OpenAI Agent Mode</button>
-      </section>
+      <details className="manual-script-openai">
+        <summary>Alternative: OpenAI Agent Mode</summary>
+        <p>MediaOS can also create or revise a Script with the OpenAI Responses API. This is not the default EP001 import path.</p>
+        <button type="button" onClick={onOpenAiMode}><Bot size={16} /> OpenAI Agent Mode</button>
+      </details>
     </main>
   );
 }

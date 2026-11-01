@@ -1,0 +1,5 @@
+FROM postgres:18
+USER root
+COPY ops/release/ep001-voice-reference-readonly.sh /workspace/check.sh
+RUN chmod 700 /workspace/check.sh
+ENTRYPOINT ["/bin/bash", "/workspace/check.sh"]

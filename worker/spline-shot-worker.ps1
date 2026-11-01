@@ -144,6 +144,9 @@ $headers = @{
   "X-Worker-Key" = $workerKey
   "X-Worker-Id" = $workerId
 }
+if (-not [string]::IsNullOrWhiteSpace($env:MEDIA_OS_SPLINE_SHOT_WORKLOAD_TOKEN)) {
+  $headers["X-MediaOS-Workload-Token"] = $env:MEDIA_OS_SPLINE_SHOT_WORKLOAD_TOKEN.Trim()
+}
 
 function Invoke-WorkerPost {
   param([string]$Path, [object]$Body)

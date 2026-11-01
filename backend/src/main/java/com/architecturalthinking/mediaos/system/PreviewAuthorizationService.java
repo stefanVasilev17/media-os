@@ -29,22 +29,27 @@ public class PreviewAuthorizationService {
 
     @Transactional
     public IssuedAuthorization issue(String operation, String payload) {
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
         UUID token = UUID.randomUUID();
         OffsetDateTime expiresAt = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(TTL_MINUTES);
         jdbc.sql("""
-                insert into ai_preview_authorization(id, operation, payload_hash, status, expires_at)
-                values (:id, :operation, :payloadHash, 'READY', :expiresAt)
+                insert into ai_preview_authorization(
+                    id, operation, payload_hash, status, expires_at, actor_issuer, actor_subject)
+                values (:id, :operation, :payloadHash, 'READY', :expiresAt, :actorIssuer, :actorSubject)
                 """)
                 .param("id", token)
                 .param("operation", normalizeOperation(operation))
                 .param("payloadHash", hash(payload))
                 .param("expiresAt", expiresAt)
+                .param("actorIssuer", actor.issuer())
+                .param("actorSubject", actor.subject())
                 .update();
         return new IssuedAuthorization(token, expiresAt);
     }
 
     @Transactional
     public void consume(String rawToken, String operation, String payload) {
+        DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
         if (rawToken == null || rawToken.isBlank()) {
             throw previewRequired();
         }
@@ -64,12 +69,16 @@ public class PreviewAuthorizationService {
                 where id=:id
                   and operation=:operation
                   and payload_hash=:payloadHash
+                  and actor_issuer=:actorIssuer
+                  and actor_subject=:actorSubject
                   and status='READY'
                   and expires_at > now()
                 """)
                 .param("id", token)
                 .param("operation", normalizedOperation)
                 .param("payloadHash", payloadHash)
+                .param("actorIssuer", actor.issuer())
+                .param("actorSubject", actor.subject())
                 .update();
 
         if (updated == 1) return;
@@ -78,8 +87,11 @@ public class PreviewAuthorizationService {
                 update ai_preview_authorization
                 set status='EXPIRED'
                 where id=:id and status='READY' and expires_at <= now()
+                  and actor_issuer=:actorIssuer and actor_subject=:actorSubject
                 """)
                 .param("id", token)
+                .param("actorIssuer", actor.issuer())
+                .param("actorSubject", actor.subject())
                 .update();
 
         throw new ResponseStatusException(
@@ -95,6 +107,18 @@ public class PreviewAuthorizationService {
     public String creativePayload(String stageKey, String action, String message) {
         String base = normalizeOperation(stageKey) + "|" + normalizeOperation(action);
         return "REVISE".equals(normalizeOperation(action)) ? base + "\n" + clean(message) : base;
+    }
+
+    public String episodeCreativePayload(UUID episodeId, String stageKey, String action,
+                                         String message, int expectedRevision, int upstreamRevision) {
+        if (episodeId == null || expectedRevision < 0 || upstreamRevision < 1)
+            throw new IllegalArgumentException("Scoped AI preview requires an episode, draft revision and locked upstream revision.");
+        return "EPISODE=" + episodeId
+                + "|STAGE=" + normalizeOperation(stageKey)
+                + "|ACTION=" + normalizeOperation(action)
+                + "|DRAFT_REVISION=" + expectedRevision
+                + "|UPSTREAM_REVISION=" + upstreamRevision
+                + "\\n" + clean(message);
     }
 
     public String topicPayload() {

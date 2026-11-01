@@ -1,0 +1,27 @@
+name: MediaOS Episode Director Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/episode-director-frontend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: TypeScript build and episode route tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript and Vite build
+        run: npm run build
+      - name: Episode route unit tests
+        run: npm test
