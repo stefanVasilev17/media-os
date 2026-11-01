@@ -33,7 +33,7 @@ public class DirectorSecurityConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("!${mediaos.director-security.enabled:false} && !${mediaos.local-auth.enabled:false}")
+    @ConditionalOnExpression("!${mediaos.director-security.enabled:false} && !${mediaos.local-auth.enabled:false} && !${mediaos.google-auth.enabled:false}")
     SecurityFilterChain lockedWithoutIdentity(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

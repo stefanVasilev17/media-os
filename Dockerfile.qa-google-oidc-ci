@@ -1,0 +1,33 @@
+FROM node:22 AS frontend
+WORKDIR /frontend
+COPY frontend/package.json ./package.json
+RUN npm install --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build && npm test && printf 'GOOGLE_FRONTEND_BUILD_AND_TESTS=PASS\n' > /frontend-ok
+
+FROM postgres:18 AS java
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /workspace/backend
+RUN apt-get update && apt-get install -y --no-install-recommends openjdk-21-jdk-headless maven && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+COPY --from=frontend /frontend-ok /frontend-ok
+ENV MAVEN_OPTS="-Xmx512m"
+RUN set -eu; \
+    mkdir -p /tmp/pg-google; \
+    chown postgres:postgres /tmp/pg-google; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D /tmp/pg-google -A trust >/dev/null; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/pg_ctl -D /tmp/pg-google -o "-h 127.0.0.1 -p 5432" -w start >/dev/null; \
+    runuser -u postgres -- psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -h 127.0.0.1 -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+    mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m test > /tmp/google-ci.log 2>&1 \
+    || { echo GOOGLE_JAVA_TESTS=FAIL; tail -180 /tmp/google-ci.log; exit 1; }; \
+    grep 'Tests run:' /tmp/google-ci.log | tail -1; \
+    echo GOOGLE_JAVA_TESTS=PASS
+
+FROM alpine:3.20
+COPY --from=frontend /frontend-ok /frontend-ok
+COPY --from=java /frontend-ok /qa-frontend-ok
+CMD ["sh", "-c", "echo GOOGLE_OIDC_BUILD_VERIFICATION_ONLY; sleep 15"]

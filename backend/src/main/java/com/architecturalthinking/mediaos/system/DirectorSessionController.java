@@ -23,7 +23,10 @@ public final class DirectorSessionController {
         boolean jwtValid = authentication instanceof JwtAuthenticationToken jwt
                 && jwt.isAuthenticated() && jwt.getToken().getIssuer() != null
                 && jwt.getToken().getSubject() != null;
-        if (!local && !jwtValid) {
+        boolean google = authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken oauth
+                && oauth.isAuthenticated()
+                && oauth.getPrincipal() instanceof org.springframework.security.oauth2.core.oidc.user.OidcUser;
+        if (!local && !jwtValid && !google) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "An authenticated project session is required.");
         }
 
