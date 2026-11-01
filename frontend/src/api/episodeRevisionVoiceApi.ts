@@ -19,6 +19,7 @@ export type EpisodeRevisionVoice = {
   canGenerate: boolean;
   blockedReason?: string | null;
   configured: boolean;
+  ep001VoiceIdentityVerified?: boolean;
   takes: EpisodeVoiceTake[];
   voiceApproved: boolean;
   voiceModel: string;
