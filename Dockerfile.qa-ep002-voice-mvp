@@ -3,7 +3,7 @@ WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund
 COPY frontend/ ./
-RUN npm run build && npx vite build --config vite.voice.config.ts
+RUN npm run build && npm test && npx vite build --config vite.voice.config.ts
 RUN mv dist-voice/voice.html dist-voice/index.html
 RUN test -s dist-voice/index.html
 RUN ! find dist-voice/assets -maxdepth 1 \( -iname '*SplineWorkspace*' -o -iname '*ShotRenderPage*' \) | grep -q .
