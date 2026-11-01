@@ -1,6 +1,6 @@
-export function createWorkerTokenTransport(primaryToken, rotatedToken) {
+export function createWorkerTokenTransport(primaryToken, rotatedToken, nextTokenProvider = null) {
   let activeToken = String(primaryToken || '').trim();
-  const nextToken = String(rotatedToken || '').trim();
+  const stagedToken = String(rotatedToken || '').trim();
 
   return {
     scopedHeaders() {
@@ -11,9 +11,16 @@ export function createWorkerTokenTransport(primaryToken, rotatedToken) {
 
     async request(url, options, fetchImpl = fetch) {
       const first = await fetchImpl(url, options);
-      if (first.status !== 401 || !activeToken || !nextToken
-          || nextToken === activeToken
+      if (first.status !== 401 || !activeToken
           || options?.headers?.['X-MediaOS-Workload-Token'] !== activeToken) {
+        return first;
+      }
+      const provided = typeof nextTokenProvider === 'function'
+        ? String(await nextTokenProvider() || '').trim()
+        : '';
+      const nextToken = provided || stagedToken;
+      if (!nextToken || nextToken === activeToken
+          || !/^[A-Za-z0-9_-]{43,128}$/.test(nextToken)) {
         return first;
       }
 
