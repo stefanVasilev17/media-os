@@ -67,6 +67,7 @@ public class LocalDirectorSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
+                                "/api/v1/creative/episodes/EP002/shots/{shotKey}/align-existing-take",
                                 "/api/v1/episodes",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/director-lock",
