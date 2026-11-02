@@ -60,6 +60,19 @@ export const remotionSceneContractSchema=z.object({
   if(contract.beats.some((beat,index)=>beat.number!==index+1)){
     ctx.addIssue({code:'custom',message:'Approved beat ordering must be consecutive',path:['beats']});
   }
+  const audioAligned=contract.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS';
+  if(audioAligned && (contract.readiness.cueAlignmentRequired
+      || contract.beats.some((beat,index)=>beat.cueStatus!=='AUDIO_ALIGNED'
+        || beat.startFrame===null || beat.endFrame===null
+        || beat.endFrame<=beat.startFrame
+        || (index>0 && beat.startFrame<=Number(contract.beats[index-1].startFrame))))) {
+    ctx.addIssue({code:'custom',message:'Voice-aligned beats must have measured ordered frames',path:['beats']});
+  }
+  if(!audioAligned && (contract.beats.some(beat=>beat.cueStatus!=='EDITORIAL_ONLY_UNALIGNED'
+        || beat.startFrame!==null || beat.endFrame!==null)
+      || !contract.readiness.cueAlignmentRequired)) {
+    ctx.addIssue({code:'custom',message:'Unaligned beats cannot have invented audio frame positions',path:['beats']});
+  }
   if(contract.inputs.preferredTakeId===null && contract.readiness.status==='READY_FOR_CODE_GENERATION'){
     ctx.addIssue({code:'custom',message:'Voice take required before code generation',path:['readiness']});
   }
