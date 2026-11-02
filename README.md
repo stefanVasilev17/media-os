@@ -1,17 +1,24 @@
-# Media OS
+# MediaOS — Architectural Thinking
 
-Director-first production operating system for **Architectural Thinking**.
+**Director-first, agent-executed AI video production operating system.**
 
-## v0.1 goal
+## Canonical product direction
 
-From an iPhone, the creator can open EP001, chat with the Spline Agent, review a proposal, approve or request changes, and persist the decision. Spline execution is mocked in the first vertical slice; the production-worker contract is already modeled so the real Windows + Spline MCP worker can replace it without redesigning the product flow.
+**[Director-LOCKED MediaOS Roadmap v1 — 2026-11-02](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md)** is the current product roadmap, technical scope and agent planning authority. It supersedes older README statements about the target production tools. Historical episode files remain available for audit and source provenance.
 
-## Stack
+Director submits ideas, edits script and HEAR → SEE, chooses voice takes and reviews previews. Agents program and revise Remotion scenes, validate the code, render affected SHOTs and automatically assemble video with chosen audio. The planned **AI Director Revision Loop** accepts precise change feedback and returns a targeted new preview while reusing unchanged assets and renders.
 
-- Frontend: React + TypeScript + Vite, mobile-first PWA
-- Backend: Java 21 + Spring Boot + PostgreSQL + Flyway
-- Production execution: separate Windows worker (later Spline MCP / DaVinci)
-- Deployment: Docker-first
+**Creative editing is always open:** Edit → Save → optional, separately confirmed Generate/Regenerate. Earlier script versions and takes are preserved. Production creative content is not forced through repeated LOCK/UNLOCK.
+
+## Technology
+
+- **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
+- **Backend:** Java 21, Spring Boot, PostgreSQL, Flyway.
+- **Voice:** existing ElevenLabs integration with Director-selected take and versioned narration.
+- **Visual production:** GitHub-managed React/Remotion components; CPU Render Worker; fully programmatic scene creation, audio sync and assembly.
+- **Deployment:** Railway / Docker, with controlled changes and QA.
+
+**Do not treat planned automatic scene generation, revision loop or universal episode assembly as implemented until end-to-end evidence exists.** EP001 assets are protected; EP002 original approved editorial sources are preserved separately from editable drafts.
 
 ## Local development
 
@@ -19,8 +26,8 @@ From an iPhone, the creator can open EP001, chat with the Spline Agent, review a
 2. Backend: `cd backend && ./mvnw spring-boot:run` (or `mvn spring-boot:run`)
 3. Frontend: `cd frontend && npm install && npm run dev`
 
-Frontend defaults to `http://localhost:5173`; backend to `http://localhost:8080`.
+Frontend defaults to http://localhost:5173; backend to http://localhost:8080.
 
-## Product rule
+## Core rule
 
-**Creator-directed, agent-executed.** The creator defines intent, reviews, corrects and approves. Every correction becomes production knowledge.
+**Creator-directed, agent-executed.** The Director defines intent, reviews, corrects and approves. Every correction becomes versioned production knowledge. Automated production must be safe, auditable, reversible and scoped to affected SHOTs.
