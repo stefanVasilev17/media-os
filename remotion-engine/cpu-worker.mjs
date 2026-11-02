@@ -486,6 +486,48 @@ async function addShot10V6SoundDesign(job, outputPath, inputProps) {
   }
 }
 
+async function muxEp002SelectedVoice(job, videoPath, inputProps) {
+  if (job.compositionId !== 'EP002-SHOT01-DRAFT') return;
+  const takeId = String(inputProps.voiceTakeId || '');
+  const revision = Number(inputProps.scriptRevision);
+  if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(takeId)
+      || !Number.isInteger(revision) || revision < 1
+      || Number(job.fps) !== 30) {
+    throw new Error('EP002 render does not have a valid saved voice take and script revision.');
+  }
+  await leaseClient.refresh();
+  const voice = await workloadTokens.request(
+    `${BACKEND_URL}/api/v1/remotion/renders/worker/${job.renderId}/ep002-selected-voice`, {
+      method: 'GET', headers: headers(),
+    },
+  );
+  if (!voice.ok) {
+    const details = await voice.text();
+    throw new Error('Worker-owned EP002 selected voice is unavailable: '
+      +voice.status+' '+details.slice(0,400));
+  }
+  const audioBytes = Buffer.from(await voice.arrayBuffer());
+  if(audioBytes.length < 512 || audioBytes.length > 24*1024*1024)
+    throw new Error('EP002 selected voice is empty or larger than 24 MB.');
+  const audioPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}.mp3`);
+  const muxPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}-mux.mp4`);
+  try {
+    await fs.writeFile(audioPath,audioBytes);
+    await runProcess('ffmpeg',[
+      '-hide_banner','-loglevel','error','-xerror',
+      '-i',videoPath,'-i',audioPath,
+      '-map','0:v:0','-map','1:a:0',
+      '-c:v','copy','-c:a','aac','-b:a','192k','-ar','48000',
+      '-t',String(job.durationInFrames/job.fps),
+      '-movflags','+faststart','-y',muxPath,
+    ]);
+    await fs.rename(muxPath,videoPath);
+  } finally {
+    await fs.rm(audioPath,{force:true}).catch(()=>undefined);
+    await fs.rm(muxPath,{force:true}).catch(()=>undefined);
+  }
+}
+
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
@@ -574,6 +616,9 @@ async function render(job) {
 
     if (job.compositionId === 'EP001-Shot10-SessionCreationShortV6') {
       await addShot10V6SoundDesign(job, outputPath, inputProps);
+    }
+    if (job.compositionId === 'EP002-SHOT01-DRAFT') {
+      await muxEp002SelectedVoice(job, outputPath, inputProps);
     }
     heartbeatProgress = 97;
     await progress(job.renderId, 97);
