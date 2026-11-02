@@ -1,5 +1,21 @@
 # MediaOS — EP002 Align Existing Take: Code Handoff and Release Gate
 
+## Release update — 2026-11-02: DEPLOYED / DIRECTOR ACTION PENDING
+
+This section **supersedes the earlier build-blocked snapshot below**. Keep the original failure history for audit.
+
+- Java 21 compiler error identified: `ElevenLabsForcedAlignmentService.alignSavedAudio` rethrew a broad checked `Exception` from a catch block while the method declared no checked exception. Reproduced with Java 21 `javac`, fixed using pattern-based narrowing for the two unchecked exception classes.
+- Source fix: [PR #148](https://github.com/stefanVasilev17/media-os/pull/148), merged commit `1a8657531521d6b53e84e6754782c7ad646d6e9f`.
+- Controlled Railway backend deployment **`33c8f4d1-0f33-43c2-b087-24fd5f768947` SUCCESS** on that exact commit.
+- Frontend `tsc --noEmit && vite build` PASS. Maven `BUILD SUCCESS`, **280 tests, 0 failures, 0 errors, 37 skipped** (243 non-skipped).
+- Flyway **V110 successfully applied** to PostgreSQL production: migration output explicitly says `Successfully applied 1 migration ... now at version v110`. Spring Boot `Started MediaOsApplication`.
+- Backend **Online / SUCCESS** and Remotion Worker **Online / SUCCESS**, zero warning/critical Railway issues at last status check.
+- **No ElevenLabs paid call made.** The code, endpoint and UI are deployed but the authenticated Director has not yet used the button or approved a paid alignment request. A real aligned SHOT01 MP4 with the existing preferred take has not yet been verified. **Roadmap Stage 3 still requires selected-voice render and Director QA.**
+- Next: Director opens `https://media-os-backend-production.up.railway.app/#/library/EP002`, selects SHOT01 and checks the preferred take panel. If alignment is missing, **Align Existing Take** prompts for explicit paid confirmation. User decides whether to pay. Afterwards verify five speech cue anchors, Remotion frames and an actual MP4 preview. Do not trigger paid requests without a separate explicit Director click.
+
+---
+
+
 **Date:** 2026-11-02 (Europe/Sofia)
 **Status:** **Implemented and merged, but NOT deployed or verified.** The first Railway backend build failed during Java compilation. Production remains on previously successful release; no paid ElevenLabs request was made.
 
