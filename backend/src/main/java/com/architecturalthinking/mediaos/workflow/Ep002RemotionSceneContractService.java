@@ -18,7 +18,7 @@ public class Ep002RemotionSceneContractService {
     public enum CameraIntent { CLOSE_PHONE, HOLD_PHONE, FOCUS_AUTH, RACK_FOCUS_PHONE, PREPARE_REWIND }
     public enum Operation { PHONE_PRESS, SPINNER_WAIT, SHOW_TIME_RAIL, HEALTH_PULSE, SHOW_SHALLOW_PROBES,
         EMPHASIZE_UNRESOLVED_WAIT, RETRACT_TIME_RAIL, SHOW_NINE_OCLOCK_MARKER }
-    public enum CueStatus { EDITORIAL_ONLY_UNALIGNED }
+    public enum CueStatus { EDITORIAL_ONLY_UNALIGNED, AUDIO_ALIGNED }
 
     public record Asset(String key,AssetUsage usage,AssetResolution resolution) {}
     public record Beat(int number,String approvedDirection,String cueAnchor,CueStatus cueStatus,
@@ -102,6 +102,12 @@ public class Ep002RemotionSceneContractService {
         Object rawBeats=visual.get("beats");
         if (!(rawBeats instanceof JsonNode approved) || !approved.isArray() || approved.size()!=5)
             throw new IllegalArgumentException("SHOT01 must contain the five approved visual beats.");
+        List<Ep002VoiceCueTiming.TimedBeat> audioCues=List.of();
+        if (voice.get("cueTimings") instanceof List<?> rawCues && rawCues.size()==5
+                && rawCues.stream().allMatch(x->x instanceof Ep002VoiceCueTiming.TimedBeat)) {
+            audioCues=rawCues.stream().map(x->(Ep002VoiceCueTiming.TimedBeat)x).toList();
+        }
+        boolean aligned=audioCues.size()==5;
         List<Beat> beats=new ArrayList<>();
         for (int i=0;i<5;i++) {
             JsonNode beat=approved.path(i);
@@ -110,8 +116,16 @@ public class Ep002RemotionSceneContractService {
                     || !direction.contains(CUES.get(i))) {
                 throw new IllegalArgumentException("Approved SHOT01 visual beat or cue changed: "+(i+1));
             }
-            beats.add(new Beat(i+1,direction,CUES.get(i),CueStatus.EDITORIAL_ONLY_UNALIGNED,
-                    CAMERAS.get(i),ACTIONS.get(i),BEAT_ASSETS.get(i),null,null));
+            Ep002VoiceCueTiming.TimedBeat cue=aligned?audioCues.get(i):null;
+            if(cue!=null && (cue.number()!=i+1 || cue.startFrame()<0
+                    || cue.endFrame()<=cue.startFrame()
+                    || (i>0 && cue.startFrame()<=audioCues.get(i-1).startFrame()))) {
+                throw new IllegalArgumentException("ElevenLabs beat timing is invalid.");
+            }
+            beats.add(new Beat(i+1,direction,CUES.get(i),
+                    aligned?CueStatus.AUDIO_ALIGNED:CueStatus.EDITORIAL_ONLY_UNALIGNED,
+                    CAMERAS.get(i),ACTIONS.get(i),BEAT_ASSETS.get(i),
+                    cue==null?null:cue.startFrame(),cue==null?null:cue.endFrame()));
         }
         if (!(script.get("sha256") instanceof String hash) || !hash.matches("[a-f0-9]{64}")
                 || !(script.get("revision") instanceof Number revision) || revision.intValue()<0)
@@ -161,15 +175,16 @@ public class Ep002RemotionSceneContractService {
         Inputs inputs=new Inputs(revision.intValue(),hash,takeId,(String)voice.get("audioUrl"),
                 measured,(String)visual.get("sourceGitBlobSha"),dependencyHash);
         Readiness readiness=new Readiness(blockers.isEmpty()?"READY_FOR_CODE_GENERATION":"BLOCKED",
-                List.copyOf(blockers),true,false);
+                List.copyOf(blockers),!aligned,false);
         String contractId=Ep002ProductionContractService.sha256(String.join("\n",
                 "REMOTION_SCENE_V1","EP002","SHOT01",
                 hash, String.valueOf(revision.intValue()),String.valueOf(takeId),
-                String.valueOf(dependencyHash),"5c43c7fd3bd66b5899f0956a9cfd80bdead834f1"));
+                String.valueOf(dependencyHash),"5c43c7fd3bd66b5899f0956a9cfd80bdead834f1",
+                aligned?audioCues.stream().map(x->x.startFrame()+":"+x.endFrame()).reduce("",(a,b)->a+"|"+b):"UNALIGNED"));
         return new SceneContract("REMOTION_SCENE_V1","EP002","SHOT01",contractId,
                 "REVIEWED_SOURCE_CHANGES_ONLY_NO_AUTO_EXECUTION",video,inputs,
                 ASSETS,List.copyOf(beats),(String)visual.get("cameraDirection"),
                 (String)visual.get("truthContinuity"),(String)visual.get("transition"),
-                "EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",readiness);
+                aligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",readiness);
     }
 }
