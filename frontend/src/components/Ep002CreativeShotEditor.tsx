@@ -25,7 +25,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
   const audioRefs=useRef<Record<string,HTMLAudioElement|null>>({});
-  const isDirty=Boolean(state) && (text !== (state?.narration??shot.englishNarration)
+  const isDirty=Boolean(state) && (state?.revision===0 || text !== (state?.narration??shot.englishNarration)
       || direction !== (state?.voiceDirection??shot.voiceDirection));
   const currentTakes=state?.takes.filter(t=>t.revision===state.revision)??[];
   const generateLabel=currentTakes.length?'Regenerate':'Generate';
@@ -95,7 +95,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
 
   async function approve(takeId:string){
     if(!state||busy||isDirty)return;
-    if(!window.confirm('Mark this take as preferred for version '+state.revision+
+    if(!window.confirm('Select this take as preferred for version '+state.revision+
        '? You can still edit the script and create a newer version at any time.'))return;
     setBusy(true);setError('');
     try{
@@ -178,7 +178,8 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
         className={'library-voice-take'+(take.approvedAt?' approved':'')}>
         <div className="library-voice-take-info">
           <strong>Take {take.takeNumber} · text v{take.revision}</strong>
-          {take.approvedAt&&<span><CheckCircle2 size={15}/> APPROVED</span>}
+          {take.id===state.preferredTakeId&&<span><CheckCircle2 size={15}/> PREFERRED</span>}
+          {take.approvedAt&&take.id!==state.preferredTakeId&&<span>Previously selected</span>}
           {take.revision!==state.revision&&<span>Earlier version</span>}
         </div>
         <audio preload="none" ref={audio=>{audioRefs.current[take.id]=audio;}}
@@ -189,7 +190,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
             onClick={()=>void play(take.id)}>
             {playing===take.id?<><Pause size={16}/> Stop record</>:<><Play size={16}/> Start record</>}
           </button>
-          {!state.voiceApproved && take.revision===state.revision &&
+          {take.id!==state.preferredTakeId && take.revision===state.revision &&
             <button type="button" className="library-voice-button secondary" disabled={busy||isDirty}
               onClick={()=>void approve(take.id)}>Use this take</button>}
         </div>
