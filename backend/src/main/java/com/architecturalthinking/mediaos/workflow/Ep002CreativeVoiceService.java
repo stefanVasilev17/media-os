@@ -97,9 +97,13 @@ public class Ep002CreativeVoiceService {
                 select exists(select 1 from ep002_creative_voice_request
                     where shot_key=:shot and status in ('IN_FLIGHT','UNCERTAIN'))
                 """).param("shot",shot).query(Boolean.class).single();
-        boolean currentApproved=current!=null && takes.stream().anyMatch(t->
-                ((Number)t.get("revision")).intValue()==current.revision()
-                        && t.get("approvedAt")!=null);
+        String preferredTakeId=current==null?null:jdbc.sql("""
+                select take_id::text from ep002_creative_voice_choice
+                where shot_key=:shot and revision=:revision
+                order by selected_at desc,id desc limit 1
+                """).param("shot",shot).param("revision",current.revision())
+                .query(String.class).optional().orElse(null);
+        boolean currentApproved=preferredTakeId!=null;
         boolean hasCurrentTake=current!=null && takes.stream().anyMatch(t->
                 ((Number)t.get("revision")).intValue()==current.revision());
         Ep002VoiceIdentityGuard.Check continuity=identity.inspect("EP002");
@@ -117,6 +121,7 @@ public class Ep002CreativeVoiceService {
         result.put("takes",takes);
         result.put("hasCurrentTake",hasCurrentTake);
         result.put("voiceApproved",currentApproved);
+        result.put("preferredTakeId",preferredTakeId);
         result.put("canGenerate",blocker==null);
         result.put("blockedReason",blocker);
         result.put("generationStatus",paidStatus);
@@ -231,21 +236,29 @@ public class Ep002CreativeVoiceService {
         Script current=latest(shot);
         if (current==null || current.revision()!=revision)
             throw new ResponseStatusException(HttpStatus.CONFLICT,"This recording belongs to an older text version.");
-        Boolean already=jdbc.sql("""
+        Boolean exists=jdbc.sql("""
                 select exists(select 1 from ep002_creative_voice_take
-                    where shot_key=:shot and revision=:revision and approved_at is not null)
-                """).param("shot",shot).param("revision",revision).query(Boolean.class).single();
-        if (already) throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "This version already has an approved take. Save a new script revision to change it.");
+                    where id=:id and shot_key=:shot and revision=:revision)
+                """).param("id",takeId).param("shot",shot).param("revision",revision)
+                .query(Boolean.class).single();
+        if (!exists) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "The selected take does not belong to the current text version.");
         var actor=DirectorIdentity.requireDirector();
-        int updated=jdbc.sql("""
+        jdbc.sql("""
                 update ep002_creative_voice_take
-                set approved_at=now(),approved_actor_issuer=:issuer,approved_actor_subject=:subject
-                where id=:id and shot_key=:shot and revision=:revision and approved_at is null
+                set approved_at=coalesce(approved_at,now()),
+                    approved_actor_issuer=coalesce(approved_actor_issuer,:issuer),
+                    approved_actor_subject=coalesce(approved_actor_subject,:subject)
+                where id=:id and shot_key=:shot and revision=:revision
                 """).param("id",takeId).param("shot",shot).param("revision",revision)
                 .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
-        if (updated!=1) throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "The selected take does not belong to the current version.");
+        jdbc.sql("""
+                insert into ep002_creative_voice_choice
+                  (id,shot_key,revision,take_id,actor_issuer,actor_subject)
+                values (:id,:shot,:revision,:take,:issuer,:subject)
+                """).param("id",UUID.randomUUID()).param("shot",shot)
+                .param("revision",revision).param("take",takeId)
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
         return state(shot);
     }
 
