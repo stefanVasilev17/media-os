@@ -39,7 +39,7 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
     return()=>{active=false;if(interval)clearInterval(interval);};
   },[refreshToken,refresh]);
 
-  const canPreview=scene?.inputs.preferredTakeId!==null
+  const canPreview=!!scene && scene.inputs.preferredTakeId!==null
     && scene?.inputs.measuredDurationSeconds!==null
     && scene?.video.durationInFrames!==null
     && !scene?.readiness.blockers.some(b=>b!=='NARRATION_CUE_REVIEW_REQUIRED');
