@@ -143,13 +143,13 @@ public class Ep002RemotionSceneContractService {
 
         String dependencyHash=(String)dependency.get("dependencySha256");
         if (takeId!=null) {
-            java.util.UUID preferred;
-            try { preferred=java.util.UUID.fromString(takeId); }
+            java.util.UUID preferredUuid;
+            try { preferredUuid=java.util.UUID.fromString(takeId); }
             catch (IllegalArgumentException problem) {
                 throw new IllegalArgumentException("Preferred voice identifier is invalid.",problem);
             }
             if (revision.intValue()<1 || !Ep002ProductionContractService.fingerprint(
-                    "EP002","SHOT01",revision.intValue(),hash,preferred,
+                    "EP002","SHOT01",revision.intValue(),hash,preferredUuid,
                     Ep002ProductionContractService.VISUAL_SHA).equals(dependencyHash))
                 throw new IllegalArgumentException("Stale or mismatched production dependency fingerprint.");
         }
