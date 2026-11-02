@@ -1,6 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {nativeShotKey,voiceGenerationBlocker} from './ep002VoiceReadiness';
 import type {EpisodeRevisionVoice} from '../api/episodeRevisionVoiceApi';
+import {shotVoiceStatus} from '../components/Ep002VoiceActions';
 
 const shot = {shotKey:'SHOT01',englishNarration:'Approved exact narration'};
 function voice(patch: Partial<EpisodeRevisionVoice> = {}): EpisodeRevisionVoice {
@@ -30,5 +31,24 @@ describe('EP002 paid voice readiness',()=>{
     expect(voiceGenerationBlocker(voice({canGenerate:false}),shot)).toMatch(/not authorized/);
     expect(voiceGenerationBlocker(voice({voiceApproved:true}),shot)).toMatch(/already Director-approved/);
     expect(voiceGenerationBlocker(voice({blockedReason:'Original Visual Plan not locked'}),shot)).toBe('Original Visual Plan not locked');
+  });
+});
+
+describe('inline voice card state and green LOCK border',()=>{
+  const take=(n:number, approvedAt:string|null)=>({
+    id:'take-'+n,takeNumber:n,contentType:'audio/mpeg',fileName:'take'+n+'.mp3',
+    modelId:'model',voiceId:'voice',generatedAt:'2026-11-02T08:00:00Z',approvedAt
+  });
+  it('keeps pending records non-green',()=>{
+    expect(shotVoiceStatus(voice())).toBe('pending');
+    expect(shotVoiceStatus(voice({takes:[take(1,null)]}))).toBe('generated');
+  });
+  it('shows green only after a voice take is Director-LOCKED',()=>{
+    expect(shotVoiceStatus(voice({takes:[take(1,'2026-11-02T08:01:00Z')],voiceApproved:true}))).toBe('locked');
+  });
+  it('allows regeneration for a generated but unapproved take when backend permits',()=>{
+    expect(voiceGenerationBlocker(voice({takes:[take(1,null)]}),shot)).toBeNull();
+    expect(voiceGenerationBlocker(voice({takes:[take(1,'2026-11-02T08:01:00Z')],voiceApproved:true,canGenerate:false}),shot))
+      .toMatch(/already Director-approved/);
   });
 });
