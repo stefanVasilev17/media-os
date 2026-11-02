@@ -13,13 +13,15 @@ export type Ep002ProductionContract={
     preferredTakeId:string|null;takeNumber:number|null;sourceScriptRevision:number|null;
     modelId:string|null;voiceId:string|null;audioUrl:string|null;
     durationSeconds:number|null;
+    cueTimings:Array<{number:number;anchor:string;startSeconds:number;endSeconds:number;startFrame:number;endFrame:number}>;
+    alignmentAuthority:'NOT_AVAILABLE'|'ELEVENLABS_CHARACTER_TIMESTAMPS';
     durationAuthority:'NO_PREFERRED_TAKE'|'MEASUREMENT_UNAVAILABLE'|'FFPROBE_MEASURED';
     status:'NO_PREFERRED_TAKE'|'PREFERRED_TAKE_SELECTED';
   };
   visual:{
     version:string;sourceGitBlobSha:string;approval:string;
     editorialWindow:string;editorialDurationSeconds:number;
-    beatTimingAuthority:'EDITORIAL_ONLY_NOT_AUDIO_ALIGNED';
+    beatTimingAuthority:'EDITORIAL_ONLY_NOT_AUDIO_ALIGNED'|'ELEVENLABS_CHARACTER_TIMESTAMPS';
     cueReviewStatus:'SOURCE_TEXT_UNCHANGED'|'REVIEW_AFTER_NARRATION_EDIT';
     beats:Array<{number:number;direction:string}>;
     visualGoal:string;cameraDirection:string;assetDirection:string;
