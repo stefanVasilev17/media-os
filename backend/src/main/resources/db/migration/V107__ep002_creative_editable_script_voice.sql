@@ -29,8 +29,20 @@ create table ep002_creative_voice_take (
         references ep002_creative_script_revision(shot_key,revision)
 );
 
-create unique index ep002_creative_single_approved_take_per_revision
-on ep002_creative_voice_take(shot_key,revision) where approved_at is not null;
+create table ep002_creative_voice_choice (
+    id uuid primary key,
+    shot_key varchar(16) not null,
+    revision integer not null,
+    take_id uuid not null references ep002_creative_voice_take(id),
+    actor_issuer text not null,
+    actor_subject text not null,
+    selected_at timestamptz not null default now(),
+    foreign key (shot_key,revision)
+        references ep002_creative_script_revision(shot_key,revision)
+);
+
+create index ep002_creative_voice_choice_latest
+on ep002_creative_voice_choice(shot_key,revision,selected_at desc);
 
 create table ep002_creative_voice_request (
     request_id uuid primary key,
