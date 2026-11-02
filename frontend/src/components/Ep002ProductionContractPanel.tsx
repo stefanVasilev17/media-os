@@ -57,6 +57,20 @@ export function Ep002ProductionContractPanel({shotKey,refreshToken}:{
             <small>Approved Visual Pass {contract.visual.version}</small>
           </div>
         </div>
+        <p className="library-production-sync">
+          <Clock3 size={16}/>
+          <strong>Voice → Visual timing:</strong>
+          {contract.voice.alignmentAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+            ? 'Five source-matched cues have real ElevenLabs timestamps.'
+            : 'Precise cue timestamps were not stored for this selected take; visual motion remains provisional.'}
+        </p>
+        {contract.voice.cueTimings.length===5&&
+          <ol className="library-production-beats">
+            {contract.voice.cueTimings.map(cue=><li key={cue.number}>
+              <strong>{cue.anchor}</strong> — {cue.startSeconds.toFixed(2)}s to {cue.endSeconds.toFixed(2)}s
+              {' '}· Frames {cue.startFrame}–{cue.endFrame}
+            </li>)}
+          </ol>}
         {contract.voice.durationSeconds!==null&&
           <p className="library-production-sync"><Clock3 size={16}/> Audio vs. editorial slot:
             <strong>{(contract.voice.durationSeconds-contract.visual.editorialDurationSeconds)>=0?'+':''}
