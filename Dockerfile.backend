@@ -12,7 +12,8 @@ RUN mvn -q -B dependency:go-offline
 COPY backend/src ./src
 COPY --from=frontend-build /frontend/dist ./src/main/resources/static
 RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > src/main/resources/media-os-build-time.txt
-RUN mvn -B package
+RUN (mvn -B package > /tmp/mediaos-build.log 2>&1 || (tail -n 200 /tmp/mediaos-build.log && exit 1)) \
+  && grep -E 'Tests run: [0-9]+,|BUILD SUCCESS' /tmp/mediaos-build.log | tail -n 8
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
