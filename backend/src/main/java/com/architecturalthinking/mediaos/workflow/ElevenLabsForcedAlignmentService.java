@@ -77,8 +77,8 @@ public class ElevenLabsForcedAlignmentService {
                 throw new IllegalStateException("ElevenLabs returned empty forced-alignment data.");
             return objectMapper.readValue(response,new TypeReference<LinkedHashMap<String,Object>>() {});
         } catch (Exception cause) {
-            if(cause instanceof IllegalArgumentException || cause instanceof IllegalStateException)
-                throw cause;
+            if (cause instanceof IllegalArgumentException argument) throw argument;
+            if (cause instanceof IllegalStateException state) throw state;
             throw new IllegalStateException("ElevenLabs forced alignment failed.",cause);
         }
     }
