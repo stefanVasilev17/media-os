@@ -103,8 +103,10 @@ public class Ep002Shot01PreviewController {
                 join remotion_render r on r.id=lineage.remotion_render_id
                 where lineage.episode_key='EP002' and lineage.shot_key='SHOT01'
                   and lineage.dependency_sha256=:dependency
+                  and r.input_props->>'contractId'=:contractId
                 order by lineage.created_at desc,lineage.id desc limit 1
                 """).param("dependency",dependency)
+                .param("contractId",scene.contractId())
                 .query((rs,n)->{
                     var value=new LinkedHashMap<String,Object>();
                     String status=rs.getString("status");
