@@ -10,7 +10,7 @@
 - **Product:** MediaOS, an AI-assisted, Director-controlled, automated Remotion video production system for the Architectural Thinking YouTube channel.
 - **Canonical repository:** `stefanVasilev17/media-os`, working branch `main`.
 - **Current milestone:** Roadmap v1 **Stage 3 / 10, first EP002 SHOT01 Remotion storyboard implementation and preview infrastructure deployed**. **Real selected-voice MP4 render/Director QA still pending**, so Stage 3 is NOT yet fully accepted.
-- **NEXT action:** Director triggers and reviews the **first real EP002 SHOT01 storyboard MP4** from the existing MediaOS page with current preferred voice. Confirm actual audio, render and quality evidence; then **Stage 4 AI Director Revision Loop** (feedback → scoped GitHub Remotion change → tests → new preview).
+- **NEXT action:** For the already-saved EP002 preferred voice, inspect whether ElevenLabs cue timestamps are present. Older takes dropped them; use only explicit-consent paid Forced Alignment on existing audio (or a separate safe offline option), not unnecessary voice regeneration. Then render and review first **voice-synced EP002 SHOT01 MP4** in MediaOS. Stage 4 AI Director Revision Loop follows verified video/audio QA.
 - **Important:** Stage 3 executable code and worker integration are deployed, but actual output is **not yet verified**. Stages **4–10 are planned, NOT complete**. Automated agent-authored revisions, universal episode assembly and true word-aligned choreography are not yet implemented.
 - **Do not change approved content or spend money just to catch up on project context.**
 
@@ -74,6 +74,14 @@
 - **Verified release 2026-11-02:** backend Railway deployment `c9c88cb1-2e8f-4428-8446-7141ae85181d` commit `9219e8e388458ad8421a2268c17b4f260139a526` SUCCESS; Remotion Worker `c3ad08bf-4431-4e43-b5b8-aa9583e20a10` commit `54533536614607b281e1f30b3c8453a43965283e` SUCCESS. Both online, no final service warnings. Frontend TypeScript/Vite PASS, Java Maven **271 tests, 0 failures, 0 errors, 37 skipped**, independent worker Remotion TypeScript preflight zero new errors and bundle PASS. One EP001 locked TypeScript baseline diagnostic remains documented and unchanged.
 - **Critical caveat:** No authenticated Director render click or actual selected-voice MP4 QA has been completed. Five beats use clearly labeled provisional normalized storyboard windows, **not verified word-level voice alignment**. Do not claim Stage 3 fully DONE or Stage 4 functional yet. [Stage 3 handoff](docs/engineering/MEDIAOS_STAGE3_EP002_SHOT01_PREVIEW_HANDOFF_20261102.md).
 - **NEXT:** Director selects existing current-version voice if not selected, clicks **Create storyboard preview** in EP002 SHOT01, verifies first MP4/video+sound. Do not create paid audio or pretend it was rendered.
+
+### Verified voice timestamp integration — EP002 SHOT01
+
+- **PR #143** merged on 2026-11-02, main `57bcf01c897ec724c5a04b3efc27993be90696c7`. Previously EP002 dropped the **already-returned** ElevenLabs `/with-timestamps` character alignment when saving an MP3. New EP002 takes now save that original payload in `ep002_creative_voice_take.elevenlabs_alignment` via **Flyway V109**.
+- Five source-approved SHOT01 speech cues now map to measured seconds and **30fps Remotion frames** when a preferred current-version take has persisted valid timestamps. Scene contract, frontend panels and Remotion preview render use them. Provisional editorial cues remain explicit **only** for older/unmatched recordings. New alignment changes the scene contract digest and invalidates stale provisional previews.
+- Production backend deployment `06206ba5-6c2c-4801-8e69-ac92bdbbe045` SUCCESS (Flyway V109 applied, Spring Boot started). Remotion Worker `96d26be8-1d75-4300-9f81-1bd2e0d8c0d4` SUCCESS (TypeScript preflight zero new errors, bundle PASS). Both Online with 0 warning/critical issues. Frontend and Maven package builds passed.
+- **Important:** EP002 takes created before this change did **not** retain the returned alignment, and those timestamps cannot magically be reconstructed from the MP3 without new analysis. ElevenLabs Forced Alignment supports aligning the **existing audio** (no new TTS), but is **a paid API request** and MUST require an explicit Director confirmation; no paid requests were made. A new aligned-take playback has not yet been verified. Stage 3 remains Director-QA pending.
+- [Full implementation, release evidence and follow-up](docs/engineering/MEDIAOS_EP002_ELEVENLABS_VOICE_TIMESTAMP_SYNC_20261102.md).
 
 ## 3. Forward plan — locked v1 roadmap
 
