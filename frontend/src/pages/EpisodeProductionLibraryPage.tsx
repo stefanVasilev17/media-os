@@ -4,7 +4,8 @@ import {ep001, ep002, renderVideoUrl} from '../lib/episodeProductionLibrary';
 import {studio, type StudioShot, type StudioClip} from '../api/studioApi';
 import {loadProductionContract, type ProductionContractState} from '../api/productionContractApi';
 import {listEpisodeWorkspaces, type EpisodeSummary} from '../api/episodeWorkspaceApi';
-import {Ep002VoiceActions, type ShotVoiceStatus} from '../components/Ep002VoiceActions';
+import {type ShotVoiceStatus} from '../components/Ep002VoiceActions';
+import {Ep002CreativeShotEditor} from '../components/Ep002CreativeShotEditor';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -137,10 +138,10 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
         {link(ep002.visualApproval,'Visual Pass v1.0 — Director creative approval')}
         {link(ep002.qaAudit,'Research/Script/Scene QA database audit and provenance')}
       </div>
-      <p className="library-warning">Creative LOCK in GitHub does not imply native production-stage LOCK. Viewing this library never creates an episode, changes a stage, imports content or generates voice.</p>
+      <p className="library-warning">The original Script v4.0 and Visual Pass remain preserved in the archive. Your editable Creative Draft is separate: Save creates a new version, never changes old files, and Voice generation requires an explicit paid confirmation. No Director LOCK/UNLOCK is needed for daily creative edits.</p>
       <p className="library-voice-overview" role="status">
         <strong>{lockedCount} / 11 voice SHOTs LOCKED</strong> ·
-        Green border means an approved voice recording; the Script v4.0 remains Director-LOCKED independently.
+        Green border means the selected voice take is approved for the current text version. You can still edit and save a newer version whenever you want.
       </p>
       <div className="library-shot-list">
         {ep002.shots.map((shot,index) => {
@@ -158,10 +159,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
             </summary>
             <div className="library-shot-body">
               <p><strong>Script revision:</strong> {shot.directorScriptRevision} · <strong>Editorial duration:</strong> {shot.editorialDurationSeconds}s · <strong>Words:</strong> {shot.wordCount}</p>
-              <h3>HEAR — exact Director-locked narration</h3>
-              {docText(shot.englishNarration)}
-              <h3>Voice direction</h3>{docText(shot.voiceDirection)}
-              <Ep002VoiceActions shot={shot} episodeId={production?.id} onVoiceStatus={onVoiceStatus}/>
+              <Ep002CreativeShotEditor shot={shot} onVoiceStatus={onVoiceStatus}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
               <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>
@@ -178,10 +176,10 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
     <section className="library-section">
       <h2>Native production workspace</h2>
       {production ? <>
-        <p>EP002 exists in the live production database. Native stage status: <strong>{production.currentStage}</strong>. Creative approval and native MediaOS approval are separate.</p>
+        <p>EP002 also has a native production workspace. Stage status: <strong>{production.currentStage}</strong>. Creative editing and voice on this page work independently of stage LOCKs.</p>
         <a className="library-primary-link" href={'#/episodes/'+production.id+'/prepare'}>Open production episode preparation</a>
       </> : <>
-        <p>EP002 is available here from its reviewed GitHub sources, but has <strong>not yet been registered in the live production database</strong>. Its previous QA native LOCKs cannot be silently copied as new production approvals.</p>
+        <p>This Creative Draft page now saves script versions and audio directly in the existing production PostgreSQL, independently of the native Episode Factory stage workflow. A native EP002 preparation workspace is optional for this creative editing and voice flow.</p>
         <a className="library-primary-link" href="#/episodes/new">Create EP002 through audited Director workflow</a>
       </>}
     </section>
@@ -213,6 +211,6 @@ export function EpisodeProductionLibraryPage({episodeKey}: {episodeKey: EpisodeK
     </header>
     {catalogError && <p role="alert" className="library-warning">{catalogError}</p>}
     {episodeKey==='EP001'?<Ep001Library production={production}/>:<Ep002Library production={production}/>}
-    <footer className="library-footer">Source records remain immutable. {episodeKey==='EP001' ? 'Read-only EP001 archive.' : 'Voice generation is a separate, explicit paid operation available only after native Director stage LOCKs and source verification.'}</footer>
+    <footer className="library-footer">Source records remain immutable. {episodeKey==='EP001' ? 'Read-only EP001 archive.' : 'Voice is a separately confirmed paid action for any saved Creative Draft version; no script or scene LOCK is needed.'}</footer>
   </main>;
 }
