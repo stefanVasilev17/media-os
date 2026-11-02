@@ -149,3 +149,10 @@
 .library-scene-preview>p{color:#a8cbdf;font-size:13px;line-height:1.65}
 .library-scene-preview .library-voice-button{margin:8px 0 2px;max-width:100%}
 .library-scene-preview video{background:#030b17;border:1px solid #3a617f}
+
+.library-voice-alignment{width:100%;margin-top:10px;padding:13px 14px;border:1px solid #426988;background:#12293c;border-radius:10px}
+.library-voice-alignment p{font-size:13px;line-height:1.65;margin:5px 0 11px;color:#cadfea}
+.library-voice-alignment strong{color:#eff6fd}
+.library-voice-alignment .library-voice-confirm{margin-top:12px}
+.library-voice-alignment .library-voice-confirm-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.library-voice-alignment button{max-width:100%;white-space:normal}

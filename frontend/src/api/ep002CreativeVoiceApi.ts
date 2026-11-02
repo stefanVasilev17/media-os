@@ -10,6 +10,12 @@ export type CreativeShotState={
   voiceModel:string; voiceIdentityVerified:boolean;
 };
 
+export type ExistingTakeAlignmentState={
+  shotKey:string;preferredTakeId:string|null;revision:number|null;
+  alignmentPresent:boolean;paidRequestStatus:'NONE'|'IN_FLIGHT'|'COMPLETED'|'UNCERTAIN';
+  canAlign:boolean;reason:string|null;
+};
+
 const base=(shot:string)=>'/api/v1/creative/episodes/EP002/shots/'+encodeURIComponent(shot);
 
 async function request<T>(url:string,method:string='GET',body?:unknown):Promise<T>{
@@ -40,4 +46,9 @@ export const ep002CreativeVoiceApi={
   approve:(shot:string,revision:number,takeId:string)=>
     request<CreativeShotState>(base(shot)+'/approve','POST',{revision,takeId}),
   audio:(shot:string,takeId:string)=>base(shot)+'/takes/'+encodeURIComponent(takeId)+'/audio',
+  alignmentState:(shot:string)=>request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take'),
+  alignExisting:(shot:string,preferredTakeId:string,expectedRevision:number,requestId:string)=>
+    request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take','POST',{
+      preferredTakeId,expectedRevision,requestId,confirmPaidAlignment:true
+    }),
 };
