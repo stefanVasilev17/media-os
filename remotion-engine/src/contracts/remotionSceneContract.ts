@@ -34,26 +34,26 @@ export const remotionSceneContractSchema=z.object({
     number:z.number().int().min(1).max(5),
     approvedDirection:z.string().min(12),
     cueAnchor:z.string().min(3),
-    cueStatus:z.literal('EDITORIAL_ONLY_UNALIGNED'),
+    cueStatus:z.enum(['EDITORIAL_ONLY_UNALIGNED','AUDIO_ALIGNED']),
     cameraIntent:z.enum(['CLOSE_PHONE','HOLD_PHONE','FOCUS_AUTH','RACK_FOCUS_PHONE','PREPARE_REWIND']),
     operations:z.array(z.enum([
       'PHONE_PRESS','SPINNER_WAIT','SHOW_TIME_RAIL','HEALTH_PULSE','SHOW_SHALLOW_PROBES',
       'EMPHASIZE_UNRESOLVED_WAIT','RETRACT_TIME_RAIL','SHOW_NINE_OCLOCK_MARKER'
     ])).min(1),
     assetKeys:z.array(z.string()).min(1),
-    startFrame:z.null(),
-    endFrame:z.null()
+    startFrame:z.number().int().nonnegative().nullable(),
+    endFrame:z.number().int().positive().nullable()
   }).strict()).length(5),
   cameraDirection:z.string().min(10),
   continuityGuardrails:z.string().min(10),
   endingTransition:z.string().min(10),
-  cueTimingAuthority:z.literal('EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT'),
+  cueTimingAuthority:z.enum(['EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT','ELEVENLABS_CHARACTER_TIMESTAMPS']),
   readiness:z.object({
     status:z.enum(['BLOCKED','READY_FOR_CODE_GENERATION']),
     blockers:z.array(z.enum([
       'PREFERRED_VOICE_REQUIRED','MEASURED_AUDIO_DURATION_REQUIRED','NARRATION_CUE_REVIEW_REQUIRED'
     ])),
-    cueAlignmentRequired:z.literal(true),
+    cueAlignmentRequired:z.boolean(),
     canSubmitRender:z.literal(false)
   }).strict()
 }).strict().superRefine((contract,ctx)=>{
