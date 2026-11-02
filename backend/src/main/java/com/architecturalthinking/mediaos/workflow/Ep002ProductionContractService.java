@@ -35,7 +35,7 @@ public class Ep002ProductionContractService {
 
     record Script(int revision, String narration, String voiceDirection, String sourceRevision) {}
     record Take(UUID id,int revision,int number,String contentType,String modelId,
-                String voiceId,OffsetDateTime generatedAt,BigDecimal durationSeconds) {}
+                String voiceId,OffsetDateTime generatedAt,BigDecimal durationSeconds,String alignmentJson) {}
 
     public Ep002ProductionContractService(JdbcClient jdbc,ObjectMapper mapper) {
         this.jdbc=jdbc;
@@ -100,7 +100,7 @@ public class Ep002ProductionContractService {
         if(revision<1)return null;
         return jdbc.sql("""
                 select t.id,t.revision,t.take_number,t.content_type,t.model_id,t.voice_id,
-                       t.generated_at,t.duration_seconds
+                       t.generated_at,t.duration_seconds,t.elevenlabs_alignment::text as alignment_json
                 from ep002_creative_voice_choice choice
                 join ep002_creative_voice_take t on t.id=choice.take_id
                   and t.shot_key=choice.shot_key and t.revision=choice.revision
@@ -111,7 +111,7 @@ public class Ep002ProductionContractService {
                         rs.getInt("take_number"),rs.getString("content_type"),
                         rs.getString("model_id"),rs.getString("voice_id"),
                         rs.getObject("generated_at",OffsetDateTime.class),
-                        rs.getBigDecimal("duration_seconds")))
+                        rs.getBigDecimal("duration_seconds"),rs.getString("alignment_json")))
                 .optional().orElse(null);
     }
 
@@ -174,6 +174,9 @@ public class Ep002ProductionContractService {
         boolean sourceUnchanged=script.narration().equals(approved.path("englishNarration").asText());
         Take chosen=chosenTake(shot,script.revision());
         BigDecimal measured=measuredDuration(chosen);
+        var cues=chosen!=null && "SHOT01".equals(shot)
+                ? Ep002VoiceCueTiming.resolveShot01(chosen.alignmentJson(),measured,new ObjectMapper())
+                : List.<Ep002VoiceCueTiming.TimedBeat>of();
         String signature=chosen==null?null:fingerprint(EPISODE,shot,script.revision(),
                 narrationHash,chosen.id(),VISUAL_SHA);
         Map<String,Object> scriptResult=new LinkedHashMap<>();
@@ -194,6 +197,8 @@ public class Ep002ProductionContractService {
         voice.put("audioUrl",chosen==null?null:"/api/v1/creative/episodes/EP002/shots/"
                 +shot+"/takes/"+chosen.id()+"/audio");
         voice.put("durationSeconds",measured);
+        voice.put("cueTimings",cues);
+        voice.put("alignmentAuthority",cues.size()==5?"ELEVENLABS_CHARACTER_TIMESTAMPS":"NOT_AVAILABLE");
         voice.put("durationAuthority",chosen==null?"NO_PREFERRED_TAKE":
                 measured==null?"MEASUREMENT_UNAVAILABLE":"FFPROBE_MEASURED");
         voice.put("status",chosen==null?"NO_PREFERRED_TAKE":"PREFERRED_TAKE_SELECTED");
@@ -204,7 +209,9 @@ public class Ep002ProductionContractService {
         visualResult.put("approval",visuals.path("approval").asText());
         visualResult.put("editorialWindow",visual.path("editorialWindow").asText());
         visualResult.put("editorialDurationSeconds",approved.path("editorialDurationSeconds").asInt());
-        visualResult.put("beatTimingAuthority","EDITORIAL_ONLY_NOT_AUDIO_ALIGNED");
+        visualResult.put("beatTimingAuthority",cues.size()==5
+                ? "ELEVENLABS_CHARACTER_TIMESTAMPS"
+                : "EDITORIAL_ONLY_NOT_AUDIO_ALIGNED");
         visualResult.put("cueReviewStatus",sourceUnchanged?"SOURCE_TEXT_UNCHANGED":"REVIEW_AFTER_NARRATION_EDIT");
         visualResult.put("beats",visual.path("beats"));
         visualResult.put("visualGoal",visual.path("visualGoal").asText());
