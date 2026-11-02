@@ -9,9 +9,9 @@
 
 - **Product:** MediaOS, an AI-assisted, Director-controlled, automated Remotion video production system for the Architectural Thinking YouTube channel.
 - **Canonical repository:** `stefanVasilev17/media-os`, working branch `main`.
-- **Current milestone:** Roadmap v1 **Stage 2 / 10, Remotion Scene Contract for EP002 SHOT01, implemented, merged and deployed**. Authenticated Director-browser acceptance for Stage 1/2 panels is **not yet recorded**.
-- **NEXT implementation:** **Stage 3 — Automated SHOT Builder**, first scoped to **EP002 SHOT01**. Audit actual reusable Remotion assets, validate Zod TypeScript schema and real voice-aligned timings, build/preview the composition with selected audio; Stage 4 delivers the **AI Director Revision Loop** (Director feedback → scoped code change → tests → new preview).
-- **Important:** Stages **3–10 are planned, NOT complete**. Stage 2 is a typed blueprint, not a generated Remotion scene. No generic agent-driven visual-generation loop or universal full-episode assembly is proven yet.
+- **Current milestone:** Roadmap v1 **Stage 3 / 10, first EP002 SHOT01 Remotion storyboard implementation and preview infrastructure deployed**. **Real selected-voice MP4 render/Director QA still pending**, so Stage 3 is NOT yet fully accepted.
+- **NEXT action:** Director triggers and reviews the **first real EP002 SHOT01 storyboard MP4** from the existing MediaOS page with current preferred voice. Confirm actual audio, render and quality evidence; then **Stage 4 AI Director Revision Loop** (feedback → scoped GitHub Remotion change → tests → new preview).
+- **Important:** Stage 3 executable code and worker integration are deployed, but actual output is **not yet verified**. Stages **4–10 are planned, NOT complete**. Automated agent-authored revisions, universal episode assembly and true word-aligned choreography are not yet implemented.
 - **Do not change approved content or spend money just to catch up on project context.**
 
 ## 1. Active stack and creative contract
@@ -65,6 +65,16 @@
 - Detailed implementation and next-task handoff: [Stage 2 Remotion Scene Contract](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md).
 - **Pending:** authenticated Director page inspection/approval for the blueprint. **NEXT:** Stage 3 resolves actual component/asset implementations, voice-cue alignment and the first real SHOT01 video preview.
 
+### Roadmap Stage 3 — first executable EP002 SHOT01 Remotion preview
+
+- `EP002-SHOT01-DRAFT` registered as a 1920×1080/30fps Remotion composition with five visual movements; source `remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx`. Approved visual source remains separate from new storyboard render.
+- Director-triggered POST and GET `/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview`; source `backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot01PreviewController.java`. Requires current contract ID, measured current preferred take, Director confirmation of provisional visual cue timing. Does not generate TTS audio.
+- Protected worker endpoint serves only selected voice for an active worker-owned current-revision render. Worker muxes voice into Remotion MP4 with FFmpeg; preview status/video shown directly under SHOT01 in MediaOS. History is dependency-bound.
+- Implementation [PR #140](https://github.com/stefanVasilev17/media-os/pull/140), Java compile correction [PR #141](https://github.com/stefanVasilev17/media-os/pull/141).
+- **Verified release 2026-11-02:** backend Railway deployment `c9c88cb1-2e8f-4428-8446-7141ae85181d` commit `9219e8e388458ad8421a2268c17b4f260139a526` SUCCESS; Remotion Worker `c3ad08bf-4431-4e43-b5b8-aa9583e20a10` commit `54533536614607b281e1f30b3c8453a43965283e` SUCCESS. Both online, no final service warnings. Frontend TypeScript/Vite PASS, Java Maven **271 tests, 0 failures, 0 errors, 37 skipped**, independent worker Remotion TypeScript preflight zero new errors and bundle PASS. One EP001 locked TypeScript baseline diagnostic remains documented and unchanged.
+- **Critical caveat:** No authenticated Director render click or actual selected-voice MP4 QA has been completed. Five beats use clearly labeled provisional normalized storyboard windows, **not verified word-level voice alignment**. Do not claim Stage 3 fully DONE or Stage 4 functional yet. [Stage 3 handoff](docs/engineering/MEDIAOS_STAGE3_EP002_SHOT01_PREVIEW_HANDOFF_20261102.md).
+- **NEXT:** Director selects existing current-version voice if not selected, clicks **Create storyboard preview** in EP002 SHOT01, verifies first MP4/video+sound. Do not create paid audio or pretend it was rendered.
+
 ## 3. Forward plan — locked v1 roadmap
 
 **The approved ten remaining stages and their acceptance gates** are in [Director-LOCKED Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md), merged [PR #133](https://github.com/stefanVasilev17/media-os/pull/133).
@@ -73,7 +83,7 @@
 |---|---|---|
 | 1 | Unified Production Data | **Implemented + deployed; Director UI check pending** |
 | 2 | Remotion Scene Contract (EP002 SHOT01) | **Implemented + deployed; Director UI check pending** |
-| 3 | Automated SHOT Builder (EP002 SHOT01) | **NEXT — planned, no generated video yet** |
+| 3 | Automated SHOT Builder (EP002 SHOT01) | **Implemented + deployed; real MP4 render and Director QA pending** |
 | 4 | **AI Director Revision Loop v1** | Planned, highest-value next milestone |
 | 5 | Revision History & Rollback | Planned |
 | 6 | Incremental Rendering | Planned |
@@ -104,6 +114,7 @@
 | Product priorities, 10 stage gates | [Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md) |
 | Stage 1 evidence, API semantics, gate | [Stage 1 handoff](docs/engineering/MEDIAOS_STAGE1_UNIFIED_PRODUCTION_DATA_HANDOFF_20261102.md) |
 | Stage 2 deployed source-bound Remotion blueprint | [Stage 2 handoff](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md) |
+| Stage 3 executable preview and outstanding Director QA | [Stage 3 handoff](docs/engineering/MEDIAOS_STAGE3_EP002_SHOT01_PREVIEW_HANDOFF_20261102.md) |
 | EP002 UI | `frontend/src/pages/EpisodeProductionLibraryPage.tsx` |
 | EP002 editable script and take chooser | `frontend/src/components/Ep002CreativeShotEditor.tsx` |
 | EP002 unified contract UI | `frontend/src/components/Ep002ProductionContractPanel.tsx` |
