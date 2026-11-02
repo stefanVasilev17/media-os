@@ -7,6 +7,7 @@ import {listEpisodeWorkspaces, type EpisodeSummary} from '../api/episodeWorkspac
 import {type ShotVoiceStatus} from '../components/Ep002VoiceActions';
 import {Ep002CreativeShotEditor} from '../components/Ep002CreativeShotEditor';
 import {Ep002ProductionContractPanel} from '../components/Ep002ProductionContractPanel';
+import {Ep002RemotionSceneContractPanel} from '../components/Ep002RemotionSceneContractPanel';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -168,6 +169,9 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
                 onProductionChanged={onProductionChanged}/>
               <Ep002ProductionContractPanel shotKey={shot.shotKey}
                 refreshToken={contractEpochs[shot.shotKey]??0}/>
+              {shot.shotKey==='SHOT01' &&
+                <Ep002RemotionSceneContractPanel refreshToken={contractEpochs[shot.shotKey]??0}/>}
+
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
               <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>
