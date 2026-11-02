@@ -39,3 +39,17 @@
 .library-primary-link{padding:12px 18px;background:#254f6d;color:#fff!important;text-decoration:none!important;border-radius:8px;margin:8px 0}
 .library-footer{font-size:12px;color:#9cb1c1;border-top:1px solid #304657;padding:24px 0;line-height:1.65}
 @media(max-width:700px){.episode-library{padding:76px 14px 55px}.library-topnav{margin-bottom:22px}.library-header h1{font-size:27px}.library-facts{gap:7px}.library-facts>div{padding:12px 8px}.library-facts strong{font-size:18px}.library-facts span{font-size:11px}.library-shot>summary{grid-template-columns:63px minmax(0,1fr) 16px;gap:8px;padding:16px 3px}.library-shot>summary span:last-of-type{grid-column:2;grid-row:2}.library-shot>summary:after{grid-column:3;grid-row:1}.library-shot-body{padding:4px 4px 26px}.library-verbatim{padding:12px;font-size:13px}.library-reference-list>div{align-items:flex-start;flex-direction:column;gap:8px}.library-historical>summary{grid-template-columns:minmax(0,1fr) 20px}.library-historical>summary span:last-of-type{display:none}}
+
+.library-voice-actions{margin:23px 0;padding:18px;border:1px solid #386383;border-radius:12px;background:#10273a}
+.library-voice-actions h3{display:flex;gap:10px;align-items:center;margin:0 0 11px;color:#e1efff}
+.library-voice-actions p{font-size:14px;line-height:1.65;color:#c0d5e4}
+.library-voice-button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border-radius:9px;border:1px solid #78b7df;background:#285d81;color:white;font:inherit;font-size:14px;font-weight:650;padding:10px 15px;margin:7px 8px 7px 0;cursor:pointer}
+.library-voice-button.secondary{border-color:#46647a;background:#172d40}
+.library-voice-button:disabled{opacity:.5;cursor:not-allowed}
+.library-voice-blocker,.library-voice-error{padding:12px 14px;background:#322721;border-left:3px solid #d6ad7a;color:#f1d5b1!important}
+.library-voice-ok{color:#a8e9c8!important}
+.library-voice-takes{border-top:1px solid #35556a;margin:18px 0 8px;padding-top:12px}
+.library-voice-take{display:flex;align-items:flex-start;flex-direction:column;gap:12px;padding:14px 0;border-bottom:1px solid #2e4a60}
+.library-voice-take audio{width:min(100%,450px)}
+.library-voice-setup{display:inline-flex;margin:12px 0}
+@media(max-width:700px){.library-voice-actions{padding:14px 12px}.library-voice-button{width:100%;margin:8px 0}.library-topnav{padding-right:115px;flex-wrap:wrap}.library-switch{width:100%}.library-switch a{min-width:70px;text-align:center}}
