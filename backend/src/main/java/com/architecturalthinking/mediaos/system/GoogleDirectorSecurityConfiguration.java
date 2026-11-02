@@ -98,6 +98,8 @@ public class GoogleDirectorSecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
+                                "/api/v1/creative/episodes/EP002/shots/{shotKey}/generate",
+                                "/api/v1/creative/episodes/EP002/shots/{shotKey}/approve",
                                 "/api/v1/episodes",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/director-lock",
@@ -120,6 +122,7 @@ public class GoogleDirectorSecurityConfiguration {
                                 "/api/v1/previews/director",
                                 "/api/v1/previews/creative/{stageKey}").hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.PUT,
+                                "/api/v1/creative/episodes/EP002/shots/{shotKey}",
                                 "/api/v1/episodes/{episodeId}/brief",
                                 "/api/v1/episodes/{episodeId}/research/sources",
                                 "/api/v1/episodes/{episodeId}/shot-revisions/{shotKey}/draft",
