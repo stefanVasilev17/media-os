@@ -50,4 +50,5 @@
 @media (max-width: 540px) {
   .local-director-card { padding: 28px 21px; }
   .local-director-card h1 { font-size: 27px; }
+  .local-director-signout { top: auto; bottom: max(12px, env(safe-area-inset-bottom)); }
 }
