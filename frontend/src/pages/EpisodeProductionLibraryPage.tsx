@@ -1,10 +1,10 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {ArrowLeft, ExternalLink, FileText, Film, Mic2} from 'lucide-react';
 import {ep001, ep002, renderVideoUrl} from '../lib/episodeProductionLibrary';
 import {studio, type StudioShot, type StudioClip} from '../api/studioApi';
 import {loadProductionContract, type ProductionContractState} from '../api/productionContractApi';
 import {listEpisodeWorkspaces, type EpisodeSummary} from '../api/episodeWorkspaceApi';
-import {Ep002VoiceActions} from '../components/Ep002VoiceActions';
+import {Ep002VoiceActions, type ShotVoiceStatus} from '../components/Ep002VoiceActions';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -116,6 +116,12 @@ function Ep001Library({production}: {production?: EpisodeSummary}) {
 }
 
 function Ep002Library({production}: {production?: EpisodeSummary}) {
+  const [shotVoiceStatuses,setShotVoiceStatuses] = useState<Record<string,ShotVoiceStatus>>({});
+  const onVoiceStatus = useCallback((shotKey:string,status:ShotVoiceStatus)=>{
+    setShotVoiceStatuses(previous => previous[shotKey] === status
+      ? previous : {...previous,[shotKey]:status});
+  },[]);
+  const lockedCount = Object.values(shotVoiceStatuses).filter(s=>s==='locked').length;
   return <>
     <div className="library-facts">
       <div><strong>11</strong><span>Director-locked script SHOTs</span></div>
@@ -132,17 +138,30 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
         {link(ep002.qaAudit,'Research/Script/Scene QA database audit and provenance')}
       </div>
       <p className="library-warning">Creative LOCK in GitHub does not imply native production-stage LOCK. Viewing this library never creates an episode, changes a stage, imports content or generates voice.</p>
+      <p className="library-voice-overview" role="status">
+        <strong>{lockedCount} / 11 voice SHOTs LOCKED</strong> ·
+        Green border means an approved voice recording; the Script v4.0 remains Director-LOCKED independently.
+      </p>
       <div className="library-shot-list">
         {ep002.shots.map((shot,index) => {
           const visual = visualShots.find(item => item.shotKey === shot.shotKey);
-          return <details key={shot.shotKey} className="library-shot">
-            <summary><span className="library-shot-key">{shot.shotKey}</span><strong>{shot.title}</strong><span>{shot.editorialStart}–{shot.editorialEnd}</span></summary>
+          const voiceStatus=shotVoiceStatuses[shot.shotKey];
+          return <details key={shot.shotKey}
+            className={'library-shot library-ep002-shot'+(voiceStatus==='locked'?' library-shot-voice-locked':'')}>
+            <summary>
+              <span className="library-shot-key">{shot.shotKey}</span>
+              <strong>{shot.title}</strong>
+              <span className="library-shot-meta">{shot.editorialStart}–{shot.editorialEnd}
+                {voiceStatus==='locked' && <b className="library-shot-locked-text">VOICE LOCKED</b>}
+                {voiceStatus==='generated' && <b className="library-shot-recorded-text">TAKE READY</b>}
+              </span>
+            </summary>
             <div className="library-shot-body">
               <p><strong>Script revision:</strong> {shot.directorScriptRevision} · <strong>Editorial duration:</strong> {shot.editorialDurationSeconds}s · <strong>Words:</strong> {shot.wordCount}</p>
               <h3>HEAR — exact Director-locked narration</h3>
               {docText(shot.englishNarration)}
               <h3>Voice direction</h3>{docText(shot.voiceDirection)}
-              <Ep002VoiceActions shot={shot} episodeId={production?.id}/>
+              <Ep002VoiceActions shot={shot} episodeId={production?.id} onVoiceStatus={onVoiceStatus}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
               <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>
