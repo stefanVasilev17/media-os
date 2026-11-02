@@ -4,6 +4,7 @@ import {ep001, ep002, renderVideoUrl} from '../lib/episodeProductionLibrary';
 import {studio, type StudioShot, type StudioClip} from '../api/studioApi';
 import {loadProductionContract, type ProductionContractState} from '../api/productionContractApi';
 import {listEpisodeWorkspaces, type EpisodeSummary} from '../api/episodeWorkspaceApi';
+import {Ep002VoiceActions} from '../components/Ep002VoiceActions';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -141,6 +142,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
               <h3>HEAR — exact Director-locked narration</h3>
               {docText(shot.englishNarration)}
               <h3>Voice direction</h3>{docText(shot.voiceDirection)}
+              <Ep002VoiceActions shot={shot} episodeId={production?.id}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
               <p className="library-note">Voice: {shot.audioStatus}. This source manifest does not contain a generated voice take.</p>
