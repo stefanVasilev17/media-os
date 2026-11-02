@@ -138,10 +138,21 @@ public class Ep002RemotionSceneContractService {
         if (takeId!=null && !(voice.get("audioUrl") instanceof String audioUrl
                 && audioUrl.equals("/api/v1/creative/episodes/EP002/shots/SHOT01/takes/"+takeId+"/audio")))
             throw new IllegalArgumentException("Voice audio URL is not a canonical EP002 take path.");
+        if (takeId==null && measured!=null)
+            throw new IllegalArgumentException("Audio timing without a selected take is not trusted.");
 
         String dependencyHash=(String)dependency.get("dependencySha256");
-        if (takeId!=null && (dependencyHash==null || !dependencyHash.matches("[a-f0-9]{64}")))
-            throw new IllegalArgumentException("A selected voice requires a valid render dependency fingerprint.");
+        if (takeId!=null) {
+            java.util.UUID preferred;
+            try { preferred=java.util.UUID.fromString(takeId); }
+            catch (IllegalArgumentException problem) {
+                throw new IllegalArgumentException("Preferred voice identifier is invalid.",problem);
+            }
+            if (revision.intValue()<1 || !Ep002ProductionContractService.fingerprint(
+                    "EP002","SHOT01",revision.intValue(),hash,preferred,
+                    Ep002ProductionContractService.VISUAL_SHA).equals(dependencyHash))
+                throw new IllegalArgumentException("Stale or mismatched production dependency fingerprint.");
+        }
         Integer frameCount=measured==null?null:measured.multiply(BigDecimal.valueOf(30))
                 .setScale(0,RoundingMode.CEILING).intValueExact();
         VideoSpec video=new VideoSpec(1920,1080,30,"REC709",frameCount,
