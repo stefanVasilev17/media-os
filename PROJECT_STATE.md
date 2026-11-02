@@ -10,7 +10,7 @@
 - **Product:** MediaOS, an AI-assisted, Director-controlled, automated Remotion video production system for the Architectural Thinking YouTube channel.
 - **Canonical repository:** `stefanVasilev17/media-os`, working branch `main`.
 - **Current milestone:** Roadmap v1 **Stage 3 / 10, first EP002 SHOT01 Remotion storyboard implementation and preview infrastructure deployed**. **Real selected-voice MP4 render/Director QA still pending**, so Stage 3 is NOT yet fully accepted.
-- **NEXT action:** For the already-saved EP002 preferred voice, inspect whether ElevenLabs cue timestamps are present. Older takes dropped them; use only explicit-consent paid Forced Alignment on existing audio (or a separate safe offline option), not unnecessary voice regeneration. Then render and review first **voice-synced EP002 SHOT01 MP4** in MediaOS. Stage 4 AI Director Revision Loop follows verified video/audio QA.
+- **NEXT action:** Resolve the **Java compile failure** in merged Align Existing Take PR #145; diagnostic PR #146 is merged but its Railway release remains staged/not deployed. Confirm CI, Flyway V110 and authorized backend release. Then Director may explicitly approve one paid Forced Alignment request for the old preferred take and review the first truly voice-synced EP002 SHOT01 MP4. Stage 4 AI Director Revision Loop follows verified QA.
 - **Important:** Stage 3 executable code and worker integration are deployed, but actual output is **not yet verified**. Stages **4–10 are planned, NOT complete**. Automated agent-authored revisions, universal episode assembly and true word-aligned choreography are not yet implemented.
 - **Do not change approved content or spend money just to catch up on project context.**
 
@@ -82,6 +82,13 @@
 - Production backend deployment `06206ba5-6c2c-4801-8e69-ac92bdbbe045` SUCCESS (Flyway V109 applied, Spring Boot started). Remotion Worker `96d26be8-1d75-4300-9f81-1bd2e0d8c0d4` SUCCESS (TypeScript preflight zero new errors, bundle PASS). Both Online with 0 warning/critical issues. Frontend and Maven package builds passed.
 - **Important:** EP002 takes created before this change did **not** retain the returned alignment, and those timestamps cannot magically be reconstructed from the MP3 without new analysis. ElevenLabs Forced Alignment supports aligning the **existing audio** (no new TTS), but is **a paid API request** and MUST require an explicit Director confirmation; no paid requests were made. A new aligned-take playback has not yet been verified. Stage 3 remains Director-QA pending.
 - [Full implementation, release evidence and follow-up](docs/engineering/MEDIAOS_EP002_ELEVENLABS_VOICE_TIMESTAMP_SYNC_20261102.md).
+
+### Align Existing Take — merged code, production release **BLOCKED**
+
+- Code for explicitly paid **Align Existing Take** was merged in [PR #145](https://github.com/stefanVasilev17/media-os/pull/145) at `21f925d07c3fcd58632df80e981f4f24273c76ef`. It includes V110 alignment provenance + paid request idempotency/UNCERTAIN ledger, saved MP3 forced-alignment adapter, provider response normalization, Director-only endpoints and two-step consent UI for the currently preferred take. **No paid ElevenLabs calls have been triggered.**
+- Initial backend Railway deployment `dad118f8-5fb7-4c61-a8a4-3dbcaa24f881` **FAILED at Java compilation** (frontend build passed). Compiler diagnostics were not included in the original build log. Build-only diagnostic PR [#146](https://github.com/stefanVasilev17/media-os/pull/146) merged as `8efc33179e7152cf3229553b27be7384f564505f`; the diagnostic backend deployment was staged but **NOT committed/deployed** due to release authorization constraints.
+- **V110 is not deployed.** The live EP002 UI still runs the last successful V109 backend. Do NOT tell the Director the alignment button is live or that Stage 3 passed video/audio QA. The new endpoint and user-visible paid action remain to be tested.
+- **NEXT:** obtain exact javac failure from a controlled diagnostic build, fix compile, verify full Maven/frontend tests and V110 migration, then authorize backend release. Only after that should the Director choose whether to spend credits on one-time Forced Alignment of the existing preferred take. [Full release handoff](docs/engineering/MEDIAOS_EP002_EXISTING_TAKE_ALIGNMENT_RELEASE_GATE_20261102.md).
 
 ## 3. Forward plan — locked v1 roadmap
 
