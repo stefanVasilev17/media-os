@@ -44,9 +44,12 @@ public class Ep002Shot01PreviewController {
                 || scene.video().durationInFrames()==null)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Select a current-version voice recording with measured duration before rendering.");
-        if(!request.acceptProvisionalCueTiming())
+        boolean voiceAligned=scene.beats().size()==5 && scene.beats().stream().allMatch(beat->
+                beat.cueStatus()==Ep002RemotionSceneContractService.CueStatus.AUDIO_ALIGNED
+                && beat.startFrame()!=null && beat.endFrame()!=null);
+        if(!voiceAligned && !request.acceptProvisionalCueTiming())
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Preview uses provisional editorial beat spacing; confirm the timing limitation.");
+                    "Voice timestamps are unavailable; confirm provisional storyboard timing.");
         if(scene.video().durationInFrames()<30 || scene.video().durationInFrames()>108000)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unsupported preview duration.");
         List<String> blockers=scene.readiness().blockers();
@@ -61,7 +64,10 @@ public class Ep002Shot01PreviewController {
         props.put("contractId",scene.contractId());
         props.put("dependencySha256",inputs.productionDependencySha256());
         props.put("visualSourceSha",VISUAL_SHA);
-        props.put("provisionalCueTiming",true);
+        props.put("provisionalCueTiming",!voiceAligned);
+        props.put("timingMode",voiceAligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"PROVISIONAL_STORYBOARD");
+        if (voiceAligned) props.put("beatStartFrames",
+                scene.beats().stream().map(Ep002RemotionSceneContractService.Beat::startFrame).toList());
         Map<String,Object> render=renders.ensureVerifiedEp002Preview(props);
         UUID renderId=(UUID)render.get("renderId");
         jdbc.sql("""
