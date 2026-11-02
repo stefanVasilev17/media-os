@@ -145,7 +145,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
               <Ep002VoiceActions shot={shot} episodeId={production?.id}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
-              <p className="library-note">Voice: {shot.audioStatus}. This source manifest does not contain a generated voice take.</p>
+              <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>
               {index===0 && <p className="library-note">All source text is rendered without AI rewriting.</p>}
             </div>
           </details>;
@@ -188,12 +188,12 @@ export function EpisodeProductionLibraryPage({episodeKey}: {episodeKey: EpisodeK
       </div>
     </nav>
     <header className="library-header">
-      <p>ARCHITECTURAL THINKING / DIRECTOR SOURCE LIBRARY / READ ONLY</p>
+      <p>ARCHITECTURAL THINKING / DIRECTOR SOURCE LIBRARY / {episodeKey==='EP001'?'READ ONLY':'VOICE STUDIO'}</p>
       <h1>{episodeKey} — {episodeKey==='EP001'?ep001.title:ep002.title}</h1>
       <p>{episodeKey==='EP001'?'Final approved 12-SHOT happy-path production':'Director-locked 11-SHOT Script v4.0 + Director-approved NEW Visual Pass v1.0'}</p>
     </header>
     {catalogError && <p role="alert" className="library-warning">{catalogError}</p>}
     {episodeKey==='EP001'?<Ep001Library production={production}/>:<Ep002Library production={production}/>}
-    <footer className="library-footer">Read-only source library · Existing approvals preserved · No paid AI, audio or render actions</footer>
+    <footer className="library-footer">Source records remain immutable. {episodeKey==='EP001' ? 'Read-only EP001 archive.' : 'Voice generation is a separate, explicit paid operation available only after native Director stage LOCKs and source verification.'}</footer>
   </main>;
 }
