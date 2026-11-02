@@ -44,8 +44,9 @@ class Ep002RemotionSceneContractServiceTest {
         visual.put("transition",approved.path("transition").asText());
 
         var dependencies=new LinkedHashMap<String,Object>();
-        dependencies.put("dependencySha256",chosen?Ep002ProductionContractService.sha256(
-                "production dependency with "+TAKE):null);
+        dependencies.put("dependencySha256",chosen?Ep002ProductionContractService.fingerprint(
+                "EP002","SHOT01",1,hash,UUID.fromString(TAKE),
+                Ep002ProductionContractService.VISUAL_SHA):null);
         var source=new LinkedHashMap<String,Object>();
         source.put("contractVersion","EPISODE_SHOT_PRODUCTION_V1");
         source.put("episodeKey","EP002");
@@ -63,7 +64,7 @@ class Ep002RemotionSceneContractServiceTest {
         assertEquals("REMOTION_SCENE_V1",scene.schemaVersion());
         assertEquals("EP002-SHOT01-DRAFT",scene.video().compositionId());
         assertFalse(scene.video().registeredInRemotion());
-        assertEquals(1174,scene.video().durationInFrames());
+        assertEquals(Integer.valueOf(1174),scene.video().durationInFrames());
         assertEquals(1920,scene.video().width());
         assertEquals(1080,scene.video().height());
         assertEquals(30,scene.video().fps());
