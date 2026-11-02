@@ -111,6 +111,6 @@ public class Ep002Shot01PreviewController {
                     value.put("videoUrl","SUCCEEDED".equals(status)?
                             "/api/v1/remotion/renders/"+id+"/video":null);
                     return value;
-                }).optional().orElseGet(()->Map.of("status","NOT_RENDERED"));
+                }).optional().orElseGet(()->new LinkedHashMap<String,Object>(Map.of("status","NOT_RENDERED")));
     }
 }
