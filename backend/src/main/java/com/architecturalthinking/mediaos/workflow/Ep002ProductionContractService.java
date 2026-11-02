@@ -234,8 +234,10 @@ public class Ep002ProductionContractService {
                     join remotion_render r on r.id=l.remotion_render_id
                     where l.episode_key=:episode and l.shot_key=:shot
                       and l.dependency_sha256=:hash
+                      and coalesce(r.input_props->>'timingMode','PROVISIONAL_STORYBOARD')=:timing
                     order by l.created_at desc,l.id desc limit 1
                     """).param("episode",EPISODE).param("shot",shot).param("hash",signature)
+                    .param("timing",cues.size()==5?"ELEVENLABS_CHARACTER_TIMESTAMPS":"PROVISIONAL_STORYBOARD")
                     .query((rs,n)->{
                         render.put("renderId",rs.getString("remotion_render_id"));
                         render.put("commitSha",rs.getString("remotion_commit_sha"));
