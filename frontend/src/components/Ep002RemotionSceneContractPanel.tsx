@@ -46,14 +46,15 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
 
   async function requestPreview(){
     if(!scene||!canPreview||rendering)return;
-    if(!window.confirm('Create an EP002 SHOT01 storyboard preview using the current preferred voice? '
-      +'The five visual beats use provisional editorial timing, not verified word alignment. '
-      +'This uses the existing render worker but does not request paid ElevenLabs audio.'))return;
+    const hasAlignedCues=scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS';
+    if(!window.confirm(hasAlignedCues
+      ? 'Create EP002 SHOT01 preview using ElevenLabs character timestamps from the selected recording? No new paid audio will be generated.'
+      : 'Create EP002 SHOT01 provisional storyboard preview? This recording has no saved ElevenLabs word timestamps, so visual beats will use approximate timing. No new paid audio will be generated.'))return;
     setRendering(true);setError('');
     try{
       const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:true})
+        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:!hasAlignedCues})
       });
       if(!response.ok)throw new Error('Preview request failed: HTTP '+response.status
         +' '+(await response.text()).slice(0,220));
@@ -84,12 +85,16 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
         </div>
         {scene.readiness.blockers.length>0&&
           <p className="library-warning">Code-generation prerequisites: {scene.readiness.blockers.map(label).join('; ')}.</p>}
-        <p className="library-note">Visual cue timestamps are not yet measured. Frame-level beat timing requires alignment.</p>
+        <p className="library-note">{scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+          ? 'Voice-synced: these beat frames are derived from real ElevenLabs character timestamps for the selected take.'
+          : 'Provisional: this recording has no saved ElevenLabs character timestamps. Visual beats use approximate editorial positions.'}</p>
         <div className="library-production-subtitle"><Camera size={16}/><strong>Camera and animation instructions</strong></div>
         <ol className="library-production-beats">
           {scene.beats.map(beat=><li key={beat.number}>
             <strong>{label(beat.cameraIntent)}</strong> · {beat.operations.map(label).join(' + ')}
-            <p>Spoken cue: {beat.cueAnchor}. Start/end frame: pending.</p>
+            <p>Spoken cue: {beat.cueAnchor}. {beat.startFrame===null||beat.endFrame===null
+              ? "Start/end frames: not measured."
+              : `Voice timing: ${(beat.startFrame/scene.video.fps).toFixed(2)}s–${(beat.endFrame/scene.video.fps).toFixed(2)}s · Frames ${beat.startFrame}–${beat.endFrame}`}</p>
             <p>{beat.approvedDirection}</p>
             <small>Assets: {beat.assetKeys.join(', ')}</small>
           </li>)}
@@ -105,11 +110,14 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
         <p><strong>Transition:</strong> {scene.endingTransition}</p>
         <div className="library-scene-preview">
           <strong>EP002 SHOT01 — Remotion preview</strong>
-          <p>Provisional five-beat storyboard timing. Final word/beat alignment is still pending Director review.</p>
+          <p>{scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+            ? 'Uses real ElevenLabs voice timestamps for the five spoken cue anchors. Director visual review remains required.'
+            : 'This take has no saved voice timestamps; the five beats use approximate editorial timing.'}</p>
           <button type="button" className="library-voice-button"
             disabled={!canPreview||rendering}
             onClick={()=>void requestPreview()}>
-            {rendering?'Starting…':'Create storyboard preview'}
+            {rendering?'Starting…':scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+              ? 'Create voice-synced preview':'Create provisional storyboard preview'}
           </button>
           {preview&&<p role="status">Render: {preview.status}
             {typeof preview.progress==='number'?' · '+preview.progress+'%':''}
