@@ -65,7 +65,7 @@ public class Ep002CreativeVoiceService {
 
     private void lockShot(String shot) {
         jdbc.sql("select pg_advisory_xact_lock(hashtext('ep002-creative:' || :shot)::bigint)")
-                .param("shot",shot).query((rs,n)->rs.getLong(1)).single();
+                .param("shot",shot).query((rs,n)->true).single();
     }
 
     public Map<String,Object> state(String shot) {
