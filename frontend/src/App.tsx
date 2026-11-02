@@ -83,7 +83,7 @@ export function App() {
   const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
   if (hash === '#/library/EP001' || hash === '#/library/EP002') {
     page = <EpisodeProductionLibraryPage episodeKey={hash.endsWith('EP001') ? 'EP001' : 'EP002'} />;
-  } else if (hash === '#/episodes/new') {
+  } else if (hash === '#/episodes/new' || hash.startsWith('#/episodes/new?')) {
     page = <EpisodeNewPage />;
   } else if (preparationRoute) {
     page = <EpisodePreparationPage episodeId={preparationRoute[1]} />;
