@@ -6,6 +6,7 @@ export function Ep002ProductionContractPanel({shotKey,refreshToken}:{
   shotKey:string;refreshToken:number;
 }) {
   const [contract,setContract]=useState<Ep002ProductionContract|null>(null);
+  const [refresh,setRefresh]=useState(0);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
 
@@ -18,7 +19,7 @@ export function Ep002ProductionContractPanel({shotKey,refreshToken}:{
       if(active)setError(cause instanceof Error?cause.message:String(cause));
     }).finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};
-  },[shotKey,refreshToken]);
+  },[shotKey,refreshToken,refresh]);
 
   const ready=contract?.status==='READY_FOR_REMOTION_SCENE_CONTRACT'||
     contract?.status==='READY_WITH_CUE_REVIEW';
@@ -84,10 +85,8 @@ export function Ep002ProductionContractPanel({shotKey,refreshToken}:{
           target="_blank" rel="noreferrer">Approved visual source · GitHub</a>
       </>}
       <button type="button" className="library-voice-refresh"
-        onClick={event=>{event.currentTarget.closest('details')?.removeAttribute('open');
-          window.setTimeout(()=>{event.currentTarget.closest('details')?.setAttribute('open','');},0);}}
-        disabled={loading} hidden>
-        <RotateCcw size={14}/> Refresh
+        onClick={()=>setRefresh(previous=>previous+1)} disabled={loading}>
+        <RotateCcw size={14}/> Refresh production data
       </button>
     </div>
   </details>;
