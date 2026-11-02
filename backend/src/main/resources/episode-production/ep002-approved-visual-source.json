@@ -1,0 +1,413 @@
+{
+  "schema": "mediaos.visual-plan.source.v1",
+  "episodeKey": "EP002",
+  "visualPassVersion": "v1.0",
+  "gitBlobSha": "5c43c7fd3bd66b5899f0956a9cfd80bdead834f1",
+  "approval": "DIRECTOR_APPROVED_GITHUB",
+  "timeAuthority": "EDITORIAL_ONLY_NOT_MEASURED",
+  "shotCount": 11,
+  "beatCount": 59,
+  "shots": [
+    {
+      "shotKey": "SHOT01",
+      "editorialWindow": "00:00–00:40",
+      "title": "The Login That Keeps Waiting",
+      "sourceNarrationRevision": "v1.4",
+      "visualGoal": "Cold-open / future consequence; no diagnosis yet.",
+      "startingFrame": "Close Phone at left/near foreground. A visible, restrained Auth service appears deep in the same world. Most intermediate nodes are dim to prevent premature revelation.",
+      "cameraDirection": "Close Phone → two-plane Phone/Auth composition → restrained time rewind. No abrupt cut to a new fake world.",
+      "assetDirection": "Reuse EP001 Phone/Login, Spinner, Auth node, global CameraRig, dim layer; propose TimeRail and 09:00 rewind overlay.",
+      "truthContinuity": "First user-facing `Please try again.` MUST NOT appear before SHOT06. No assumption of actual request-processing duration; healthy probe is not full availability.",
+      "transition": "Phone spinner unresolved; rewind seamlessly to 09:00.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "On the first spoken `tap Login`, perform one exact Phone press and replace button state with the existing approved spinner. Leave the spinner mechanically alive but narratively unresolved."
+        },
+        {
+          "number": 2,
+          "direction": "At `A few seconds pass. Then ten`, introduce a narrow time-progress rail near Phone; avoid fabricated actual measured processing times. Don't replace spinner with an error message."
+        },
+        {
+          "number": 3,
+          "direction": "At `server ... still running`, pull focus toward Auth's known identity silhouette, with a small green status pulse. Add two modest labels, `Liveness: PASS` and `Readiness: PASS` — explicitly only this fictitious shallow-probe configuration."
+        },
+        {
+          "number": 4,
+          "direction": "At `login is still waiting`, rack focus back to Phone while healthy Auth remains visible at low emphasis; hold contrast rather than suggesting a crashed node."
+        },
+        {
+          "number": 5,
+          "direction": "At `go back to nine o'clock`, retract the time rail into a compact `09:00` rewind marker; camera movement prepares a reverse in time into SHOT02."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT01 — 00:00–00:40 — The Login That Keeps Waiting — source narration v1.4\n\n**Narrative purpose:** Cold-open / future consequence; no diagnosis yet.\n\n**Starting frame / geography:** Close Phone at left/near foreground. A visible, restrained Auth service appears deep in the same world. Most intermediate nodes are dim to prevent premature revelation.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. On the first spoken `tap Login`, perform one exact Phone press and replace button state with the existing approved spinner. Leave the spinner mechanically alive but narratively unresolved.\n2. At `A few seconds pass. Then ten`, introduce a narrow time-progress rail near Phone; avoid fabricated actual measured processing times. Don't replace spinner with an error message.\n3. At `server ... still running`, pull focus toward Auth's known identity silhouette, with a small green status pulse. Add two modest labels, `Liveness: PASS` and `Readiness: PASS` — explicitly only this fictitious shallow-probe configuration.\n4. At `login is still waiting`, rack focus back to Phone while healthy Auth remains visible at low emphasis; hold contrast rather than suggesting a crashed node.\n5. At `go back to nine o'clock`, retract the time rail into a compact `09:00` rewind marker; camera movement prepares a reverse in time into SHOT02.\n\n**Camera:** Close Phone → two-plane Phone/Auth composition → restrained time rewind. No abrupt cut to a new fake world.\n\n**Assets:** Reuse EP001 Phone/Login, Spinner, Auth node, global CameraRig, dim layer; propose TimeRail and 09:00 rewind overlay.\n\n**Truth/continuity:** First user-facing `Please try again.` MUST NOT appear before SHOT06. No assumption of actual request-processing duration; healthy probe is not full availability.\n\n**Shot ending / transition:** Phone spinner unresolved; rewind seamlessly to 09:00.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT02",
+      "editorialWindow": "00:40–01:25",
+      "title": "9:00 AM: The Ticket Sale Opens",
+      "sourceNarrationRevision": "v1.0",
+      "visualGoal": "Trigger and geography.",
+      "startingFrame": "Pull to Medium/Wide of the SAME Living Architecture World. Phone→API Gateway→Load Balancer→Auth01/02/03→User Database remain spatially stable; no unrelated concert stock artwork required.",
+      "cameraDirection": "Wide geography reveal → medium gateway and balancer → drift to Auth-to-DB convergence. Preserve node coordinates across SHOT03.",
+      "assetDirection": "Reuse Phone, Gateway, Load Balancer, Auth, DB, request packet/path; propose arrival wave emitter, count badge, 09:00 label.",
+      "truthContinuity": "The rise is illustrative; `arrival rate` counts original new Login requests, NOT DB attempts. Retain exactly three Auth replicas until the hypothetical SHOT08 scale-out.",
+      "transition": "Camera holds convergence onto DB, inviting the throughput explanation.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "At `nine o'clock`, reveal `09:00 • Tickets on sale` as a small timeline context label, not a second story location."
+        },
+        {
+          "number": 2,
+          "direction": "Use multiple small Phone/request glyphs feeding the already-existing Gateway path. Never imply credentials are exposed in flight. On `software hasn't changed`, keep architecture geometry fixed as only arrival-wave density increases."
+        },
+        {
+          "number": 3,
+          "direction": "On `API Gateway`, briefly light the entry node and one request packet. On `Load Balancer`, show deterministic distribution to three Auth replicas."
+        },
+        {
+          "number": 4,
+          "direction": "On `arrival rate`, introduce `New Login arrivals/s` with an illustrative counter sequence 100→350→650→900, allowing later movements to correlate with exact narrated lines (SHOT03) rather than presenting them all at once."
+        },
+        {
+          "number": 5,
+          "direction": "Show lookups leaving each Auth replica into a converging shared User Database path. No premature red DB/offline state: pressure is beginning, not collapse."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT02 — 00:40–01:25 — 9:00 AM: The Ticket Sale Opens — source narration v1.0\n\n**Narrative purpose:** Trigger and geography.\n\n**Starting frame / geography:** Pull to Medium/Wide of the SAME Living Architecture World. Phone→API Gateway→Load Balancer→Auth01/02/03→User Database remain spatially stable; no unrelated concert stock artwork required.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. At `nine o'clock`, reveal `09:00 • Tickets on sale` as a small timeline context label, not a second story location.\n2. Use multiple small Phone/request glyphs feeding the already-existing Gateway path. Never imply credentials are exposed in flight. On `software hasn't changed`, keep architecture geometry fixed as only arrival-wave density increases.\n3. On `API Gateway`, briefly light the entry node and one request packet. On `Load Balancer`, show deterministic distribution to three Auth replicas.\n4. On `arrival rate`, introduce `New Login arrivals/s` with an illustrative counter sequence 100→350→650→900, allowing later movements to correlate with exact narrated lines (SHOT03) rather than presenting them all at once.\n5. Show lookups leaving each Auth replica into a converging shared User Database path. No premature red DB/offline state: pressure is beginning, not collapse.\n\n**Camera:** Wide geography reveal → medium gateway and balancer → drift to Auth-to-DB convergence. Preserve node coordinates across SHOT03.\n\n**Assets:** Reuse Phone, Gateway, Load Balancer, Auth, DB, request packet/path; propose arrival wave emitter, count badge, 09:00 label.\n\n**Truth/continuity:** The rise is illustrative; `arrival rate` counts original new Login requests, NOT DB attempts. Retain exactly three Auth replicas until the hypothetical SHOT08 scale-out.\n\n**Shot ending / transition:** Camera holds convergence onto DB, inviting the throughput explanation.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT03",
+      "editorialWindow": "01:25–02:35",
+      "title": "The Database Capacity Limit",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Throughput/arrival mismatch and saturation.",
+      "startingFrame": "User Database becomes center-stage; incoming requests and completed lookup outputs remain separate lanes, not a single unlabeled counter.",
+      "cameraDirection": "Medium User DB/links → tight rate counter comparison → medium unfinished-work context. Keep throughput proof in view during overload claim.",
+      "assetDirection": "Reuse DB, lookup packets; propose split RateMeter (Arrivals/Completions), WorkState lanes, latency rail.",
+      "truthContinuity": "Illustrative capacity ~500 completed lookups/s only for this workload. No assertion of measured real-world numbers. DB not offline, no mass crash.",
+      "transition": "Maintained DB running at capacity, camera pans toward healthy Auth checks in SHOT04.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "At `five hundred`, create static upper bound `Completed account lookups/s ≈ 500`, with modest teal-green completion tokens leaving the DB at a bounded illustrative cadence."
+        },
+        {
+          "number": 2,
+          "direction": "At `six hundred and fifty ... Then nine hundred`, update `New Login arrivals/s` counter to `650` and `900`. Do not equate these with lookup attempts or imply every arrival immediately starts a DB query."
+        },
+        {
+          "number": 3,
+          "direction": "As narration defines `throughput`, visually identify completions already leaving the DB. As it defines `arrival rate`, identify newly arriving Login packets before the DB."
+        },
+        {
+          "number": 4,
+          "direction": "Use compact layered states `PROCESSING`, `WAITING FOR RESOURCES`, and `COMPLETED`, with unfinished work accumulating along the critical path (Auth pool/queues), NOT a fictitious unbounded internal database queue."
+        },
+        {
+          "number": 5,
+          "direction": "At `bottleneck` and `saturation`, keep DB silhouette operational and visually bounded. Let latency bars elongate and completion remain nonzero. A subtle amber/red pressure accent may overlay identity teal, never a dead-power symbol."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT03 — 01:25–02:35 — The Database Capacity Limit — source narration v1.1\n\n**Narrative purpose:** Throughput/arrival mismatch and saturation.\n\n**Starting frame / geography:** User Database becomes center-stage; incoming requests and completed lookup outputs remain separate lanes, not a single unlabeled counter.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. At `five hundred`, create static upper bound `Completed account lookups/s ≈ 500`, with modest teal-green completion tokens leaving the DB at a bounded illustrative cadence.\n2. At `six hundred and fifty ... Then nine hundred`, update `New Login arrivals/s` counter to `650` and `900`. Do not equate these with lookup attempts or imply every arrival immediately starts a DB query.\n3. As narration defines `throughput`, visually identify completions already leaving the DB. As it defines `arrival rate`, identify newly arriving Login packets before the DB.\n4. Use compact layered states `PROCESSING`, `WAITING FOR RESOURCES`, and `COMPLETED`, with unfinished work accumulating along the critical path (Auth pool/queues), NOT a fictitious unbounded internal database queue.\n5. At `bottleneck` and `saturation`, keep DB silhouette operational and visually bounded. Let latency bars elongate and completion remain nonzero. A subtle amber/red pressure accent may overlay identity teal, never a dead-power symbol.\n\n**Camera:** Medium User DB/links → tight rate counter comparison → medium unfinished-work context. Keep throughput proof in view during overload claim.\n\n**Assets:** Reuse DB, lookup packets; propose split RateMeter (Arrivals/Completions), WorkState lanes, latency rail.\n\n**Truth/continuity:** Illustrative capacity ~500 completed lookups/s only for this workload. No assertion of measured real-world numbers. DB not offline, no mass crash.\n\n**Shot ending / transition:** Maintained DB running at capacity, camera pans toward healthy Auth checks in SHOT04.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT04",
+      "editorialWindow": "02:35–03:35",
+      "title": "Alive Is Not Available",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Reel-ready AHA #1: component health ≠ journey health.",
+      "startingFrame": "Visual side-by-side WITHIN ONE MAP: Auth01's small green probes, red/amber delayed User Lookup path, Phone spinner.",
+      "cameraDirection": "Medium Auth → split journey/probe comparison → Phone; 2–3 sec held readable insight before transition.",
+      "assetDirection": "Reuse Auth, Phone, DB, global path; propose compact HealthProbePill and JourneyAvailabilityRail.",
+      "truthContinuity": "Do not show `Please try again.` here. Do not turn database node fully red/offline; end-to-end inability to finish is the issue.",
+      "transition": "Push camera into Auth01 housing for pool anatomy.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "During `health checks`, show two clearly differentiated compact indicators `LIVENESS PASS` and `READINESS PASS` on Auth, with a subtle scope note `Illustrative shallow probes — DB not checked`."
+        },
+        {
+          "number": 2,
+          "direction": "When narration defines liveness vs readiness, spotlight each green check briefly in sequence. Do not imply all production readiness checks necessarily ignore dependencies."
+        },
+        {
+          "number": 3,
+          "direction": "At `real Login needs an answer`, camera travels along outstanding lookup path and stalls at the overloaded User DB, with a fine connecting line back to the waiting Phone."
+        },
+        {
+          "number": 4,
+          "direction": "On `end-to-end check`, overlay a separate `LOGIN JOURNEY` route marker covering Phone→Gateway→Balancer→Auth→DB→response, marked `NOT COMPLETED` rather than pretending this exact synthetic check was executed."
+        },
+        {
+          "number": 5,
+          "direction": "At `Being alive is not the same as being available`, hold a calm full causal contrast: two green Auth probe indicators next to one incomplete user journey. This is the natural short-form cut anchor."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT04 — 02:35–03:35 — Alive Is Not Available — source narration v1.1\n\n**Narrative purpose:** Reel-ready AHA #1: component health ≠ journey health.\n\n**Starting frame / geography:** Visual side-by-side WITHIN ONE MAP: Auth01's small green probes, red/amber delayed User Lookup path, Phone spinner.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. During `health checks`, show two clearly differentiated compact indicators `LIVENESS PASS` and `READINESS PASS` on Auth, with a subtle scope note `Illustrative shallow probes — DB not checked`.\n2. When narration defines liveness vs readiness, spotlight each green check briefly in sequence. Do not imply all production readiness checks necessarily ignore dependencies.\n3. At `real Login needs an answer`, camera travels along outstanding lookup path and stalls at the overloaded User DB, with a fine connecting line back to the waiting Phone.\n4. On `end-to-end check`, overlay a separate `LOGIN JOURNEY` route marker covering Phone→Gateway→Balancer→Auth→DB→response, marked `NOT COMPLETED` rather than pretending this exact synthetic check was executed.\n5. At `Being alive is not the same as being available`, hold a calm full causal contrast: two green Auth probe indicators next to one incomplete user journey. This is the natural short-form cut anchor.\n\n**Camera:** Medium Auth → split journey/probe comparison → Phone; 2–3 sec held readable insight before transition.\n\n**Assets:** Reuse Auth, Phone, DB, global path; propose compact HealthProbePill and JourneyAvailabilityRail.\n\n**Truth/continuity:** Do not show `Please try again.` here. Do not turn database node fully red/offline; end-to-end inability to finish is the issue.\n\n**Shot ending / transition:** Push camera into Auth01 housing for pool anatomy.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT05",
+      "editorialWindow": "03:35–05:05",
+      "title": "Connection Pool: The Hidden Queue",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Internal Auth01 mini-world / eight pool slots.",
+      "startingFrame": "Zoom into Auth01 without cutting to a detached generic UI. Keep world breadcrumb to Gateway and DB edges; eight configured pool slots arranged in stable 2×4 or 1×8 layout.",
+      "cameraDirection": "Auth01 from Medium → InteriorClose mini-world → replay hold → pull slightly back to show waiting line + Phone anchor.",
+      "assetDirection": "Reuse Auth01, lookup, Phone; propose PoolSlot(max8), QueueMarker, ReplayBadge, DeadlineRail.",
+      "truthContinuity": "Historical 1/8 state must be explicitly labeled replay. Do not show 8 active TCP connections at base state by default. Multiple replicas each own independent pool.",
+      "transition": "Follow a single waiting packet—Request A—into SHOT06.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "At `connection pool`, show reusable connection slots and one Login borrowing a slot, a lookup crossing to DB, then a returned slot. Show this as illustrative normal operation, before saturation."
+        },
+        {
+          "number": 2,
+          "direction": "At `up to eight`, label `Auth01 connection pool • max 8` and leave other Auth replicas dimly in the background. This is a maximum, not a guarantee that eight sockets are always open."
+        },
+        {
+          "number": 3,
+          "direction": "On `Let's replay`, explicitly show `REPLAY • earlier moments` and rewind counter from current `8/8 busy` to previous `1/8 busy` before animating count 1→5→7→8. Replay must not be mistaken for live capacity suddenly recovering."
+        },
+        {
+          "number": 4,
+          "direction": "At `pool exhaustion`, all eight configured slots become busy; waiting Login packets line up OUTSIDE the pool. A new highlighted request remains in `WAITING FOR CONNECTION` and does not start a lookup."
+        },
+        {
+          "number": 5,
+          "direction": "At `in-flight`, separate `requests started but unfinished` from `pool slots busy` and `waiting for connection`; all are related but different counters. Keep Phone spinner in peripheral focus and introduce a shared deadline rail."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT05 — 03:35–05:05 — Connection Pool: The Hidden Queue — source narration v1.1\n\n**Narrative purpose:** Internal Auth01 mini-world / eight pool slots.\n\n**Starting frame / geography:** Zoom into Auth01 without cutting to a detached generic UI. Keep world breadcrumb to Gateway and DB edges; eight configured pool slots arranged in stable 2×4 or 1×8 layout.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. At `connection pool`, show reusable connection slots and one Login borrowing a slot, a lookup crossing to DB, then a returned slot. Show this as illustrative normal operation, before saturation.\n2. At `up to eight`, label `Auth01 connection pool • max 8` and leave other Auth replicas dimly in the background. This is a maximum, not a guarantee that eight sockets are always open.\n3. On `Let's replay`, explicitly show `REPLAY • earlier moments` and rewind counter from current `8/8 busy` to previous `1/8 busy` before animating count 1→5→7→8. Replay must not be mistaken for live capacity suddenly recovering.\n4. At `pool exhaustion`, all eight configured slots become busy; waiting Login packets line up OUTSIDE the pool. A new highlighted request remains in `WAITING FOR CONNECTION` and does not start a lookup.\n5. At `in-flight`, separate `requests started but unfinished` from `pool slots busy` and `waiting for connection`; all are related but different counters. Keep Phone spinner in peripheral focus and introduce a shared deadline rail.\n\n**Camera:** Auth01 from Medium → InteriorClose mini-world → replay hold → pull slightly back to show waiting line + Phone anchor.\n\n**Assets:** Reuse Auth01, lookup, Phone; propose PoolSlot(max8), QueueMarker, ReplayBadge, DeadlineRail.\n\n**Truth/continuity:** Historical 1/8 state must be explicitly labeled replay. Do not show 8 active TCP connections at base state by default. Multiple replicas each own independent pool.\n\n**Shot ending / transition:** Follow a single waiting packet—Request A—into SHOT06.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT06",
+      "editorialWindow": "05:05–06:15",
+      "title": "The Deadline Expires",
+      "sourceNarrationRevision": "v1.2",
+      "visualGoal": "Request A vs Request B and user consequence.",
+      "startingFrame": "Track Request A near Auth01 pool queue while a distinct Request B is already inside DB lookup path. One shared time budget rail; user Phone visible as inset anchored to same world.",
+      "cameraDirection": "Close queued A → deadline/Phone consequence → lateral pan to B in DB → controlled zoom-out.",
+      "assetDirection": "Reuse Phone states, failure response, pool, lookup paths; propose RequestIdentityTag A/B and cancellable work marker.",
+      "truthContinuity": "A never starts DB lookup. B might continue after caller expiry. No unqualified completed cancellation. Avoid implying a fixed HTTP response status.",
+      "transition": "The error on this Phone is complete, but another live Login remains to introduce SHOT07.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "Mark first packet `REQUEST A` with `waiting for connection`. Move deadline rail down while A remains before the pool. At `account lookup hasn't even started`, keep its DB path dark."
+        },
+        {
+          "number": 2,
+          "direction": "At `time runs out`, deadline reaches zero; visually complete A with `TIMEOUT` at caller. On Phone, for the FIRST TIME show exact `Please try again.` message and stop spinner."
+        },
+        {
+          "number": 3,
+          "direction": "At `system may still be working`, distinguish `REQUEST B` as another Login that ALREADY started a DB lookup. Show caller timeout marker on B while a DB-side lookup remains active conditionally."
+        },
+        {
+          "number": 4,
+          "direction": "At `cancellation`, show a conditional cancellation signal propagating toward running B lookup. If DB adapter honors it, release slot; otherwise B remains in-flight. Avoid guaranteed cancellation efficacy."
+        },
+        {
+          "number": 5,
+          "direction": "Keep the timeouts local to individual requests rather than universally killing Auth or DB. Make at least one held frame of distinct Request A / Request B outcomes."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT06 — 05:05–06:15 — The Deadline Expires — source narration v1.2\n\n**Narrative purpose:** Request A vs Request B and user consequence.\n\n**Starting frame / geography:** Track Request A near Auth01 pool queue while a distinct Request B is already inside DB lookup path. One shared time budget rail; user Phone visible as inset anchored to same world.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. Mark first packet `REQUEST A` with `waiting for connection`. Move deadline rail down while A remains before the pool. At `account lookup hasn't even started`, keep its DB path dark.\n2. At `time runs out`, deadline reaches zero; visually complete A with `TIMEOUT` at caller. On Phone, for the FIRST TIME show exact `Please try again.` message and stop spinner.\n3. At `system may still be working`, distinguish `REQUEST B` as another Login that ALREADY started a DB lookup. Show caller timeout marker on B while a DB-side lookup remains active conditionally.\n4. At `cancellation`, show a conditional cancellation signal propagating toward running B lookup. If DB adapter honors it, release slot; otherwise B remains in-flight. Avoid guaranteed cancellation efficacy.\n5. Keep the timeouts local to individual requests rather than universally killing Auth or DB. Make at least one held frame of distinct Request A / Request B outcomes.\n\n**Camera:** Close queued A → deadline/Phone consequence → lateral pan to B in DB → controlled zoom-out.\n\n**Assets:** Reuse Phone states, failure response, pool, lookup paths; propose RequestIdentityTag A/B and cancellable work marker.\n\n**Truth/continuity:** A never starts DB lookup. B might continue after caller expiry. No unqualified completed cancellation. Avoid implying a fixed HTTP response status.\n\n**Shot ending / transition:** The error on this Phone is complete, but another live Login remains to introduce SHOT07.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT07",
+      "editorialWindow": "06:15–07:45",
+      "title": "When Retrying Creates More Failure",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Reel-ready AHA #2: extra attempts without extra customers.",
+      "startingFrame": "Reveal Auth replicas and the same shared User DB. Show linked retries as subsidiary read-only lookup arrows with shared origin IDs; not separate fresh Login requests.",
+      "cameraDirection": "Medium one Auth mini-world → widen all replicas/DB feedback loop → pull to Phone human consequence.",
+      "assetDirection": "Reuse retry path and packet visuals; propose LinkedAttemptId, TwoRateMeter, OverloadFeedbackPath.",
+      "truthContinuity": "No full Login replay and no assertion that attempts equal completions. Respect authentication safety and user-facing controls.",
+      "transition": "Hold feedback loop and open up Load Balancer view for scaling hypothesis.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "Choose one still-active Login and mark original read-only lookup `ATTEMPT 1`. When narrated `Auth01 tries again`, fork `ATTEMPT 2` from the same logical Login without sending a new Phone Login."
+        },
+        {
+          "number": 2,
+          "direction": "At `first lookup may still be running`, allow two separate DB work items visible concurrently; label this behavior as illustrative and conditional."
+        },
+        {
+          "number": 3,
+          "direction": "Split meters: `New Login arrivals/s` stays fixed, while `Account lookup attempts/s` climbs. Use two visually different lanes and labels; attempts are not all guaranteed completed."
+        },
+        {
+          "number": 4,
+          "direction": "On `retry storm`, other Auth nodes add bounded/unbounded-looking illustrated branches, carefully showing this as the pathological behavior rather than advice. DB remains running while longer lookup times increase pool occupancy."
+        },
+        {
+          "number": 5,
+          "direction": "At `cascading failure`, trace pressure backward from DB→Auth waiting→Phone failures; end with visible statement `Read-only lookup retry only • active Login`, never auto-resubmit credentials or the complete Login POST."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT07 — 06:15–07:45 — When Retrying Creates More Failure — source narration v1.1\n\n**Narrative purpose:** Reel-ready AHA #2: extra attempts without extra customers.\n\n**Starting frame / geography:** Reveal Auth replicas and the same shared User DB. Show linked retries as subsidiary read-only lookup arrows with shared origin IDs; not separate fresh Login requests.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. Choose one still-active Login and mark original read-only lookup `ATTEMPT 1`. When narrated `Auth01 tries again`, fork `ATTEMPT 2` from the same logical Login without sending a new Phone Login.\n2. At `first lookup may still be running`, allow two separate DB work items visible concurrently; label this behavior as illustrative and conditional.\n3. Split meters: `New Login arrivals/s` stays fixed, while `Account lookup attempts/s` climbs. Use two visually different lanes and labels; attempts are not all guaranteed completed.\n4. On `retry storm`, other Auth nodes add bounded/unbounded-looking illustrated branches, carefully showing this as the pathological behavior rather than advice. DB remains running while longer lookup times increase pool occupancy.\n5. At `cascading failure`, trace pressure backward from DB→Auth waiting→Phone failures; end with visible statement `Read-only lookup retry only • active Login`, never auto-resubmit credentials or the complete Login POST.\n\n**Camera:** Medium one Auth mini-world → widen all replicas/DB feedback loop → pull to Phone human consequence.\n\n**Assets:** Reuse retry path and packet visuals; propose LinkedAttemptId, TwoRateMeter, OverloadFeedbackPath.\n\n**Truth/continuity:** No full Login replay and no assertion that attempts equal completions. Respect authentication safety and user-facing controls.\n\n**Shot ending / transition:** Hold feedback loop and open up Load Balancer view for scaling hypothesis.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT08",
+      "editorialWindow": "07:45–09:10",
+      "title": "More Servers, Same Bottleneck",
+      "sourceNarrationRevision": "v1.0",
+      "visualGoal": "Reel-ready AHA #3: widen the wrong tier.",
+      "startingFrame": "3 Auth nodes underneath Load Balancer; shared User DB remains fixed at the same anchor. Counterfactual overlay makes added instances a what-if, not a real deployment.",
+      "cameraDirection": "Wide Load Balancer→Auth grid → transient replication zoom → Full architecture bottleneck hold.",
+      "assetDirection": "Reuse Auth card and LoadBalancer, DB; propose HypotheticalScaleBadge and replica layout token.",
+      "truthContinuity": "Counterfactual only. Pool configured maximum not actual open sessions. No false claim adding Auth is universally useless.",
+      "transition": "Use same DB pressure state to transition directly into containment decisions.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "At `horizontal scaling`, show `WHAT IF • Auth replicas` marker and duplicate 3→6 Auth instances using same identity silhouette and restrained entry motion."
+        },
+        {
+          "number": 2,
+          "direction": "Show Load Balancer distributing identical original Login arrivals across six nodes. Preserve same incoming arrival counter and same DB completion ceiling; do not covertly increase total demand."
+        },
+        {
+          "number": 3,
+          "direction": "Each new instance receives a small `pool max 8` label, avoiding a giant total `48 connections open` claim; mini-pools remain folded unless causally needed."
+        },
+        {
+          "number": 4,
+          "direction": "Draw six routes converging at the same single DB throughput bottleneck. DB completed lookup rate remains capped for illustrated conditions even if waiting contention rises."
+        },
+        {
+          "number": 5,
+          "direction": "At bridge analogy, use a minimal 1-lane bridge-shaped line within existing architectural map or avoid literal highway illustration; focus on causal convergence over metaphor spectacle."
+        },
+        {
+          "number": 6,
+          "direction": "On `We scaled the Auth servers. Not the bottleneck.`, stabilize three old + three new Auth with unchanged DB meter and a crisp emphasis on the DB boundary."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT08 — 07:45–09:10 — More Servers, Same Bottleneck — source narration v1.0\n\n**Narrative purpose:** Reel-ready AHA #3: widen the wrong tier.\n\n**Starting frame / geography:** 3 Auth nodes underneath Load Balancer; shared User DB remains fixed at the same anchor. Counterfactual overlay makes added instances a what-if, not a real deployment.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. At `horizontal scaling`, show `WHAT IF • Auth replicas` marker and duplicate 3→6 Auth instances using same identity silhouette and restrained entry motion.\n2. Show Load Balancer distributing identical original Login arrivals across six nodes. Preserve same incoming arrival counter and same DB completion ceiling; do not covertly increase total demand.\n3. Each new instance receives a small `pool max 8` label, avoiding a giant total `48 connections open` claim; mini-pools remain folded unless causally needed.\n4. Draw six routes converging at the same single DB throughput bottleneck. DB completed lookup rate remains capped for illustrated conditions even if waiting contention rises.\n5. At bridge analogy, use a minimal 1-lane bridge-shaped line within existing architectural map or avoid literal highway illustration; focus on causal convergence over metaphor spectacle.\n6. On `We scaled the Auth servers. Not the bottleneck.`, stabilize three old + three new Auth with unchanged DB meter and a crisp emphasis on the DB boundary.\n\n**Camera:** Wide Load Balancer→Auth grid → transient replication zoom → Full architecture bottleneck hold.\n\n**Assets:** Reuse Auth card and LoadBalancer, DB; propose HypotheticalScaleBadge and replica layout token.\n\n**Truth/continuity:** Counterfactual only. Pool configured maximum not actual open sessions. No false claim adding Auth is universally useless.\n\n**Shot ending / transition:** Use same DB pressure state to transition directly into containment decisions.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT09",
+      "editorialWindow": "09:10–11:10",
+      "title": "Contain the Failure",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Mitigation decisions: do not misrepresent as database cure.",
+      "startingFrame": "Single map remains. Use local overlays at the right intervention point rather than five unrelated slides. Toggle each intervention deliberately while maintaining DB cap context.",
+      "cameraDirection": "Medium full map → local interventions/mini-worlds → Wide comparative before/contained state without fake total recovery.",
+      "assetDirection": "Reuse paths, pool, failure state; propose RetryBudgetGate, BackoffJitterTimeline, EarlyRejectGate, CircuitBreaker, EnforcedBulkhead6plus2.",
+      "truthContinuity": "Mitigations do not upgrade DB capacity. Some users fail quickly, some succeed conditionally. Not presented as an observed production recovery.",
+      "transition": "Remove intervention overlays and move to measurable user outcomes.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "First isolate retry side path and attach `RETRY BUDGET`. At limit, refuse extra safe lookup attempts. Keep new-Login arrival count independent."
+        },
+        {
+          "number": 2,
+          "direction": "Then animate deterministic stepped delay windows `BACKOFF` with slight per-attempt offsets `JITTER` on read-only retry arrows, not on credential Login posts."
+        },
+        {
+          "number": 3,
+          "direction": "At `load shedding`, position early admission gate before expensive DB-dependent work: some new Logins fail quickly and clearly. Avoid treating this as successful authentication or as improvement for every user."
+        },
+        {
+          "number": 4,
+          "direction": "At `circuit breaker`, pause new database calls under modeled severe failures; show fail-closed Login response, then a limited safe test window to probe recovery; never issue a successful session without account proof."
+        },
+        {
+          "number": 5,
+          "direction": "At `bulkhead isolation`, zoom into a configurable Auth pool max8 and present a PROPOSED split `6 • new Login lookups | 2 • read-only retries`, as an illustrative enforced reservation, not just eight free-floating slots."
+        },
+        {
+          "number": 6,
+          "direction": "At `waiting line can finally start to shrink`, conditionally reduce backlog ONLY when admitted total DB demand including retries falls below sustainable completed throughput. Keep DB capacity value unchanged."
+        },
+        {
+          "number": 7,
+          "direction": "Maintain consistent camera landmarks so viewers can tell budget/backoff/admission/breaker/bulkhead operate at different boundaries, not one magic `FIX` state."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT09 — 09:10–11:10 — Contain the Failure — source narration v1.1\n\n**Narrative purpose:** Mitigation decisions: do not misrepresent as database cure.\n\n**Starting frame / geography:** Single map remains. Use local overlays at the right intervention point rather than five unrelated slides. Toggle each intervention deliberately while maintaining DB cap context.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. First isolate retry side path and attach `RETRY BUDGET`. At limit, refuse extra safe lookup attempts. Keep new-Login arrival count independent.\n2. Then animate deterministic stepped delay windows `BACKOFF` with slight per-attempt offsets `JITTER` on read-only retry arrows, not on credential Login posts.\n3. At `load shedding`, position early admission gate before expensive DB-dependent work: some new Logins fail quickly and clearly. Avoid treating this as successful authentication or as improvement for every user.\n4. At `circuit breaker`, pause new database calls under modeled severe failures; show fail-closed Login response, then a limited safe test window to probe recovery; never issue a successful session without account proof.\n5. At `bulkhead isolation`, zoom into a configurable Auth pool max8 and present a PROPOSED split `6 • new Login lookups | 2 • read-only retries`, as an illustrative enforced reservation, not just eight free-floating slots.\n6. At `waiting line can finally start to shrink`, conditionally reduce backlog ONLY when admitted total DB demand including retries falls below sustainable completed throughput. Keep DB capacity value unchanged.\n7. Maintain consistent camera landmarks so viewers can tell budget/backoff/admission/breaker/bulkhead operate at different boundaries, not one magic `FIX` state.\n\n**Camera:** Medium full map → local interventions/mini-worlds → Wide comparative before/contained state without fake total recovery.\n\n**Assets:** Reuse paths, pool, failure state; propose RetryBudgetGate, BackoffJitterTimeline, EarlyRejectGate, CircuitBreaker, EnforcedBulkhead6plus2.\n\n**Truth/continuity:** Mitigations do not upgrade DB capacity. Some users fail quickly, some succeed conditionally. Not presented as an observed production recovery.\n\n**Shot ending / transition:** Remove intervention overlays and move to measurable user outcomes.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT10",
+      "editorialWindow": "11:10–12:40",
+      "title": "Measure the Journey That Matters",
+      "sourceNarrationRevision": "v1.2",
+      "visualGoal": "User-level outcomes, latency, trace, SLI/SLO.",
+      "startingFrame": "Full request journey as stable backbone. Metrics panel appears only as annotations linked to Phone→Gateway→Balancer→Auth→Pool→DB, not as a detached analytics presentation.",
+      "cameraDirection": "Wide full map → selected outcome → metric mini-world → animated distributed trace → Phone/Journey return.",
+      "assetDirection": "Reuse map, request IDs, Phone; propose OutcomeClassifier, P95P99LatencyRibbon, TraceSpanOverlay, SLI/SLO panel.",
+      "truthContinuity": "SHOT10 is 255 words in only 90s: narration at 170 WPM before holds is high-risk. Voice duration will determine extended editorial boundary; NEVER accelerate or cut approved words.",
+      "transition": "Settle from metrics back to original overall world and recap.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "On `success rate`, show two distinct validated-account outcomes `VALID LOGIN • SUCCESS` vs `VALID LOGIN • SYSTEM ERROR` while including incorrect-password as separate `EXPECTED REJECTION` result, never a server error."
+        },
+        {
+          "number": 2,
+          "direction": "For `P95 / P99`, draw an illustrative distribution of successful Login durations, labeling precisely `P95 successful login latency` and `P99 successful login latency`; no unsupported actual number values."
+        },
+        {
+          "number": 3,
+          "direction": "At `distributed tracing`, highlight one single Login request ID across Gateway, Auth, pool queue, DB lookup with duration markers; show waits vs actual DB processing separated."
+        },
+        {
+          "number": 4,
+          "direction": "At `SLI`, label a hypothetical measure `Valid Logins completed within 2s / all valid Login attempts`, ensuring the numerator/denominator do not count wrong-password rejections as system errors."
+        },
+        {
+          "number": 5,
+          "direction": "At `SLO`, show `Illustrative objective: ≥99.9% valid Logins within 2s / rolling 30 days` with explicit objective/not-measured tag."
+        },
+        {
+          "number": 6,
+          "direction": "Return to Phone real-world experience and contrast green server probe with end-to-end performance. Do not fabricate empirical evidence of full recovery."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT10 — 11:10–12:40 — Measure the Journey That Matters — source narration v1.2\n\n**Narrative purpose:** User-level outcomes, latency, trace, SLI/SLO.\n\n**Starting frame / geography:** Full request journey as stable backbone. Metrics panel appears only as annotations linked to Phone→Gateway→Balancer→Auth→Pool→DB, not as a detached analytics presentation.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. On `success rate`, show two distinct validated-account outcomes `VALID LOGIN • SUCCESS` vs `VALID LOGIN • SYSTEM ERROR` while including incorrect-password as separate `EXPECTED REJECTION` result, never a server error.\n2. For `P95 / P99`, draw an illustrative distribution of successful Login durations, labeling precisely `P95 successful login latency` and `P99 successful login latency`; no unsupported actual number values.\n3. At `distributed tracing`, highlight one single Login request ID across Gateway, Auth, pool queue, DB lookup with duration markers; show waits vs actual DB processing separated.\n4. At `SLI`, label a hypothetical measure `Valid Logins completed within 2s / all valid Login attempts`, ensuring the numerator/denominator do not count wrong-password rejections as system errors.\n5. At `SLO`, show `Illustrative objective: ≥99.9% valid Logins within 2s / rolling 30 days` with explicit objective/not-measured tag.\n6. Return to Phone real-world experience and contrast green server probe with end-to-end performance. Do not fabricate empirical evidence of full recovery.\n\n**Camera:** Wide full map → selected outcome → metric mini-world → animated distributed trace → Phone/Journey return.\n\n**Assets:** Reuse map, request IDs, Phone; propose OutcomeClassifier, P95P99LatencyRibbon, TraceSpanOverlay, SLI/SLO panel.\n\n**Truth/continuity:** SHOT10 is 255 words in only 90s: narration at 170 WPM before holds is high-risk. Voice duration will determine extended editorial boundary; NEVER accelerate or cut approved words.\n\n**Shot ending / transition:** Settle from metrics back to original overall world and recap.\n\n---\n\n"
+    },
+    {
+      "shotKey": "SHOT11",
+      "editorialWindow": "12:40–13:30",
+      "title": "The System Was Telling the Truth",
+      "sourceNarrationRevision": "v1.1",
+      "visualGoal": "Earned full-map resolution and unanswered next question.",
+      "startingFrame": "Largest clean full-map view, preserving approved Phone/Gateway/Balancer/Auth/DB geometry, where each cause briefly re-lights in spoken order.",
+      "cameraDirection": "Medium Phone → Full wide map largest scale reveal → slow controlled DB focus ending without a new diagram.",
+      "assetDirection": "Reuse full World, CameraRig, probes, nodes, Phone and paths; no mandatory new component for conclusion.",
+      "truthContinuity": "Do not introduce replication/architecture of a future episode; no full recovery claim, no automatic Video Plan final LOCK.",
+      "transition": "Final quiet DB focus with next-story question and clean end frame.",
+      "beats": [
+        {
+          "number": 1,
+          "direction": "On `full Login journey`, zoom from Phone into widest legible architecture; remove secondary meters until only critical route remains."
+        },
+        {
+          "number": 2,
+          "direction": "At `lookups slowed`, highlight saturated-but-running DB; at `connections stayed busy`, light Auth01 pool; at `requests waited`, show bounded queue; at `deadlines expired`, mark an expired request, not the DB as dead."
+        },
+        {
+          "number": 3,
+          "direction": "At `servers still running`, keep green probe marker but display incomplete Login journey. On protection recap, bring back lightweight boundary indicators without claiming higher DB throughput."
+        },
+        {
+          "number": 4,
+          "direction": "At `a healthy server doesn't guarantee`, hold the full map and visual dual signal `SERVER UP / LOGIN NOT GUARANTEED`, avoiding decorative confetti or fictitious recovery."
+        },
+        {
+          "number": 5,
+          "direction": "At `database itself needs more capacity?`, gently isolate User Database and darken other components; let the question hang. `That's where our next story begins` becomes an editorial cut, not an explanation of replica topology or next episode script."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT11 — 12:40–13:30 — The System Was Telling the Truth — source narration v1.1\n\n**Narrative purpose:** Earned full-map resolution and unanswered next question.\n\n**Starting frame / geography:** Largest clean full-map view, preserving approved Phone/Gateway/Balancer/Auth/DB geometry, where each cause briefly re-lights in spoken order.\n\n**Proposed HEAR → SEE choreography (new Director proposal; not original v4.0 timeline):**\n\n1. On `full Login journey`, zoom from Phone into widest legible architecture; remove secondary meters until only critical route remains.\n2. At `lookups slowed`, highlight saturated-but-running DB; at `connections stayed busy`, light Auth01 pool; at `requests waited`, show bounded queue; at `deadlines expired`, mark an expired request, not the DB as dead.\n3. At `servers still running`, keep green probe marker but display incomplete Login journey. On protection recap, bring back lightweight boundary indicators without claiming higher DB throughput.\n4. At `a healthy server doesn't guarantee`, hold the full map and visual dual signal `SERVER UP / LOGIN NOT GUARANTEED`, avoiding decorative confetti or fictitious recovery.\n5. At `database itself needs more capacity?`, gently isolate User Database and darken other components; let the question hang. `That's where our next story begins` becomes an editorial cut, not an explanation of replica topology or next episode script.\n\n**Camera:** Medium Phone → Full wide map largest scale reveal → slow controlled DB focus ending without a new diagram.\n\n**Assets:** Reuse full World, CameraRig, probes, nodes, Phone and paths; no mandatory new component for conclusion.\n\n**Truth/continuity:** Do not introduce replication/architecture of a future episode; no full recovery claim, no automatic Video Plan final LOCK.\n\n**Shot ending / transition:** Final quiet DB focus with next-story question and clean end frame.\n"
+    }
+  ]
+}

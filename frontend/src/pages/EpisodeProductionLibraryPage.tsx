@@ -6,6 +6,7 @@ import {loadProductionContract, type ProductionContractState} from '../api/produ
 import {listEpisodeWorkspaces, type EpisodeSummary} from '../api/episodeWorkspaceApi';
 import {type ShotVoiceStatus} from '../components/Ep002VoiceActions';
 import {Ep002CreativeShotEditor} from '../components/Ep002CreativeShotEditor';
+import {Ep002ProductionContractPanel} from '../components/Ep002ProductionContractPanel';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -122,6 +123,10 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
     setShotVoiceStatuses(previous => previous[shotKey] === status
       ? previous : {...previous,[shotKey]:status});
   },[]);
+  const [contractEpochs,setContractEpochs]=useState<Record<string,number>>({});
+  const onProductionChanged=useCallback((shotKey:string)=>{
+    setContractEpochs(previous=>({...previous,[shotKey]:(previous[shotKey]??0)+1}));
+  },[]);
   const lockedCount = Object.values(shotVoiceStatuses).filter(s=>s==='locked').length;
   return <>
     <div className="library-facts">
@@ -159,7 +164,10 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
             </summary>
             <div className="library-shot-body">
               <p><strong>Original approved source revision:</strong> {shot.directorScriptRevision} · <strong>Editorial duration:</strong> {shot.editorialDurationSeconds}s · <strong>Words:</strong> {shot.wordCount}</p>
-              <Ep002CreativeShotEditor shot={shot} onVoiceStatus={onVoiceStatus}/>
+              <Ep002CreativeShotEditor shot={shot} onVoiceStatus={onVoiceStatus}
+                onProductionChanged={onProductionChanged}/>
+              <Ep002ProductionContractPanel shotKey={shot.shotKey}
+                refreshToken={contractEpochs[shot.shotKey]??0}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
               <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>

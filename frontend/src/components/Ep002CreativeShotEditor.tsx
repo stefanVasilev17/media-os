@@ -6,6 +6,7 @@ import type {ShotVoiceStatus} from './Ep002VoiceActions';
 type Props={
   shot:{shotKey:string;englishNarration:string;voiceDirection:string;wordCount:number};
   onVoiceStatus:(shotKey:string,status:ShotVoiceStatus)=>void;
+  onProductionChanged?:(shotKey:string)=>void;
 };
 
 function statusOf(shot:CreativeShotState):ShotVoiceStatus {
@@ -13,7 +14,7 @@ function statusOf(shot:CreativeShotState):ShotVoiceStatus {
   return shot.hasCurrentTake?'generated':'pending';
 }
 
-export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
+export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}:Props){
   const [state,setState]=useState<CreativeShotState|null>(null);
   const [text,setText]=useState(shot.englishNarration);
   const [direction,setDirection]=useState(shot.voiceDirection);
@@ -67,7 +68,8 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
     setBusy(true);setError('');setNotice('');setConfirming(false);
     try{
       const next=await ep002CreativeVoiceApi.save(shot.shotKey,state.revision,text,direction);
-      apply(next);setText(next.narration??text);setDirection(next.voiceDirection??direction);
+      apply(next);onProductionChanged?.(shot.shotKey);
+      setText(next.narration??text);setDirection(next.voiceDirection??direction);
       setEditing(false);
       stop();
       setNotice('Saved as version '+next.revision+'. Older scripts and recordings are preserved.');
@@ -86,7 +88,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
         || latest.takes.length!==state.takes.length || !latest.canGenerate)
         throw new Error('Script or voice state changed. Review the latest version before spending credits.');
       const next=await ep002CreativeVoiceApi.generate(shot.shotKey,latest.revision,crypto.randomUUID());
-      stop();apply(next);
+      stop();apply(next);onProductionChanged?.(shot.shotKey);
       setNotice('New audio take saved. Listen below and choose your preferred take.');
     }catch(cause){
       setError(String(cause)+' If the paid request status is uncertain, do not retry before checking it.');
@@ -100,7 +102,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus}:Props){
     setBusy(true);setError('');
     try{
       const next=await ep002CreativeVoiceApi.approve(shot.shotKey,state.revision,takeId);
-      apply(next);
+      apply(next);onProductionChanged?.(shot.shotKey);
       setNotice('Preferred take approved. Future edits remain available.');
     }catch(cause){setError(String(cause));}
     finally{setBusy(false);}
