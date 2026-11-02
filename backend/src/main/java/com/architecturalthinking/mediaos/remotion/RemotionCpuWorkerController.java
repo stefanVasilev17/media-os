@@ -128,6 +128,10 @@ public class RemotionCpuWorkerController {
                 where r.id=:render and r.project_id=:project
                   and r.composition_id='EP002-SHOT01-DRAFT'
                   and r.status='RUNNING' and r.worker_id=:worker
+                  and t.revision=(
+                    select max(s.revision) from ep002_creative_script_revision s
+                    where s.shot_key='SHOT01'
+                  )
                   and exists (
                     select 1 from ep002_creative_voice_choice choice
                     where choice.shot_key='SHOT01' and choice.revision=t.revision
