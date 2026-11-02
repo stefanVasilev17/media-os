@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,6 +109,44 @@ public class RemotionCpuWorkerController {
                 .update();
 
         return ResponseEntity.ok(work);
+    }
+
+    @GetMapping("/{renderId}/ep002-selected-voice")
+    public ResponseEntity<byte[]> selectedVoice(
+            @PathVariable UUID renderId,
+            @RequestHeader(value = "X-Media-OS-Worker-Key",required = false) String key,
+            @RequestHeader(value = "X-Media-OS-Worker",required = false) String workerId
+    ) {
+        requireWorker(key,workerId);
+        return jdbc.sql("""
+                select t.audio,t.content_type
+                from remotion_render r
+                join ep002_creative_voice_take t
+                  on t.id::text = r.input_props->>'voiceTakeId'
+                  and t.shot_key='SHOT01'
+                  and t.revision::text = r.input_props->>'scriptRevision'
+                where r.id=:render and r.project_id=:project
+                  and r.composition_id='EP002-SHOT01-DRAFT'
+                  and r.status='RUNNING' and r.worker_id=:worker
+                  and exists (
+                    select 1 from ep002_creative_voice_choice choice
+                    where choice.shot_key='SHOT01' and choice.revision=t.revision
+                      and choice.take_id=t.id
+                      and choice.id=(
+                        select newest.id from ep002_creative_voice_choice newest
+                        where newest.shot_key='SHOT01' and newest.revision=t.revision
+                        order by newest.selected_at desc,newest.id desc limit 1
+                      )
+                  )
+                """)
+                .param("render",renderId).param("project",PROJECT_ID)
+                .param("worker",workerId.trim())
+                .query((rs,n)->ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(rs.getString("content_type")))
+                        .cacheControl(CacheControl.noStore())
+                        .body(rs.getBytes("audio")))
+                .optional().orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.CONFLICT,"No valid selected voice for this worker-owned EP002 render."));
     }
 
     @PostMapping("/{renderId}/progress")
