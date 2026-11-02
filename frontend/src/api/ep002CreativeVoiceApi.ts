@@ -5,6 +5,7 @@ export type CreativeTake={
 export type CreativeShotState={
   shotKey:string; revision:number; narration:string|null; voiceDirection:string|null;
   takes:CreativeTake[]; hasCurrentTake:boolean; voiceApproved:boolean;
+  preferredTakeId:string|null;
   canGenerate:boolean; blockedReason:string|null; generationStatus:string;
   voiceModel:string; voiceIdentityVerified:boolean;
 };
