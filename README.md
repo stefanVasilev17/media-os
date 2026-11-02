@@ -2,6 +2,12 @@
 
 **Director-first, agent-executed AI video production operating system.**
 
+## Start here — live project handoff
+
+**[PROJECT_STATE.md](PROJECT_STATE.md)** — one central, versioned overview of what is implemented, what was deployed, current blockers and the exact next milestone. **[AGENTS.md](AGENTS.md)** — mandatory first-read instructions and freshness checks for GitHub-connected AI coding agents.
+
+Read both at the start of every new chat. These documents are Git-managed snapshots; check recent merged PRs and Railway deployment before treating them as live truth.
+
 ## Canonical product direction
 
 **[Director-LOCKED MediaOS Roadmap v1 — 2026-11-02](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md)** is the current product roadmap, technical scope and agent planning authority. It supersedes older README statements about the target production tools. Historical episode files remain available for audit and source provenance.
