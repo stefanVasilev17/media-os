@@ -5,6 +5,8 @@ import {AT_FONT} from '../../components/architectural-thinking';
 export type Shot01LoginWaitingProps = {
   durationInFrames: number;
   presentation: 'STORYBOARD_PREVIEW_V1';
+  beatStartFrames?: number[];
+  timingMode?: 'ELEVENLABS_CHARACTER_TIMESTAMPS'|'PROVISIONAL_STORYBOARD';
 };
 
 const C={
@@ -21,23 +23,31 @@ const Label:React.FC<{x:number;y:number;size?:number;color?:string;children:Reac
   ({x,y,size=26,color=C.white,children,weight=650})=>
     <text x={x} y={y} fontFamily={AT_FONT} fontSize={size} fill={color} fontWeight={weight}>{children}</text>;
 
-function World({frame,duration}:{frame:number;duration:number}){
+function World({frame,duration,beatStartFrames}:{frame:number;duration:number;beatStartFrames?:number[]}){
   const at=frame/Math.max(1,duration-1);
-  // Editorial storyboard windows only. These are NOT measured voice-word cue frames.
-  const press=smooth(.04,.09,at);
-  const phoneReturn=smooth(.57,.70,at);
-  const authFocus=smooth(.37,.50,at)*(1-phoneReturn);
+  const aligned=beatStartFrames?.length===5
+    && beatStartFrames.every((value,i)=>Number.isInteger(value)&&value>=0
+      && value<duration&&(i===0||value>beatStartFrames[i-1]));
+  const starts=aligned
+    ? beatStartFrames!.map(value=>value/Math.max(1,duration-1))
+    : [.04,.19,.37,.57,.84];
+  const press=smooth(starts[0],starts[0]+.03,at);
+  const phoneReturn=smooth(starts[3],starts[3]+.05,at);
+  const authFocus=smooth(starts[2],starts[2]+.055,at)*(1-phoneReturn);
   const phoneOpacity=blend(.98,.62,authFocus);
-  const authEmphasis=smooth(.34,.46,at)*(1-smooth(.66,.77,at));
-  const railVisibility=smooth(.19,.26,at)*(1-smooth(.84,.92,at));
-  const rewind=smooth(.84,.94,at);
+  const authEmphasis=smooth(starts[2],starts[2]+.048,at)
+    *(1-smooth(starts[3]+.01,starts[3]+.065,at));
+  const railVisibility=smooth(starts[1],starts[1]+.04,at)
+    *(1-smooth(starts[4],starts[4]+.045,at));
+  const rewind=smooth(starts[4],starts[4]+.055,at);
   const pulse=.5+.5*Math.sin(frame*.14);
   const spinner=frame*9;
   const zoom=1+authEmphasis*.16+rewind*.07;
   const cx=authEmphasis*130-rewind*80;
   const cy=authEmphasis*12;
-  const showProbe=smooth(.43,.52,at)*(1-smooth(.70,.78,at));
-  const spinnerOpacity=smooth(.07,.14,at);
+  const showProbe=smooth(starts[2]+.01,starts[2]+.05,at)
+    *(1-smooth(starts[3]+.01,starts[3]+.055,at));
+  const spinnerOpacity=smooth(starts[0]+.015,starts[0]+.055,at);
 
   return <AbsoluteFill style={{backgroundColor:C.bg,overflow:'hidden'}}>
     <svg viewBox="0 0 1920 1080" width="100%" height="100%"
@@ -130,9 +140,9 @@ function World({frame,duration}:{frame:number;duration:number}){
   </AbsoluteFill>;
 }
 
-export const Shot01LoginWaiting:React.FC<Shot01LoginWaitingProps>=({durationInFrames})=>{
+export const Shot01LoginWaiting:React.FC<Shot01LoginWaitingProps>=({durationInFrames,beatStartFrames})=>{
   const frame=useCurrentFrame();
   const config=useVideoConfig();
   const total=Math.max(1,durationInFrames||config.durationInFrames);
-  return <World frame={frame} duration={total}/>;
+  return <World frame={frame} duration={total} beatStartFrames={beatStartFrames}/>;
 };

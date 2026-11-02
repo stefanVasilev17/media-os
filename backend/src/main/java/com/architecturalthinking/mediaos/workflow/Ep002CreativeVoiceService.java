@@ -1,6 +1,8 @@
 package com.architecturalthinking.mediaos.workflow;
 
 import com.architecturalthinking.mediaos.system.DirectorIdentity;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -195,6 +197,12 @@ public class Ep002CreativeVoiceService {
             ElevenLabsTextToSpeechService.GenerationResult take=elevenLabs.generate(
                     shot,saved.narration(),"","",Map.of(),
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
+            String originalTiming;
+            try {
+                originalTiming=new ObjectMapper().writeValueAsString(take.alignmentResponse());
+            } catch (JsonProcessingException problem) {
+                throw new IllegalStateException("ElevenLabs alignment could not be serialized safely.",problem);
+            }
             transaction.executeWithoutResult(status->{
                 lockShot(shot);
                 Integer n=jdbc.sql("""
@@ -204,13 +212,15 @@ public class Ep002CreativeVoiceService {
                 jdbc.sql("""
                         insert into ep002_creative_voice_take
                           (id,shot_key,revision,take_number,narration_sha256,audio,
-                           content_type,model_id,voice_id)
-                        values (:id,:shot,:revision,:number,:hash,:audio,:type,:model,:voice)
+                           content_type,model_id,voice_id,elevenlabs_alignment)
+                        values (:id,:shot,:revision,:number,:hash,:audio,:type,:model,:voice,
+                                cast(:alignment as jsonb))
                         """).param("id",UUID.randomUUID()).param("shot",shot)
                         .param("revision",saved.revision()).param("number",n)
                         .param("hash",EpisodeLockedScriptVoiceService.narrationHash(saved.narration()))
                         .param("audio",take.audio()).param("type",take.contentType())
-                        .param("model",take.modelId()).param("voice",take.voiceId()).update();
+                        .param("model",take.modelId()).param("voice",take.voiceId())
+                        .param("alignment",originalTiming).update();
                 int updated=jdbc.sql("""
                         update ep002_creative_voice_request set status='COMPLETED',completed_at=now()
                         where request_id=:id and status='IN_FLIGHT'
