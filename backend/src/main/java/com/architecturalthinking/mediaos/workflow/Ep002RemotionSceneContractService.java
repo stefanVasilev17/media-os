@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.workflow;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -98,14 +99,14 @@ public class Ep002RemotionSceneContractService {
             throw new IllegalArgumentException("Unexpected visual source or incomplete Stage 1 contract.");
         }
 
-        List<Map<String,Object>> approved=(List<Map<String,Object>>)visual.get("beats");
-        if (approved==null || approved.size()!=5)
+        Object rawBeats=visual.get("beats");
+        if (!(rawBeats instanceof JsonNode approved) || !approved.isArray() || approved.size()!=5)
             throw new IllegalArgumentException("SHOT01 must contain the five approved visual beats.");
         List<Beat> beats=new ArrayList<>();
         for (int i=0;i<5;i++) {
-            Map<String,Object> beat=approved.get(i);
-            if (!Integer.valueOf(i+1).equals(beat.get("number"))
-                    || !(beat.get("direction") instanceof String direction) || direction.isBlank()
+            JsonNode beat=approved.path(i);
+            String direction=beat.path("direction").asText();
+            if (beat.path("number").asInt()!=i+1 || direction.isBlank()
                     || !direction.contains(CUES.get(i))) {
                 throw new IllegalArgumentException("Approved SHOT01 visual beat or cue changed: "+(i+1));
             }
