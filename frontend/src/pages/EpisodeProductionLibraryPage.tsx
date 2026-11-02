@@ -131,7 +131,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
     </div>
     <section className="library-section">
       <div className="library-section-title"><FileText size={19}/><h2>Full Script v4.0 and HEAR → SEE</h2></div>
-      <p>Exact original English narration is Creative Director-LOCKED. The displayed Visual Pass v1.0 is a <strong>new, separately approved reconstruction</strong> of the visual choreography, not the missing original v4.0 HEAR → SEE tables. Timing is editorial, not measured ElevenLabs timing.</p>
+      <p>Original Script v4.0 is preserved as the approved source. You can edit, save and generate new recordings from a new Creative Draft at any time, without LOCK/UNLOCK. The displayed Visual Pass v1.0 is a <strong>new, separately approved reconstruction</strong> of the visual choreography, not the missing original v4.0 HEAR → SEE tables. Timing is editorial, not measured ElevenLabs timing.</p>
       <div className="library-links">
         {link(ep002.editorialApproval,'Full Script v4.0 — Director LOCK event')}
         {link(ep002.scriptAssembly,'Complete original script assembly and technical guardrails')}
@@ -158,7 +158,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
               </span>
             </summary>
             <div className="library-shot-body">
-              <p><strong>Script revision:</strong> {shot.directorScriptRevision} · <strong>Editorial duration:</strong> {shot.editorialDurationSeconds}s · <strong>Words:</strong> {shot.wordCount}</p>
+              <p><strong>Original approved source revision:</strong> {shot.directorScriptRevision} · <strong>Editorial duration:</strong> {shot.editorialDurationSeconds}s · <strong>Words:</strong> {shot.wordCount}</p>
               <Ep002CreativeShotEditor shot={shot} onVoiceStatus={onVoiceStatus}/>
               <h3>SEE — Director-approved new Visual Pass v1.0</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
@@ -180,7 +180,10 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
         <a className="library-primary-link" href={'#/episodes/'+production.id+'/prepare'}>Open production episode preparation</a>
       </> : <>
         <p>This Creative Draft page now saves script versions and audio directly in the existing production PostgreSQL, independently of the native Episode Factory stage workflow. A native EP002 preparation workspace is optional for this creative editing and voice flow.</p>
-        <a className="library-primary-link" href="#/episodes/new">Create EP002 through audited Director workflow</a>
+        <details className="library-shot"><summary>Optional: set up native Episode Factory production stages</summary>
+          <p>The editable script and voice studio above are already operational independently of stage approvals.</p>
+          <a className="library-primary-link" href="#/episodes/new?template=EP002">Open optional EP002 preparation workflow</a>
+        </details>
       </>}
     </section>
   </>;
@@ -207,7 +210,7 @@ export function EpisodeProductionLibraryPage({episodeKey}: {episodeKey: EpisodeK
     <header className="library-header">
       <p>ARCHITECTURAL THINKING / DIRECTOR SOURCE LIBRARY / {episodeKey==='EP001'?'READ ONLY':'VOICE STUDIO'}</p>
       <h1>{episodeKey} — {episodeKey==='EP001'?ep001.title:ep002.title}</h1>
-      <p>{episodeKey==='EP001'?'Final approved 12-SHOT happy-path production':'Director-locked 11-SHOT Script v4.0 + Director-approved NEW Visual Pass v1.0'}</p>
+      <p>{episodeKey==='EP001'?'Final approved 12-SHOT happy-path production':'Original Director-approved v4.0 Script · Editable creative drafts + Voice Studio · Approved Visual Pass v1.0'}</p>
     </header>
     {catalogError && <p role="alert" className="library-warning">{catalogError}</p>}
     {episodeKey==='EP001'?<Ep001Library production={production}/>:<Ep002Library production={production}/>}
