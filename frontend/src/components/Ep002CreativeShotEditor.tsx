@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {CheckCircle2,Pause,Play,RotateCcw,Save,Pencil} from 'lucide-react';
-import {ep002CreativeVoiceApi,type CreativeShotState} from '../api/ep002CreativeVoiceApi';
+import {ep002CreativeVoiceApi,type CreativeShotState,type ExistingTakeAlignmentState} from '../api/ep002CreativeVoiceApi';
 import type {ShotVoiceStatus} from './Ep002VoiceActions';
 
 type Props={
@@ -25,6 +25,8 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   const [playing,setPlaying]=useState<string|null>(null);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
+  const [alignment,setAlignment]=useState<ExistingTakeAlignmentState|null>(null);
+  const [alignmentConfirming,setAlignmentConfirming]=useState(false);
   const audioRefs=useRef<Record<string,HTMLAudioElement|null>>({});
   const isDirty=Boolean(state) && (state?.revision===0 || text !== (state?.narration??shot.englishNarration)
       || direction !== (state?.voiceDirection??shot.voiceDirection));
@@ -49,6 +51,37 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
     }).finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;Object.values(audioRefs.current).forEach(a=>a?.pause());};
   },[shot.shotKey,shot.englishNarration,shot.voiceDirection,apply,onVoiceStatus]);
+
+  useEffect(()=>{
+    let active=true;
+    setAlignment(null);
+    setAlignmentConfirming(false);
+    if(!state?.preferredTakeId)return()=>{active=false;};
+    ep002CreativeVoiceApi.alignmentState(shot.shotKey)
+      .then(result=>{if(active)setAlignment(result);})
+      .catch(()=>{if(active)setAlignment(null);});
+    return()=>{active=false;};
+  },[shot.shotKey,state?.preferredTakeId,state?.revision]);
+
+  async function alignPreferredTake(){
+    if(!state||!alignment?.canAlign||!state.preferredTakeId||busy||isDirty
+      ||!alignmentConfirming||alignment.preferredTakeId!==state.preferredTakeId)return;
+    setBusy(true);setError('');setNotice('');setAlignmentConfirming(false);
+    try{
+      const current=await ep002CreativeVoiceApi.alignmentState(shot.shotKey);
+      if(!current.canAlign||current.preferredTakeId!==state.preferredTakeId
+        ||current.revision!==state.revision)
+        throw new Error('Preferred take or alignment state changed. No new paid request was made.');
+      const next=await ep002CreativeVoiceApi.alignExisting(
+        shot.shotKey,state.preferredTakeId,state.revision,crypto.randomUUID());
+      setAlignment(next);
+      onProductionChanged?.(shot.shotKey);
+      setNotice('Existing recording aligned. No new voice was generated. View measured cues in the Remotion Blueprint.');
+    }catch(cause){
+      setError(String(cause)+' Do not retry a paid request if its status is uncertain. Refresh first.');
+      try{setAlignment(await ep002CreativeVoiceApi.alignmentState(shot.shotKey));}catch{ }
+    }finally{setBusy(false);}
+  }
 
   function stop(){
     Object.values(audioRefs.current).forEach(a=>{if(a){a.pause();a.currentTime=0;}});
@@ -192,6 +225,37 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
             onClick={()=>void play(take.id)}>
             {playing===take.id?<><Pause size={16}/> Stop record</>:<><Play size={16}/> Start record</>}
           </button>
+          {take.id===state.preferredTakeId && take.revision===state.revision&&alignment&&
+            <div className="library-voice-alignment">
+              {alignment.alignmentPresent
+                ? <p role="status">Voice timestamps saved. Remotion can use the original recording without regeneration.</p>
+                : <>
+                  <p>Existing recording: precise word timestamps are not stored.
+                    Forced Alignment analyzes this MP3 and the saved transcript without generating new audio.
+                    <strong> ElevenLabs bills this as a separate paid operation.</strong></p>
+                  {alignment.reason&&<p role="status">{alignment.reason}</p>}
+                  {alignment.canAlign&&!alignmentConfirming&&
+                    <button type="button" className="library-voice-button secondary"
+                      disabled={busy||isDirty} onClick={()=>setAlignmentConfirming(true)}>
+                      Align Existing Take
+                    </button>}
+                  {alignment.canAlign&&alignmentConfirming&&
+                    <div className="library-voice-confirm" role="group">
+                      <p><strong>Confirm paid Forced Alignment for Take {take.takeNumber}?</strong>
+                        This sends the current MP3 and matching narration to ElevenLabs.
+                        It is billed at the current Speech-to-Text rate. No new TTS recording is made.
+                        If the result is uncertain, MediaOS will block automatic retry.</p>
+                      <div className="library-voice-confirm-buttons">
+                        <button type="button" className="library-voice-button secondary"
+                          disabled={busy} onClick={()=>setAlignmentConfirming(false)}>Cancel</button>
+                        <button type="button" className="library-voice-button"
+                          disabled={busy||isDirty} onClick={()=>void alignPreferredTake()}>
+                          Yes, align this existing take (paid)
+                        </button>
+                      </div>
+                    </div>}
+                </>}
+            </div>}
           {take.id!==state.preferredTakeId && take.revision===state.revision &&
             <button type="button" className="library-voice-button secondary" disabled={busy||isDirty}
               onClick={()=>void approve(take.id)}>Use this take</button>}
