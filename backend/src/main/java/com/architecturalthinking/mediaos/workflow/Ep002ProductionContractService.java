@@ -219,15 +219,22 @@ public class Ep002ProductionContractService {
         render.put("commitSha",null);
         if(signature!=null) {
             jdbc.sql("""
-                    select remotion_render_id::text,remotion_commit_sha,render_status,created_at
-                    from episode_shot_render_lineage
-                    where episode_key=:episode and shot_key=:shot and dependency_sha256=:hash
-                    order by created_at desc,id desc limit 1
+                    select l.remotion_render_id::text as remotion_render_id,
+                           l.remotion_commit_sha as remotion_commit_sha,
+                           r.status as render_status,r.progress as progress,
+                           l.created_at as created_at
+                    from episode_shot_render_lineage l
+                    join remotion_render r on r.id=l.remotion_render_id
+                    where l.episode_key=:episode and l.shot_key=:shot
+                      and l.dependency_sha256=:hash
+                    order by l.created_at desc,l.id desc limit 1
                     """).param("episode",EPISODE).param("shot",shot).param("hash",signature)
                     .query((rs,n)->{
                         render.put("renderId",rs.getString("remotion_render_id"));
                         render.put("commitSha",rs.getString("remotion_commit_sha"));
-                        render.put("status",rs.getString("render_status"));
+                        String rawStatus=rs.getString("render_status");
+                        render.put("status","RUNNING".equals(rawStatus)?"RENDERING":rawStatus);
+                        render.put("progress",rs.getInt("progress"));
                         render.put("createdAt",rs.getObject("created_at",OffsetDateTime.class).toString());
                         return 1;
                     }).optional();

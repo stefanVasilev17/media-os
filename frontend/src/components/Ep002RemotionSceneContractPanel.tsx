@@ -9,6 +9,8 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
   const [refresh,setRefresh]=useState(0);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
+  const [preview,setPreview]=useState<{status:string;renderId?:string;progress?:number;videoUrl?:string|null;error?:string|null}|null>(null);
+  const [rendering,setRendering]=useState(false);
   useEffect(()=>{
     let active=true;
     setLoading(true);
@@ -18,6 +20,48 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[refreshToken,refresh]);
+
+  useEffect(()=>{
+    let active=true;
+    let interval:ReturnType<typeof setInterval>|undefined;
+    const refreshStatus=async()=>{
+      try{
+        const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',
+          {cache:'no-store'});
+        if(response.ok){
+          const result=await response.json();
+          if(active)setPreview(result);
+        }
+      }catch{ }
+    };
+    void refreshStatus();
+    interval=setInterval(()=>void refreshStatus(),5000);
+    return()=>{active=false;if(interval)clearInterval(interval);};
+  },[refreshToken,refresh]);
+
+  const canPreview=!!scene && scene.inputs.preferredTakeId!==null
+    && scene?.inputs.measuredDurationSeconds!==null
+    && scene?.video.durationInFrames!==null
+    && !scene?.readiness.blockers.some(b=>b!=='NARRATION_CUE_REVIEW_REQUIRED');
+
+  async function requestPreview(){
+    if(!scene||!canPreview||rendering)return;
+    if(!window.confirm('Create an EP002 SHOT01 storyboard preview using the current preferred voice? '
+      +'The five visual beats use provisional editorial timing, not verified word alignment. '
+      +'This uses the existing render worker but does not request paid ElevenLabs audio.'))return;
+    setRendering(true);setError('');
+    try{
+      const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:true})
+      });
+      if(!response.ok)throw new Error('Preview request failed: HTTP '+response.status
+        +' '+(await response.text()).slice(0,220));
+      const output=await response.json();
+      setPreview(output);
+    }catch(cause){setError(String(cause));}
+    finally{setRendering(false);}
+  }
 
   return <details className="library-production-contract library-scene-contract">
     <summary>
@@ -59,7 +103,22 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
         </div>
         <p><strong>Continuity:</strong> {scene.continuityGuardrails}</p>
         <p><strong>Transition:</strong> {scene.endingTransition}</p>
-        <p className="library-note">Remotion code generation and rendering are next-stage operations.</p>
+        <div className="library-scene-preview">
+          <strong>EP002 SHOT01 — Remotion preview</strong>
+          <p>Provisional five-beat storyboard timing. Final word/beat alignment is still pending Director review.</p>
+          <button type="button" className="library-voice-button"
+            disabled={!canPreview||rendering}
+            onClick={()=>void requestPreview()}>
+            {rendering?'Starting…':'Create storyboard preview'}
+          </button>
+          {preview&&<p role="status">Render: {preview.status}
+            {typeof preview.progress==='number'?' · '+preview.progress+'%':''}
+            {preview.error?' · '+preview.error.slice(0,230):''}
+          </p>}
+          {preview?.status==='SUCCEEDED'&&preview.videoUrl&&
+            <video controls preload="metadata" style={{width:'100%',maxHeight:480,borderRadius:9,marginTop:10}}
+              src={preview.videoUrl}/>}
+        </div>
         <p className="library-production-lineage">Contract fingerprint: {scene.contractId.slice(0,20)}…</p>
       </>}
       <button type="button" className="library-voice-refresh" disabled={loading}

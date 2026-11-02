@@ -1,5 +1,6 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
+import {Shot01LoginWaiting} from './episodes/ep002/Shot01LoginWaiting';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -63,6 +64,15 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP002-SHOT01-DRAFT"
+        component={Shot01LoginWaiting}
+        durationInFrames={dynamicDuration ?? 1200}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{durationInFrames:1200,presentation:'STORYBOARD_PREVIEW_V1' as const}}
+      />
       <Composition
         id="AT-EpisodeShot-QA"
         component={EpisodeShotQaPreview}
