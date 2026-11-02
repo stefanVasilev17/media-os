@@ -75,7 +75,7 @@ export function Ep002VoiceActions({shot,episodeId}:Props) {
         {loading ? 'Checking Voice readiness…' : 'Check Voice / Generate for '+shot.shotKey}
       </button>}
       {voice && <>
-        <p><strong>Source:</strong> {voice.source === 'DIRECTOR_LOCKED_ORIGINAL_SCRIPT' || voice.shotRevision===0
+        <p><strong>Source:</strong> {voice.shotRevision===0
           ? 'Original locked Script' : 'Approved SHOT revision'} · <strong>Voice model:</strong> {voice.voiceModel || 'Not configured'} · <strong>Takes:</strong> {voice.takes.length}</p>
         <p><strong>EP001 voice identity:</strong> {voice.ep001VoiceIdentityVerified ? 'Verified' : 'Not verified'} ·
           <strong> Generation:</strong> {voice.generationStatus || 'Not started'}</p>
