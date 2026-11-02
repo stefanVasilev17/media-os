@@ -19,16 +19,16 @@ export type Ep002SceneContract={
   }>;
   beats:Array<{
     number:number;approvedDirection:string;cueAnchor:string;
-    cueStatus:'EDITORIAL_ONLY_UNALIGNED';
+    cueStatus:'EDITORIAL_ONLY_UNALIGNED'|'AUDIO_ALIGNED';
     cameraIntent:string;operations:string[];assetKeys:string[];
-    startFrame:null;endFrame:null;
+    startFrame:number|null;endFrame:number|null;
   }>;
   cameraDirection:string;continuityGuardrails:string;endingTransition:string;
-  cueTimingAuthority:'EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT';
+  cueTimingAuthority:'EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT'|'ELEVENLABS_CHARACTER_TIMESTAMPS';
   readiness:{
     status:'BLOCKED'|'READY_FOR_CODE_GENERATION';
     blockers:string[];
-    cueAlignmentRequired:true;canSubmitRender:false;
+    cueAlignmentRequired:boolean;canSubmitRender:false;
   };
 };
 
