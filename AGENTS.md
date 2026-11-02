@@ -6,7 +6,7 @@
 
 1. Read [PROJECT_STATE.md](PROJECT_STATE.md) in full from the current `main` branch. Treat it as the **latest documented snapshot**, not a guaranteed live truth.
 2. Read [Director-LOCKED Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md) to establish the authorized ten stages and current product direction.
-3. Read the current stage's implementation handoff. For Stage 1–2 this is [Stage 1 handoff](docs/engineering/MEDIAOS_STAGE1_UNIFIED_PRODUCTION_DATA_HANDOFF_20261102.md).
+3. Read the newest verified stage handoff linked in [PROJECT_STATE.md](PROJECT_STATE.md). For Stage 2–3 this is [Stage 2 handoff](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md), alongside the preserved [Stage 1 handoff](docs/engineering/MEDIAOS_STAGE1_UNIFIED_PRODUCTION_DATA_HANDOFF_20261102.md).
 4. Check latest `main` commit, recent merged PRs and relevant actual source files before claiming a function is complete or beginning a modification.
 5. If runtime readiness matters, check the live Railway deployment state and commit. GitHub merge is not production deployment proof.
 6. Tell the Director, briefly: **what is verified DONE; what is currently deployed; the current milestone; exact NEXT step; any blockers**. Then work on the user's task. Do not re-ask answered questions or make the Director repeat the project context.
@@ -15,7 +15,7 @@
 
 Produce Architectural Thinking episodes through **MediaOS + AI coding agents + GitHub-controlled Remotion + selected ElevenLabs voice**, automatically rendering only modified SHOTs and assembling final video. The **AI Director Revision Loop** is central: Director watches a preview, requests a scoped change, agent edits/remakes only relevant Remotion material, tests it, and presents the revised preview for acceptance.
 
-Follow Roadmap v1 in `PROJECT_STATE.md`. The next engineering task in the 2026-11-02 snapshot is **Stage 2: Remotion Scene Contract for EP002 SHOT01**, then Stage 3 automatic scene build and Stage 4 the first working feedback → rerender loop.
+Follow Roadmap v1 and the **live-verified milestone in `PROJECT_STATE.md`**. In the latest 2026-11-02 deployment snapshot Stage 2 was implemented for EP002 SHOT01; **Stage 3: actual automated SHOT01 build and audio-synced Remotion preview** is next, followed by Stage 4 Director feedback → selective rerender. Recheck merged GitHub changes before assuming this snapshot is current.
 
 ## Critical boundaries
 

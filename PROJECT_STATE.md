@@ -9,9 +9,9 @@
 
 - **Product:** MediaOS, an AI-assisted, Director-controlled, automated Remotion video production system for the Architectural Thinking YouTube channel.
 - **Canonical repository:** `stefanVasilev17/media-os`, working branch `main`.
-- **Current milestone:** Roadmap v1 **Stage 1 / 10, Unified Production Data, implemented, merged and deployed**. Final authenticated Director-browser verification of the new per-SHOT panel is **not yet recorded**.
-- **NEXT implementation:** **Stage 2 — Remotion Scene Contract**, first scoped to **EP002 SHOT01**. Stage 3 builds/renders SHOT01; Stage 4 delivers the **AI Director Revision Loop** (Director feedback → scoped Remotion code change → tests → new preview).
-- **Important:** Stages **2–10 are planned, NOT complete**. No generic agent-driven visual-generation loop or universal full-episode assembly is proven yet.
+- **Current milestone:** Roadmap v1 **Stage 2 / 10, Remotion Scene Contract for EP002 SHOT01, implemented, merged and deployed**. Authenticated Director-browser acceptance for Stage 1/2 panels is **not yet recorded**.
+- **NEXT implementation:** **Stage 3 — Automated SHOT Builder**, first scoped to **EP002 SHOT01**. Audit actual reusable Remotion assets, validate Zod TypeScript schema and real voice-aligned timings, build/preview the composition with selected audio; Stage 4 delivers the **AI Director Revision Loop** (Director feedback → scoped code change → tests → new preview).
+- **Important:** Stages **3–10 are planned, NOT complete**. Stage 2 is a typed blueprint, not a generated Remotion scene. No generic agent-driven visual-generation loop or universal full-episode assembly is proven yet.
 - **Do not change approved content or spend money just to catch up on project context.**
 
 ## 1. Active stack and creative contract
@@ -54,6 +54,17 @@
 - **Documentation-only handoff:** [Stage 1 source and evidence](docs/engineering/MEDIAOS_STAGE1_UNIFIED_PRODUCTION_DATA_HANDOFF_20261102.md), merged [PR #135](https://github.com/stefanVasilev17/media-os/pull/135). **Documentation-only main commits need not equal the production backend commit.**
 - **Pending:** the Director has not yet reported a personal authenticated browser review of the Unified Production Data panel, so Stage 1 is **DEPLOYED, DIRECTOR UI CHECK PENDING**, not fully accepted by the Director.
 
+### Roadmap Stage 2 — EP002 SHOT01 blueprint, implemented and deployed
+
+- Authenticated read-only `GET /api/v1/creative/episodes/EP002/shots/SHOT01/remotion-scene-contract`; in-page SHOT01 **Remotion Scene Blueprint** UI below Stage 1. Contracts refresh with script/voice changes.
+- Typed camera, allowed operations and asset inventory derived from five approved SHOT01 beats; strict script/take/visual dependency checking, unregistered 1920×1080 30 FPS scene draft, measured audio duration converted to frames where available.
+- **No fabricated per-beat timestamps, no verified asset existence, no created Remotion video, no AI code execution and no paid calls.** The blueprint marks missing voice, missing audio measurement and post-edit cue review accurately.
+- Remotion consumer schema: `remotion-engine/src/contracts/remotionSceneContract.ts` (Zod; standalone Remotion-engine typecheck still a Stage 3 task).
+- Main GitHub implementation [PR #137](https://github.com/stefanVasilev17/media-os/pull/137) and Java compile correction [PR #138](https://github.com/stefanVasilev17/media-os/pull/138), current production commit `ce6c7eac85e1be04ff41032e5036ffb65ef9e76d`.
+- Railway production backend deployment **`416f3d1b-19aa-4d23-a638-4be53db53f9d` SUCCESS**; existing render worker SUCCESS, both online with no reported service issues. Frontend TypeScript/Vite PASS, backend **269 tests / 0 failures / 0 errors / 37 skipped**, BUILD SUCCESS. First build failed on a duplicate local variable; corrected and revalidated.
+- Detailed implementation and next-task handoff: [Stage 2 Remotion Scene Contract](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md).
+- **Pending:** authenticated Director page inspection/approval for the blueprint. **NEXT:** Stage 3 resolves actual component/asset implementations, voice-cue alignment and the first real SHOT01 video preview.
+
 ## 3. Forward plan — locked v1 roadmap
 
 **The approved ten remaining stages and their acceptance gates** are in [Director-LOCKED Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md), merged [PR #133](https://github.com/stefanVasilev17/media-os/pull/133).
@@ -61,8 +72,8 @@
 | # | Stage | Verified progress as of snapshot |
 |---|---|---|
 | 1 | Unified Production Data | **Implemented + deployed; Director UI check pending** |
-| 2 | Remotion Scene Contract | **NEXT; not yet implemented** |
-| 3 | Automated SHOT Builder (EP002 SHOT01) | Planned |
+| 2 | Remotion Scene Contract (EP002 SHOT01) | **Implemented + deployed; Director UI check pending** |
+| 3 | Automated SHOT Builder (EP002 SHOT01) | **NEXT — planned, no generated video yet** |
 | 4 | **AI Director Revision Loop v1** | Planned, highest-value next milestone |
 | 5 | Revision History & Rollback | Planned |
 | 6 | Incremental Rendering | Planned |
@@ -92,11 +103,14 @@
 | Startup behavior for all agents | [AGENTS.md](AGENTS.md) |
 | Product priorities, 10 stage gates | [Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md) |
 | Stage 1 evidence, API semantics, gate | [Stage 1 handoff](docs/engineering/MEDIAOS_STAGE1_UNIFIED_PRODUCTION_DATA_HANDOFF_20261102.md) |
+| Stage 2 deployed source-bound Remotion blueprint | [Stage 2 handoff](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md) |
 | EP002 UI | `frontend/src/pages/EpisodeProductionLibraryPage.tsx` |
 | EP002 editable script and take chooser | `frontend/src/components/Ep002CreativeShotEditor.tsx` |
 | EP002 unified contract UI | `frontend/src/components/Ep002ProductionContractPanel.tsx` |
 | EP002 voice service | `backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002CreativeVoiceService.java` |
 | EP002 unified backend contract | `backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002ProductionContractService.java` |
+| EP002 SHOT01 typed Remotion blueprint | `backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002RemotionSceneContractService.java` |
+| Remotion Zod consumer contract | `remotion-engine/src/contracts/remotionSceneContract.ts` |
 | EP002 original full script | `frontend/src/data/EP002_FullScript_v4_0_LOCKED.json` |
 | Approved new visual beat source | `frontend/src/data/EP002_VisualPass_v1_0_DIRECTOR_APPROVED.md` |
 | Remotion composition registry | `remotion-engine/src/Root.tsx` |
@@ -110,7 +124,7 @@
 Any future AI conversation with GitHub access should:
 
 1. Fetch `AGENTS.md`, `PROJECT_STATE.md`, `README.md` from `main` and the Roadmap v1/Stage 1 handoff linked above. **Do not rely solely on previous chat summaries.**
-2. Verify the latest GitHub `main` commit and any recently merged PRs; read actual files for the feature under discussion. This snapshot may be older than those changes.
+2. Verify the latest GitHub `main` commit and any recently merged PRs; read actual files for the feature under discussion. For Stage 2/3 read the [Stage 2 handoff](docs/engineering/MEDIAOS_STAGE2_REMOTION_SCENE_CONTRACT_HANDOFF_20261102.md). This snapshot may be older than those changes.
 3. For deployment claims, check Railway environment and deployment commit/status. A merged PR is **not** deployment proof.
 4. Clearly report **DONE / DEPLOYED / DIRECTOR-CHECK-PENDING / IN PROGRESS / NEXT / BLOCKED** with evidence. Never mark a planned stage complete due only to prose.
 5. Work on the requested task, respecting current branch, codebase, user approvals and spending/security boundaries. Avoid repeating completed features.
