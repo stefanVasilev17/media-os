@@ -10,7 +10,7 @@ alter table ep002_creative_alignment_request
 
 alter table ep002_creative_alignment_request
     add constraint ep002_creative_alignment_request_status_check
-    check(status in ('IN_FLIGHT','COMPLETED','UNCERTAIN','PRE_DISPATCH_FAILED'));
+    check(status in ('IN_FLIGHT','COMPLETED','UNCERTAIN','NOT_SENT'));
 
 do $$
 declare matching_requests integer;
@@ -29,7 +29,7 @@ begin
     end if;
 
     update ep002_creative_alignment_request r
-    set status='PRE_DISPATCH_FAILED',
+    set status='NOT_SENT',
         completed_at=now(),
         failure_reason='LOCAL_MULTIPART_CLASSLOAD_BEFORE_HTTP'
     where r.shot_key='SHOT01'
