@@ -1,7 +1,7 @@
 # MediaOS — CURRENT PROJECT STATE
 **Canonical cross-chat handoff for Architectural Thinking / MediaOS**
 
-> **Snapshot last checked:** 2026-11-02 (Europe/Sofia).  
+> **Snapshot last checked:** 2026-11-03 (Europe/Sofia).  
 > **Status class:** verified repository/deployment facts + explicitly labeled Director reports; not an automatically refreshed live dashboard.  
 > **How to use:** read this file, then `AGENTS.md`, the latest linked roadmap/handoff, and verify live GitHub/Railway evidence **before** modifying code. A newer merged PR or deployment can supersede this snapshot.
 
@@ -10,7 +10,7 @@
 - **Product:** MediaOS, an AI-assisted, Director-controlled, automated Remotion video production system for the Architectural Thinking YouTube channel.
 - **Canonical repository:** `stefanVasilev17/media-os`, working branch `main`.
 - **Current milestone:** Roadmap v1 **Stage 3 / 10, first EP002 SHOT01 Remotion storyboard implementation and preview infrastructure deployed**. **Real selected-voice MP4 render/Director QA still pending**, so Stage 3 is NOT yet fully accepted.
-- **NEXT action:** **Align Existing Take is now DEPLOYED** (Java compile fixed in PR #148, backend Railway SUCCESS with Flyway V110 and 280 Maven tests). Director can inspect the current preferred EP002 SHOT01 take and decide whether to explicitly confirm one paid Forced Alignment operation for its original MP3. Next verify five real voice cue timestamps and the first selected-voice MP4 preview. Stage 3 Director QA remains pending; Stage 4 revision loop follows QA.
+- **NEXT action:** EP002 SHOT01 **Take 1 is Director-shown as PREFERRED**. Director's 2026-11-03 alignment POST failed in MediaOS before the provider request was dispatched, leaving the paid ledger locked. This pre-network incident is now fixed and narrowly reconciled by deployed PRs #150–#153 and Flyway V111. **Director should refresh the same SHOT01 preferred-take panel and verify eligibility/status**; no new paid call until the Director explicitly approves. Then inspect actual cue frames and first voice-synced MP4. Stage 3 Director QA remains pending.
 - **Important:** Stage 3 executable code and worker integration are deployed, but actual output is **not yet verified**. Stages **4–10 are planned, NOT complete**. Automated agent-authored revisions, universal episode assembly and true word-aligned choreography are not yet implemented.
 - **Do not change approved content or spend money just to catch up on project context.**
 
@@ -91,6 +91,16 @@
 - Current preferred take can now display **Align Existing Take**, a two-step **paid** confirmation. Backend accepts only exact current saved script/take, logs the unique paid request, blocks ambiguous repeats and attaches normalized ElevenLabs character timestamps to the **same** MP3. Does **not** create a new voice take. No paid provider request was made during deployment.
 - **Pending:** real authenticated Director browser acceptance; a Director-approved **paid** Forced Alignment action on an old take (if they choose); verification of extracted 5 cue anchors and first voice-aligned Remotion MP4 preview. Stage 3 is **not yet Director-accepted**.
 - Detailed release evidence and earlier failure history: [Align Existing Take handoff](docs/engineering/MEDIAOS_EP002_EXISTING_TAKE_ALIGNMENT_RELEASE_GATE_20261102.md).
+
+### Live incident / reconciliation — EP002 SHOT01 Take 1 (2026-11-03)
+
+- Director screenshot confirms `Take 1 · text v1` is already **PREFERRED**. UI showed "An earlier paid alignment request needs reconciliation. Do not retry."
+- Railway HTTP logs confirm **one POST to MediaOS** `/api/v1/creative/episodes/EP002/shots/SHOT01/align-existing-take` on **2026-11-03 11:37:21 UTC** (HTTP 403), plus GETs. Server stack: `NoClassDefFoundError: org/reactivestreams/Publisher` at `ElevenLabsForcedAlignmentService.java:66`, `new MultipartBodyBuilder()`. The error occurred **before** the `RestClient.post()` provider-send code at lines 70–75. The application had already committed an `IN_FLIGHT` paid-request row; an Error escaped its `catch(Exception)`, leaving the safety lock.
+- [PR #150](https://github.com/stefanVasilev17/media-os/pull/150) replaces the reactive multipart builder with blocking Spring MVC `LinkedMultiValueMap` + `HttpEntity<ByteArrayResource>`, adds mock-provider request tests, and introduces narrowly bounded Flyway V111 ledger reconciliation. [PR #151](https://github.com/stefanVasilev17/media-os/pull/151) makes Maven build diagnostics visible; [PR #152](https://github.com/stefanVasilev17/media-os/pull/152) fixes `RestClient.body(body)`; [PR #153](https://github.com/stefanVasilev17/media-os/pull/153) uses the schema-compatible 8-character `NOT_SENT` status (the first migration attempt failed because the original string exceeded `varchar(16)`).
+- **Verified production:** backend Railway deployment `c59804b9-faff-4cbf-b632-90fe09ba7d51` on commit `9dd305c9004e2d2ed89335a5931eba3e29fda565` **SUCCESS**. Frontend TypeScript/Vite PASS, Java Maven **282 tests / 0 failures / 0 errors / 37 skipped**, Flyway **V111 successfully applied**, Spring Boot started, backend and Render Worker both **Online / SUCCESS** with **0 warnings/critical** on final health check.
+- **Narrow reconciliation semantics:** only a single `IN_FLIGHT` SHOT01 attempt created in the exact observed 2026-11-03T11:37:19–23Z window, without saved alignment, can be marked `NOT_SENT` with `failure_reason='LOCAL_MULTIPART_CLASSLOAD_BEFORE_HTTP'`. All other `IN_FLIGHT`/`UNCERTAIN` attempts remain blocked. Historical actor/request ID/ledger row preserved; no automatic retry or new paid provider request. Migration successfully applied, **but affected-row count and authenticated UI state have not yet been separately read back**; Director needs to refresh.
+- **Next:** Director refreshes preferred Take 1 in EP002 SHOT01. If UI now offers `Align Existing Take`, a new action is **still paid** and needs two-step Director consent; it is not automatic. Do not confuse the failed **MediaOS POST** with a confirmed paid provider call. A real aligned audio/video MP4 is not yet validated.
+- [Detailed root-cause and production evidence](docs/engineering/MEDIAOS_EP002_EXISTING_TAKE_ALIGNMENT_RELEASE_GATE_20261102.md) (latest 2026-11-03 addendum).
 
 ## 3. Forward plan — locked v1 roadmap
 
