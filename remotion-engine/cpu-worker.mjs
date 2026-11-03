@@ -514,8 +514,6 @@ async function readEp002SelectedVoice(job, inputProps) {
 
 async function muxEp002SelectedVoice(job, videoPath, inputProps) {
   if (job.compositionId !== 'EP002-SHOT01-DRAFT') return;
-  // Fetch again at mux time: the Director may have changed the preferred take
-  // while the visual was rendering. Never attach stale or unselected audio.
   const audioBytes = await readEp002SelectedVoice(job, inputProps);
   const audioPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}.mp3`);
   const muxPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}-mux.mp4`);
@@ -562,8 +560,6 @@ async function render(job) {
     }
 
     if (job.compositionId === 'EP002-SHOT01-DRAFT') {
-      // Fail before spending CPU on visual frames if worker audio permission
-      // or the selected current-version recording is not available.
       await readEp002SelectedVoice(job, inputProps);
     }
 
