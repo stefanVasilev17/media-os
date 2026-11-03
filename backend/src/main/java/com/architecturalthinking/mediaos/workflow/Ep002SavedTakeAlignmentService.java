@@ -96,6 +96,8 @@ public class Ep002SavedTakeAlignmentService {
         result.put("reason",take==null?"Choose a preferred take for current saved narration."
                 :take.aligned()?"This recording already has saved timestamps."
                 :!writesEnabled?"Paid voice operations are disabled."
+                :"PRE_DISPATCH_FAILED".equals(requestStatus)
+                  ?"Previous attempt failed inside MediaOS before the paid provider request was sent. This attempt remains in history; a new alignment still requires explicit paid confirmation."
                 :!provider.configured()?"ElevenLabs API is not configured."
                 :"IN_FLIGHT".equals(requestStatus)||"UNCERTAIN".equals(requestStatus)
                   ?"An earlier paid alignment request needs reconciliation. Do not retry."
