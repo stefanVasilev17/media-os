@@ -78,7 +78,7 @@ const TimeRail: React.FC<{frame: number; reveal: number; rewind: number}> = ({fr
   );
 };
 
-const RewindMarker: React.FC<{reveal: number; frame: number}> = ({reveal, frame}) => (
+const RewindMarker: React.FC<{reveal: number}> = ({reveal}) => (
   <div style={{
     position: 'absolute', left: 1428, top: 114, width: 294, height: 142,
     opacity: reveal, transform: `translateY(${(1 - reveal) * 24}px) scale(${0.93 + 0.07 * reveal})`,
@@ -272,7 +272,7 @@ function ArchitectureWorld({
         </div>
         <HealthProbes reveal={health} quiet={healthQuiet} frame={frame}/>
         <TimeRail frame={frame} reveal={railVisible} rewind={rewind}/>
-        <RewindMarker reveal={rewind} frame={frame}/>
+        <RewindMarker reveal={rewind}/>
       </ATCameraRig>
       <div style={{
         position: 'absolute', left: 90, bottom: 43, zIndex: 9,
