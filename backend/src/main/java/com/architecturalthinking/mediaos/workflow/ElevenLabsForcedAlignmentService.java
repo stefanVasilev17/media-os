@@ -84,7 +84,7 @@ public class ElevenLabsForcedAlignmentService {
                     .uri(ENDPOINT)
                     .header("xi-api-key",apiKey)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(body.build())
+                    .body(body)
                     .retrieve().body(String.class);
             if (!StringUtils.hasText(response))
                 throw new IllegalStateException("ElevenLabs returned empty forced-alignment data.");
