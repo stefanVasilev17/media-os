@@ -14,6 +14,8 @@ export type ExistingTakeAlignmentState={
   shotKey:string;preferredTakeId:string|null;revision:number|null;
   alignmentPresent:boolean;paidRequestStatus:'NONE'|'IN_FLIGHT'|'COMPLETED'|'UNCERTAIN'|'NOT_SENT';
   canAlign:boolean;reason:string|null;
+  lastAttemptAt:string|null;
+  lastFailureCategory:string|null;
 };
 
 const base=(shot:string)=>'/api/v1/creative/episodes/EP002/shots/'+encodeURIComponent(shot);

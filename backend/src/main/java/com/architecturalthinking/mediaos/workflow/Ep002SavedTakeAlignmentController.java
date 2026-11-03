@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -32,5 +34,13 @@ public class Ep002SavedTakeAlignmentController {
                                     @Valid @RequestBody AlignRequest request) {
         return alignment.align(shotKey,request.preferredTakeId(),request.expectedRevision(),
                 request.requestId(),request.confirmPaidAlignment());
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String,Object>> alignmentFailure(ResponseStatusException failure) {
+        String message=failure.getReason()==null?"Alignment request rejected.":failure.getReason();
+        return ResponseEntity.status(failure.getStatusCode()).body(Map.of(
+                "detail",message,
+                "httpStatus",failure.getStatusCode().value()));
     }
 }

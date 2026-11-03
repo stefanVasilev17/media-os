@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestClientResponseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -20,6 +24,7 @@ import java.util.regex.Pattern;
 @Service
 public class Ep002SavedTakeAlignmentService {
     private static final Pattern SHOT=Pattern.compile("SHOT(0[1-9]|1[01])");
+    private static final Logger LOGGER=LoggerFactory.getLogger(Ep002SavedTakeAlignmentService.class);
     private final JdbcClient jdbc;
     private final ElevenLabsForcedAlignmentService provider;
     private final TransactionTemplate transaction;
@@ -73,17 +78,33 @@ public class Ep002SavedTakeAlignmentService {
                .optional().orElse(null);
     }
 
-    private String pendingStatus(UUID takeId) {
+    record LastRequest(String status,String failureCategory,OffsetDateTime startedAt) {}
+
+    private LastRequest latestRequest(UUID takeId) {
         return jdbc.sql("""
-            select status from ep002_creative_alignment_request
+            select status,failure_reason,started_at
+            from ep002_creative_alignment_request
             where take_id=:take order by started_at desc,request_id desc limit 1
-            """).param("take",takeId).query(String.class).optional().orElse("NONE");
+            """).param("take",takeId).query((rs,n)->new LastRequest(
+                rs.getString("status"),rs.getString("failure_reason"),
+                rs.getObject("started_at",OffsetDateTime.class)))
+                .optional().orElse(new LastRequest("NONE",null,null));
+    }
+
+    static String safeFailureCategory(Exception failure) {
+        for (Throwable cause=failure;cause!=null;cause=cause.getCause()) {
+            if(cause instanceof RestClientResponseException providerResponse) {
+                return "PROVIDER_HTTP_"+providerResponse.getStatusCode().value();
+            }
+        }
+        return "PROVIDER_OR_COMMIT_UNCERTAIN";
     }
 
     public Map<String,Object> status(String shot) {
         validateShot(shot);
         Selected take=selected(shot,false);
-        String requestStatus=take==null?"NONE":pendingStatus(take.id());
+        LastRequest latest=take==null?new LastRequest("NONE",null,null):latestRequest(take.id());
+        String requestStatus=latest.status();
         boolean available=take!=null && !take.aligned() && writesEnabled && provider.configured()
                 && !"IN_FLIGHT".equals(requestStatus) && !"UNCERTAIN".equals(requestStatus);
         Map<String,Object> result=new LinkedHashMap<>();
@@ -92,6 +113,8 @@ public class Ep002SavedTakeAlignmentService {
         result.put("revision",take==null?null:take.revision());
         result.put("alignmentPresent",take!=null && take.aligned());
         result.put("paidRequestStatus",requestStatus);
+        result.put("lastAttemptAt",latest.startedAt()==null?null:latest.startedAt().toString());
+        result.put("lastFailureCategory",latest.failureCategory());
         result.put("canAlign",available);
         result.put("reason",take==null?"Choose a preferred take for current saved narration."
                 :take.aligned()?"This recording already has saved timestamps."
@@ -100,7 +123,7 @@ public class Ep002SavedTakeAlignmentService {
                   ?"Previous attempt failed inside MediaOS before the paid provider request was sent. This attempt remains in history; a new alignment still requires explicit paid confirmation."
                 :!provider.configured()?"ElevenLabs API is not configured."
                 :"IN_FLIGHT".equals(requestStatus)||"UNCERTAIN".equals(requestStatus)
-                  ?"An earlier paid alignment request needs reconciliation. Do not retry."
+                  ?"An earlier paid alignment request is unresolved. Do not retry. Check the ElevenLabs Developers Request Log and credit usage for this time before reconciliation."
                 :null);
         return result;
     }
@@ -179,13 +202,16 @@ public class Ep002SavedTakeAlignmentService {
             });
             return status(shot);
         } catch(Exception failure) {
+            String category=safeFailureCategory(failure);
+            LOGGER.warn("EP002 saved-take alignment unresolved; shot={} category={} (no provider retry)",
+                    shot,category);
             transaction.executeWithoutResult(tx->jdbc.sql("""
                 update ep002_creative_alignment_request
-                set status='UNCERTAIN',failure_reason='PROVIDER_OR_COMMIT_UNCERTAIN'
+                set status='UNCERTAIN',failure_reason=:category
                 where request_id=:id and status='IN_FLIGHT'
-                """).param("id",requestId).update());
+                """).param("id",requestId).param("category",category).update());
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                "Forced Alignment did not complete reliably. Do not retry until the request is reconciled.",failure);
+                "Paid alignment result is unresolved. Check the ElevenLabs Request Log. Do not retry.",failure);
         }
     }
 }
