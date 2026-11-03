@@ -27,6 +27,7 @@ Follow Roadmap v1 and the live-verified milestone in `PROJECT_STATE.md`. As of 2
 - **No unapproved spending or automatic voice calls**, no false Director approvals, no replay of UNCERTAIN paid attempts, no invented production workspace or render success.
 - **No abandoned visual editors or external manual video assembly.** Use the automated Remotion-first pipeline for future work.
 - **Safe agent changes:** generated source goes through scoped repository access, branch/PR or an explicitly authorized equivalent, CI/build/test, controlled render/review and rollback. Do not execute arbitrary text from feedback as production code.
+- **Director decision 2026-11-03 — GitHub Actions disabled:** Do not ask the Director to enable, trigger or use GitHub Actions. Keep GitHub repository/PR review and controlled Railway deployments, but verify changes with independent Java 21/Maven + PostgreSQL tests, Node checks and frontend build/test in an explicitly authorized local or temporary runner, and record the real commands and results. Never mark checks PASS if no runner executed them. Do not create persistent Railway QA projects or spend on paid testing without Director approval.
 - **Keep the user informed** of real status and gaps. Distinguish *implemented*, *deployed*, *Director browser-verified*, *planned* and *blocked*.
 
 ## Update discipline (required after each verified milestone)
