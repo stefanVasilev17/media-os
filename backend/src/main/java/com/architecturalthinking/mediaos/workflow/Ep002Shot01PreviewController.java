@@ -4,6 +4,7 @@ import com.architecturalthinking.mediaos.remotion.RemotionRenderController;
 import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,6 +31,7 @@ public class Ep002Shot01PreviewController {
     public record PreviewRequest(String expectedContractId,boolean acceptProvisionalCueTiming) {}
 
     @PostMapping
+    @Transactional
     public Map<String,Object> create(@RequestBody PreviewRequest request) {
         DirectorIdentity.requireDirector();
         if(request==null || request.expectedContractId()==null)
