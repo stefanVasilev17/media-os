@@ -3,6 +3,8 @@ WORKDIR /app/remotion-engine
 COPY remotion-engine/package*.json ./
 RUN npm install --no-audit --no-fund --prefer-offline
 COPY remotion-engine/ ./
+RUN node --check cpu-worker.mjs
+RUN node --test worker-token-rotation.test.mjs cpu-worker-lease.test.mjs
 RUN node build-typecheck-preflight.mjs
 RUN npm run build
 RUN npm prune --omit=dev
