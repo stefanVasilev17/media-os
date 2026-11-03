@@ -44,17 +44,20 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
     && scene?.video.durationInFrames!==null
     && !scene?.readiness.blockers.some(b=>b!=='NARRATION_CUE_REVIEW_REQUIRED');
 
+  const previewActive=preview?.status==='QUEUED'||preview?.status==='RUNNING';
+
   async function requestPreview(){
-    if(!scene||!canPreview||rendering)return;
+    if(!scene||!canPreview||rendering||previewActive)return;
     const hasAlignedCues=scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS';
     if(!window.confirm(hasAlignedCues
-      ? 'Create EP002 SHOT01 preview using ElevenLabs character timestamps from the selected recording? No new paid audio will be generated.'
-      : 'Create EP002 SHOT01 provisional storyboard preview? This recording has no saved ElevenLabs word timestamps, so visual beats will use approximate timing. No new paid audio will be generated.'))return;
+      ? 'Create a NEW EP002 SHOT01 visual preview using the current Remotion code and existing selected voice? This uses Railway CPU, saves previous previews and makes NO new ElevenLabs purchase.'
+      : 'Create a NEW provisional EP002 SHOT01 visual preview with approximate visual beat timing? This uses Railway CPU, preserves previous previews and makes NO new ElevenLabs purchase.'))return;
+    const renderRequestId=window.crypto.randomUUID();
     setRendering(true);setError('');
     try{
       const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:!hasAlignedCues})
+        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:!hasAlignedCues,renderRequestId})
       });
       if(!response.ok)throw new Error('Preview request failed: HTTP '+response.status
         +' '+(await response.text()).slice(0,220));
@@ -69,16 +72,16 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
       <span className="library-production-title"><Code2 size={17}/> Remotion Scene Blueprint · SHOT01</span>
       <span className={'library-production-state'+(scene?.readiness.status==='READY_FOR_CODE_GENERATION'?' ready':'')}>
         {loading?'Checking…':scene?.readiness.status==='READY_FOR_CODE_GENERATION'
-          ?'READY FOR CODE GENERATION':'INPUTS REQUIRED'}
+          ?'READY FOR PREVIEW':'INPUTS REQUIRED'}
       </span>
     </summary>
     <div className="library-production-content">
-      <p>A typed, source-bound blueprint for the next Remotion development stage.
-        This is not a built scene, registered composition or video render.</p>
+      <p>Source-bound instructions and voice cue frames for the implemented EP002 SHOT01 Remotion scene.
+        New visual code versions require an explicitly created preview to appear in the player.</p>
       {error&&<p role="alert" className="library-voice-error">{error}</p>}
       {scene&&<>
         <div className="library-production-metrics">
-          <div><span>Planned composition</span><strong>{scene.video.compositionId}</strong><small>Not registered</small></div>
+          <div><span>Remotion composition</span><strong>{scene.video.compositionId}</strong><small>Implemented in worker</small></div>
           <div><span>Canvas</span><strong>{scene.video.width} × {scene.video.height}</strong><small>{scene.video.fps} fps</small></div>
           <div><span>Audio frames</span><strong>{scene.video.durationInFrames??'—'}</strong><small>{label(scene.video.durationAuthority)}</small></div>
           <div><span>Visual plan</span><strong>{scene.beats.length} beats</strong><small>{scene.assets.length} asset references</small></div>
@@ -114,17 +117,17 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
             ? 'Uses real ElevenLabs voice timestamps for the five spoken cue anchors. Director visual review remains required.'
             : 'This take has no saved voice timestamps; the five beats use approximate editorial timing.'}</p>
           <button type="button" className="library-voice-button"
-            disabled={!canPreview||rendering}
+            disabled={!canPreview||rendering||previewActive}
             onClick={()=>void requestPreview()}>
-            {rendering?'Starting…':scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
-              ? 'Create voice-synced preview':'Create provisional storyboard preview'}
+            {rendering?'Starting…':previewActive?'Render already running':scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+              ? 'Create new voice-synced preview':'Create new provisional preview'}
           </button>
           {preview&&<p role="status">Render: {preview.status}
             {typeof preview.progress==='number'?' · '+preview.progress+'%':''}
             {preview.error?' · '+preview.error.slice(0,230):''}
           </p>}
           {preview?.status==='SUCCEEDED'&&preview.videoUrl&&
-            <video controls preload="metadata" style={{width:'100%',maxHeight:480,borderRadius:9,marginTop:10}}
+            <video key={preview.renderId} controls preload="metadata" style={{width:'100%',maxHeight:480,borderRadius:9,marginTop:10}}
               src={preview.videoUrl}/>}
         </div>
         <p className="library-production-lineage">Contract fingerprint: {scene.contractId.slice(0,20)}…</p>
