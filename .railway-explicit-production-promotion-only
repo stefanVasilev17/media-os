@@ -1,5 +1,4 @@
-Manual MediaOS EP002 SHOT01 v2 Remotion visual candidate: 2026-11-04.
-Scope: EP001-component continuity pass in EP002 SHOT01 only; same Take 2 audio and voice cues.
-Required worker build checks: node --check, 17 offline Node token/lease tests, TypeScript preflight, Remotion bundle.
-Do not trigger ElevenLabs, any automatic render, production backend rebuild, or permanent QA projects.
-Director acceptance depends on separately confirmed single MP4 preview and visual/audio review.
+Explicit MediaOS EP002 SHOT01 preview cache correction: 2026-11-04.
+Single backend promotion for Director-confirmed preview request idempotency, unchanged selected Take 2 and current EP001-visual v2 worker.
+Use existing production backend Dockerfile.backend: Java 21 Maven tests + frontend Vite build + health check.
+Do not trigger ElevenLabs, automatic preview renders, separate QA infrastructure or unrelated worker redeploys.
