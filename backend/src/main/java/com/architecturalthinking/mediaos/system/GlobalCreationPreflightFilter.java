@@ -73,6 +73,16 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = apiPath(request);
+        // EP002 creative preview jobs have an immutable, Director-created SHOT lineage,
+        // but do not yet have an episode row. Their authenticated worker completion is a
+        // continuation of the original approved creation, not a new episode creation.
+        // Do not invent EP001 episode identity or skip preflight for unlinked jobs.
+        if (isVerifiedEp002WorkerContinuation(request)) {
+            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
+                    Map.of("continuation", "EP002_SHOT01_VERIFIED_RENDER"));
+            chain.doFilter(request, response);
+            return;
+        }
         String scope = scopeFor(path);
         String action = (request.getMethod() + "_" + path.replaceAll("[^A-Za-z0-9]+", "_"))
                 .toUpperCase(Locale.ROOT);
@@ -92,6 +102,42 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT", result);
         response.setHeader("X-MediaOS-Preflight", String.valueOf(result.get("auditId")));
         chain.doFilter(request, response);
+    }
+
+    private boolean isVerifiedEp002WorkerContinuation(HttpServletRequest request) {
+        if (jdbc == null) return false;
+        String path = apiPath(request);
+        if (!path.startsWith("/api/v1/remotion/renders/worker/")) return false;
+        java.util.regex.Matcher callback = FINAL_REMOTION_CALLBACK.matcher(path);
+        if (!callback.matches()) return false;
+        String operation = callback.group(2);
+        if (!(("complete".equals(operation) && "PUT".equals(request.getMethod()))
+                || ("fail".equals(operation) && "POST".equals(request.getMethod())))) return false;
+        if (request.getHeader("X-MediaOS-Episode-Id") != null) return false;
+        String worker = request.getHeader("X-Media-OS-Worker");
+        if (worker == null || worker.isBlank()) return false;
+        UUID renderId = UUID.fromString(callback.group(1));
+        return jdbc.sql("""
+                select exists (
+                    select 1 from remotion_render r
+                    join episode_shot_render_lineage lineage on lineage.remotion_render_id=r.id
+                    where r.id=:render and r.project_id=:project
+                      and r.episode_id is null
+                      and r.composition_id='EP002-SHOT01-DRAFT'
+                      and r.status='RUNNING' and r.worker_id=:worker
+                      and lineage.episode_key='EP002' and lineage.shot_key='SHOT01'
+                      and r.input_props->>'shotKey'='EP002_SHOT01'
+                      and r.input_props->>'contractId' is not null
+                      and r.input_props->>'voiceTakeId'=lineage.preferred_take_id::text
+                      and r.input_props->>'scriptRevision'=lineage.script_revision::text
+                      and r.input_props->>'dependencySha256'=lineage.dependency_sha256
+                      and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha
+                )
+                """)
+                .param("render", renderId)
+                .param("project", RENDER_PROJECT_ID)
+                .param("worker", worker.trim())
+                .query(Boolean.class).single();
     }
 
     private String apiPath(HttpServletRequest request) {
