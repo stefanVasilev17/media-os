@@ -1,5 +1,22 @@
 # MediaOS — EP002 Align Existing Take: Code Handoff and Release Gate
 
+## Incident update — 2026-11-03: proven pre-network alignment error FIXED and deployed
+
+**Director screenshot:** EP002 SHOT01 `Take 1 · text v1` is already PREFERRED. Instead of `Align Existing Take`, the UI displayed "An earlier paid alignment request needs reconciliation. Do not retry."
+
+**Observed backend evidence:** at 2026-11-03T11:37:21Z Railway received one HTTP **POST to MediaOS** `.../SHOT01/align-existing-take` (status 403). Java logged `NoClassDefFoundError: org/reactivestreams/Publisher` at `ElevenLabsForcedAlignmentService.java:66`, executing `new MultipartBodyBuilder()` before the later `RestClient.post()` method call that sends to ElevenLabs. Because the exception was an `Error` not caught by `catch(Exception)`, a previously committed paid-request ledger row remained `IN_FLIGHT`. This confirms a local pre-network failure for this specific POST; it does **not** imply the Director's whole ElevenLabs account has no other charges.
+
+**Fixes and release:**
+- [PR #150](https://github.com/stefanVasilev17/media-os/pull/150): replace reactive `MultipartBodyBuilder` with synchronous blocking multipart `MultiValueMap` + `HttpEntity<ByteArrayResource>`; mock HTTP server regression test; Flyway V111 narrowly targeted reconciliation preserving original request/actor history.
+- [PR #151](https://github.com/stefanVasilev17/media-os/pull/151): stream Maven compilation/test logs. [PR #152](https://github.com/stefanVasilev17/media-os/pull/152): correct `.body(body)` in `RestClient`. [PR #153](https://github.com/stefanVasilev17/media-os/pull/153): change reconciliation status to `NOT_SENT` (the original long status exceeded the existing `varchar(16)` schema).
+- **Backend deployment `c59804b9-faff-4cbf-b632-90fe09ba7d51` SUCCESS**, commit `9dd305c9004e2d2ed89335a5931eba3e29fda565`. Frontend PASS; Java Maven **282 tests / 0 failures / 0 errors / 37 skipped**, including mock transport test. Flyway **V111 applied**, Spring Boot started; Backend and Render Worker both Online / SUCCESS, 0 warnings/critical at final check.
+- V111 marks **at most one** SHOT01 `IN_FLIGHT` request created between 11:37:19 and 11:37:23 UTC on 2026-11-03, with no saved alignment, as `NOT_SENT`, preserving it and adding `LOCAL_MULTIPART_CLASSLOAD_BEFORE_HTTP` failure reason. Other `IN_FLIGHT` or `UNCERTAIN` rows remain blocked. It makes **no** outbound ElevenLabs request or automatic paid retry.
+
+**Remaining acceptance gate:** Flyway V111 success is verified, but affected-row count and authenticated screenshot state were **not read back**. Director should use the existing EP002 SHOT01 preferred Take 1 panel, press **Refresh**, and verify whether the earlier warning is replaced with an explicit local pre-dispatch failure and a fresh `Align Existing Take` option. This new option remains a separately **billable** call with two-step confirmation and must not be triggered by the assistant. The first real matched-cue SHOT01 MP4 is also still unverified; Stage 3 is not complete.
+
+---
+
+
 ## Release update — 2026-11-02: DEPLOYED / DIRECTOR ACTION PENDING
 
 This section **supersedes the earlier build-blocked snapshot below**. Keep the original failure history for audit.
