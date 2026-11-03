@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.mock.http.client.MockClientHttpRequest;
 import org.springframework.web.client.RestClient;
 
 import java.nio.charset.StandardCharsets;
@@ -24,7 +25,8 @@ class ElevenLabsForcedAlignmentMultipartTest {
                 .andExpect(header("xi-api-key","test-api-key-never-billed"))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(request->{
-                    String payload=new String(request.getBody().readAllBytes(),
+                    assertInstanceOf(MockClientHttpRequest.class,request);
+                    String payload=new String(((MockClientHttpRequest)request).getBodyAsBytes(),
                             StandardCharsets.ISO_8859_1);
                     assertTrue(payload.contains("name=\"file\""),"saved MP3 part must be present");
                     assertTrue(payload.contains("filename=\"SHOT01-take.mp3\""));
