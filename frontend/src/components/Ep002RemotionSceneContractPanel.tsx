@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {Camera,Code2,RotateCcw} from 'lucide-react';
 import {getEp002RemotionSceneContract,type Ep002SceneContract} from '../api/ep002RemotionSceneContractApi';
 
@@ -11,6 +11,8 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
   const [error,setError]=useState('');
   const [preview,setPreview]=useState<{status:string;renderId?:string;progress?:number;videoUrl?:string|null;error?:string|null}|null>(null);
   const [rendering,setRendering]=useState(false);
+  const requestInFlight=useRef(false);
+  const pendingRenderRequestId=useRef<string|null>(null);
   useEffect(()=>{
     let active=true;
     setLoading(true);
@@ -47,12 +49,14 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
   const previewActive=preview?.status==='QUEUED'||preview?.status==='RUNNING';
 
   async function requestPreview(){
-    if(!scene||!canPreview||rendering||previewActive)return;
+    if(!scene||!canPreview||rendering||previewActive||requestInFlight.current)return;
     const hasAlignedCues=scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS';
     if(!window.confirm(hasAlignedCues
       ? 'Create a NEW EP002 SHOT01 visual preview using the current Remotion code and existing selected voice? This uses Railway CPU, saves previous previews and makes NO new ElevenLabs purchase.'
       : 'Create a NEW provisional EP002 SHOT01 visual preview with approximate visual beat timing? This uses Railway CPU, preserves previous previews and makes NO new ElevenLabs purchase.'))return;
-    const renderRequestId=window.crypto.randomUUID();
+    const renderRequestId=pendingRenderRequestId.current??window.crypto.randomUUID();
+    pendingRenderRequestId.current=renderRequestId;
+    requestInFlight.current=true;
     setRendering(true);setError('');
     try{
       const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',{
@@ -63,8 +67,9 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
         +' '+(await response.text()).slice(0,220));
       const output=await response.json();
       setPreview(output);
+      pendingRenderRequestId.current=null;
     }catch(cause){setError(String(cause));}
-    finally{setRendering(false);}
+    finally{requestInFlight.current=false;setRendering(false);}
   }
 
   return <details className="library-production-contract library-scene-contract">
