@@ -38,6 +38,7 @@ public record WorkloadRoute(String scope, UUID jobId) {
             String operation = part.substring(separator);
             return ("POST".equals(method) && (operation.equals("/progress") || operation.equals("/fail")))
                     || ("PUT".equals(method) && operation.equals("/complete"))
+                    || ("GET".equals(method) && operation.equals("/ep002-selected-voice"))
                     ? new WorkloadRoute("REMOTION_CPU", null) : null;
         }
 
@@ -66,7 +67,7 @@ public record WorkloadRoute(String scope, UUID jobId) {
         } catch (IllegalArgumentException invalid) {
             return null;
         }
-        if (!List.of("/progress", "/complete", "/fail").contains(remainder.substring(separator)))
+        if (!List.of("/progress", "/complete", "/fail", "/ep002-selected-voice").contains(remainder.substring(separator)))
             return null;
         return new WorkloadRoute("REMOTION_CPU", null);
     }

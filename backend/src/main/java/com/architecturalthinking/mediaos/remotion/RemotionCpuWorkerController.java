@@ -53,12 +53,28 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
 
+        // An interrupted EP002 preview is terminal until the Director explicitly
+        // requests another render. Never spend CPU repeatedly on stale voice mux failures.
+        jdbc.sql("""
+                update remotion_render
+                set status='FAILED', progress=0,
+                    error='EP002 preview interrupted after worker heartbeat timeout. No automatic retry.',
+                    finished_at=now(), updated_at=now()
+                where project_id=:projectId
+                  and composition_id='EP002-SHOT01-DRAFT'
+                  and status='RUNNING'
+                  and updated_at < now() - interval '90 seconds'
+                """)
+                .param("projectId", PROJECT_ID)
+                .update();
+
         jdbc.sql("""
                 update remotion_render
                 set status='QUEUED', progress=0, worker_id=null,
                     error='Recovered stale CPU render after worker heartbeat timeout.',
                     claimed_at=null, started_at=null, updated_at=now()
                 where project_id=:projectId
+                  and composition_id<>'EP002-SHOT01-DRAFT'
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -220,16 +236,18 @@ public class RemotionCpuWorkerController {
         String error = failure.error() == null || failure.error().isBlank() ? "Remotion CPU render failed." : failure.error().trim();
         if (error.length() > 1800) error = error.substring(0, 1800);
 
-        jdbc.sql("""
+        int updated = jdbc.sql("""
                 update remotion_render
                 set status='FAILED', progress=0, error=:error, finished_at=now(), updated_at=now()
-                where id=:id and project_id=:projectId and worker_id=:workerId
+                where id=:id and project_id=:projectId and status='RUNNING' and worker_id=:workerId
                 """)
                 .param("error", error)
                 .param("id", renderId)
                 .param("projectId", PROJECT_ID)
                 .param("workerId", workerId.trim())
                 .update();
+        if (updated != 1) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Failed render callback requires a RUNNING job owned by this worker.");
         return Map.of("renderId", renderId, "status", "FAILED", "error", error);
     }
 

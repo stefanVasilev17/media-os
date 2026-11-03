@@ -1,0 +1,4 @@
+Manual MediaOS Stage 3 promotion trigger: 2026-11-03
+Scope: EP002 SHOT01 worker voice GET/callback safety and bounded retry.
+Requires no ElevenLabs calls and no automatic test render.
+Dockerfile.backend runs Maven tests; Dockerfile.remotion-worker runs Node tests.
