@@ -149,6 +149,11 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
       apply(next);setText(next.narration??shot.englishNarration);
       setDirection(next.voiceDirection??shot.voiceDirection);
       setEditing(false);
+      if(next.preferredTakeId){
+        setAlignment(await ep002CreativeVoiceApi.alignmentState(shot.shotKey));
+      }else{
+        setAlignment(null);
+      }
     }catch(cause){setError(String(cause));}
     finally{setLoading(false);}
   }
@@ -234,6 +239,16 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
                     Forced Alignment analyzes this MP3 and the saved transcript without generating new audio.
                     <strong> ElevenLabs bills this as a separate paid operation.</strong></p>
                   {alignment.reason&&<p role="status">{alignment.reason}</p>}
+                  {alignment.lastAttemptAt&&
+                    <p className="library-voice-alignment-history">
+                      Last alignment request: {new Date(alignment.lastAttemptAt).toLocaleString()}
+                      {' · '}Status: {alignment.paidRequestStatus}
+                      {alignment.lastFailureCategory?' · Diagnostic: '+alignment.lastFailureCategory:''}
+                    </p>}
+                  {alignment.paidRequestStatus==='UNCERTAIN'&&
+                    <p>To reconcile this request, check ElevenLabs → Developers → Request Log
+                      for the same date and time. Review the Forced Alignment response and credit usage
+                      before any new paid attempt.</p>}
                   {alignment.canAlign&&!alignmentConfirming&&
                     <button type="button" className="library-voice-button secondary"
                       disabled={busy||isDirty} onClick={()=>setAlignmentConfirming(true)}>
