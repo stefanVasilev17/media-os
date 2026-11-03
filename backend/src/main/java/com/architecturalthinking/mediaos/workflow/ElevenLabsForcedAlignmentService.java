@@ -4,8 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,10 +27,17 @@ public class ElevenLabsForcedAlignmentService {
     private final RestClient restClient;
     private final String apiKey;
 
+    @Autowired
     public ElevenLabsForcedAlignmentService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.restClient = RestClient.builder().build();
         this.apiKey = System.getenv().getOrDefault("ELEVENLABS_API_KEY", "").trim();
+    }
+
+    ElevenLabsForcedAlignmentService(ObjectMapper objectMapper,RestClient restClient,String apiKey) {
+        this.objectMapper=objectMapper;
+        this.restClient=restClient;
+        this.apiKey=apiKey;
     }
 
     public boolean configured() {
@@ -63,9 +74,11 @@ public class ElevenLabsForcedAlignmentService {
                 @Override
                 public String getFilename() { return safeFileName; }
             };
-            MultipartBodyBuilder body=new MultipartBodyBuilder();
-            body.part("file",resource).contentType(fileType);
-            body.part("text",transcript,MediaType.TEXT_PLAIN);
+            HttpHeaders fileHeaders=new HttpHeaders();
+            fileHeaders.setContentType(fileType);
+            MultiValueMap<String,Object> body=new LinkedMultiValueMap<>();
+            body.add("file",new HttpEntity<>(resource,fileHeaders));
+            body.add("text",transcript);
 
             String response=restClient.post()
                     .uri(ENDPOINT)
