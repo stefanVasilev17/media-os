@@ -486,8 +486,8 @@ async function addShot10V6SoundDesign(job, outputPath, inputProps) {
   }
 }
 
-async function muxEp002SelectedVoice(job, videoPath, inputProps) {
-  if (job.compositionId !== 'EP002-SHOT01-DRAFT') return;
+async function readEp002SelectedVoice(job, inputProps) {
+  if (job.compositionId !== 'EP002-SHOT01-DRAFT') return null;
   const takeId = String(inputProps.voiceTakeId || '');
   const revision = Number(inputProps.scriptRevision);
   if (!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(takeId)
@@ -509,6 +509,14 @@ async function muxEp002SelectedVoice(job, videoPath, inputProps) {
   const audioBytes = Buffer.from(await voice.arrayBuffer());
   if(audioBytes.length < 512 || audioBytes.length > 24*1024*1024)
     throw new Error('EP002 selected voice is empty or larger than 24 MB.');
+  return audioBytes;
+}
+
+async function muxEp002SelectedVoice(job, videoPath, inputProps) {
+  if (job.compositionId !== 'EP002-SHOT01-DRAFT') return;
+  // Fetch again at mux time: the Director may have changed the preferred take
+  // while the visual was rendering. Never attach stale or unselected audio.
+  const audioBytes = await readEp002SelectedVoice(job, inputProps);
   const audioPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}.mp3`);
   const muxPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}-mux.mp4`);
   try {
@@ -551,6 +559,12 @@ async function render(job) {
       const sizeBytes = await complete(job.renderId, outputPath);
       console.log(`Completed cumulative preview ${job.renderId}: ${sizeBytes} bytes`);
       return;
+    }
+
+    if (job.compositionId === 'EP002-SHOT01-DRAFT') {
+      // Fail before spending CPU on visual frames if worker audio permission
+      // or the selected current-version recording is not available.
+      await readEp002SelectedVoice(job, inputProps);
     }
 
     const serveUrl = await getServeUrl();
