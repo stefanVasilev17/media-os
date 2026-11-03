@@ -12,7 +12,7 @@ export type CreativeShotState={
 
 export type ExistingTakeAlignmentState={
   shotKey:string;preferredTakeId:string|null;revision:number|null;
-  alignmentPresent:boolean;paidRequestStatus:'NONE'|'IN_FLIGHT'|'COMPLETED'|'UNCERTAIN';
+  alignmentPresent:boolean;paidRequestStatus:'NONE'|'IN_FLIGHT'|'COMPLETED'|'UNCERTAIN'|'PRE_DISPATCH_FAILED';
   canAlign:boolean;reason:string|null;
 };
 
