@@ -68,6 +68,9 @@ class WorkloadHttpAuthorizationTest {
         @PostMapping("/api/v1/remotion/renders/worker/{renderId}/fail")
         String cpuFail() { return "fail"; }
 
+        @GetMapping("/api/v1/remotion/renders/worker/{renderId}/ep002-selected-voice")
+        String ep002SelectedVoice() { return "selected-voice"; }
+
         @PostMapping("/api/v1/episodes")
         String episode() { return "episode"; }
     }
@@ -175,6 +178,22 @@ class WorkloadHttpAuthorizationTest {
                             .header("X-Worker-Id", cpuWorkerId)
                             .header("X-MediaOS-Workload-Token", cpuToken))
                     .andExpect(status().isOk());
+
+            mvc.perform(get("/api/v1/remotion/renders/worker/" + renderId + "/ep002-selected-voice")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("selected-voice"));
+
+            mvc.perform(get("/api/v1/remotion/renders/worker/" + renderId + "/ep002-selected-voice"))
+                    .andExpect(status().isUnauthorized());
+
+            mvc.perform(post("/api/v1/remotion/renders/worker/" + renderId + "/ep002-selected-voice")
+                            .header("X-Media-OS-Worker", cpuWorkerId)
+                            .header("X-Worker-Id", cpuWorkerId)
+                            .header("X-MediaOS-Workload-Token", cpuToken))
+                    .andExpect(status().isForbidden());
 
             mvc.perform(post("/api/v1/remotion/renders/worker/claim")
                             .header("X-Media-OS-Worker", "another-worker")
