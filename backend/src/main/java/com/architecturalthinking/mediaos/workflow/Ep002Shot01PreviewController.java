@@ -66,8 +66,7 @@ public class Ep002Shot01PreviewController {
         props.put("contractId",scene.contractId());
         props.put("dependencySha256",inputs.productionDependencySha256());
         props.put("visualSourceSha",VISUAL_SHA);
-        if (request.renderRequestId()!=null)
-            props.put("renderRequestId",request.renderRequestId().toString());
+        addExplicitRenderRequestId(props,request.renderRequestId());
         props.put("provisionalCueTiming",!voiceAligned);
         props.put("timingMode",voiceAligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"PROVISIONAL_STORYBOARD");
         if (voiceAligned) props.put("beatStartFrames",
@@ -92,6 +91,11 @@ public class Ep002Shot01PreviewController {
                 .param("dependency",inputs.productionDependencySha256())
                 .param("render",renderId).update();
         return render;
+    }
+
+    static void addExplicitRenderRequestId(Map<String,Object> props,UUID renderRequestId) {
+        if (renderRequestId!=null)
+            props.put("renderRequestId",renderRequestId.toString());
     }
 
     @GetMapping
