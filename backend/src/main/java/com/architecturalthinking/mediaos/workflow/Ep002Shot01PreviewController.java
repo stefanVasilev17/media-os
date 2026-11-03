@@ -28,7 +28,7 @@ public class Ep002Shot01PreviewController {
         this.jdbc=jdbc;
     }
 
-    public record PreviewRequest(String expectedContractId,boolean acceptProvisionalCueTiming) {}
+    public record PreviewRequest(String expectedContractId,boolean acceptProvisionalCueTiming,UUID renderRequestId) {}
 
     @PostMapping
     @Transactional
@@ -66,6 +66,8 @@ public class Ep002Shot01PreviewController {
         props.put("contractId",scene.contractId());
         props.put("dependencySha256",inputs.productionDependencySha256());
         props.put("visualSourceSha",VISUAL_SHA);
+        if (request.renderRequestId()!=null)
+            props.put("renderRequestId",request.renderRequestId().toString());
         props.put("provisionalCueTiming",!voiceAligned);
         props.put("timingMode",voiceAligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"PROVISIONAL_STORYBOARD");
         if (voiceAligned) props.put("beatStartFrames",
