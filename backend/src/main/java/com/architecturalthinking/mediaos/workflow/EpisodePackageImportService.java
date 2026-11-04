@@ -204,11 +204,26 @@ public class EpisodePackageImportService {
                         "Episode package not found for this Director."));
 
         List<ImportedShot> shots=jdbc.sql("""
-                select shot_key,shot_index,title,editorial_seconds,
-                       original_narration,original_voice_direction,
-                       original_visual_story::text,voice_task_status
-                  from episode_package_shot where package_id=:package
-                 order by shot_index
+                select s.shot_key,s.shot_index,s.title,s.editorial_seconds,
+                       s.original_narration,s.original_voice_direction,
+                       s.original_visual_story::text,
+                       case
+                         when exists (
+                           select 1 from episode_package_voice_choice c
+                           where c.shot_id=s.id and c.revision=(
+                             select max(r.revision) from episode_package_shot_revision r
+                             where r.shot_id=s.id)
+                         ) then 'VOICE_APPROVED_TIMING_REVIEW_REQUIRED'
+                         when exists (
+                           select 1 from episode_package_voice_take t
+                           where t.shot_id=s.id and t.revision=(
+                             select max(r.revision) from episode_package_shot_revision r
+                             where r.shot_id=s.id)
+                         ) then 'TAKES_NEED_DIRECTOR_APPROVAL'
+                         else 'PENDING_VOICE'
+                       end as voice_task_status
+                  from episode_package_shot s where s.package_id=:package
+                 order by s.shot_index
                 """).param("package",id).query((rs,n)->new ImportedShot(
                         rs.getString("shot_key"),rs.getInt("shot_index"),
                         rs.getString("title"),rs.getInt("editorial_seconds"),
