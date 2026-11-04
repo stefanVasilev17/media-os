@@ -231,6 +231,7 @@ public class RemotionCpuWorkerController {
                 .update();
         if (updated == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Render is not owned by this CPU worker.");
 
+        recordFactoryRenderOutput(renderId);
         linkVoiceWorkflowRender(renderId);
         return Map.of("renderId", renderId, "status", "READY", "sizeBytes", video.length);
     }
@@ -259,6 +260,59 @@ public class RemotionCpuWorkerController {
         if (updated != 1) throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "Failed render callback requires a RUNNING job owned by this worker.");
         return Map.of("renderId", renderId, "status", "FAILED", "error", error);
+    }
+
+    private void recordFactoryRenderOutput(UUID renderId) {
+        String kind=jdbc.sql("""
+                select composition_id from remotion_render
+                 where id=:render and status='SUCCEEDED' and project_id=:project
+                """).param("render",renderId).param("project",PROJECT_ID)
+                .query(String.class).single();
+        if("AT-FACTORY-SHOT".equals(kind)){
+            int linked=jdbc.sql("""
+                    update episode_factory_shot fs
+                       set last_successful_render=:render,
+                           last_render_input_sha256=run.verified_source_digest,
+                           director_approved=false
+                      from episode_factory_production_run run,remotion_render video
+                     where fs.run_id=run.id and fs.last_requested_render=:render
+                       and video.id=:render and video.status='SUCCEEDED'
+                       and video.input_props->>'expectedSourceCommit'=run.verified_pr_commit
+                       and video.input_props->>'sourceDigest'=run.verified_source_digest
+                       and not exists(select 1 from episode_factory_director_feedback f
+                                       where f.run_id=run.id and f.state='OPEN_FOR_CODEX')
+                       and exists(
+                         select 1 from episode_package_shot shot
+                          where shot.package_id=run.package_id
+                            and shot.shot_key=fs.shot_key
+                            and fs.narration_revision=(
+                              select max(revision) from episode_package_shot_revision revision
+                               where revision.shot_id=shot.id)
+                            and fs.selected_take_id=(
+                              select c.take_id from episode_package_voice_choice c
+                               where c.shot_id=shot.id and c.revision=fs.narration_revision
+                               order by c.selected_at desc,c.id desc limit 1))
+                    """).param("render",renderId).update();
+            if(linked!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Factory MP4 source/voice no longer matches the Director-approved production revision.");
+        }
+        if("AT-FACTORY-MASTER".equals(kind)||"AT-FACTORY-SHORT".equals(kind)){
+            int linked=jdbc.sql("""
+                    update episode_factory_output_plan plan
+                       set review_state='RENDERED_PENDING_DIRECTOR'
+                      from episode_factory_production_run run,remotion_render video
+                     where plan.run_id=run.id and plan.render_id=:render
+                       and video.id=:render and video.status='SUCCEEDED'
+                       and video.input_props->>'expectedSourceCommit'=run.verified_pr_commit
+                       and video.input_props->>'sourceDigest'=run.verified_source_digest
+                       and not exists(select 1 from episode_factory_director_feedback f
+                                       where f.run_id=run.id and f.state='OPEN_FOR_CODEX')
+                       and not exists(select 1 from episode_factory_shot s
+                                       where s.run_id=run.id and s.director_approved=false)
+                    """).param("render",renderId).update();
+            if(linked!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Factory master/Short has stale or incomplete Director-reviewed source renders.");
+        }
     }
 
     private void requireWorker(String key, String workerId) {
