@@ -186,7 +186,8 @@ public class EpisodeCodeWorkerPreflightService {
     }
 
     static String proposalFilePath(String prefix,int index){
-        if(prefix==null || !prefix.matches("remotion-engine/src/episodes/ep[0-9]{3,}/")
+        if(prefix==null
+                || !prefix.matches("remotion-engine/src/episodes/ep(?!001/|002/)[0-9]{3,}/")
                 || index<1 || index>40)
             throw conflict("Generated file path is outside the approved episode.");
         return prefix+String.format(Locale.ROOT,"Shot%02dGeneratedScene.tsx",index);
