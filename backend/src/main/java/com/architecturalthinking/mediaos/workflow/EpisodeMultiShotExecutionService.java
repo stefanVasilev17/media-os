@@ -276,6 +276,11 @@ public class EpisodeMultiShotExecutionService {
                     update episode_multi_shot_execution_task set task_state='CANCELLED'
                      where job_id=:job and task_state='AWAITING_AGENT_IMPLEMENTATION'
                     """).param("job",jobId).update();
+            jdbc.sql("""
+                    update episode_multi_shot_director_start
+                       set state='REVOKED',revoked_at=now()
+                     where job_id=:job and state='APPROVED_NO_DISPATCH'
+                    """).param("job",jobId).update();
         }
         return load(jobId,packageId,actor);
     }
