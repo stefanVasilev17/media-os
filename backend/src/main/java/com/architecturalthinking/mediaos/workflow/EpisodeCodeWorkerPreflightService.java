@@ -202,10 +202,12 @@ public class EpisodeCodeWorkerPreflightService {
 
     static int frameFromSeconds(double seconds,boolean end,int durationFrames){
         if(!Double.isFinite(seconds) || seconds<0
-                || seconds>durationFrames/(double)FPS+0.75)
-            throw conflict("Unverified cue seconds cannot be used in source code.");
+                || seconds>durationFrames/(double)FPS+0.001)
+            throw conflict("Voice cue exceeds measured audio frame bounds.");
         int calculated=end?(int)Math.ceil(seconds*FPS):(int)Math.floor(seconds*FPS);
-        return Math.min(durationFrames,calculated);
+        if(calculated>durationFrames)
+            throw conflict("Voice cue cannot be silently clipped to the shot duration.");
+        return calculated;
     }
 
     private void addAssetKeys(JsonNode array,Set<String> keys){
