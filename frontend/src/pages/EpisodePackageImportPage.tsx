@@ -7,6 +7,7 @@ import {EpisodeVoiceReadinessPanel} from '../components/EpisodeVoiceReadinessPan
 import {EpisodeAiAuthorizationPanel} from '../components/EpisodeAiAuthorizationPanel';
 import {EpisodeMultiShotExecutionPanel} from '../components/EpisodeMultiShotExecutionPanel';
 import {EpisodeCodexCloudPanel} from '../components/EpisodeCodexCloudPanel';
+import {EpisodeFactoryProductionPanel} from '../components/EpisodeFactoryProductionPanel';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -137,6 +138,8 @@ export function EpisodePackageImportPage(){
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeCodexCloudPanel packageId={details.packageId}
+        refreshVersion={readinessRefresh}/>
+      <EpisodeFactoryProductionPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeAiAuthorizationPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
