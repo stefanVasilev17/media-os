@@ -5,8 +5,10 @@ RUN npm install --no-audit --no-fund --prefer-offline
 COPY remotion-engine/ ./
 RUN node --check cpu-worker.mjs
 RUN node --test worker-token-rotation.test.mjs cpu-worker-lease.test.mjs shot01-readability.test.mjs
+RUN npm run generate:factory
 RUN node build-typecheck-preflight.mjs
 RUN npm run build
+RUN npm run build:factory
 RUN npm prune --omit=dev
 
 FROM node:22-alpine
