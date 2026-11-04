@@ -119,11 +119,12 @@ public class EpisodeFactoryRenderCoordinator {
             props.put("voiceTakeId",shot.selectedTakeId());
             props.put("expectedSourceCommit",run.sourceCommit());
             props.put("sourceDigest",run.sourceScopeSha256());
+            props.put("shotInputSha",shot.sceneInputSha256());
             props.put("manifestSha",run.sourceManifestSha256());
             props.put("runId",run.runId().toString());
-            String key="mediaos.factory.shot.v1|"+run.sourceScopeSha256()+
-                    "|"+shot.shotKey()+"|"+shot.selectedTakeId()+
-                    "|"+shot.durationFrames();
+            if(shot.sceneInputSha256()==null)
+                throw conflict("SHOT has no Git-verified code-and-voice dependency fingerprint.");
+            String key="mediaos.factory.shot.v2|"+shot.sceneInputSha256();
             RenderRow render=existingOrInsert(run,"AT-FACTORY-SHOT","REVIEW",
                     1920,1080,shot.durationFrames(),props,key,request.requestId());
             if(render.status().equals("CREATED"))created++;else reused++;
@@ -138,7 +139,7 @@ public class EpisodeFactoryRenderCoordinator {
                     """).param("render",render.id()).param("run",runId)
                     .param("shot",shot.shotKey())
                     .param("reuseSuccess","SUCCEEDED".equals(render.status()))
-                    .param("hash",run.sourceScopeSha256()).update();
+                    .param("hash",shot.sceneInputSha256()).update();
         }
         jdbc.sql("""
                 update episode_factory_production_run
