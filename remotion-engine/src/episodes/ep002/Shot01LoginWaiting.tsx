@@ -45,11 +45,13 @@ const shot01CueStarts = (duration: number, input?: number[]): number[] => {
     Math.min(duration - 1, Math.round(duration * value)));
 };
 
+const TIME_RAIL_SAFE_AREA = {left: 1040, top: 885, width: 440, height: 82} as const;
+
 const TimeRail: React.FC<{frame: number; reveal: number; rewind: number}> = ({frame, reveal, rewind}) => {
   const shimmer = 0.5 + 0.5 * Math.sin(frame * 0.045);
   return (
     <div style={{
-      position: 'absolute', left: 335, top: 930, width: 520, height: 82,
+      position: 'absolute', ...TIME_RAIL_SAFE_AREA,
       opacity: reveal, transform: `translateY(${(1 - reveal) * 12}px) scaleX(${1 - rewind * 0.88})`,
       transformOrigin: '12% 50%', fontFamily: AT_FONT, zIndex: 13,
     }}>
