@@ -56,6 +56,19 @@ class EpisodePackageVoiceStudioServiceTest {
     }
 
     @Test
+    void requiresRealElevenLabsCharacterTimingArraysBeforeMarkingAlignmentPresent() {
+        assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment(null));
+        assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment("{}"));
+        assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment("{\"alignment\":null}"));
+        assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment(
+                "{\"alignment\":{\"characters\":[\"H\"]}}"));
+        assertTrue(EpisodePackageVoiceStudioService.hasRealProviderAlignment(
+                "{\"alignment\":{\"characters\":[\"H\"],"
+                + "\"character_start_times_seconds\":[0.0],"
+                + "\"character_end_times_seconds\":[0.2]}}"));
+    }
+
+    @Test
     void audioDurationIsMeasuredOnlyFromPlausibleProviderResults() {
         assertEquals(new BigDecimal("32.640"),EpisodePackageAudioDurationProbe.parse("32.64"));
         for(String duration:new String[]{null,"","0","-1","NaN","Infinity","abc","86400"}) {
