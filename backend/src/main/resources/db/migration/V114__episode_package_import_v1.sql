@@ -14,6 +14,7 @@ create table episode_package_import (
         check (status='VOICE_TASKS_READY'),
     director_issuer text not null,
     director_subject text not null,
+    preflight_audit_id uuid not null,
     imported_at timestamptz not null default now()
 );
 
