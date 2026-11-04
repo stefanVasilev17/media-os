@@ -20,6 +20,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Imported Episode Voice Studio v1 (2026-11-04):** [Implementation and restrictions](docs/engineering/MEDIAOS_EPISODE_PACKAGE_VOICE_STUDIO_V1_20261104.md). The Director can open an imported SHOT, Edit → Save working narration, review/play historical Takes and approve a selected current-revision Take. ElevenLabs Generate is independently paid-gated and **disabled by default** until a separate Director server enablement. Full-episode voice readiness and OpenAI API agent authorization remain separate upcoming milestones. Imported original source stays immutable.
 
+**Episode Voice Readiness v1 (2026-11-04):** [Implementation handoff](docs/engineering/MEDIAOS_EPISODE_VOICE_READINESS_GATE_V1_20261104.md). After importing EP003+ and reviewing Takes, the Director sees one whole-episode readiness panel with per-SHOT blockers and actual spoken cue times. Ready is **not** authorization for OpenAI or Remotion execution; the finite OpenAI budget gate and Multi-SHOT Executor are still separate next milestones. Readiness inspection is provider-free and read-only.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
