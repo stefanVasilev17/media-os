@@ -40,7 +40,7 @@ export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
 
   useEffect(()=>{
     let alive=true;
-    setStartApproval(null);setStartMessage('');requestId.current=null;
+    setResult(null);setStartApproval(null);setStartMessage('');requestId.current=null;
     void fetch(startUrl,{cache:'no-store'}).then(async response=>{
       if(response.status===204)return null;
       if(!response.ok)throw Error('Director Start history HTTP '+response.status);
@@ -155,7 +155,7 @@ export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
         </div>
       </details>)}
       <div className="episode-git-manifest-status">
-        <ShieldCheck size={19}/>
+        {startApproval?.state==='APPROVED_NO_DISPATCH'?<ShieldCheck size={19}/>:<ShieldAlert size={19}/>}
         <div>
           <strong>Director Start · Git- and voice-bound release gate</strong>
           <p>{startApproval
@@ -175,7 +175,7 @@ export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
       </div>
       <p><strong>Code worker:</strong> NOT CONNECTED.
         {' '}<strong>Paid provider dispatch:</strong> DISABLED.
-        Verified inputs cannot start an agent without a new audited Director Start gate.</p>
+        A Director Start receipt is not an executable job. Paid execution still requires a separately connected, price-pinned and freshly revalidated worker.</p>
     </>}
   </section>;
 }
