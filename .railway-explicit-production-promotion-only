@@ -1,7 +1,6 @@
-Explicit MediaOS Git-pinned Multi-SHOT Worker Manifest v1 checked backend build · 2026-11-04.
-Existing backend only: read-only live GitHub blob checks, approved source/voice/cue all-SHOT manifest,
-Director on-demand UI and deterministic safety tests. No database migrations.
-Run Maven Java21 suite, TypeScript/Vite build, verify Flyway V117 unchanged and backend health.
-Do NOT call OpenAI/ElevenLabs, generate paid scenes, render Remotion, deploy worker, merge protected
-creative files, enable GitHub Actions or create any new Railway service/environment.
-Default server executor provider dispatch remains OFF. Source-only/voice-readiness gates unchanged.
+Explicit Director-approved release validation: Git/voice-bound whole-episode Director Start (PR #174) · 2026-11-04.
+Existing production backend only; no new Railway QA infrastructure.
+Build Java 21 Maven tests + frontend TypeScript/Vite and verify Flyway V118 schema + Spring Boot health.
+Adds auditable one-use no-dispatch receipt, Director-only API and UI. Cancelling a prepared job revokes approval.
+Do NOT call OpenAI/ElevenLabs, run GitHub Actions, create paid code, render Remotion or alter protected EP001/EP002.
+The real provider worker remains disconnected and OFF; canStartAgent=false.

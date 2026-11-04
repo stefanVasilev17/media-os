@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {FileCheck2,GitBranch,RefreshCw,ShieldAlert,ShieldCheck} from 'lucide-react';
 
 type GitFile={path:string;expectedHistoricalBlobSha:string|null;
@@ -20,12 +20,68 @@ type BatchManifest={schemaVersion:string;packageId:string;jobId:string;
   codeWorkerTrustPolicy:string;canStartAgent:boolean;
   providerDispatchEnabled:boolean;shots:ShotPrompt[]};
 
+type StartApproval={approvalId:string;jobId:string;packageId:string;
+  state:string;productionInputSha256:string;pinnedGitCommit:string;
+  dependencySha256:string;expectedShotCount:number;approvedAt:string;
+  canStartAgent:boolean;providerDispatchEnabled:boolean};
+
 export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
   packageId:string;jobId:string;
 }){
   const [result,setResult]=useState<BatchManifest|null>(null);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState('');
+  const [startApproval,setStartApproval]=useState<StartApproval|null>(null);
+  const [startBusy,setStartBusy]=useState(false);
+  const [startMessage,setStartMessage]=useState('');
+  const requestId=useRef<string|null>(null);
+  const startUrl='/api/v1/episode-packages/'+encodeURIComponent(packageId)
+    +'/execution-jobs/'+encodeURIComponent(jobId)+'/director-start';
+
+  useEffect(()=>{
+    let alive=true;
+    setResult(null);setStartApproval(null);setStartMessage('');requestId.current=null;
+    void fetch(startUrl,{cache:'no-store'}).then(async response=>{
+      if(response.status===204)return null;
+      if(!response.ok)throw Error('Director Start history HTTP '+response.status);
+      return response.json() as Promise<StartApproval>;
+    }).then(approval=>{if(alive)setStartApproval(approval);})
+      .catch(e=>{if(alive)setError(String(e));});
+    return()=>{alive=false;};
+  },[startUrl]);
+
+  async function approveDirectorStart(){
+    if(!result||result.status!=='SOURCE_MANIFEST_VERIFIED_WAITING_FOR_SEPARATE_DIRECTOR_START'
+        ||startBusy||startApproval?.state==='APPROVED_NO_DISPATCH'
+        ||!result.productionInputSha256||!result.pinnedGitCommit)return;
+    if(!window.confirm('Approve this exact full-episode Git + voice + asset manifest for a future '
+      +'bounded Multi-SHOT Code Worker? This creates one audited Director Start receipt. '
+      +'OpenAI provider dispatch is still DISABLED: no API credits, code writes or renders happen now. '
+      +'The future worker MUST verify all dependencies again before any paid call.'))return;
+    setStartBusy(true);setError('');setStartMessage('');
+    const id=requestId.current??window.crypto.randomUUID();
+    requestId.current=id;
+    try{
+      const response=await fetch(startUrl+'/approve',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          requestId:id,expectedProductionInputSha256:result.productionInputSha256,
+          expectedPinnedGitCommit:result.pinnedGitCommit,
+          confirmDirectorStart:true,acknowledgeProviderDisabled:true,
+        }),
+      });
+      if(!response.ok)throw Error('Director Start HTTP '+response.status+': '
+        +(await response.text()).slice(0,350));
+      const approval=await response.json() as StartApproval;
+      setStartApproval(approval);requestId.current=null;
+      setStartMessage('Director approval recorded for '
+        +approval.expectedShotCount+' SHOTs. OpenAI dispatch stays OFF.');
+    }catch(e){
+      setError(String(e)+' Check the saved Director Start history before retrying; '
+        +'no paid provider request is initiated by this control.');
+    }finally{setStartBusy(false);}
+  }
+
   async function check(){
     setLoading(true);setError('');setResult(null);
     try{
@@ -50,6 +106,7 @@ export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
       actual repository commit and checks Director-reviewed Remotion source blobs.
       No OpenAI, ElevenLabs, code writes or rendering is triggered.</p>
     {error&&<p role="alert" className="episode-hub-error">{error}</p>}
+    {startMessage&&<p role="status" className="episode-package-notice">{startMessage}</p>}
     {result&&<>
       <div className="episode-git-manifest-status">
         {verified?<ShieldCheck size={19}/>:<ShieldAlert size={19}/>}
@@ -97,9 +154,28 @@ export function EpisodeCodeWorkerBatchManifestPanel({packageId,jobId}:{
             c.beatId+' ['+c.startFrame+'–'+c.endFrame+']').join(', ')}</p>
         </div>
       </details>)}
+      <div className="episode-git-manifest-status">
+        {startApproval?.state==='APPROVED_NO_DISPATCH'?<ShieldCheck size={19}/>:<ShieldAlert size={19}/>}
+        <div>
+          <strong>Director Start · Git- and voice-bound release gate</strong>
+          <p>{startApproval
+            ?'Recorded: '+startApproval.state.replaceAll('_',' ')
+              +' · '+startApproval.expectedShotCount+' SHOTs · '
+              +startApproval.approvedAt
+            :'No Director Start approval is recorded for this job.'}</p>
+          <p>Git dependency and real voice inputs will be rechecked when the future
+            paid executor is connected. Approval never calls OpenAI or starts rendering.</p>
+          <button type="button" className="episode-ai-auth-primary"
+            disabled={!verified||startBusy||!!startApproval}
+            onClick={()=>void approveDirectorStart()}>
+            {startBusy?'Recording Director Start…':
+             startApproval?'Director Start recorded':'Approve exact batch for future AI Start — no provider call'}
+          </button>
+        </div>
+      </div>
       <p><strong>Code worker:</strong> NOT CONNECTED.
         {' '}<strong>Paid provider dispatch:</strong> DISABLED.
-        Verified inputs cannot start an agent without a new audited Director Start gate.</p>
+        A Director Start receipt is not an executable job. Paid execution still requires a separately connected, price-pinned and freshly revalidated worker.</p>
     </>}
   </section>;
 }
