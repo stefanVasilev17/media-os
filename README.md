@@ -22,6 +22,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Episode Voice Readiness v1 (2026-11-04):** [Implementation handoff](docs/engineering/MEDIAOS_EPISODE_VOICE_READINESS_GATE_V1_20261104.md). After importing EP003+ and reviewing Takes, the Director sees one whole-episode readiness panel with per-SHOT blockers and actual spoken cue times. Ready is **not** authorization for OpenAI or Remotion execution; the finite OpenAI budget gate and Multi-SHOT Executor are still separate next milestones. Readiness inspection is provider-free and read-only.
 
+**AI Production Authorization v1 (2026-11-04):** [Technical release handoff](docs/engineering/MEDIAOS_EPISODE_AI_PRODUCTION_AUTHORIZATION_V1_20261104.md). After a full imported EP003+ voice-ready check the Director can record an audited episode-level OpenAI budget with USD/token/attempt caps, expiration and revocation. **This is a budget authorization record only**: the future Multi-SHOT Executor must implement one-use consumption and hard measured provider usage stops. The present UI never dispatches OpenAI, generates audio or renders scenes from that button.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).

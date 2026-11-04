@@ -1,5 +1,5 @@
-Explicit Episode Voice Readiness Gate v1 backend promotion · 2026-11-04.
-Add read-only all-SHOT readiness API, truthful HEAR→SEE character-alignment verification, tests and Director dashboard.
-Build with Java21 Maven full suite and frontend TypeScript/Vite; no new Flyway migration.
-No ElevenLabs TTS calls, OpenAI agents, paid CPU render, Remotion worker changes, GitHub Actions or persistent QA project.
-Approved EP001 and Director-LOCKED EP002 SHOT01 remain untouched.
+Explicit MediaOS Episode AI Production Authorization v1 promotion · 2026-11-04.
+Existing production backend only: Flyway V116 immutable Director approval/budget ledger, voice-readiness recheck, idempotent authorization and revocation, frontend panel.
+Run Java21 full Maven tests and frontend TypeScript/Vite build. Verify Flyway V116 applies and backend health before accepting code.
+This version records budget approvals but does NOT connect any OpenAI agent or actual API usage meter. Server canStartAgent=false; no provider requests, voice generation, video renders, GitHub Actions, Remotion worker deploy or persistent QA environment.
+Existing EP001/EP002 locked source/visuals untouched.
