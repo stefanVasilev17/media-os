@@ -1,5 +1,5 @@
-Explicit Episode Package Voice Studio v1 FINAL checked backend promotion · 2026-11-04.
-Final changes include real ElevenLabs provider character timestamp array validation and extra regression test.
-Rebuild latest pinned branch head with Java21 Maven full tests, TypeScript/Vite and Flyway V115 verification.
-Existing voice provider still server-gated OFF; absolutely no generated audio, provider dispatch or OpenAI calls.
-Do not modify protected EP001/EP002, Remotion Worker, GitHub Actions or code-generation permissions.
+Explicit Episode Voice Readiness Gate v1 backend promotion · 2026-11-04.
+Add read-only all-SHOT readiness API, truthful HEAR→SEE character-alignment verification, tests and Director dashboard.
+Build with Java21 Maven full suite and frontend TypeScript/Vite; no new Flyway migration.
+No ElevenLabs TTS calls, OpenAI agents, paid CPU render, Remotion worker changes, GitHub Actions or persistent QA project.
+Approved EP001 and Director-LOCKED EP002 SHOT01 remain untouched.
