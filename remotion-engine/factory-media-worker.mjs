@@ -55,7 +55,7 @@ async function command(bin,args,collectStdout=false) {
   });
 }
 
-async function probe(filename) {
+export async function probeFactoryMedia(filename) {
   const raw=await command('ffprobe',['-v','error','-show_entries',
     'format=duration:stream=index,codec_type,codec_name,width,height,r_frame_rate,duration',
     '-of','json',filename],true);
@@ -97,7 +97,7 @@ export async function buildFactoryMedia(job,outputPath,tools){
         backendUrl,authHeaders,target,request);
       if(totalBytes>MAX_SOURCE_BYTES)
         throw Error('FACTORY_STAGED_SOURCE_BYTES_EXCEED_2GB');
-      const info=await probe(target);
+      const info=await probeFactoryMedia(target);
       if(info.width!==1920||info.height!==1080)
         throw Error('FACTORY_SHOT_SOURCE_NOT_1920X1080');
       clips.push(target);
@@ -127,7 +127,7 @@ export async function buildFactoryMedia(job,outputPath,tools){
           '-pix_fmt','yuv420p','-movflags','+faststart','-y',outputPath];
     await command('ffmpeg',args);
     await onProgress(95);
-    const final=await probe(outputPath);
+    const final=await probeFactoryMedia(outputPath);
     if(final.width!==Number(job.width)||final.height!==Number(job.height)
         ||Math.abs(final.duration-(end-start)/30)>0.75)
       throw Error('FACTORY_ASSEMBLED_MP4_FAILED_DIMENSION_OR_DURATION_QA');
