@@ -124,8 +124,10 @@ public class EpisodeFactoryPostCodeService {
         }
 
         var manifest=loadManifest(packageId,request.handoffId(),actor);
-        if(!request.expectedManifestSha256().equals(
-                EpisodePackageValidator.sha256(json(manifest)))
+        // V119 hashes the original serialized JSON before PostgreSQL jsonb
+        // canonicalization; reserializing stored jsonb is not byte-identical.
+        // Verify the V119 immutable persisted hash plus typed source invariants.
+        if(!request.expectedManifestSha256().equals(saved.manifestSha256())
                 || !manifest.packageId().equals(packageId)
                 || !manifest.episodeKey().equals(saved.episodeKey())
                 || !manifest.readinessFingerprint().equals(saved.readinessFingerprint())
