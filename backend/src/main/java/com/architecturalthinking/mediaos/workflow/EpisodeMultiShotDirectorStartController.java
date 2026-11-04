@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.workflow;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -18,9 +19,10 @@ public class EpisodeMultiShotDirectorStartController {
     }
 
     @GetMapping
-    public EpisodeMultiShotDirectorStartService.StartApproval read(
+    public ResponseEntity<EpisodeMultiShotDirectorStartService.StartApproval> read(
             @PathVariable UUID packageId,@PathVariable UUID jobId) {
-        return starts.get(packageId,jobId);
+        var approval=starts.get(packageId,jobId);
+        return approval==null?ResponseEntity.noContent().build():ResponseEntity.ok(approval);
     }
 
     @PostMapping("/approve")
