@@ -70,9 +70,11 @@ export function EpisodePackageImportPage(){
     finally{inFlight.current=false;setBusy(false);}
   }
 
-  async function show(id:string){
-    try{setDetails(await json<Imported>(await fetch(BASE+'/'+encodeURIComponent(id),{cache:'no-store'})));setActiveVoiceShot(null);}
-    catch(e){setError(String(e));}
+  async function show(id:string,preserveOpenVoice=false){
+    try{
+      setDetails(await json<Imported>(await fetch(BASE+'/'+encodeURIComponent(id),{cache:'no-store'})));
+      if(!preserveOpenVoice)setActiveVoiceShot(null);
+    }catch(e){setError(String(e));}
   }
 
   return <main className="media-os-page episode-hub episode-preparation episode-package-import">
@@ -136,7 +138,8 @@ export function EpisodePackageImportPage(){
         </button>
         {activeVoiceShot===shot.shotKey&&
           <EpisodePackageVoiceStudioPanel packageId={details.packageId}
-            shotKey={shot.shotKey}/>}
+            shotKey={shot.shotKey}
+            onStatusChanged={()=>{void show(details.packageId,true);}}/>}
         <details className="episode-package-visual-source"><summary>Original visual storyline</summary>
           <pre>{JSON.stringify(shot.visualStory,null,2)}</pre>
         </details>
