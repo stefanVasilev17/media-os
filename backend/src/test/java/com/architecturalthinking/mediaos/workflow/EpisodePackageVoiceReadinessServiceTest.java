@@ -77,7 +77,7 @@ class EpisodePackageVoiceReadinessServiceTest {
     private static EpisodePackageVoiceReadinessService.ShotInput input(
             UUID approved, UUID actual,BigDecimal duration,boolean unresolved) {
         return new EpisodePackageVoiceReadinessService.ShotInput(
-                "SHOT01","Example",1,"Hello world this is a full narration.",
+                "SHOT01","Example",1,1,"Hello world this is a full narration.",
                 "{\"visualBeats\":[]}",approved,actual,duration,"{}",unresolved);
     }
 }
