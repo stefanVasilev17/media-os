@@ -1,0 +1,25 @@
+# MediaOS — Episode Voice Readiness Gate v1
+
+**Director requirement:** FILE → VOICE → explicit paid OpenAI approval → Multi-SHOT visual production. One episode-level voice gate must be checked **before** the cost-bound agent executor. Preserve protected EP001 and Director-LOCKED EP002 SHOT01.
+
+## Implemented behavior
+
+- Read-only `GET /api/v1/episode-packages/{packageId}/voice-readiness` for authenticated Director-owned imported EP003+ packages; no writes, TTS, provider requests or render jobs.
+- One repeatable-read PostgreSQL snapshot, checked against imported package SHOT count and original SHOT ordering. For each shot use the **latest working narration revision**; the latest Director-selected Take is accepted only when `episode_package_voice_choice` is for that revision and `episode_package_voice_take` belongs to the same shot and revision.
+- Fail-closed blockers: missing working narration; no selected/approved current-revision Take; an `IN_FLIGHT` or `UNCERTAIN` paid ElevenLabs request on the shot (even an older revision); no ffprobe-measured audio duration; missing/corrupt real ElevenLabs character timestamp arrays; selected audio transcript not matching the **current working narration**; an approved HEAR → SEE cue not literally present in current narration, missing in spoken alignment, incorrectly ordered or outside measured duration.
+- `EpisodePackageCueTimingVerifier` parses returned `alignment` or `normalized_alignment` arrays. Every character needs an actual finite numeric start/end, ordered start times and bounds inside the measured audio plus 0.75 s tolerance. Normalize punctuation/case/whitespace *only* to match texts, never synthesize or estimate timestamps. A full normalized current narration must occur in the actual alignment (an approved v4 performance tag before it is allowed). Every visual beat's `cueAnchor` must match in source narration and in actual provider characters, in beat order. A nonmatching beat blocks **that SHOT** and returns no claimed verified cues. Proven timestamps are passed back for later Remotion HEAR → SEE binding.
+- Aggregation: `NOT_READY`, `PARTIALLY_READY`, or `READY_FOR_DIRECTOR_AI_AUTHORIZATION` only when **all** shots have valid approval, duration and complete cue evidence and no unresolved paid attempts. Count approved and ready shots separately. Report explicit per-shot blockers, measured seconds, verified cue starts/ends, current revision, Take ID and source-bound deterministic `readinessFingerprint` over all current revisions, selections, source story, duration, alignment and unresolved requests.
+- **HARD LIMIT:** `agentExecutionAuthorized=false` and `canStartAgent=false` in every response, including 100% ready. This endpoint **does not grant or persist** any OpenAI API authorization; budget and attempt caps, explicit Director one-use authorization, executor safety gate and GitHub PR workflow must be built separately. Imported source, EP002 SHOT01 and historical audio remain immutable.
+- `EpisodeVoiceReadinessPanel` inside `Episodes → Import Episode Package → select EP003+ package` shows whole-episode counts, blocked SHOTs and explanations, verified cue timings and fingerprint. Refreshes on opening the package, on manual click and after per-shot voice Save/Generate/Approve. Neither opening nor refreshing charges providers.
+
+## Implementation scope and evidence
+
+New files: `EpisodePackageCueTimingVerifier.java`, `EpisodePackageVoiceReadinessService.java`, `EpisodePackageVoiceReadinessController.java`, focused Java tests, `EpisodeVoiceReadinessPanel.tsx` and styling in `episodePackageImport.css`. Existing `EpisodePackageImportPage.tsx` embeds the panel. **No Flyway schema migration is needed**: all evidence already exists in V114/V115. No changes to legacy EP001/EP002 Remotion/voice source or Railway worker.
+
+Tests cover full scene voice evidence, mismatched audio, missing alignment, invalid cue, wrong order, duration bounds, older-revision Take, unresolved ElevenLabs request and whole-episode zero/partial/full state. Run actual Java21 Maven + frontend TypeScript/Vite in the existing checked Railway backend build. PostgreSQL integration tests requiring an isolated DB may still be skipped and must be reported as such.
+
+## Next product gate — not implemented by v1
+
+Build **Episode AI Production Authorization** using this exact versioned readiness fingerprint, source SHA, all current Take IDs, verified cue times, repository protected-path list, a finite USD/tokens/max-attempts envelope, expiry, single-use transactional Director consent, and explicit ability to revoke. Executor must re-evaluate readiness **in the same authorized transaction or guarded dispatch**, compare fingerprint and fail closed if source/voice/visual dependencies changed. Separate Director authorization for GitHub PR promotion, Railway CPU renders, ElevenLabs generation and publish. No GitHub Actions.
+
+No browser-confirmed Director input or new provider calls as part of this read-only gate rollout. Never say the full Agent Executor or complete film can run until those product gates exist.
