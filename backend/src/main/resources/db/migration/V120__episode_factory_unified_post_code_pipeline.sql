@@ -141,3 +141,33 @@ create table episode_factory_code_revision (
 );
 create index episode_factory_revision_by_run
   on episode_factory_code_revision(run_id,created_at desc);
+
+create table episode_factory_shot_review_approval (
+    id uuid primary key,
+    request_id uuid not null unique,
+    run_id uuid not null references episode_factory_production_run(id),
+    verified_source_digest char(64) not null,
+    approved_render_digest char(64) not null,
+    shot_count integer not null check(shot_count between 1 and 40),
+    director_issuer text not null,
+    director_subject text not null,
+    preflight_audit_id uuid not null,
+    approved_at timestamptz not null default now(),
+    unique(run_id,verified_source_digest,approved_render_digest)
+);
+
+create table episode_factory_final_review_approval (
+    id uuid primary key,
+    request_id uuid not null unique,
+    run_id uuid not null references episode_factory_production_run(id),
+    verified_source_digest char(64) not null,
+    review_master_render_id uuid not null references remotion_render(id),
+    short1_render_id uuid not null references remotion_render(id),
+    short2_render_id uuid not null references remotion_render(id),
+    short3_render_id uuid not null references remotion_render(id),
+    director_issuer text not null,
+    director_subject text not null,
+    preflight_audit_id uuid not null,
+    approved_at timestamptz not null default now(),
+    unique(run_id,verified_source_digest)
+);
