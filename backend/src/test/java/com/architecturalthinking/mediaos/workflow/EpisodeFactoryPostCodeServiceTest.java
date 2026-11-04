@@ -20,7 +20,7 @@ class EpisodeFactoryPostCodeServiceTest {
         return List.of(new EpisodeFactoryPostCodeService.ShotState(
                 "SHOT01",1,1200,UUID.randomUUID().toString(),
                 "remotion-engine/src/episodes/ep003/Shot01GeneratedScene.tsx",
-                false,false,null));
+                false,false,null,null,null));
     }
 
     @Test
