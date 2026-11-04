@@ -6,8 +6,8 @@ import {
   ATCameraRig,
   ATControlledRealismLayer,
   AT_FONT,
-  ATPhone,
 } from '../../components/architectural-thinking';
+import {Shot01ReadablePhone} from './Shot01ReadablePhone';
 
 export type Shot01LoginWaitingProps = {
   durationInFrames: number;
@@ -116,21 +116,17 @@ const HealthProbes: React.FC<{reveal: number; quiet: number; frame: number}> = (
   const pulse = 0.5 + 0.5 * Math.sin(frame * 0.13);
   return (
     <div style={{
-      position: 'absolute', left: 1335, top: 685, width: 360, zIndex: 13,
+      position: 'absolute', left: 1335, top: 712, width: 360, zIndex: 13,
       opacity: reveal * (1 - quiet * .63),
       transform: `translateY(${(1 - reveal) * 14}px)`,
       fontFamily: AT_FONT, pointerEvents: 'none',
     }}>
-      <div style={{
-        color: 'rgba(131,182,192,.8)', fontWeight: 700, letterSpacing: '.10em',
-        fontSize: 13, marginBottom: 12,
-      }}>ILLUSTRATIVE SHALLOW HEALTH PROBES</div>
       {['Liveness: PASS', 'Readiness: PASS'].map((label, index) => (
         <div key={label} style={{
           display: 'flex', alignItems: 'center', gap: 14, marginBottom: 9,
-          padding: '10px 14px', borderRadius: 13,
-          background: 'linear-gradient(90deg,rgba(4,36,33,.84),rgba(4,27,30,.58))',
-          border: '1px solid rgba(88,234,192,.35)',
+          padding: '12px 16px', borderRadius: 13,
+          background: 'linear-gradient(90deg,rgba(7,57,48,.95),rgba(5,35,35,.83))',
+          border: '1.5px solid rgba(113,247,206,.62)',
           boxShadow: `0 0 ${9 + pulse * 10}px rgba(88,234,192,.045)`,
         }}>
           <div style={{
@@ -139,7 +135,7 @@ const HealthProbes: React.FC<{reveal: number; quiet: number; frame: number}> = (
             boxShadow: `0 0 ${9 + pulse * 8}px rgba(88,234,192,.44)`,
           }}/>
           <span style={{
-            fontSize: 19, fontWeight: 690, color: '#B8FFE6', letterSpacing: '-.015em',
+            fontSize: 22, fontWeight: 730, color: '#D1FFF1', letterSpacing: '-.015em',
           }}>{label}</span>
           <span style={{marginLeft: 'auto', color: 'rgba(135,218,198,.49)', fontSize: 14}}>
             0{index + 1}
@@ -168,20 +164,20 @@ function ArchitectureWorld({
   const cameraX = -115 * focusAuth + 76 * rewind;
   const cameraY = 10 * focusAuth - 25 * rewind;
   const cameraScale = 1.018 + .043 * focusAuth - .067 * rewind;
-  const phoneEmphasis = clamp(1 - .33 * focusAuth);
-  const authEmphasis = .42 + .58 * focusAuth + .17 * health * (1 - focusAuth);
+  const phoneEmphasis = clamp(1 - .22 * focusAuth);
+  const authEmphasis = .62 + .38 * focusAuth + .12 * health * (1 - focusAuth);
   const healthQuiet = focusReturn;
   const breathe = .55 + .45 * Math.sin(frame * .065);
 
   return (
     <ATBackground>
       <ATControlledRealismLayer
-        frame={frame} realism={.96}
-        architectureReveal={.10 + focusAuth * .45}
+        frame={frame} realism={.98}
+        architectureReveal={.18 + focusAuth * .46}
       />
       <AbsoluteFill style={{zIndex: 2, pointerEvents: 'none'}}>
         <div style={{
-          position: 'absolute', top: 48, left: 80, color: 'rgba(142,196,223,.52)',
+          position: 'absolute', top: 48, left: 80, color: 'rgba(161,208,236,.65)',
           font: `650 16px ${AT_FONT}`, letterSpacing: '.19em',
         }}>ARCHITECTURAL THINKING</div>
         <div style={{
@@ -189,8 +185,8 @@ function ArchitectureWorld({
           background: 'linear-gradient(90deg,rgba(83,178,221,.46),transparent)',
         }}/>
         <div style={{
-          position: 'absolute', inset: '30% 5% 1% 12%', opacity: .30,
-          background: 'radial-gradient(ellipse at 45% 85%,rgba(33,95,160,.15),transparent 64%)',
+          position: 'absolute', inset: '30% 5% 1% 12%', opacity: .43,
+          background: 'radial-gradient(ellipse at 45% 85%,rgba(44,112,183,.20),transparent 64%)',
         }}/>
       </AbsoluteFill>
       <ATCameraRig x={cameraX} y={cameraY} scale={cameraScale} zIndex={3}>
@@ -198,9 +194,9 @@ function ArchitectureWorld({
           style={{position: 'absolute', inset: 0, overflow: 'visible', zIndex: 1}}>
           <defs>
             <linearGradient id="ep002-v2-path" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#3BCACB" stopOpacity=".46"/>
-              <stop offset="50%" stopColor="#5A83CD" stopOpacity=".30"/>
-              <stop offset="100%" stopColor="#AB92FF" stopOpacity=".45"/>
+              <stop offset="0%" stopColor="#3BCACB" stopOpacity=".60"/>
+              <stop offset="50%" stopColor="#5A83CD" stopOpacity=".38"/>
+              <stop offset="100%" stopColor="#AB92FF" stopOpacity=".58"/>
             </linearGradient>
             <radialGradient id="ep002-v2-depth">
               <stop offset="0%" stopColor="#2D5682" stopOpacity=".11"/>
@@ -209,10 +205,10 @@ function ArchitectureWorld({
           </defs>
           <ellipse cx="1190" cy="570" rx="755" ry="390" fill="url(#ep002-v2-depth)"/>
           <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
-            stroke="#162F4A" strokeWidth="9" strokeLinecap="round" fill="none" opacity=".53"/>
+            stroke="#244565" strokeWidth="9" strokeLinecap="round" fill="none" opacity=".62"/>
           <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
-            stroke="url(#ep002-v2-path)" strokeWidth="2.2" strokeLinecap="round"
-            fill="none" opacity={.26 + focusAuth * .19}/>
+            stroke="url(#ep002-v2-path)" strokeWidth="2.5" strokeLinecap="round"
+            fill="none" opacity={.36 + focusAuth * .19}/>
           <path d="M 1090 552 L 1090 767 L 1280 767"
             stroke="#31517B" strokeWidth="1.5" opacity=".16" strokeDasharray="11 16"
             fill="none"/>
@@ -223,7 +219,7 @@ function ArchitectureWorld({
           <path d="M 330 897 Q 760 838 1190 917 T 1880 932"
             stroke="#477BA9" strokeOpacity=".10" strokeWidth="1.2" fill="none"/>
         </svg>
-        <div style={{position: 'absolute', inset: 0, opacity: .17, filter: 'saturate(.58) brightness(.64)', zIndex: 2}}>
+        <div style={{position: 'absolute', inset: 0, opacity: .28, filter: 'saturate(.78) brightness(.84)', zIndex: 2}}>
           <ATBackendNode
             title="API Gateway" x={934} y={420} width={222} height={205}
             reveal={1} active={0} quiet={.95} zIndex={2}
@@ -237,13 +233,13 @@ function ArchitectureWorld({
         </div>
         <div style={{
           position: 'absolute', inset: 0, zIndex: 4, opacity: authEmphasis,
-          filter: `saturate(${.72 + focusAuth * .28}) brightness(${.79 + focusAuth * .21})`,
+          filter: `saturate(${.88 + focusAuth * .17}) brightness(${.89 + focusAuth * .18}) contrast(1.08)`,
         }}>
           <ATBackendNode
             title="Auth Service" x={1510} y={298} width={395} height={354}
             reveal={1} active={.1 + health * .28 + focusAuth * .34}
-            quiet={.58 * (1 - focusAuth)}
-            secondaryReveal={.66 + focusAuth * .34}
+            quiet={.46 * (1 - focusAuth)}
+            secondaryReveal={.78 + focusAuth * .22}
             zIndex={4}
             sections={[{
               title: 'KNOWN IDENTITY',
@@ -260,9 +256,9 @@ function ArchitectureWorld({
           position: 'absolute', inset: 0, zIndex: 8,
           transform: 'translate3d(-400px,-107px,0) scale(1.08)',
           transformOrigin: '50% 50%', opacity: phoneEmphasis,
-          filter: `brightness(${1 - focusAuth * .11})`,
+          filter: `brightness(${1.07 - focusAuth * .08}) contrast(1.10) saturate(1.08)`,
         }}>
-          <ATPhone
+          <Shot01ReadablePhone
             frame={frame} reveal={1} credential={.22} ui={0}
             emailValue="user@example.com" passwordDots="••••••••"
             emailFocus={0} passwordFocus={0} localUi={working}
@@ -274,11 +270,6 @@ function ArchitectureWorld({
         <TimeRail frame={frame} reveal={railVisible} rewind={rewind}/>
         <RewindMarker reveal={rewind}/>
       </ATCameraRig>
-      <div style={{
-        position: 'absolute', left: 90, bottom: 43, zIndex: 9,
-        fontFamily: AT_FONT, fontSize: 14, fontWeight: 610,
-        color: 'rgba(156,189,214,.45)', letterSpacing: '.045em',
-      }}>SHALLOW HEALTH DOES NOT GUARANTEE LOGIN COMPLETION</div>
     </ATBackground>
   );
 }

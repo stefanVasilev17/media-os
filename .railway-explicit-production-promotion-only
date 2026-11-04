@@ -1,4 +1,4 @@
-Explicit MediaOS EP002 SHOT01 preview cache correction: 2026-11-04.
-Single backend promotion for Director-confirmed preview request idempotency, unchanged selected Take 2 and current EP001-visual v2 worker.
-Use existing production backend Dockerfile.backend: Java 21 Maven tests + frontend Vite build + health check.
-Do not trigger ElevenLabs, automatic preview renders, separate QA infrastructure or unrelated worker redeploys.
+Explicitly approved EP002 SHOT01 v3 visual polish release · 2026-11-04.
+Preserve selected Take 2, voice cue timings, approved EP001 assets and existing MediaOS backend.
+Build and deploy existing remotion worker only with Node tests, TypeScript baseline preflight and Remotion bundle.
+No ElevenLabs calls and no automatic preview MP4. Director requests one fresh preview after successful deployment.
