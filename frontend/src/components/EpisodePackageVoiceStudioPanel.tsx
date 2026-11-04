@@ -22,8 +22,8 @@ async function checked<T>(response:Response):Promise<T>{
   return response.json() as Promise<T>;
 }
 
-export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
-  packageId:string;shotKey:string;
+export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChanged}:{
+  packageId:string;shotKey:string;onStatusChanged?:()=>void;
 }){
   const base='/api/v1/episode-packages/'+encodeURIComponent(packageId)
     +'/shots/'+encodeURIComponent(shotKey)+'/voice';
@@ -71,6 +71,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
           voiceDirection:direction}),
       }));
       apply(result);
+      onStatusChanged?.();
       setMessage('Working narration saved as revision '+result.revision+
         '. Earlier takes are preserved, but only the new revision can be approved.');
     }catch(e){setError(String(e));}
@@ -94,6 +95,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
       }));
       pendingPaidId.current=null;
       apply(result);
+      onStatusChanged?.();
       setMessage('New audio Take stored. Listen to it and explicitly approve your chosen Take.');
     }catch(e){
       setError(String(e)+' Payment status may be uncertain. Do not retry without reconciling the provider request.');
@@ -113,6 +115,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
           decision:'DIRECTOR_APPROVE'}),
       }));
       apply(result);
+      onStatusChanged?.();
       setMessage('Director-approved Take selected for current revision. '+
         'Voice timing still requires explicit verification before AI execution.');
     }catch(e){setError(String(e));}
