@@ -236,13 +236,13 @@ public class EpisodeMultiShotExecutionService {
     @Transactional(readOnly=true)
     public List<Job> list(UUID packageId) {
         DirectorIdentity.Actor actor=DirectorIdentity.requireDirector();
-        return jdbc.sql("""
+        List<UUID> ids=jdbc.sql("""
                 select id from episode_multi_shot_execution_job
                  where package_id=:package and director_issuer=:issuer
                    and director_subject=:subject order by created_at desc,id desc limit 20
                 """).param("package",packageId).param("issuer",actor.issuer())
-                .param("subject",actor.subject())
-                .query((rs,n)->load(rs.getObject(1,UUID.class),packageId,actor)).list();
+                .param("subject",actor.subject()).query(UUID.class).list();
+        return ids.stream().map(id->load(id,packageId,actor)).toList();
     }
 
     @Transactional(readOnly=true)
