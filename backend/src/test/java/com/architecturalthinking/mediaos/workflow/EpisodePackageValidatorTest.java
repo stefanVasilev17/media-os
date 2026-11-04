@@ -84,7 +84,7 @@ class EpisodePackageValidatorTest {
     @Test
     void rejectsInventedVoiceCueAndInvalidShortsReferences() {
         for(String source:new String[]{
-                valid().replace("A payment request begins\",","A completely different line\","),
+                valid().replace("\"cueAnchor\":\"A payment request begins\"", "\"cueAnchor\":\"The rocket is on fire\""),
                 valid().replace("\"shotKeys\":[\"SHOT01\"]","\"shotKeys\":[\"SHOT03\"]"),
                 valid().replace("\"shotKey\":\"SHOT01\"","\"shotKey\":\"SHOT03\"")
         }) {
