@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {Box,RefreshCw,ShieldAlert,CheckCircle2} from 'lucide-react';
 import '../styles/episodeCodeWorkerPreflight.css';
+import {EpisodeCodeWorkerBatchManifestPanel} from './EpisodeCodeWorkerBatchManifestPanel';
 
 type AssetMatch={
   requestedKey:string;resolution:string;component:string|null;
@@ -125,6 +126,7 @@ export function EpisodeCodeWorkerPreflightPanel({packageId,jobId}:{
           </div>
         </details>)}
       </div>
+      <EpisodeCodeWorkerBatchManifestPanel packageId={packageId} jobId={jobId}/>
     </>}
   </section>;
 }
