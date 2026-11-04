@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "mediaos.remotion-reuse-registry.v1",
+  "reviewedAt": "2026-11-04",
+  "sourceGitCommit": "24f537d7eab6f819261edb649c41a93d2ce7c844",
+  "sourceRegistryPath": "remotion-engine/src/components/architectural-thinking/registry.ts",
+  "sourceRegistryGitBlobSha": "6debe2c89c6d8e2634043bea64985602eddf657d",
+  "importModule": "../../components/architectural-thinking",
+  "assetPolicy": "REFERENCE_ONLY_NEVER_MODIFY_EXISTING_SOURCE",
+  "executorDependencyStatus": "PINNED_SOURCE_REVALIDATION_REQUIRED_BEFORE_PAID_EXECUTION",
+  "assets": [
+    {
+      "assetId": "ATBackground",
+      "component": "ATBackground",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATBACKGROUND",
+        "BACKGROUND",
+        "BACKDROP",
+        "LIVING_MAP_BACKGROUND"
+      ]
+    },
+    {
+      "assetId": "ATPhone",
+      "component": "ATPhone",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATPHONE",
+        "PHONE",
+        "PHONE_LOGIN",
+        "PHONE_UI",
+        "LOGIN_PHONE",
+        "MOBILE_PHONE"
+      ]
+    },
+    {
+      "assetId": "ATSecondaryStack",
+      "component": "ATSecondaryStack",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATSECONDARYSTACK",
+        "SECONDARY_STACK",
+        "PHONE_SECONDARY_STACK"
+      ]
+    },
+    {
+      "assetId": "ATSecondarySection",
+      "component": "ATSecondarySection",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATSECONDARYSECTION",
+        "SECONDARY_SECTION",
+        "PHONE_SECONDARY_SECTION"
+      ]
+    },
+    {
+      "assetId": "ATSemanticPill",
+      "component": "ATSemanticPill",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATSEMANTICPILL",
+        "SEMANTIC_PILL",
+        "STATUS_PILL"
+      ]
+    },
+    {
+      "assetId": "ATActiveState",
+      "component": "ATActiveState",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATACTIVESTATE",
+        "ACTIVE_STATE",
+        "ACTIVATION_STATE"
+      ]
+    },
+    {
+      "assetId": "ATConnector",
+      "component": "ATConnector",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATCONNECTOR",
+        "CONNECTOR",
+        "VERTICAL_CONNECTOR"
+      ]
+    },
+    {
+      "assetId": "ATCameraRig",
+      "component": "ATCameraRig",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATCAMERARIG",
+        "CAMERA",
+        "CAMERA_RIG",
+        "CAMERA_MOVE"
+      ]
+    },
+    {
+      "assetId": "ATPrimaryNode",
+      "component": "ATPrimaryNode",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATPRIMARYNODE",
+        "PRIMARY_NODE",
+        "AUTH_NODE",
+        "AUTH_SERVICE_NODE",
+        "SERVICE_NODE"
+      ]
+    },
+    {
+      "assetId": "ATMiniWorld",
+      "component": "ATMiniWorld",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATMINIWORLD",
+        "MINI_WORLD",
+        "COMPONENT_WORLD",
+        "MICROSERVICE_WORLD"
+      ]
+    },
+    {
+      "assetId": "ATConnectionPath",
+      "component": "ATConnectionPath",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATCONNECTIONPATH",
+        "CONNECTION_PATH",
+        "REQUEST_PATH",
+        "ARCHITECTURE_PATH"
+      ]
+    },
+    {
+      "assetId": "ATFlowArrow",
+      "component": "ATFlowArrow",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "DIRECTOR_LOCKED_REUSE_ONLY",
+      "aliases": [
+        "ATFLOWARROW",
+        "FLOW_ARROW",
+        "REQUEST_ARROW",
+        "ARROW"
+      ]
+    },
+    {
+      "assetId": "ATControlledRealismLayer",
+      "component": "ATControlledRealismLayer",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "EXISTING_REQUIRES_DIRECTOR_REVIEW",
+      "aliases": [
+        "ATCONTROLLEDREALISMLAYER",
+        "CONTROLLED_REALISM",
+        "REALISM_LAYER",
+        "LIGHTING"
+      ]
+    },
+    {
+      "assetId": "ATArchitectureRevealBridge",
+      "component": "ATArchitectureRevealBridge",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATVisualPrimitives.tsx",
+      "gitBlobSha": "f815c849d1b77c7cbe609f74a15b8104e88a2ffe",
+      "status": "EXISTING_REQUIRES_DIRECTOR_REVIEW",
+      "aliases": [
+        "ATARCHITECTUREREVEALBRIDGE",
+        "ARCHITECTURE_REVEAL",
+        "REVEAL_BRIDGE"
+      ]
+    },
+    {
+      "assetId": "ATBackendNode",
+      "component": "ATBackendNode",
+      "sourcePath": "remotion-engine/src/components/architectural-thinking/ATArchitecturePrimitives.tsx",
+      "gitBlobSha": "54203dca0680da3f80ccb10e9cf3868378192778",
+      "status": "EXISTING_REQUIRES_DIRECTOR_REVIEW",
+      "aliases": [
+        "ATBACKENDNODE",
+        "BACKEND_NODE",
+        "BACKEND_SERVICE",
+        "BACKEND_MINI_WORLD"
+      ]
+    }
+  ]
+}
