@@ -16,6 +16,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Creative editing is always open:** Edit → Save → optional, separately confirmed Generate/Regenerate. Earlier script versions and takes are preserved. Production creative content is not forced through repeated LOCK/UNLOCK.
 
+**Episode Package Importer v1 (2026-11-04):** [Deployment handoff](docs/engineering/MEDIAOS_EPISODE_PACKAGE_IMPORTER_V1_HANDOFF_20261104.md) and [JSON schema](docs/contracts/mediaos-episode-package-v1.schema.json). Use **Episodes → Import Episode Package** for new EP003+ approved source files, validated and saved in one upload with all SHOTs marked `PENDING_VOICE`. This is **source-only import**, not a native Voice Studio for these imported tasks. The voice integration, all-shots readiness and separately authorized OpenAI API Agent Executor are still pending. No AI/voice/render API call is made during import.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
