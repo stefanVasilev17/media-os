@@ -1,5 +1,5 @@
-Explicit Stage 4 Director feedback intake backend+frontend promotion · 2026-11-04.
-Add V112 append-only feedback table, Director-verified feedback POST/GET, UI and tests.
-Existing production backend Dockerfile.backend runs Java 21 Maven tests and Vite compile.
-No new model calls, no voice generation, no automatic render, no worker deployment or new QA projects.
-Stage 4 in-app agent source patch and automated rerender are NOT delivered by this candidate.
+Explicit MediaOS EP002 Episode Batch Planner v1 promotion · 2026-11-04.
+Existing backend service only: immutable V113 whole-episode plan snapshots + read-only preview + explicit Director prepare.
+Run Java21 Maven tests and frontend TypeScript/Vite production build before accepting.
+No GitHub Actions, AI generation, ElevenLabs calls, automatic TSX scene generation, new video render, Render Worker deploy or separate QA infrastructure.
+The ten scene candidates remain non-executing until a later scoped agent executor receives separate Director authorization.
