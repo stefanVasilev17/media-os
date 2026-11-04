@@ -85,22 +85,33 @@ class RemotionGitDependencyPinServiceTest {
         assertEquals("GIT_DEPENDENCIES_BLOCKED",invalid.status());
     }
 
+
     @Test
-    void missingSharedDependenciesAlsoBlockButMatchingGitShaCanPinOptionalDependency() {
-        var pin=RemotionGitDependencyPinService.verifyExactSources(
-                source(BASE,HEAD),CATALOG,Map.of(REGISTRY,nullSafeSentinel()));
-        assertEquals("GIT_DEPENDENCIES_BLOCKED",pin.status());
-
-        var current=RemotionGitDependencyPinService.verifyExactSources(
-                source(BASE,HEAD),CATALOG,Map.of(REGISTRY,BASE,
-                        "remotion-engine/package.json",""));
-        assertEquals("GIT_DEPENDENCIES_BLOCKED",current.status());
-        assertEquals("CHANGED_FROM_DIRECTOR_REVIEWED_BASELINE",
-                current.files().stream().filter(x->x.path().endsWith("package.json"))
+    void optionalSharedFilesUseExactCurrentGitBlobWhileMissingFilesBlock() {
+        Map<String,String> optional=new LinkedHashMap<>();
+        optional.put(REGISTRY,BASE);
+        optional.put("remotion-engine/package.json",null);
+        var pinned=RemotionGitDependencyPinService.verifyExactSources(
+                source(BASE,HEAD),CATALOG,optional);
+        assertEquals("GIT_DEPENDENCIES_PINNED_AND_VERIFIED",pinned.status());
+        assertEquals("PINNED_CURRENT_GIT_DEPENDENCY",
+                pinned.files().stream().filter(x->x.path().endsWith("package.json"))
                         .findFirst().orElseThrow().status());
-    }
 
-    private static String nullSafeSentinel() { return "invalid"; }
+        RemotionGitDependencyPinService.GitHubEvidenceSource missing=
+                new RemotionGitDependencyPinService.GitHubEvidenceSource() {
+                    @Override
+                    public String branchHead(String repo,String branch) {return HEAD;}
+                    @Override
+                    public String fileBlob(String repo,String path,String commit) {
+                        return path.equals(REGISTRY)?null:BASE;
+                    }
+                };
+        var blocked=RemotionGitDependencyPinService.verifyExactSources(
+                missing,CATALOG,optional);
+        assertEquals("GIT_DEPENDENCIES_BLOCKED",blocked.status());
+        assertNull(blocked.productionDependencySha256());
+    }
 
     @Test
     void fixedGitDependencyDigestDoesNotDependOnMapInsertionOrder() {
