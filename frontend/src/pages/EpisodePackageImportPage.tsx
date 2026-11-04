@@ -5,6 +5,7 @@ import '../styles/episodePackageImport.css';
 import {EpisodePackageVoiceStudioPanel} from '../components/EpisodePackageVoiceStudioPanel';
 import {EpisodeVoiceReadinessPanel} from '../components/EpisodeVoiceReadinessPanel';
 import {EpisodeAiAuthorizationPanel} from '../components/EpisodeAiAuthorizationPanel';
+import {EpisodeMultiShotExecutionPanel} from '../components/EpisodeMultiShotExecutionPanel';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -136,6 +137,9 @@ export function EpisodePackageImportPage(){
         refreshVersion={readinessRefresh}/>
       <EpisodeAiAuthorizationPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
+      <EpisodeMultiShotExecutionPanel packageId={details.packageId}
+        refreshVersion={readinessRefresh}
+        onStatusChanged={()=>setReadinessRefresh(v=>v+1)}/>
       {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
         <p><strong>Original approved narration:</strong> {shot.narration}</p>
