@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Camera,Code2,RotateCcw} from 'lucide-react';
 import {getEp002RemotionSceneContract,type Ep002SceneContract} from '../api/ep002RemotionSceneContractApi';
+import {Ep002DirectorVisualFeedbackPanel} from './Ep002DirectorVisualFeedbackPanel';
 
 const label=(value:string)=>value.replaceAll('_',' ').toLowerCase();
 
@@ -135,6 +136,8 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
             <video key={preview.renderId} controls preload="metadata" style={{width:'100%',maxHeight:480,borderRadius:9,marginTop:10}}
               src={preview.videoUrl}/>}
         </div>
+        <Ep002DirectorVisualFeedbackPanel contractId={scene.contractId}
+          renderId={preview?.renderId} renderStatus={preview?.status}/>
         <p className="library-production-lineage">Contract fingerprint: {scene.contractId.slice(0,20)}…</p>
       </>}
       <button type="button" className="library-voice-refresh" disabled={loading}
