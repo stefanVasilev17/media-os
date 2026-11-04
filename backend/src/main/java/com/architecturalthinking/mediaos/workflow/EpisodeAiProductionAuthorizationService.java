@@ -102,7 +102,8 @@ public class EpisodeAiProductionAuthorizationService {
                 .param("issuer",actor.issuer()).param("subject",actor.subject())
                 .query((rs,n)->view(mapRow(rs),current)).list();
         boolean alreadyPending=history.stream()
-                .anyMatch(a->"AUTHORIZED_PENDING_EXECUTOR".equals(a.effectiveStatus()));
+                .anyMatch(a->"AUTHORIZED_PENDING_EXECUTOR".equals(a.state())
+                        && !"EXPIRED".equals(a.effectiveStatus()));
         return new Overview(packageId,current.episodeKey(),current.state(),
                 current.readyShots(),current.totalShots(),current.readinessFingerprint(),
                 current.eligibleForAiBudgetReview()&&!alreadyPending,
