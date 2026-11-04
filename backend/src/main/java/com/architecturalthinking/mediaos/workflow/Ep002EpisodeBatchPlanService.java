@@ -53,7 +53,8 @@ public class Ep002EpisodeBatchPlanService {
 
     public record StoredPlan(UUID planId, UUID requestId, String status,
                              String inputFingerprint, Plan manifest, String createdAt,
-                             String directorIssuer, String directorSubject) {}
+                             @com.fasterxml.jackson.annotation.JsonIgnore String directorIssuer,
+                             @com.fasterxml.jackson.annotation.JsonIgnore String directorSubject) {}
 
     public Ep002EpisodeBatchPlanService(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
