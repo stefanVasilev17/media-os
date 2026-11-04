@@ -28,6 +28,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Reusable Asset Registry + Multi-SHOT Code Worker Preflight v1 (2026-11-04):** [Implementation and next release gates](docs/engineering/MEDIAOS_REUSABLE_ASSET_REGISTRY_AND_CODE_WORKER_PREFLIGHT_20261104.md). Prepared EP003+ jobs can be inspected **all at once**: the Director sees 15 real existing Remotion reference components, what each SHOT can import without modifying approved sources, which new assets are still missing, proposed episode-local file paths and real voice cue frame timing. Source Git blob SHAs come from a historical verified baseline, **not current-execution revalidation**. This preflight does not dispatch OpenAI, write GitHub source, compile generated scenes or render video. Real Multi-SHOT Code Worker + explicit Director Start and cost metering remain the next milestone.
 
+**Live Git Dependency Pin + Multi-SHOT Code Manifest v1 (2026-11-04):** [PR #173 handoff](docs/engineering/MEDIAOS_CODE_WORKER_LIVE_GIT_PIN_AND_BATCH_MANIFEST_20261104.md). Imported EP003+ prepared jobs expose an explicit on-demand, read-only GitHub source/asset pin, provenance comparison for Director-LOCKED assets and full ordered voice/story/cue/component prompt inputs for all SHOTs. Git metadata access can fail closed for a private repo until the Director provisions read-only GitHub access. **No OpenAI Code Worker/paid dispatch, generated TSX, PR or render is started** by this preview. Next: audited Director Start + bounded OpenAI provider usage accounting and isolated Github PR generation.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
