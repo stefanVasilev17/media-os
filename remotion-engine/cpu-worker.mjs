@@ -47,12 +47,15 @@ leaseClient = createCpuWorkerLeaseClient({
 });
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
+const FACTORY_SOURCE_SHA = String(process.env.RAILWAY_GIT_COMMIT_SHA || '').trim();
+const FACTORY_BUILD_PATH = path.join(ENGINE_ROOT, 'build-factory');
 
 if (!WORKER_KEY) {
   throw new Error('MEDIA_OS_RENDER_WORKER_KEY is required.');
 }
 
 let serveUrlPromise = null;
+let factoryServeUrlPromise = null;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -62,6 +65,7 @@ function headers(extra = {}) {
   return {
     'X-Media-OS-Worker-Key': WORKER_KEY,
     'X-Media-OS-Worker': WORKER_ID,
+    'X-Media-OS-Worker-Source-Sha': FACTORY_SOURCE_SHA,
     ...(Object.keys(workloadTokens.scopedHeaders()).length > 0
       ? {'X-Worker-Id': WORKER_ID, ...workloadTokens.scopedHeaders()}
       : {}),
@@ -83,6 +87,22 @@ async function claim() {
     method: 'POST',
     headers: headers(),
   });
+}
+
+let factoryCapabilityLast = 0;
+async function publishFactoryCapability() {
+  if (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA))return;
+  const now=Date.now();
+  if (now-factoryCapabilityLast<45_000)return;
+  const keys=JSON.parse(await fs.readFile(path.join(ENGINE_ROOT,'factory-scenes.json'),'utf8'));
+  if (!Array.isArray(keys.sceneKeys))throw Error('FACTORY_BUILD_SCENE_INVENTORY_MISSING');
+  await leaseClient.refresh();
+  await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/factory-capability`,{
+    method:'POST',
+    headers:headers({'Content-Type':'application/json'}),
+    body:JSON.stringify({sourceCommit:FACTORY_SOURCE_SHA,sceneKeys:keys.sceneKeys,buildChecked:true}),
+  });
+  factoryCapabilityLast=now;
 }
 
 async function progress(renderId, value) {
@@ -424,6 +444,16 @@ function getServeUrl() {
   return serveUrlPromise;
 }
 
+async function getFactoryServeUrl() {
+  if(!factoryServeUrlPromise){
+    factoryServeUrlPromise=(async()=>{
+      await fs.access(path.join(FACTORY_BUILD_PATH,'index.html'));
+      return FACTORY_BUILD_PATH;
+    })().catch(error=>{factoryServeUrlPromise=null;throw error;});
+  }
+  return factoryServeUrlPromise;
+}
+
 async function addShot10V6SoundDesign(job, outputPath, inputProps) {
   if (job.compositionId !== 'EP001-Shot10-SessionCreationShortV6'
     || inputProps.soundDesign !== 'SHOT10_V6_PREMIUM_SFX'
@@ -563,7 +593,8 @@ async function render(job) {
       await readEp002SelectedVoice(job, inputProps);
     }
 
-    const serveUrl = await getServeUrl();
+    const serveUrl = job.compositionId === 'AT-FACTORY-SHOT'
+      ? await getFactoryServeUrl() : await getServeUrl();
     const composition = await selectComposition({
       serveUrl,
       id: job.compositionId,
@@ -648,6 +679,8 @@ async function main() {
 
   while (true) {
     let job = null;
+    try {await publishFactoryCapability();}
+    catch(error){console.warn('Factory capability heartbeat unavailable:',error.message);}
     try {
       job = await claim();
       if (!job) {
