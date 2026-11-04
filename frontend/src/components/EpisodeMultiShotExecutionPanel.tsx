@@ -179,7 +179,7 @@ export function EpisodeMultiShotExecutionPanel({packageId,refreshVersion=0,
                 {assetPlanJobId===job.jobId?'Hide Asset/Code Plan':'Review Reusable Assets & All SHOT Plans'}
               </button>
               {assetPlanJobId===job.jobId&&
-                <EpisodeCodeWorkerPreflightPanel packageId={packageId} jobId={job.jobId}/>
+                <EpisodeCodeWorkerPreflightPanel packageId={packageId} jobId={job.jobId}/>}
               {job.state==='PREPARED_NO_DISPATCH'&&
                 <button type="button" disabled={working}
                   onClick={()=>void cancel(job)}>
