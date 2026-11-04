@@ -39,6 +39,7 @@ create table episode_factory_shot (
     duration_frames integer not null check (duration_frames between 1 and 108000),
     expected_code_path text not null,
     source_path_git_blob_sha char(40),
+    last_requested_render uuid references remotion_render(id),
     last_successful_render uuid references remotion_render(id),
     last_render_input_sha256 char(64),
     last_reviewed_at timestamptz,
