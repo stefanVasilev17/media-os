@@ -21,6 +21,7 @@ import java.util.UUID;
 @Service
 public class EpisodePackageVoiceStudioService {
     private static final int MAX_CHARS=5000;
+    private static final int MAX_WORKING_NARRATION=12000;
     private static final int MAX_TAKES_PER_SHOT=4;
 
     record Shot(UUID id,String shotKey) {}
@@ -59,9 +60,9 @@ public class EpisodePackageVoiceStudioService {
     }
 
     public static String validatedNarration(String narration) {
-        if(narration==null || narration.trim().length()<20 || narration.length()>MAX_CHARS)
+        if(narration==null || narration.trim().length()<20 || narration.length()>MAX_WORKING_NARRATION)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Narration must contain 20 to 5000 characters for a single voice SHOT.");
+                    "Narration must contain 20 to 12000 characters; the single-call TTS limit is 5000.");
         return narration.trim();
     }
 
