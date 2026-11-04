@@ -395,7 +395,7 @@ public class EpisodeCodexCloudHandoffService {
                 CREATE THE WHOLE EPISODE IN ONE CODE TASK:
                 - Write only NEW episode-local TSX files at EACH exact outputPath.
                   You may add NEW episode-local helper assets only inside %s.
-                  Do not write outside this directory except this task's documentation.
+                  Keep ALL code files inside the episode directory. Write test evidence and review notes only in the PR body.
                   Import protected existing primitives without editing them.
                 - Never edit EP001, EP002, Root.tsx, shared primitives, asset registry,
                   package configs, lockfiles, design tokens, historical narration or Takes.
