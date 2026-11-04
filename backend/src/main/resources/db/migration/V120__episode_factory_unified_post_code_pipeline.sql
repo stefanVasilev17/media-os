@@ -100,3 +100,22 @@ create table episode_factory_worker_capability (
 );
 create index episode_factory_worker_recent
   on episode_factory_worker_capability(last_heartbeat_at desc);
+
+create table episode_factory_cpu_authorization (
+    id uuid primary key,
+    request_id uuid not null unique,
+    run_id uuid not null references episode_factory_production_run(id),
+    kind varchar(12) not null check(kind in ('SHOTS','MASTER','SHORTS')),
+    original_manifest_sha256 char(64) not null,
+    verified_source_digest char(64) not null,
+    worker_source_commit char(40) not null,
+    maximum_frames integer not null check(maximum_frames between 1 and 150000),
+    requested_frames integer not null check(requested_frames between 1 and maximum_frames),
+    status varchar(20) not null default 'CONSUMED_QUEUED'
+      check(status in ('CONSUMED_QUEUED','REVOKED')),
+    director_issuer text not null,
+    director_subject text not null,
+    preflight_audit_id uuid not null,
+    created_at timestamptz not null default now(),
+    unique(run_id,kind)
+);
