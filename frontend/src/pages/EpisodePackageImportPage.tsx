@@ -3,6 +3,7 @@ import {ArrowLeft,FileJson2,Upload,RotateCcw} from 'lucide-react';
 import '../styles/episodePreparationQuiet.css';
 import '../styles/episodePackageImport.css';
 import {EpisodePackageVoiceStudioPanel} from '../components/EpisodePackageVoiceStudioPanel';
+import {EpisodeVoiceReadinessPanel} from '../components/EpisodeVoiceReadinessPanel';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -22,6 +23,7 @@ export function EpisodePackageImportPage(){
   const [saved,setSaved]=useState<Entry[]>([]);
   const [details,setDetails]=useState<Imported|null>(null);
   const [activeVoiceShot,setActiveVoiceShot]=useState<string|null>(null);
+  const [readinessRefresh,setReadinessRefresh]=useState(0);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
@@ -129,6 +131,8 @@ export function EpisodePackageImportPage(){
         {' '}SHOTs have a Director-selected current-revision Take.
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
+      <EpisodeVoiceReadinessPanel packageId={details.packageId}
+        refreshVersion={readinessRefresh}/>
       {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
         <p><strong>Original approved narration:</strong> {shot.narration}</p>
@@ -141,7 +145,8 @@ export function EpisodePackageImportPage(){
         {activeVoiceShot===shot.shotKey&&
           <EpisodePackageVoiceStudioPanel packageId={details.packageId}
             shotKey={shot.shotKey}
-            onStatusChanged={()=>{void show(details.packageId,true);}}/>}
+            onStatusChanged={()=>{void show(details.packageId,true);
+              setReadinessRefresh(v=>v+1);}}/>}
         <details className="episode-package-visual-source"><summary>Original visual storyline</summary>
           <pre>{JSON.stringify(shot.visualStory,null,2)}</pre>
         </details>
