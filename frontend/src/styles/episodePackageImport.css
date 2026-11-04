@@ -88,3 +88,27 @@
 .episode-ai-auth-entry button{display:flex;align-items:center;gap:7px;background:#332c31;color:#f2dcde;border:1px solid #916774;border-radius:7px;padding:9px 12px;cursor:pointer;flex-shrink:0}
 .episode-ai-auth-entry button:disabled{opacity:.5}
 @media(max-width:680px){.episode-ai-auth{padding:14px}.episode-ai-auth-header{flex-direction:column}.episode-ai-auth-values{grid-template-columns:1fr}.episode-ai-auth-entry{flex-direction:column}}
+
+.episode-execution-foundation{margin:23px 0 29px;padding:20px;background:#102537;border:1px solid #4a7089;border-radius:12px;color:#dbeef9}
+.episode-execution-foundation-heading{display:flex;align-items:start;justify-content:space-between;gap:15px}
+.episode-execution-foundation-heading h3{display:flex;align-items:center;gap:10px;font-size:19px;color:#edf8ff;margin:0 0 8px}
+.episode-execution-foundation-heading p{font-size:14px;line-height:1.6;color:#bbd5e4;margin:0}
+.episode-execution-foundation-heading button{border:1px solid #577e95;border-radius:7px;padding:9px 12px;color:#ddedff;background:#0c2130;display:flex;align-items:center;gap:7px;cursor:pointer}
+.episode-execution-foundation-heading button:disabled{opacity:.4;cursor:not-allowed}
+.episode-execution-foundation-note{margin:16px 0;display:flex;gap:12px;align-items:start;border-radius:8px;border:1px solid #80704b;background:#2b2f2a;padding:13px 15px;font-size:13px;line-height:1.7;color:#f2e7cc}
+.episode-execution-foundation-note svg{flex-shrink:0}
+.episode-execution-foundation-desc{color:#b4d5e3;font-size:13px;line-height:1.65}
+.episode-execution-foundation-jobs{border-top:1px solid #3f5f72;margin-top:23px;padding-top:15px}
+.episode-execution-foundation-jobs h4{margin:0 0 13px;font-size:16px}
+.episode-execution-foundation-job{margin:10px 0;border-radius:8px;border:1px solid #46657b;background:#0b2030}
+.episode-execution-foundation-job>summary{padding:13px;display:flex;align-items:start;justify-content:space-between;cursor:pointer;gap:10px}
+.episode-execution-foundation-job>summary>span:first-child{display:flex;flex-direction:column;gap:7px}
+.episode-execution-foundation-job>summary strong{font-size:14px;color:#e8f8ff}
+.episode-execution-foundation-job>summary small{font-size:12px;line-height:1.6;color:#b5d3df}
+.episode-execution-foundation-job>summary>span:last-child{font-size:12px;color:#a8cfdf;flex-shrink:0}
+.episode-execution-foundation-job-detail{padding:5px 16px 15px;border-top:1px solid #31516a;font-size:13px;line-height:1.6;color:#c6e0ef}
+.episode-execution-foundation-job-detail p{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.episode-execution-foundation-job-detail>div{border:1px solid #345269;border-radius:6px;background:#091c2a;margin:7px 0;padding:9px}
+.episode-execution-foundation-job-detail button{display:flex;align-items:center;gap:8px;border:1px solid #965f69;border-radius:7px;background:#39252f;color:#ffe2e9;padding:10px 12px;margin-top:13px;cursor:pointer}
+.episode-execution-foundation-job-detail button:disabled{opacity:.4}
+@media(max-width:680px){.episode-execution-foundation{padding:13px}.episode-execution-foundation-heading{flex-direction:column}.episode-execution-foundation-job>summary{flex-direction:column}}

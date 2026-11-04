@@ -1,5 +1,6 @@
-Explicit MediaOS Episode AI Production Authorization v1 promotion · 2026-11-04.
-Existing production backend only: Flyway V116 immutable Director approval/budget ledger, voice-readiness recheck, idempotent authorization and revocation, frontend panel.
-Run Java21 full Maven tests and frontend TypeScript/Vite build. Verify Flyway V116 applies and backend health before accepting code.
-This version records budget approvals but does NOT connect any OpenAI agent or actual API usage meter. Server canStartAgent=false; no provider requests, voice generation, video renders, GitHub Actions, Remotion worker deploy or persistent QA environment.
-Existing EP001/EP002 locked source/visuals untouched.
+Explicit MediaOS Multi-SHOT Execution Foundation v1 checked production promotion · 2026-11-04.
+Existing backend service only: Flyway V117 immutable whole-episode job/task snapshots, atomic Director grant consumption,
+Director-only prepare/list/cancel API, internal fail-closed token/USD reservations and reconciliations, zero-spend UI.
+Run Java21 Maven unit tests and frontend TypeScript/Vite; verify V117 migration and healthy Spring Boot.
+provider-dispatch-enabled=false server default; no external OpenAI/TTS, GitHub agent writes, Remotion renders or paid CPU.
+No GitHub Actions or permanent QA infrastructure, no EP001/EP002 original or Director-LOCKED SHOT01 edits.

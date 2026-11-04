@@ -24,6 +24,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **AI Production Authorization v1 (2026-11-04):** [Technical release handoff](docs/engineering/MEDIAOS_EPISODE_AI_PRODUCTION_AUTHORIZATION_V1_20261104.md). After a full imported EP003+ voice-ready check the Director can record an audited episode-level OpenAI budget with USD/token/attempt caps, expiration and revocation. **This is a budget authorization record only**: the future Multi-SHOT Executor must implement one-use consumption and hard measured provider usage stops. The present UI never dispatches OpenAI, generates audio or renders scenes from that button.
 
+**Multi-SHOT Execution Foundation v1 (2026-11-04):** [Verified V117 implementation and handoff](docs/engineering/MEDIAOS_MULTI_SHOT_EXECUTION_FOUNDATION_V1_20261104.md). New EP003+ imported packages support Director-confirmed one-use budget consumption into a single job with every SHOT's approved voice, actual cue timeline and visual source frozen. Existing frontend now shows all batch tasks and a separate cancel action. **No OpenAI agents are launched, no source files generated, no provider charges are incurred by preparing this job.** A future checked agent worker must actually connect GitHub proposal generation, real USD/token metering and another separate execution gate before paid dispatch.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
