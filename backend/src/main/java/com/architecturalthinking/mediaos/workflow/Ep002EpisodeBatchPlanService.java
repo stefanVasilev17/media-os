@@ -268,7 +268,6 @@ public class Ep002EpisodeBatchPlanService {
         DirectorIdentity.requireDirector();
         return jdbc.sql("""
                 select id,request_id,status,input_fingerprint,manifest::text,created_at::text,
-                       director_issuer,director_subject,
                        director_issuer,director_subject
                 from ep002_episode_batch_plan where episode_key='EP002'
                 order by created_at desc,id desc limit 1
@@ -279,7 +278,8 @@ public class Ep002EpisodeBatchPlanService {
 
     private StoredPlan find(UUID requestId) {
         return jdbc.sql("""
-                select id,request_id,status,input_fingerprint,manifest::text,created_at::text
+                select id,request_id,status,input_fingerprint,manifest::text,created_at::text,
+                       director_issuer,director_subject
                 from ep002_episode_batch_plan where request_id=:request
                 """).param("request",requestId)
                 .query((rs,n)->mapStored(rs)).optional().orElse(null);
