@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {validateFactorySource} from './validate-factory-scenes.mjs';
 
-const episode='/tmp/remotion-engine/src/episodes/ep003';
+const episode=path.join(path.dirname(fileURLToPath(import.meta.url)),'src/episodes/ep003');
 const source=path.join(episode,'Shot01GeneratedScene.tsx');
 const valid=`import React from 'react';
 import {AbsoluteFill,useCurrentFrame} from 'remotion';
