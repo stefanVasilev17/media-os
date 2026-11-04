@@ -34,9 +34,13 @@ public class EpisodeFactoryPostCodeService {
                                 String expectedManifestSha256,Boolean confirmProductionIntake) {}
     public record FeedbackRequest(UUID requestId,String shotKey,String changeArea,
                                   String feedback,Boolean confirmScopedRevision) {}
+    public record RevisionRequest(UUID requestId,String pullRequestUrl,
+                                  String expectedSourceDigest,Boolean confirmManualPrLink) {}
+    record NewRevision(UUID id,int number,String state) {}
     public record ShotState(String shotKey,int shotIndex,int durationFrames,
                             String selectedTakeId,String expectedCodePath,
-                            boolean rendered,boolean directorApproved,String renderId) {}
+                            boolean rendered,boolean directorApproved,String renderId,
+                            String sceneInputSha256,String sourceBlobSha) {}
     public record OutputState(String kind,int ordinal,int startFrame,int endFrame,
                               String status,String renderId) {}
     public record Feedback(String feedbackId,String shotKey,String changeArea,
@@ -226,6 +230,7 @@ public class EpisodeFactoryPostCodeService {
                        s.selected_take_id,s.expected_code_path,
                        s.director_approved,s.last_successful_render,
                        s.last_render_input_sha256,
+                       s.source_code_dependency_sha256,s.source_path_git_blob_sha,
                        r.status as render_status
                   from episode_factory_shot s
                   left join remotion_render r on r.id=s.last_successful_render
@@ -235,9 +240,13 @@ public class EpisodeFactoryPostCodeService {
                 rs.getInt("duration_frames"),rs.getString("selected_take_id"),
                 rs.getString("expected_code_path"),
                 "SUCCEEDED".equals(rs.getString("render_status")) &&
-                    java.util.Objects.equals(h.codeSha(),rs.getString("last_render_input_sha256")),
+                    rs.getString("source_code_dependency_sha256")!=null &&
+                    java.util.Objects.equals(rs.getString("source_code_dependency_sha256"),
+                            rs.getString("last_render_input_sha256")),
                 rs.getBoolean("director_approved"),
-                rs.getString("last_successful_render"))).list();
+                rs.getString("last_successful_render"),
+                rs.getString("source_code_dependency_sha256"),
+                rs.getString("source_path_git_blob_sha"))).list();
         if(shots.isEmpty()||shots.size()!=cloudState.shotCount())
             throw conflict("Production run does not contain all approved SHOTs.");
         int totalFrames=shots.stream().mapToInt(ShotState::durationFrames).sum();
@@ -302,21 +311,97 @@ public class EpisodeFactoryPostCodeService {
         if(handoff.pullRequestNumber()==null)
             throw conflict("No GitHub PR is linked to this exact Codex Cloud task.");
         var manifest=loadManifest(packageId,state.handoffId(),actor);
-        var evidence=github.verify(state.episode(),handoff.pullRequestNumber(),manifest.shots());
-        if(evidence.sourceScopeVerified()){
+        NewRevision revision=jdbc.sql("""
+                select id,pull_request_number,state from episode_factory_code_revision
+                 where run_id=:run order by created_at desc,id desc limit 1
+                """).param("run",runId)
+                .query((rs,n)->new NewRevision(rs.getObject("id",UUID.class),
+                        rs.getInt("pull_request_number"),rs.getString("state")))
+                .optional().orElse(null);
+        EpisodeFactoryGitCodeAuditService.GitAudit evidence;
+        if(revision!=null && "PR_LINKED_UNVERIFIED".equals(revision.state())){
+            var changes=jdbc.sql("""
+                    select shot_key from episode_factory_director_feedback
+                     where run_id=:run and state='OPEN_FOR_CODEX'
+                    """).param("run",runId).query(String.class).list();
+            java.util.Set<String> keys=new java.util.HashSet<>();
+            if(changes.contains(null)){
+                manifest.shots().forEach(shot->keys.add(shot.shotKey()));
+            }else keys.addAll(changes);
+            evidence=github.verifyRevision(state.episode(),revision.number(),
+                    manifest.shots(),keys);
+        }else if(revision!=null && "MERGED_SOURCE_SCOPED".equals(revision.state())){
+            return new SourceAuditResult(runId.toString(),"REVISION_ALREADY_VERIFIED",
+                    null,get(packageId,runId));
+        }else{
+            evidence=github.verify(state.episode(),handoff.pullRequestNumber(),
+                    manifest.shots());
             if(state.gitCommit()!=null && !state.gitCommit().equals(evidence.mergedCommit()))
-                throw conflict("Previously verified source commit cannot be silently replaced.");
+                throw conflict("A new commit requires an explicit scoped Director feedback PR revision.");
+        }
+        if(evidence.sourceScopeVerified()){
+            boolean changed=!java.util.Objects.equals(state.gitCommit(),evidence.mergedCommit());
+            if(changed){
+                for(var shot:manifest.shots()) {
+                    String blob=evidence.allShotBlobs().get(shot.shotKey());
+                    if(blob==null)throw conflict("Merged Git evidence is missing one SHOT.");
+                    String fingerprint=sceneInputHash(blob,shot.approvedTakeId(),
+                            shot.durationInFrames(),manifest.assetCatalogSha256());
+                    jdbc.sql("""
+                            update episode_factory_shot
+                               set source_path_git_blob_sha=:blob,
+                                   source_code_dependency_sha256=:fingerprint,
+                                   last_successful_render=case when
+                                       source_code_dependency_sha256=:fingerprint
+                                       and :helpersChanged=false
+                                       then last_successful_render else null end,
+                                   last_requested_render=case when
+                                       source_code_dependency_sha256=:fingerprint
+                                       and :helpersChanged=false
+                                       then last_requested_render else null end,
+                                   last_render_input_sha256=case when
+                                       source_code_dependency_sha256=:fingerprint
+                                       and :helpersChanged=false
+                                       then last_render_input_sha256 else null end,
+                                   director_approved=false
+                             where run_id=:run and shot_key=:shot
+                            """).param("blob",blob).param("fingerprint",fingerprint)
+                            .param("helpersChanged",evidence.helperChanged())
+                            .param("run",runId).param("shot",shot.shotKey()).update();
+                }
+                jdbc.sql("""
+                        update episode_factory_output_plan
+                           set render_id=null,review_state='PLANNED_NOT_RENDERED',approved_at=null
+                         where run_id=:run
+                        """).param("run",runId).update();
+            }
             jdbc.sql("""
                     update episode_factory_production_run
                        set state='PR_SOURCE_SCOPED_BUILD_PENDING',verified_pr_number=:number,
                            verified_pr_commit=:commit,verified_git_main_head=:head,
                            verified_source_digest=:digest,code_verified_at=now(),
+                           render_approval_at=null,rendered_source_digest=null,
                            updated_at=now()
                      where id=:run
                     """).param("number",evidence.prNumber())
                     .param("commit",evidence.mergedCommit())
                     .param("head",evidence.mainHead())
                     .param("digest",evidence.digest()).param("run",runId).update();
+            if(revision!=null && "PR_LINKED_UNVERIFIED".equals(revision.state())){
+                jdbc.sql("""
+                        update episode_factory_code_revision
+                           set state='MERGED_SOURCE_SCOPED',merged_commit=:commit,
+                               verified_source_digest=:digest,verified_at=now()
+                         where id=:id
+                        """).param("id",revision.id())
+                        .param("commit",evidence.mergedCommit())
+                        .param("digest",evidence.digest()).update();
+                jdbc.sql("""
+                        update episode_factory_director_feedback
+                           set state='RESOLVED_BY_NEW_RELEASE',resolved_at=now()
+                         where run_id=:run and state='OPEN_FOR_CODEX'
+                        """).param("run",runId).update();
+            }
         }
         return new SourceAuditResult(runId.toString(),evidence.status(),evidence,
                 get(packageId,runId));
@@ -367,6 +452,65 @@ public class EpisodeFactoryPostCodeService {
                    set state='DIRECTOR_FEEDBACK_OPEN',updated_at=now()
                  where id=:id
                 """).param("id",runId).update();
+        return get(packageId,runId);
+    }
+
+    static String sceneInputHash(String blob,String take,int frames,String catalog){
+        if(blob==null||!blob.matches("[a-f0-9]{40}")||take==null
+                ||frames<1||catalog==null||!catalog.matches("[a-f0-9]{64}"))
+            throw conflict("Invalid per-SHOT source/voice dependency evidence.");
+        return EpisodePackageValidator.sha256("factory-shot-input-v1|"+blob+
+                "|"+take+"|"+frames+"|"+catalog);
+    }
+
+    @Transactional(isolation=Isolation.REPEATABLE_READ)
+    public Run linkFeedbackPr(UUID packageId,UUID runId,RevisionRequest input,UUID auditId) {
+        var actor=DirectorIdentity.requireDirector();
+        var run=get(packageId,runId);
+        if(input==null||input.requestId()==null
+                ||!Boolean.TRUE.equals(input.confirmManualPrLink())
+                ||!java.util.Objects.equals(input.expectedSourceDigest(),run.sourceScopeSha256())
+                ||auditId==null)
+            throw bad("Explicit scoped Director PR link and current verified source digest required.");
+        if(run.openFeedback().isEmpty()||run.sourceScopeSha256()==null
+                ||!run.currentVoiceMatches())
+            throw conflict("Feedback PR requires outstanding revision notes and current voice/source.");
+        int number=EpisodeCodexCloudHandoffService.verifiedPullRequestNumber(
+                input.pullRequestUrl());
+        var prev=jdbc.sql("""
+                select id,run_id,pull_request_number,expected_previous_source_digest
+                  from episode_factory_code_revision
+                 where request_id=:request and director_issuer=:issuer and director_subject=:subject
+                """).param("request",input.requestId())
+                .param("issuer",actor.issuer()).param("subject",actor.subject())
+                .query((rs,n)->new String[]{rs.getString("id"),
+                        rs.getString("run_id"),rs.getString("pull_request_number"),
+                        rs.getString("expected_previous_source_digest")})
+                .optional().orElse(null);
+        if(prev!=null) {
+            if(!prev[1].equals(runId.toString())||!prev[2].equals(String.valueOf(number))
+                    ||!prev[3].equals(run.sourceScopeSha256()))
+                throw conflict("PR revision request replay differs from the first confirmed input.");
+            return run;
+        }
+        int active=jdbc.sql("""
+                select count(*) from episode_factory_code_revision
+                 where run_id=:run and state='PR_LINKED_UNVERIFIED'
+                """).param("run",runId).query(Integer.class).single();
+        if(active!=0)throw conflict("A previous revision PR remains unverified.");
+        jdbc.sql("""
+                insert into episode_factory_code_revision(
+                    id,request_id,run_id,pull_request_number,pull_request_url,
+                    expected_previous_source_digest,expected_manifest_sha256,
+                    director_issuer,director_subject,preflight_audit_id
+                ) values(:id,:request,:run,:number,:url,:prior,:manifest,:issuer,:subject,:audit)
+                """).param("id",UUID.randomUUID()).param("request",input.requestId())
+                .param("run",runId).param("number",number)
+                .param("url","https://github.com/stefanVasilev17/media-os/pull/"+number)
+                .param("prior",run.sourceScopeSha256())
+                .param("manifest",run.sourceManifestSha256())
+                .param("issuer",actor.issuer()).param("subject",actor.subject())
+                .param("audit",auditId).update();
         return get(packageId,runId);
     }
 
