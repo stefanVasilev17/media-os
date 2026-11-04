@@ -24,6 +24,10 @@ create table episode_multi_shot_execution_job (
     check ((state = 'CANCELLED') = (cancelled_at is not null))
 );
 
+create unique index episode_multi_shot_one_prepared_job_per_package
+    on episode_multi_shot_execution_job(package_id)
+    where state = 'PREPARED_NO_DISPATCH';
+
 create index episode_multi_shot_execution_job_package
     on episode_multi_shot_execution_job(package_id,created_at desc,id desc);
 
