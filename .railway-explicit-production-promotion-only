@@ -1,4 +1,4 @@
-Explicitly approved EP002 SHOT01 v3 visual polish release · 2026-11-04.
-Preserve selected Take 2, voice cue timings, approved EP001 assets and existing MediaOS backend.
-Build and deploy existing remotion worker only with Node tests, TypeScript baseline preflight and Remotion bundle.
-No ElevenLabs calls and no automatic preview MP4. Director requests one fresh preview after successful deployment.
+Explicit SHOT01 TimeRail safe-area hotfix · 2026-11-04.
+Move TimeRail away from enlarged EP002 phone; preserve v3 readable Phone, selected Take 2 and five exact cues.
+Run existing Node tests + new geometry regression, TypeScript preflight and Remotion bundle in existing Railway worker.
+No new paid voice generation, render, production backend rebuild or QA projects.

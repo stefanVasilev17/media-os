@@ -37,3 +37,14 @@ test('SHOT01 phone shows readable credential fields and prominent working indica
   assert.match(phone,/Logging in \.\.\./);
   assert.doesNotMatch(phone,/>Waiting</);
 });
+
+test('SHOT01 waiting time rail stays right of enlarged phone and below health probes',()=>{
+  const layout=scene.match(/const TIME_RAIL_SAFE_AREA = \{left: (\d+), top: (\d+), width: (\d+), height: (\d+)\} as const;/);
+  assert.ok(layout,'TimeRail must declare an explicit bounded safe area');
+  const [,left,top,width,height]=layout.map(Number);
+  assert.ok(left>=1000,'Rail must stay to the right of the phone');
+  assert.ok(top>=875,'Rail must remain below the health-probe panel');
+  assert.ok(left+width<=1600,'Rail must stay inside the 1920px composition');
+  assert.ok(top+height<=1000,'Rail must stay above the lower frame edge');
+  assert.match(scene,/position: 'absolute', \.\.\.TIME_RAIL_SAFE_AREA/);
+});
