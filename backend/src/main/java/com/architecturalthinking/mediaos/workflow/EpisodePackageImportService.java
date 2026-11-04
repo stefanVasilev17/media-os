@@ -139,6 +139,7 @@ public class EpisodePackageImportService {
         int index=0;
         for(JsonNode shot:validated.document().path("shots")) {
             index++;
+            UUID shotId=UUID.randomUUID();
             jdbc.sql("""
                     insert into episode_package_shot(
                         id,package_id,shot_key,shot_index,title,
@@ -149,7 +150,7 @@ public class EpisodePackageImportService {
                         cast(:visual as jsonb),:seconds,'PENDING_VOICE'
                     )
                     """)
-                    .param("id",UUID.randomUUID())
+                    .param("id",shotId)
                     .param("package",id)
                     .param("key",shot.path("shotKey").asText())
                     .param("index",index)
@@ -158,6 +159,17 @@ public class EpisodePackageImportService {
                     .param("direction",shot.path("voiceDirection").asText())
                     .param("visual",canonicalJson(shot))
                     .param("seconds",shot.path("editorialDurationSeconds").asInt())
+                    .update();
+
+            jdbc.sql("""
+                    insert into episode_package_shot_revision(
+                        id,shot_id,revision,narration,voice_direction,actor_issuer,actor_subject
+                    ) values (:id,:shot,1,:narration,:direction,:issuer,:subject)
+                    """)
+                    .param("id",UUID.randomUUID()).param("shot",shotId)
+                    .param("narration",shot.path("narration").asText())
+                    .param("direction",shot.path("voiceDirection").asText())
+                    .param("issuer",director.issuer()).param("subject",director.subject())
                     .update();
         }
         return load(id,director);
@@ -192,11 +204,26 @@ public class EpisodePackageImportService {
                         "Episode package not found for this Director."));
 
         List<ImportedShot> shots=jdbc.sql("""
-                select shot_key,shot_index,title,editorial_seconds,
-                       original_narration,original_voice_direction,
-                       original_visual_story::text,voice_task_status
-                  from episode_package_shot where package_id=:package
-                 order by shot_index
+                select s.shot_key,s.shot_index,s.title,s.editorial_seconds,
+                       s.original_narration,s.original_voice_direction,
+                       s.original_visual_story::text,
+                       case
+                         when exists (
+                           select 1 from episode_package_voice_choice c
+                           where c.shot_id=s.id and c.revision=(
+                             select max(r.revision) from episode_package_shot_revision r
+                             where r.shot_id=s.id)
+                         ) then 'VOICE_APPROVED_TIMING_REVIEW_REQUIRED'
+                         when exists (
+                           select 1 from episode_package_voice_take t
+                           where t.shot_id=s.id and t.revision=(
+                             select max(r.revision) from episode_package_shot_revision r
+                             where r.shot_id=s.id)
+                         ) then 'TAKES_NEED_DIRECTOR_APPROVAL'
+                         else 'PENDING_VOICE'
+                       end as voice_task_status
+                  from episode_package_shot s where s.package_id=:package
+                 order by s.shot_index
                 """).param("package",id).query((rs,n)->new ImportedShot(
                         rs.getString("shot_key"),rs.getInt("shot_index"),
                         rs.getString("title"),rs.getInt("editorial_seconds"),

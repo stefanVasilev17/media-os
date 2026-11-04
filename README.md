@@ -18,6 +18,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Episode Package Importer v1 (2026-11-04):** [Deployment handoff](docs/engineering/MEDIAOS_EPISODE_PACKAGE_IMPORTER_V1_HANDOFF_20261104.md) and [JSON schema](docs/contracts/mediaos-episode-package-v1.schema.json). Use **Episodes → Import Episode Package** for new EP003+ approved source files, validated and saved in one upload with all SHOTs marked `PENDING_VOICE`. This is **source-only import**, not a native Voice Studio for these imported tasks. The voice integration, all-shots readiness and separately authorized OpenAI API Agent Executor are still pending. No AI/voice/render API call is made during import.
 
+**Imported Episode Voice Studio v1 (2026-11-04):** [Implementation and restrictions](docs/engineering/MEDIAOS_EPISODE_PACKAGE_VOICE_STUDIO_V1_20261104.md). The Director can open an imported SHOT, Edit → Save working narration, review/play historical Takes and approve a selected current-revision Take. ElevenLabs Generate is independently paid-gated and **disabled by default** until a separate Director server enablement. Full-episode voice readiness and OpenAI API agent authorization remain separate upcoming milestones. Imported original source stays immutable.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
