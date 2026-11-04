@@ -1,0 +1,48 @@
+# MediaOS — Batch-first Episode Factory execution plan (2026-11-04)
+
+**Director instruction:** Do not require manual generation and approval of every SHOT before creating the next. Prepare **one entire episode** and allow AI agents to program all required SHOTs in a managed batch, preserving separate SHOT versions and renders.
+**Roadmap governance:** This document is a **batch-first implementation sequencing supplement** to the existing **Director-LOCKED Roadmap v1**. The ten formal outcome gates in `MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md` remain authoritative. Do not silently rewrite the Director-approved roadmap or claim completion of missing gates.
+**Production:** MediaOS Java 21 + PostgreSQL/Flyway + React frontend + GitHub-managed Remotion + existing Railway backend and CPU worker. **GitHub Actions remain disabled.**
+
+## Why the workflow changes
+
+Instead of Director ordering 11 independent “generate SHOT” operations, create one **Episode Production Plan** from source-bound Script, HEAR → SEE, asset inventory, selected voice, current render status and locks. The agents plan and build only missing scene code in bounded workgroups, request one scoped Director approval for a checked production wave, and send affected SHOTs to the existing render queue after explicit CPU-cost approval. The final assembly reuses unchanged SHOT renders. The worker currently runs with `renderConcurrency=1`; the batch scheduler should *queue* many independent jobs without pretending they render simultaneously.
+
+The **unit of creative authorization** becomes an episode/wave; the **unit of code safety, render lineage, revision and cache invalidation** remains an individual SHOT and its shared-asset or transition dependencies.
+
+## Ten product delivery packages and acceptance gates
+
+1. **Episode Batch Planner** — one read-only full EP002 plan (11 SHOTs / 59 visual beats / 810s editorial), source-tied fingerprints, current voice selection, preserved SHOT01 and a single `Prepare entire episode` action storing an immutable manifest; no AI/render execution. **IMPLEMENTATION IN THIS PR**.
+2. **Reusable Asset Registry** — identify verified canonical EP001/EP002 Remotion primitives, compatible APIs, visual identity tokens, geometry and dependencies; a missing-asset list per shot. No fake “asset reused” marks if its code/behavior is unverified.
+3. **Bounded Multi-SHOT Code Executor** — consume one prepared episode manifest and propose scene code for SHOT02–SHOT11 in repeatable chunks; keep SHOT01 read-only; use typed scene specs and repository path allowlists; do not run arbitrary feedback as a shell command.
+4. **Checked GitHub PR & Agent QA Gate** — agent creates a reviewed branch/PR; Java tests, TypeScript/Remotion build and visual contract checks run in a controlled runner **without GitHub Actions**. Director approves code promotion; no silent production deploys.
+5. **Batch Voice and HEAR → SEE** — show which SHOTs lack approved measured voice takes, reuse existing ElevenLabs timestamps where available, request one explicit scoped spend consent for a *bounded* batch if needed; never auto-replay UNCERTAIN calls or claim exact word timings without evidence.
+6. **Versioned Incremental Render Queue** — enqueue approved changed SHOTs and affected transitions, never expensive full rerenders for unrelated scenes; bounded CPU concurrency, idempotency, cancellation and retry safety; cost confirmation before dispatch.
+7. **Full Episode Remotion Assembly** — automatically stitch approved SHOT outputs, voice, transitions, title/intro and levels into a review master using measured durations and gap/overlap validation. No manual assembly.
+8. **Episode-level Director Revision Loop** — select several preview moments, record grouped feedback once, produce scoped code revisions and selective new render previews, preserve historical versions and explicit Director approval/rollback. Current Stage 4 single-SHOT feedback inbox is a starting component, not this full system.
+9. **Full Film QA and at least three Shorts** — audio sync/levels, frame/fps/codec, transition verification, design consistency, technical reports, automated candidate reels and Director approval (creative QA remains human).
+10. **Universal Episode Factory** — EP003 onward uses episode-agnostic API/contracts, shared asset catalog, episode jobs, cost dashboards, monitoring, retries, data retention and reproducible exports; no per-episode infrastructure or custom controller required.
+
+## Immediate implemented slice — EP002 Batch Planner v1
+
+- Read **approved** `episode-production/ep002-locked-script-v4.json` and `ep002-approved-visual-source.json`. Verify exactly 11 ordered SHOT keys, 59 beats, the immutable Visual Git Blob SHA, approved original script and editorial 810s. Do not rewrite archived source files.
+- Read latest `ep002_creative_script_revision`, preferred `ep002_creative_voice_choice`/take metadata and verified successful SHOT01 render lineage **without calling ffprobe, TTS or AI**. Non-SHOT01 measured timestamps are not magically available just because voice audio is selected; report explicit sync needs.
+- Mark SHOT01 `PRESERVE_DIRECTOR_LOCKED_SCENE` (pre-existing Director approval); remaining ten `BATCH_SCENE_CODE_CANDIDATE`. No code is generated by these markers. No false claim that remaining compositions are implemented.
+- Compute deterministic fingerprint of all 11 current scripts/voice selections and source visual identity; reject stale submission.
+- `GET /api/v1/creative/episodes/EP002/batch-plan` generates a read-only episode snapshot; `GET .../latest` returns latest saved batch; `POST .../prepare` takes explicit Director confirmation, client request UUID and expected fingerprint; stores a single immutable versioned plan into additive PostgreSQL V113 `ep002_episode_batch_plan` with authenticated Director identity.
+- UUID replays are idempotent and accepted only for the same fingerprint and verified actor. Future batches create new plans instead of overwriting old manifests.
+- EP002 library UI shows all 11 SHOTs and five future execution waves on **one screen** above individual creative editors; one `Prepare all 11 SHOTs` action stores the plan and clearly states that no AI/render/TTS/deploy occurs.
+- **This is not a fully working multi-SHOT executor yet.** It prepares the durable, auditable input for the next scoped agent job system.
+
+## Technical safety and acceptance
+
+- No modifications to `remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx` or `Shot01ReadablePhone.tsx`, EP001 approved assets, EP002 Script v4.0, Visual Pass v1.0 or the earlier Stage 4 feedback inbox.
+- No new voice, forced alignment, preview render, GitHub Actions, persistent QA project or open-ended generation budget. Plan creation uses existing PostgreSQL only.
+- Compile backend Java tests + frontend TypeScript/Vite in controlled Railway Dockerfile backend; verify Flyway V113 and healthy one-replica production backend. Record any skipped PostgreSQL-dependent integration tests as skipped.
+- The first next implementation after this slice is **a persistent task dispatcher for the 10 candidate scenes, grouped by assets/dependencies** with one Director execution authorization, versioned SHA pinning, agent path scopes, finite concurrency, GitHub PR review and recoverable per-SHOT statuses. Never interpret a prepared plan as permission to execute an agent.
+
+## Current blockers and decisions preserved
+
+- Final selected narrator accent parity with EP001 is still an audio A/B issue; not part of this batch planning release.
+- Approved EP002 HEAR → SEE v1.0 is a separately reconstructed visual pass and editorial timing, not proof of true speech timestamps for SHOT02–SHOT11.
+- Working Render Worker is SHOT01-oriented. Additional scene composition registration, voice alignment and bounded orchestration **remain to be built**. Do not claim episode-wide generation or master assembly is ready in this PR.
