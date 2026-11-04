@@ -6,3 +6,5 @@ ALL factory render jobs remain not queued until exact Director SHA-bound CPU aut
 NO OpenAI/ElevenLabs API, NO GitHub Actions, NO automatic Remotion rendering, NO publishing.
 EP001/EP002 Director-LOCKED source, protected Remotion Root and production recovery bucket unchanged.
 Real Codex Cloud account/scene generation still deferred until Director setup.
+
+Retry #2: reduce Maven compiler/test JVM heap after first build stopped during testCompile. No renderer CPU tasks or paid AI calls.
