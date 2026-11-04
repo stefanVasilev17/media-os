@@ -52,7 +52,8 @@ public class Ep002EpisodeBatchPlanService {
     ) {}
 
     public record StoredPlan(UUID planId, UUID requestId, String status,
-                             String inputFingerprint, Plan manifest, String createdAt) {}
+                             String inputFingerprint, Plan manifest, String createdAt,
+                             String directorIssuer, String directorSubject) {}
 
     public Ep002EpisodeBatchPlanService(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
@@ -255,17 +256,20 @@ public class Ep002EpisodeBatchPlanService {
 
     static StoredPlan matchedReplay(StoredPlan stored,String expectedFingerprint,
                                     DirectorIdentity.Actor actor) {
-        // The caller must verify the trusted persisted Director identity before using this method.
-        if (!stored.inputFingerprint().equals(expectedFingerprint))
+        if (!stored.inputFingerprint().equals(expectedFingerprint)
+                || !stored.directorIssuer().equals(actor.issuer())
+                || !stored.directorSubject().equals(actor.subject()))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "This batch request ID belongs to a different plan.");
+                    "This batch request ID belongs to another plan or Director.");
         return stored;
     }
 
     public Map<String,Object> latest() {
         DirectorIdentity.requireDirector();
         return jdbc.sql("""
-                select id,request_id,status,input_fingerprint,manifest::text,created_at::text
+                select id,request_id,status,input_fingerprint,manifest::text,created_at::text,
+                       director_issuer,director_subject,
+                       director_issuer,director_subject
                 from ep002_episode_batch_plan where episode_key='EP002'
                 order by created_at desc,id desc limit 1
                 """).query((rs,n)->Map.<String,Object>of("status",rs.getString("status"),
@@ -287,7 +291,8 @@ public class Ep002EpisodeBatchPlanService {
                     rs.getObject("request_id",UUID.class),rs.getString("status"),
                     rs.getString("input_fingerprint"),
                     mapper.readValue(rs.getString("manifest"),Plan.class),
-                    rs.getString("created_at"));
+                    rs.getString("created_at"),
+                    rs.getString("director_issuer"),rs.getString("director_subject"));
         } catch (IOException ex) {
             throw new java.sql.SQLException("Stored batch plan could not be parsed.",ex);
         }
