@@ -49,7 +49,8 @@ public class RemotionCpuWorkerController {
     @Transactional
     public ResponseEntity<Map<String, Object>> claim(
             @RequestHeader(value = "X-Media-OS-Worker-Key", required = false) String key,
-            @RequestHeader(value = "X-Media-OS-Worker", required = false) String workerId
+            @RequestHeader(value = "X-Media-OS-Worker", required = false) String workerId,
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha", required = false) String sourceSha
     ) {
         requireWorker(key, workerId);
 
@@ -86,11 +87,20 @@ public class RemotionCpuWorkerController {
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
+                  and (composition_id not like 'AT-FACTORY-%'
+                    or (input_props->>'expectedSourceCommit' = :sourceSha
+                      and exists(select 1 from episode_factory_worker_capability cap
+                                  where cap.worker_id=:workerId
+                                    and cap.source_commit=:sourceSha
+                                    and cap.build_checked=true
+                                    and cap.last_heartbeat_at>now()-interval '120 seconds')))
                 order by created_at
                 for update skip locked
                 limit 1
                 """)
                 .param("projectId", PROJECT_ID)
+                .param("workerId",workerId.trim())
+                .param("sourceSha",sourceSha==null?"":sourceSha.trim())
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("renderId", rs.getObject("id", UUID.class));
