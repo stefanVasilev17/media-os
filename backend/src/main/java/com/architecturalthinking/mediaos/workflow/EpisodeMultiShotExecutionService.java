@@ -45,8 +45,8 @@ public class EpisodeMultiShotExecutionService {
                       String repository,String codePathPrefix,
                       BigDecimal maxBudgetUsd,int maxTotalTokens,int maxAttempts,
                       int totalTasks,int readyForAgentTasks,
-                      BigDecimal measuredSpentUsd,int measuredUsedTokens,
-                      int reservedAttempts,boolean providerDispatchEnabled,
+                      BigDecimal atRiskUsd,int atRiskTokens,
+                      int attemptedCalls,boolean providerDispatchEnabled,
                       boolean canStartAgent,String createdAt,List<Task> tasks) {}
 
     record Grant(UUID id,UUID packageId,String state,String sourceSha,
@@ -327,11 +327,13 @@ public class EpisodeMultiShotExecutionService {
                         rs.getString("task_state"),rs.getInt("cue_count"))).list();
         record Usage(BigDecimal cost,long tokens,long attempts) {}
         Usage usage=jdbc.sql("""
-                select coalesce(sum(coalesce(measured_usd,reserved_usd)),0) as at_risk_usd,
-                       coalesce(sum(coalesce(measured_tokens,reserved_tokens)),0) as at_risk_tokens,
+                select coalesce(sum(case when status='NO_CHARGE' then 0
+                                 else coalesce(measured_usd,reserved_usd) end),0) as at_risk_usd,
+                       coalesce(sum(case when status='NO_CHARGE' then 0
+                                 else coalesce(measured_tokens,reserved_tokens) end),0) as at_risk_tokens,
                        count(*) as attempts
                   from episode_multi_shot_openai_usage
-                 where job_id=:job and status <> 'NO_CHARGE'
+                 where job_id=:job
                 """).param("job",id).query((rs,n)->new Usage(
                         rs.getBigDecimal("at_risk_usd"),rs.getLong("at_risk_tokens"),
                         rs.getLong("attempts"))).single();
