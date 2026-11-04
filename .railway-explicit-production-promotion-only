@@ -1,4 +1,5 @@
-Explicit SHOT01 TimeRail safe-area hotfix · 2026-11-04.
-Move TimeRail away from enlarged EP002 phone; preserve v3 readable Phone, selected Take 2 and five exact cues.
-Run existing Node tests + new geometry regression, TypeScript preflight and Remotion bundle in existing Railway worker.
-No new paid voice generation, render, production backend rebuild or QA projects.
+Explicit Stage 4 Director feedback intake backend+frontend promotion · 2026-11-04.
+Add V112 append-only feedback table, Director-verified feedback POST/GET, UI and tests.
+Existing production backend Dockerfile.backend runs Java 21 Maven tests and Vite compile.
+No new model calls, no voice generation, no automatic render, no worker deployment or new QA projects.
+Stage 4 in-app agent source patch and automated rerender are NOT delivered by this candidate.
