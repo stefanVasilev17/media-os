@@ -1,6 +1,7 @@
-Explicit MediaOS Multi-SHOT Execution Foundation v1 checked production promotion · 2026-11-04.
-Existing backend service only: Flyway V117 immutable whole-episode job/task snapshots, atomic Director grant consumption,
-Director-only prepare/list/cancel API, internal fail-closed token/USD reservations and reconciliations, zero-spend UI.
-Run Java21 Maven unit tests and frontend TypeScript/Vite; verify V117 migration and healthy Spring Boot.
-provider-dispatch-enabled=false server default; no external OpenAI/TTS, GitHub agent writes, Remotion renders or paid CPU.
-No GitHub Actions or permanent QA infrastructure, no EP001/EP002 original or Director-LOCKED SHOT01 edits.
+Explicit MediaOS Reusable Asset Registry & Code Worker Preflight v1 FINAL RETEST after EP001/EP002 code path guard regression · 2026-11-04.
+Source-only 15 existing Remotion primitives with their actual Git blob hashes and protected/approved reuse status,
+read-only whole-episode prepared job code/asset plan, safe EP003+ output file scopes and measured voice-cue frame mapping.
+Run existing backend Java21 Maven tests + React frontend TypeScript/Vite, verify healthy production after build.
+NO OpenAI API, voice provider call, GitHub generated-code writes, GitHub Actions, Remotion render,
+additional worker services, new QA infrastructure or changed EP001/Director-LOCKED EP002 creative assets.
+Provider dispatch remains false and actual Multi-SHOT Code Worker Start remains unimplemented.
