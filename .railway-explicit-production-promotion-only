@@ -1,5 +1,5 @@
-Explicit MediaOS Episode Package Importer v1 promotion · 2026-11-04.
-Existing backend service only: V114 immutable JSON source archives, Director authenticated import, 1-to-N shot and pending voice task records.
-Run Java21 Maven test suite and frontend TypeScript/Vite build before acceptance, then verify Flyway V114 and healthy backend startup.
-Do not create native voice takes, call ElevenLabs/OpenAI, trigger video renders, deploy Remotion worker, use GitHub Actions or create a persistent QA environment.
-Existing EP001/EP002 creative files stay protected.
+Explicit Episode Package Voice Studio v1 backend promotion · 2026-11-04.
+Java21 + Flyway V115 source-narration revisions, Director-only Voice Studio endpoints and frontend review.
+Existing ElevenLabs client only; new episode paid voice generation gate DEFAULT OFF, no paid TTS calls during build/deploy.
+Run Maven suite and frontend TypeScript/Vite production build; verify V115 startup before merging PR.
+Do not change EP001/EP002 creative locks, worker, GitHub Actions, OpenAI API, voice source audio, render jobs or other services.
