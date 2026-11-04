@@ -54,7 +54,7 @@
     },
     "outputPath": {
       "type": "string",
-      "pattern": "^remotion-engine/src/episodes/ep[0-9]{3,}/Shot(0[1-9]|[1-3][0-9]|40)GeneratedScene\\.tsx$"
+      "pattern": "^remotion-engine/src/episodes/ep(?!001/|002/)[0-9]{3,}/Shot(0[1-9]|[1-3][0-9]|40)GeneratedScene\\.tsx$"
     },
     "componentExport": {
       "type": "string",
