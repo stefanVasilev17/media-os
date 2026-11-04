@@ -36,7 +36,7 @@ The job and tasks NEVER transition to `RUNNING`, the provider dispatch configura
 - A source or voice change after this approval must cause the future worker to recheck all hashes and block until new scoped consent. Never let a stored receipt authorize future source drift.
 - No unrelated historical `UNCERTAIN` ElevenLabs transaction is changed. Provider call reconciliation remains separate.
 - Browser-level Director QA with a real imported episode requires an actual fully voice-ready EP003+ package and server GitHub read permission.
-- A controlled build must separately verify Java 21 Maven tests, TypeScript/Vite and V118 migration. Until those checks run, the feature is **committed but NOT build-verified/deployed**.
+- **Verified release:** Railway existing backend deployment `44e39f55-6c87-40db-9061-925c02544467` pinned commit `76911c8a77405d9786853019f292d4c7b5782598` SUCCESS/ONLINE, one healthy replica and zero warning/critical issues. Java 21 Maven **355 tests, 0 failures, 0 errors, 39 skipped**, TypeScript/Vite PASS, Flyway **118 migrations validated and V118 applied** over V117, PostgreSQL connected and Spring Boot started. No GitHub Actions or provider calls. A private-repository live Git result and authenticated Director browser POST have NOT been independently verified; existing PostgreSQL 18.6/Flyway version warning remains.
 
 ## Next milestone
 
