@@ -105,10 +105,10 @@ public class EpisodePackageImportService {
                 insert into episode_package_import(
                     id,request_id,episode_key,title,schema_version,
                     source_file_name,source_sha256,original_source_text,source_document,
-                    shot_count,beat_count,director_issuer,director_subject
+                    shot_count,beat_count,director_issuer,director_subject,preflight_audit_id
                 ) values(
                     :id,:request,:episode,:title,:schema,:file,:hash,:original,
-                    cast(:json as jsonb),:shots,:beats,:issuer,:subject
+                    cast(:json as jsonb),:shots,:beats,:issuer,:subject,:auditId
                 ) on conflict (request_id) do nothing
                 """)
                 .param("id",id)
@@ -124,6 +124,7 @@ public class EpisodePackageImportService {
                 .param("beats",validated.beatCount())
                 .param("issuer",director.issuer())
                 .param("subject",director.subject())
+                .param("auditId",preflightAuditId)
                 .update();
 
         if(inserted==0) {
