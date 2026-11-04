@@ -234,7 +234,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
 
         // Creating a new episode is a project-level creation event. EP001 is
         // only the audit anchor; the new episode is not present in the DB yet.
-        if (path.equals("/api/v1/episodes")) {
+        if (path.equals("/api/v1/episodes")
+                || path.equals("/api/v1/episode-packages/import")) {
             if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode catalog creation is project-scoped.");
             return ProductionOverviewService.EPISODE_ID;
