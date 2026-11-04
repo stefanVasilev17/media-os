@@ -88,3 +88,14 @@ create table episode_factory_output_plan (
 );
 create index episode_factory_output_by_run
   on episode_factory_output_plan(run_id,kind,ordinal);
+
+
+create table episode_factory_worker_capability (
+    worker_id varchar(160) primary key,
+    source_commit char(40) not null check (source_commit ~ '^[a-f0-9]{40}$'),
+    bundled_scenes jsonb not null,
+    build_checked boolean not null default false,
+    last_heartbeat_at timestamptz not null default now()
+);
+create index episode_factory_worker_recent
+  on episode_factory_worker_capability(last_heartbeat_at desc);
