@@ -2,7 +2,7 @@ create table episode_package_shot_revision (
     id uuid primary key,
     shot_id uuid not null references episode_package_shot(id),
     revision integer not null check (revision > 0),
-    narration text not null check (length(trim(narration)) between 20 and 5000),
+    narration text not null check (length(trim(narration)) between 20 and 12000),
     voice_direction text not null check (length(trim(voice_direction)) between 8 and 1200),
     actor_issuer text not null,
     actor_subject text not null,
