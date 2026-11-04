@@ -124,13 +124,15 @@ export function EpisodePackageImportPage(){
     </section>
     {details&&<section className="episode-package-panel">
       <h2>{details.episodeKey} · All voice tasks</h2>
-      <p>{details.status}. Imported SHOTs now have a versioned working Voice Studio.
-        The imported source remains immutable. Paid ElevenLabs generation is separately guarded,
-        and OpenAI Agent Executor remains disabled pending complete voice approval and a future AI budget gate.</p>
+      <p>{details.status} · {details.shots.filter(shot=>
+        shot.voiceTaskStatus==='VOICE_APPROVED_TIMING_REVIEW_REQUIRED').length}/{details.shotCount}
+        {' '}SHOTs have a Director-selected current-revision Take.
+        The imported source remains immutable. Provider alignment and timing still require
+        separate validation before any future OpenAI batch authorization.</p>
       {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
-        <p><strong>Narration:</strong> {shot.narration}</p>
-        <p><strong>Voice direction:</strong> {shot.voiceDirection}</p>
+        <p><strong>Original approved narration:</strong> {shot.narration}</p>
+        <p><strong>Original voice direction:</strong> {shot.voiceDirection}</p>
         <button type="button" className="episode-package-voice-primary"
           onClick={()=>setActiveVoiceShot(previous=>
             previous===shot.shotKey?null:shot.shotKey)}>
