@@ -52,6 +52,14 @@ public class EpisodeFactoryPostCodeController {
         return pipeline.feedback(packageId,runId,request,auditId(http));
     }
 
+    @PostMapping("/runs/{runId}/revision-pr")
+    public EpisodeFactoryPostCodeService.Run revisionPr(
+            @PathVariable UUID packageId,@PathVariable UUID runId,
+            @RequestBody EpisodeFactoryPostCodeService.RevisionRequest request,
+            HttpServletRequest http) {
+        return pipeline.linkFeedbackPr(packageId,runId,request,auditId(http));
+    }
+
     private static UUID auditId(HttpServletRequest request) {
         if(!(request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT") instanceof Map<?,?> data)
                 || !(data.get("auditId") instanceof UUID audit))
