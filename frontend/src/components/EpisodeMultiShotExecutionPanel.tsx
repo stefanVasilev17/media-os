@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Layers3,RefreshCw,ShieldAlert,XCircle} from 'lucide-react';
+import {EpisodeCodeWorkerPreflightPanel} from './EpisodeCodeWorkerPreflightPanel';
 
 type Authorization={
   authorizationId:string;effectiveStatus:string;state:string;
@@ -40,6 +41,7 @@ export function EpisodeMultiShotExecutionPanel({packageId,refreshVersion=0,
   const [working,setWorking]=useState(false);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
+  const [assetPlanJobId,setAssetPlanJobId]=useState<string|null>(null);
   const pendingRequest=useRef<string|null>(null);
   const busy=useRef(false);
 
@@ -171,6 +173,13 @@ export function EpisodeMultiShotExecutionPanel({packageId,refreshVersion=0,
                 {' · '}{shot.verifiedCues} verified cues
                 {' · '}{display(shot.state)}
               </div>)}
+              <button type="button"
+                onClick={()=>setAssetPlanJobId(previous=>
+                  previous===job.jobId?null:job.jobId)}>
+                {assetPlanJobId===job.jobId?'Hide Asset/Code Plan':'Review Reusable Assets & All SHOT Plans'}
+              </button>
+              {assetPlanJobId===job.jobId&&
+                <EpisodeCodeWorkerPreflightPanel packageId={packageId} jobId={job.jobId}/>
               {job.state==='PREPARED_NO_DISPATCH'&&
                 <button type="button" disabled={working}
                   onClick={()=>void cancel(job)}>
