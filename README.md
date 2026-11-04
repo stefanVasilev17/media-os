@@ -26,6 +26,8 @@ Read both at the start of every new chat. These documents are Git-managed snapsh
 
 **Multi-SHOT Execution Foundation v1 (2026-11-04):** [Verified V117 implementation and handoff](docs/engineering/MEDIAOS_MULTI_SHOT_EXECUTION_FOUNDATION_V1_20261104.md). New EP003+ imported packages support Director-confirmed one-use budget consumption into a single job with every SHOT's approved voice, actual cue timeline and visual source frozen. Existing frontend now shows all batch tasks and a separate cancel action. **No OpenAI agents are launched, no source files generated, no provider charges are incurred by preparing this job.** A future checked agent worker must actually connect GitHub proposal generation, real USD/token metering and another separate execution gate before paid dispatch.
 
+**Reusable Asset Registry + Multi-SHOT Code Worker Preflight v1 (2026-11-04):** [Implementation and next release gates](docs/engineering/MEDIAOS_REUSABLE_ASSET_REGISTRY_AND_CODE_WORKER_PREFLIGHT_20261104.md). Prepared EP003+ jobs can be inspected **all at once**: the Director sees 15 real existing Remotion reference components, what each SHOT can import without modifying approved sources, which new assets are still missing, proposed episode-local file paths and real voice cue frame timing. Source Git blob SHAs come from a historical verified baseline, **not current-execution revalidation**. This preflight does not dispatch OpenAI, write GitHub source, compile generated scenes or render video. Real Multi-SHOT Code Worker + explicit Director Start and cost metering remain the next milestone.
+
 ## Technology
 
 - **MediaOS UI:** React, TypeScript, Vite (mobile-friendly).
