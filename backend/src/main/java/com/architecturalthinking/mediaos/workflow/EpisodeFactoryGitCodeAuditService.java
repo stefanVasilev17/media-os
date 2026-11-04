@@ -38,10 +38,26 @@ public class EpisodeFactoryGitCodeAuditService {
     public record GitAudit(String status,int prNumber,String mergedCommit,String mainHead,
                            String digest,List<CheckedFile> files,List<String> blockers,
                            boolean sourceScopeVerified,boolean buildVerified,
-                           boolean canQueueCpuRendering) {}
+                           boolean canQueueCpuRendering,
+                           Map<String,String> allShotBlobs,boolean helperChanged) {}
 
     public GitAudit verify(String episodeKey,int number,
                            List<EpisodeCodexCloudHandoffService.Shot> shots) {
+        return verifyScoped(episodeKey,number,shots,
+                shots.stream().map(EpisodeCodexCloudHandoffService.Shot::shotKey)
+                    .collect(java.util.stream.Collectors.toSet()),true);
+    }
+
+    public GitAudit verifyRevision(String episodeKey,int number,
+            List<EpisodeCodexCloudHandoffService.Shot> shots,Set<String> requiredChanges) {
+        if(requiredChanges==null||requiredChanges.isEmpty())
+            throw new IllegalArgumentException("No Director feedback SHOT targets for revision.");
+        return verifyScoped(episodeKey,number,shots,requiredChanges,false);
+    }
+
+    private GitAudit verifyScoped(String episodeKey,int number,
+            List<EpisodeCodexCloudHandoffService.Shot> shots,
+            Set<String> requiredChanges,boolean fullEpisode) {
         if(!validEpisode(episodeKey) || shots==null || shots.isEmpty()
                 || shots.size()>40 || number<1)
             throw new IllegalArgumentException("A bounded EP003+ imported episode and PR are required.");
@@ -97,15 +113,23 @@ public class EpisodeFactoryGitCodeAuditService {
             }
         }
 
+        Set<String> shotPaths=new HashSet<>();
         for(var shot:shots){
             String path=shot.outputPath();
+            shotPaths.add(path);
             if(!path.equals(expectedShotPath(episodeKey,shot.shotIndex()))
                     || !shot.shotKey().equals(String.format(java.util.Locale.ROOT,
                             "SHOT%02d",shot.shotIndex()))
-                    || !actual.containsKey(path))
+                    || (requiredChanges.contains(shot.shotKey())
+                        && !actual.containsKey(path)))
                 blockers.add("MISSING_REQUIRED_GENERATED_SHOT_"+shot.shotKey());
         }
+        if(requiredChanges.stream().anyMatch(key->shots.stream().noneMatch(
+                shot->shot.shotKey().equals(key))))
+            blockers.add("REVISION_TARGET_OUTSIDE_EPISODE");
 
+        Map<String,String> allShotBlobs=new HashMap<>();
+        boolean helperChanged=files.stream().anyMatch(file->!shotPaths.contains(file.path()));
         if(blockers.isEmpty()){
             try{
                 for(var f:files){
@@ -116,22 +140,38 @@ public class EpisodeFactoryGitCodeAuditService {
                             || !f.blobSha().equals(git.path("sha").asText()))
                         blockers.add("MERGED_BLOB_DIFFERS_FROM_VERIFIED_PR");
                 }
+                for(var shot:shots) {
+                    JsonNode metadata=github.fetch("/repos/"+REPOSITORY+"/contents/"+
+                            shot.outputPath()+"?ref="+mergeSha);
+                    String blob=metadata.path("sha").asText("");
+                    if(!"file".equals(metadata.path("type").asText())
+                            || !shot.outputPath().equals(metadata.path("path").asText())
+                            || !isGitSha(blob))
+                        blockers.add("MERGED_SOURCE_SHOT_BLOB_MISSING_"+shot.shotKey());
+                    else allShotBlobs.put(shot.shotKey(),blob);
+                }
             }catch(InterruptedException e){
                 Thread.currentThread().interrupt();blockers.add("GIT_BLOB_CHECK_INTERRUPTED");
             }catch(Exception e){blockers.add("MERGED_BLOB_UNAVAILABLE");}
         }
+        if(allShotBlobs.size()!=shots.size())blockers.add("INCOMPLETE_MERGED_SHOT_BLOB_EVIDENCE");
         if(blockers.isEmpty()){
             // No GitHub Actions and no trusted build evidence yet. This proves the
             // actual merged file set and SHA only. Worker build verification is separate.
             String joined=files.stream().sorted(java.util.Comparator.comparing(CheckedFile::path))
                     .map(f->f.path()+"="+f.blobSha()).collect(java.util.stream.Collectors.joining("|"));
+            String complete=allShotBlobs.entrySet().stream().sorted(Map.Entry.comparingByKey())
+                    .map(e->e.getKey()+"="+e.getValue())
+                    .collect(java.util.stream.Collectors.joining("|"));
             String digest=EpisodePackageValidator.sha256(episodeKey+"|"+number+"|"+
-                    mergeSha+"|"+joined);
+                    mergeSha+"|"+joined+"|"+complete);
             return new GitAudit("GITHUB_MERGED_SOURCE_SCOPED_NEEDS_WORKER_BUILD",number,
-                    mergeSha,mainSha,digest,List.copyOf(files),List.of(),true,false,false);
+                    mergeSha,mainSha,digest,List.copyOf(files),List.of(),true,false,false,
+                    Map.copyOf(allShotBlobs),helperChanged);
         }
         return new GitAudit("GITHUB_SOURCE_BLOCKED",number,mergeSha,mainSha,null,
-                List.copyOf(files),List.copyOf(new HashSet<>(blockers)),false,false,false);
+                List.copyOf(files),List.copyOf(new HashSet<>(blockers)),false,false,false,
+                Map.of(),helperChanged);
     }
 
     static String expectedShotPath(String episode,int index){
@@ -163,7 +203,7 @@ public class EpisodeFactoryGitCodeAuditService {
 
     private static GitAudit blocked(int pr,String reason){
         return new GitAudit("GITHUB_SOURCE_BLOCKED",pr,null,null,null,
-                List.of(),List.of(reason),false,false,false);
+                List.of(),List.of(reason),false,false,false,Map.of(),false);
     }
 
     static class LiveGitHubJsonRead implements JsonRead {
