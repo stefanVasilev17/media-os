@@ -8,7 +8,9 @@
     "build": "remotion bundle",
     "render:slice": "remotion render EP001-VerticalSlice out/ep001-vertical-slice.mp4",
     "still:slice": "remotion still EP001-VerticalSlice out/ep001-vertical-slice.png --frame=1200",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:factory": "node generate-factory-registry.mjs",
+    "build:factory": "npm run generate:factory && remotion bundle src/factory/index.ts --out-dir=build-factory"
   },
   "dependencies": {
     "@react-three/fiber": "9.2.0",
