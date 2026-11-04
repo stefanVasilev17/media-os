@@ -1,5 +1,5 @@
-Explicit MediaOS EP002 Episode Batch Planner v1 promotion · 2026-11-04.
-Existing backend service only: immutable V113 whole-episode plan snapshots + read-only preview + explicit Director prepare.
-Run Java21 Maven tests and frontend TypeScript/Vite production build before accepting.
-No GitHub Actions, AI generation, ElevenLabs calls, automatic TSX scene generation, new video render, Render Worker deploy or separate QA infrastructure.
-The ten scene candidates remain non-executing until a later scoped agent executor receives separate Director authorization.
+Explicit MediaOS Episode Package Importer v1 promotion · 2026-11-04.
+Existing backend service only: V114 immutable JSON source archives, Director authenticated import, 1-to-N shot and pending voice task records.
+Run Java21 Maven test suite and frontend TypeScript/Vite build before acceptance, then verify Flyway V114 and healthy backend startup.
+Do not create native voice takes, call ElevenLabs/OpenAI, trigger video renders, deploy Remotion worker, use GitHub Actions or create a persistent QA environment.
+Existing EP001/EP002 creative files stay protected.
