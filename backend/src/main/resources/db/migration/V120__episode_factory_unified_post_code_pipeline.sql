@@ -117,5 +117,27 @@ create table episode_factory_cpu_authorization (
     director_subject text not null,
     preflight_audit_id uuid not null,
     created_at timestamptz not null default now(),
-    unique(run_id,kind)
+    unique(run_id,kind,request_id)
 );
+
+create table episode_factory_code_revision (
+    id uuid primary key,
+    request_id uuid not null unique,
+    run_id uuid not null references episode_factory_production_run(id),
+    pull_request_number integer not null check (pull_request_number > 0),
+    pull_request_url text not null,
+    expected_previous_source_digest char(64) not null,
+    expected_manifest_sha256 char(64) not null,
+    state varchar(28) not null default 'PR_LINKED_UNVERIFIED'
+      check(state in ('PR_LINKED_UNVERIFIED','MERGED_SOURCE_SCOPED')),
+    merged_commit char(40),
+    verified_source_digest char(64),
+    verified_at timestamptz,
+    director_issuer text not null,
+    director_subject text not null,
+    preflight_audit_id uuid not null,
+    created_at timestamptz not null default now(),
+    unique(run_id,pull_request_number)
+);
+create index episode_factory_revision_by_run
+  on episode_factory_code_revision(run_id,created_at desc);
