@@ -131,7 +131,7 @@ public class EpisodeFactoryRenderCoordinator {
                     update episode_factory_shot
                        set last_requested_render=:render,director_approved=false,
                            last_successful_render=case when :reuseSuccess then :render
-                                                     else last_successful_render end,
+                                                     else null end,
                            last_render_input_sha256=case when :reuseSuccess then :hash
                                                         else last_render_input_sha256 end
                      where run_id=:run and shot_key=:shot
