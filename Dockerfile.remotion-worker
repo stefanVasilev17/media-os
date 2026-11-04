@@ -6,6 +6,7 @@ COPY remotion-engine/ ./
 RUN node --check cpu-worker.mjs
 RUN node --test worker-token-rotation.test.mjs cpu-worker-lease.test.mjs shot01-readability.test.mjs factory-media-worker.test.mjs
 RUN npm run generate:factory
+RUN node validate-factory-scenes.mjs
 RUN node build-typecheck-preflight.mjs
 RUN npm run build
 RUN npm run build:factory
