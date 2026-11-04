@@ -4,6 +4,7 @@ import '../styles/episodePreparationQuiet.css';
 import '../styles/episodePackageImport.css';
 import {EpisodePackageVoiceStudioPanel} from '../components/EpisodePackageVoiceStudioPanel';
 import {EpisodeVoiceReadinessPanel} from '../components/EpisodeVoiceReadinessPanel';
+import {EpisodeAiAuthorizationPanel} from '../components/EpisodeAiAuthorizationPanel';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -132,6 +133,8 @@ export function EpisodePackageImportPage(){
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
+        refreshVersion={readinessRefresh}/>
+      <EpisodeAiAuthorizationPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
