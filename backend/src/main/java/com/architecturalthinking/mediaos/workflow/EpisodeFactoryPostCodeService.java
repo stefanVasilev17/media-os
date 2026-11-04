@@ -225,6 +225,7 @@ public class EpisodeFactoryPostCodeService {
                 select s.shot_key,s.shot_index,s.duration_frames,
                        s.selected_take_id,s.expected_code_path,
                        s.director_approved,s.last_successful_render,
+                       s.last_render_input_sha256,
                        r.status as render_status
                   from episode_factory_shot s
                   left join remotion_render r on r.id=s.last_successful_render
@@ -233,7 +234,8 @@ public class EpisodeFactoryPostCodeService {
                 rs.getString("shot_key"),rs.getInt("shot_index"),
                 rs.getInt("duration_frames"),rs.getString("selected_take_id"),
                 rs.getString("expected_code_path"),
-                "SUCCEEDED".equals(rs.getString("render_status")),
+                "SUCCEEDED".equals(rs.getString("render_status")) &&
+                    java.util.Objects.equals(h.codeSha(),rs.getString("last_render_input_sha256")),
                 rs.getBoolean("director_approved"),
                 rs.getString("last_successful_render"))).list();
         if(shots.isEmpty()||shots.size()!=cloudState.shotCount())
@@ -262,8 +264,18 @@ public class EpisodeFactoryPostCodeService {
         if(cloudState.pullRequestNumber()==null)blockers.add("GITHUB_PR_NOT_RECORDED");
         if(h.gitCommit()==null)blockers.add("GITHUB_SOURCE_NOT_VERIFIED");
         if(!feedback.isEmpty())blockers.add("DIRECTOR_FEEDBACK_REQUIRES_NEW_CODE_REVISION");
-        blockers.add("WORKER_SCENE_BUILD_ATTESTATION_NOT_CONNECTED");
-        blockers.add("RENDER_CPU_NOT_AUTHORIZED");
+
+        boolean compiled=compiledWorkerReady(h.gitCommit(),h.codeSha(),h.episode(),shots);
+        if(!compiled)blockers.add("WORKER_MATCHING_COMPILED_SCENES_NOT_READY");
+        boolean cpuAuthorized=jdbc.sql("""
+                select exists(select 1 from episode_factory_cpu_authorization
+                               where run_id=:run and kind='SHOTS'
+                                 and verified_source_digest=:source
+                                 and status='CONSUMED_QUEUED')
+                """).param("run",runId)
+                .param("source",h.codeSha()==null?"":h.codeSha())
+                .query(Boolean.class).single();
+        if(!cpuAuthorized)blockers.add("RENDER_CPU_NOT_AUTHORIZED");
         if(outputs.stream().filter(x->x.kind().equals("SHORT")).count()<3)
             blockers.add("THREE_INDEPENDENT_SHORT_WINDOWS_NOT_AVAILABLE");
         int rendered=(int)shots.stream().filter(ShotState::rendered).count();
@@ -273,7 +285,7 @@ public class EpisodeFactoryPostCodeService {
         String prompt=feedbackPrompt(h,feedback);
         return new Run(h.id(),h.packageId(),h.handoffId(),h.episode(),h.state(),
                 h.manifestSha(),h.gitCommit(),h.codeSha(),h.gitCommit()!=null,
-                false,cloudState.currentVoiceMatches(),false,false,
+                compiled,cloudState.currentVoiceMatches(),false,cpuAuthorized,
                 shots.size(),totalFrames,rendered,approved,List.copyOf(shots),
                 List.copyOf(outputs),List.copyOf(feedback),prompt,
                 List.copyOf(blockers),h.created());
@@ -356,6 +368,25 @@ public class EpisodeFactoryPostCodeService {
                  where id=:id
                 """).param("id",runId).update();
         return get(packageId,runId);
+    }
+
+    private boolean compiledWorkerReady(String gitCommit,String sourceDigest,
+                                        String episode,List<ShotState> shots) {
+        if(gitCommit==null||sourceDigest==null||shots.isEmpty())return false;
+        String inventory=jdbc.sql("""
+                select bundled_scenes::text from episode_factory_worker_capability
+                 where source_commit=:commit and build_checked=true
+                   and last_heartbeat_at > now()-interval '120 seconds'
+                 order by last_heartbeat_at desc limit 1
+                """).param("commit",gitCommit).query(String.class).optional().orElse(null);
+        if(inventory==null)return false;
+        try{
+            var parsed=mapper.readTree(inventory);
+            if(!parsed.isArray())return false;
+            java.util.Set<String> keys=new java.util.HashSet<>();
+            parsed.forEach(x->{if(x.isTextual())keys.add(x.asText());});
+            return shots.stream().allMatch(x->keys.contains(episode+"-"+x.shotKey()));
+        }catch(Exception error){return false;}
     }
 
     private String feedbackPrompt(StoredRun run,List<Feedback> feedback) {
