@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.workflow;
 
 import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -125,8 +126,7 @@ public class EpisodePackageVoiceStudioService {
                             rs.getInt("take_number"),rs.getString("content_type"),
                             rs.getString("model_id"),rs.getString("voice_id"),
                             rs.getBigDecimal("duration_seconds"),
-                            alignment!=null && !alignment.equals("{}")
-                                    && alignment.contains("characters"),
+                            hasRealProviderAlignment(alignment),
                             rs.getObject("generated_at",OffsetDateTime.class).toString());
                 }).list();
         UUID selected=jdbc.sql("""
@@ -171,6 +171,26 @@ public class EpisodePackageVoiceStudioService {
                 takes,selected==null?null:selected.toString(),selected!=null,
                 voiceStatus,generationStatus,elevenLabs.configured(),paidGateEnabled,
                 canGenerate,blocker,timingStatus);
+    }
+
+    static boolean hasRealProviderAlignment(String json) {
+        if(json==null || json.isBlank())return false;
+        try {
+            JsonNode root=new ObjectMapper().readTree(json);
+            for(String field:List.of("alignment","normalized_alignment")) {
+                JsonNode alignment=root.path(field);
+                JsonNode characters=alignment.path("characters");
+                JsonNode starts=alignment.path("character_start_times_seconds");
+                JsonNode ends=alignment.path("character_end_times_seconds");
+                if(characters.isArray() && characters.size()>0
+                        && starts.isArray() && ends.isArray()
+                        && starts.size()==characters.size()
+                        && ends.size()==characters.size())return true;
+            }
+        } catch(JsonProcessingException malformed) {
+            return false;
+        }
+        return false;
     }
 
     @Transactional
