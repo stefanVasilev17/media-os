@@ -272,13 +272,14 @@ public class RemotionCpuWorkerController {
             int linked=jdbc.sql("""
                     update episode_factory_shot fs
                        set last_successful_render=:render,
-                           last_render_input_sha256=run.verified_source_digest,
+                           last_render_input_sha256=fs.source_code_dependency_sha256,
                            director_approved=false
                       from episode_factory_production_run run,remotion_render video
                      where fs.run_id=run.id and fs.last_requested_render=:render
                        and video.id=:render and video.status='SUCCEEDED'
                        and video.input_props->>'expectedSourceCommit'=run.verified_pr_commit
                        and video.input_props->>'sourceDigest'=run.verified_source_digest
+                       and video.input_props->>'shotInputSha'=fs.source_code_dependency_sha256
                        and not exists(select 1 from episode_factory_director_feedback f
                                        where f.run_id=run.id and f.state='OPEN_FOR_CODEX')
                        and exists(
