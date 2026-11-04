@@ -35,7 +35,7 @@ MediaOS does **not** verify the private PR from Railway. No Railway server priva
 
 ## Validation
 
-Java 21 Maven tests, frontend TypeScript/Vite build, Flyway V119 apply and existing backend health must be checked on an exact commit. Mark PASS only after observing real tool evidence. The official current Codex Cloud plan/setup information is at:
+**Verified (real Railway logs, 2026-11-05 Europe/Sofia):** existing backend deployment `e49993a8-23c5-46fc-8458-9b929d514fbd` pinned commit `cc45382abaf55744acbe7b0972a21a6e6a07968b`, **SUCCESS/ONLINE** (1 running, 0 crashed, 0 warnings, 0 critical issues). Java 21 Maven `BUILD SUCCESS`, **361 tests / 0 failures / 0 errors / 39 skipped**; frontend `tsc --noEmit && vite build` PASS; Flyway **119 migrations validated**, **V119 applied** over V118; PostgreSQL connected, Spring Boot and Tomcat started. PostgreSQL 18.6 compatibility warning persists for current Flyway version. A Director-authenticated browser exercise with actual EP003+ ready Takes and the first real Codex Cloud scene PR is still NOT verified. The official current Codex Cloud plan/setup information is at:
 
 - https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan
 - https://help.openai.com/en/articles/20001545-using-codex-cloud
