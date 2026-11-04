@@ -145,8 +145,8 @@ export function Ep002EpisodeBatchPlanPanel(){
       </details>
       <div className="library-episode-batch-actions">
         <button type="button" className="library-voice-button"
-          onClick={()=>void prepare()} disabled={saving||loading}>
-          {saving?'Preparing…':current?'Prepare updated snapshot':'Prepare all 11 SHOTs (no AI cost)'}
+          onClick={()=>void prepare()} disabled={saving||loading||!!current}>
+          {saving?'Preparing…':current?'Plan already prepared':'Prepare all 11 SHOTs (no AI cost)'}
         </button>
         <button type="button" className="library-voice-refresh" disabled={saving||loading}
           onClick={()=>{
