@@ -59,7 +59,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
 
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
   const canSave=!!data&&dirty&&!busy&&narration.trim().length>=20
-    &&narration.length<=5000&&direction.trim().length>=8&&direction.length<=1200;
+    &&narration.length<=12000&&direction.trim().length>=8&&direction.length<=1200;
 
   async function save(){
     if(!canSave||inFlight.current||!data)return;
@@ -135,7 +135,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey}:{
       <p className="episode-package-voice-note">Original imported narration remains immutable.
         Edit and Save creates a new working revision without deleting older audio.</p>
       <label htmlFor={'narration-'+shotKey}>Current working narration</label>
-      <textarea id={'narration-'+shotKey} rows={5} maxLength={5000}
+      <textarea id={'narration-'+shotKey} rows={5} maxLength={12000}
         value={narration} disabled={busy} onChange={e=>setNarration(e.target.value)}/>
       <label htmlFor={'direction-'+shotKey}>Editorial voice direction</label>
       <textarea id={'direction-'+shotKey} rows={3} maxLength={1200}
