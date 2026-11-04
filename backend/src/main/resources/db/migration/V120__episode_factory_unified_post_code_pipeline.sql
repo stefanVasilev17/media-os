@@ -8,7 +8,7 @@ create table episode_factory_production_run (
     original_readiness_fingerprint char(64) not null,
     asset_catalog_sha256 char(64) not null,
     state varchar(48) not null default 'WAITING_FOR_CODE_VERIFICATION'
-      check (state in ('WAITING_FOR_CODE_VERIFICATION','CODE_VERIFIED',
+      check (state in ('WAITING_FOR_CODE_VERIFICATION','PR_SOURCE_SCOPED_BUILD_PENDING',
                        'DIRECTOR_FEEDBACK_OPEN','RENDER_REVIEW_READY',
                        'EPISODE_REVIEW_READY','FINAL_DIRECTOR_APPROVED')),
     verified_pr_number integer,
