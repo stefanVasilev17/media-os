@@ -105,13 +105,7 @@ public class EpisodeCodeWorkerBatchManifestService {
             var shot=planned.shots().get(i);
             var stored=originals.get(i);
             var snapshot=job.tasks().get(i);
-            if(!shot.shotKey().equals(stored.shotKey())
-                    || !shot.shotKey().equals(snapshot.shotKey())
-                    || shot.narrationRevision()!=stored.revision()
-                    || shot.narrationRevision()!=snapshot.narrationRevision()
-                    || !shot.selectedTakeId().equals(snapshot.approvedTakeId())
-                    || shot.measuredAudioSeconds().compareTo(snapshot.measuredAudioSeconds())!=0)
-                throw conflict("Approved voice inputs changed or do not match the immutable job.");
+            requireSameApprovedInputs(shot,stored,snapshot);
 
             JsonNode source=parse(stored.originalVisualJson());
             String path=EpisodeCodeWorkerPreflightService.proposalFilePath(
@@ -166,6 +160,18 @@ public class EpisodeCodeWorkerBatchManifestService {
                 pinned.pinnedCommit(),pinned.productionDependencySha256(),
                 pinned.files(),sha,status,List.copyOf(blockers),CONTRACT,TRUST_POLICY,
                 false,false,List.copyOf(shotPrompts));
+    }
+
+    static void requireSameApprovedInputs(
+            EpisodeCodeWorkerPreflightService.ShotPlan shot,
+            WorkingSource stored,EpisodeMultiShotExecutionService.Task snapshot) {
+        if(!shot.shotKey().equals(stored.shotKey())
+                || !shot.shotKey().equals(snapshot.shotKey())
+                || shot.narrationRevision()!=stored.revision()
+                || shot.narrationRevision()!=snapshot.narrationRevision()
+                || !shot.selectedTakeId().equals(snapshot.approvedTakeId())
+                || shot.measuredAudioSeconds().compareTo(snapshot.measuredAudioSeconds())!=0)
+            throw conflict("Approved voice inputs changed or do not match the immutable job.");
     }
 
     private JsonNode parse(String raw) {
