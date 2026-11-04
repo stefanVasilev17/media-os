@@ -15,6 +15,8 @@ create table episode_ai_production_authorization (
         check (max_total_tokens between 1000 and 1000000),
     max_attempts integer not null
         check (max_attempts between 1 and 10),
+    validity_minutes integer not null
+        check (validity_minutes between 15 and 240),
     state varchar(35) not null
         check (state in ('AUTHORIZED_PENDING_EXECUTOR','REVOKED','EXPIRED','CONSUMED')),
     director_issuer text not null,
