@@ -26,3 +26,30 @@
 .episode-code-worker-cues{display:flex;flex-direction:column;gap:5px;margin:9px 0 16px}
 .episode-code-worker-cues>div{padding:8px;border:1px solid #34566b;background:#081927;border-radius:6px}
 @media(max-width:700px){.episode-code-worker{padding:11px}.episode-code-worker-heading{flex-direction:column}.episode-code-worker-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.episode-code-worker-assets>div{flex-direction:column}}
+
+.episode-git-manifest{margin-top:20px;border:1px solid #416f82;border-radius:10px;padding:17px;background:#0b2638;color:#dceefa}
+.episode-git-manifest-heading{display:flex;align-items:start;justify-content:space-between;gap:15px}
+.episode-git-manifest-heading h4{display:flex;align-items:center;gap:9px;color:#eefaff;font-size:16px;margin:0}
+.episode-git-manifest-heading button{display:flex;align-items:center;gap:8px;background:#22556f;color:#f0f9ff;padding:10px 12px;border:1px solid #5b829a;border-radius:8px;cursor:pointer}
+.episode-git-manifest-heading button:disabled{opacity:.5;cursor:progress}
+.episode-git-manifest p{color:#c0dbe8;font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.episode-git-manifest-status{border:1px solid #547f76;background:#12342f;border-radius:8px;display:flex;align-items:start;gap:10px;margin:13px 0;padding:13px}
+.episode-git-manifest-status strong{font-size:13px;color:#f4fff8}
+.episode-git-manifest-status p{margin:5px 0 0}
+.episode-git-manifest-meta{font-size:12px;overflow-wrap:anywhere}
+.episode-git-manifest-meta code{font-size:11px}
+.episode-git-manifest-blockers{background:#302e27;border:1px solid #85724c;border-radius:8px;margin:12px 0;padding:12px 15px;font-size:13px}
+.episode-git-manifest-blockers ul{margin:9px 0 0;padding-left:20px}
+.episode-git-manifest-blockers li{margin:5px 0}
+.episode-git-manifest>details{border:1px solid #416377;border-radius:8px;margin:10px 0;background:#092031}
+.episode-git-manifest>details>summary{cursor:pointer;padding:12px;font-size:13px;line-height:1.6}
+.episode-git-manifest-file{padding:9px 12px;display:flex;align-items:start;gap:9px;border-top:1px solid #36576d}
+.episode-git-manifest-file>span{display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}
+.episode-git-manifest-file strong{font-size:12px;color:#e0f5ff}
+.episode-git-manifest-file small{font-size:11px;color:#b3d2df;overflow-wrap:anywhere}
+.episode-git-manifest h5{font-size:15px;color:#f1faff;margin:20px 0 10px}
+.episode-git-manifest-shot{padding:12px 15px;border-top:1px solid #36596e}
+.episode-git-manifest-shot p{margin:8px 0}
+.episode-git-manifest-shot details{border:1px solid #2b566d;border-radius:7px;padding:8px;margin:9px 0}
+.episode-git-manifest-shot details summary{cursor:pointer}
+@media(max-width:700px){.episode-git-manifest{padding:11px}.episode-git-manifest-heading{flex-direction:column}}
