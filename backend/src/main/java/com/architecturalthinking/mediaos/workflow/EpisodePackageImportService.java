@@ -139,6 +139,7 @@ public class EpisodePackageImportService {
         int index=0;
         for(JsonNode shot:validated.document().path("shots")) {
             index++;
+            UUID shotId=UUID.randomUUID();
             jdbc.sql("""
                     insert into episode_package_shot(
                         id,package_id,shot_key,shot_index,title,
@@ -149,7 +150,7 @@ public class EpisodePackageImportService {
                         cast(:visual as jsonb),:seconds,'PENDING_VOICE'
                     )
                     """)
-                    .param("id",UUID.randomUUID())
+                    .param("id",shotId)
                     .param("package",id)
                     .param("key",shot.path("shotKey").asText())
                     .param("index",index)
@@ -158,6 +159,17 @@ public class EpisodePackageImportService {
                     .param("direction",shot.path("voiceDirection").asText())
                     .param("visual",canonicalJson(shot))
                     .param("seconds",shot.path("editorialDurationSeconds").asInt())
+                    .update();
+
+            jdbc.sql("""
+                    insert into episode_package_shot_revision(
+                        id,shot_id,revision,narration,voice_direction,actor_issuer,actor_subject
+                    ) values (:id,:shot,1,:narration,:direction,:issuer,:subject)
+                    """)
+                    .param("id",UUID.randomUUID()).param("shot",shotId)
+                    .param("narration",shot.path("narration").asText())
+                    .param("direction",shot.path("voiceDirection").asText())
+                    .param("issuer",director.issuer()).param("subject",director.subject())
                     .update();
         }
         return load(id,director);
