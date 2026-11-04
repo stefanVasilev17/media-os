@@ -402,6 +402,18 @@ public class EpisodeCodexCloudHandoffService {
                 - Existing review-required assets and %d unknown asset references must
                   be visibly proposed for the Director in the PR; never pretend they are
                   reviewed or silently import unknown symbols.
+                - For EACH ShotNNGeneratedScene.tsx export a NAMED React component
+                  exactly called ShotNNGeneratedScene (e.g. Shot01GeneratedScene).
+                  Accept FactorySceneProps from src/factory/FactoryRoot.tsx and
+                  consume its episodeKey, shotKey, durationInFrames and real
+                  verifiedCues. Keep all imports relative and episode-local where
+                  possible. Shared imports may only consume existing protected
+                  symbols. The build generates src/factory/generated-scene-registry.ts
+                  automatically from filename; never hand-edit that file.
+                - Before writing code inspect src/factory/FactoryRoot.tsx and
+                  remotion-engine/generate-factory-registry.mjs. Run npm run
+                  generate:factory, npm run typecheck (or documented baseline
+                  preflight), and npm run build:factory. Report actual results.
                 - Use the actual approved voice duration/frame count per SHOT and the
                   actual verified cue frame bounds. Do not invent provider timing.
                   Build living architecture maps, camera moves and coherent transitions
