@@ -62,6 +62,7 @@ public class EpisodeCodeWorkerBatchManifestService {
                                 String readinessFingerprint,String assetCatalogSha256,
                                 String repository,String allowedCodePath,
                                 String pinnedGitCommit,String productionDependencySha256,
+                                List<RemotionGitDependencyPinService.BlobEvidence> verifiedGitFiles,
                                 String productionInputSha256,String status,
                                 List<String> blockers,String proposalContractSchema,
                                 String codeWorkerTrustPolicy,
@@ -163,7 +164,7 @@ public class EpisodeCodeWorkerBatchManifestService {
                 job.readinessFingerprint(),planned.assetCatalogSha256(),
                 job.repository(),planned.allowedOutputPrefix(),
                 pinned.pinnedCommit(),pinned.productionDependencySha256(),
-                sha,status,List.copyOf(blockers),CONTRACT,TRUST_POLICY,
+                pinned.files(),sha,status,List.copyOf(blockers),CONTRACT,TRUST_POLICY,
                 false,false,List.copyOf(shotPrompts));
     }
 
