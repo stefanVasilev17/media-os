@@ -38,4 +38,5 @@ const content=[
 ].join('\n');
 await fs.mkdir(path.dirname(target),{recursive:true});
 await fs.writeFile(target,content,'utf8');
+await fs.writeFile(path.join(root,'factory-scenes.json'),JSON.stringify({sceneKeys:exported},null,2)+'\n','utf8');
 console.log('Factory scenes discovered:',exported.join(', ')||'none (Codex not configured)');
