@@ -1,5 +1,5 @@
-Explicit Episode Package Voice Studio v1 backend promotion · 2026-11-04.
-Java21 + Flyway V115 source-narration revisions, Director-only Voice Studio endpoints and frontend review.
-Existing ElevenLabs client only; new episode paid voice generation gate DEFAULT OFF, no paid TTS calls during build/deploy.
-Run Maven suite and frontend TypeScript/Vite production build; verify V115 startup before merging PR.
-Do not change EP001/EP002 creative locks, worker, GitHub Actions, OpenAI API, voice source audio, render jobs or other services.
+Explicit Episode Package Voice Studio v1 FINAL checked backend promotion · 2026-11-04.
+Final changes include real ElevenLabs provider character timestamp array validation and extra regression test.
+Rebuild latest pinned branch head with Java21 Maven full tests, TypeScript/Vite and Flyway V115 verification.
+Existing voice provider still server-gated OFF; absolutely no generated audio, provider dispatch or OpenAI calls.
+Do not modify protected EP001/EP002, Remotion Worker, GitHub Actions or code-generation permissions.
