@@ -27,7 +27,9 @@ public class RemotionGitDependencyPinService {
             "remotion-engine/src/design-system/tokens.ts",
             "remotion-engine/package.json",
             "remotion-engine/src/Root.tsx",
-            "remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx"
+            "remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx",
+            "remotion-engine/src/episodes/ep002/Shot01ReadablePhone.tsx",
+            "remotion-engine/tsconfig.json"
     );
 
     public record BlobEvidence(String path,String expectedHistoricalBlobSha,
