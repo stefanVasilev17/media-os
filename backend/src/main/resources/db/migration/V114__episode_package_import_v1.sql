@@ -6,6 +6,7 @@ create table episode_package_import (
     schema_version varchar(80) not null check (schema_version='mediaos.episode-package.v1'),
     source_file_name varchar(140) not null,
     source_sha256 char(64) not null,
+    original_source_text text not null,
     source_document jsonb not null,
     shot_count integer not null check (shot_count between 1 and 40),
     beat_count integer not null check (beat_count > 0),
