@@ -29,8 +29,12 @@ export function EpisodeSelectorPage() {
     <main className="media-os-page episode-hub episode-selector-quiet">
       <header className="episode-selector-header">
         <h1>Episodes</h1>
-        <button type="button" className="episode-selector-create"
-          onClick={() => { window.location.hash = '#/episodes/new'; }}>+ New Episode</button>
+        <div style={{display:'flex',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+          <button type="button" className="episode-selector-create"
+            onClick={() => { window.location.hash = '#/episode-packages/import'; }}>Import Episode Package</button>
+          <button type="button" className="episode-selector-create"
+            onClick={() => { window.location.hash = '#/episodes/new'; }}>+ New Episode</button>
+        </div>
       </header>
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
       {busy && <p className="episode-selector-message">Loading episodes…</p>}
