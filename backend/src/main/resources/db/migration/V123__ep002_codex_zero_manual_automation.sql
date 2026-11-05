@@ -3,7 +3,7 @@ create table ep002_codex_automation (
     request_id uuid not null unique,
     episode_key varchar(8) not null default 'EP002' check(episode_key='EP002'),
     input_fingerprint char(64) not null check(input_fingerprint ~ '^[a-f0-9]{64}$'),
-    max_shot_tasks integer not null default 10 check(max_shot_tasks between 1 and 10),
+    max_shot_tasks integer not null default 10 check(max_shot_tasks between 1 and 20),
     state varchar(40) not null default 'ARMED_WAITING_FOR_GATES'
         check(state in ('ARMED_WAITING_FOR_GATES','PAUSED')),
     driver varchar(24) not null default 'CODEX_CLOUD_CLI'
