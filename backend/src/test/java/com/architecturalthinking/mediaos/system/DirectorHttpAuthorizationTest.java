@@ -49,6 +49,12 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episodes/security-probe")
         String unreviewedEpisodeWrite() { return "should-not-run"; }
 
+        @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs")
+        String factoryCreate() { return "created"; }
+
+        @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
+        String factoryAction() { return "factory-action"; }
+
         @PostMapping("/api/v1/worker/runner/heartbeat")
         String worker() { return "worker"; }
 
@@ -119,6 +125,45 @@ class DirectorHttpAuthorizationTest {
     @Test
     void evenDirectorCannotWriteThroughAnUnreviewedApiRoute() throws Exception {
         mvc.perform(post("/api/v1/unreviewed").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void factoryMutationsRequireDirectorAndOnlyApprovedActionsAreReachable() throws Exception {
+        String base = "/api/v1/episode-packages/11111111-1111-4111-8111-111111111111"
+                + "/factory-production/runs";
+        String run = base + "/22222222-2222-4222-8222-222222222222";
+        String[] allowed = {
+                base,
+                run + "/verify-github",
+                run + "/feedback",
+                run + "/revision-pr",
+                run + "/queue-shots",
+                run + "/approve-shots",
+                run + "/queue-master",
+                run + "/queue-shorts",
+                run + "/approve-final"
+        };
+        for (String path : allowed) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_EDITOR"))))
+                    .andExpect(status().isForbidden());
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"))))
+                    .andExpect(status().isForbidden());
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(run + "/queue-shots-unsafe").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(run + "/delete-render").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(base + "/arbitrary").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
