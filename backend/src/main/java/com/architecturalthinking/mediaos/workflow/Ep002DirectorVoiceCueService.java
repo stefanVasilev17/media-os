@@ -164,8 +164,12 @@ public class Ep002DirectorVoiceCueService {
                         var type=mapper.getTypeFactory().constructCollectionType(
                                 List.class,Ep002VoiceBeatResolver.BeatCue.class);
                         List<Ep002VoiceBeatResolver.BeatCue> cues=mapper.readValue(framesJson,type);
+                        String canonical=mapper.writeValueAsString(cues);
+                        String cueDigest=Ep002ProductionContractService.sha256(
+                                shot+"|"+fingerprint+"|"+take.id()+"|"+canonical);
                         boolean verified=rs.getString("alignment_sha256").equals(
                                     Ep002ProductionContractService.sha256(take.alignment()))
+                                && rs.getString("cue_digest_sha256").equals(cueDigest)
                                 && source.measuredVoiceSeconds().compareTo(take.seconds())==0
                                 && cues.equals(Ep002VoiceBeatResolver.resolve(
                                     mapper,take.alignment(),take.seconds(),anchors,source.beatCount()));
