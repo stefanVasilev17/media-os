@@ -6,6 +6,7 @@ import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
+import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
@@ -29,6 +30,7 @@ if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
   throw new Error('MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN_NEXT_FILE must be an absolute path.');
 }
 const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
+const CLAIMS_ENABLED = shouldClaimRenderWork(process.env.MEDIA_OS_REMOTION_CLAIMS_ENABLED);
 let leaseClient;
 const workloadTokens = createWorkerTokenTransport(
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN,
@@ -728,7 +730,7 @@ async function render(job) {
 }
 
 async function main() {
-  console.log(`MediaOS Remotion CPU worker online: ${WORKER_ID} version=${WORKER_VERSION} renderConcurrency=${RENDER_CONCURRENCY}`);
+  console.log(`MediaOS Remotion CPU worker online: ${WORKER_ID} version=${WORKER_VERSION} renderConcurrency=${RENDER_CONCURRENCY} claimsEnabled=${CLAIMS_ENABLED}`);
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${CHROMIUM_PATH}`);
 
@@ -736,6 +738,10 @@ async function main() {
     let job = null;
     try {await publishFactoryCapability();}
     catch(error){console.warn('Factory capability heartbeat unavailable:',error.message);}
+    if (!CLAIMS_ENABLED) {
+      await sleep(POLL_MS);
+      continue;
+    }
     try {
       job = await claim();
       if (!job) {
