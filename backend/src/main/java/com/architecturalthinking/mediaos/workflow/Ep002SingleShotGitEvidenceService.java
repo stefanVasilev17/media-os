@@ -30,6 +30,45 @@ public class Ep002SingleShotGitEvidenceService {
         this.github=source;
     }
 
+    public record PolicyEvidence(boolean verified,String mainCommit,
+                                 String policyDigest,List<String> blockers) {}
+
+    public PolicyEvidence verifyCurrentPolicy() {
+        try {
+            String main=github.fetch(API+"/branches/main")
+                    .path("commit").path("sha").asText("");
+            if(!isSha(main))
+                return new PolicyEvidence(false,null,null,List.of("NO_TRUSTED_MAIN_COMMIT"));
+            List<String> blobs=new ArrayList<>();
+            for(var entry:Ep002SequentialVisualPreflightService.RULES.subList(0,4)) {
+                JsonNode record=github.fetch(
+                        API+"/contents/"+entry.path()+"?ref="+main);
+                String sha=record.path("sha").asText("");
+                if(!"file".equals(record.path("type").asText())
+                        || !entry.path().equals(record.path("path").asText())
+                        || !isSha(sha))
+                    return new PolicyEvidence(false,null,null,
+                            List.of("REQUIRED_POLICY_DOCUMENT_MISSING_ON_PINNED_MAIN"));
+                blobs.add(entry.path()+"="+sha);
+            }
+            String finalMain=github.fetch(API+"/branches/main")
+                    .path("commit").path("sha").asText("");
+            if(!main.equals(finalMain))
+                return new PolicyEvidence(false,null,null,
+                        List.of("GITHUB_MAIN_MOVED_DURING_POLICY_READ"));
+            return new PolicyEvidence(true,main,
+                    EpisodePackageValidator.sha256(
+                            "EP002_VISUAL_POLICY_V1|"+String.join("|",blobs)),List.of());
+        }catch(InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            return new PolicyEvidence(false,null,null,
+                    List.of("GITHUB_POLICY_READ_INTERRUPTED"));
+        }catch(IOException | RuntimeException problem) {
+            return new PolicyEvidence(false,null,null,
+                    List.of("PRIVATE_GITHUB_POLICY_VERIFICATION_UNAVAILABLE"));
+        }
+    }
+
     public Evidence verify(String shotKey,int prNumber) {
         if(shotKey==null || !shotKey.matches("SHOT(0[2-9]|1[01])")
                 || prNumber<1 || prNumber>1000000)
