@@ -5,7 +5,18 @@
 > **Status class:** verified repository/deployment facts + explicitly labeled Director reports; not an automatically refreshed live dashboard.  
 > **How to use:** read this file, then `AGENTS.md`, the latest linked roadmap/handoff, and verify live GitHub/Railway evidence **before** modifying code. A newer merged PR or deployment can supersede this snapshot.
 
-## V120 release checkpoint — 2026-11-05 (IN PROGRESS; NOT DEPLOYED)
+## V120 production rollout — verified backend; worker release in progress (2026-11-05)
+
+**Live verified:** [PR #176](https://github.com/stefanVasilev17/media-os/pull/176) merged into `main` at `854a25efb0c8cfc9b58071566be59545a3459d99`. [PR #182](https://github.com/stefanVasilev17/media-os/pull/182) changes **only** the explicit Railway release marker; latest production source commit `be56952a85d62082003523ad58d23e055f08165f`.
+
+- **Backend SUCCESS / ONLINE:** Railway deployment `8aaa4dd3-7f83-43a8-9cf7-07825eb05bdc` from exact `main` source `be56952...`; SHA-bound pre-deploy approval PASS, Spring Boot 3.5.6/Java21 starts, port 8080; prod PostgreSQL 18.6 **Flyway V120 validated**, current schema version 120, **1/1 running**, **0 warnings, 0 critical** at check. Full application-context startup no longer fails; existing V119 deployment remains historical rollback fallback, not current.
+- **Release tests:** prior guarded source code builds Java21 Maven **377 tests, 0 failed, 0 errors, 1 skipped** with disposable PostgreSQL 16, all Flyway 120 migrations applied/validated, V85 protected legacy upgrade PASS, JWT Director factory route and Factory callback regression PASS, frontend TypeScript/Vite PASS. Independent Railway release build image reused same application source; release marker is text only.
+- **Worker / media:** new V120 Worker release from the same SHA was initiated separately (deployment `8dd051d8-db5b-4c49-8bf4-6a9a80eccd4e`), but at this checkpoint not marked SUCCESS. Older V120 worker `92cfc774-5bc3-4666-888d-d4b31e8364b2` remains ONLINE and has reported HTTP 401 on factory-capability / scoped credential lease renewal. Backend and Worker matching SHA/live auth acceptance must be verified before declaring factory infrastructure ready.
+- **External real acceptance still needed:** No EP003+ current-voice complete code-scoped Codex PR or rendered whole episode is proven. Private GitHub read-only `MEDIA_OS_GITHUB_READ_TOKEN` still not configured; ChatGPT GitHub connector is not a Railway credential. Codex Cloud publication remains blocked. No authorized new object storage for a large 1080p Master; existing per-render PostgreSQL MP4 cap 256MB. Existing worker Node installs report 10 high severity npm audit advisories not yet triaged. Explicit separately bounded Director CPU/TTS/API confirmation remains mandatory. The historical 2026-11-03 UNCERTAIN ElevenLabs alignment attempt stays frozen; protect EP001/EP002 and no Github Actions or auto YouTube publishing.
+- **NEXT:** Confirm new worker deployment PASS with source SHA equal to backend, inspect worker lease and factory-capability authenticated response; troubleshoot HTTP401 without exposing, rotating or recreating secrets without authorization. Then browser Director QA with real approved EP003+ inputs, external GitHub scoped read access, long-form storage and separately approved media render tests. Historical lines below reflect earlier checkpoints and may reference V119 production as of their dates.
+
+
+## V120 release checkpoint — 2026-11-05 (historical pre-deployment verification)
 
 ### V120 production startup and Factory callback release gates — 2026-11-05
 
