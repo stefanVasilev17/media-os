@@ -86,12 +86,17 @@ public class CodexCloudCliGateway {
         try {
             ProcessBuilder builder=new ProcessBuilder(new ArrayList<>(args))
                     .directory(checkout.toFile()).redirectErrorStream(true);
-            // This dispatcher is subscription-authenticated only.
-            // Never inherit pay-per-token API keys into the Codex child process.
+            // The Codex process must never inherit backend database, Railway,
+            // ElevenLabs, OAuth-client, or token-bearing application secrets.
+            Map<String,String> inherited=System.getenv();
             Map<String,String> env=builder.environment();
-            env.remove("OPENAI_API_KEY");
-            env.remove("OPENAI_ORG_ID");
-            env.remove("OPENAI_PROJECT_ID");
+            env.clear();
+            for(String safe:List.of("PATH","HOME","USER","LANG",
+                    "LC_ALL","XDG_CONFIG_HOME","XDG_DATA_HOME","CODEX_HOME")) {
+                String value=inherited.get(safe);
+                if(value!=null && !value.isBlank())env.put(safe,value);
+            }
+            env.put("CI","1");
             process=builder.start();
             Process running=process;
             ByteArrayOutputStream buffer=new ByteArrayOutputStream();
