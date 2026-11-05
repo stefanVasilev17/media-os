@@ -14,10 +14,20 @@ COPY --from=frontend-build /frontend/dist ./src/main/resources/static
 RUN date -u +"%Y-%m-%dT%H:%M:%SZ" > src/main/resources/media-os-build-time.txt
 RUN MAVEN_OPTS="-Xmx768m -XX:MaxMetaspaceSize=320m" mvn -B package
 
+FROM backend-build AS postgres-verification
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql postgresql-client && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    service postgresql start; \
+    runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE USER media_os WITH LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb --owner=media_os media_os; \
+    PGPASSWORD=media_os psql -h 127.0.0.1 -U media_os -d media_os -c "SELECT 1"; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os MAVEN_OPTS="-Xmx640m -XX:MaxMetaspaceSize=320m" mvn -B test; \
+    service postgresql stop
+
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 RUN apk add --no-cache nodejs chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium setpriv
-COPY --from=backend-build /backend/target/media-os-0.1.0-SNAPSHOT.jar app.jar
+COPY --from=postgres-verification /backend/target/media-os-0.1.0-SNAPSHOT.jar app.jar
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/docker-entrypoint.sh /app/chromium-software-webgl.sh
