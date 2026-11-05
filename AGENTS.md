@@ -2,6 +2,14 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## Newest Director requirement — zero manual Codex prompting (2026-11-06)
+
+The final MediaOS product MUST launch and monitor Remotion coding tasks for each ready SHOT **without the Director copying/pasting prompts, opening Codex Cloud to enter instructions, supplying task IDs or moving generated files manually**. Director interacts only with genuine creative, voice, permission/cost and visual-review approvals. Whole-episode planning remains once; Remotion CODE DELIVERY remains one SHOT at a time with strict visual policy and corrections. Codex plan allowances must not be wasted on backend, React, SQL or status checks.
+
+**Feasibility is a release blocker, not an assumed capability:** a scriptable `codex cloud exec` exists but new-generation Codex Cloud environment discovery/dispatch has had reported compatibility gaps. Do not use undocumented ChatGPT internal APIs, export/copy account tokens, scrape browser cookies or claim a generic API key uses plan quota. A potential fallback is an authorized Codex app-server running on a managed cloud worker with official Sign in with ChatGPT plan OAuth; for a remotely hosted application, verify eligibility, registration and consent requirements first. **Codex app-server on a hosted worker is not the same service as Codex Cloud.** If no supported and approved subscription-backed path is available, block execution and report the exact integration limitation rather than shifting manual work to the Director or charging the paid API without approval. No silent Codex usage, render, merge or deployment.
+
+Target: MediaOS verifies a complete current voice/cue/policy/asset bundle → sends exactly one idempotent scoped Remotion task via a supported authorized connector → monitors real lifecycle and narrow PR → verifies build/actual video → Director reviews → advances automatically only after verified acceptance. A task being prepared is not a task started; the current product does NOT yet implement or validate such dispatch.
+
 ## Newer Director decision — Codex visual memory + sequential SHOT implementation (2026-11-05)
 
 **Applies before ANY Remotion / Codex visual scene code.** Read the versioned repo visual authority in order:
