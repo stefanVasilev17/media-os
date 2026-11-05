@@ -55,6 +55,9 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02")
+        String voiceCueReview() { return "director-reviewed"; }
+
         @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
         String ep002CodexAutomation() { return "authorized"; }
 
@@ -175,6 +178,18 @@ class DirectorHttpAuthorizationTest {
         mvc.perform(post(base + "/arbitrary").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void approvedEp002VoiceCueReviewsRequireRealDirectorRole() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
     }
 
     @Test
