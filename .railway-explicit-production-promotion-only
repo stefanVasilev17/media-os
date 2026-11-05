@@ -16,3 +16,5 @@ V120 isolated PostgreSQL release gate (2026-11-05): require all database-enabled
 CI retry (2026-11-05): upgrade and voice ledger tests now require V106 historical invariants, not obsolete exact-latest V106; rerun isolated V120 PostgreSQL suite. Pre-deploy STOP remains active; no prod migration or media spend.
 
 Director-approved V120 production backend release (2026-11-05): after guarded isolated PostgreSQL 16.15 373-test PASS (0 failed/errors, 1 skipped), 120 Flyway migrations and V85->V120 protected-data upgrade PASS, permit ONE monitored V120 backend promotion. Keep provider OpenAI/ElevenLabs dispatch OFF, do not queue video CPU, do not touch recovery bucket, no GitHub Actions. V119 remains rollback image; production Flyway is additive (no destructive changes). Must verify health, V120 migration, and worker authentication before shipping.
+
+V120 full Spring Boot application context isolated PG validation (2026-11-05): verify actual startup Git audit bean constructor, all V120 components and scoped authentication; STOP before production promotion. Prior V120 migration already added to production; V119 remains live.
