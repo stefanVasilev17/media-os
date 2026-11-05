@@ -168,6 +168,29 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void approvedVoiceCueReviewUsesRealDirectorPreflightWithoutCrossEpisodeSpoofing() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+
+        MockHttpServletRequest legitimate=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02");
+        MockHttpServletResponse accepted=new MockHttpServletResponse();
+        MockFilterChain chain=new MockFilterChain();
+        filter.doFilter(legitimate,accepted,chain);
+        assertThat(chain.getRequest()).isSameAs(legitimate);
+        assertThat(accepted.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+
+        MockHttpServletRequest forged=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02");
+        forged.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+        MockHttpServletResponse rejected=new MockHttpServletResponse();
+        filter.doFilter(forged,rejected,new MockFilterChain());
+        assertThat(rejected.getStatus()).isEqualTo(409);
+    }
+
+    @Test
     void codexAutomationRequiresRealAuditedProjectContextAndRejectsEpisodeSpoofing() throws Exception {
         when(memory.hasSingleEpisode()).thenReturn(false);
         UUID audit=UUID.randomUUID();
