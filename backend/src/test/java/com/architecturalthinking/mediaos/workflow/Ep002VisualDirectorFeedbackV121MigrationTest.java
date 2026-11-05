@@ -61,6 +61,16 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
                     .param("table","public."+name).query(String.class).single();
             assertEquals(name,actual);
         }
+        Boolean realCueMigration=jdbc.sql("""
+                select exists(select 1 from flyway_schema_history
+                              where version='124' and success=true)
+                """).query(Boolean.class).single();
+        assertTrue(Boolean.TRUE.equals(realCueMigration),
+                "Director-reviewed actual HEAR-to-SEE timing migration must be applied.");
+        String cues=jdbc.sql(
+                "select to_regclass('public.ep002_director_voice_cue_review')::text")
+                .query(String.class).single();
+        assertEquals("ep002_director_voice_cue_review",cues);
         flyway.validate();
     }
 }
