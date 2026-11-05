@@ -21,7 +21,7 @@ create table ep002_visual_shot_acceptance (
     director_subject text not null,
     preflight_audit_id uuid not null,
     created_at timestamptz not null default now(),
-    unique(shot_key,episode_input_fingerprint)
+    unique(shot_key,episode_input_fingerprint,remotion_render_id)
 );
 
 create index ep002_visual_acceptance_current
