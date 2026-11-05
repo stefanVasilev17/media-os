@@ -195,7 +195,7 @@ class DirectorHttpAuthorizationTest {
     @Test
     void automaticCodexWritesRequireDirectorAndOnlyExactApprovedActions() throws Exception {
         String base="/api/v1/creative/episodes/EP002/codex-automation/";
-        for(String action:new String[]{"arm","pause"}) {
+        for(String action:new String[]{"arm","pause","resume"}) {
             String path=base+action;
             mvc.perform(post(path).with(
                     jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
