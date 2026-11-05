@@ -67,8 +67,14 @@ public class Ep002SequentialVisualPreflightService {
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Preflight preview() {
-        var actor=DirectorIdentity.requireDirector();
-        var source=bridge.preview();
+        return snapshotForRegisteredDirector(DirectorIdentity.requireDirector());
+    }
+
+    Preflight snapshotForRegisteredDirector(DirectorIdentity.Actor actor) {
+        if(actor==null || actor.issuer()==null || actor.issuer().isBlank()
+                || actor.subject()==null || actor.subject().isBlank())
+            throw conflict("No previously authorized Director identity for the automation.");
+        var source=bridge.snapshot();
         Set<String> accepted=new HashSet<>();
         accepted.add("SHOT01");
         List<String> verified=jdbc.sql("""
