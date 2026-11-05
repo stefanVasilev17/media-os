@@ -168,6 +168,31 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void codexAutomationRequiresRealAuditedProjectContextAndRejectsEpisodeSpoofing() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+
+        for(String action:new String[]{"arm","pause"}) {
+            MockHttpServletRequest legitimate=new MockHttpServletRequest(
+                    "POST","/api/v1/creative/episodes/EP002/codex-automation/"+action);
+            MockHttpServletResponse response=new MockHttpServletResponse();
+            MockFilterChain chain=new MockFilterChain();
+            filter.doFilter(legitimate,response,chain);
+            assertThat(chain.getRequest()).isSameAs(legitimate);
+            assertThat(response.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+
+            MockHttpServletRequest forged=new MockHttpServletRequest(
+                    "POST","/api/v1/creative/episodes/EP002/codex-automation/"+action);
+            forged.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+            MockHttpServletResponse denied=new MockHttpServletResponse();
+            filter.doFilter(forged,denied,new MockFilterChain());
+            assertThat(denied.getStatus()).isEqualTo(409);
+        }
+    }
+
+    @Test
     void ep002VisualFeedbackReceivesProjectAuditedPreflightEvenWithMultipleEpisodes() throws Exception {
         when(memory.hasSingleEpisode()).thenReturn(false);
         UUID audit=UUID.randomUUID();
