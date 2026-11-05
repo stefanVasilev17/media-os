@@ -22,12 +22,13 @@ create unique index ep002_codex_one_armed_director
 create table ep002_codex_automation_task (
     id uuid primary key,
     automation_id uuid not null references ep002_codex_automation(id),
+    episode_key varchar(8) not null default 'EP002' check(episode_key='EP002'),
     shot_key varchar(6) not null check(shot_key ~ '^SHOT(0[2-9]|1[01])$'),
     input_fingerprint char(64) not null check(input_fingerprint ~ '^[a-f0-9]{64}$'),
     task_input_sha256 char(64) not null check(task_input_sha256 ~ '^[a-f0-9]{64}$'),
     state varchar(30) not null default 'PENDING'
         check(state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED',
-            'REMOTE_UNKNOWN','REMOTE_FAILED','CANCELLED')),
+            'REMOTE_UNKNOWN','REMOTE_FAILED','COMPLETE_ACCEPTED','CANCELLED')),
     remote_task_id varchar(160),
     remote_task_url text,
     submitted_at timestamptz,
@@ -37,6 +38,9 @@ create table ep002_codex_automation_task (
 );
 create unique index ep002_codex_one_live_task_per_automation
     on ep002_codex_automation_task(automation_id)
+    where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN');
+create unique index ep002_codex_one_live_task_per_episode
+    on ep002_codex_automation_task(episode_key)
     where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN');
 create index ep002_codex_task_status
     on ep002_codex_automation_task(automation_id,created_at desc);
