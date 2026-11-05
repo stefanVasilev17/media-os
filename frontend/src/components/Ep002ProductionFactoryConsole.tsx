@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {BookOpenCheck,Clapperboard,Film,Layers3,MessageSquareText,ShieldCheck} from 'lucide-react';
 import {Ep002EpisodeBatchPlanPanel} from './Ep002EpisodeBatchPlanPanel';
+import {Ep002DirectorVoiceCuePanel} from './Ep002DirectorVoiceCuePanel';
 import {Ep002FactoryReadinessBridgePanel} from './Ep002FactoryReadinessBridgePanel';
 import {Ep002SequentialVisualPreflightPanel} from './Ep002SequentialVisualPreflightPanel';
 import {Ep002CodexAutomationPanel} from './Ep002CodexAutomationPanel';
@@ -70,6 +71,7 @@ export function Ep002ProductionFactoryConsole(){
     {stage==='VOICE'&&<>
       <Ep002EpisodeBatchPlanPanel/>
       <Ep002FactoryReadinessBridgePanel/>
+      <Ep002DirectorVoiceCuePanel/>
     </>}
     {stage==='CODEX'&&<><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
     {stage==='CORRECTIONS'&&<Ep002VisualDirectorFeedbackPanel/>}
