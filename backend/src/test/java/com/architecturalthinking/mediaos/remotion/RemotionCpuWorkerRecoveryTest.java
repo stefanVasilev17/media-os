@@ -57,7 +57,7 @@ class RemotionCpuWorkerRecoveryTest {
 
             var controller = new RemotionCpuWorkerController(
                     jdbc, new ObjectMapper(), mock(StorageHealthService.class), "qa-worker-key");
-            controller.claim("qa-worker-key", "qa-worker-new");
+            controller.claim("qa-worker-key", "qa-worker-new", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
 
             String status = jdbc.sql("select status from remotion_render where id=:id")
                     .param("id", expired).query(String.class).single();
