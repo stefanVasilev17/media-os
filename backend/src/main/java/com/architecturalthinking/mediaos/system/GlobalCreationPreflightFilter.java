@@ -304,7 +304,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
-                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/pause")) {
+                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/pause")
+                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/resume")) {
             if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "EP002 creative feedback uses the project audit identity, not another episode UUID.");
