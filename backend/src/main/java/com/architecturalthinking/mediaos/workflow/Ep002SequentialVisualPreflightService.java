@@ -131,7 +131,6 @@ public class Ep002SequentialVisualPreflightService {
                 &&!source.blockers().contains("UNRESOLVED_PAID_VOICE_REQUESTS")
                 &&proof.verified();
         List<String> blockers=new ArrayList<>(current.blockers());
-        blockers.remove("SEQUENTIAL_DIRECTOR_ACCEPTANCE_STORAGE_AND_GATE_NOT_YET_IMPLEMENTED");
         if(proof.verified())
             blockers.remove("VERSIONED_VISUAL_POLICY_AND_LEDGER_GIT_SHA_NOT_YET_VERIFIED");
         else blockers.addAll(proof.blockers());
@@ -213,8 +212,7 @@ public class Ep002SequentialVisualPreflightService {
         if (candidate != null && !candidate.blockers().isEmpty())
             blockers.add("NEXT_SHOT_HAS_UNRESOLVED_SOURCE_OR_VOICE_BLOCKERS");
         blockers.add("VERSIONED_VISUAL_POLICY_AND_LEDGER_GIT_SHA_NOT_YET_VERIFIED");
-        blockers.add("SEQUENTIAL_DIRECTOR_ACCEPTANCE_STORAGE_AND_GATE_NOT_YET_IMPLEMENTED");
-        blockers.add("EP002_SINGLE_SHOT_CLOUD_PR_AUDIT_AND_WORKER_ROUTE_NOT_YET_IMPLEMENTED");
+        blockers.add("EP002_RENDER_WORKER_AND_FINAL_ASSEMBLY_NOT_CONNECTED");
 
         NextShot target = candidate == null ? null : new NextShot(
                 candidate.shotKey(), candidate.title(), candidate.beatCount(),
