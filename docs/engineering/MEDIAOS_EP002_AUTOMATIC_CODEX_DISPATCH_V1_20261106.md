@@ -43,6 +43,10 @@ Flyway `V123__ep002_codex_zero_manual_automation.sql` creates an episode-bound D
 - Manual task entry is not an accepted fallback. Missing official integration is a **product blocker**. Director corrections remain review-only until a rendered fix is accepted.
 - The configured scheduler catches and logs only failure categories, never narration, tokens or account credentials.
 
+## Additional V124 voice-readiness implementation (code only)
+
+The `ep002_director_voice_cue_review` table retains immutable Director-reviewed spoken phrases, real 30fps cue frames, selected current Take/working narration hash, actual ElevenLabs alignment digest and audited actor. `Ep002VoiceBeatResolver` refuses missing, repeated, backwards or out-of-audio quotes; `Ep002FactoryReadinessBridgeService.snapshot` now reads these receipts and only increments real verified SHOT counters when source, selected Take, duration, alignment and frame digests match. The all-episode plan still requires **11/11 real timed SHOTs**, while target Codex tasks carry exactly the current SHOT cue frames. The Visual Policy source fetch pins all required repository documents to the same current Git main commit. Scheduler's remote CLI observations are kept distinct from actual GitHub PR evidence. The UI includes a per-SHOT voice cue review and a resumed-autopilot action. All this remains **uncompiled/unproven** until independent tests and real Director/audio data verify it.
+
 ## Tests and real operational blockers
 
 Test source now includes bounded consent, disabled adapter no-submission, command arguments and unsafe input rejection, Director exact write authorization, preflight audit and anti-cross-episode header handling, and Flyway V123 table verification in isolated PostgreSQL. **Tests NOT executed**: private repo Maven/Node/Postgres runner is unavailable through current connected GitHub tool; GitHub Actions remain disabled.
