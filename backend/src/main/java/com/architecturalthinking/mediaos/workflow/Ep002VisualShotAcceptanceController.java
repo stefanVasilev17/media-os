@@ -13,13 +13,31 @@ import java.util.UUID;
 @RequestMapping("/api/v1/creative/episodes/EP002/visual-approvals")
 public class Ep002VisualShotAcceptanceController {
     private final Ep002VisualShotAcceptanceService service;
-    public Ep002VisualShotAcceptanceController(Ep002VisualShotAcceptanceService service) {
+    private final Ep002SequentialVisualPreflightService sequence;
+    private final Ep002SingleShotGitEvidenceService github;
+
+    public Ep002VisualShotAcceptanceController(
+            Ep002VisualShotAcceptanceService service,
+            Ep002SequentialVisualPreflightService sequence,
+            Ep002SingleShotGitEvidenceService github) {
         this.service=service;
+        this.sequence=sequence;
+        this.github=github;
     }
 
     @GetMapping
     public List<Ep002VisualShotAcceptanceService.Receipt> list() {
         return service.list();
+    }
+
+    @GetMapping("/source-evidence")
+    public Ep002SingleShotGitEvidenceService.Evidence sourceEvidence(
+            @RequestParam int prNumber) {
+        var state=sequence.preview();
+        if(state.candidate()==null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No next unaccepted SHOT for source verification.");
+        return github.verify(state.nextShotKey(),prNumber);
     }
 
     @PostMapping
