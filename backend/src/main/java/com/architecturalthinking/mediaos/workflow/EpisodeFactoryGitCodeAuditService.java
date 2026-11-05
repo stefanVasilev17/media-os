@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.workflow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ public class EpisodeFactoryGitCodeAuditService {
         JsonNode fetch(String path) throws IOException, InterruptedException;
     }
 
+    @Autowired
     public EpisodeFactoryGitCodeAuditService(ObjectMapper mapper) {
         this.github = new LiveGitHubJsonRead(mapper);
     }
