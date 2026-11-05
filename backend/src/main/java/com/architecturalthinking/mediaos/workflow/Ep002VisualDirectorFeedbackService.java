@@ -47,7 +47,7 @@ public class Ep002VisualDirectorFeedbackService {
                 || !input.shotKey().matches("SHOT(0[2-9]|1[01])")
                 || input.expectedEpisodeFingerprint()==null
                 || !input.expectedEpisodeFingerprint().matches("[a-f0-9]{64}")
-                || !CHANGE_AREAS.contains(input.changeArea())
+                || input.changeArea()==null || !CHANGE_AREAS.contains(input.changeArea())
                 || input.problemObserved()==null
                 || input.problemObserved().trim().length()<12
                 || input.problemObserved().trim().length()>2000
