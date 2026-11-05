@@ -47,6 +47,7 @@ public class Ep002CodexAutomationService {
     public record PauseRequest(String expectedEpisodeFingerprint,Boolean confirmPause) {}
     public record ResumeRequest(String expectedEpisodeFingerprint,Boolean confirmResume) {}
     public record TaskReceipt(String shotKey,String state,String remoteTaskId,
+                              String remoteTaskStatus,String remoteTaskUrl,
                               String taskInputSha256,String createdAt) {}
     public record Status(String mode,String episodeFingerprint,String nextShotKey,
                          boolean readyForCodex,boolean cloudWorkerEnabled,
@@ -75,12 +76,14 @@ public class Ep002CodexAutomationService {
             return new Status("NOT_ARMED",current.inputFingerprint(),current.nextShotKey(),
                     current.readyForCodex(),false,0,0,current.blockers(),List.of());
         List<TaskReceipt> tasks=jdbc.sql("""
-                select shot_key,state,remote_task_id,task_input_sha256,created_at::text
+                select shot_key,state,remote_task_id,remote_task_status,
+                       remote_task_url,task_input_sha256,created_at::text
                   from ep002_codex_automation_task
                  where automation_id=:id order by created_at desc,id desc limit 50
                 """).param("id",enrolled.id()).query((rs,n)->new TaskReceipt(
                         rs.getString("shot_key"),rs.getString("state"),
-                        rs.getString("remote_task_id"),rs.getString("task_input_sha256"),
+                        rs.getString("remote_task_id"),rs.getString("remote_task_status"),
+                        rs.getString("remote_task_url"),rs.getString("task_input_sha256"),
                         rs.getString("created_at"))).list();
         boolean matching=enrolled.fingerprint().equals(current.inputFingerprint());
         boolean worker=dispatchEnabled && matching
@@ -187,12 +190,36 @@ public class Ep002CodexAutomationService {
                 .list();
         for(Enrollment entry:active) {
             try {
+                monitorRemoteTask(entry);
                 tick(entry);
             } catch(Exception failed) {
                 LOGGER.warn("EP002 Codex automation safely stopped for recorded Director "
                         +"authorization; failureCategory={}",failed.getClass().getSimpleName());
             }
         }
+    }
+
+    private void monitorRemoteTask(Enrollment entry) {
+        String taskId=jdbc.sql("""
+                select remote_task_id from ep002_codex_automation_task
+                 where automation_id=:id and state='REMOTE_CREATED'
+                   and remote_task_id is not null
+                 order by created_at desc limit 1
+                """).param("id",entry.id()).query(String.class)
+                .optional().orElse(null);
+        if(taskId==null)return;
+        CodexCloudCliGateway.RemoteTaskStatus observed=cloud.inspect(taskId);
+        if(!observed.verified())return;
+        jdbc.sql("""
+                update ep002_codex_automation_task
+                   set remote_task_status=:status,remote_task_url=:url,
+                       last_remote_check_at=now(),updated_at=now()
+                 where automation_id=:automation and remote_task_id=:task
+                   and state='REMOTE_CREATED'
+                """)
+                .param("status",observed.cloudStatus())
+                .param("url",observed.url()).param("automation",entry.id())
+                .param("task",taskId).update();
     }
 
     private void tick(Enrollment enrollment) {
