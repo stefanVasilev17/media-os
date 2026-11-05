@@ -49,6 +49,18 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
                 "select to_regclass('public.ep002_visual_shot_acceptance')::text")
                 .query(String.class).single();
         assertEquals("ep002_visual_shot_acceptance",approvals);
+        Boolean codexAutomationApplied=jdbc.sql("""
+                select exists(select 1 from flyway_schema_history
+                              where version='123' and success=true)
+                """).query(Boolean.class).single();
+        assertTrue(Boolean.TRUE.equals(codexAutomationApplied),
+                "Persistent Codex automation queue migration V123 must apply.");
+        for(String name: new String[]{"ep002_codex_automation",
+                                     "ep002_codex_automation_task"}) {
+            String actual=jdbc.sql("select to_regclass(:table)::text")
+                    .param("table","public."+name).query(String.class).single();
+            assertEquals(name,actual);
+        }
         flyway.validate();
     }
 }
