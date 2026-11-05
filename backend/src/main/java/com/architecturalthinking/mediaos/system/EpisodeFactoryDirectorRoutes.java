@@ -7,6 +7,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/creative/episodes/EP002/voice-cue-review/{shotKey}",
             "/api/v1/creative/episodes/EP002/codex-automation/arm",
             "/api/v1/creative/episodes/EP002/codex-automation/pause",
+            "/api/v1/creative/episodes/EP002/codex-automation/resume",
             "/api/v1/episode-packages/{packageId}/factory-production/runs",
             "/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/verify-github",
             "/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/feedback",
