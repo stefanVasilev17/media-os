@@ -56,9 +56,7 @@ class DirectorHttpAuthorizationTest {
         String factoryAction() { return "factory-action"; }
 
         @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
-        String ep002CodexAutomation(@PathVariable String action) {
-            return "authorized-"+action;
-        }
+        String ep002CodexAutomation() { return "authorized"; }
 
         @PostMapping("/api/v1/creative/episodes/EP002/visual-approvals")
         String ep002VisualApproval() { return "reviewed"; }
