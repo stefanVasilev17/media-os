@@ -33,11 +33,14 @@ public class Ep002SequentialVisualPreflightService {
 
     private final Ep002FactoryReadinessBridgeService bridge;
     private final JdbcClient jdbc;
+    private final Ep002SingleShotGitEvidenceService github;
 
     public Ep002SequentialVisualPreflightService(
-            Ep002FactoryReadinessBridgeService bridge,JdbcClient jdbc) {
+            Ep002FactoryReadinessBridgeService bridge,JdbcClient jdbc,
+            Ep002SingleShotGitEvidenceService github) {
         this.bridge = bridge;
         this.jdbc = jdbc;
+        this.github = github;
     }
 
     public record RuleFile(String path, String role) {}
@@ -50,7 +53,8 @@ public class Ep002SequentialVisualPreflightService {
             String shotKey, String title, int beatCount, String codeDestination,
             int narrationRevision, String narrationSha256, String approvedTakeId,
             Integer durationInFrames, String cameraDirection, String visualGoal,
-            String continuity, JsonNode approvedVisualStory
+            String continuity, JsonNode approvedVisualStory,
+            JsonNode verifiedCueFrames
     ) {}
 
     public record Preflight(
@@ -62,7 +66,8 @@ public class Ep002SequentialVisualPreflightService {
             List<RecordedCorrection> currentDirectorNotes,
             List<String> blockers, boolean latestPolicyGitVerified,
             boolean realCueFramesVerified, boolean readyForCodex,
-            boolean startsCodex, boolean startsRender, String executableCodexPrompt
+            boolean startsCodex, boolean startsRender, String executableCodexPrompt,
+            String pinnedMainCommit, String verifiedPolicyDigest
     ) {}
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -113,15 +118,32 @@ public class Ep002SequentialVisualPreflightService {
                         rs.getString("problem_observed"),
                         rs.getString("requested_correction"),
                         rs.getString("created_at"))).list();
+        Ep002SingleShotGitEvidenceService.PolicyEvidence proof=
+                current.realCueFramesVerified()&&current.candidate().verifiedCueFrames()!=null
+                        ?github.verifyCurrentPolicy()
+                        :new Ep002SingleShotGitEvidenceService.PolicyEvidence(
+                                false,null,null,List.of("VERIFY_VOICE_BEFORE_GITHUB_POLICY"));
+        boolean ready=current.realCueFramesVerified()
+                &&current.candidate().approvedTakeId()!=null
+                &&current.candidate().durationInFrames()!=null
+                &&current.candidate().verifiedCueFrames()!=null
+                &&source.selectedVoiceTakes()==11&&source.measuredVoiceTakes()==11
+                &&!source.blockers().contains("UNRESOLVED_PAID_VOICE_REQUESTS")
+                &&proof.verified();
+        List<String> blockers=new ArrayList<>(current.blockers());
+        blockers.remove("SEQUENTIAL_DIRECTOR_ACCEPTANCE_STORAGE_AND_GATE_NOT_YET_IMPLEMENTED");
+        if(proof.verified())
+            blockers.remove("VERSIONED_VISUAL_POLICY_AND_LEDGER_GIT_SHA_NOT_YET_VERIFIED");
+        else blockers.addAll(proof.blockers());
         return new Preflight(current.schemaVersion(),current.episodeKey(),
-                current.inputFingerprint(),current.status(),current.nextShotKey(),
+                current.inputFingerprint(),
+                ready?"NEXT_REMOTION_SHOT_CODE_READY":current.status(),current.nextShotKey(),
                 current.previousAcceptedShotKey(),current.followingShotKey(),
                 current.protectedShot01Path(),current.acceptedSceneCount(),
                 current.remainingSceneCount(),current.candidate(),
-                current.mandatoryRuleFiles(),List.copyOf(notes),current.blockers(),
-                current.latestPolicyGitVerified(),current.realCueFramesVerified(),
-                current.readyForCodex(),current.startsCodex(),current.startsRender(),
-                current.executableCodexPrompt());
+                current.mandatoryRuleFiles(),List.copyOf(notes),List.copyOf(blockers),
+                proof.verified(),current.realCueFramesVerified(),
+                ready,false,false,null,proof.mainCommit(),proof.policyDigest());
     }
 
     static Preflight project(Ep002FactoryReadinessBridgeService.Snapshot snapshot,
@@ -202,7 +224,8 @@ public class Ep002SequentialVisualPreflightService {
                 candidate.approvedVisualStory().path("cameraDirection").asText(),
                 candidate.approvedVisualStory().path("visualGoal").asText(),
                 candidate.approvedVisualStory().path("truthContinuity").asText(),
-                candidate.approvedVisualStory().deepCopy());
+                candidate.approvedVisualStory().deepCopy(),
+                candidate.verifiedCueFrames()==null?null:candidate.verifiedCueFrames().deepCopy());
 
         String state = target == null ? "AWAITING_EPISODE_ASSEMBLY_QA"
                 : "SINGLE_SHOT_PREFLIGHT_BLOCKED_NO_CODE_TASK";
@@ -211,7 +234,8 @@ public class Ep002SequentialVisualPreflightService {
                 Ep002FactoryReadinessBridgeService.PROTECTED_SHOT01,
                 acceptedVisuals.size(), 11 - acceptedVisuals.size(), target,
                 RULES, List.of(), List.copyOf(blockers),
-                false, false, false, false, false, null);
+                false, snapshot.verifiedTimedShots()==11, false, false, false,
+                null,null,null);
     }
 
     private static ResponseStatusException conflict(String reason) {
