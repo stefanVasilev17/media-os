@@ -27,7 +27,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
 
         if (path.startsWith("/api/v1/remotion/renders/worker/")) {
             String part = path.substring("/api/v1/remotion/renders/worker/".length());
-            if (part.equals("claim")) return "POST".equals(method) ? new WorkloadRoute("REMOTION_CPU", null) : null;
+            if (part.equals("claim") || part.equals("factory-capability"))
+                return "POST".equals(method) ? new WorkloadRoute("REMOTION_CPU", null) : null;
             int separator = part.indexOf('/');
             if (separator < 1) return null;
             try {
@@ -36,10 +37,12 @@ public record WorkloadRoute(String scope, UUID jobId) {
                 return null;
             }
             String operation = part.substring(separator);
-            return ("POST".equals(method) && (operation.equals("/progress") || operation.equals("/fail")))
+            boolean allowed = ("POST".equals(method) && (operation.equals("/progress") || operation.equals("/fail")))
                     || ("PUT".equals(method) && operation.equals("/complete"))
-                    || ("GET".equals(method) && operation.equals("/ep002-selected-voice"))
-                    ? new WorkloadRoute("REMOTION_CPU", null) : null;
+                    || ("GET".equals(method) && (operation.equals("/ep002-selected-voice")
+                        || operation.equals("/factory-selected-voice")
+                        || factorySourceOperation(operation)));
+            return allowed ? new WorkloadRoute("REMOTION_CPU", null) : null;
         }
 
         WorkloadRoute route = resolve(path);
@@ -59,7 +62,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
 
     private static WorkloadRoute remotionCpuRoute(String path) {
         String remainder = path.substring("/api/v1/remotion/renders/worker/".length());
-        if ("claim".equals(remainder)) return new WorkloadRoute("REMOTION_CPU", null);
+        if ("claim".equals(remainder) || "factory-capability".equals(remainder))
+            return new WorkloadRoute("REMOTION_CPU", null);
         int separator = remainder.indexOf('/');
         if (separator < 1) return null;
         try {
@@ -67,9 +71,21 @@ public record WorkloadRoute(String scope, UUID jobId) {
         } catch (IllegalArgumentException invalid) {
             return null;
         }
-        if (!List.of("/progress", "/complete", "/fail", "/ep002-selected-voice").contains(remainder.substring(separator)))
+        String operation = remainder.substring(separator);
+        if (!List.of("/progress", "/complete", "/fail", "/ep002-selected-voice",
+                "/factory-selected-voice").contains(operation) && !factorySourceOperation(operation))
             return null;
         return new WorkloadRoute("REMOTION_CPU", null);
+    }
+
+    private static boolean factorySourceOperation(String operation) {
+        if (!operation.startsWith("/factory-source/")) return false;
+        String sourceId = operation.substring("/factory-source/".length());
+        try {
+            return UUID.fromString(sourceId).toString().equalsIgnoreCase(sourceId);
+        } catch (IllegalArgumentException invalid) {
+            return false;
+        }
     }
 
     private static WorkloadRoute gpu(String path, String prefix, String scope) {
