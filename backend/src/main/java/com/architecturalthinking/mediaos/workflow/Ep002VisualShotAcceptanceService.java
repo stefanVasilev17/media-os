@@ -27,13 +27,14 @@ public class Ep002VisualShotAcceptanceService {
     public record Request(UUID requestId,String expectedFingerprint,String shotKey,
                           UUID renderId,int pullRequestNumber,String expectedMainSha,
                           String expectedBlobSha,String expectedPolicyDigest,
-                          boolean confirmWatchedAndApproved) {}
+                          boolean confirmWatchedAndApproved,boolean confirmCorrectionsResolved) {}
     public record Receipt(UUID requestId,String shotKey,String sourceSha,
                           String sourceBlob,String policyDigest,String renderId) {}
 
     static void requireInput(Request r,Ep002SequentialVisualPreflightService.Preflight state) {
         if(r==null || r.requestId()==null || r.renderId()==null
-                || !r.confirmWatchedAndApproved() || r.pullRequestNumber()<1
+                || !r.confirmWatchedAndApproved() || !r.confirmCorrectionsResolved()
+                || r.pullRequestNumber()<1
                 || !valid(r.expectedFingerprint(),64) || !valid(r.expectedMainSha(),40)
                 || !valid(r.expectedBlobSha(),40) || !valid(r.expectedPolicyDigest(),64)
                 || state==null || state.candidate()==null
