@@ -11,6 +11,7 @@ import {Ep002RemotionSceneContractPanel} from '../components/Ep002RemotionSceneC
 import {Ep002EpisodeBatchPlanPanel} from '../components/Ep002EpisodeBatchPlanPanel';
 import {Ep002FactoryReadinessBridgePanel} from '../components/Ep002FactoryReadinessBridgePanel';
 import {Ep002SequentialVisualPreflightPanel} from '../components/Ep002SequentialVisualPreflightPanel';
+import {Ep002VisualDirectorFeedbackPanel} from '../components/Ep002VisualDirectorFeedbackPanel';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -141,6 +142,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
     <Ep002EpisodeBatchPlanPanel/>
     <Ep002FactoryReadinessBridgePanel/>
     <Ep002SequentialVisualPreflightPanel/>
+    <Ep002VisualDirectorFeedbackPanel/>
     <section className="library-section">
       <div className="library-section-title"><FileText size={19}/><h2>Full Script v4.0 and HEAR → SEE</h2></div>
       <p>Original Script v4.0 is preserved as the approved source. You can edit, save and generate new recordings from a new Creative Draft at any time, without LOCK/UNLOCK. The displayed Visual Pass v1.0 is a <strong>new, separately approved reconstruction</strong> of the visual choreography, not the missing original v4.0 HEAR → SEE tables. Timing is editorial, not measured ElevenLabs timing.</p>

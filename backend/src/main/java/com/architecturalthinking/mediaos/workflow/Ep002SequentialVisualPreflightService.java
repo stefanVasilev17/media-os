@@ -3,6 +3,7 @@ package com.architecturalthinking.mediaos.workflow;
 import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +32,19 @@ public class Ep002SequentialVisualPreflightService {
     );
 
     private final Ep002FactoryReadinessBridgeService bridge;
+    private final JdbcClient jdbc;
 
-    public Ep002SequentialVisualPreflightService(Ep002FactoryReadinessBridgeService bridge) {
+    public Ep002SequentialVisualPreflightService(
+            Ep002FactoryReadinessBridgeService bridge,JdbcClient jdbc) {
         this.bridge = bridge;
+        this.jdbc = jdbc;
     }
 
     public record RuleFile(String path, String role) {}
+
+    public record RecordedCorrection(
+            String shotKey,String changeArea,String problemObserved,
+            String requestedCorrection,String recordedAt) {}
 
     public record NextShot(
             String shotKey, String title, int beatCount, String codeDestination,
@@ -51,6 +59,7 @@ public class Ep002SequentialVisualPreflightService {
             String followingShotKey, String protectedShot01Path,
             int acceptedSceneCount, int remainingSceneCount,
             NextShot candidate, List<RuleFile> mandatoryRuleFiles,
+            List<RecordedCorrection> currentDirectorNotes,
             List<String> blockers, boolean latestPolicyGitVerified,
             boolean realCueFramesVerified, boolean readyForCodex,
             boolean startsCodex, boolean startsRender, String executableCodexPrompt
@@ -61,7 +70,36 @@ public class Ep002SequentialVisualPreflightService {
         DirectorIdentity.requireDirector();
         // The only current Director-LOCKED visual acceptance evidence is SHOT01.
         // No code presence, preferred Take or batch-plan row is an acceptance record.
-        return project(bridge.preview(), Set.of("SHOT01"));
+        Preflight current=project(bridge.preview(), Set.of("SHOT01"));
+        if(current.candidate()==null)return current;
+        var actor=DirectorIdentity.requireDirector();
+        List<RecordedCorrection> notes=jdbc.sql("""
+                select shot_key,change_area,problem_observed,requested_correction,
+                       created_at::text
+                  from ep002_visual_director_feedback
+                 where episode_key='EP002' and shot_key=:shot
+                   and episode_input_fingerprint=:fingerprint
+                   and director_issuer=:issuer and director_subject=:subject
+                 order by created_at desc,id desc limit 50
+                """)
+                .param("shot",current.nextShotKey())
+                .param("fingerprint",current.inputFingerprint())
+                .param("issuer",actor.issuer())
+                .param("subject",actor.subject())
+                .query((rs,n)->new RecordedCorrection(
+                        rs.getString("shot_key"),rs.getString("change_area"),
+                        rs.getString("problem_observed"),
+                        rs.getString("requested_correction"),
+                        rs.getString("created_at"))).list();
+        return new Preflight(current.schemaVersion(),current.episodeKey(),
+                current.inputFingerprint(),current.status(),current.nextShotKey(),
+                current.previousAcceptedShotKey(),current.followingShotKey(),
+                current.protectedShot01Path(),current.acceptedSceneCount(),
+                current.remainingSceneCount(),current.candidate(),
+                current.mandatoryRuleFiles(),List.copyOf(notes),current.blockers(),
+                current.latestPolicyGitVerified(),current.realCueFramesVerified(),
+                current.readyForCodex(),current.startsCodex(),current.startsRender(),
+                current.executableCodexPrompt());
     }
 
     static Preflight project(Ep002FactoryReadinessBridgeService.Snapshot snapshot,
@@ -150,7 +188,7 @@ public class Ep002SequentialVisualPreflightService {
                 state, target == null ? null : target.shotKey(), previous, after,
                 Ep002FactoryReadinessBridgeService.PROTECTED_SHOT01,
                 acceptedVisuals.size(), 11 - acceptedVisuals.size(), target,
-                RULES, List.copyOf(blockers),
+                RULES, List.of(), List.copyOf(blockers),
                 false, false, false, false, false, null);
     }
 

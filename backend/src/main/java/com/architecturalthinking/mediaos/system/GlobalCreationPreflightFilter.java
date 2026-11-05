@@ -297,6 +297,16 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             return ProductionOverviewService.EPISODE_ID;
         }
 
+        // EP002 fixed-source creative feedback is a project-scoped Director review,
+        // not an EP001 episode edit. The existing project audit anchor is used
+        // only for global production-memory preflight; the stored feedback remains EP002.
+        if (path.equals("/api/v1/creative/episodes/EP002/visual-feedback")) {
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "EP002 creative feedback uses the project audit identity, not another episode UUID.");
+            return ProductionOverviewService.EPISODE_ID;
+        }
+
         // Legacy routes still write EP001. Explicitly deny alternate IDs.
         if (headerId != null) {
             if (!ProductionOverviewService.EPISODE_ID.equals(headerId))

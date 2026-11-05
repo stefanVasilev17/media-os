@@ -55,6 +55,9 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/visual-feedback")
+        String ep002VisualFeedback() { return "feedback-stored"; }
+
         @PostMapping("/api/v1/worker/runner/heartbeat")
         String worker() { return "worker"; }
 
@@ -164,6 +167,23 @@ class DirectorHttpAuthorizationTest {
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
         mvc.perform(post(base + "/arbitrary").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ep002VisualFeedbackRequiresDirectorAndRemainsASingleExplicitRoute() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/visual-feedback";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for (String role : new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post(path+"/unreviewed").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }

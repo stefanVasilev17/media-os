@@ -13,13 +13,17 @@ type Candidate={
   durationInFrames:number|null;cameraDirection:string;visualGoal:string;
   continuity:string;approvedVisualStory:Story;
 };
+type RecordedCorrection={
+  shotKey:string;changeArea:string;problemObserved:string;
+  requestedCorrection:string;recordedAt:string;
+};
 type Preflight={
   schemaVersion:string;episodeKey:string;inputFingerprint:string;status:string;
   nextShotKey:string|null;previousAcceptedShotKey:string|null;
   followingShotKey:string|null;protectedShot01Path:string;
   acceptedSceneCount:number;remainingSceneCount:number;
   candidate:Candidate|null;mandatoryRuleFiles:Rule[];
-  blockers:string[];latestPolicyGitVerified:boolean;
+  currentDirectorNotes:RecordedCorrection[];blockers:string[];latestPolicyGitVerified:boolean;
   realCueFramesVerified:boolean;readyForCodex:boolean;
   startsCodex:boolean;startsRender:boolean;executableCodexPrompt:string|null;
 };
@@ -96,6 +100,21 @@ export function Ep002SequentialVisualPreflightPanel(){
         <summary><BookOpenCheck size={16}/> Required visual rules and approved lessons</summary>
         <ul>{state.mandatoryRuleFiles.map(file=>
           <li key={file.path}><strong>{file.path}</strong> — {file.role}</li>)}</ul>
+      </details>
+
+      <details className="library-episode-batch-breakdown">
+        <summary>Recorded corrections for this SHOT ({state.currentDirectorNotes.length})</summary>
+        {state.currentDirectorNotes.length===0
+          ?<p>No current-source Director correction notes. Approved global lessons are stored separately.</p>
+          :<div className="library-episode-batch-shots">
+            {state.currentDirectorNotes.map((note,index)=><div key={index}
+              className="library-episode-batch-shot">
+              <strong>{note.changeArea} · {note.recordedAt}</strong>
+              <p>Observed: {note.problemObserved}</p>
+              <p>Requested correction: {note.requestedCorrection}</p>
+              <small>Director note only — not yet visually accepted or promoted to a global rule</small>
+            </div>)}
+          </div>}
       </details>
 
       <details className="library-episode-batch-breakdown" open>
