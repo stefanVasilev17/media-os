@@ -68,9 +68,27 @@ public class Ep002SequentialVisualPreflightService {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Preflight preview() {
         DirectorIdentity.requireDirector();
-        // The only current Director-LOCKED visual acceptance evidence is SHOT01.
-        // No code presence, preferred Take or batch-plan row is an acceptance record.
-        Preflight current=project(bridge.preview(), Set.of("SHOT01"));
+        var actor=DirectorIdentity.requireDirector();
+        var source=bridge.preview();
+        Set<String> accepted=new HashSet<>();
+        accepted.add("SHOT01");
+        List<String> verified=jdbc.sql("""
+                select a.shot_key
+                  from ep002_visual_shot_acceptance a
+                  join remotion_render r on r.id=a.remotion_render_id
+                 where a.episode_input_fingerprint=:fingerprint
+                   and a.director_issuer=:issuer and a.director_subject=:subject
+                   and r.status='SUCCEEDED' and r.video_data is not null
+                   and r.input_props->>'expectedSourceCommit'=a.verified_source_commit
+                   and r.input_props->>'sourceBlobSha'=a.verified_source_blob_sha
+                   and r.input_props->>'policyDigest'=a.verified_policy_sha256
+                   and r.input_props->>'voiceTakeId'=a.preferred_take_id::text
+                 order by a.shot_key
+                """).param("fingerprint",source.inputFingerprint())
+                .param("issuer",actor.issuer()).param("subject",actor.subject())
+                .query(String.class).list();
+        accepted.addAll(verified);
+        Preflight current=project(source,accepted);
         if(current.candidate()==null)return current;
         var actor=DirectorIdentity.requireDirector();
         List<RecordedCorrection> notes=jdbc.sql("""
