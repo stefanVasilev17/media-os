@@ -29,7 +29,7 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
         String table=jdbc.sql("select to_regclass('public.ep002_visual_director_feedback')::text")
                 .query(String.class).single();
         assertEquals("ep002_visual_director_feedback",table);
-        Integer count=jdbc.sql("""
+        Long count=jdbc.sql("""
                 select count(*) from information_schema.columns
                  where table_schema='public'
                    and table_name='ep002_visual_director_feedback'
@@ -37,8 +37,8 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
                                        'script_revision','narration_sha256','selected_take_id',
                                        'problem_observed','requested_correction',
                                        'director_issuer','director_subject','preflight_audit_id')
-                """).query(Integer.class).single();
-        assertEquals(11,count);
+                """).query(Long.class).single();
+        assertEquals(11L,count);
         flyway.validate();
     }
 }
