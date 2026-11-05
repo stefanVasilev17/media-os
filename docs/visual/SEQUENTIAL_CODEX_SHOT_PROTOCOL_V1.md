@@ -33,6 +33,12 @@ Each shot uses this loop:
 
 This is a **target contract**, not a claim the live database/UI currently has these states. Existing V119/V120 support only EP003+ whole-episode Codex handoff and render pipeline; EP002 is being adapted. Do not silently weaken current V120 voice/source/asset guards to expedite this workflow.
 
+## Director no-manual-Codex requirement (2026-11-06)
+
+The production UX must not ask the Director to paste or type prompts, manually open Codex Cloud tasks, transfer code or manage task IDs. MediaOS dispatches each one-SHOT Remotion task and observes its lifecycle through a **supported authorized integration** once voice/cues/policy/asset preflight passes. Use the official Codex Cloud CLI only if cloud environment compatibility is actually verified; otherwise evaluate officially supported subscription-backed Codex app-server on a managed cloud host only after required OAuth eligibility, remote-host consent and security checks. A self-hosted Codex worker is **not Codex Cloud**. No internal ChatGPT API scraping or credential harvesting. If no permitted subscription-connected path is operational, keep fail-closed and report a product blocker; do not substitute paid OpenAI API or a manual copy/paste workflow as success.
+
+Director retains audio approval, real visual acceptance and separate resource/cost grants, but **never task-prompt entry**. One approved global continuity map, one Codex Remotion scene at a time, cumulative Director lessons and versioned reusable primitives remain unchanged.
+
 ## Codex task budget rule
 
 Never send the entire repository history or every unneeded historical asset prompt. Prefer:
