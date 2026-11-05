@@ -39,6 +39,16 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
                                        'director_issuer','director_subject','preflight_audit_id')
                 """).query(Long.class).single();
         assertEquals(11L,count);
+        Boolean acceptedMigration=jdbc.sql("""
+                select exists(select 1 from flyway_schema_history
+                              where version='122' and success=true)
+                """).query(Boolean.class).single();
+        assertTrue(Boolean.TRUE.equals(acceptedMigration),
+                "EP002 evidence-bound acceptance schema must be applied.");
+        String approvals=jdbc.sql(
+                "select to_regclass('public.ep002_visual_shot_acceptance')::text")
+                .query(String.class).single();
+        assertEquals("ep002_visual_shot_acceptance",approvals);
         flyway.validate();
     }
 }
