@@ -234,7 +234,9 @@ public class Ep002SequentialVisualPreflightService {
                 Ep002FactoryReadinessBridgeService.PROTECTED_SHOT01,
                 acceptedVisuals.size(), 11 - acceptedVisuals.size(), target,
                 RULES, List.of(), List.copyOf(blockers),
-                false, snapshot.verifiedTimedShots()==11, false, false, false,
+                false, snapshot.verifiedTimedShots()==11
+                    &&snapshot.shots().stream().allMatch(s->s.hearSeeTimingVerified()
+                        &&s.verifiedCueFrames()!=null), false, false, false,
                 null,null,null);
     }
 
