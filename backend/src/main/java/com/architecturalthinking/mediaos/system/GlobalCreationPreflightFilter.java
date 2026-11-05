@@ -61,6 +61,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         // on every poll. The creation request and final render write remain guarded.
         if (path.equals("/api/v1/worker/runner/heartbeat")
                 || path.equals("/api/v1/remotion/renders/worker/claim")
+                || path.equals("/api/v1/remotion/renders/worker/factory-capability")
                 || path.matches("^/api/v1/remotion/renders/worker/[^/]+/progress$")
                 || path.matches("^/api/v1/worker/spline/jobs/[^/]+/started$")) return true;
         return switch (request.getMethod().toUpperCase(Locale.ROOT)) {
