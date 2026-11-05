@@ -84,6 +84,12 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        if (isVerifiedFactoryWorkerContinuation(request)) {
+            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
+                    Map.of("continuation", "FACTORY_DIRECTOR_AUTHORIZED_RENDER"));
+            chain.doFilter(request, response);
+            return;
+        }
         String scope = scopeFor(path);
         String action = (request.getMethod() + "_" + path.replaceAll("[^A-Za-z0-9]+", "_"))
                 .toUpperCase(Locale.ROOT);
@@ -139,6 +145,55 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 .param("project", RENDER_PROJECT_ID)
                 .param("worker", worker.trim())
                 .query(Boolean.class).single();
+    }
+
+    private boolean isVerifiedFactoryWorkerContinuation(HttpServletRequest request) {
+        if (jdbc == null) return false;
+        java.util.regex.Matcher callback = FINAL_REMOTION_CALLBACK.matcher(apiPath(request));
+        if (!callback.matches()) return false;
+        String operation = callback.group(2);
+        if (!(("complete".equals(operation) && "PUT".equals(request.getMethod()))
+                || ("fail".equals(operation) && "POST".equals(request.getMethod())))) return false;
+        if (request.getHeader("X-MediaOS-Episode-Id") != null) return false;
+        String worker = request.getHeader("X-Media-OS-Worker");
+        if (worker == null || worker.isBlank()) return false;
+        UUID render = UUID.fromString(callback.group(1));
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select exists(
+                    select 1
+                    from remotion_render r
+                    join episode_factory_production_run run
+                      on run.id::text = r.input_props->>'runId'
+                    where r.id=:render and r.project_id=:project
+                      and r.episode_id is null
+                      and r.status='RUNNING' and r.worker_id=:worker
+                      and r.composition_id in ('AT-FACTORY-SHOT',
+                             'AT-FACTORY-MASTER','AT-FACTORY-SHORT')
+                      and run.verified_pr_commit=r.input_props->>'expectedSourceCommit'
+                      and run.verified_source_digest=r.input_props->>'sourceDigest'
+                      and (
+                          (r.composition_id='AT-FACTORY-SHOT' and exists(
+                              select 1 from episode_factory_shot shot
+                              where shot.run_id=run.id
+                                and shot.last_requested_render=r.id
+                                and shot.shot_key=r.input_props->>'shotKey'
+                                and shot.selected_take_id::text=r.input_props->>'voiceTakeId'
+                          ))
+                          or (r.composition_id in ('AT-FACTORY-MASTER','AT-FACTORY-SHORT')
+                              and exists(
+                                  select 1 from episode_factory_output_plan output
+                                  where output.run_id=run.id and output.render_id=r.id
+                                    and output.kind=case
+                                        when r.composition_id='AT-FACTORY-MASTER'
+                                          then 'MASTER' else 'SHORT' end
+                              ))
+                      )
+                )
+                """)
+                .param("render",render)
+                .param("project",RENDER_PROJECT_ID)
+                .param("worker",worker.trim())
+                .query(Boolean.class).single());
     }
 
     private String apiPath(HttpServletRequest request) {
