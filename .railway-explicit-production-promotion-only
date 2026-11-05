@@ -18,3 +18,5 @@ CI retry (2026-11-05): upgrade and voice ledger tests now require V106 historica
 Director-approved V120 production backend release (2026-11-05): after guarded isolated PostgreSQL 16.15 373-test PASS (0 failed/errors, 1 skipped), 120 Flyway migrations and V85->V120 protected-data upgrade PASS, permit ONE monitored V120 backend promotion. Keep provider OpenAI/ElevenLabs dispatch OFF, do not queue video CPU, do not touch recovery bucket, no GitHub Actions. V119 remains rollback image; production Flyway is additive (no destructive changes). Must verify health, V120 migration, and worker authentication before shipping.
 
 V120 full Spring Boot application context isolated PG validation (2026-11-05): verify actual startup Git audit bean constructor, all V120 components and scoped authentication; STOP before production promotion. Prior V120 migration already added to production; V119 remains live.
+
+COMBINED V120 QA 2026-11-05: Director-approved single build of merged #180 and #181 source with Java 21, isolated PostgreSQL and frontend checks under active pre-deploy STOP; no production promotion or media spend.
