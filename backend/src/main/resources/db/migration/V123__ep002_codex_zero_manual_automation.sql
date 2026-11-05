@@ -31,6 +31,8 @@ create table ep002_codex_automation_task (
             'REMOTE_UNKNOWN','REMOTE_FAILED','COMPLETE_ACCEPTED','CANCELLED')),
     remote_task_id varchar(160),
     remote_task_url text,
+    remote_task_status varchar(80),
+    last_remote_check_at timestamptz,
     submitted_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
