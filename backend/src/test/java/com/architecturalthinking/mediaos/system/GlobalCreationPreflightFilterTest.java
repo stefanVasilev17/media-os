@@ -197,7 +197,7 @@ class GlobalCreationPreflightFilterTest {
         when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
                 .thenReturn(Map.of("auditId",audit));
 
-        for(String action:new String[]{"arm","pause"}) {
+        for(String action:new String[]{"arm","pause","resume"}) {
             MockHttpServletRequest legitimate=new MockHttpServletRequest(
                     "POST","/api/v1/creative/episodes/EP002/codex-automation/"+action);
             MockHttpServletResponse response=new MockHttpServletResponse();
