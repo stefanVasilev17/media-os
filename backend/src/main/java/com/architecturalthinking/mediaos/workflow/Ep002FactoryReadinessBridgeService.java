@@ -88,6 +88,10 @@ public class Ep002FactoryReadinessBridgeService {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Snapshot preview() {
         DirectorIdentity.requireDirector();
+        return snapshot();
+    }
+
+    Snapshot snapshot() {
         Ep002EpisodeBatchPlanService.Plan current = batch.snapshot();
         Map<String, WorkingScript> revisions = new HashMap<>();
         Set<String> uncertainRequests = new HashSet<>();
