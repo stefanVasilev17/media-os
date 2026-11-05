@@ -67,7 +67,6 @@ public class Ep002SequentialVisualPreflightService {
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Preflight preview() {
-        DirectorIdentity.requireDirector();
         var actor=DirectorIdentity.requireDirector();
         var source=bridge.preview();
         Set<String> accepted=new HashSet<>();
@@ -90,7 +89,6 @@ public class Ep002SequentialVisualPreflightService {
         accepted.addAll(verified);
         Preflight current=project(source,accepted);
         if(current.candidate()==null)return current;
-        var actor=DirectorIdentity.requireDirector();
         List<RecordedCorrection> notes=jdbc.sql("""
                 select shot_key,change_area,problem_observed,requested_correction,
                        created_at::text
