@@ -29,7 +29,7 @@ class Ep002VisualShotAcceptanceServiceTest {
         var request=new Ep002VisualShotAcceptanceService.Request(
                 UUID.randomUUID(),state.inputFingerprint(),"SHOT02",
                 UUID.randomUUID(),42,"a".repeat(40),"b".repeat(40),
-                "c".repeat(64),true);
+                "c".repeat(64),true,true);
         assertEquals(HttpStatus.CONFLICT,
                 assertThrows(ResponseStatusException.class,
                         ()->Ep002VisualShotAcceptanceService.requireInput(request,state))
@@ -44,7 +44,7 @@ class Ep002VisualShotAcceptanceServiceTest {
             var request=new Ep002VisualShotAcceptanceService.Request(
                     UUID.randomUUID(),state.inputFingerprint(),key,
                     UUID.randomUUID(),42,"a".repeat(40),"b".repeat(40),
-                    "c".repeat(64),true);
+                    "c".repeat(64),true,true);
             assertEquals(HttpStatus.CONFLICT,
                     assertThrows(ResponseStatusException.class,
                             ()->Ep002VisualShotAcceptanceService.requireInput(request,state))
@@ -58,7 +58,7 @@ class Ep002VisualShotAcceptanceServiceTest {
         var unconfirmed=new Ep002VisualShotAcceptanceService.Request(
                 UUID.randomUUID(),state.inputFingerprint(),"SHOT02",
                 UUID.randomUUID(),42,"a".repeat(40),"b".repeat(40),
-                "c".repeat(64),false);
+                "c".repeat(64),false,true);
         assertEquals(HttpStatus.CONFLICT,
                 assertThrows(ResponseStatusException.class,
                         ()->Ep002VisualShotAcceptanceService.requireInput(unconfirmed,state))
@@ -66,7 +66,7 @@ class Ep002VisualShotAcceptanceServiceTest {
         var stale=new Ep002VisualShotAcceptanceService.Request(
                 UUID.randomUUID(),"0".repeat(64),"SHOT02",
                 UUID.randomUUID(),42,"a".repeat(40),"b".repeat(40),
-                "c".repeat(64),true);
+                "c".repeat(64),true,true);
         assertEquals(HttpStatus.CONFLICT,
                 assertThrows(ResponseStatusException.class,
                         ()->Ep002VisualShotAcceptanceService.requireInput(stale,state))
