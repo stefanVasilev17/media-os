@@ -40,6 +40,27 @@ class Ep002SingleShotGitEvidenceServiceTest {
     }
 
     @Test
+    void verifiesRealVisualConstitutionAndCorrectionsAtOnePinnedMainSha() {
+        var proof=withSource(true,PATH,"added").verifyCurrentPolicy();
+        assertTrue(proof.verified());
+        assertEquals(SHA,proof.mainCommit());
+        assertEquals(64,proof.policyDigest().length());
+        assertTrue(proof.blockers().isEmpty());
+    }
+
+    @Test
+    void missingOrUnreachablePrivatePolicyFailsClosed() {
+        var denied=new Ep002SingleShotGitEvidenceService(path->{
+            throw new IOException("Private repository access denied");
+        });
+        var proof=denied.verifyCurrentPolicy();
+        assertFalse(proof.verified());
+        assertNull(proof.policyDigest());
+        assertEquals("PRIVATE_GITHUB_POLICY_VERIFICATION_UNAVAILABLE",
+                proof.blockers().getFirst());
+    }
+
+    @Test
     void onlyOneMergedEpisodeLocalShotCanPassWithPinnedRuleFiles() {
         var proof=withSource(true,PATH,"added").verify("SHOT02",42);
         assertTrue(proof.verified());
