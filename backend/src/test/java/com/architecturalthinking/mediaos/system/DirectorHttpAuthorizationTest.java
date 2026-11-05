@@ -55,6 +55,11 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
+        String ep002CodexAutomation(@PathVariable String action) {
+            return "authorized-"+action;
+        }
+
         @PostMapping("/api/v1/creative/episodes/EP002/visual-approvals")
         String ep002VisualApproval() { return "reviewed"; }
 
@@ -170,6 +175,26 @@ class DirectorHttpAuthorizationTest {
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
         mvc.perform(post(base + "/arbitrary").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void automaticCodexWritesRequireDirectorAndOnlyExactApprovedActions() throws Exception {
+        String base="/api/v1/creative/episodes/EP002/codex-automation/";
+        for(String action:new String[]{"arm","pause"}) {
+            String path=base+action;
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_EDITOR","ROLE_VIEWER"}) {
+                mvc.perform(post(path).with(
+                        jwt().authorities(new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(base+"dispatch-anything").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
