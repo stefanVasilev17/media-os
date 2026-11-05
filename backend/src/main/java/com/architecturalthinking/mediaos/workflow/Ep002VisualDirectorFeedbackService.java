@@ -90,7 +90,7 @@ public class Ep002VisualDirectorFeedbackService {
         var actor=DirectorIdentity.requireDirector();
         return jdbc.sql("""
                 select id,request_id,shot_key,state,episode_input_fingerprint,
-                       script_revision,narration_sha256,selected_take_id::text,
+                       script_revision,narration_sha256,selected_take_id::text as selected_take_id,
                        change_area,problem_observed,requested_correction,
                        created_at::text,director_issuer,director_subject
                   from ep002_visual_director_feedback
@@ -163,7 +163,7 @@ public class Ep002VisualDirectorFeedbackService {
     private Feedback find(UUID requestId) {
         return jdbc.sql("""
                 select id,request_id,shot_key,state,episode_input_fingerprint,
-                       script_revision,narration_sha256,selected_take_id::text,
+                       script_revision,narration_sha256,selected_take_id::text as selected_take_id,
                        change_area,problem_observed,requested_correction,
                        created_at::text,director_issuer,director_subject
                   from ep002_visual_director_feedback
