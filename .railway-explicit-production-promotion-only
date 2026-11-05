@@ -12,3 +12,5 @@ Retry #2: reduce Maven compiler/test JVM heap after first build stopped during t
 V120 bounded backend verification attempt (2026-11-05): Railway pre-deploy STOP is configured and verified BEFORE this build. DO NOT PROMOTE at this step; inspect Java 21 Maven full test, frontend build and Flyway V120 before any production release. Do not run provider, audio or video credits.
 
 V120 isolated PostgreSQL release gate (2026-11-05): require all database-enabled Maven tests against a disposable build-local PostgreSQL and Flyway V120, independent of production volume. Production promotion guard remains installed until Director release verification.
+
+CI retry (2026-11-05): upgrade and voice ledger tests now require V106 historical invariants, not obsolete exact-latest V106; rerun isolated V120 PostgreSQL suite. Pre-deploy STOP remains active; no prod migration or media spend.
