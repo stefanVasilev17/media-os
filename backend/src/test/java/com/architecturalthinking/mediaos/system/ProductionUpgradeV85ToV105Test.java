@@ -104,7 +104,8 @@ class ProductionUpgradeV85ToV105Test {
                     .load();
             upgrade.migrate();
             upgrade.validate();
-            assertEquals("106", upgrade.info().current().getVersion().toString());
+            assertTrue(Integer.parseInt(upgrade.info().current().getVersion().toString()) >= 106,
+                    "Original V106 ledger and protected EP001 migration guarantees must survive later additive migrations.");
 
             try (Connection db = DriverManager.getConnection(url, USER, PASSWORD)) {
                 db.setSchema(schema);
