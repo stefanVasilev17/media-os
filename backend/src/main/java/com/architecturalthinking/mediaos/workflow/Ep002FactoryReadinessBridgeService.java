@@ -212,13 +212,15 @@ public class Ep002FactoryReadinessBridgeService {
 
 
     private record ReviewedCue(
-            String shotKey,String takeId,int revision,String narrationSha,
+            String shotKey,String originalEpisodeFingerprint,
+            String takeId,int revision,String narrationSha,
             BigDecimal measuredSeconds,String alignmentSha,String alignmentJson,
             String resolvedJson,String resolvedDigest) {}
 
     private Snapshot withVerifiedCues(Snapshot base) {
         List<ReviewedCue> records=jdbc.sql("""
-                select c.shot_key,c.selected_take_id::text as take_id,
+                select c.shot_key,c.episode_fingerprint,
+                       c.selected_take_id::text as take_id,
                        c.script_revision,c.narration_sha256,
                        c.measured_duration_seconds,c.alignment_sha256,
                        t.elevenlabs_alignment::text as alignment_json,
@@ -226,24 +228,27 @@ public class Ep002FactoryReadinessBridgeService {
                        c.cue_digest_sha256
                   from ep002_director_voice_cue_review c
                   join ep002_creative_voice_take t on t.id=c.selected_take_id
-                 where c.episode_fingerprint=:fingerprint
+                 where c.episode_key='EP002'
                  order by c.created_at desc
                 """)
-                .param("fingerprint",base.inputFingerprint())
                 .query((rs,n)->new ReviewedCue(rs.getString("shot_key"),
-                        rs.getString("take_id"),rs.getInt("script_revision"),
+                        rs.getString("episode_fingerprint"),rs.getString("take_id"),rs.getInt("script_revision"),
                         rs.getString("narration_sha256"),
                         rs.getBigDecimal("measured_duration_seconds"),
                         rs.getString("alignment_sha256"),rs.getString("alignment_json"),
                         rs.getString("resolved_json"),rs.getString("cue_digest_sha256")))
                 .list();
         Map<String,ReviewedCue> index=new HashMap<>();
-        for(ReviewedCue row:records)index.putIfAbsent(row.shotKey(),row);
+        for(ReviewedCue row:records)index.putIfAbsent(
+                row.shotKey()+"|"+row.takeId()+"|"+row.revision()+"|"+row.narrationSha(),
+                row);
 
         int verified=0;
         List<ShotReadiness> revised=new ArrayList<>();
         for(ShotReadiness shot:base.shots()) {
-            ReviewedCue record=index.get(shot.shotKey());
+            ReviewedCue record=index.get(
+                    shot.shotKey()+"|"+shot.preferredTakeId()+"|"+
+                    shot.scriptRevision()+"|"+shot.narrationSha256());
             JsonNode frames=null;
             if(record!=null && shot.currentVoiceApproved()
                     && shot.preferredTakeId()!=null
@@ -263,7 +268,7 @@ public class Ep002FactoryReadinessBridgeService {
                         List<Ep002VoiceBeatResolver.BeatCue> decoded=
                                 mapperForCues.readValue(record.resolvedJson(),type);
                         String digest=Ep002ProductionContractService.sha256(
-                                shot.shotKey()+"|"+base.inputFingerprint()+"|"+
+                                shot.shotKey()+"|"+record.originalEpisodeFingerprint()+"|"+
                                 record.takeId()+"|"+mapperForCues.writeValueAsString(decoded));
                         if(digest.equals(record.resolvedDigest())) frames=raw;
                     }
