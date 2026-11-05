@@ -4,6 +4,8 @@ final class EpisodeFactoryDirectorRoutes {
     static final String[] POST_PATHS = {
             "/api/v1/creative/episodes/EP002/visual-feedback",
             "/api/v1/creative/episodes/EP002/visual-approvals",
+            "/api/v1/creative/episodes/EP002/codex-automation/arm",
+            "/api/v1/creative/episodes/EP002/codex-automation/pause",
             "/api/v1/episode-packages/{packageId}/factory-production/runs",
             "/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/verify-github",
             "/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/feedback",
