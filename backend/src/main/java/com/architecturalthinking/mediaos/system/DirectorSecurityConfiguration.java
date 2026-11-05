@@ -56,6 +56,8 @@ public class DirectorSecurityConfiguration {
                                 "/api/v1/remotion/gpu-renders/**", "/api/v1/spline/gpu-renders/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/**").hasAnyRole("VIEWER", "EDITOR", "DIRECTOR")
+                        .requestMatchers(HttpMethod.POST, EpisodeFactoryDirectorRoutes.POST_PATHS)
+                            .hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/episodes",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
