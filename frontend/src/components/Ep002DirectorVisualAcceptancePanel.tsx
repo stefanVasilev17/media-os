@@ -103,7 +103,8 @@ export function Ep002DirectorVisualAcceptancePanel(){
           Director can unlock the next scene. No code generation or render starts here.</p>
       </div>
       <span className="library-episode-batch-state">
-        {loading?'CHECKING':preflight?.candidate?'REVIEW REQUIRED':'ALL SHOTS REVIEWED'}</span>
+        {loading?'CHECKING':!preflight?'STATUS UNAVAILABLE':preflight.candidate
+          ?'REVIEW REQUIRED':'AWAITING FINAL ASSEMBLY'}</span>
     </div>
     {error&&<p role="alert" className="library-voice-error">{error}</p>}
     {message&&<p role="status" className="library-voice-ok">{message}</p>}
