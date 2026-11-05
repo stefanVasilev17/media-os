@@ -2,6 +2,8 @@ package com.architecturalthinking.mediaos.workflow;
 
 import com.architecturalthinking.mediaos.system.DirectorIdentity;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 @Service
 public class Ep002CodexAutomationService {
+    private static final Logger LOGGER=LoggerFactory.getLogger(Ep002CodexAutomationService.class);
     private final JdbcClient jdbc;
     private final Ep002SequentialVisualPreflightService sequence;
     private final Ep002FactoryReadinessBridgeService bridge;
@@ -161,9 +164,9 @@ public class Ep002CodexAutomationService {
         for(Enrollment entry:active) {
             try {
                 tick(entry);
-            } catch(Exception ignored) {
-                // A failed preflight must not attempt Codex or burn subscription usage.
-                // Evidence is retained in DB, and no retry occurs for ambiguous submissions.
+            } catch(Exception failed) {
+                LOGGER.warn("EP002 Codex automation safely stopped for recorded Director "
+                        +"authorization; failureCategory={}",failed.getClass().getSimpleName());
             }
         }
     }
