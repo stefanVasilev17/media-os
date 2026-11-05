@@ -95,6 +95,7 @@ class GlobalCreationPreflightFilterTest {
         for (String uri : new String[]{
                 "/api/v1/worker/runner/heartbeat",
                 "/api/v1/remotion/renders/worker/claim",
+                "/api/v1/remotion/renders/worker/factory-capability",
                 "/api/v1/remotion/renders/worker/abcd/progress",
                 "/api/v1/worker/spline/jobs/abcd/started"
         }) {

@@ -395,13 +395,25 @@ public class EpisodeCodexCloudHandoffService {
                 CREATE THE WHOLE EPISODE IN ONE CODE TASK:
                 - Write only NEW episode-local TSX files at EACH exact outputPath.
                   You may add NEW episode-local helper assets only inside %s.
-                  Do not write outside this directory except this task's documentation.
+                  Keep ALL code files inside the episode directory. Write test evidence and review notes only in the PR body.
                   Import protected existing primitives without editing them.
                 - Never edit EP001, EP002, Root.tsx, shared primitives, asset registry,
                   package configs, lockfiles, design tokens, historical narration or Takes.
                 - Existing review-required assets and %d unknown asset references must
                   be visibly proposed for the Director in the PR; never pretend they are
                   reviewed or silently import unknown symbols.
+                - For EACH ShotNNGeneratedScene.tsx export a NAMED React component
+                  exactly called ShotNNGeneratedScene (e.g. Shot01GeneratedScene).
+                  Accept FactorySceneProps from src/factory/FactoryRoot.tsx and
+                  consume its episodeKey, shotKey, durationInFrames and real
+                  verifiedCues. Keep all imports relative and episode-local where
+                  possible. Shared imports may only consume existing protected
+                  symbols. The build generates src/factory/generated-scene-registry.ts
+                  automatically from filename; never hand-edit that file.
+                - Before writing code inspect src/factory/FactoryRoot.tsx and
+                  remotion-engine/generate-factory-registry.mjs. Run npm run
+                  generate:factory, npm run typecheck (or documented baseline
+                  preflight), and npm run build:factory. Report actual results.
                 - Use the actual approved voice duration/frame count per SHOT and the
                   actual verified cue frame bounds. Do not invent provider timing.
                   Build living architecture maps, camera moves and coherent transitions

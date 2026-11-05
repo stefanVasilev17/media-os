@@ -1,7 +1,22 @@
-Explicit Director-requested checked release: Codex Cloud subscription-first whole-episode handoff · 2026-11-05.
-Existing MediaOS production backend ONLY; no extra cloud QA service or repository GitHub Actions.
-Java 21 Maven tests + frontend TypeScript/Vite build + Flyway V119 + Spring Boot health.
-Create/copy/persist one exact all-SHOT Codex task from current approved Takes, track GitHub PR as UNVERIFIED.
-This backend never connects to ChatGPT subscription, calls OpenAI API, dispatches Codex or starts a render.
-No unapproved paid ElevenLabs/OpenAI, no Remotion CPU rendering, no protected EP001/EP002 edits.
-The legacy paid OpenAI executor flag remains OFF. Director must manually publish/select Codex Cloud environment.
+Explicit Director-approved build verification for Unified Post-Codex Factory V120, 2026-11-05.
+Existing production backend and existing render worker only; no new paid QA infrastructure.
+Build Java 21 Maven tests + frontend TypeScript/Vite + Flyway V120 + Spring Boot health.
+Worker build runs Node security contract tests + generated-scene AST preflight + two Remotion bundles.
+ALL factory render jobs remain not queued until exact Director SHA-bound CPU authorization.
+NO OpenAI/ElevenLabs API, NO GitHub Actions, NO automatic Remotion rendering, NO publishing.
+EP001/EP002 Director-LOCKED source, protected Remotion Root and production recovery bucket unchanged.
+Real Codex Cloud account/scene generation still deferred until Director setup.
+
+Retry #2: reduce Maven compiler/test JVM heap after first build stopped during testCompile. No renderer CPU tasks or paid AI calls.
+
+V120 bounded backend verification attempt (2026-11-05): Railway pre-deploy STOP is configured and verified BEFORE this build. DO NOT PROMOTE at this step; inspect Java 21 Maven full test, frontend build and Flyway V120 before any production release. Do not run provider, audio or video credits.
+
+V120 isolated PostgreSQL release gate (2026-11-05): require all database-enabled Maven tests against a disposable build-local PostgreSQL and Flyway V120, independent of production volume. Production promotion guard remains installed until Director release verification.
+
+CI retry (2026-11-05): upgrade and voice ledger tests now require V106 historical invariants, not obsolete exact-latest V106; rerun isolated V120 PostgreSQL suite. Pre-deploy STOP remains active; no prod migration or media spend.
+
+Director-approved V120 production backend release (2026-11-05): after guarded isolated PostgreSQL 16.15 373-test PASS (0 failed/errors, 1 skipped), 120 Flyway migrations and V85->V120 protected-data upgrade PASS, permit ONE monitored V120 backend promotion. Keep provider OpenAI/ElevenLabs dispatch OFF, do not queue video CPU, do not touch recovery bucket, no GitHub Actions. V119 remains rollback image; production Flyway is additive (no destructive changes). Must verify health, V120 migration, and worker authentication before shipping.
+
+V120 full Spring Boot application context isolated PG validation (2026-11-05): verify actual startup Git audit bean constructor, all V120 components and scoped authentication; STOP before production promotion. Prior V120 migration already added to production; V119 remains live.
+
+COMBINED V120 QA 2026-11-05: Director-approved single build of merged #180 and #181 source with Java 21, isolated PostgreSQL and frontend checks under active pre-deploy STOP; no production promotion or media spend.

@@ -6,6 +6,7 @@ import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
+import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -47,12 +48,15 @@ leaseClient = createCpuWorkerLeaseClient({
 });
 const ENGINE_ROOT = '/app/remotion-engine';
 const ENTRY_POINT = path.join(ENGINE_ROOT, 'src/index.ts');
+const FACTORY_SOURCE_SHA = String(process.env.RAILWAY_GIT_COMMIT_SHA || '').trim();
+const FACTORY_BUILD_PATH = path.join(ENGINE_ROOT, 'build-factory');
 
 if (!WORKER_KEY) {
   throw new Error('MEDIA_OS_RENDER_WORKER_KEY is required.');
 }
 
 let serveUrlPromise = null;
+let factoryServeUrlPromise = null;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -62,6 +66,7 @@ function headers(extra = {}) {
   return {
     'X-Media-OS-Worker-Key': WORKER_KEY,
     'X-Media-OS-Worker': WORKER_ID,
+    'X-Media-OS-Worker-Source-Sha': FACTORY_SOURCE_SHA,
     ...(Object.keys(workloadTokens.scopedHeaders()).length > 0
       ? {'X-Worker-Id': WORKER_ID, ...workloadTokens.scopedHeaders()}
       : {}),
@@ -83,6 +88,22 @@ async function claim() {
     method: 'POST',
     headers: headers(),
   });
+}
+
+let factoryCapabilityLast = 0;
+async function publishFactoryCapability() {
+  if (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA))return;
+  const now=Date.now();
+  if (now-factoryCapabilityLast<45_000)return;
+  const keys=JSON.parse(await fs.readFile(path.join(ENGINE_ROOT,'factory-scenes.json'),'utf8'));
+  if (!Array.isArray(keys.sceneKeys))throw Error('FACTORY_BUILD_SCENE_INVENTORY_MISSING');
+  await leaseClient.refresh();
+  await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/factory-capability`,{
+    method:'POST',
+    headers:headers({'Content-Type':'application/json'}),
+    body:JSON.stringify({sourceCommit:FACTORY_SOURCE_SHA,sceneKeys:keys.sceneKeys,buildChecked:true}),
+  });
+  factoryCapabilityLast=now;
 }
 
 async function progress(renderId, value) {
@@ -424,6 +445,16 @@ function getServeUrl() {
   return serveUrlPromise;
 }
 
+async function getFactoryServeUrl() {
+  if(!factoryServeUrlPromise){
+    factoryServeUrlPromise=(async()=>{
+      await fs.access(path.join(FACTORY_BUILD_PATH,'index.html'));
+      return FACTORY_BUILD_PATH;
+    })().catch(error=>{factoryServeUrlPromise=null;throw error;});
+  }
+  return factoryServeUrlPromise;
+}
+
 async function addShot10V6SoundDesign(job, outputPath, inputProps) {
   if (job.compositionId !== 'EP001-Shot10-SessionCreationShortV6'
     || inputProps.soundDesign !== 'SHOT10_V6_PREMIUM_SFX'
@@ -534,6 +565,37 @@ async function muxEp002SelectedVoice(job, videoPath, inputProps) {
   }
 }
 
+async function muxFactorySelectedVoice(job,videoPath,inputProps) {
+  if(job.compositionId!=='AT-FACTORY-SHOT')return;
+  if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+      ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA)
+    throw Error('FACTORY_WORKER_SOURCE_COMMIT_MISMATCH');
+  const requested=await workloadTokens.request(
+    `${BACKEND_URL}/api/v1/remotion/renders/worker/${job.renderId}/factory-selected-voice`,
+    {method:'GET',headers:headers()});
+  if(!requested.ok)throw Error('FACTORY_APPROVED_VOICE_NOT_AVAILABLE: '+requested.status);
+  const audio=Buffer.from(await requested.arrayBuffer());
+  if(audio.length<100)throw Error('FACTORY_APPROVED_AUDIO_EMPTY');
+  const audioPath=path.join(os.tmpdir(),`factory-${job.renderId}-voice`);
+  const muxed=path.join(os.tmpdir(),`factory-${job.renderId}-mux.mp4`);
+  try {
+    await fs.writeFile(audioPath,audio);
+    await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-nostdin',
+      '-i',videoPath,'-i',audioPath,'-map','0:v:0','-map','1:a:0',
+      '-c:v','copy','-c:a','aac','-b:a','160k','-ar','48000',
+      '-t',String(Number(job.durationInFrames)/30),
+      '-movflags','+faststart','-y',muxed]);
+    const check=await probeFactoryMedia(muxed);
+    if(check.width!==Number(job.width)||check.height!==Number(job.height)
+        ||Math.abs(check.duration-Number(job.durationInFrames)/30)>0.75)
+      throw Error('FACTORY_VOICE_MUX_FAILED_AUDIO_VIDEO_SYNC_QA');
+    await fs.rename(muxed,videoPath);
+  } finally {
+    await fs.rm(audioPath,{force:true}).catch(()=>undefined);
+    await fs.rm(muxed,{force:true}).catch(()=>undefined);
+  }
+}
+
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
@@ -549,6 +611,26 @@ async function render(job) {
   }, 15_000);
 
   try {
+    if (['AT-FACTORY-MASTER','AT-FACTORY-SHORT'].includes(job.compositionId)) {
+      if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+          ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA)
+        throw Error('FACTORY_ASSEMBLY_WORKER_SOURCE_COMMIT_MISMATCH');
+      await buildFactoryMedia(job,outputPath,{
+        backendUrl:BACKEND_URL,
+        authHeaders:headers,
+        request:(url,options)=>workloadTokens.request(url,options),
+        onProgress:async value=>{
+          heartbeatProgress=value;
+          await progress(job.renderId,value);
+        },
+      });
+      heartbeatProgress=97;
+      await progress(job.renderId,97);
+      const bytes=await complete(job.renderId,outputPath);
+      console.log(`Factory ${job.compositionId} completed ${job.renderId}: ${bytes} bytes`);
+      return;
+    }
+
     if (job.compositionId === 'EP001-Voice-CurrentPreview') {
       console.log(`Concatenating cumulative preview from ${Array.isArray(inputProps.segments) ? inputProps.segments.length : 0} rendered shot segment(s)`);
       await renderCumulativePreview(job, outputPath, inputProps);
@@ -563,7 +645,8 @@ async function render(job) {
       await readEp002SelectedVoice(job, inputProps);
     }
 
-    const serveUrl = await getServeUrl();
+    const serveUrl = job.compositionId === 'AT-FACTORY-SHOT'
+      ? await getFactoryServeUrl() : await getServeUrl();
     const composition = await selectComposition({
       serveUrl,
       id: job.compositionId,
@@ -630,6 +713,9 @@ async function render(job) {
     if (job.compositionId === 'EP002-SHOT01-DRAFT') {
       await muxEp002SelectedVoice(job, outputPath, inputProps);
     }
+    if (job.compositionId === 'AT-FACTORY-SHOT') {
+      await muxFactorySelectedVoice(job,outputPath,inputProps);
+    }
     heartbeatProgress = 97;
     await progress(job.renderId, 97);
     const sizeBytes = await complete(job.renderId, outputPath);
@@ -648,6 +734,8 @@ async function main() {
 
   while (true) {
     let job = null;
+    try {await publishFactoryCapability();}
+    catch(error){console.warn('Factory capability heartbeat unavailable:',error.message);}
     try {
       job = await claim();
       if (!job) {
