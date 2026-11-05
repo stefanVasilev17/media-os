@@ -29,6 +29,14 @@ The product is not accepted until **one real EP002 episode** completes all seven
 - Single tabbed **EP002 Production Factory Console** replaces multiple disconnected dashboard panels: Episode+Voice, Next Remotion SHOT, Director Corrections, Verified Preview Acceptance.
 - Unit/security/isolated-PostgreSQL migration tests have been authored, but **NOT executed**. GitHub Actions are disabled and no source runner is available via the active GitHub connector.
 
+## New execution acceptance condition — ZERO manual Codex task entry (2026-11-06)
+
+The Director will NOT manually enter, paste, create or track Codex Cloud tasks. The MediaOS product must own the full lifecycle of each sequential Remotion task, including submission, progress, cancellation/limit handling, code/PR discovery, source verification and preparation for rendered visual QA. The Director only approves genuine voice, visual quality, permissions/usage and separately bounded CPU costs; no copying generated scripts or handling GitHub implementation manually.
+
+The existing V119 manual copy/paste cloud handoff is historical, not the product solution. **Do not ship the product based on the manual fallback.** Supported integration candidates: (A) official scriptable Codex Cloud CLI if actually compatible with the Director's published environment and authorized account; (B) official Codex app-server plus ChatGPT plan OAuth on a managed remote host, subject to actual remote-app eligibility/consent and a tested, secure connection. Option B is a hosted Codex agent and must never be mislabeled Codex Cloud. Neither option is verified in MediaOS; avoid undocumented ChatGPT backend APIs, token scraping or claiming an ordinary API key runs under subscription limits. If the chosen supported route is unavailable, leave one-SHOT dispatch BLOCKED with a clear explanation and no spending.
+
+**Acceptance test:** With all real source/voice/59-beat timings ready and a one-time Director authorization, MediaOS launches SHOT02 without any typed prompt or copy/paste in Codex UI, captures actual task and PR identifiers, supports retry-safe monitoring without duplicate quota consumption, and proceeds only after real preview/Director acceptance. The laptop can remain powered off if the chosen worker genuinely runs in an authorized cloud service.
+
 ## Unfinished release blockers — mandatory, not optional
 
 1. **Real EP002 voice-cue bridge**. The original Visual Pass v1.0 has 59 approved editorial beat directions, not 59 verified exact spoken anchors. The current EP002 readiness deliberately returns zero fully verified timed SHOTs. Implement and QA Director-reviewed cue-anchor capture and real ElevenLabs selected-Take verification; never invent timestamps, reuse stale recordings, or retry the unresolved historical paid alignment.
