@@ -38,7 +38,8 @@ class Ep002VoiceLedgerPostgresTest {
                     .load();
             flyway.migrate();
             flyway.validate();
-            assertEquals("106", flyway.info().current().getVersion().toString());
+            assertTrue(Integer.parseInt(flyway.info().current().getVersion().toString()) >= 106,
+                    "Original V106 ledger and protected EP001 migration guarantees must survive later additive migrations.");
 
             UUID first = UUID.randomUUID();
             UUID second = UUID.randomUUID();
