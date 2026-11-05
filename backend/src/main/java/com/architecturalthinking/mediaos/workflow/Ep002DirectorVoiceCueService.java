@@ -141,16 +141,17 @@ public class Ep002DirectorVoiceCueService {
         return jdbc.sql("""
                 select anchors_json::text as anchors,
                        resolved_frames_json::text as frames,
+                       episode_fingerprint as original_fingerprint,
                        alignment_sha256,cue_digest_sha256,
                        created_at::text as reviewed_at
                   from ep002_director_voice_cue_review
-                 where shot_key=:shot and episode_fingerprint=:fingerprint
+                 where shot_key=:shot and episode_key='EP002'
                    and selected_take_id=:take and script_revision=:revision
                    and narration_sha256=:narration
                    and director_issuer=:issuer and director_subject=:subject
                  order by created_at desc limit 1
                 """)
-                .param("shot",shot).param("fingerprint",fingerprint)
+                .param("shot",shot)
                 .param("take",take.id()).param("revision",source.scriptRevision())
                 .param("narration",source.narrationSha256())
                 .param("issuer",actor.issuer()).param("subject",actor.subject())
@@ -166,7 +167,8 @@ public class Ep002DirectorVoiceCueService {
                         List<Ep002VoiceBeatResolver.BeatCue> cues=mapper.readValue(framesJson,type);
                         String canonical=mapper.writeValueAsString(cues);
                         String cueDigest=Ep002ProductionContractService.sha256(
-                                shot+"|"+fingerprint+"|"+take.id()+"|"+canonical);
+                                shot+"|"+rs.getString("original_fingerprint")+
+                                "|"+take.id()+"|"+canonical);
                         boolean verified=rs.getString("alignment_sha256").equals(
                                     Ep002ProductionContractService.sha256(take.alignment()))
                                 && rs.getString("cue_digest_sha256").equals(cueDigest)
