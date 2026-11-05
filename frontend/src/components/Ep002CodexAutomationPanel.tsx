@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {CloudCog,PauseCircle,PlayCircle,RotateCcw,ShieldCheck} from 'lucide-react';
 
 type Task={shotKey:string;state:string;remoteTaskId:string|null;
+  remoteTaskStatus:string|null;remoteTaskUrl:string|null;
   taskInputSha256:string;createdAt:string};
 type Automation={
   mode:string;episodeFingerprint:string;nextShotKey:string|null;
@@ -182,6 +183,7 @@ export function Ep002CodexAutomationPanel(){
               <strong>{t.shotKey} · {t.state}</strong>
               <small>{t.createdAt}</small>
               <p>Remote Codex task: {t.remoteTaskId??'not confirmed'}</p>
+              {t.remoteTaskStatus&&<p>Cloud status: {t.remoteTaskStatus}</p>}
               {t.state==='REMOTE_UNKNOWN'&&<p>
                 Remote result is uncertain. Automatic retry is blocked until reconciled.
               </p>}
