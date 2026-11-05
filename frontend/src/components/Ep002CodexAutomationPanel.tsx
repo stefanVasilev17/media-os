@@ -84,6 +84,22 @@ export function Ep002CodexAutomationPanel(){
     }catch(e){setError(String(e));}finally{setBusy(false);}
   }
 
+  async function resume(){
+    if(!state||busy||state.mode!=='PAUSED')return;
+    if(!window.confirm('Resume future sequential Codex Remotion tasks for the same approved EP002 source?'))return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const response=await fetch(URL+'/resume',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          expectedEpisodeFingerprint:state.episodeFingerprint,confirmResume:true,
+        })});
+      if(!response.ok)throw Error('Resume blocked ('+response.status+'): '+
+        (await response.text()).slice(0,250));
+      setState(await response.json() as Automation);
+      setMessage('Existing source-bound Codex automation authorization resumed.');
+    }catch(problem){setError(String(problem));}finally{setBusy(false);}
+  }
+
   const armed=state?.mode==='ARMED_WAITING_FOR_GATES';
   const ready=state?.readyForCodex===true;
   return <section className="library-episode-batch" aria-label="EP002 zero-manual Codex automation">
@@ -131,6 +147,12 @@ export function Ep002CodexAutomationPanel(){
         <button type="button" className="library-voice-refresh"
           disabled={busy} onClick={()=>void pause()}>
           <PauseCircle size={15}/> Pause future SHOT launches
+        </button>
+      </div>}
+      {state.mode==='PAUSED'&&<div className="library-episode-batch-actions">
+        <button type="button" className="library-voice-button"
+          disabled={busy} onClick={()=>void resume()}>
+          <PlayCircle size={15}/> Resume automatic Remotion SHOTs
         </button>
       </div>}
       <div className="library-episode-batch-actions">
