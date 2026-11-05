@@ -22,3 +22,5 @@ V120 full Spring Boot application context isolated PG validation (2026-11-05): v
 COMBINED V120 QA 2026-11-05: Director-approved single build of merged #180 and #181 source with Java 21, isolated PostgreSQL and frontend checks under active pre-deploy STOP; no production promotion or media spend.
 
 Explicit V120 backend production promotion commit, 2026-11-05: additive Flyway V120 already applied in production; independently verified isolated PostgreSQL + 377 JUnit tests 0 failures/errors with 1 skip, full Spring Boot context, scoped Factory auth and worker callbacks. Change only release marker to force one exact-SHA Railway image build and monitored health check. No provider API dispatch, no CPU render jobs, no storage bucket reuse, no EP001/EP002 creative source changes. Release is separate from Director-approved video generation.
+
+V120 explicit worker claim-safety verification 2026-11-05: build Node worker tests and Remotion bundles with exact opt-in CPU claim gate; Railway production promotion DENIED by pinned main SHA pre-deploy guard; do not render or call any provider.
