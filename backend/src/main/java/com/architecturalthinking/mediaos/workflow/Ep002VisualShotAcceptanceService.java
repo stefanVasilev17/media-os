@@ -33,6 +33,8 @@ public class Ep002VisualShotAcceptanceService {
 
     static void requireInput(Request r,Ep002SequentialVisualPreflightService.Preflight state) {
         if(r==null || r.requestId()==null || r.renderId()==null
+                || r.shotKey()==null
+                || !r.shotKey().matches("SHOT(0[2-9]|1[01])")
                 || !r.confirmWatchedAndApproved() || !r.confirmCorrectionsResolved()
                 || r.pullRequestNumber()<1
                 || !valid(r.expectedFingerprint(),64) || !valid(r.expectedMainSha(),40)
