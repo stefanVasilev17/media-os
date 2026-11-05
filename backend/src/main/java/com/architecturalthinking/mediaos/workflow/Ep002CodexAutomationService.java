@@ -45,6 +45,7 @@ public class Ep002CodexAutomationService {
     public record ArmRequest(UUID requestId,String expectedEpisodeFingerprint,
                              int maximumTaskSubmissions,Boolean confirmAutoCodexRemotionOnly) {}
     public record PauseRequest(String expectedEpisodeFingerprint,Boolean confirmPause) {}
+    public record ResumeRequest(String expectedEpisodeFingerprint,Boolean confirmResume) {}
     public record TaskReceipt(String shotKey,String state,String remoteTaskId,
                               String taskInputSha256,String createdAt) {}
     public record Status(String mode,String episodeFingerprint,String nextShotKey,
@@ -144,6 +145,29 @@ public class Ep002CodexAutomationService {
                 .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
         if(changed!=1)throw conflict("No current armed EP002 authorization to pause.");
         // Already-submitted remote tasks are NOT cancelled by this local pause.
+        return status();
+    }
+
+    @Transactional
+    public Status resume(ResumeRequest request,UUID auditId) {
+        var actor=DirectorIdentity.requireDirector();
+        if(request==null || !Boolean.TRUE.equals(request.confirmResume())
+                || request.expectedEpisodeFingerprint()==null || auditId==null)
+            throw bad("Explicit audited Director resumption is required.");
+        var current=sequence.preview();
+        if(!request.expectedEpisodeFingerprint().equals(current.inputFingerprint())
+                || current.candidate()==null)
+            throw conflict("Source or selected voice changed; authorize a new episode revision.");
+        int changed=jdbc.sql("""
+                update ep002_codex_automation
+                   set state='ARMED_WAITING_FOR_GATES',updated_at=now()
+                 where episode_key='EP002' and input_fingerprint=:fp
+                   and director_issuer=:issuer and director_subject=:subject
+                   and state='PAUSED'
+                """).param("fp",request.expectedEpisodeFingerprint())
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
+        if(changed!=1)
+            throw conflict("Only the current paused Director automation may resume.");
         return status();
     }
 
