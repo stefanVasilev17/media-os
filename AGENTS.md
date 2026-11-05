@@ -2,6 +2,18 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## Newer Director decision — Codex visual memory + sequential SHOT implementation (2026-11-05)
+
+**Applies before ANY Remotion / Codex visual scene code.** Read the versioned repo visual authority in order:
+
+1. [Architectural Thinking Remotion Visual Constitution v1](docs/visual/AT_REMOTION_VISUAL_CONSTITUTION_V1.md) — brand-wide one-world visual style, canonical state/motion/camera/voice rules and known reject modes.
+2. [Visual Corrections & Lessons Ledger](docs/visual/CODEX_VISUAL_LESSONS_LEDGER.md) — accepted, evidence-backed corrections that must not be repeated.
+3. [Sequential Codex SHOT Protocol v1](docs/visual/SEQUENTIAL_CODEX_SHOT_PROTOCOL_V1.md) — one approved episode-wide plan but exactly ONE authorized SHOT per Codex Cloud visual implementation task, with previous-SHOT continuity and QA before advancing.
+
+**This is the Director's newer execution preference** and supersedes only the old "Codex generates all SHOT code in one batch" wording below. Retain one Episode Package, whole-episode Voice Studio/readiness and full-episode continuity plan. Codex Cloud remains reserved for **Remotion visual code only**. Java/Spring/React/PostgreSQL/MediaOS engineering belongs to ChatGPT + GitHub, not Codex quota. Never claim the existing V119/V120 services already enforce sequential per-SHOT production; they currently require a separate engineering adaptation. Do not bypass EP003+ guards for EP002 or edit protected EP001 assets / EP002 SHOT01.
+
+Every Codex SHOT report must show which rule versions and applicable approved correction IDs it read, how the SHOT continues the prior accepted map, the exact target file scope and actual test/preview evidence. An agent may propose a correction but only Director approval makes it canonical. No TTS, OpenAI API, GitHub Actions, Railway renders/deployments or merge without their respective independent authorizations.
+
 ## Mandatory startup sequence
 
 1. Read [PROJECT_STATE.md](PROJECT_STATE.md) in full from the current `main` branch. Treat it as the **latest documented snapshot**, not a guaranteed live truth.
