@@ -7,6 +7,16 @@
 
 ## V120 release checkpoint — 2026-11-05 (IN PROGRESS; NOT DEPLOYED)
 
+### First V120 production attempt + full Spring context fix (2026-11-05)
+
+- Director-approved Railway backend deployment `36d6755c-0d15-4a10-9831-7d7035c6145c` from feature SHA `6ce60594015bfba1d6e107d7d913a1c970cb46ee` successfully built but **FAILED Spring initialization**, so **V120 did not become live**. Railway retained healthy V119 deployment `e49993a8-23c5-46fc-8458-9b929d514fbd`.
+- **Important durable production DB change:** that attempted startup connected to existing PostgreSQL **18.6** and **successfully applied additive Flyway V120**, going from version 119 to 120. Do not claim production DB unchanged or roll back the schema automatically. The V119 backend continued serving while the new tables exist.
+- Root cause: `EpisodeFactoryGitCodeAuditService` has two constructors (production ObjectMapper and package-private test seam), but no `@Autowired` selection; Spring failed `BeanCreationException: No default constructor found`. [PR #180](https://github.com/stefanVasilev17/media-os/pull/180) annotates only production constructor with `@Autowired` and adds a full Spring Boot application context / local-auth + worker-security test against disposable PostgreSQL.
+- **Independent guarded verification PASS** on Railway build `8b37097e-b951-443e-beb1-c21c21255aa8` at PR branch `d47ea5980988c3789a53aae4fdd748bb3069cce3`: **374 tests, 0 failures, 0 errors, 1 skipped**, including `MediaOsFullApplicationStartupV120Test` full Spring context started successfully, Flyway V120 and prior EP001 asset protections validated, frontend TypeScript/Vite PASS. The build's pre-deploy promotion STOP guard remained active; PR #180 is merged into the V120 feature branch at `b1688d5cabd310720897f8d6e77c7a557567a4a2`. Still no live V120 backend/worker compatibility or full video proof yet.
+- Next: perform one monitored, Director-authorized corrected backend rollout with preserved V119 rollback; verify health and no spring initialization errors. Then align worker source SHA and validate factory heartbeat/auth. GitHub read-token/large-MP4 storage and Codex Cloud remain explicit external acceptance blockers.
+
+
+
 ### V120 isolated PostgreSQL release gate — PASS (2026-11-05; production NOT YET promoted)
 
 - [PR #179](https://github.com/stefanVasilev17/media-os/pull/179), merged into PR #176 feature branch at `8f266c44eef20e432c22f8fb87026b2de216f639`, adds Docker **build-only** disposable PostgreSQL 16.15 stage and a targeted migration test for all nine V120 tables. No test DB service, volume or credentials are included in the production runtime image. Historic V106-only test assertions are updated to require preserved invariants through later additive migrations; protected EP001 and EP002 sources are unmodified.
