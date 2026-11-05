@@ -103,7 +103,7 @@ class Ep002SequentialVisualPreflightServiceTest {
         assertTrue(state.blockers().contains(
                 "VERSIONED_VISUAL_POLICY_AND_LEDGER_GIT_SHA_NOT_YET_VERIFIED"));
         assertTrue(state.blockers().contains(
-                "SEQUENTIAL_DIRECTOR_ACCEPTANCE_STORAGE_AND_GATE_NOT_YET_IMPLEMENTED"));
+                "EP002_RENDER_WORKER_AND_FINAL_ASSEMBLY_NOT_CONNECTED"));
     }
 
     @Test
