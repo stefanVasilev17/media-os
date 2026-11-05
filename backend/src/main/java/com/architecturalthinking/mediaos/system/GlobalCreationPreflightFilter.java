@@ -300,7 +300,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         // EP002 fixed-source creative feedback is a project-scoped Director review,
         // not an EP001 episode edit. The existing project audit anchor is used
         // only for global production-memory preflight; the stored feedback remains EP002.
-        if (path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
+        if (path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
+                || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/pause")) {
