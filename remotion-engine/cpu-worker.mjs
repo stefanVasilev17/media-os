@@ -97,15 +97,19 @@ async function publishFactoryCapability() {
   if (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA))return;
   const now=Date.now();
   if (now-factoryCapabilityLast<45_000)return;
+  factoryCapabilityLast=now;
   const keys=JSON.parse(await fs.readFile(path.join(ENGINE_ROOT,'factory-scenes.json'),'utf8'));
   if (!Array.isArray(keys.sceneKeys))throw Error('FACTORY_BUILD_SCENE_INVENTORY_MISSING');
   await leaseClient.refresh();
-  await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/factory-capability`,{
+  const receipt=await requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/factory-capability`,{
     method:'POST',
     headers:headers({'Content-Type':'application/json'}),
     body:JSON.stringify({sourceCommit:FACTORY_SOURCE_SHA,sceneKeys:keys.sceneKeys,buildChecked:true}),
   });
-  factoryCapabilityLast=now;
+  if (receipt?.state !== 'FACTORY_BUNDLE_REPORTED' || receipt.sourceCommit !== FACTORY_SOURCE_SHA) {
+    throw new Error('FACTORY_CAPABILITY_RECEIPT_INVALID');
+  }
+  console.log(`Factory capability confirmed source=${FACTORY_SOURCE_SHA} scenes=${keys.sceneKeys.length}`);
 }
 
 async function progress(renderId, value) {
@@ -733,6 +737,9 @@ async function main() {
   console.log(`MediaOS Remotion CPU worker online: ${WORKER_ID} version=${WORKER_VERSION} renderConcurrency=${RENDER_CONCURRENCY} claimsEnabled=${CLAIMS_ENABLED}`);
   console.log(`Backend: ${BACKEND_URL}`);
   console.log(`Chromium: ${CHROMIUM_PATH}`);
+  if (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)) {
+    console.error('Factory source SHA unavailable: capability registration disabled; CPU claims remain independently gated.');
+  }
 
   while (true) {
     let job = null;
