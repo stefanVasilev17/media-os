@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.workflow;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,8 @@ public class CodexCloudCliGateway {
     public record Capability(boolean supported,String reason) {}
     public record Submission(String state,String taskId,String reason) {}
     record CommandResult(int exitCode,boolean timedOut,String output) {}
+    public record RemoteTaskStatus(String taskId,String cloudStatus,
+                                   String url,boolean verified,String reason) {}
 
     public Capability probe() {
         if(!enabled)return new Capability(false,"CLOUD_CLI_AUTOMATION_DISABLED");
@@ -71,6 +75,44 @@ public class CodexCloudCliGateway {
         return new Submission("REMOTE_UNKNOWN",null,
                 result.timedOut()?"SUBMISSION_TIMED_OUT_RECONCILE_WITH_PROVIDER"
                         :"SUBMISSION_RESULT_AMBIGUOUS_NO_AUTOMATIC_RETRY");
+    }
+
+    public RemoteTaskStatus inspect(String taskId) {
+        if(taskId==null || !TASK.matcher(taskId).matches())
+            return new RemoteTaskStatus(taskId,null,null,false,"INVALID_REMOTE_TASK_ID");
+        Capability capability=probe();
+        if(!capability.supported())
+            return new RemoteTaskStatus(taskId,null,null,false,capability.reason());
+        CommandResult output=execute(List.of(
+                "codex","cloud","list","--env",environmentId,"--json","--limit","20"),
+                Duration.ofSeconds(18));
+        if(output.timedOut()||output.exitCode()!=0)
+            return new RemoteTaskStatus(taskId,null,null,false,
+                    "CODEX_CLOUD_TASK_CATALOG_UNAVAILABLE");
+        try {
+            JsonNode tasks=new ObjectMapper().readTree(output.output()).path("tasks");
+            if(!tasks.isArray())throw new IllegalArgumentException("Invalid CLI task catalog.");
+            for(JsonNode task:tasks) {
+                if(!taskId.equals(task.path("id").asText()))continue;
+                if(!environmentId.equals(task.path("environment_id").asText()))
+                    return new RemoteTaskStatus(taskId,null,null,false,
+                            "CODEX_TASK_ENVIRONMENT_MISMATCH");
+                String status=task.path("status").asText("");
+                if(status.isBlank() || status.length()>80)
+                    return new RemoteTaskStatus(taskId,null,null,false,
+                            "CODEX_REMOTE_STATUS_INVALID");
+                String url=task.path("url").asText("");
+                if(!url.startsWith("https://chatgpt.com/")
+                        && !url.startsWith("https://codex.openai.com/"))url="";
+                return new RemoteTaskStatus(taskId,status,url,true,
+                        "CURRENT_CLOUD_TASK_OBSERVED");
+            }
+            return new RemoteTaskStatus(taskId,null,null,false,
+                    "REMOTE_TASK_NOT_IN_RECENT_CLI_CATALOG");
+        }catch(Exception failure) {
+            return new RemoteTaskStatus(taskId,null,null,false,
+                    "CLOUD_TASK_JSON_INVALID");
+        }
     }
 
     static List<String> commandFor(String environment,String prompt) {
