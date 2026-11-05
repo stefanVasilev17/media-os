@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
         named = "CI_POSTGRES_URL",
         matches = "jdbc:postgresql://(localhost|127\\.0\\.0\\.1):5432/media_os")
 @SpringBootTest(classes = MediaOsApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.NONE)
+        webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @TestPropertySource(properties = {
         "spring.datasource.url=${CI_POSTGRES_URL}",
         "spring.datasource.username=media_os",
