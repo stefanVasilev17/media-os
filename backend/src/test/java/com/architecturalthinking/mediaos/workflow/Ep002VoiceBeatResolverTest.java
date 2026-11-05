@@ -35,7 +35,7 @@ class Ep002VoiceBeatResolverTest {
                 new BigDecimal("8.000"),
                 List.of("nine o'clock","API Gateway","Load Balancer"),3);
         assertEquals(3,frames.size());
-        assertEquals(0<frames.get(0).startFrame(),true);
+        assertTrue(frames.get(0).startFrame()>0);
         assertEquals(frames.get(1).startFrame(),frames.get(0).endFrame());
         assertEquals(frames.get(2).startFrame(),frames.get(1).endFrame());
         assertEquals(240,frames.get(2).endFrame());
@@ -60,7 +60,7 @@ class Ep002VoiceBeatResolverTest {
                 Ep002VoiceBeatResolver.resolve(json,actual,new BigDecimal("8.000"),
                         List.of("Load Balancer","API Gateway"),2));
         assertThrows(IllegalArgumentException.class,()->
-                Ep002VoiceBeatResolver.resolve(json,actual,new BigDecimal("0.500"),
+                Ep002VoiceBeatResolver.resolve(json,actual,new BigDecimal("0.100"),
                         List.of("Before the"),1));
     }
 
