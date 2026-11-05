@@ -45,6 +45,13 @@ public class Ep002CodexAutomationController {
         return automation.pause(input,auditId(request));
     }
 
+    @PostMapping("/resume")
+    public Ep002CodexAutomationService.Status resume(
+            @RequestBody Ep002CodexAutomationService.ResumeRequest input,
+            HttpServletRequest request) {
+        return automation.resume(input,auditId(request));
+    }
+
     private UUID auditId(HttpServletRequest http) {
         Object stored=http.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
         if(!(stored instanceof Map<?,?> fields)
