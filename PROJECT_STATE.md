@@ -5,6 +5,12 @@
 > **Status class:** verified repository/deployment facts + explicitly labeled Director reports; not an automatically refreshed live dashboard.  
 > **How to use:** read this file, then `AGENTS.md`, the latest linked roadmap/handoff, and verify live GitHub/Railway evidence **before** modifying code. A newer merged PR or deployment can supersede this snapshot.
 
+## NEW DIRECTOR CORRECTION — automatic Codex dispatch, no manual task submission (2026-11-06, REQUIREMENT ONLY)
+
+**Authoritative behavior:** The Director must NEVER have to copy/paste/type Codex Cloud prompts or manage cloud task IDs or generated code. The final MediaOS flow is one trusted, fully assembled episode plan followed by autonomous **sequential one-SHOT Remotion task submission, monitoring and PR handoff**, each gated by real approved Take/cues/visual policy and prior SHOT acceptance. Existing V119 manual handoff remains historical, **does NOT satisfy the product**, and PR #191 does **not** yet contain a live authorized automatic Codex dispatcher.
+
+Official Codex Cloud CLI offers scriptable task commands, but new-generation published environments have known dispatch/discovery compatibility reports. Alternative: independently verify official Sign in with ChatGPT plan OAuth + Codex app-server eligibility for a remotely hosted MediaOS/VM; that would be a managed Codex agent, not literally Codex Cloud. Do not assume either works with the subscription until a real authorized task succeeds. Do not use private ChatGPT endpoints, harvested user cookies/tokens, or an unapproved API-billed substitution. Railway worker hosting and plan eligibility may need separate Director approval. Director reviews actual outputs, not task-prompt text. This is a **product requirement and unverified integration blocker**, not DONE, deployed or paid authorization.
+
 ## DIRECTOR PRODUCT DIRECTION — EP002-first complete factory (2026-11-05, UNVERIFIED BRANCH WORK)
 
 **Source of direction:** Director explicitly requires ONE complete MediaOS product, rather than disconnected standalone panels. The first real product acceptance episode is now **EP002** (existing Script v4.0, Visual Pass v1.0, 11 SHOTs, 59 editorial beats, visually Director-LOCKED SHOT01); EP003+ remains the subsequent universality test. This is a new explicit Director direction; do not silently preserve the older EP003+-first testing order when planning future milestones.
