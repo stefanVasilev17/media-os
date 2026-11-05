@@ -43,7 +43,8 @@ public class Ep002FactoryReadinessBridgeService {
             BigDecimal measuredVoiceSeconds, Integer durationFrames,
             boolean currentVoiceApproved, boolean hearSeeTimingVerified,
             String timingAuthority, String renderStatus,
-            JsonNode approvedVisualStory, List<String> blockers
+            JsonNode approvedVisualStory, List<String> blockers,
+            JsonNode verifiedCueFrames
     ) {}
 
     public record Snapshot(
@@ -120,7 +121,7 @@ public class Ep002FactoryReadinessBridgeService {
                     .query(Boolean.class).single());
             if (uncertain) uncertainRequests.add(shot.shotKey());
         }
-        return project(current, revisions, uncertainRequests);
+        return withVerifiedCues(project(current, revisions, uncertainRequests));
     }
 
     Snapshot project(Ep002EpisodeBatchPlanService.Plan plan,
@@ -192,7 +193,7 @@ public class Ep002FactoryReadinessBridgeService {
                     hasDuration ? shot.measuredVoiceSeconds().multiply(BigDecimal.valueOf(30))
                             .setScale(0, RoundingMode.CEILING).intValueExact() : null,
                     chosen, false, "EDITORIAL_ONLY_NOT_AUDIO_ALIGNED",
-                    shot.renderStatus(), approvedVisual.deepCopy(), List.copyOf(blockers)));
+                    shot.renderStatus(), approvedVisual.deepCopy(), List.copyOf(blockers), null));
         }
         if (totalBeats != 59) {
             throw new IllegalStateException("EP002 visual beat total differs from approved source.");
@@ -207,6 +208,119 @@ public class Ep002FactoryReadinessBridgeService {
                 Ep002ProductionContractService.VISUAL_SHA, plan.inputFingerprint(),
                 11, 59, 810, 1, 10, selected, measured, 0,
                 true, false, false, false, List.copyOf(blockers), List.copyOf(out));
+    }
+
+
+    private record ReviewedCue(
+            String shotKey,String takeId,int revision,String narrationSha,
+            BigDecimal measuredSeconds,String alignmentSha,String alignmentJson,
+            String resolvedJson,String resolvedDigest) {}
+
+    private Snapshot withVerifiedCues(Snapshot base) {
+        List<ReviewedCue> records=jdbc.sql("""
+                select c.shot_key,c.selected_take_id::text as take_id,
+                       c.script_revision,c.narration_sha256,
+                       c.measured_duration_seconds,c.alignment_sha256,
+                       t.elevenlabs_alignment::text as alignment_json,
+                       c.resolved_frames_json::text as resolved_json,
+                       c.cue_digest_sha256
+                  from ep002_director_voice_cue_review c
+                  join ep002_creative_voice_take t on t.id=c.selected_take_id
+                 where c.episode_fingerprint=:fingerprint
+                 order by c.created_at desc
+                """)
+                .param("fingerprint",base.inputFingerprint())
+                .query((rs,n)->new ReviewedCue(rs.getString("shot_key"),
+                        rs.getString("take_id"),rs.getInt("script_revision"),
+                        rs.getString("narration_sha256"),
+                        rs.getBigDecimal("measured_duration_seconds"),
+                        rs.getString("alignment_sha256"),rs.getString("alignment_json"),
+                        rs.getString("resolved_json"),rs.getString("cue_digest_sha256")))
+                .list();
+        Map<String,ReviewedCue> index=new HashMap<>();
+        for(ReviewedCue row:records)index.putIfAbsent(row.shotKey(),row);
+
+        int verified=0;
+        List<ShotReadiness> revised=new ArrayList<>();
+        for(ShotReadiness shot:base.shots()) {
+            ReviewedCue record=index.get(shot.shotKey());
+            JsonNode frames=null;
+            if(record!=null && shot.currentVoiceApproved()
+                    && shot.preferredTakeId()!=null
+                    && shot.preferredTakeId().equals(record.takeId())
+                    && shot.scriptRevision()==record.revision()
+                    && shot.narrationSha256().equals(record.narrationSha())
+                    && shot.measuredVoiceSeconds()!=null
+                    && record.measuredSeconds().compareTo(shot.measuredVoiceSeconds())==0
+                    && record.alignmentJson()!=null
+                    && record.alignmentSha().equals(
+                            Ep002ProductionContractService.sha256(record.alignmentJson()))) {
+                try {
+                    JsonNode raw=mapperForCues.readTree(record.resolvedJson());
+                    if(validCueFrames(raw,shot.beatCount(),shot.durationFrames())) {
+                        var type=mapperForCues.getTypeFactory().constructCollectionType(
+                                List.class,Ep002VoiceBeatResolver.BeatCue.class);
+                        List<Ep002VoiceBeatResolver.BeatCue> decoded=
+                                mapperForCues.readValue(record.resolvedJson(),type);
+                        String digest=Ep002ProductionContractService.sha256(
+                                shot.shotKey()+"|"+base.inputFingerprint()+"|"+
+                                record.takeId()+"|"+mapperForCues.writeValueAsString(decoded));
+                        if(digest.equals(record.resolvedDigest())) frames=raw;
+                    }
+                }catch(Exception invalid) {
+                    frames=null;
+                }
+            }
+            boolean ready=frames!=null;
+            if(ready)verified++;
+            List<String> blockers=new ArrayList<>(shot.blockers());
+            if(ready) {
+                blockers.remove("APPROVED_HEAR_SEE_BEATS_NEED_VERIFIED_AUDIO_CUE_MAPPING");
+                blockers.remove("SHOT01_CUE_AND_EXISTING_RENDER_REVIEW_REQUIRED");
+                if("SHOT01".equals(shot.shotKey()))
+                    blockers.add("SHOT01_LOCKED_PREVIEW_REVIEW_REQUIRED");
+            }
+            revised.add(new ShotReadiness(
+                    shot.shotKey(),shot.title(),shot.shotIndex(),shot.beatCount(),
+                    shot.editorialSeconds(),shot.action(),shot.directorVisualLocked(),
+                    shot.existingScenePath(),shot.proposedScenePath(),
+                    shot.scriptRevision(),shot.narration(),shot.voiceDirection(),
+                    shot.narrationSha256(),shot.preferredTakeId(),shot.measuredVoiceSeconds(),
+                    shot.durationFrames(),shot.currentVoiceApproved(),ready,
+                    ready?"DIRECTOR_REVIEWED_ELEVENLABS_CHARACTER_ALIGNMENT":shot.timingAuthority(),
+                    shot.renderStatus(),shot.approvedVisualStory(),List.copyOf(blockers),
+                    frames));
+        }
+        List<String> blockers=new ArrayList<>(base.blockers());
+        if(verified==11)blockers.remove("REAL_HEAR_SEE_CUE_TIMINGS_NOT_YET_VERIFIED_FOR_ALL_11_SHOTS");
+        return new Snapshot(base.schemaVersion(),base.episodeKey(),
+                base.scriptVersion(),base.visualPassVersion(),
+                base.originalVisualGitBlobSha(),base.inputFingerprint(),
+                base.shotCount(),base.approvedBeatCount(),base.editorialSeconds(),
+                base.protectedScenes(),base.sceneCandidates(),
+                base.selectedVoiceTakes(),base.measuredVoiceTakes(),verified,
+                base.sourceVerified(),verified==11&&base.selectedVoiceTakes()==11
+                    &&base.measuredVoiceTakes()==11
+                    &&!blockers.contains("UNRESOLVED_PAID_VOICE_REQUESTS"),
+                base.canRender(),base.startsPaidOperation(),List.copyOf(blockers),
+                List.copyOf(revised));
+    }
+
+    private final ObjectMapper mapperForCues = new ObjectMapper();
+
+    private static boolean validCueFrames(JsonNode frames,int expected,Integer durationFrames) {
+        if(!frames.isArray()||frames.size()!=expected||durationFrames==null)return false;
+        int prior=0;
+        for(int i=0;i<frames.size();i++){
+            JsonNode beat=frames.path(i);
+            int start=beat.path("startFrame").asInt(-1);
+            int end=beat.path("endFrame").asInt(-1);
+            if(beat.path("beatNumber").asInt()!=i+1 || start<prior
+                    || end<=start || end>durationFrames
+                    || (i>0 && start!=prior))return false;
+            prior=end;
+        }
+        return prior==durationFrames;
     }
 
     private static boolean positiveDuration(BigDecimal seconds) {
