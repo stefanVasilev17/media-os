@@ -7,6 +7,16 @@
 
 ## V120 release checkpoint — 2026-11-05 (IN PROGRESS; NOT DEPLOYED)
 
+### V120 production startup and Factory callback release gates — 2026-11-05
+
+- **Actual production event:** Director-authorized V120 backend Railway deployment `36d6755c-0d15-4a10-9831-7d7035c6145c` **applied additive Flyway V120 to the actual production PostgreSQL 18.6** but Spring Boot failed initialization: `EpisodeFactoryGitCodeAuditService` had two constructors with no `@Autowired` selector. **The V119 backend remained serving.** Do not claim production DB is still on V119; the code and DB migration versions now differ.
+- **PR #180 merged into feature:** proper Spring bean injection and full application context startup test against disposable PostgreSQL. Guarded Railway verification `8b37097e-b951-443e-beb1-c21c21255aa8` confirms **374 tests, zero failures/errors, one skipped** with full V120 Spring Boot ApplicationContext and scoped auth; guarded deployment stopped before production.
+- **PR #181 merged into feature:** exact Director-only V120 factory POST route allowlist for all three identity modes; authenticated Factory heartbeat is treated as telemetry; Factory final `complete`/`fail` callbacks with nullable `remotion_render.episode_id` are allowed as **continued authorized work only when** render, project, RUNNING owner worker, original episode Factory run, verified source SHA/digest and approved SHOT/output linkage match; other callbacks remain guarded. Added JWT/role and PostgreSQL integration regression tests. Guarded Railway build `bd049572-37cc-4d37-9281-7198f990f199` at `c40ed83ad5505eb298c951d9300c5e06b31630db`: **376 Maven tests, zero failures/errors, one skipped**, V120 isolated PostgreSQL, Factory Master callback, read-only Git audit bean, frontend TS/Vite PASS. A subsequent branch-only marker edit did not alter Java/TS/runtime source. No V120 production promotion occurred on this branch.
+- **Latest feature implementation** after #181 is `730d65aa4f59928741ae931755ea6cf83b37b624` before this documentation note; `main` remains V119. A final combined feature build, main merge and synchronized Backend/Worker healthy Railway production deployment have **not** yet been accepted. Existing rendered Factory scenes, current EP003+ voice approval, Codex Cloud run, real 1080p Master and three Shorts are not yet demonstrated.
+- **Remaining risks:** Railway backend has repeated failed-build warnings from intentionally blocked verification and one true startup fault; worker has older source SHA and source inventory has no EP003+; 10 high npm advisories lack package-level triage; Railway lacks authorized private GitHub read token; original MP4 storage limit 256MB and no approved new master object storage. Preserve spend gates, Director creative approvals, EP001/EP002 locks, 2026-11-03 UNCERTAIN ElevenLabs event, and never automatically run paid video renders or create storage.
+
+
+
 ### First V120 production attempt + full Spring context fix (2026-11-05)
 
 - Director-approved Railway backend deployment `36d6755c-0d15-4a10-9831-7d7035c6145c` from feature SHA `6ce60594015bfba1d6e107d7d913a1c970cb46ee` successfully built but **FAILED Spring initialization**, so **V120 did not become live**. Railway retained healthy V119 deployment `e49993a8-23c5-46fc-8458-9b929d514fbd`.
