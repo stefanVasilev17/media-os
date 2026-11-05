@@ -37,10 +37,8 @@ const descriptions:Record<string,string>={
   NEXT_SHOT_HAS_UNRESOLVED_SOURCE_OR_VOICE_BLOCKERS:'Resolve the selected SHOT readiness blockers',
   VERSIONED_VISUAL_POLICY_AND_LEDGER_GIT_SHA_NOT_YET_VERIFIED:
     'Verify the latest visual constitution and approved corrections at one Git commit',
-  SEQUENTIAL_DIRECTOR_ACCEPTANCE_STORAGE_AND_GATE_NOT_YET_IMPLEMENTED:
-    'Implement persisted Director acceptance before advancing to later SHOTs',
-  EP002_SINGLE_SHOT_CLOUD_PR_AUDIT_AND_WORKER_ROUTE_NOT_YET_IMPLEMENTED:
-    'Connect and verify the EP002 single-SHOT Cloud PR and render pipeline',
+    EP002_RENDER_WORKER_AND_FINAL_ASSEMBLY_NOT_CONNECTED:
+    'Build and verify the EP002 Remotion worker, preview and Master/Shorts assembly',
 };
 
 export function Ep002SequentialVisualPreflightPanel(){
