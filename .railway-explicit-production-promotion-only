@@ -26,3 +26,5 @@ Explicit V120 backend production promotion commit, 2026-11-05: additive Flyway V
 V120 explicit worker claim-safety verification 2026-11-05: build Node worker tests and Remotion bundles with exact opt-in CPU claim gate; Railway production promotion DENIED by pinned main SHA pre-deploy guard; do not render or call any provider.
 
 V120 guarded capability-only Worker QA (2026-11-05): Node claim default-deny, authenticated Factory capability receipt and 45s failed-heartbeat backoff. Railway pre-deploy SHA guard intentionally rejects this draft build; no CPU claims, no TTS, no provider calls.
+
+V120 Director-approved Worker capability-only release (2026-11-05): PR #183 merged, worker gate strictly default-deny, 31 Node tests PASS, both Remotion bundles built, protected EP001/EP002 untouched. Permit ONE exact-main-SHA worker startup for authenticated factory-capability-only verification. MEDIA_OS_REMOTION_CLAIMS_ENABLED=false explicitly in Railway. Do not dispatch CPU render claims, OpenAI, ElevenLabs or YouTube publication. Do not mark end-to-end factory accepted until real episode proof and security/storage gates.
