@@ -20,12 +20,15 @@ public class MediaOsVerificationRunService {
     private static final List<String> STAGES=List.of("asset-check","backend","frontend","remotion");
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
+    private final Ep002SingleShotGitEvidenceService git;
     private final boolean enabled;
 
     public MediaOsVerificationRunService(JdbcClient jdbc,ObjectMapper mapper,
+            Ep002SingleShotGitEvidenceService git,
             @Value("${mediaos.verification.enabled:false}") boolean enabled) {
         this.jdbc=jdbc;
         this.mapper=mapper;
+        this.git=git;
         this.enabled=enabled;
     }
 
@@ -38,7 +41,8 @@ public class MediaOsVerificationRunService {
                       String state,String workerId,List<StageResult> stages,
                       String failureReason,String queuedAt,String finishedAt) {}
     public record Summary(boolean queueEnabled,String repository,String branch,
-                          List<Run> recent) {}
+                          String targetCommit,boolean targetVerified,
+                          String targetBlocker,List<Run> recent) {}
     public record Lease(UUID runId,UUID leaseId,String sourceCommit,String sourceBranch,
                         String repository) {}
 
@@ -59,7 +63,11 @@ public class MediaOsVerificationRunService {
                         rs.getString("worker_id"),decodeStages(rs.getString("stages")),
                         rs.getString("failure_reason"),rs.getString("queued_at"),
                         rs.getString("finished_at"))).list();
-        return new Summary(enabled,"stefanVasilev17/media-os",BRANCH,List.copyOf(runs));
+        var target=enabled?git.verificationTarget():
+                new Ep002SingleShotGitEvidenceService.VerificationTarget(
+                        false,null,"ISOLATED_WORKER_NOT_ENABLED");
+        return new Summary(enabled,"stefanVasilev17/media-os",BRANCH,
+                target.sourceCommit(),target.verified(),target.reason(),List.copyOf(runs));
     }
 
     @Transactional
@@ -81,6 +89,9 @@ public class MediaOsVerificationRunService {
                 throw conflict("Replayed request ID is bound to a different Director or commit.");
             return existing;
         }
+        var target=git.verificationTarget();
+        if(!target.verified() || !input.sourceCommit().equals(target.sourceCommit()))
+            throw conflict("Private GitHub PR source is unavailable or changed; retry after verification.");
 
         UUID id=UUID.randomUUID();
         int inserted=jdbc.sql("""
