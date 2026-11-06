@@ -107,6 +107,8 @@ public class Ep002CodexAutomationService {
         var actor=DirectorIdentity.requireDirector();
         validateArm(request);
         if(auditId==null)throw conflict("Audited Director authorization is required.");
+        if(!"CODEX_CLOUD_CLI".equals(driverMode) && !"CODEX_LOCAL_EXEC".equals(driverMode))
+            throw conflict("No supported automatic Codex driver configured.");
         var current=sequence.preview();
         if(!request.expectedEpisodeFingerprint().equals(current.inputFingerprint())
                 || current.candidate()==null)
@@ -117,7 +119,8 @@ public class Ep002CodexAutomationService {
             if(!previous.issuer().equals(actor.issuer())
                     || !previous.subject().equals(actor.subject())
                     || !previous.fingerprint().equals(request.expectedEpisodeFingerprint())
-                    || previous.maximum()!=request.maximumTaskSubmissions())
+                    || previous.maximum()!=request.maximumTaskSubmissions()
+                    || !previous.driver().equals(driverMode))
                 throw conflict("Automation request UUID already belongs to different consent.");
             return status();
         }
@@ -167,6 +170,9 @@ public class Ep002CodexAutomationService {
                 || request.expectedEpisodeFingerprint()==null || auditId==null)
             throw bad("Explicit audited Director resumption is required.");
         var current=sequence.preview();
+        Enrollment recorded=latest(actor);
+        if(recorded==null || !recorded.driver().equals(driverMode))
+            throw conflict("The active connector changed; new Director authorization required.");
         if(!request.expectedEpisodeFingerprint().equals(current.inputFingerprint())
                 || current.candidate()==null)
             throw conflict("Source or selected voice changed; authorize a new episode revision.");
