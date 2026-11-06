@@ -39,7 +39,7 @@ The Director confirmed in conversation that MediaOS reports **REAL TIMING VERIFI
 
 The code **does not bake 1205 frames or sample timings** into the scene. It requires a caller-supplied, backend-verified `voiceTakeId`, `durationInFrames`, `timingMode='ELEVENLABS_CHARACTER_TIMESTAMPS'` and the five ordered `verifiedCues`. Cue boundaries are validated for positive duration and complete non-overlapping coverage. If anything is missing, the scene fails closed rather than substituting storyboard percentages.
 
-The future authorized adapter must load the *actual Director-owned, current* response from `GET /api/v1/creative/episodes/EP002/voice-cue-review/SHOT02`, match `selectedTakeId` and `inputFingerprint` against the current episode/voice state, and pass the returned `frames` to `Shot02GeneratedScene`. An apparently correct client-supplied array alone **does not prove** a Director review; verification of live provenance is a separate pre-render gate. Do not claim a playback-ready composition or accepted scene until that adapter exists and all checks pass. Any changed Take, source fingerprint or SHOT02 revision invalidates previous assumptions.
+The new read-only source adapter in this PR checks the *actual Director-owned, current* `GET /api/v1/creative/episodes/EP002/voice-cue-review/SHOT02` review, matching selected Take and episode fingerprint before producing separate `verifiedCues` and `termCues`. The endpoint remains untested against live director data and is NOT deployed; secure server-side render orchestration must still pass its verified response to `Shot02GeneratedScene`. An apparently correct client-supplied array alone **does not prove** a Director review; verification of live provenance is a separate pre-render gate. Do not claim a playback-ready composition or accepted scene until that adapter exists and all checks pass. Any changed Take, source fingerprint or SHOT02 revision invalidates previous assumptions.
 
 ## Five visual beats (voice-driven, no guessed seconds)
 
@@ -58,9 +58,9 @@ The future authorized adapter must load the *actual Director-owned, current* res
 
 ## Scope and QA status
 
-**New code:** `remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx` only.
-**Focused test:** `remotion-engine/shot02-readiness.test.mjs`.
-**No modifications:** SHOT01, Root.tsx, worker, shared primitives, original Script/Visual Pass, PostgreSQL, `.github/workflows`, or protected EP001 files.
+**SHOT-local visual code:** `Shot02GeneratedScene.tsx` and `Shot02PremiumLayout.ts`; source-only companion backend term resolver, Director read-only endpoint integration and one candidate-only Root.tsx composition.
+**Focused tests (authored, not yet run in full checkout):** `shot02-readiness.test.mjs`, `shot02-premium-layout.test.mjs`, `shot02-render-contract.test.mjs`, and `Ep002Shot02TermResolverTest.java`.
+**Protected originals unchanged:** SHOT01 visual sources, worker, shared primitives, locked Script/Visual Pass, database schema, `.github/workflows`, and EP001 protected files.
 
 Original first-pass status (superseded by dated integration update below): this PR was a source-only draft with no composition registration. It remains excluded from the EP003+ factory worker; the new SHOT02 candidate registration is pre-render only. Before preview: verify Director's live cue receipt and selected current Take; run actual Node tests, TypeScript typecheck and Remotion bundle in an authorized cloud build; integrate EP002 SHOT02 into a reviewed render route; deploy the *matching exact worker SHA* only with an explicit Director production release approval; and obtain separate Director authorization before any paid/CPU-consuming MP4 render. Never claim TypeScript/preview/visual QA success based only on file creation. Director must inspect and LOCK the real MP4 before proceeding to SHOT03.
 
