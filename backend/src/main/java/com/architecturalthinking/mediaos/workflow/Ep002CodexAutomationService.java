@@ -289,7 +289,8 @@ public class Ep002CodexAutomationService {
         String remoteId;
         if("CODEX_LOCAL_EXEC".equals(driverMode)) {
             CodexLocalExecGateway.Result result=local.submit(
-                    claimed.prompt(),current.candidate().codeDestination());
+                    claimed.prompt(),current.candidate().codeDestination(),
+                    current.pinnedMainCommit());
             target=classifyLocalSubmission(result);
             remoteId=result.sessionId();
         }else {
