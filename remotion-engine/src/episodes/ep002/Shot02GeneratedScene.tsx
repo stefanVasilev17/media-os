@@ -144,12 +144,17 @@ export function requireShot02SpokenTerms(
       throw Error('SHOT02_SPOKEN_TERMS_NOT_REAL_ORDERED_ANCHORS');
   }
   if(terms[0].startFrame<beats[1].startFrame
-     ||terms[0].startFrame>=beats[2].startFrame
-     ||terms[1].startFrame!==beats[2].startFrame
-     ||terms[4].startFrame!==beats[3].startFrame
-     ||terms[6].startFrame!==beats[4].startFrame
+     ||terms[0].startFrame>=beats[2].endFrame
+     ||terms[1].startFrame<beats[2].startFrame
+     ||terms[1].startFrame>=beats[2].endFrame
+     ||terms[2].startFrame<beats[2].startFrame
+     ||terms[2].startFrame>=beats[2].endFrame
+     ||terms[3].startFrame<beats[2].startFrame
      ||terms[3].startFrame>=beats[3].startFrame
+     ||terms[4].startFrame<beats[3].startFrame
+     ||terms[4].startFrame>=beats[3].endFrame
      ||terms[5].startFrame<beats[3].startFrame
+     ||terms[5].startFrame>=beats[4].endFrame
      ||terms[6].startFrame<beats[4].startFrame
      ||terms[6].startFrame>=beats[4].endFrame)
     throw Error('SHOT02_TERM_BOUNDARIES_DISAGREE_WITH_DIRECTOR_BEATS');
