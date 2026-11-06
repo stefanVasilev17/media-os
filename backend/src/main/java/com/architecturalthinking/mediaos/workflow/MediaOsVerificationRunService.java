@@ -111,6 +111,26 @@ public class MediaOsVerificationRunService {
     }
 
     @Transactional
+    public Run cancel(UUID runId,UUID auditId) {
+        DirectorIdentity.Actor actor=DirectorIdentity.requireDirector();
+        if(runId==null||auditId==null)
+            throw bad("Audited Director cancellation is required.");
+        int changed=jdbc.sql("""
+                update mediaos_verification_run
+                   set state='CANCELLED',
+                       cancellation_audit_id=:audit,
+                       failure_reason='DIRECTOR_CANCELLED_UNCLAIMED_OR_STALE_RUN',
+                       finished_at=now(),updated_at=now()
+                 where id=:id and state in ('QUEUED','UNKNOWN')
+                   and director_issuer=:issuer and director_subject=:subject
+                """).param("id",runId).param("audit",auditId)
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
+        if(changed!=1)
+            throw conflict("Only a Director-owned queued or unknown run can be cancelled.");
+        return byId(runId);
+    }
+
+    @Transactional
     public Lease claim(String workerId) {
         requireEnabledWorker(workerId);
         // A lost worker cannot silently trigger another expensive verification.
