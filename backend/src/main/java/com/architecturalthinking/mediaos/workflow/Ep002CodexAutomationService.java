@@ -35,7 +35,7 @@ public class Ep002CodexAutomationService {
             Ep002FactoryReadinessBridgeService bridge,CodexCloudCliGateway cloud,
             CodexLocalExecGateway local,ObjectMapper mapper,PlatformTransactionManager manager,
             @Value("${mediaos.codex.automation.dispatch-enabled:false}") boolean dispatchEnabled,
-            @Value("${mediaos.codex.automation.driver:CODEX_CLOUD_CLI}") String driverMode) {
+            @Value("${mediaos.codex.automation.driver:CODEX_LOCAL_EXEC}") String driverMode) {
         this.jdbc=jdbc;
         this.sequence=sequence;
         this.bridge=bridge;
