@@ -147,6 +147,13 @@ async function verifyOne(lease){
       failureCode='DOCKER_UNAVAILABLE';
       return {stages,failureCode};
     }
+    const manifest=await execute('docker',[
+      'compose','--project-name',project,'--file',compose,'config','--quiet'],
+      {cwd:checkout,timeoutMs:20000,sourceRoot:checkout});
+    if(manifest.exitCode!==0){
+      failureCode='DOCKER_UNAVAILABLE';
+      return {stages,failureCode};
+    }
     for(const stage of STAGES){
       const begin=Date.now();
       const result=await execute('docker',[
