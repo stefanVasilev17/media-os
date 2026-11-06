@@ -67,6 +67,15 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/visual-feedback")
         String ep002VisualFeedback() { return "feedback-stored"; }
 
+        @PostMapping("/api/v1/verification/runs")
+        String testRun() { return "verification-queued"; }
+
+        @PostMapping("/api/v1/verification/runs/{runId}/cancel")
+        String testRunCancel() { return "verification-cancelled"; }
+
+        @PostMapping("/api/v1/verification/automation/{action}")
+        String testAutoVerification() { return "automation-authorized"; }
+
         @PostMapping("/api/v1/worker/runner/heartbeat")
         String worker() { return "worker"; }
 
@@ -190,6 +199,35 @@ class DirectorHttpAuthorizationTest {
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"))))
                 .andExpect(status().isForbidden());
         mvc.perform(post(path)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void independentVerificationAndAutopilotRequireDirectorOnlyExactWriteRoutes()
+            throws Exception {
+        String root="/api/v1/verification/";
+        String[] allowed={
+                root+"runs",
+                root+"runs/12345678-1234-4123-8123-123456789abc/cancel",
+                root+"automation/arm",
+                root+"automation/pause"
+        };
+        for(String path:allowed) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_EDITOR","ROLE_VIEWER"}) {
+                mvc.perform(post(path).with(
+                        jwt().authorities(new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(root+"automation/unsafe").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(root+"runs/arbitrary/retry").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
     }
 
     @Test
