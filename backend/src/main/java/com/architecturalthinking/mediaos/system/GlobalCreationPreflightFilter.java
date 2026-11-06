@@ -59,7 +59,9 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/auth/")) return true;
         // Telemetry and non-artifact worker progress must not grow the audit table
         // on every poll. The creation request and final render write remain guarded.
-        if (path.equals("/api/v1/worker/runner/heartbeat")
+        if (path.equals("/api/v1/worker/verification/claim")
+                || path.matches("^/api/v1/worker/verification/[0-9a-fA-F-]{36}/complete$")
+                || path.equals("/api/v1/worker/runner/heartbeat")
                 || path.equals("/api/v1/remotion/renders/worker/claim")
                 || path.equals("/api/v1/remotion/renders/worker/factory-capability")
                 || path.matches("^/api/v1/remotion/renders/worker/[^/]+/progress$")
@@ -300,7 +302,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         // EP002 fixed-source creative feedback is a project-scoped Director review,
         // not an EP001 episode edit. The existing project audit anchor is used
         // only for global production-memory preflight; the stored feedback remains EP002.
-        if (path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
+        if (path.equals("/api/v1/verification/runs")
+                || path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
