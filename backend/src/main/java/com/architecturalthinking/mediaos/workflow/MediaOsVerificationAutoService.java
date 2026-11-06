@@ -106,7 +106,7 @@ public class MediaOsVerificationAutoService {
     @Transactional
     public Status pause(PauseRequest input,UUID auditId) {
         var actor=DirectorIdentity.requireDirector();
-        if(!enabled || auditId==null || input==null || input.policyId()==null
+        if(auditId==null || input==null || input.policyId()==null
                 || !input.confirmPause())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Audited Director pause and exact policy ID required.");
