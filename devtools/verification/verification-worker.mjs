@@ -1,12 +1,13 @@
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {spawn} from 'node:child_process';
 import {setTimeout as sleep} from 'node:timers/promises';
 
 const REPOSITORY='stefanVasilev17/media-os';
 const BRANCH='feat/mediaos-ep002-unified-product-integration';
-const URL='https://github.com/stefanVasilev17/media-os.git';
+const REPO_URL='https://github.com/stefanVasilev17/media-os.git';
 const STAGES=[
   {stage:'asset-check',timeout:120000},
   {stage:'backend',timeout:1800000},
@@ -112,7 +113,7 @@ async function verifyOne(lease){
   try{
     const cloned=await execute('git',[
       'clone','--depth','1','--single-branch','--branch',BRANCH,'--',
-      URL,checkout],{cwd:work,timeoutMs:300000});
+      REPO_URL,checkout],{cwd:work,timeoutMs:300000});
     if(cloned.exitCode!==0){
       failureCode='GIT_SOURCE_UNAVAILABLE';
       return {stages,failureCode};
@@ -184,7 +185,7 @@ async function main(){
   }
 }
 
-if(import.meta.url===new URL('file://'+process.argv[1]).href)
+if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href)
   main().catch(error=>{
     console.error('VERIFICATION_WORKER_NOT_STARTED',String(error.message).slice(0,160));
     process.exitCode=1;
