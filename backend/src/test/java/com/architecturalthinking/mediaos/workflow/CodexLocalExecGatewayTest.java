@@ -61,6 +61,7 @@ class CodexLocalExecGatewayTest {
         assertEquals("ISOLATED_GIT_CHECKOUT_AND_AGENT_RULES_REQUIRED",
                 driver.probe().blocker());
         assertEquals("NOT_SUBMITTED",driver.submit("Remotion SHOT02 only",
-                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx").outcome());
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx",
+                "a".repeat(40)).outcome());
     }
 }
