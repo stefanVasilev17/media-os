@@ -17,6 +17,24 @@ class CodexCloudCliGatewayTest {
     }
 
     @Test
+    void readsOnlyRealJsonTasksForTheConfiguredEnvironment() {
+        assertTrue(CodexCloudCliGateway.validCatalog(
+                "{\"tasks\":[]}", "env_target"));
+        assertTrue(CodexCloudCliGateway.validCatalog(
+                "{\"tasks\":[{\"id\":\"task_e_valid_12345678\",\"environment_id\":\"env_target\"}]}",
+                "env_target"));
+        assertFalse(CodexCloudCliGateway.validCatalog(
+                "{\"tasks\":[{\"id\":\"task_e_other_12345678\",\"environment_id\":\"env_other\"}]}",
+                "env_target"));
+        assertFalse(CodexCloudCliGateway.validCatalog(
+                "{\"tasks\":{}}", "env_target"));
+        assertFalse(CodexCloudCliGateway.validCatalog(
+                "not-json", "env_target"));
+        assertFalse(CodexCloudCliGateway.validCatalog(
+                "", "env_target"));
+    }
+
+    @Test
     void rejectsInvalidEnvironmentAndOverlongTask() {
         assertThrows(IllegalArgumentException.class,
                 ()->CodexCloudCliGateway.commandFor("; rm -rf /","test"));
