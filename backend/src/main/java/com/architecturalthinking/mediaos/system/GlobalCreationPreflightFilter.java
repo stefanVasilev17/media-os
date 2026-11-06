@@ -82,7 +82,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         // Do not invent EP001 episode identity or skip preflight for unlinked jobs.
         if (isVerifiedEp002WorkerContinuation(request)) {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
-                    Map.of("continuation", "EP002_SHOT01_VERIFIED_RENDER"));
+                    Map.of("continuation", "EP002_VERIFIED_SHOT_RENDER"));
             chain.doFilter(request, response);
             return;
         }
@@ -132,15 +132,27 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                     join episode_shot_render_lineage lineage on lineage.remotion_render_id=r.id
                     where r.id=:render and r.project_id=:project
                       and r.episode_id is null
-                      and r.composition_id='EP002-SHOT01-DRAFT'
                       and r.status='RUNNING' and r.worker_id=:worker
-                      and lineage.episode_key='EP002' and lineage.shot_key='SHOT01'
-                      and r.input_props->>'shotKey'='EP002_SHOT01'
-                      and r.input_props->>'contractId' is not null
-                      and r.input_props->>'voiceTakeId'=lineage.preferred_take_id::text
-                      and r.input_props->>'scriptRevision'=lineage.script_revision::text
-                      and r.input_props->>'dependencySha256'=lineage.dependency_sha256
-                      and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha
+                      and lineage.episode_key='EP002'
+                      and (
+                        (r.composition_id='EP002-SHOT01-DRAFT'
+                          and lineage.shot_key='SHOT01'
+                          and r.input_props->>'shotKey'='EP002_SHOT01'
+                          and r.input_props->>'contractId' is not null
+                          and r.input_props->>'voiceTakeId'=lineage.preferred_take_id::text
+                          and r.input_props->>'scriptRevision'=lineage.script_revision::text
+                          and r.input_props->>'dependencySha256'=lineage.dependency_sha256
+                          and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha)
+                        or
+                        (r.composition_id='EP002-SHOT02-CANDIDATE'
+                          and lineage.shot_key='SHOT02'
+                          and r.input_props->>'shotKey'='EP002_SHOT02'
+                          and r.input_props->>'voiceTakeId'=lineage.preferred_take_id::text
+                          and r.input_props->>'scriptRevision'=lineage.script_revision::text
+                          and r.input_props->>'inputFingerprint'=lineage.dependency_sha256
+                          and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha
+                          and r.input_props->>'expectedSourceCommit'=lineage.remotion_commit_sha)
+                      )
                 )
                 """)
                 .param("render", renderId)
@@ -307,6 +319,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.equals("/api/v1/verification/automation/pause")
                 || path.equals("/api/v1/verification/runs")
                 || path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
+                || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
