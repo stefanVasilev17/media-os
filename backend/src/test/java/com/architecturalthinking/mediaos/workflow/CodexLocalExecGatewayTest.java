@@ -15,7 +15,8 @@ class CodexLocalExecGatewayTest {
     void disabledWorkerNeverSubmitsOrAsksForPaidApiCredentials() {
         var driver=new CodexLocalExecGateway(false,false,"",900,mapper);
         assertEquals("LOCAL_CODEX_WORKER_DISABLED",driver.probe().blocker());
-        assertEquals("NOT_SUBMITTED",driver.submit("Build one Remotion SHOT").outcome());
+        assertEquals("NOT_SUBMITTED",driver.submit("Build one Remotion SHOT",
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx").outcome());
     }
 
     @Test
@@ -25,6 +26,20 @@ class CodexLocalExecGatewayTest {
                 CodexLocalExecGateway.argv(Path.of("/tmp/mediaos-codex-worktree")));
         assertThrows(IllegalArgumentException.class,
                 ()->CodexLocalExecGateway.argv(Path.of("relative")));
+    }
+
+    @Test
+    void localTaskCanChangeExactlyOneEp002GeneratedScene() {
+        assertTrue(CodexLocalExecGateway.allowedScene(
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx"));
+        assertTrue(CodexLocalExecGateway.allowedScene(
+                "remotion-engine/src/episodes/ep002/Shot11GeneratedScene.tsx"));
+        assertFalse(CodexLocalExecGateway.allowedScene(
+                "remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx"));
+        assertFalse(CodexLocalExecGateway.allowedScene(
+                "remotion-engine/src/episodes/ep001/Shot02GeneratedScene.tsx"));
+        assertFalse(CodexLocalExecGateway.allowedScene(
+                "../remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx"));
     }
 
     @Test
@@ -45,6 +60,7 @@ class CodexLocalExecGatewayTest {
                 "/not-a-real-mediaos-private-checkout-278398",900,mapper);
         assertEquals("ISOLATED_GIT_CHECKOUT_AND_AGENT_RULES_REQUIRED",
                 driver.probe().blocker());
-        assertEquals("NOT_SUBMITTED",driver.submit("Remotion SHOT02 only").outcome());
+        assertEquals("NOT_SUBMITTED",driver.submit("Remotion SHOT02 only",
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx").outcome());
     }
 }
