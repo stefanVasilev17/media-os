@@ -7,6 +7,32 @@
 **Rules reviewed:** `AGENTS.md`; `docs/visual/AT_REMOTION_VISUAL_CONSTITUTION_V1.md`; `docs/visual/CODEX_VISUAL_LESSONS_LEDGER.md` (no active accepted ledger entries); `docs/visual/SEQUENTIAL_CODEX_SHOT_PROTOCOL_V1.md`.
 **Prior-visual geometry:** From `remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx`: Gateway x934 y420, Balancer x1161 y420, Auth Service x1510 y298. Preserve the SHOT01 Phone via read-only `Shot01ReadablePhone.tsx`. No edits to SHOT01 or EP001 protected assets.
 
+## Director PREMIUM visual revision — 2026-11-07 (implementation candidate)
+
+The Director has now locked five hard production quality gates: **animated/readable technical terms**, strong **voice → visual causality**, **ZERO text/geometry overlap**, premium art direction, and modern spatial camera grammar. The permanent project-wide policy is being recorded in the consolidated MediaOS branch visual constitution; this SHOT applies the same constraints without changing any protected shared component.
+
+### Beat-by-beat visual delivery
+
+| Director Beat | Screen action and modern cinematic treatment | Relevant named-term accents |
+| --- | --- | --- |
+| **1 — 09:00** | A compact warm 09:00 / TICKETS ON SALE chip appears in the quiet top corridor; the camera gently widens the same phone–Gateway–Balancer–Auth world. Nothing jumps into a disconnected slide. | The chip is a contextual event, not a fake system node. |
+| **2 — software hasn't changed** | Anonymous Login arrivals start pulsing along the **existing, unchanged** Phone→Gateway route. Increase density, not arbitrary architecture size or disjoint cards. | Highlight **LOGIN REQUEST** only when the phrase is actually spoken. |
+| **3 — API Gateway and Balancer** | Motion guides from Gateway entry through a clearly legible Load Balancer fan-out, then shows three Auth replicas. Use smooth push-in, single subject halo, narrow accent underline and large readable technical term on a separate fixed top HUD lane. | Separate **API GATEWAY**, **LOAD BALANCER**, **AUTH SERVERS** spoken-phrase timings. |
+| **4 — arrival rate** | A restrained lower-right metric strip shows **NEW LOGIN ARRIVALS / SECOND** with a visible illustrative 100→350 rise; the request stream reacts in the same world. Never claim these examples are production metrics or database attempt counts. | **ARRIVAL RATE** receives its exact audio-driven term spotlight. |
+| **5 — database dependence** | Auth service is emphasized again when narration refers to it; three lookup paths visibly converge toward the shared User Database. The camera pans across the continuous world to a database that remains healthy. The last view prepares SHOT03. | Second **AUTH SERVERS** occurrence, followed by **USER DATABASE**. |
+
+### Exact technical-term timing is a separate gate
+
+**Five coarse HEAR→SEE beat anchors do not reveal every spoken technical-term start.** The upgraded scene additionally requires **seven independently measured and verified phrase windows**, in this order: `LOGIN_REQUEST`, `API_GATEWAY`, `LOAD_BALANCER`, `AUTH_SERVERS` (first occurrence), `ARRIVAL_RATE`, `AUTH_SERVERS_REPRISE` (second occurrence), `USER_DATABASE`. Each has an exact `startFrame` and `endFrame` from the selected Take's existing genuine ElevenLabs character alignment. Gateways/arrival/database term start frames must match their corresponding verified HEAR→SEE beat starts; other term windows must occur in true spoken order. There is **no guessed 10-second stagger**, no timing percentage fallback, and no second ElevenLabs paid operation.
+
+**Current integration blocker:** The existing MediaOS Director review endpoint exposes the five coarse `frames`, but not these seven separate term windows. The server-side verified source-alignment extraction and SHA-/Take-bound adapter must be added and reviewed before this scene can be rendered in production. Do **not** ask the Director to hand-enter magic timestamps or claim the 7-term adapter exists. The code deliberately rejects missing term-cue values.
+
+### Collision and visual-fidelity protocol
+
+All editorial text is rendered in fixed **1920×1080 screen-space lanes** outside `ATCameraRig`: brand (top-left), 09:00 context (upper-middle), one term-focus HUD (upper-right), and new-arrivals metric (lower-right). The architecture beneath the camera holds the existing Phone, shrunk Gateway/Balancer widths (centers unchanged), Auth cluster, and rightward DB. Halo effects contain **no text**. A pure SHOT-local geometry contract tests camera-projected conservative node and Phone boxes against the fixed text lanes and rejects collisions at render time. The geometry model was executed over **1331 camera-envelope poses (1331 passed)** and rejected a deliberately unsafe pan. Executable `node:test` cases are committed but have **not been executed via the full repository Node/TypeScript toolchain** in this revision.
+
+**This is not proof of beautiful frames.** Required next review: actual TypeScript and Node tests, real Remotion bundle, voice-matched renderer integration, sampled full-frame stills around all 7 terminology transitions, 1920×1080 readability and TV/mobile viewing tests, then the Director's direct MP4 visual acceptance. Any crowded or generic/dashboard-like scene is **NOT ACCEPTED** and must be corrected in this PR before SHOT03.
+
 ## Voice proof and limitation
 
 The Director confirmed in conversation that MediaOS reports **REAL TIMING VERIFIED** for SHOT02. The earlier Director screenshot showed selected Take ID `ede9cab9-f2d2-43e2-802d-9a97f3a348f6`, total 1205 audio frames and the five intended anchors, but these are **conversation evidence**, not a live authenticated database response. Exact verified `startFrame`/`endFrame` values were **not** provided to this coding session; no fictional timestamp may be entered.
