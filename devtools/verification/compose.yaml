@@ -82,6 +82,7 @@ services:
         npm install --no-audit --no-fund
         npm run typecheck
         node --test *.test.mjs
+        node --test ../devtools/verification/verification-worker.test.mjs
         npm run build:factory
 
 networks:
