@@ -5,6 +5,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/creative/episodes/EP002/visual-feedback",
             "/api/v1/creative/episodes/EP002/visual-approvals",
             "/api/v1/creative/episodes/EP002/voice-cue-review/{shotKey}",
+            "/api/v1/verification/runs",
             "/api/v1/creative/episodes/EP002/codex-automation/arm",
             "/api/v1/creative/episodes/EP002/codex-automation/pause",
             "/api/v1/creative/episodes/EP002/codex-automation/resume",
