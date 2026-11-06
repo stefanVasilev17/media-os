@@ -71,6 +71,15 @@ class Ep002VisualDirectorFeedbackV121MigrationTest {
                 "select to_regclass('public.ep002_director_voice_cue_review')::text")
                 .query(String.class).single();
         assertEquals("ep002_director_voice_cue_review",cues);
+        Boolean verifiedRunMigration=jdbc.sql("""
+                select exists(select 1 from flyway_schema_history
+                              where version='125' and success=true)
+                """).query(Boolean.class).single();
+        assertTrue(Boolean.TRUE.equals(verifiedRunMigration),
+                "Independent MediaOS verification worker migration V125 must apply.");
+        assertEquals("mediaos_verification_run",jdbc.sql(
+                "select to_regclass('public.mediaos_verification_run')::text")
+                .query(String.class).single());
         flyway.validate();
     }
 }
