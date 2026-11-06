@@ -11,12 +11,21 @@ type Automation={
   blockers:string[];tasks:Task[];
 };
 type Connector={supported:boolean;reason:string;driver:string};
+type Subscription={
+  applicationStatus:string;applicationEvidence:string;
+  requiredPermission:string;runtime:string;blocker:string;
+  chatGptSubscriptionOnly:boolean;paidApiFallbackAllowed:boolean;
+  hostedPlanUseVerified:boolean;providerApprovedTokenHandling:boolean;
+  canConnect:boolean;canDispatch:boolean;
+};
 
 const URL='/api/v1/creative/episodes/EP002/codex-automation';
 
 export function Ep002CodexAutomationPanel(){
   const [state,setState]=useState<Automation|null>(null);
   const [connector,setConnector]=useState<Connector|null>(null);
+  const [subscription,setSubscription]=useState<Subscription|null>(null);
+  const [subscriptionError,setSubscriptionError]=useState('');
   const [maxTasks,setMaxTasks]=useState(10);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
@@ -37,6 +46,21 @@ export function Ep002CodexAutomationPanel(){
     return()=>{live=false;};
   },[revision]);
 
+  useEffect(()=>{
+    let live=true;
+    void fetch(URL+'/subscription-readiness',{cache:'no-store'})
+      .then(async response=>{
+        if(!response.ok)
+          throw Error('Subscription status unavailable (HTTP '+response.status+').');
+        return await response.json() as Subscription;
+      }).then(data=>{
+        if(live){setSubscription(data);setSubscriptionError('');}
+      }).catch(reason=>{
+        if(live){setSubscription(null);setSubscriptionError(String(reason));}
+      });
+    return()=>{live=false;};
+  },[revision]);
+
   async function probe(){
     setBusy(true);setError('');setConnector(null);
     try{
@@ -48,7 +72,7 @@ export function Ep002CodexAutomationPanel(){
   }
 
   async function arm(){
-    if(!state||busy||state.mode!=='NOT_ARMED')return;
+    if(!state||busy||state.mode!=='NOT_ARMED'||!subscription?.canDispatch)return;
     if(!window.confirm('Allow MediaOS to start up to '+maxTasks+
       ' sequential Remotion-only Codex Cloud tasks automatically, after all voice, '+
       'source and visual gates pass? This saves consent, but does not launch any task now. '+
@@ -86,7 +110,7 @@ export function Ep002CodexAutomationPanel(){
   }
 
   async function resume(){
-    if(!state||busy||state.mode!=='PAUSED')return;
+    if(!state||busy||state.mode!=='PAUSED'||!subscription?.canDispatch)return;
     if(!window.confirm('Resume future sequential Codex Remotion tasks for the same approved EP002 source?'))return;
     setBusy(true);setError('');setMessage('');
     try{
@@ -116,6 +140,23 @@ export function Ep002CodexAutomationPanel(){
     </div>
     {error&&<p className="library-voice-error" role="alert">{error}</p>}
     {message&&<p className="library-voice-ok" role="status">{message}</p>}
+    {subscriptionError&&<p className="library-voice-error" role="alert">
+      Official ChatGPT-plan eligibility cannot be verified: {subscriptionError}.
+      Automatic dispatch remains blocked.
+    </p>}
+    {subscription&&<div className="library-episode-batch-shots">
+      <div className="library-episode-batch-shot">
+        <strong>ChatGPT subscription only · {subscription.canDispatch?
+          'AUTHORIZED':'NOT CONNECTED'}</strong>
+        <p>OpenAI partner application: {subscription.applicationStatus}.
+          This submission was reported by the Director; OpenAI approval is not confirmed.</p>
+        <p>Hosted plan usage: {subscription.hostedPlanUseVerified?'VERIFIED':'NOT VERIFIED'}.
+          Token/runtime approval: {subscription.providerApprovedTokenHandling?
+          'VERIFIED':'NOT VERIFIED'}. Paid API fallback: NEVER.</p>
+        {!subscription.canConnect&&<p>Connection remains blocked: {subscription.blocker}.
+          There is no working OAuth connection or manual token entry.</p>}
+      </div>
+    </div>}
     {state&&<>
       <div className="library-episode-batch-metrics">
         <div><strong>{state.nextShotKey??'—'}</strong><span>Next allowed SHOT</span></div>
@@ -140,7 +181,7 @@ export function Ep002CodexAutomationPanel(){
           </select>
         </label>
         <button type="button" className="library-voice-button"
-          disabled={busy||loading||!state.nextShotKey} onClick={()=>void arm()}>
+          disabled={busy||loading||!state.nextShotKey||!subscription?.canDispatch} onClick={()=>void arm()}>
           <PlayCircle size={15}/> Arm automatic Remotion production
         </button>
       </div>}
@@ -152,7 +193,7 @@ export function Ep002CodexAutomationPanel(){
       </div>}
       {state.mode==='PAUSED'&&<div className="library-episode-batch-actions">
         <button type="button" className="library-voice-button"
-          disabled={busy} onClick={()=>void resume()}>
+          disabled={busy||!subscription?.canDispatch} onClick={()=>void resume()}>
           <PlayCircle size={15}/> Resume automatic Remotion SHOTs
         </button>
       </div>}
@@ -167,7 +208,7 @@ export function Ep002CodexAutomationPanel(){
         </button>
       </div>
       {connector&&<p className={connector.supported?'library-note':'library-voice-error'}>
-        Connector ({connector.driver==='CODEX_LOCAL_EXEC'?'isolated ChatGPT Codex worker':'Codex Cloud CLI'}):
+        Connector ({connector.driver==='CODEX_HOSTED_SIWC'?'hosted ChatGPT subscription':connector.driver}):
         {' '}{connector.supported?'CONNECTED — inference unverified':'BLOCKED'} —
         {' '}{connector.reason}. No Codex task was started by this read-only check.
       </p>}
@@ -192,9 +233,10 @@ export function Ep002CodexAutomationPanel(){
           </div>}
       </details>
     </>}
-    <p className="library-note">The preferred transport is an isolated Codex exec worker with a one-time
-      authorized ChatGPT login. Until the worker and current audio are verified,
-      no task starts. Cloud CLI remains an optional secondary transport;
-      there is no automatic fallback to a paid API or manual prompt copying.</p>
+    <p className="library-note">Cloud-only Codex requires OpenAI-approved hosted ChatGPT-plan
+      access and a provider-approved token/runtime model. A submitted application
+      is not approval. Until those requirements are confirmed, no Codex task or
+      subscription consent can start; local CLI login, copied OAuth tokens,
+      GitHub Actions and paid API fallback are not accepted.</p>
   </section>;
 }
