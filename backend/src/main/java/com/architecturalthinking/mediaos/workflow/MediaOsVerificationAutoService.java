@@ -173,7 +173,7 @@ public class MediaOsVerificationAutoService {
                     .param("audit",policy.preflightAuditId()).param("policy",policy.id())
                     .update();
             if(inserted!=1)return;
-            jdbc.sql("""
+            int recorded=jdbc.sql("""
                     update mediaos_verification_auto_policy
                        set submitted_count=submitted_count+1,
                            last_queued_commit=:commit,updated_at=now()
@@ -181,9 +181,12 @@ public class MediaOsVerificationAutoService {
                        and submitted_count<max_runs
                     """).param("commit",source.sourceCommit())
                     .param("id",policy.id()).update();
+            if(recorded!=1)throw new IllegalStateException(
+                    "Verification authorization changed while enqueueing.");
         }catch(Exception unavailable) {
-            LOGGER.warn("Verification autopilot paused this poll; category={}",
+            LOGGER.warn("Verification autopilot rolled back this poll; category={}",
                     unavailable.getClass().getSimpleName());
+            throw new IllegalStateException("Verification autopilot transaction failed.",unavailable);
         }
     }
 
