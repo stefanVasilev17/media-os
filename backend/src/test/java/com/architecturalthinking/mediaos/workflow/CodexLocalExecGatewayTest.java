@@ -43,6 +43,21 @@ class CodexLocalExecGatewayTest {
     }
 
     @Test
+    void rejectsUnpinnedCommitOrProtectedFileBeforeAnyLogin() {
+        var driver=new CodexLocalExecGateway(true,true,"",900,mapper);
+        var wrongSha=driver.submit("Create only EP002 SHOT02",
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx",
+                "NOT_A_REAL_GIT_SHA");
+        assertEquals("NOT_SUBMITTED",wrongSha.outcome());
+        assertEquals("UNSAFE_PROMPT_OR_SCENE_SCOPE",wrongSha.reason());
+        var protectedScene=driver.submit("Change EP002 SHOT01",
+                "remotion-engine/src/episodes/ep002/Shot01LoginWaiting.tsx",
+                "a".repeat(40));
+        assertEquals("NOT_SUBMITTED",protectedScene.outcome());
+        assertEquals("UNSAFE_PROMPT_OR_SCENE_SCOPE",protectedScene.reason());
+    }
+
+    @Test
     void requiresProviderTerminalEvidenceForSuccessfulCodingTurn() throws Exception {
         assertTrue(CodexLocalExecGateway.completedEvent(
                 mapper.readTree("{\"type\":\"turn.completed\",\"turn\":{\"status\":\"completed\"}}")));
