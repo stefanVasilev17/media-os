@@ -45,8 +45,10 @@ public class CodexLocalExecGateway {
             return new Capability(false,"ISOLATED_GIT_CHECKOUT_AND_AGENT_RULES_REQUIRED");
         Process process=null;
         try {
-            process=new ProcessBuilder("codex","login","status")
-                    .directory(checkout.toFile()).redirectErrorStream(true).start();
+            ProcessBuilder login=new ProcessBuilder("codex","login","status")
+                    .directory(checkout.toFile()).redirectErrorStream(true);
+            restrictEnvironment(login);
+            process=login.start();
             if(!process.waitFor(12,TimeUnit.SECONDS)) {
                 process.destroyForcibly();
                 return new Capability(false,"CODEX_LOGIN_CHECK_TIMED_OUT");
@@ -76,15 +78,7 @@ public class CodexLocalExecGateway {
         try {
             ProcessBuilder builder=new ProcessBuilder(argv(checkout))
                     .directory(checkout.toFile()).redirectErrorStream(true);
-            Map<String,String> env=builder.environment();
-            Map<String,String> inherited=System.getenv();
-            env.clear();
-            for(String key:List.of("PATH","HOME","USER","LANG","LC_ALL",
-                    "XDG_CONFIG_HOME","XDG_DATA_HOME","CODEX_HOME")) {
-                String value=inherited.get(key);
-                if(value!=null&&!value.isBlank())env.put(key,value);
-            }
-            env.put("CI","1");
+            restrictEnvironment(builder);
             process=builder.start();
             Process current=process;
             AtomicBoolean completed=new AtomicBoolean(false);
@@ -130,6 +124,18 @@ public class CodexLocalExecGateway {
             if(process!=null)process.destroyForcibly();
             return new Result("UNKNOWN",null,"CODEX_EXEC_ERROR_NO_AUTO_RETRY");
         }
+    }
+
+    private static void restrictEnvironment(ProcessBuilder builder) {
+        Map<String,String> inherited=System.getenv();
+        Map<String,String> env=builder.environment();
+        env.clear();
+        for(String key:List.of("PATH","HOME","USER","LANG","LC_ALL",
+                "XDG_CONFIG_HOME","XDG_DATA_HOME","CODEX_HOME")) {
+            String value=inherited.get(key);
+            if(value!=null&&!value.isBlank())env.put(key,value);
+        }
+        env.put("CI","1");
     }
 
     static List<String> argv(Path directory) {
