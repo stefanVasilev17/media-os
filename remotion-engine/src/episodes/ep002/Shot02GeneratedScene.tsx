@@ -149,7 +149,9 @@ export function requireShot02SpokenTerms(
      ||terms[4].startFrame!==beats[3].startFrame
      ||terms[6].startFrame!==beats[4].startFrame
      ||terms[3].startFrame>=beats[3].startFrame
-     ||terms[5].startFrame>=beats[4].startFrame)
+     ||terms[5].startFrame<beats[3].startFrame
+     ||terms[6].startFrame<beats[4].startFrame
+     ||terms[6].startFrame>=beats[4].endFrame)
     throw Error('SHOT02_TERM_BOUNDARIES_DISAGREE_WITH_DIRECTOR_BEATS');
   return terms;
 }
