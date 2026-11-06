@@ -1,7 +1,7 @@
 import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join,resolve} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {join,resolve,dirname} from 'node:path';
+import {pathToFileURL,fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {setTimeout as sleep} from 'node:timers/promises';
 
@@ -26,16 +26,17 @@ function allowedLease(job){
     /^[0-9a-f-]{36}$/.test(job.leaseId));
 }
 
-function commandEnvironment(){
+function commandEnvironment(sourceRoot=null){
   const env={CI:'true',GIT_TERMINAL_PROMPT:'0'};
   for(const key of FORWARDED){
     const value=process.env[key];
     if(value)env[key]=value;
   }
+  if(sourceRoot)env.MEDIAOS_VERIFICATION_SOURCE_ROOT=sourceRoot;
   return env;
 }
 
-function execute(program,args,{cwd,timeoutMs,output=false}){
+function execute(program,args,{cwd,timeoutMs,output=false,sourceRoot=null}){
   return new Promise(resolvePromise=>{
     let done=false;
     let killed=false;
@@ -48,7 +49,7 @@ function execute(program,args,{cwd,timeoutMs,output=false}){
       resolvePromise(result);
     };
     try{
-      child=spawn(program,args,{cwd,env:commandEnvironment(),
+      child=spawn(program,args,{cwd,env:commandEnvironment(sourceRoot),
         shell:false,stdio:['ignore',output?'pipe':'ignore','ignore']});
     }catch(error){
       resolvePromise({exitCode:127,stdout:'',reason:'PROCESS_START_ERROR'});
@@ -109,7 +110,9 @@ async function verifyOne(lease){
   const work=await mkdtemp(join(tmpdir(),'mediaos-verify-'));
   const checkout=resolve(work,'source');
   const project='mediaosv'+lease.runId.replaceAll('-','').slice(0,13);
-  const compose=join(checkout,'devtools','verification','compose.yaml');
+  // Test instructions must come from the trusted installed worker, not
+  // from a mutable PR whose code we are evaluating.
+  const compose=join(dirname(fileURLToPath(import.meta.url)),'compose.yaml');
   const stages=[];
   let failureCode=null;
   try{
@@ -118,6 +121,18 @@ async function verifyOne(lease){
       REPO_URL,checkout],{cwd:work,timeoutMs:300000});
     if(cloned.exitCode!==0){
       failureCode='GIT_SOURCE_UNAVAILABLE';
+      return {stages,failureCode};
+    }
+    const pinned=await execute('git',['fetch','--depth','1','origin',lease.sourceCommit],
+      {cwd:checkout,timeoutMs:300000});
+    if(pinned.exitCode!==0){
+      failureCode='GIT_SOURCE_UNAVAILABLE';
+      return {stages,failureCode};
+    }
+    const checkoutPinned=await execute('git',['checkout','--detach',lease.sourceCommit],
+      {cwd:checkout,timeoutMs:30000});
+    if(checkoutPinned.exitCode!==0){
+      failureCode='SOURCE_COMMIT_MISMATCH';
       return {stages,failureCode};
     }
     const current=await execute('git',['rev-parse','HEAD'],
@@ -136,7 +151,8 @@ async function verifyOne(lease){
       const begin=Date.now();
       const result=await execute('docker',[
         'compose','--project-name',project,'--file',compose,
-        'run','--rm',stage.stage],{cwd:checkout,timeoutMs:stage.timeout});
+        'run','--rm',stage.stage],{cwd:checkout,timeoutMs:stage.timeout,
+          sourceRoot:checkout});
       stages.push({stage:stage.stage,exitCode:result.exitCode,
         durationMs:Math.min(7200000,Date.now()-begin)});
       if(result.exitCode!==0){
@@ -150,7 +166,7 @@ async function verifyOne(lease){
   }finally{
     await execute('docker',['compose','--project-name',project,'--file',compose,
       'down','--volumes','--remove-orphans'],
-      {cwd:checkout,timeoutMs:120000}).catch(()=>{});
+      {cwd:checkout,timeoutMs:120000,sourceRoot:checkout}).catch(()=>{});
     await rm(work,{recursive:true,force:true,maxRetries:2}).catch(()=>{});
   }
 }
