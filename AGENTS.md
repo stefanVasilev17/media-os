@@ -2,6 +2,10 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## Director decision — NO GitHub Actions, including release verification (2026-11-06)
+
+GitHub Actions MUST NOT be enabled, dispatched, proposed as a mandatory step or used as the MediaOS build/test runner. The experimental PR #191 Actions workflow has been deleted. Use the independent, ephemeral Docker test contract in `devtools/verification/README.md` with `scripts/verify-mediaos.sh` or `scripts/verify-mediaos.ps1`: Java21/Maven + test Postgres18, frontend TypeScript/Vite, Remotion Factory and Node tests. This implementation is currently only **authored, not executed**. GitHub remains for repository changes and scoped PR evidence, not for execution. Do not silently deploy to Railway or create a paid QA runner without explicit Director authorization. Ignore older notes recommending Actions; they are superseded.
+
 ## Newest Director requirement — zero manual Codex prompting (2026-11-06)
 
 The final MediaOS product MUST launch and monitor Remotion coding tasks for each ready SHOT **without the Director copying/pasting prompts, opening Codex Cloud to enter instructions, supplying task IDs or moving generated files manually**. Director interacts only with genuine creative, voice, permission/cost and visual-review approvals. Whole-episode planning remains once; Remotion CODE DELIVERY remains one SHOT at a time with strict visual policy and corrections. Codex plan allowances must not be wasted on backend, React, SQL or status checks.
