@@ -66,6 +66,19 @@ class Ep002CodexAutomationServiceTest {
     }
 
     @Test
+    void isolatedChatgptCodexExecCompletionNeverPretendsScenePrIsVerified() {
+        assertEquals("LOCAL_CODE_READY",Ep002CodexAutomationService.classifyLocalSubmission(
+                new CodexLocalExecGateway.Result("FINISHED_UNVERIFIED",
+                        "c12a56b9-b6aa-4a30-b027-72f894f02bc0","CODE_READY")));
+        assertEquals("REMOTE_FAILED",Ep002CodexAutomationService.classifyLocalSubmission(
+                new CodexLocalExecGateway.Result("NOT_SUBMITTED",null,"LOGIN_MISSING")));
+        assertEquals("REMOTE_UNKNOWN",Ep002CodexAutomationService.classifyLocalSubmission(
+                new CodexLocalExecGateway.Result("UNKNOWN",null,"INTERRUPTED")));
+        assertEquals("REMOTE_UNKNOWN",Ep002CodexAutomationService.classifyLocalSubmission(
+                new CodexLocalExecGateway.Result("FINISHED_UNVERIFIED",null,"MISSING_SESSION")));
+    }
+
+    @Test
     void defaultCloudCliAdapterNeverStartsACloudTask() {
         var gateway=new CodexCloudCliGateway(false,"", "");
         var capability=gateway.probe();
