@@ -1,7 +1,9 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,17 +31,26 @@ public class RemotionCpuWorkerController {
     private final ObjectMapper objectMapper;
     private final StorageHealthService storage;
     private final String workerKey;
+    private final Ep002DirectorVoiceCueService ep002Cues;
 
+    @Autowired
     public RemotionCpuWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             StorageHealthService storage,
-            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey
+            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey,
+            Ep002DirectorVoiceCueService ep002Cues
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.storage = storage;
         this.workerKey = workerKey == null ? "" : workerKey.trim();
+        this.ep002Cues = ep002Cues;
+    }
+
+    public RemotionCpuWorkerController(JdbcClient jdbc, ObjectMapper mapper,
+                                       StorageHealthService storage, String workerKey) {
+        this(jdbc,mapper,storage,workerKey,null);
     }
 
     public record ProgressRequest(int progress) {}
@@ -125,6 +136,27 @@ public class RemotionCpuWorkerController {
                 .orElse(null);
 
         if (work == null) return ResponseEntity.noContent().build();
+        if ("EP002-SHOT02-CANDIDATE".equals(work.get("compositionId"))) {
+            Object rawProps=work.get("inputProps");
+            Map<?,?> props=rawProps instanceof Map<?,?> map?map:Map.of();
+            Object revision=props.get("scriptRevision");
+            String take=String.valueOf(props.getOrDefault("voiceTakeId",""));
+            String fingerprint=String.valueOf(props.getOrDefault("inputFingerprint",""));
+            boolean current=revision instanceof Number number && ep002Cues!=null
+                    && ep002Cues.matchesCurrentShot02Render(fingerprint,take,
+                            number.intValue(),(int)work.get("durationInFrames"));
+            if (!current) {
+                jdbc.sql("""
+                    update remotion_render
+                    set status='FAILED',progress=0,
+                        error='SHOT02_SOURCE_OR_VOICE_STALE_BEFORE_CPU_CLAIM',
+                        finished_at=now(),updated_at=now()
+                    where id=:id and project_id=:project and status='QUEUED'
+                    """)
+                    .param("id",work.get("renderId")).param("project",PROJECT_ID).update();
+                return ResponseEntity.noContent().build();
+            }
+        }
 
         UUID renderId = (UUID) work.get("renderId");
         jdbc.sql("""
@@ -150,7 +182,11 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key,workerId);
         return jdbc.sql("""
-                select t.audio,t.content_type
+                select t.audio,t.content_type,r.composition_id,
+                       r.input_props->>'inputFingerprint' as fingerprint,
+                       r.input_props->>'voiceTakeId' as take_id,
+                       r.input_props->>'scriptRevision' as script_revision,
+                       r.duration_in_frames as duration_frames
                 from remotion_render r
                 join ep002_creative_voice_take t
                   on t.id::text=r.input_props->>'voiceTakeId'
@@ -190,10 +226,21 @@ public class RemotionCpuWorkerController {
                 .param("render",renderId).param("project",PROJECT_ID)
                 .param("worker",workerId.trim())
                 .param("sourceSha",sourceSha==null?"":sourceSha.trim())
-                .query((rs,n)->ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(rs.getString("content_type")))
-                        .cacheControl(CacheControl.noStore())
-                        .body(rs.getBytes("audio")))
+                .query((rs,n)->{
+                    if ("EP002-SHOT02-CANDIDATE".equals(rs.getString("composition_id"))) {
+                        boolean current=ep002Cues!=null
+                                && ep002Cues.matchesCurrentShot02Render(
+                                    rs.getString("fingerprint"),rs.getString("take_id"),
+                                    Integer.parseInt(rs.getString("script_revision")),
+                                    rs.getInt("duration_frames"));
+                        if (!current) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "SHOT02 selected Take or source fingerprint changed during render.");
+                    }
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType(rs.getString("content_type")))
+                            .cacheControl(CacheControl.noStore())
+                            .body(rs.getBytes("audio"));
+                })
                 .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.CONFLICT,"No valid selected voice for this worker-owned EP002 render."));
     }
