@@ -1,3 +1,13 @@
+# CLOUD-ONLY RELEASE REQUIREMENT — 2026-11-06
+
+**Supersedes the local/standalone Docker worker deployment guidance below.** The Director explicitly requires MediaOS to operate without a personal computer, home server or independently managed VM. The long-running `verification-worker.mjs`, `verify-mediaos.sh`, `verify-mediaos.ps1` and V125 queue implementation remain optional experimental source and are **NOT required** to launch the product. Do not ask the Director to run a host or keep a laptop switched on.
+
+**Preferred cloud QA route:** build `Dockerfile.mediaos-cloud-release-verification` through a separately authorized **Railway managed QA service** on the pinned PR branch. Its image-build stages run frontend and Remotion checks, GPU tests and Maven/Java21/Flyway integration against a temporary PostgreSQL18 instance started within the build stage. There is no GitHub Actions, persistent test database or Docker-in-Docker runtime. The cloud build result and reports must be verified from Railway's real deployment/build logs; it is not green until that actually happens. Do NOT create a Railway service/environment or trigger a paid build without explicit Director authorization.
+
+The hosted MediaOS API, PostgreSQL and Remotion render worker already exist in Railway's production environment. A suitable staging environment and fully authorized hosted Codex connector are **not yet operational**. Hosted Sign in with ChatGPT is an eligibility-dependent provider integration; a local `codex login` token is not a permissible substitute for hosted application authorization. Code can be prepared without connecting a personal computer.
+
+---
+
 # MediaOS — Independent Release Verification (NO GitHub Actions)
 
 Director decision: **Do not run or ask to enable GitHub Actions.** The code is stored and reviewed in GitHub, while Java 21, PostgreSQL, React and Remotion verification is done using isolated Docker containers. This setup **does not connect to Railway production** and does not run ElevenLabs, Codex, Remotion renders or other paid-provider operations.
