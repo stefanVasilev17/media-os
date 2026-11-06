@@ -159,7 +159,7 @@ export function Ep002CodexAutomationPanel(){
       <div className="library-episode-batch-actions">
         <button type="button" className="library-voice-refresh"
           disabled={busy} onClick={()=>void probe()}>
-          <CloudCog size={15}/> Check official Codex Cloud CLI connection
+          <CloudCog size={15}/> Check official ChatGPT Codex worker
         </button>
         <button type="button" className="library-voice-refresh"
           disabled={busy||loading} onClick={()=>setRevision(n=>n+1)}>
@@ -192,9 +192,9 @@ export function Ep002CodexAutomationPanel(){
           </div>}
       </details>
     </>}
-    <p className="library-note">If the official CLI cannot discover your published
-      Codex Cloud environment, the queue stops without switching to paid OpenAI
-      API usage or requiring you to paste prompts manually. A different supported
-      integration must be validated before the final product can be accepted.</p>
+    <p className="library-note">The preferred transport is an isolated Codex exec worker with a one-time
+      authorized ChatGPT login. Until the worker and current audio are verified,
+      no task starts. Cloud CLI remains an optional secondary transport;
+      there is no automatic fallback to a paid API or manual prompt copying.</p>
   </section>;
 }
