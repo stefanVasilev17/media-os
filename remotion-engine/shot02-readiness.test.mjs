@@ -29,8 +29,8 @@ test('Seven technical terms use true phrase-level frames instead of arbitrary st
   ])assert.match(shot02,new RegExp("id:'"+id+"'"));
   assert.match(shot02,/terms\.length!==SPOKEN_TERMS\.length/);
   assert.match(shot02,/normalizeTerm\(term\.spokenAnchor\)!==normalizeTerm\(expected\.anchor\)/);
-  assert.match(shot02,/terms\[1\]\.startFrame!==beats\[2\]\.startFrame/);
-  assert.match(shot02,/terms\[4\]\.startFrame!==beats\[3\]\.startFrame/);
+  assert.match(shot02,/terms\[1\]\.startFrame<beats\[2\]\.startFrame/);
+  assert.match(shot02,/terms\[4\]\.startFrame<beats\[3\]\.startFrame/);
   assert.match(shot02,/terms\[6\]\.startFrame<beats\[4\]\.startFrame/);
   assert.match(shot02,/requireShot02SpokenTerms\(duration, verified, props\.termCues\)/);
   assert.match(shot02,/activeSpokenTerm\(frame,terms\)/);
