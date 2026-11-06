@@ -24,15 +24,25 @@ public class MediaOsVerificationDirectorController {
         return runs.summary();
     }
 
+    @PostMapping("/runs/{runId}/cancel")
+    public MediaOsVerificationRunService.Run cancel(
+            @PathVariable UUID runId,HttpServletRequest request) {
+        return runs.cancel(runId,auditId(request));
+    }
+
     @PostMapping("/runs")
     public MediaOsVerificationRunService.Run queue(
             @RequestBody MediaOsVerificationRunService.QueueRequest input,
             HttpServletRequest request) {
+        return runs.queue(input,auditId(request));
+    }
+
+    private UUID auditId(HttpServletRequest request) {
         Object value=request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
         if(!(value instanceof Map<?,?> audit)
                 || !(audit.get("auditId") instanceof UUID id))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Audited Director verification authorization is required.");
-        return runs.queue(input,id);
+        return id;
     }
 }
