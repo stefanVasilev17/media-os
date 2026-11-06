@@ -78,3 +78,17 @@ Original first-pass status (superseded by dated integration update below): this 
 **Beat-five precision:** An extra focused Java test covers two legitimate Director beat-five anchors: the second `Auth servers` phrase and the later `User Database` phrase. The term highlight for the Database is always driven by its own character alignment; coarse beat-five boundaries are never substituted for the phrase. This corrects an overly strict original preview assumption without changing the Director-LOCKED script or Visual Pass.
 
 **Release gates still OPEN:** live authenticated response showing `ready:true` and current real frames; successful repository Maven and Node tests, Remotion TypeScript check and bundle; secure server-side render input routing and worker release at an explicitly approved SHA; separate Director Railway CPU permission for MP4/stills; visual review at 1920x1080 of seven technical-term moments, beats, non-overlap and cinematic camera; Director final LOCK. No Railway deployment, GitHub Actions, paid ElevenLabs/OpenAI calls, MP4 or approval is claimed by this draft. EP002 SHOT01 v3 and EP001 12-SHOT protected sources remain unchanged.
+
+
+## Isolated offline QA evidence — 2026-11-07
+
+**Executed, not merely authored:** The exact two GitHub blobs from PR #192 were copied to an isolated local Node 22.16.0 workspace and verified using `git hash-object`:
+
+- `remotion-engine/src/episodes/ep002/Shot02PremiumLayout.ts` — blob `3f78806df8f644006ca53b36df744bfd029aa9be`
+- `remotion-engine/shot02-premium-layout.test.mjs` — blob `fc782006b392b64f6d65dc6b2e75a3f0b137aa76`
+
+Running `node --test shot02-premium-layout.test.mjs` in the isolated directory with the unchanged relative source tree returned **4 tests PASSED, 0 FAILED**: four HUD text lanes within 1080p safe bounds; immutable SHOT01 node centers and local Gateway/Balancer gaps; no conservative projected text/node collisions across **1331 sampled camera poses**; rejection of unsafe pan/zoom and nonfinite coordinates. Running `tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --skipLibCheck --lib ES2022,DOM src/episodes/ep002/Shot02PremiumLayout.ts` against the exact layout source returned **PASS**. This proves the narrowly scoped geometry and TypeScript-layout preflight, not pixel-level visual quality.
+
+**Environment limitation:** GitHub `git ls-remote` failed because the isolated container cannot resolve github.com; Java 21 and Node 22 are present, but Maven and the full GitHub checkout/npm dependencies are not. Therefore no complete Maven suite, `shot02-render-contract.test.mjs` against full source, Remotion TSX typecheck, Remotion bundle or video was executed. Existing production Railway was not used as a QA runner; no Railway CPU was started, no automated workflow triggered, and no paid calls or production release performed.
+
+**NEXT:** authorize/use an isolated complete-checkout QA worker (not production rendering), execute focused Java resolver tests and all relevant Node tests, `npm run typecheck` / `npm run build`, and check the authenticated current SHOT02 voice-cue readiness response. Registering a candidate composition does NOT mean the production renderer may consume it. Capture exact code SHA and verification logs before proposing any CPU render.
