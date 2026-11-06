@@ -7,7 +7,7 @@ create table ep002_codex_automation (
     state varchar(40) not null default 'ARMED_WAITING_FOR_GATES'
         check(state in ('ARMED_WAITING_FOR_GATES','PAUSED')),
     driver varchar(24) not null default 'CODEX_CLOUD_CLI'
-        check(driver='CODEX_CLOUD_CLI'),
+        check(driver in ('CODEX_CLOUD_CLI','CODEX_LOCAL_EXEC')),
     director_issuer text not null,
     director_subject text not null,
     preflight_audit_id uuid not null,
@@ -28,7 +28,7 @@ create table ep002_codex_automation_task (
     task_input_sha256 char(64) not null check(task_input_sha256 ~ '^[a-f0-9]{64}$'),
     state varchar(30) not null default 'PENDING'
         check(state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED',
-            'REMOTE_UNKNOWN','REMOTE_FAILED','COMPLETE_ACCEPTED','CANCELLED')),
+            'REMOTE_UNKNOWN','REMOTE_FAILED','LOCAL_CODE_READY','COMPLETE_ACCEPTED','CANCELLED')),
     remote_task_id varchar(160),
     remote_task_url text,
     remote_task_status varchar(80),
@@ -40,9 +40,9 @@ create table ep002_codex_automation_task (
 );
 create unique index ep002_codex_one_live_task_per_automation
     on ep002_codex_automation_task(automation_id)
-    where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN');
+    where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN','LOCAL_CODE_READY');
 create unique index ep002_codex_one_live_task_per_episode
     on ep002_codex_automation_task(episode_key)
-    where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN');
+    where state in ('PENDING','SUBMISSION_STARTED','REMOTE_CREATED','REMOTE_UNKNOWN','LOCAL_CODE_READY');
 create index ep002_codex_task_status
     on ep002_codex_automation_task(automation_id,created_at desc);
