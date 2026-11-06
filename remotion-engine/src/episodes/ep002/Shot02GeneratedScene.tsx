@@ -367,7 +367,8 @@ const ArchitectureWorld: React.FC<{
   const cameraX=-55*context-215*camGateway-280*camDb;
   const cameraY=-8*camGateway-12*camDb;
   const cameraScale=1.018-.045*context+.04*camGateway+.028*camDb;
-  const density=.2+wave*.34+distribution*.19+database*.20;
+  const requestMention=ease(frame,terms[0].startFrame,terms[0].startFrame+15);
+  const density=.21*context+.25*wave+.11*requestMention+.18*distribution+.17*database;
   const active=activeSpokenTerm(frame,terms);
   const named=active?.id??null;
   const countTransition=ease(frame,terms[4].endFrame+4,
@@ -381,7 +382,8 @@ const ArchitectureWorld: React.FC<{
         architectureReveal={.27 + .42 * context + .23 * database}/>
       <AbsoluteFill style={{zIndex: 2, pointerEvents: 'none'}}>
         <div style={{
-          position: 'absolute', left: 80, top: 48, color: 'rgba(161,208,236,.65)',
+          position: 'absolute', ...SHOT02_TEXT_LANES.brand,
+          color: 'rgba(161,208,236,.65)',
           font: '650 16px ' + AT_FONT, letterSpacing: '.19em',
         }}>ARCHITECTURAL THINKING</div>
         <div style={{
