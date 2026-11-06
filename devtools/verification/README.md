@@ -59,3 +59,14 @@ The backend uses Flyway V125 (`mediaos_verification_run`, `mediaos_verification_
 5. A disabled worker, mismatched commit, spoofed repo, expired credential, untrusted Git source or lost lease fails closed, without switching to any paid provider API.
 
 This infrastructure is **code committed in a Draft PR only**. Real Docker verification, authenticated browser QA and deployment are NOT confirmed. End-to-end EP002 production and Codex subscription login remain separate requirements.
+
+
+## 2026-11-06 verification hardening before first real worker run
+
+The original V125 SQL was found to contain a corrupt `last_queued_commit` check constraint. **The committed migration has now been fully replaced** with correctly ordered policy/run tables, required foreign keys, the unique active queue index and a single scoped credential ALTER. A static SQL structure scan passed, but actual PostgreSQL migration testing has NOT happened.
+
+The installed worker now resolves the trusted Compose file relative to **its own installation directory**, never relative to a mutable PR clone. Its Docker source mount is set to the approved temporary exact-SHA checkout by `MEDIAOS_VERIFICATION_SOURCE_ROOT`; the default relative mount remains available only for an intentional local manual run. Git fetches the exact requested SHA and checks it out detached, even when new commits have moved the branch tip. Before starting tests, it validates the installed Compose manifest via `docker compose config --quiet`. The four application test services have bounded CPU, memory and process counts, drop capabilities and forbid privilege escalation. The polling worker rejects invalid UUIDs, refuses HTTP redirects with its scoped token and strips API tokens and unsafe Git config overrides from child process environments.
+
+**Required trust boundary:** install the Node worker **and** its Compose manifest from the reviewed trusted deployment as a pair, outside the temporary, untrusted PR checkout. If you run the worker from the same mutable checkout that is being tested, source-code verification and isolation are not established. Build/test outputs can execute arbitrary project build scripts: run them only on a disposable dedicated Docker host with no production host mounts, no production database connectivity and no cloud secrets. These safeguards reduce but do not eliminate risks associated with untrusted code and Docker.
+
+Thirteen pure-function/static source checks passed after these changes. They do NOT verify Spring compilation, a PostgreSQL migration, Node subprocess integration or Docker Compose on an actual host. No tests or deployment have been claimed successful.
