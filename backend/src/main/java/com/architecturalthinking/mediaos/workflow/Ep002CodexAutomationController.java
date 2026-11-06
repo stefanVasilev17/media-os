@@ -12,12 +12,9 @@ import java.util.UUID;
 @RequestMapping("/api/v1/creative/episodes/EP002/codex-automation")
 public class Ep002CodexAutomationController {
     private final Ep002CodexAutomationService automation;
-    private final CodexCloudCliGateway cloud;
 
-    public Ep002CodexAutomationController(Ep002CodexAutomationService automation,
-                                          CodexCloudCliGateway cloud) {
+    public Ep002CodexAutomationController(Ep002CodexAutomationService automation) {
         this.automation=automation;
-        this.cloud=cloud;
     }
 
     @GetMapping
@@ -26,9 +23,9 @@ public class Ep002CodexAutomationController {
     }
 
     @GetMapping("/connector-preflight")
-    public CodexCloudCliGateway.Capability connectorPreflight() {
+    public Ep002CodexAutomationService.ConnectorPreflight connectorPreflight() {
         com.architecturalthinking.mediaos.system.DirectorIdentity.requireDirector();
-        return cloud.probe();
+        return automation.connectorPreflight();
     }
 
     @PostMapping("/arm")
