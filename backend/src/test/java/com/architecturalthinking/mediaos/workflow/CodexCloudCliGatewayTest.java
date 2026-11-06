@@ -12,7 +12,7 @@ class CodexCloudCliGatewayTest {
         List<String> args=CodexCloudCliGateway.commandFor(
                 "owner/media-os","Develop only EP002 SHOT02 using Remotion");
         assertEquals(List.of("codex","cloud","exec","--env","owner/media-os",
-                "--branch","main","--attempts","1",
+                "--attempts","1",
                 "Develop only EP002 SHOT02 using Remotion"),args);
     }
 
