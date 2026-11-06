@@ -84,11 +84,24 @@ class Ep002Shot02TermResolverTest {
     }
 
     @Test
-    void aDirectorBeatAnchorBeforeSpokenGatewayCannotBeSilentlyShifted()
+    void directorBeatCanStartBeforeItsExactSpokenTechnicalTerm()
             throws Exception {
         String source=alignment(NARRATION);
-        var wrong=Ep002VoiceBeatResolver.resolve(json,source,SECONDS,
+        var beats=Ep002VoiceBeatResolver.resolve(json,source,SECONDS,
                 List.of("At nine","The software","Each tap",
+                        "Engineers call","The Auth servers"),5);
+        var terms=Ep002Shot02TermResolver.resolve(json,source,SECONDS,beats);
+        assertEquals(7,terms.size());
+        assertTrue(terms.get(1).startFrame()>beats.get(2).startFrame());
+        assertTrue(terms.get(4).startFrame()>beats.get(3).startFrame());
+        assertTrue(terms.get(6).startFrame()>beats.get(4).startFrame());
+    }
+
+    @Test
+    void directorBeatStartingAfterSpokenGatewayFailsClosed() throws Exception {
+        String source=alignment(NARRATION);
+        var wrong=Ep002VoiceBeatResolver.resolve(json,source,SECONDS,
+                List.of("At nine","The software","several Auth servers",
                         "arrival rate","User Database"),5);
         var failure=assertThrows(IllegalArgumentException.class,()->
                 Ep002Shot02TermResolver.resolve(json,source,SECONDS,wrong));
