@@ -33,6 +33,36 @@ public class Ep002SingleShotGitEvidenceService {
     public record PolicyEvidence(boolean verified,String mainCommit,
                                  String policyDigest,List<String> blockers) {}
 
+    public record VerificationTarget(boolean verified,String sourceCommit,
+                                     String reason) {}
+
+    public VerificationTarget verificationTarget() {
+        try {
+            JsonNode pr=github.fetch(API+"/pulls/191");
+            boolean correct=REPO.equals(
+                    pr.path("base").path("repo").path("full_name").asText())
+                    && "main".equals(pr.path("base").path("ref").asText())
+                    && REPO.equals(
+                        pr.path("head").path("repo").path("full_name").asText())
+                    && MediaOsVerificationRunService.BRANCH.equals(
+                        pr.path("head").path("ref").asText())
+                    && "open".equals(pr.path("state").asText());
+            String sha=pr.path("head").path("sha").asText("");
+            if(!correct||!isSha(sha))
+                return new VerificationTarget(false,null,
+                        "UNTRUSTED_OR_CLOSED_VERIFICATION_PR_SOURCE");
+            return new VerificationTarget(true,sha,"LIVE_PRIVATE_GITHUB_PR191_HEAD_VERIFIED");
+        }catch(InterruptedException interrupted){
+            Thread.currentThread().interrupt();
+            return new VerificationTarget(false,null,"GITHUB_VERIFICATION_INTERRUPTED");
+        }catch(IOException|RuntimeException failure){
+            return new VerificationTarget(false,null,
+                    "PRIVATE_GITHUB_READ_ACCESS_REQUIRED");
+        }
+    }
+
+
+
     public PolicyEvidence verifyCurrentPolicy() {
         try {
             String main=github.fetch(API+"/branches/main")
