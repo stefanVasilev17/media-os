@@ -5,6 +5,14 @@
 > **Status class:** verified repository/deployment facts + explicitly labeled Director reports; not an automatically refreshed live dashboard.  
 > **How to use:** read this file, then `AGENTS.md`, the latest linked roadmap/handoff, and verify live GitHub/Railway evidence **before** modifying code. A newer merged PR or deployment can supersede this snapshot.
 
+## OpenAI SIWC application status — Director report, 2026-11-06
+
+**The Director reports having submitted the OpenAI Sign in with ChatGPT partner-interest application.** This is a user-reported submission, not an independently verified form receipt. **Status: SUBMITTED / AWAITING_OPENAI_RESPONSE; NOT APPROVED; NO CLIENT ID OR HOSTED PLAN-USAGE ENTITLEMENT ISSUED OR VERIFIED.**
+
+Next provider evidence required: OpenAI's explicit decision on hosted app eligibility, `chatgpt.tokens.use.direct` (subscription-backed usage rather than identity-only access), and an approved user-controlled runtime/token-handling approach for unattended Railway workflows. Until then, do not ask the Director to submit the same form again, do not create fake OAuth client credentials or make any Codex inference request, and do not enable existing local/CLI Codex adapters on production. Do not claim OpenAI will approve or specify a response deadline.
+
+Parallel safe work: prepare offline, no-token, no-provider-call UI/adapter contracts and tests only; keep all dispatch gates disabled and no additional Codex API billing. A future OpenAI email/portal response should be reviewed before adjusting architectural assumptions.
+
 ## DIRECTOR LOCK: CODEX USES CHATGPT SUBSCRIPTION ONLY (2026-11-06)
 
 **NEWER DIRECTOR DECISION SUPERSEDES ALL API-FALLBACK RECOMMENDATIONS.** MediaOS may consume Codex inference only from the Director's own eligible ChatGPT plan after supported, expressly approved authorization. No OpenAI Platform API key, pay-as-you-go coding, purchased ChatGPT credits, automatic credit top-ups, fallback to paid inference, rotation of ChatGPT accounts, GitHub Actions, or dependency on the Director's computer. `OPENAI_API_KEY` may be present in the Railway backend for other legacy features but MUST NOT be used for Codex coding. When subscription authorization/usage is absent or exhausted, **STOP**; do not auto-switch the billing route.
