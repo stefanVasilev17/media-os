@@ -12,6 +12,24 @@ class WorkloadRouteFactoryTest {
     private static final WorkloadRoute CPU = new WorkloadRoute("REMOTION_CPU", null);
 
     @Test
+    void verificationWorkerHasOnlyExactClaimAndResultSubmissionRoutes() {
+        var verification=new WorkloadRoute("VERIFICATION",null);
+        var run="12345678-1234-4123-8123-123456789abc";
+        var claim="/api/v1/worker/verification/claim";
+        var complete="/api/v1/worker/verification/"+run+"/complete";
+        assertEquals(verification,WorkloadRoute.resolve("POST",claim));
+        assertEquals(verification,WorkloadRoute.resolve("POST",complete));
+        assertNull(WorkloadRoute.resolve("GET",claim));
+        assertNull(WorkloadRoute.resolve("GET",complete));
+        assertNull(WorkloadRoute.resolve("PUT",complete));
+        assertNull(WorkloadRoute.resolve("POST",complete+"/extra"));
+        assertNull(WorkloadRoute.resolve("POST",
+                "/api/v1/worker/verification/invalid/complete"));
+        assertNull(WorkloadRoute.resolve("POST",
+                "/api/v1/worker/verification/"+run+"/cancel"));
+    }
+
+    @Test
     void factoryCapabilityRequiresPostAndScopedCpuWorkerIdentity() {
         assertEquals(CPU, WorkloadRoute.resolve("POST", PREFIX + "factory-capability"));
         assertEquals(CPU, WorkloadRoute.resolve(PREFIX + "factory-capability"));
