@@ -5,6 +5,8 @@ import java.util.UUID;
 
 public record WorkloadRoute(String scope, UUID jobId) {
     public static WorkloadRoute resolve(String path) {
+        if (path.startsWith("/api/v1/worker/verification/"))
+            return verificationRoute(null,path);
         if (path.startsWith("/api/v1/worker/spline/snapshot/"))
             return new WorkloadRoute("SPLINE_SNAPSHOT", null);
         if (path.startsWith("/api/v1/worker/spline-shot/"))
