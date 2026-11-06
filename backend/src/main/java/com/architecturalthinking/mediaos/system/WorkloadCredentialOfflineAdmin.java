@@ -13,7 +13,7 @@ import java.util.UUID;
 public final class WorkloadCredentialOfflineAdmin {
     private static final Set<String> SCOPES = Set.of(
             "RUNNER", "SPLINE", "SPLINE_SHOT", "SPLINE_SNAPSHOT",
-            "REMOTION_CPU", "REMOTION_GPU", "SPLINE_GPU");
+            "REMOTION_CPU", "REMOTION_GPU", "SPLINE_GPU", "VERIFICATION");
     private final JdbcClient jdbc;
 
     public WorkloadCredentialOfflineAdmin(JdbcClient jdbc) {
