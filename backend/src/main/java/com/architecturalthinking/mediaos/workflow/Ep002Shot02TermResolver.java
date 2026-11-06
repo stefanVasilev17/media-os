@@ -72,8 +72,9 @@ public final class Ep002Shot02TermResolver {
                     || result.get(1).startFrame() != beats.get(2).startFrame()
                     || result.get(3).startFrame() >= beats.get(3).startFrame()
                     || result.get(4).startFrame() != beats.get(3).startFrame()
-                    || result.get(5).startFrame() >= beats.get(4).startFrame()
-                    || result.get(6).startFrame() != beats.get(4).startFrame()) {
+                    || result.get(5).startFrame() < beats.get(3).startFrame()
+                    || result.get(6).startFrame() < beats.get(4).startFrame()
+                    || result.get(6).startFrame() >= beats.get(4).endFrame()) {
                 throw new IllegalArgumentException("SHOT02_TERMS_DISAGREE_WITH_DIRECTOR_BEATS");
             }
             return List.copyOf(result);
