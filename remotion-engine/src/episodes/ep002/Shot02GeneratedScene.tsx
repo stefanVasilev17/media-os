@@ -8,9 +8,21 @@ import {
   AT_FONT,
 } from '../../components/architectural-thinking';
 import {Shot01ReadablePhone} from './Shot01ReadablePhone';
+import {SHOT02_NODES, SHOT02_TEXT_LANES, assertShot02TextLanes} from './Shot02PremiumLayout';
 
 export type Shot02VerifiedCue = {
   beatNumber: number;
+  spokenAnchor: string;
+  startFrame: number;
+  endFrame: number;
+};
+
+export type Shot02TermId =
+  | 'LOGIN_REQUEST' | 'API_GATEWAY' | 'LOAD_BALANCER'
+  | 'AUTH_SERVERS' | 'ARRIVAL_RATE' | 'AUTH_SERVERS_REPRISE' | 'USER_DATABASE';
+
+export type Shot02TermCue = {
+  id: Shot02TermId;
   spokenAnchor: string;
   startFrame: number;
   endFrame: number;
@@ -21,6 +33,7 @@ export type Shot02GeneratedSceneProps = {
   voiceTakeId: string;
   timingMode: 'ELEVENLABS_CHARACTER_TIMESTAMPS';
   verifiedCues: Shot02VerifiedCue[];
+  termCues: Shot02TermCue[];
 };
 
 const C = {
@@ -33,15 +46,39 @@ const C = {
 };
 
 const WORLD = {
-  gatewayX: 934,
-  gatewayY: 420,
-  balancerX: 1161,
-  balancerY: 420,
-  authX: 1510,
-  authY: 298,
-  databaseX: 2140,
-  databaseY: 421,
+  gatewayX: SHOT02_NODES.gateway.x,
+  gatewayY: SHOT02_NODES.gateway.y,
+  balancerX: SHOT02_NODES.balancer.x,
+  balancerY: SHOT02_NODES.balancer.y,
+  authX: SHOT02_NODES.auth.x,
+  authY: SHOT02_NODES.auth.y,
+  databaseX: SHOT02_NODES.database.x,
+  databaseY: SHOT02_NODES.database.y,
 } as const;
+
+const SPOKEN_TERMS: readonly {
+  id: Shot02TermId;
+  anchor: string;
+  headline: string;
+  detail: string;
+  node: 'gateway'|'balancer'|'auth'|'database'|null;
+  color: string;
+}[] = [
+  {id:'LOGIN_REQUEST',anchor:'Login request',headline:'LOGIN REQUEST',
+    detail:'ONE NEW REQUEST ENTERS THE SYSTEM',node:null,color:C.cyan},
+  {id:'API_GATEWAY',anchor:'API Gateway',headline:'API GATEWAY',
+    detail:'ENTRY BOUNDARY',node:'gateway',color:C.cyan},
+  {id:'LOAD_BALANCER',anchor:'Load Balancer',headline:'LOAD BALANCER',
+    detail:'DISTRIBUTES REQUESTS',node:'balancer',color:C.mint},
+  {id:'AUTH_SERVERS',anchor:'Auth servers',headline:'AUTH SERVERS',
+    detail:'THREE AUTH REPLICAS',node:'auth',color:C.violet},
+  {id:'ARRIVAL_RATE',anchor:'arrival rate',headline:'ARRIVAL RATE',
+    detail:'NEW LOGIN REQUESTS PER SECOND',node:null,color:C.mint},
+  {id:'AUTH_SERVERS_REPRISE',anchor:'Auth servers',headline:'AUTH SERVERS',
+    detail:'THREE SERVICES · ONE SHARED DATABASE',node:'auth',color:C.violet},
+  {id:'USER_DATABASE',anchor:'User Database',headline:'USER DATABASE',
+    detail:'SHARED ACCOUNT LOOKUP',node:'database',color:C.violet},
+] as const;
 
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
 const ease = (frame: number, start: number, end: number) =>
@@ -85,6 +122,47 @@ export function requireShot02VerifiedCues(
     throw new Error('SHOT02_VERIFIED_CUES_DO_NOT_COVER_AUDIO');
   }
   return verifiedCues;
+}
+
+const normalizeTerm = (s:string) => s.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+export function requireShot02SpokenTerms(
+  duration:number,
+  beats:readonly Shot02VerifiedCue[],
+  terms:Shot02TermCue[],
+):readonly Shot02TermCue[] {
+  if(!Array.isArray(terms)||terms.length!==SPOKEN_TERMS.length)
+    throw Error('SHOT02_REQUIRES_SEVEN_REAL_SPOKEN_TERM_TIMES');
+  for(let i=0;i<terms.length;i++){
+    const term=terms[i],expected=SPOKEN_TERMS[i];
+    if(!term||term.id!==expected.id
+      ||normalizeTerm(term.spokenAnchor)!==normalizeTerm(expected.anchor)
+      ||!Number.isInteger(term.startFrame)||!Number.isInteger(term.endFrame)
+      ||term.startFrame<0||term.startFrame>=term.endFrame
+      ||term.endFrame>duration
+      ||(i>0&&term.startFrame<terms[i-1].endFrame))
+      throw Error('SHOT02_SPOKEN_TERMS_NOT_REAL_ORDERED_ANCHORS');
+  }
+  if(terms[0].startFrame<beats[1].startFrame
+     ||terms[0].startFrame>=beats[2].startFrame
+     ||terms[1].startFrame!==beats[2].startFrame
+     ||terms[4].startFrame!==beats[3].startFrame
+     ||terms[6].startFrame!==beats[4].startFrame
+     ||terms[3].startFrame>=beats[3].startFrame
+     ||terms[5].startFrame>=beats[4].startFrame)
+    throw Error('SHOT02_TERM_BOUNDARIES_DISAGREE_WITH_DIRECTOR_BEATS');
+  return terms;
+}
+
+function activeSpokenTerm(
+  frame:number,terms:readonly Shot02TermCue[],
+):Shot02TermCue|null {
+  for(let i=terms.length-1;i>=0;i--){
+    const term=terms[i];
+    if(frame>=term.startFrame)
+      return frame<term.endFrame+36 ? term:null;
+  }
+  return null;
 }
 
 function requestPoint(t: number) {
@@ -294,6 +372,7 @@ export const Shot02GeneratedScene: React.FC<Shot02GeneratedSceneProps> = (props)
   const verified = requireShot02VerifiedCues(
     duration, props.voiceTakeId, props.timingMode, props.verifiedCues,
   );
+  const terms = requireShot02SpokenTerms(duration, verified, props.termCues);
   return <ArchitectureWorld frame={frame} duration={duration}
-    starts={verified.map(cue => cue.startFrame)}/>;
+    starts={verified.map(cue => cue.startFrame)} terms={terms}/>;
 };
