@@ -244,18 +244,49 @@ public class Ep002CodexAutomationService {
         Claimed claimed=tx.execute(txStatus->claim(enrollment,current,digest,prompt));
         if(claimed==null)return;
 
-        // One attempt: the DB is committed in SUBMISSION_STARTED before external I/O.
-        // Any uncertainty is quarantined instead of creating a duplicate cloud task.
+        // Recheck current consent and selected voice after the durable DB claim.
+        // A Director pause or a source/Take edit before this check blocks dispatch.
+        var latest=sequence.snapshotForRegisteredDirector(actor);
+        Boolean stillArmed=jdbc.sql("""
+                select exists(select 1 from ep002_codex_automation
+                    where id=:id and input_fingerprint=:fingerprint
+                      and state='ARMED_WAITING_FOR_GATES')
+                """).param("id",enrollment.id())
+                .param("fingerprint",current.inputFingerprint())
+                .query(Boolean.class).single();
+        if(!Boolean.TRUE.equals(stillArmed)
+                || !current.inputFingerprint().equals(latest.inputFingerprint())
+                || !claimed.shotKey().equals(latest.nextShotKey())
+                || !latest.readyForCodex()) {
+            jdbc.sql("""
+                    update ep002_codex_automation_task
+                       set state='CANCELLED',updated_at=now()
+                     where id=:id and state='SUBMISSION_STARTED'
+                    """).param("id",claimed.id()).update();
+            return;
+        }
+
+        // One attempt: the DB claim was committed before external I/O.
+        // No automatic retry is allowed if the provider outcome is ambiguous.
         CodexCloudCliGateway.Submission result=cloud.submit(claimed.prompt());
-        String target="REMOTE_CREATED".equals(result.state())
-                ?"REMOTE_CREATED":"REMOTE_UNKNOWN";
+        String target=classifySubmission(result);
         jdbc.sql("""
                 update ep002_codex_automation_task
-                   set state=:state,remote_task_id=:remote,submitted_at=now(),
+                   set state=:state,remote_task_id=:remote,
+                       submitted_at=case when :sent then now() else submitted_at end,
                        updated_at=now()
                  where id=:id and state='SUBMISSION_STARTED'
                 """).param("state",target)
+                .param("sent",!"REMOTE_FAILED".equals(target))
                 .param("remote",result.taskId()).param("id",claimed.id()).update();
+    }
+
+    static String classifySubmission(CodexCloudCliGateway.Submission result) {
+        if(result==null)return "REMOTE_UNKNOWN";
+        if("REMOTE_CREATED".equals(result.state()) && result.taskId()!=null
+                && !result.taskId().isBlank())return "REMOTE_CREATED";
+        if("NOT_SUBMITTED".equals(result.state()))return "REMOTE_FAILED";
+        return "REMOTE_UNKNOWN";
     }
 
     private Claimed claim(Enrollment entry,Ep002SequentialVisualPreflightService.Preflight current,
