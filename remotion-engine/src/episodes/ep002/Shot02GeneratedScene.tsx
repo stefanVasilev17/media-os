@@ -212,17 +212,27 @@ const FlowPaths: React.FC<{
         const destination = i === 0 ? 400 : i === 1 ? 475 : 552;
         const dbPath = 'M 1708 ' + destination + ' C 1870 ' + destination + ' 1910 531 2015 531';
         const p = ((frame * .010 + i / 3) % 1 + 1) % 1;
+        const q = 1 - p;
+        const branchX=q*q*q*1280+3*q*q*p*1358+3*q*p*p*1360+p*p*p*1407;
+        const branchY=q*q*q*525+3*q*q*p*525+3*q*p*p*y+p*p*p*y;
+        const dbX=q*q*q*1708+3*q*q*p*1870+3*q*p*p*1910+p*p*p*2015;
+        const dbY=q*q*q*destination+3*q*q*p*destination
+          +3*q*p*p*531+p*p*p*531;
         return (
           <g key={y}>
             <path d={branch} fill="none" stroke="#335474" strokeWidth={6} opacity=".38"/>
             <path d={branch} fill="none" stroke={C.mint} strokeWidth={2.1}
               opacity={distribution * (.38 + .18 * Math.sin(frame * .05 + i))}/>
-            <circle cx={1280 + 127 * p} cy={525 + (y - 525) * p}
-              r={3.1} fill={C.mint} opacity={distribution * density * .66}/>
+            <circle cx={branchX} cy={branchY}
+              r={3.3} fill={C.mint} opacity={distribution * density * .66}
+              style={{filter:'drop-shadow(0 0 4px rgba(88,234,192,.48))'}}/>
             <path d={dbPath} fill="none" stroke="#335474" strokeWidth={6}
               opacity={database * .45}/>
             <path d={dbPath} fill="none" stroke={C.violet} strokeWidth={2.1}
               opacity={database * (.4 + .13 * Math.sin(frame * .035 + i))}/>
+            <circle cx={dbX} cy={dbY} r={3.8} fill={i%2===0?C.mint:C.violet}
+              opacity={database * density * (.50 + .22*Math.sin(frame*.03+i))}
+              style={{filter:'drop-shadow(0 0 6px rgba(179,163,255,.42))'}}/>
           </g>
         );
       })}
