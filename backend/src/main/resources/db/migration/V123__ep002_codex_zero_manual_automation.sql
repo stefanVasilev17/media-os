@@ -6,7 +6,7 @@ create table ep002_codex_automation (
     max_shot_tasks integer not null default 10 check(max_shot_tasks between 1 and 20),
     state varchar(40) not null default 'ARMED_WAITING_FOR_GATES'
         check(state in ('ARMED_WAITING_FOR_GATES','PAUSED')),
-    driver varchar(24) not null default 'CODEX_CLOUD_CLI'
+    driver varchar(24) not null default 'CODEX_LOCAL_EXEC'
         check(driver in ('CODEX_CLOUD_CLI','CODEX_LOCAL_EXEC')),
     director_issuer text not null,
     director_subject text not null,
