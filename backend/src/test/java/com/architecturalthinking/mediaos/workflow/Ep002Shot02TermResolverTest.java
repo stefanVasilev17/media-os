@@ -62,6 +62,19 @@ class Ep002Shot02TermResolverTest {
     }
 
     @Test
+    void fifthBeatMayStartAtSecondAuthMentionBeforeTheDatabaseName()
+            throws Exception {
+        String source=alignment(NARRATION);
+        var beats=Ep002VoiceBeatResolver.resolve(json,source,SECONDS,
+                List.of("At nine","The software","API Gateway",
+                        "arrival rate","The Auth servers"),5);
+        var terms=Ep002Shot02TermResolver.resolve(json,source,SECONDS,beats);
+        assertEquals(7,terms.size());
+        assertEquals(beats.get(4).startFrame(),terms.get(5).startFrame());
+        assertTrue(terms.get(6).startFrame()>beats.get(4).startFrame());
+    }
+
+    @Test
     void missingSecondAuthMentionFailsWithoutInventedFrames() throws Exception {
         String source=alignment(NARRATION.replace(
                 "The Auth servers share one", "Those services share one"));
