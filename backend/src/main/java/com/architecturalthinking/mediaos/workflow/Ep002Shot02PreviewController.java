@@ -125,6 +125,14 @@ public class Ep002Shot02PreviewController {
         return render;
     }
 
+    @GetMapping("/capability")
+    public Map<String,Object> capability() {
+        DirectorIdentity.requireDirector();
+        boolean pinned=pinnedWorkerSha.matches("[a-f0-9]{40}");
+        return Map.of("enabled",renderEnabled,
+                "workerPinned",pinned,"canQueue",renderEnabled&&pinned);
+    }
+
     @GetMapping
     @Transactional(readOnly=true)
     public Map<String,Object> latest() {
