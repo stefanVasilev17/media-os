@@ -19,6 +19,11 @@ services:
 
   asset-check:
     image: python:3.12-slim
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
     working_dir: /repo/backend
     volumes:
       - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
@@ -32,6 +37,11 @@ services:
 
   backend:
     image: maven:3.9-eclipse-temurin-21
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
     working_dir: /repo/backend
     volumes:
       - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
@@ -55,6 +65,11 @@ services:
 
   frontend:
     image: node:22-bookworm
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
     working_dir: /repo/frontend
     volumes:
       - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
@@ -70,6 +85,11 @@ services:
 
   remotion:
     image: node:22-bookworm
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
     working_dir: /repo/remotion-engine
     volumes:
       - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
