@@ -16,12 +16,12 @@ class CodexLocalExecGatewayTest {
         var driver=new CodexLocalExecGateway(false,false,"",900,mapper);
         assertEquals("LOCAL_CODEX_WORKER_DISABLED",driver.probe().blocker());
         assertEquals("NOT_SUBMITTED",driver.submit("Build one Remotion SHOT",
-                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx").outcome());
+                "remotion-engine/src/episodes/ep002/Shot02GeneratedScene.tsx","a".repeat(40)).outcome());
     }
 
     @Test
     void onlyDocumentedBoundedWorkspaceWriteCliFlagsAreUsed() {
-        assertEquals(List.of("codex","exec","--json","--sandbox","workspace-write",
+        assertEquals(List.of("codex","exec","--ignore-user-config","--json","--sandbox","workspace-write",
                 "--cd","/tmp/mediaos-codex-worktree","-"),
                 CodexLocalExecGateway.argv(Path.of("/tmp/mediaos-codex-worktree")));
         assertThrows(IllegalArgumentException.class,
