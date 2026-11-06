@@ -37,6 +37,21 @@ export function MediaOsVerificationPanel(){
     return()=>{active=false;};
   },[refresh]);
 
+  async function cancel(run:Run){
+    if(busy || !['QUEUED','UNKNOWN'].includes(run.state))return;
+    if(!window.confirm('Cancel the selected unclaimed or uncertain verification '+
+      run.id+'? A worker that already started remotely is NOT stopped by this command.'))return;
+    setBusy(true);setError('');setMessage('');
+    try{
+      const response=await fetch(ENDPOINT+'/'+encodeURIComponent(run.id)+'/cancel',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+      if(!response.ok)throw Error('Cannot cancel this run (HTTP '+response.status+
+        '): '+(await response.text()).slice(0,220));
+      setMessage('Run cancellation recorded. No automatic retry will occur.');
+      setRefresh(n=>n+1);
+    }catch(e){setError(String(e));}finally{setBusy(false);}
+  }
+
   const active=status?.recent.some(run=>
     ['QUEUED','RUNNING','UNKNOWN'].includes(run.state))??false;
   async function requestVerification(){
@@ -96,6 +111,11 @@ export function MediaOsVerificationPanel(){
               {' '}{run.state} · {run.sourceCommit.slice(0,12)}</strong>
             <p>Run: {run.id} · Worker: {run.workerId??'not claimed'}</p>
             {run.failureReason&&<p className="library-voice-error">{run.failureReason}</p>}
+            {['QUEUED','UNKNOWN'].includes(run.state)&&
+              <button type="button" className="library-voice-refresh"
+                disabled={busy} onClick={()=>void cancel(run)}>
+                Cancel this queued or uncertain run
+              </button>}
             {run.stages.map(stage=><small key={stage.stage}>
               {stage.stage}: exit {stage.exitCode} · {Math.round(stage.durationMs/1000)} s
               {' · '}
