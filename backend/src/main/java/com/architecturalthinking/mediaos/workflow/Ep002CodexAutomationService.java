@@ -91,7 +91,7 @@ public class Ep002CodexAutomationService {
                         rs.getString("remote_task_url"),rs.getString("task_input_sha256"),
                         rs.getString("created_at"))).list();
         boolean matching=enrolled.fingerprint().equals(current.inputFingerprint());
-        boolean worker=dispatchEnabled && matching
+        boolean worker=dispatchEnabled && CodexSubscriptionAccessPolicy.hostedAccessGranted() && matching
                 && "ARMED_WAITING_FOR_GATES".equals(enrolled.state())
                 && enrolled.driver().equals(driverMode);
         String mode=!matching?"STALE_SOURCE_NEEDS_NEW_AUTHORIZATION":
@@ -107,6 +107,8 @@ public class Ep002CodexAutomationService {
         var actor=DirectorIdentity.requireDirector();
         validateArm(request);
         if(auditId==null)throw conflict("Audited Director authorization is required.");
+        if(!CodexSubscriptionAccessPolicy.hostedAccessGranted())
+            throw conflict(CodexSubscriptionAccessPolicy.BLOCKER);
         if(!"CODEX_CLOUD_CLI".equals(driverMode) && !"CODEX_LOCAL_EXEC".equals(driverMode))
             throw conflict("No supported automatic Codex driver configured.");
         var current=sequence.preview();
@@ -169,6 +171,8 @@ public class Ep002CodexAutomationService {
         if(request==null || !Boolean.TRUE.equals(request.confirmResume())
                 || request.expectedEpisodeFingerprint()==null || auditId==null)
             throw bad("Explicit audited Director resumption is required.");
+        if(!CodexSubscriptionAccessPolicy.hostedAccessGranted())
+            throw conflict(CodexSubscriptionAccessPolicy.BLOCKER);
         var current=sequence.preview();
         Enrollment recorded=latest(actor);
         if(recorded==null || !recorded.driver().equals(driverMode))
@@ -191,7 +195,7 @@ public class Ep002CodexAutomationService {
 
     @Scheduled(fixedDelayString="${mediaos.codex.automation.poll-delay-ms:60000}")
     public void poll() {
-        if(!dispatchEnabled)return;
+        if(!dispatchEnabled || !CodexSubscriptionAccessPolicy.hostedAccessGranted())return;
         List<Enrollment> active=jdbc.sql("""
                 select id,input_fingerprint,max_shot_tasks,state,
                        director_issuer,director_subject,driver
@@ -320,6 +324,9 @@ public class Ep002CodexAutomationService {
     public record ConnectorPreflight(boolean supported,String reason,String driver) {}
 
     public ConnectorPreflight connectorPreflight() {
+        if(!CodexSubscriptionAccessPolicy.hostedAccessGranted())
+            return new ConnectorPreflight(false,CodexSubscriptionAccessPolicy.BLOCKER,
+                    "CODEX_HOSTED_SIWC");
         if("CODEX_LOCAL_EXEC".equals(driverMode)) {
             var status=local.probe();
             return new ConnectorPreflight(status.ready(),status.blocker(),driverMode);
