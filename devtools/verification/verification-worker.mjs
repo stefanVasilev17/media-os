@@ -15,15 +15,15 @@ const STAGES=[
   {stage:'remotion',timeout:1200000},
 ];
 const FORWARDED=['PATH','HOME','USER','LANG','LC_ALL','TMPDIR','TEMP','TMP',
-  'XDG_CONFIG_HOME','XDG_DATA_HOME','GIT_CONFIG_GLOBAL'];
+  'XDG_CONFIG_HOME','XDG_DATA_HOME'];
 const STDOUT_LIMIT=2048;
 
 function allowedLease(job){
   return Boolean(job &&
     job.repository===REPOSITORY && job.sourceBranch===BRANCH &&
     /^[0-9a-f]{40}$/.test(job.sourceCommit) &&
-    /^[0-9a-f-]{36}$/.test(job.runId) &&
-    /^[0-9a-f-]{36}$/.test(job.leaseId));
+    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(job.runId) &&
+    /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(job.leaseId));
 }
 
 function commandEnvironment(sourceRoot=null){
