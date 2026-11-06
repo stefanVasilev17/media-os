@@ -6,6 +6,7 @@ import {Ep002FactoryReadinessBridgePanel} from './Ep002FactoryReadinessBridgePan
 import {Ep002SequentialVisualPreflightPanel} from './Ep002SequentialVisualPreflightPanel';
 import {Ep002CodexAutomationPanel} from './Ep002CodexAutomationPanel';
 import {MediaOsVerificationPanel} from './MediaOsVerificationPanel';
+import {MediaOsVerificationAutopilotPanel} from './MediaOsVerificationAutopilotPanel';
 import {Ep002VisualDirectorFeedbackPanel} from './Ep002VisualDirectorFeedbackPanel';
 import {Ep002DirectorVisualAcceptancePanel} from './Ep002DirectorVisualAcceptancePanel';
 
@@ -74,7 +75,7 @@ export function Ep002ProductionFactoryConsole(){
       <Ep002FactoryReadinessBridgePanel/>
       <Ep002DirectorVoiceCuePanel/>
     </>}
-    {stage==='CODEX'&&<><MediaOsVerificationPanel/><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
+    {stage==='CODEX'&&<><MediaOsVerificationAutopilotPanel/><MediaOsVerificationPanel/><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
     {stage==='CORRECTIONS'&&<Ep002VisualDirectorFeedbackPanel/>}
     {stage==='APPROVAL'&&<Ep002DirectorVisualAcceptancePanel/>}
     <p className="library-note">The complete product acceptance contract remains:
