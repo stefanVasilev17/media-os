@@ -90,6 +90,32 @@ public class Ep002DirectorVoiceCueService {
 
 
 
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public boolean matchesCurrentShot02Render(String fingerprint, String takeId,
+                                               int scriptRevision, int durationFrames) {
+        if (fingerprint==null || !fingerprint.matches("[a-f0-9]{64}")
+                || takeId==null || !takeId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                || scriptRevision<1 || durationFrames<6) {
+            return false;
+        }
+        try {
+            var current=episode.snapshot();
+            var shot=current.shots().stream().filter(s->"SHOT02".equals(s.shotKey()))
+                    .findFirst().orElse(null);
+            return current.sourceVerified()
+                    && current.inputFingerprint().equals(fingerprint)
+                    && shot!=null
+                    && shot.currentVoiceApproved() && shot.hearSeeTimingVerified()
+                    && takeId.equals(shot.preferredTakeId())
+                    && scriptRevision==shot.scriptRevision()
+                    && shot.durationFrames()!=null
+                    && durationFrames==shot.durationFrames();
+        } catch (RuntimeException staleOrUnavailable) {
+            return false;
+        }
+    }
+
     private static void validateShot(String shot) {
         if(shot==null||!shot.matches("SHOT(0[1-9]|1[01])"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
