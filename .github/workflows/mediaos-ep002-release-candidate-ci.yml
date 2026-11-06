@@ -1,6 +1,9 @@
 name: MediaOS EP002 Integrated Release Candidate
 
 on:
+  push:
+    branches:
+      - 'feat/mediaos-ep002-unified-product-integration'
   pull_request:
     paths:
       - 'backend/**'
