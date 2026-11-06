@@ -3,6 +3,12 @@ Date: 2026-11-06
 Owner: Director
 Status: LOCKED REQUIREMENT / EXTERNAL APPROVAL REQUIRED / NOT CONNECTED
 
+## Hosted subscription readiness UI and fail-closed dispatcher (2026-11-06)
+
+The Director-reported OpenAI SIWC application is **submitted, awaiting response, not approved**. The branch adds `CodexSubscriptionAccessPolicy` and Director-only `GET /api/v1/creative/episodes/EP002/codex-automation/subscription-readiness`; this reports the exact provider-approval blocker without contacting OpenAI or using any OAuth credential. The existing Director Codex panel now reports provider status, distinguishes submission from approval, and disables arm/resume while the hosted subscription entitlement is absent. The backend independently blocks arm/resume, CLI connector preflight, scheduler polling and cloudWorkerEnabled when the hosted entitlement is not approved, even if someone mistakenly sets the former dispatch/CLI flags. The existing pause remains available so prior records can be stopped safely. A unit test enforces subscription-only/no API fallback.
+
+This implementation is intentionally **fail-closed**; it does not pretend that a working SIWC client, refresh/access token, remote runtime authorization or cloud task exists. No hypothetical `Connect Codex` OAuth button or token persistence was added without provider approval. No service was deployed in this change. Railway production remains pinned to earlier release SHA `964d558bb92228e5d69943ed3daf3fdb5468b183`; to release any newer branch changes later requires an explicitly reviewed production deployment with real build/migration/healthcheck evidence.
+
 ## OpenAI SIWC application status — Director report, 2026-11-06
 
 **The Director reports having submitted the OpenAI Sign in with ChatGPT partner-interest application.** This is a user-reported submission, not an independently verified form receipt. **Status: SUBMITTED / AWAITING_OPENAI_RESPONSE; NOT APPROVED; NO CLIENT ID OR HOSTED PLAN-USAGE ENTITLEMENT ISSUED OR VERIFIED.**
