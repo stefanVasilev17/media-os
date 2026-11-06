@@ -96,7 +96,9 @@ async function request(config,path,payload){
   const response=await fetch(url,{method:'POST',
     headers:{'Content-Type':'application/json','X-Worker-Id':config.worker,
       'X-MediaOS-Workload-Token':config.token},
-    body:payload?JSON.stringify(payload):'{}',signal:AbortSignal.timeout(15000)});
+    body:payload?JSON.stringify(payload):'{}',
+    redirect:'error',credentials:'omit',
+    signal:AbortSignal.timeout(15000)});
   if(response.status===204)return null;
   if(!response.ok)throw new Error('VERIFICATION_SERVER_HTTP_'+response.status);
   return await response.json();
