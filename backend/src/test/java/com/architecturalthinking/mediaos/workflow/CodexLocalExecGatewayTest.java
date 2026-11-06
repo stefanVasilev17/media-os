@@ -13,7 +13,7 @@ class CodexLocalExecGatewayTest {
 
     @Test
     void disabledWorkerNeverSubmitsOrAsksForPaidApiCredentials() {
-        var driver=new CodexLocalExecGateway(false,"",900,mapper);
+        var driver=new CodexLocalExecGateway(false,false,"",900,mapper);
         assertEquals("LOCAL_CODEX_WORKER_DISABLED",driver.probe().blocker());
         assertEquals("NOT_SUBMITTED",driver.submit("Build one Remotion SHOT").outcome());
     }
@@ -41,7 +41,7 @@ class CodexLocalExecGatewayTest {
 
     @Test
     void missingIsolatedCheckoutCannotStartAgent() {
-        var driver=new CodexLocalExecGateway(true,
+        var driver=new CodexLocalExecGateway(true,true,
                 "/not-a-real-mediaos-private-checkout-278398",900,mapper);
         assertEquals("ISOLATED_GIT_CHECKOUT_AND_AGENT_RULES_REQUIRED",
                 driver.probe().blocker());
