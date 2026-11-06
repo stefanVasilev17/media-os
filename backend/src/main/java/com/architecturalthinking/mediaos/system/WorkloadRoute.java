@@ -27,6 +27,9 @@ public record WorkloadRoute(String scope, UUID jobId) {
     public static WorkloadRoute resolve(String method, String path) {
         if (method == null || path == null) return null;
 
+        if (path.startsWith("/api/v1/worker/verification/"))
+            return verificationRoute(method,path);
+
         if (path.startsWith("/api/v1/remotion/renders/worker/")) {
             String part = path.substring("/api/v1/remotion/renders/worker/".length());
             if (part.equals("claim") || part.equals("factory-capability"))
@@ -60,6 +63,24 @@ public record WorkloadRoute(String scope, UUID jobId) {
             return null;
         }
         return route;
+    }
+
+    private static WorkloadRoute verificationRoute(String method,String path) {
+        String prefix="/api/v1/worker/verification/";
+        if (!path.startsWith(prefix))return null;
+        String remaining=path.substring(prefix.length());
+        if ("claim".equals(remaining))
+            return method==null||"POST".equals(method)
+                    ?new WorkloadRoute("VERIFICATION",null):null;
+        int end=remaining.indexOf('/');
+        if(end<1 || !remaining.substring(end).equals("/complete"))
+            return null;
+        String run=remaining.substring(0,end);
+        try {
+            if(!UUID.fromString(run).toString().equalsIgnoreCase(run))return null;
+        }catch(IllegalArgumentException invalid) {return null;}
+        return method==null||"POST".equals(method)
+                ?new WorkloadRoute("VERIFICATION",null):null;
     }
 
     private static WorkloadRoute remotionCpuRoute(String path) {
