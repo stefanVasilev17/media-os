@@ -73,15 +73,18 @@ public class CodexLocalExecGateway {
         }
     }
 
-    public Result submit(String prompt,String expectedSceneFile) {
+    public Result submit(String prompt,String expectedSceneFile,String expectedMainCommit) {
         if(prompt==null||prompt.isBlank()||prompt.length()>30000
-                || !allowedScene(expectedSceneFile))
+                || !allowedScene(expectedSceneFile)
+                || expectedMainCommit==null||!expectedMainCommit.matches("[a-f0-9]{40}"))
             return new Result("NOT_SUBMITTED",null,"UNSAFE_PROMPT_OR_SCENE_SCOPE");
         Capability ready=probe();
         if(!ready.ready())
             return new Result("NOT_SUBMITTED",null,ready.blocker());
         if(!gitChanges().equals(""))return new Result(
                 "NOT_SUBMITTED",null,"ISOLATED_SCENE_WORKTREE_MUST_START_CLEAN");
+        if(!expectedMainCommit.equals(gitHead()))
+            return new Result("NOT_SUBMITTED",null,"CHECKOUT_NOT_AT_PINNED_GITHUB_MAIN");
         Process process=null;
         try {
             ProcessBuilder builder=new ProcessBuilder(argv(checkout))
@@ -155,6 +158,28 @@ public class CodexLocalExecGateway {
         }catch(Exception failure){return false;}
     }
 
+    private String gitHead() {
+        Process process=null;
+        try {
+            ProcessBuilder builder=new ProcessBuilder("git","rev-parse","HEAD")
+                    .directory(checkout.toFile()).redirectErrorStream(true);
+            restrictEnvironment(builder);
+            process=builder.start();
+            if(!process.waitFor(8,TimeUnit.SECONDS)){
+                process.destroyForcibly();
+                return "";
+            }
+            String result=new String(process.getInputStream().readNBytes(256),
+                    StandardCharsets.UTF_8).trim();
+            return process.exitValue()==0&&result.matches("[a-f0-9]{40}")?result:"";
+        }catch(Exception failure){
+            if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
+            return "";
+        }finally{
+            if(process!=null&&process.isAlive())process.destroyForcibly();
+        }
+    }
+
     private String gitChanges() {
         Process process=null;
         try {
@@ -193,8 +218,8 @@ public class CodexLocalExecGateway {
     static List<String> argv(Path directory) {
         if(directory==null||!directory.isAbsolute())
             throw new IllegalArgumentException("An absolute isolated checkout is required.");
-        return List.of("codex","exec","--json","--sandbox","workspace-write",
-                "--cd",directory.toString(),"-");
+        return List.of("codex","exec","--ignore-user-config",
+                "--json","--sandbox","workspace-write","--cd",directory.toString(),"-");
     }
 
     static boolean completedEvent(JsonNode event) {
