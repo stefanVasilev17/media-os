@@ -398,22 +398,25 @@ const ArchitectureWorld: React.FC<{
         </div>
         <ATBackendNode
           title="API Gateway" x={WORLD.gatewayX} y={WORLD.gatewayY}
-          width={222} height={205} reveal={1} active={gateway}
+          width={SHOT02_NODES.gateway.width} height={SHOT02_NODES.gateway.height} reveal={1}
+          active={clamp(gateway + (named==='API_GATEWAY' ? .36 : 0))}
           quiet={.82 * (1 - gateway)} secondaryReveal={gateway}
           zIndex={5}
           sections={[{title: 'ENTRY', items: [{label: 'Gateway', activity: gateway}]}]}
         />
         <ATBackendNode
           title="Load Balancer" x={WORLD.balancerX} y={WORLD.balancerY}
-          width={240} height={205} reveal={1} active={distribution}
+          width={SHOT02_NODES.balancer.width} height={SHOT02_NODES.balancer.height} reveal={1}
+          active={clamp(distribution + (named==='LOAD_BALANCER' ? .35 : 0))}
           quiet={.82 * (1 - distribution)} secondaryReveal={distribution}
           zIndex={5}
           sections={[{title: 'ROUTING', items: [{label: 'Balancer', activity: distribution}]}]}
         />
         <ATBackendNode
           title="Auth Service" x={WORLD.authX} y={WORLD.authY}
-          width={395} height={354} reveal={1}
-          active={.13 + .47 * distribution + .18 * database}
+          width={SHOT02_NODES.auth.width} height={SHOT02_NODES.auth.height} reveal={1}
+          active={clamp(.10+.35*authActivity+.26*distribution+
+            (named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?.28:0))}
           quiet={.42 * (1 - distribution)} secondaryReveal={.68 + .32 * distribution}
           zIndex={6}
           sections={[{
@@ -427,21 +430,21 @@ const ArchitectureWorld: React.FC<{
         />
         <ATBackendNode
           title="User Database" x={WORLD.databaseX} y={WORLD.databaseY}
-          width={274} height={224} reveal={database} active={database * .14}
+          width={SHOT02_NODES.database.width} height={SHOT02_NODES.database.height}
+          reveal={database} active={database*(named==='USER_DATABASE'?.75:.35)}
           quiet={.45} secondaryReveal={database} zIndex={7}
           sections={[{
             title: 'SHARED ACCOUNT LOOKUP',
             items: [{label: 'User records', activity: .08}],
           }]}
         />
-        <ContextLabel reveal={context}/>
-        <ArrivalCounter reveal={arrival} count={arrivalValue}/>
-        <div style={{
-          position: 'absolute', left: 1735, top: 770, width: 320, zIndex: 9,
-          opacity: database * clamp(lastFrames / 20), color: C.muted,
-          font: '560 17px ' + AT_FONT,
-        }}>SHARED DEPENDENCY · PRESSURE BEGINS</div>
+        <ReplicaRail frame={frame} reveal={authActivity} focus={
+          named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?1:.3}/>
+        <SemanticNodeHalo cue={active} frame={frame}/>
       </ATCameraRig>
+      <ContextLabel reveal={context}/>
+      <ArrivalCounter reveal={arrival} value={arrivalValue} frame={frame}/>
+      <SemanticTermHud frame={frame} cue={active}/>
     </ATBackground>
   );
 };
