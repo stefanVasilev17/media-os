@@ -19,16 +19,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 public class CodexLocalExecGateway {
     private final boolean enabled;
+    private final boolean isolatedWorker;
     private final Path checkout;
     private final ObjectMapper mapper;
     private final Duration duration;
 
     public CodexLocalExecGateway(
             @Value("${mediaos.codex.local-exec-enabled:false}") boolean enabled,
+            @Value("${mediaos.codex.local-isolated-worker:false}") boolean isolatedWorker,
             @Value("${mediaos.codex.local-checkout-directory:}") String root,
             @Value("${mediaos.codex.local-task-timeout-seconds:900}") int seconds,
             ObjectMapper mapper) {
         this.enabled=enabled;
+        this.isolatedWorker=isolatedWorker;
         this.checkout=root==null||root.isBlank()?null:Path.of(root).toAbsolutePath().normalize();
         this.duration=Duration.ofSeconds(Math.max(60,Math.min(1800,seconds)));
         this.mapper=mapper;
@@ -39,6 +42,8 @@ public class CodexLocalExecGateway {
 
     public Capability probe() {
         if(!enabled)return new Capability(false,"LOCAL_CODEX_WORKER_DISABLED");
+        if(!isolatedWorker)
+            return new Capability(false,"CODEX_EXEC_REQUIRES_EXPLICIT_ISOLATED_WORKER");
         if(checkout==null || !Files.isDirectory(checkout)
                 || !Files.exists(checkout.resolve(".git"))
                 || !Files.exists(checkout.resolve("AGENTS.md")))
