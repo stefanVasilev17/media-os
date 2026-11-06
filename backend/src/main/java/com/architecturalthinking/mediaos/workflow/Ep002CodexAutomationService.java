@@ -24,6 +24,8 @@ public class Ep002CodexAutomationService {
     private final Ep002SequentialVisualPreflightService sequence;
     private final Ep002FactoryReadinessBridgeService bridge;
     private final CodexCloudCliGateway cloud;
+    private final CodexLocalExecGateway local;
+    private final String driverMode;
     private final ObjectMapper mapper;
     private final TransactionTemplate tx;
     private final boolean dispatchEnabled;
@@ -31,12 +33,15 @@ public class Ep002CodexAutomationService {
     public Ep002CodexAutomationService(
             JdbcClient jdbc,Ep002SequentialVisualPreflightService sequence,
             Ep002FactoryReadinessBridgeService bridge,CodexCloudCliGateway cloud,
-            ObjectMapper mapper,PlatformTransactionManager manager,
-            @Value("${mediaos.codex.automation.dispatch-enabled:false}") boolean dispatchEnabled) {
+            CodexLocalExecGateway local,ObjectMapper mapper,PlatformTransactionManager manager,
+            @Value("${mediaos.codex.automation.dispatch-enabled:false}") boolean dispatchEnabled,
+            @Value("${mediaos.codex.automation.driver:CODEX_CLOUD_CLI}") String driverMode) {
         this.jdbc=jdbc;
         this.sequence=sequence;
         this.bridge=bridge;
         this.cloud=cloud;
+        this.local=local;
+        this.driverMode=driverMode;
         this.mapper=mapper;
         this.tx=new TransactionTemplate(manager);
         this.dispatchEnabled=dispatchEnabled;
@@ -54,7 +59,7 @@ public class Ep002CodexAutomationService {
                          int maximumTaskSubmissions,int taskCount,
                          List<String> blockers,List<TaskReceipt> tasks) {}
     private record Enrollment(UUID id,String fingerprint,int maximum,String state,
-                              String issuer,String subject) {}
+                              String issuer,String subject,String driver) {}
     private record Claimed(UUID id,String shotKey,String inputSha,String prompt) {}
 
     static void validateArm(ArmRequest request) {
@@ -87,8 +92,11 @@ public class Ep002CodexAutomationService {
                         rs.getString("created_at"))).list();
         boolean matching=enrolled.fingerprint().equals(current.inputFingerprint());
         boolean worker=dispatchEnabled && matching
-                && "ARMED_WAITING_FOR_GATES".equals(enrolled.state());
-        String mode=!matching?"STALE_SOURCE_NEEDS_NEW_AUTHORIZATION":enrolled.state();
+                && "ARMED_WAITING_FOR_GATES".equals(enrolled.state())
+                && enrolled.driver().equals(driverMode);
+        String mode=!matching?"STALE_SOURCE_NEEDS_NEW_AUTHORIZATION":
+                !enrolled.driver().equals(driverMode)?"CONNECTOR_CHANGED_REAUTHORIZE":
+                enrolled.state();
         return new Status(mode,current.inputFingerprint(),current.nextShotKey(),
                 current.readyForCodex(),worker,enrolled.maximum(),
                 tasks.size(),current.blockers(),List.copyOf(tasks));
@@ -116,13 +124,14 @@ public class Ep002CodexAutomationService {
         int inserted=jdbc.sql("""
                 insert into ep002_codex_automation(
                     id,request_id,input_fingerprint,max_shot_tasks,
-                    director_issuer,director_subject,preflight_audit_id
-                ) values(:id,:request,:fp,:max,:issuer,:subject,:audit)
+                    driver,director_issuer,director_subject,preflight_audit_id
+                ) values(:id,:request,:fp,:max,:driver,:issuer,:subject,:audit)
                 on conflict do nothing
                 """)
                 .param("id",UUID.randomUUID()).param("request",request.requestId())
                 .param("fp",request.expectedEpisodeFingerprint())
                 .param("max",request.maximumTaskSubmissions())
+                .param("driver",driverMode)
                 .param("issuer",actor.issuer()).param("subject",actor.subject())
                 .param("audit",auditId).update();
         if(inserted!=1)
@@ -179,17 +188,19 @@ public class Ep002CodexAutomationService {
         if(!dispatchEnabled)return;
         List<Enrollment> active=jdbc.sql("""
                 select id,input_fingerprint,max_shot_tasks,state,
-                       director_issuer,director_subject
+                       director_issuer,director_subject,driver
                   from ep002_codex_automation
                  where state='ARMED_WAITING_FOR_GATES'
                  order by created_at,id limit 10
                 """).query((rs,n)->new Enrollment(
                     rs.getObject("id",UUID.class),rs.getString("input_fingerprint"),
                     rs.getInt("max_shot_tasks"),rs.getString("state"),
-                    rs.getString("director_issuer"),rs.getString("director_subject")))
+                    rs.getString("director_issuer"),rs.getString("director_subject"),
+                    rs.getString("driver")))
                 .list();
         for(Enrollment entry:active) {
             try {
+                if(!entry.driver().equals(driverMode))continue;
                 monitorRemoteTask(entry);
                 tick(entry);
             } catch(Exception failed) {
@@ -207,7 +218,7 @@ public class Ep002CodexAutomationService {
                  order by created_at desc limit 1
                 """).param("id",entry.id()).query(String.class)
                 .optional().orElse(null);
-        if(taskId==null)return;
+        if(taskId==null || !"CODEX_CLOUD_CLI".equals(entry.driver()))return;
         CodexCloudCliGateway.RemoteTaskStatus observed=cloud.inspect(taskId);
         if(!observed.verified())return;
         jdbc.sql("""
@@ -230,7 +241,7 @@ public class Ep002CodexAutomationService {
         if(current.candidate()==null || !current.readyForCodex()
                 || !current.realCueFramesVerified() || !current.latestPolicyGitVerified())
             return;
-        if(!cloud.probe().supported())return;
+        if(!connectorPreflight().supported())return;
         var shot=bridge.snapshot().shots().stream().filter(s->
                 s.shotKey().equals(current.nextShotKey())).findFirst().orElse(null);
         if(shot==null || !shot.hearSeeTimingVerified()
@@ -268,8 +279,17 @@ public class Ep002CodexAutomationService {
 
         // One attempt: the DB claim was committed before external I/O.
         // No automatic retry is allowed if the provider outcome is ambiguous.
-        CodexCloudCliGateway.Submission result=cloud.submit(claimed.prompt());
-        String target=classifySubmission(result);
+        String target;
+        String remoteId;
+        if("CODEX_LOCAL_EXEC".equals(driverMode)) {
+            CodexLocalExecGateway.Result result=local.submit(claimed.prompt());
+            target=classifyLocalSubmission(result);
+            remoteId=result.sessionId();
+        }else {
+            CodexCloudCliGateway.Submission result=cloud.submit(claimed.prompt());
+            target=classifySubmission(result);
+            remoteId=result.taskId();
+        }
         jdbc.sql("""
                 update ep002_codex_automation_task
                    set state=:state,remote_task_id=:remote,
@@ -278,7 +298,29 @@ public class Ep002CodexAutomationService {
                  where id=:id and state='SUBMISSION_STARTED'
                 """).param("state",target)
                 .param("sent",!"REMOTE_FAILED".equals(target))
-                .param("remote",result.taskId()).param("id",claimed.id()).update();
+                .param("remote",remoteId).param("id",claimed.id()).update();
+    }
+
+    static String classifyLocalSubmission(CodexLocalExecGateway.Result result) {
+        if(result==null)return "REMOTE_UNKNOWN";
+        if("NOT_SUBMITTED".equals(result.outcome()))return "REMOTE_FAILED";
+        if("FINISHED_UNVERIFIED".equals(result.outcome()) && result.sessionId()!=null
+                && !result.sessionId().isBlank())return "LOCAL_CODE_READY";
+        return "REMOTE_UNKNOWN";
+    }
+
+    public record ConnectorPreflight(boolean supported,String reason,String driver) {}
+
+    public ConnectorPreflight connectorPreflight() {
+        if("CODEX_LOCAL_EXEC".equals(driverMode)) {
+            var status=local.probe();
+            return new ConnectorPreflight(status.ready(),status.blocker(),driverMode);
+        }
+        if("CODEX_CLOUD_CLI".equals(driverMode)) {
+            var status=cloud.probe();
+            return new ConnectorPreflight(status.supported(),status.reason(),driverMode);
+        }
+        return new ConnectorPreflight(false,"UNRECOGNIZED_CODEX_DRIVER",driverMode);
     }
 
     static String classifySubmission(CodexCloudCliGateway.Submission result) {
@@ -331,7 +373,8 @@ public class Ep002CodexAutomationService {
         jdbc.sql("""
                 update ep002_codex_automation_task t
                    set state='COMPLETE_ACCEPTED',updated_at=now()
-                 where t.automation_id=:automation and t.state='REMOTE_CREATED'
+                 where t.automation_id=:automation and
+                       t.state in ('REMOTE_CREATED','LOCAL_CODE_READY')
                    and t.input_fingerprint=:fp
                    and exists(
                      select 1 from ep002_visual_shot_acceptance a
@@ -398,7 +441,7 @@ public class Ep002CodexAutomationService {
     private Enrollment latest(DirectorIdentity.Actor actor) {
         return jdbc.sql("""
                 select id,input_fingerprint,max_shot_tasks,state,
-                       director_issuer,director_subject
+                       director_issuer,director_subject,driver
                   from ep002_codex_automation
                  where director_issuer=:issuer and director_subject=:subject
                  order by created_at desc,id desc limit 1
@@ -406,20 +449,22 @@ public class Ep002CodexAutomationService {
                 .query((rs,n)->new Enrollment(
                         rs.getObject("id",UUID.class),rs.getString("input_fingerprint"),
                         rs.getInt("max_shot_tasks"),rs.getString("state"),
-                        rs.getString("director_issuer"),rs.getString("director_subject")))
+                        rs.getString("director_issuer"),rs.getString("director_subject"),
+                    rs.getString("driver")))
                 .optional().orElse(null);
     }
 
     private Enrollment byRequest(UUID requestId) {
         return jdbc.sql("""
                 select id,input_fingerprint,max_shot_tasks,state,
-                       director_issuer,director_subject
+                       director_issuer,director_subject,driver
                   from ep002_codex_automation where request_id=:id
                 """).param("id",requestId)
                 .query((rs,n)->new Enrollment(
                         rs.getObject("id",UUID.class),rs.getString("input_fingerprint"),
                         rs.getInt("max_shot_tasks"),rs.getString("state"),
-                        rs.getString("director_issuer"),rs.getString("director_subject")))
+                        rs.getString("director_issuer"),rs.getString("director_subject"),
+                    rs.getString("driver")))
                 .optional().orElse(null);
     }
 
