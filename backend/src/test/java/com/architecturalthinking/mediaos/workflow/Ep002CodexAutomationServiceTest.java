@@ -49,6 +49,23 @@ class Ep002CodexAutomationServiceTest {
     }
 
     @Test
+    void distinguishesDefiniteNoSubmissionFromUncertainRemoteOutcome() {
+        assertEquals("REMOTE_FAILED",Ep002CodexAutomationService.classifySubmission(
+                new CodexCloudCliGateway.Submission("NOT_SUBMITTED",null,
+                        "CLOUD_CLI_AUTOMATION_DISABLED")));
+        assertEquals("REMOTE_UNKNOWN",Ep002CodexAutomationService.classifySubmission(
+                new CodexCloudCliGateway.Submission("REMOTE_UNKNOWN",null,
+                        "SUBMISSION_TIMED_OUT_RECONCILE_WITH_PROVIDER")));
+        assertEquals("REMOTE_UNKNOWN",Ep002CodexAutomationService.classifySubmission(null));
+        assertEquals("REMOTE_CREATED",Ep002CodexAutomationService.classifySubmission(
+                new CodexCloudCliGateway.Submission("REMOTE_CREATED",
+                        "task_e_0123456789abcdef","TASK_ID_RETURNED_BY_OFFICIAL_CLI")));
+        assertEquals("REMOTE_UNKNOWN",Ep002CodexAutomationService.classifySubmission(
+                new CodexCloudCliGateway.Submission("REMOTE_CREATED",null,
+                        "MISSING_TASK_ID")));
+    }
+
+    @Test
     void defaultCloudCliAdapterNeverStartsACloudTask() {
         var gateway=new CodexCloudCliGateway(false,"", "");
         var capability=gateway.probe();
