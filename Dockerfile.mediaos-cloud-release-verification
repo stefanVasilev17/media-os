@@ -1,0 +1,53 @@
+# Cloud-native QA build, no personal laptop, self-hosted Docker daemon, or GitHub Actions.
+# Intended only for a separately authorized Railway QA service sourced from the pinned feature branch.
+# Every stage executes inside the provider-managed image build. Never use production database secrets.
+FROM node:22-alpine AS frontend-verify
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+COPY remotion-engine/cpu-worker.mjs /qa-cpu-worker.mjs
+RUN node --check /qa-cpu-worker.mjs && npm run build && npm test
+
+FROM node:22 AS remotion-verify
+WORKDIR /remotion-engine
+COPY remotion-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY remotion-engine/ ./
+RUN node --max-old-space-size=768 build-typecheck-preflight.mjs \
+    && printf 'REMOTION_QA_TYPECHECK_PASS\n' > /qa-remotion-types-passed
+
+FROM python:3.12-alpine AS gpu-verify
+WORKDIR /gpu
+COPY gpu-render-worker/handler.py ./
+COPY gpu-render-worker/test_scoped_headers.py ./
+RUN python3 -m py_compile handler.py && python3 -m unittest -v test_scoped_headers.py \
+    && printf 'GPU_SCOPED_HEADERS_PASS\n' > /gpu-qa-passed
+
+FROM postgres:18 AS verify
+WORKDIR /workspace/backend
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends openjdk-21-jdk-headless maven \
+    && rm -rf /var/lib/apt/lists/*
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
+COPY --from=frontend-verify /frontend/dist /qa-frontend-build
+ENV MAVEN_OPTS="-Xmx512m"
+RUN set -eu; \
+    mkdir -p /tmp/pg-cloud-verification; \
+    chown postgres:postgres /tmp/pg-cloud-verification; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/initdb -D /tmp/pg-cloud-verification -A trust >/tmp/pg-init.log; \
+    runuser -u postgres -- /usr/lib/postgresql/18/bin/pg_ctl -D /tmp/pg-cloud-verification -o "-h 127.0.0.1 -p 5432" -w start; \
+    runuser -u postgres -- psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -c "CREATE ROLE media_os LOGIN PASSWORD 'media_os'"; \
+    runuser -u postgres -- createdb -h 127.0.0.1 -O media_os media_os; \
+    CI_POSTGRES_URL=jdbc:postgresql://127.0.0.1:5432/media_os \
+    sh -c 'mvn -B -ntp -Dstyle.color=never -DargLine=-Xmx384m clean verify > /tmp/maven-test.log 2>&1 || { echo "=== MAVEN FAILURE ==="; tail -160 /tmp/maven-test.log; exit 1; }; grep "Tests run:" /tmp/maven-test.log | tail -1; echo "MAVEN POSTGRES18 TESTS PASSED"'
+
+FROM alpine:3.20
+COPY --from=remotion-verify /qa-remotion-types-passed /qa-remotion-types-passed
+COPY --from=gpu-verify /gpu-qa-passed /qa-gpu-test-result
+COPY --from=frontend-verify /frontend/dist /qa-frontend-build
+COPY --from=verify /workspace/backend/target/surefire-reports /qa-test-reports
+RUN adduser -D -H verify
+USER verify
+CMD ["sh", "-c", "echo 'MediaOS build verification complete. No application or PostgreSQL server in runtime.'; sleep 300"]

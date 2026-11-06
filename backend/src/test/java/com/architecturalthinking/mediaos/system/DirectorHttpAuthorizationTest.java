@@ -55,6 +55,27 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02")
+        String voiceCueReview() { return "director-reviewed"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
+        String ep002CodexAutomation() { return "authorized"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/visual-approvals")
+        String ep002VisualApproval() { return "reviewed"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/visual-feedback")
+        String ep002VisualFeedback() { return "feedback-stored"; }
+
+        @PostMapping("/api/v1/verification/runs")
+        String testRun() { return "verification-queued"; }
+
+        @PostMapping("/api/v1/verification/runs/{runId}/cancel")
+        String testRunCancel() { return "verification-cancelled"; }
+
+        @PostMapping("/api/v1/verification/automation/{action}")
+        String testAutoVerification() { return "automation-authorized"; }
+
         @PostMapping("/api/v1/worker/runner/heartbeat")
         String worker() { return "worker"; }
 
@@ -164,6 +185,101 @@ class DirectorHttpAuthorizationTest {
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
         mvc.perform(post(base + "/arbitrary").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void approvedEp002VoiceCueReviewsRequireRealDirectorRole() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_VIEWER"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void independentVerificationAndAutopilotRequireDirectorOnlyExactWriteRoutes()
+            throws Exception {
+        String root="/api/v1/verification/";
+        String[] allowed={
+                root+"runs",
+                root+"runs/12345678-1234-4123-8123-123456789abc/cancel",
+                root+"automation/arm",
+                root+"automation/pause"
+        };
+        for(String path:allowed) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_EDITOR","ROLE_VIEWER"}) {
+                mvc.perform(post(path).with(
+                        jwt().authorities(new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(root+"automation/unsafe").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(root+"runs/arbitrary/retry").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void automaticCodexWritesRequireDirectorAndOnlyExactApprovedActions() throws Exception {
+        String base="/api/v1/creative/episodes/EP002/codex-automation/";
+        for(String action:new String[]{"arm","pause","resume"}) {
+            String path=base+action;
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_EDITOR","ROLE_VIEWER"}) {
+                mvc.perform(post(path).with(
+                        jwt().authorities(new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post(base+"dispatch-anything").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ep002RenderedShotApprovalRequiresDirectorAndExactRoute() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/visual-approvals";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for(var role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post(path+"/unsafe").with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ep002VisualFeedbackRequiresDirectorAndRemainsASingleExplicitRoute() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/visual-feedback";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for (String role : new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post(path+"/unreviewed").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }

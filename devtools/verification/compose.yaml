@@ -1,0 +1,117 @@
+name: mediaos-verification
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: media_os
+      POSTGRES_USER: media_os
+      POSTGRES_PASSWORD: media_os
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U media_os -d media_os"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+    volumes:
+      - verification_postgres:/var/lib/postgresql
+    networks:
+      - verification_private
+
+  asset-check:
+    image: python:3.12-slim
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    working_dir: /repo/backend
+    volumes:
+      - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
+    network_mode: none
+    command:
+      - sh
+      - -ec
+      - |
+        python3 scripts/check_asset_catalog.py
+        python3 scripts/check_memory_ids.py
+
+  backend:
+    image: maven:3.9-eclipse-temurin-21
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    working_dir: /repo/backend
+    volumes:
+      - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
+      - maven_cache:/root/.m2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    network_mode: "service:postgres"
+    environment:
+      CI_POSTGRES_URL: jdbc:postgresql://localhost:5432/media_os
+      MEDIA_OS_REMOTION_CLAIMS_ENABLED: "false"
+      MEDIAOS_CODEX_AUTOMATION_DISPATCH_ENABLED: "false"
+      MEDIAOS_CODEX_LOCAL_EXEC_ENABLED: "false"
+      MEDIAOS_CODEX_CLOUD_CLI_ENABLED: "false"
+    command:
+      - mvn
+      - --batch-mode
+      - --no-transfer-progress
+      - clean
+      - verify
+
+  frontend:
+    image: node:22-bookworm
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    working_dir: /repo/frontend
+    volumes:
+      - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
+      - frontend_modules:/repo/frontend/node_modules
+      - node_cache:/root/.npm
+    command:
+      - sh
+      - -ec
+      - |
+        npm install --no-audit --no-fund
+        npm run build
+        npm test
+
+  remotion:
+    image: node:22-bookworm
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 256
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    working_dir: /repo/remotion-engine
+    volumes:
+      - ${MEDIAOS_VERIFICATION_SOURCE_ROOT:-../..}:/repo
+      - remotion_modules:/repo/remotion-engine/node_modules
+      - node_cache:/root/.npm
+    command:
+      - sh
+      - -ec
+      - |
+        npm install --no-audit --no-fund
+        npm run typecheck
+        node --test *.test.mjs
+        node --test ../devtools/verification/verification-worker.test.mjs
+        npm run build:factory
+
+networks:
+  verification_private:
+    internal: false
+
+volumes:
+  verification_postgres:
+  maven_cache:
+  frontend_modules:
+  remotion_modules:
+  node_cache:

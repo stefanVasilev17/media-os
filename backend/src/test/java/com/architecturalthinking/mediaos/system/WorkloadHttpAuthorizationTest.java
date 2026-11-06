@@ -59,6 +59,13 @@ class WorkloadHttpAuthorizationTest {
         @PostMapping("/api/v1/remotion/renders/worker/claim")
         String cpuClaim() { return "claim"; }
 
+        @PostMapping("/api/v1/worker/verification/claim")
+        String verificationClaim() { return "verification-claim"; }
+
+        @PostMapping("/api/v1/worker/verification/{runId}/complete")
+        String verificationComplete() { return "verification-complete"; }
+
+
         @PostMapping("/api/v1/remotion/renders/worker/{renderId}/progress")
         String cpuProgress() { return "progress"; }
 
@@ -231,6 +238,51 @@ class WorkloadHttpAuthorizationTest {
         } finally {
             jdbc.sql("delete from mediaos_worker_credential where id=:id")
                     .param("id", cpuId).update();
+        }
+    }
+
+    @Test
+    void separateVerificationWorkerCannotUseRemotionCpuOrOtherScopes() throws Exception {
+        UUID id=UUID.randomUUID();
+        String verifier="mediaos-verifier-"+id.toString().substring(0,12);
+        String credential="abcdefghijklmnopABCDEFGHIJKLMNOP0123456789-_V";
+        String runId="12345678-1234-4123-8123-123456789abc";
+        jdbc.sql("""
+                insert into mediaos_worker_credential
+                    (id,worker_id,token_hash,scope,job_id,active,expires_at)
+                values (:id,:worker,:hash,'VERIFICATION',null,true,
+                        now()+interval '30 minutes')
+                """).param("id",id).param("worker",verifier)
+                .param("hash",WorkloadCredentialService.sha256(credential)).update();
+        try {
+            mvc.perform(post("/api/v1/worker/verification/claim")
+                            .header("X-Worker-Id",verifier)
+                            .header("X-MediaOS-Workload-Token",credential))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("verification-claim"));
+            mvc.perform(post("/api/v1/worker/verification/"+runId+"/complete")
+                            .header("X-Worker-Id",verifier)
+                            .header("X-MediaOS-Workload-Token",credential))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("verification-complete"));
+            mvc.perform(post("/api/v1/worker/verification/claim"))
+                    .andExpect(status().isUnauthorized());
+            mvc.perform(post("/api/v1/remotion/renders/worker/claim")
+                            .header("X-Worker-Id",verifier)
+                            .header("X-Media-OS-Worker",verifier)
+                            .header("X-MediaOS-Workload-Token",credential))
+                    .andExpect(status().isUnauthorized());
+            mvc.perform(post("/api/v1/worker/runner/heartbeat")
+                            .header("X-Worker-Id",verifier)
+                            .header("X-MediaOS-Workload-Token",credential))
+                    .andExpect(status().isUnauthorized());
+            mvc.perform(get("/api/v1/worker/verification/claim")
+                            .header("X-Worker-Id",verifier)
+                            .header("X-MediaOS-Workload-Token",credential))
+                    .andExpect(status().isForbidden());
+        } finally {
+            jdbc.sql("delete from mediaos_worker_credential where id=:id")
+                    .param("id",id).update();
         }
     }
 

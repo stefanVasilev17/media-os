@@ -59,7 +59,9 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/v1/auth/")) return true;
         // Telemetry and non-artifact worker progress must not grow the audit table
         // on every poll. The creation request and final render write remain guarded.
-        if (path.equals("/api/v1/worker/runner/heartbeat")
+        if (path.equals("/api/v1/worker/verification/claim")
+                || path.matches("^/api/v1/worker/verification/[0-9a-fA-F-]{36}/complete$")
+                || path.equals("/api/v1/worker/runner/heartbeat")
                 || path.equals("/api/v1/remotion/renders/worker/claim")
                 || path.equals("/api/v1/remotion/renders/worker/factory-capability")
                 || path.matches("^/api/v1/remotion/renders/worker/[^/]+/progress$")
@@ -294,6 +296,25 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/v1/episode-packages/")) {
             if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Episode catalog creation is project-scoped.");
+            return ProductionOverviewService.EPISODE_ID;
+        }
+
+        // EP002 fixed-source creative feedback is a project-scoped Director review,
+        // not an EP001 episode edit. The existing project audit anchor is used
+        // only for global production-memory preflight; the stored feedback remains EP002.
+        if (path.matches("^/api/v1/verification/runs/[0-9a-fA-F-]{36}/cancel$")
+                || path.equals("/api/v1/verification/automation/arm")
+                || path.equals("/api/v1/verification/automation/pause")
+                || path.equals("/api/v1/verification/runs")
+                || path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
+                || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
+                || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
+                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
+                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/pause")
+                || path.equals("/api/v1/creative/episodes/EP002/codex-automation/resume")) {
+            if (headerId != null && !headerId.equals(ProductionOverviewService.EPISODE_ID))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "EP002 creative feedback uses the project audit identity, not another episode UUID.");
             return ProductionOverviewService.EPISODE_ID;
         }
 

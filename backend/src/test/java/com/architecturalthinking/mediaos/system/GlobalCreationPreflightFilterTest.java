@@ -168,6 +168,127 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void approvedVoiceCueReviewUsesRealDirectorPreflightWithoutCrossEpisodeSpoofing() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+
+        MockHttpServletRequest legitimate=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02");
+        MockHttpServletResponse accepted=new MockHttpServletResponse();
+        MockFilterChain chain=new MockFilterChain();
+        filter.doFilter(legitimate,accepted,chain);
+        assertThat(chain.getRequest()).isSameAs(legitimate);
+        assertThat(accepted.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+
+        MockHttpServletRequest forged=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02");
+        forged.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+        MockHttpServletResponse rejected=new MockHttpServletResponse();
+        filter.doFilter(forged,rejected,new MockFilterChain());
+        assertThat(rejected.getStatus()).isEqualTo(409);
+    }
+
+    @Test
+    void independentVerificationAndAutopilotWritesNeedProjectAudit() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+        String[] paths={
+                "/api/v1/verification/runs",
+                "/api/v1/verification/automation/arm",
+                "/api/v1/verification/automation/pause",
+                "/api/v1/verification/runs/12345678-1234-4123-8123-123456789abc/cancel"
+        };
+        for(String path:paths) {
+            MockHttpServletRequest normal=new MockHttpServletRequest("POST",path);
+            MockHttpServletResponse response=new MockHttpServletResponse();
+            MockFilterChain chain=new MockFilterChain();
+            filter.doFilter(normal,response,chain);
+            assertThat(chain.getRequest()).isSameAs(normal);
+            assertThat(response.getHeader("X-MediaOS-Preflight"))
+                    .isEqualTo(audit.toString());
+
+            MockHttpServletRequest forged=new MockHttpServletRequest("POST",path);
+            forged.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+            MockHttpServletResponse rejected=new MockHttpServletResponse();
+            filter.doFilter(forged,rejected,new MockFilterChain());
+            assertThat(rejected.getStatus()).isEqualTo(409);
+        }
+    }
+
+    @Test
+    void authenticatedWorkerVerificationContinuationSkipsEpisodePreflight() throws Exception {
+        for(String path:new String[]{
+                "/api/v1/worker/verification/claim",
+                "/api/v1/worker/verification/12345678-1234-4123-8123-123456789abc/complete"}) {
+            MockHttpServletRequest request=new MockHttpServletRequest("POST",path);
+            MockFilterChain chain=new MockFilterChain();
+            filter.doFilter(request,new MockHttpServletResponse(),chain);
+            assertThat(chain.getRequest()).isSameAs(request);
+        }
+    }
+
+    @Test
+    void codexAutomationRequiresRealAuditedProjectContextAndRejectsEpisodeSpoofing() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+
+        for(String action:new String[]{"arm","pause","resume"}) {
+            MockHttpServletRequest legitimate=new MockHttpServletRequest(
+                    "POST","/api/v1/creative/episodes/EP002/codex-automation/"+action);
+            MockHttpServletResponse response=new MockHttpServletResponse();
+            MockFilterChain chain=new MockFilterChain();
+            filter.doFilter(legitimate,response,chain);
+            assertThat(chain.getRequest()).isSameAs(legitimate);
+            assertThat(response.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+
+            MockHttpServletRequest forged=new MockHttpServletRequest(
+                    "POST","/api/v1/creative/episodes/EP002/codex-automation/"+action);
+            forged.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+            MockHttpServletResponse denied=new MockHttpServletResponse();
+            filter.doFilter(forged,denied,new MockFilterChain());
+            assertThat(denied.getStatus()).isEqualTo(409);
+        }
+    }
+
+    @Test
+    void ep002VisualFeedbackReceivesProjectAuditedPreflightEvenWithMultipleEpisodes() throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit));
+        MockHttpServletRequest request=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/visual-feedback");
+        MockHttpServletResponse response=new MockHttpServletResponse();
+        MockFilterChain chain=new MockFilterChain();
+
+        filter.doFilter(request,response,chain);
+
+        assertThat(chain.getRequest()).isSameAs(request);
+        assertThat(response.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+        verify(memory).preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID));
+    }
+
+    @Test
+    void ep002VisualFeedbackRejectsForgedEpisodeIdentityBeforeAudit() throws Exception {
+        MockHttpServletRequest request=new MockHttpServletRequest(
+                "POST","/api/v1/creative/episodes/EP002/visual-feedback");
+        request.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+        MockHttpServletResponse response=new MockHttpServletResponse();
+
+        filter.doFilter(request,response,new MockFilterChain());
+
+        assertThat(response.getStatus()).isEqualTo(409);
+        assertThat(response.getContentAsString()).contains("project audit identity");
+        verify(memory,never()).preflight(any(),any(),any());
+    }
+
+    @Test
     void readOnlyRequestsDoNotWriteAnAudit() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/creative/overview");
         MockHttpServletResponse response = new MockHttpServletResponse();
