@@ -68,11 +68,17 @@ public final class Ep002Shot02TermResolver {
                 cursor = found + phrase.length();
             }
             if (result.get(0).startFrame() < beats.get(1).startFrame()
-                    || result.get(0).startFrame() >= beats.get(2).startFrame()
-                    || result.get(1).startFrame() != beats.get(2).startFrame()
+                    || result.get(0).startFrame() >= beats.get(2).endFrame()
+                    || result.get(1).startFrame() < beats.get(2).startFrame()
+                    || result.get(1).startFrame() >= beats.get(2).endFrame()
+                    || result.get(2).startFrame() < beats.get(2).startFrame()
+                    || result.get(2).startFrame() >= beats.get(2).endFrame()
+                    || result.get(3).startFrame() < beats.get(2).startFrame()
                     || result.get(3).startFrame() >= beats.get(3).startFrame()
-                    || result.get(4).startFrame() != beats.get(3).startFrame()
+                    || result.get(4).startFrame() < beats.get(3).startFrame()
+                    || result.get(4).startFrame() >= beats.get(3).endFrame()
                     || result.get(5).startFrame() < beats.get(3).startFrame()
+                    || result.get(5).startFrame() >= beats.get(4).endFrame()
                     || result.get(6).startFrame() < beats.get(4).startFrame()
                     || result.get(6).startFrame() >= beats.get(4).endFrame()) {
                 throw new IllegalArgumentException("SHOT02_TERMS_DISAGREE_WITH_DIRECTOR_BEATS");
