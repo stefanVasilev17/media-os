@@ -120,7 +120,7 @@ public class CodexCloudCliGateway {
                 || prompt==null||prompt.isBlank()||prompt.length()>30000)
             throw new IllegalArgumentException("Unsafe Codex Cloud launch arguments.");
         return List.of("codex","cloud","exec","--env",environment,
-                "--branch","main","--attempts","1",prompt);
+                "--attempts","1",prompt);
     }
 
     private CommandResult execute(List<String> args,Duration limit) {
