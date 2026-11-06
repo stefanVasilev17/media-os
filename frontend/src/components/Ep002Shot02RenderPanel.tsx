@@ -83,7 +83,7 @@ export function Ep002Shot02RenderPanel(){
       <ShieldCheck size={15} aria-hidden="true"/>{' '}
       Audio timing: {readiness?.ready?'7 REAL TERMS VERIFIED':readiness?.reason??'CHECKING'}.
       {' '}Pinned Worker release: {capability?.canQueue?'ENABLED':'NOT ENABLED'}.
-      {' '}This button cannot bypass Maven/Remotion QA or Director CPU authorization.
+      {' '}Enable this preview only after independently verified Maven/Remotion QA and Director release approval.
     </p>
     <div className="library-episode-batch-actions">
       <button type="button" className="library-voice-refresh"
