@@ -140,8 +140,8 @@ public class RemotionCpuWorkerController {
             Object rawProps=work.get("inputProps");
             Map<?,?> props=rawProps instanceof Map<?,?> map?map:Map.of();
             Object revision=props.get("scriptRevision");
-            String take=String.valueOf(props.getOrDefault("voiceTakeId",""));
-            String fingerprint=String.valueOf(props.getOrDefault("inputFingerprint",""));
+            String take=String.valueOf(props.get("voiceTakeId"));
+            String fingerprint=String.valueOf(props.get("inputFingerprint"));
             boolean current=revision instanceof Number number && ep002Cues!=null
                     && ep002Cues.matchesCurrentShot02Render(fingerprint,take,
                             number.intValue(),(int)work.get("durationInFrames"));
