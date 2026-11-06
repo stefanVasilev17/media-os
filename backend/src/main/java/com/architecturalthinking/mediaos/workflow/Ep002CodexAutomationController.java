@@ -22,6 +22,12 @@ public class Ep002CodexAutomationController {
         return automation.status();
     }
 
+    @GetMapping("/subscription-readiness")
+    public CodexSubscriptionAccessPolicy.Readiness subscriptionReadiness() {
+        com.architecturalthinking.mediaos.system.DirectorIdentity.requireDirector();
+        return CodexSubscriptionAccessPolicy.readiness();
+    }
+
     @GetMapping("/connector-preflight")
     public Ep002CodexAutomationService.ConnectorPreflight connectorPreflight() {
         com.architecturalthinking.mediaos.system.DirectorIdentity.requireDirector();
