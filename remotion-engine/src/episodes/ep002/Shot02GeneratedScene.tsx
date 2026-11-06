@@ -233,53 +233,137 @@ const FlowPaths: React.FC<{
 
 const ContextLabel: React.FC<{reveal: number}> = ({reveal}) => (
   <div style={{
-    position: 'absolute', left: 1460, top: 122, padding: '10px 15px',
-    background: 'rgba(8,24,39,.86)', border: '1px solid rgba(244,190,119,.39)',
-    borderRadius: 11, opacity: reveal, color: '#FFE4BD', zIndex: 10,
-    fontFamily: AT_FONT, fontSize: 17, fontWeight: 720,
-    letterSpacing: '.065em',
+    position:'absolute',...SHOT02_TEXT_LANES.time,zIndex:25,opacity:reveal,
+    display:'flex',alignItems:'center',gap:17,pointerEvents:'none',
+    transform:'translateY('+((1-reveal)*9)+'px)',
+    fontFamily:AT_FONT,whiteSpace:'nowrap',overflow:'hidden',
   }}>
-    09:00 · TICKETS ON SALE
+    <span style={{fontSize:31,fontWeight:810,letterSpacing:'-.03em',
+      color:'#FFE0AA',textShadow:'0 0 24px rgba(244,190,119,.28)'}}>09:00</span>
+    <span style={{height:31,width:2,background:'rgba(244,190,119,.47)'}}/>
+    <span style={{fontSize:17,fontWeight:720,letterSpacing:'.065em',
+      color:'#F2D3A9'}}>TICKETS ON SALE</span>
   </div>
 );
 
-const ArrivalCounter: React.FC<{reveal: number; count: number}> = ({reveal, count}) => (
+const ArrivalCounter: React.FC<{reveal:number;value:number;frame:number}> = ({reveal,value,frame}) => (
   <div style={{
-    position: 'absolute', left: 780, top: 810, zIndex: 11, width: 375,
-    border: '1px solid rgba(83,198,223,.38)', borderRadius: 13,
-    background: 'rgba(5,21,35,.92)', padding: '17px 19px',
-    boxShadow: '0 10px 30px rgba(0,0,0,.24)', opacity: reveal, fontFamily: AT_FONT,
+    position:'absolute',...SHOT02_TEXT_LANES.metric,zIndex:24,pointerEvents:'none',
+    opacity:reveal,transform:'translateY('+((1-reveal)*16)+'px)',
+    fontFamily:AT_FONT,whiteSpace:'nowrap',overflow:'hidden',
+    background:'linear-gradient(90deg,rgba(3,14,27,.80),rgba(3,14,27,.08))',
+    borderLeft:'2px solid rgba(88,234,192,.68)',padding:'11px 0 0 19px',
   }}>
-    <div style={{fontSize: 15, letterSpacing: '.055em', color: C.muted}}>
-      New Login arrivals/s
+    <div style={{fontSize:16,fontWeight:670,letterSpacing:'.045em',color:C.muted}}>
+      NEW LOGIN ARRIVALS / SECOND
     </div>
-    <div style={{fontSize: 43, fontWeight: 780, letterSpacing: '-.03em', color: C.ink}}>
-      {count}
-      <span style={{fontSize: 14, color: C.mint, marginLeft: 14}}>ILLUSTRATIVE</span>
+    <div style={{display:'flex',alignItems:'baseline',gap:17,marginTop:5}}>
+      <span style={{fontSize:43,fontWeight:790,letterSpacing:'-.045em',
+        color:C.ink,filter:'drop-shadow(0 0 '+(4+7*Math.abs(Math.sin(frame*.06)))+'px rgba(88,234,192,.22))'}}>
+        {value}
+      </span>
+      <span style={{fontSize:13,letterSpacing:'.085em',fontWeight:690,color:C.mint}}>
+        ILLUSTRATIVE · NOT LIVE TELEMETRY
+      </span>
     </div>
+  </div>
+);
+
+const SemanticTermHud:React.FC<{frame:number;cue:Shot02TermCue|null}>=({frame,cue})=>{
+  const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
+  if(!cue||!term)return null;
+  const appear=ease(frame,cue.startFrame,cue.startFrame+8);
+  const fade=1-ease(frame,cue.endFrame+15,cue.endFrame+36);
+  const opacity=appear*fade;
+  return <div style={{
+    position:'absolute',...SHOT02_TEXT_LANES.term,zIndex:26,
+    fontFamily:AT_FONT,opacity,pointerEvents:'none',
+    overflow:'hidden',whiteSpace:'nowrap',
+    transform:'translate3d('+((1-appear)*18)+'px,0,0)',
+  }}>
+    <div style={{display:'flex',alignItems:'center',gap:12,marginTop:7}}>
+      <div style={{width:8,height:8,borderRadius:'50%',background:term.color,
+        boxShadow:'0 0 20px '+term.color}}/>
+      <span style={{fontSize:14,fontWeight:740,letterSpacing:'.17em',
+        color:'rgba(177,207,230,.72)'}}>NOW IN FOCUS</span>
+    </div>
+    <div style={{fontSize:38,fontWeight:790,letterSpacing:'-.037em',marginTop:5,
+      lineHeight:'1.22',color:C.ink,textShadow:'0 0 28px rgba(72,155,207,.13)'}}>
+      {term.headline}
+    </div>
+    <div style={{fontSize:17,fontWeight:640,letterSpacing:'.07em',marginTop:5,
+      color:term.color}}>{term.detail}</div>
+    <div style={{position:'absolute',bottom:0,left:0,height:2,width:(appear*100)+'%',
+      maxWidth:510,background:'linear-gradient(90deg,'+term.color+',transparent)',
+      opacity:.65}}/>
+  </div>;
+};
+
+const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,frame})=>{
+  const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
+  const node=term?.node?SHOT02_NODES[term.node]:null;
+  if(!node||!cue)return null;
+  const appear=ease(frame,cue.startFrame,cue.startFrame+9);
+  const disappear=1-ease(frame,cue.endFrame+16,cue.endFrame+38);
+  const opacity=appear*disappear;
+  return <div style={{
+    position:'absolute',left:node.x-node.width/2-8,top:node.y-8,
+    width:node.width+16,height:node.height+16,zIndex:13,
+    border:'2px solid '+term.color,borderRadius:22,
+    opacity:opacity*.80,pointerEvents:'none',
+    boxShadow:'0 0 20px '+term.color+'33,inset 0 0 16px '+term.color+'16',
+    transform:'scale('+(1.01+.012*appear)+')',
+    transformOrigin:'50% 50%',
+  }}/>;
+};
+
+const ReplicaRail:React.FC<{frame:number;reveal:number;focus:number}>=
+({frame,reveal,focus})=>(
+  <div style={{
+    position:'absolute',left:WORLD.authX-185,top:687,width:370,height:66,
+    display:'flex',gap:10,zIndex:10,pointerEvents:'none',
+    opacity:reveal,transform:'translateY('+((1-reveal)*8)+'px)',
+  }}>
+    {['AUTH 01','AUTH 02','AUTH 03'].map((label,index)=>{
+      const beat=.55+.45*Math.sin(frame*.075-index*.78);
+      return <div key={label} style={{
+        width:116,height:43,display:'flex',alignItems:'center',justifyContent:'center',
+        borderRadius:9,fontFamily:AT_FONT,fontSize:16,fontWeight:720,
+        letterSpacing:'.035em',color:C.ink,
+        background:'rgba(8,26,41,.92)',
+        border:'1.5px solid rgba(103,202,220,'+(.34+.46*focus)+')',
+        boxShadow:'0 0 '+(5+focus*10)+'px rgba(88,234,192,'+(focus*beat*.12)+')',
+      }}>
+        <span style={{width:6,height:6,marginRight:8,borderRadius:'50%',
+          background:C.mint,opacity:.45+.5*reveal}}/>
+        {label}
+      </div>;
+    })}
   </div>
 );
 
 const ArchitectureWorld: React.FC<{
-  frame: number; duration: number; starts: readonly number[];
-}> = ({frame, duration, starts}) => {
-  const context = ease(frame, starts[0], starts[0] + 24);
-  const wave = ease(frame, starts[1], starts[1] + 30);
-  const gateway = ease(frame, starts[2], starts[2] + 28);
-  const distribution = ease(frame, starts[2] + 10, starts[2] + 48);
-  const arrival = ease(frame, starts[3], starts[3] + 24);
-  const database = ease(frame, starts[4], starts[4] + 33);
-  const camGateway = ease(frame, starts[2], starts[2] + 45);
-  const camDb = ease(frame, starts[4], starts[4] + 35);
-
-  // The illustration enters a higher rate only after the narrated "arrival rate" beat.
-  // Later 650/900 examples belong to SHOT03's separately reviewed spoken cues.
-  const arrivalValue = frame < starts[4] ? 100 : 350;
-  const density = .2 + wave * .34 + distribution * .19 + database * .20;
-  const cameraX = -40 * context - 190 * camGateway - 320 * camDb;
-  const cameraY = -8 * camGateway - 12 * camDb;
-  const cameraScale = 1.018 - .045 * context + .04 * camGateway + .028 * camDb;
-  const lastFrames = Math.max(0, duration - frame);
+  frame:number;duration:number;starts:readonly number[];terms:readonly Shot02TermCue[];
+}> = ({frame,duration,starts,terms}) => {
+  const context=ease(frame,starts[0],starts[0]+22);
+  const wave=ease(frame,starts[1],starts[1]+25);
+  const gateway=ease(frame,terms[1].startFrame,terms[1].startFrame+24);
+  const distribution=ease(frame,terms[2].startFrame,terms[2].startFrame+25);
+  const authActivity=ease(frame,terms[3].startFrame,terms[3].startFrame+20);
+  const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+22);
+  const database=ease(frame,terms[6].startFrame,terms[6].startFrame+33);
+  const camGateway=ease(frame,terms[1].startFrame,terms[1].startFrame+40);
+  const camDb=ease(frame,terms[6].startFrame,terms[6].startFrame+42);
+  const cameraX=-55*context-215*camGateway-280*camDb;
+  const cameraY=-8*camGateway-12*camDb;
+  const cameraScale=1.018-.045*context+.04*camGateway+.028*camDb;
+  const density=.2+wave*.34+distribution*.19+database*.20;
+  const active=activeSpokenTerm(frame,terms);
+  const named=active?.id??null;
+  const countTransition=ease(frame,terms[4].endFrame+4,
+    Math.max(terms[4].endFrame+10,terms[6].startFrame-10));
+  const arrivalValue=Math.round((100+250*countTransition)/10)*10;
+  assertShot02TextLanes({x:cameraX,y:cameraY,scale:cameraScale});
 
   return (
     <ATBackground>
