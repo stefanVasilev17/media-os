@@ -73,12 +73,15 @@ public class CodexLocalExecGateway {
         }
     }
 
-    public Result submit(String prompt) {
-        if(prompt==null||prompt.isBlank()||prompt.length()>30000)
-            return new Result("NOT_SUBMITTED",null,"MISSING_OR_OVERSIZED_PROMPT");
+    public Result submit(String prompt,String expectedSceneFile) {
+        if(prompt==null||prompt.isBlank()||prompt.length()>30000
+                || !allowedScene(expectedSceneFile))
+            return new Result("NOT_SUBMITTED",null,"UNSAFE_PROMPT_OR_SCENE_SCOPE");
         Capability ready=probe();
         if(!ready.ready())
             return new Result("NOT_SUBMITTED",null,ready.blocker());
+        if(!gitChanges().equals(""))return new Result(
+                "NOT_SUBMITTED",null,"ISOLATED_SCENE_WORKTREE_MUST_START_CLEAN");
         Process process=null;
         try {
             ProcessBuilder builder=new ProcessBuilder(argv(checkout))
@@ -115,9 +118,10 @@ public class CodexLocalExecGateway {
                 process.waitFor(2,TimeUnit.SECONDS);
             }
             reader.join(2000);
-            if(finished&&process.exitValue()==0&&completed.get()&&session[0]!=null)
+            if(finished&&process.exitValue()==0&&completed.get()&&session[0]!=null
+                    && safeSingleSceneChange(expectedSceneFile))
                 return new Result("FINISHED_UNVERIFIED",session[0],
-                        "LOCAL_CODEX_TURN_COMPLETED_SOURCE_PR_AND_BUILD_AUDIT_REQUIRED");
+                        "ONE_SCENE_CHANGED_SOURCE_PR_AND_BUILD_AUDIT_STILL_REQUIRED");
             return new Result("UNKNOWN",session[0],
                     finished?"CODEX_TURN_NOT_PROVEN_COMPLETE_NO_AUTO_RETRY":
                             "CODEX_EXEC_TIMED_OUT_NO_AUTO_RETRY");
@@ -128,6 +132,49 @@ public class CodexLocalExecGateway {
         }catch(Exception failure) {
             if(process!=null)process.destroyForcibly();
             return new Result("UNKNOWN",null,"CODEX_EXEC_ERROR_NO_AUTO_RETRY");
+        }
+    }
+
+    static boolean allowedScene(String file) {
+        return file!=null && file.matches(
+                "remotion-engine/src/episodes/ep002/Shot(0[2-9]|1[01])GeneratedScene\\.tsx");
+    }
+
+    private boolean safeSingleSceneChange(String expected) {
+        String git=gitChanges();
+        if(git.startsWith("UNAVAILABLE:"))return false;
+        String[] entries=git.strip().split("\\R");
+        if(entries.length!=1 || entries[0].length()<4)return false;
+        String path=entries[0].substring(3).trim();
+        if(!expected.equals(path))return false;
+        Path target=checkout.resolve(expected).normalize();
+        try {
+            return target.startsWith(checkout)
+                    && Files.isRegularFile(target,java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                    && Files.size(target)>=64 && Files.size(target)<=1024*1024;
+        }catch(Exception failure){return false;}
+    }
+
+    private String gitChanges() {
+        Process process=null;
+        try {
+            ProcessBuilder builder=new ProcessBuilder(
+                    "git","status","--porcelain","--untracked-files=all")
+                    .directory(checkout.toFile()).redirectErrorStream(true);
+            restrictEnvironment(builder);
+            process=builder.start();
+            if(!process.waitFor(8,TimeUnit.SECONDS)){
+                process.destroyForcibly();
+                return "UNAVAILABLE:TIMEOUT";
+            }
+            String out=new String(process.getInputStream().readNBytes(8192),
+                    StandardCharsets.UTF_8);
+            return process.exitValue()==0?out:"UNAVAILABLE:INVALID_GIT_WORKTREE";
+        }catch(Exception failure){
+            if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
+            return "UNAVAILABLE:GIT_STATUS_ERROR";
+        }finally{
+            if(process!=null&&process.isAlive())process.destroyForcibly();
         }
     }
 
