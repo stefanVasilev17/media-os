@@ -96,7 +96,9 @@ public class RemotionCpuWorkerController {
                                     and cap.last_heartbeat_at>now()-interval '120 seconds')))
                   and (composition_id<>'EP002-SHOT02-CANDIDATE'
                        or (input_props->>'expectedSourceCommit'=:sourceSha
-                           and :sourceSha ~ '^[a-f0-9]{40}
+                           and length(:sourceSha)=40
+                           and :sourceSha !~ '[^a-f0-9]'))
+                order by created_at
                 for update skip locked
                 limit 1
                 """)
