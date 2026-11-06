@@ -57,7 +57,29 @@ public class CodexCloudCliGateway {
                 Duration.ofSeconds(18));
         if(catalog.timedOut()||catalog.exitCode()!=0)
             return new Capability(false,"CODEX_CLOUD_ENVIRONMENT_NOT_DISCOVERABLE_BY_CLI");
-        return new Capability(true,"CLOUD_CLI_ENVIRONMENT_CATALOG_CHECK_PASSED");
+        if(!validCatalog(catalog.output(),environmentId))
+            return new Capability(false,"CODEX_CLOUD_INVALID_OR_UNTRUSTED_TASK_CATALOG");
+        return new Capability(true,"CLOUD_CLI_CATALOG_REACHABLE_ENVIRONMENT_NOT_FULLY_PROVEN");
+    }
+
+    static boolean validCatalog(String raw,String environmentId) {
+        if(raw==null || raw.isBlank() || raw.length()>OUTPUT_LIMIT
+                || environmentId==null || environmentId.isBlank())return false;
+        try {
+            JsonNode catalog=new ObjectMapper().readTree(raw);
+            JsonNode tasks=catalog.path("tasks");
+            if(!tasks.isArray())return false;
+            for(JsonNode task:tasks) {
+                if(!task.hasNonNull("id") || !task.hasNonNull("environment_id")
+                        || !environmentId.equals(task.path("environment_id").asText()))
+                    return false;
+            }
+            // An empty but valid catalog proves CLI connectivity, not that the
+            // requested environment can actually start a cloud task.
+            return true;
+        }catch(Exception malformed) {
+            return false;
+        }
     }
 
     public Submission submit(String prompt) {
