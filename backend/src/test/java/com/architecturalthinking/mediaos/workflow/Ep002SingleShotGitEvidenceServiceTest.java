@@ -40,6 +40,34 @@ class Ep002SingleShotGitEvidenceServiceTest {
     }
 
     @Test
+    void automaticVerificationUsesOnlyActualPrivatePr191Head() throws Exception {
+        var verified=new Ep002SingleShotGitEvidenceService(path->{
+            if(path.endsWith("/pulls/191"))
+                return mapper.readTree("""
+                    {"state":"open",
+                     "base":{"repo":{"full_name":"stefanVasilev17/media-os"},"ref":"main"},
+                     "head":{"repo":{"full_name":"stefanVasilev17/media-os"},
+                             "ref":"feat/mediaos-ep002-unified-product-integration",
+                             "sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
+                    """);
+            throw new IOException("Unexpected repository query.");
+        }).verificationTarget();
+        assertTrue(verified.verified());
+        assertEquals("a".repeat(40),verified.sourceCommit());
+
+        var forged=new Ep002SingleShotGitEvidenceService(path->
+                mapper.readTree("""
+                    {"state":"open",
+                     "base":{"repo":{"full_name":"stefanVasilev17/media-os"},"ref":"main"},
+                     "head":{"repo":{"full_name":"different-account/media-os"},
+                             "ref":"feat/mediaos-ep002-unified-product-integration",
+                             "sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
+                    """)).verificationTarget();
+        assertFalse(forged.verified());
+        assertNull(forged.sourceCommit());
+    }
+
+    @Test
     void verifiesRealVisualConstitutionAndCorrectionsAtOnePinnedMainSha() {
         var proof=withSource(true,PATH,"added").verifyCurrentPolicy();
         assertTrue(proof.verified());
