@@ -10,7 +10,7 @@ type Automation={
   maximumTaskSubmissions:number;taskCount:number;
   blockers:string[];tasks:Task[];
 };
-type Connector={supported:boolean;reason:string};
+type Connector={supported:boolean;reason:string;driver:string};
 
 const URL='/api/v1/creative/episodes/EP002/codex-automation';
 
@@ -167,8 +167,9 @@ export function Ep002CodexAutomationPanel(){
         </button>
       </div>
       {connector&&<p className={connector.supported?'library-note':'library-voice-error'}>
-        Connector preflight: {connector.supported?'SUPPORTED':'BLOCKED'} —
-        {' '}{connector.reason}. This read-only test does not start a Codex task.
+        Connector ({connector.driver==='CODEX_LOCAL_EXEC'?'isolated ChatGPT Codex worker':'Codex Cloud CLI'}):
+        {' '}{connector.supported?'CONNECTED — inference unverified':'BLOCKED'} —
+        {' '}{connector.reason}. No Codex task was started by this read-only check.
       </p>}
       <details className="library-episode-batch-breakdown">
         <summary>Why the next SHOT cannot start ({state.blockers.length})</summary>
