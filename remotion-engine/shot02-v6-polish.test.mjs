@@ -24,18 +24,18 @@ test('Premium 09 : 00 has individually readable tabular digits with restrained g
 });
 
 test('Arrival counter rises smoothly above the orange closing banner without colliding',()=>{
-  assert.equal(pressure.shot02CounterLift(1400,1462),0);
+  assert.equal(pressure.shot02CounterLift(1300,1462),0);
   let prev=-1;
-  for(let frame=1450;frame<=1500;frame++){
+  for(let frame=1360;frame<=1430;frame++){
     const lift=pressure.shot02CounterLift(frame,1462);
     assert.ok(lift>=prev,'counter moves only upward');
-    assert.ok(lift>=0&&lift<=110,'counter stays in safe lane');
+    assert.ok(lift>=0&&lift<=160,'counter stays in safe lane');
     prev=lift;
   }
-  assert.equal(pressure.shot02CounterLift(1500,1462),110);
+  assert.equal(pressure.shot02CounterLift(1430,1462),160);
   assert.match(visual,/transform:`translateY\(-\$\{counterLift\}px\) scale\(/);
   assert.match(visual,/ONE DATABASE\. THREE AUTH INSTANCES\. RISING PRESSURE/);
-  assert.match(visual,/translateY\(\$\{\(1-visualHold\)\*15\}px\)/);
+  assert.match(visual,/translateY\(\$\{\(1-closingBannerReveal\)\*15\}px\)/);
   assert.doesNotMatch(visual,/ONE DATABASE\. THREE AUTH REPLICAS\. RISING PRESSURE/);
 });
 
@@ -49,10 +49,10 @@ test('Green request dots start on the first true login press and flow continuous
   assert.match(visual,/const firstTapFrame=start\[0\]\+15/);
   assert.match(visual,/shot02FlowClock\(frame,firstTapFrame\)/);
   assert.match(visual,/Math\.max\(\.72\*firstTapActive,/);
-  assert.match(visual,/firstTapFrame=\{firstTapFrame\} firstTapActive=\{firstTapActive\}/);
-  assert.match(visual,/fill="#73FFD0"/);
-  assert.match(visual,/fill="#77FFD4"/);
-  assert.match(visual,/frame>=firstTapFrame&&<g>/);
+  assert.match(visual,/lookup=\{lookup\} stress=\{dbPressure\}/);
+  assert.match(visual,/SHOT02_LOGIN_PARTICLE\.fill/);
+  assert.match(visual,/SHOT02_LOGIN_PARTICLE\.radius/);
+  assert.match(visual,/const lookup=firstTapActive/);
 });
 
 test('Login button repeats meaningful press-bounce-ring-shine while color ramp progresses',()=>{
