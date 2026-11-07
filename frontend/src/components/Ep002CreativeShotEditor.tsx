@@ -153,7 +153,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   async function restoreOlderTake(takeId:string,takeNumber:number,takeRevision:number){
     if(!state||busy||loading||isDirty||shot.shotKey!=='SHOT01')return;
     if(!window.confirm('Restore the exact narration from text v'+takeRevision+
-      ' and reuse the audio of Take '+takeNumber+'? This creates a NEW editable revision and a linked audio copy. '+
+      ' and reuse the audio of Take '+takeNumber+'? This creates a NEW editable revision and a verified copy of the saved audio. '+
       'The existing current script, Take history and original Take '+takeNumber+
       ' remain unchanged. No ElevenLabs generation or credits will be used.'))return;
     setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
