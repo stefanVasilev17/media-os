@@ -9,7 +9,7 @@ import {
 } from '../../components/architectural-thinking';
 import {Shot01ReadablePhone} from './Shot01ReadablePhone';
 import {SHOT02_NODES, SHOT02_TEXT_LANES, SHOT02_REQUEST_MARKER, assertShot02TextLanes} from './Shot02PremiumLayout';
-import {shot02TapPulse,shot02TermHold,shot02FlowIntensity,shot02FocusCamera,shot02FlowClock,
+import {shot02TapPulse,shot02TermHold,shot02ReadableInterior,shot02FlowIntensity,shot02FocusCamera,shot02FlowClock,
   type Shot02FocusKey,type Shot02FocusWeights} from './Shot02DirectorPacing';
 
 export type Shot02VerifiedCue = {
@@ -160,7 +160,7 @@ function activeSpokenTerm(
   for(let i=terms.length-1;i>=0;i--){
     const term=terms[i];
     if(frame>=term.startFrame)
-      return frame<term.endFrame+36 ? term:null;
+      return frame<term.endFrame+70 ? term:null;
   }
   return null;
 }
@@ -391,15 +391,15 @@ const ReplicaRail:React.FC<{frame:number;reveal:number;focus:number}>=
 const ArchitectureWorld: React.FC<{
   frame:number;duration:number;starts:readonly number[];terms:readonly Shot02TermCue[];
 }> = ({frame,duration,starts,terms}) => {
-  const context=ease(frame,starts[0],starts[0]+22);
-  const wave=ease(frame,starts[1],starts[1]+25);
-  const gateway=ease(frame,terms[1].startFrame,terms[1].startFrame+24);
-  const distribution=ease(frame,terms[2].startFrame,terms[2].startFrame+25);
-  const authActivity=ease(frame,terms[3].startFrame,terms[3].startFrame+20);
-  const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+22);
-  const database=ease(frame,terms[6].startFrame,terms[6].startFrame+33);
-  const camGateway=ease(frame,terms[1].startFrame,terms[1].startFrame+40);
-  const camDb=ease(frame,terms[6].startFrame,terms[6].startFrame+42);
+  const context=ease(frame,starts[0],starts[0]+42);
+  const wave=ease(frame,starts[1],starts[1]+48);
+  const gateway=ease(frame,terms[1].startFrame,terms[1].startFrame+43);
+  const distribution=ease(frame,terms[2].startFrame,terms[2].startFrame+47);
+  const authActivity=ease(frame,terms[3].startFrame,terms[3].startFrame+48);
+  const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+44);
+  const database=ease(frame,terms[6].startFrame,terms[6].startFrame+67);
+  const camGateway=ease(frame,terms[1].startFrame,terms[1].startFrame+73);
+  const camDb=ease(frame,terms[6].startFrame,terms[6].startFrame+82);
   const baseCamera={
     x:-55*context-215*camGateway-280*camDb,
     y:-8*camGateway-12*camDb,
@@ -415,6 +415,14 @@ const ArchitectureWorld: React.FC<{
   };
   const {x:cameraX,y:cameraY,scale:cameraScale}=
     shot02FocusCamera(baseCamera,focusWeights);
+  const readableWeights:Shot02FocusWeights={
+    gateway:shot02ReadableInterior(frame,terms[1],duration),
+    balancer:shot02ReadableInterior(frame,terms[2],duration),
+    auth:Math.max(
+      shot02ReadableInterior(frame,terms[3],duration),
+      shot02ReadableInterior(frame,terms[5],duration)),
+    database:shot02ReadableInterior(frame,terms[6],duration),
+  };
   const nineOClockTap=shot02TapPulse(frame,starts[0]+15,
     Math.min(starts[1]+15,starts[0]+165));
   const loginTap=shot02TapPulse(frame,starts[2],
@@ -508,10 +516,10 @@ const ArchitectureWorld: React.FC<{
         />
         <ReplicaRail frame={frame} reveal={authActivity} focus={
           named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?1:.3}/>
-        <FocusedNodeInterior node="gateway" focus={focusWeights.gateway} frame={frame}/>
-        <FocusedNodeInterior node="balancer" focus={focusWeights.balancer} frame={frame}/>
-        <FocusedNodeInterior node="auth" focus={focusWeights.auth} frame={frame}/>
-        <FocusedNodeInterior node="database" focus={focusWeights.database} frame={frame}/>
+        <FocusedNodeInterior node="gateway" focus={readableWeights.gateway} frame={frame}/>
+        <FocusedNodeInterior node="balancer" focus={readableWeights.balancer} frame={frame}/>
+        <FocusedNodeInterior node="auth" focus={readableWeights.auth} frame={frame}/>
+        <FocusedNodeInterior node="database" focus={readableWeights.database} frame={frame}/>
         <SpokenRequestMarker frame={frame} cue={terms[0]}
           nextStart={terms[1].startFrame} duration={duration}/>
         <SemanticNodeHalo cue={active} frame={frame}/>
