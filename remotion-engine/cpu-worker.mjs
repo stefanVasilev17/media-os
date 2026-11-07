@@ -8,6 +8,7 @@ import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
+import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -562,19 +563,25 @@ async function readEp002SelectedVoice(job, inputProps) {
 
 async function muxEp002SelectedVoice(job, videoPath, inputProps) {
   if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE'].includes(job.compositionId)) return;
+  const editorialPlan=validateShot02EditorialPlan(job,inputProps);
   const audioBytes = await readEp002SelectedVoice(job, inputProps);
   const audioPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}.mp3`);
   const muxPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}-mux.mp4`);
   try {
     await fs.writeFile(audioPath,audioBytes);
-    await runProcess('ffmpeg',[
-      '-hide_banner','-loglevel','error','-xerror',
-      '-i',videoPath,'-i',audioPath,
-      '-map','0:v:0','-map','1:a:0',
-      '-c:v','copy','-c:a','aac','-b:a','192k','-ar','48000',
+    const args=['-hide_banner','-loglevel','error','-xerror','-nostdin',
+      '-i',videoPath,'-i',audioPath];
+    if(editorialPlan){
+      args.push('-filter_complex',buildShot02EditorialAudioFilter(editorialPlan),
+        '-map','0:v:0','-map','[editorial]');
+      console.log(`SHOT02_EDITORIAL_VOICE_PAUSES sourceFrames=${editorialPlan.sourceFrames} addedFrames=${editorialPlan.addedFrames} outputFrames=${editorialPlan.outputFrames} noTts=true`);
+    }else{
+      args.push('-map','0:v:0','-map','1:a:0');
+    }
+    args.push('-c:v','copy','-c:a','aac','-b:a','192k','-ar','48000',
       '-t',String(job.durationInFrames/job.fps),
-      '-movflags','+faststart','-y',muxPath,
-    ]);
+      '-movflags','+faststart','-y',muxPath);
+    await runProcess('ffmpeg',args);
     await fs.rename(muxPath,videoPath);
   } finally {
     await fs.rm(audioPath,{force:true}).catch(()=>undefined);
