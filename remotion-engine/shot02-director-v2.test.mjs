@@ -33,22 +33,39 @@ test('real repeated Login presses have 4-9 visible distinct peaks and a final re
       'last frames must hold the result long enough to understand');
 });
 
-test('technical-term hold respects exact word onset and ends before next spoken subject',()=>{
+test('slow camera focus only starts when there is enough genuine narration time',()=>{
   const cue={startFrame:70,endFrame:105};
-  assert.equal(pacing.shot02TermHold(69,cue,160,300),0);
-  assert.equal(pacing.shot02TermHold(70,cue,160,300),0);
-  assert.ok(pacing.shot02TermHold(86,cue,160,300)>.7);
-  assert.ok(pacing.shot02TermHold(117,cue,160,300)>0,
-    'focused node must remain readable after phrase ends');
-  assert.equal(pacing.shot02TermHold(159,cue,160,300),0);
-  assert.equal(pacing.shot02TermHold(170,cue,160,300),0);
+  assert.equal(pacing.shot02TermHold(69,cue,205,300),0);
+  assert.equal(pacing.shot02TermHold(70,cue,205,300),0);
+  assert.ok(pacing.shot02TermHold(86,cue,205,300)>.7);
+  assert.ok(pacing.shot02TermHold(117,cue,205,300)>.7);
+  assert.equal(pacing.shot02TermHold(205,cue,205,300),0);
+  assert.equal(pacing.shot02TermHold(86,cue,115,300),0,
+    'never zoom in and out within a tiny voice interval');
+});
+
+test('node internals remain readable for four seconds even if next term starts',()=>{
+  const cue={startFrame:70,endFrame:105};
+  assert.equal(pacing.shot02ReadableInterior(69,cue,300),0);
+  assert.ok(pacing.shot02ReadableInterior(95,cue,300)>.8);
+  assert.ok(pacing.shot02ReadableInterior(150,cue,300)>.8,
+    'full internal architecture must remain legible after next spoken word');
+  assert.ok(pacing.shot02ReadableInterior(170,cue,300)>.6);
+  assert.equal(pacing.shot02ReadableInterior(190,cue,300),0);
+  assert.equal(pacing.shot02AvailableReadingFrames(cue,300),120);
+  const last={startFrame:1185,endFrame:1200};
+  assert.equal(pacing.shot02AvailableReadingFrames(last,1205),20,
+    'short final video duration is correctly exposed for separate audio pacing review');
 });
 
 test('request-packet clock accelerates smoothly only after the genuine arrival-rate cue',()=>{
   const start=440;
   assert.equal(pacing.shot02FlowIntensity(start-1,start,520),0);
   assert.equal(pacing.shot02FlowIntensity(start,start,520),0);
-  assert.ok(pacing.shot02FlowIntensity(480,start,520)>.8);
+  assert.ok(pacing.shot02FlowIntensity(480,start,520)>.4);
+  assert.ok(pacing.shot02FlowIntensity(480,start,520)<.8,
+    'arrival ramp must not reach final count in just 1.3 seconds');
+  assert.ok(pacing.shot02FlowIntensity(525,start,520)>.95);
   const before=pacing.shot02FlowClock(start,start)-
     pacing.shot02FlowClock(start-1,start);
   const justAfter=pacing.shot02FlowClock(start+1,start)-
@@ -104,6 +121,10 @@ test('V2 is deterministic and never creates audio timings, fake voice or decorat
   assert.match(scene,/<FocusedNodeInterior node="balancer"/);
   assert.match(scene,/<FocusedNodeInterior node="auth"/);
   assert.match(scene,/<FocusedNodeInterior node="database"/);
+  assert.match(scene,/const readableWeights:Shot02FocusWeights/);
+  assert.match(scene,/shot02ReadableInterior\(frame,terms\[1\],duration\)/);
+  assert.match(scene,/focus=\{readableWeights.gateway\}/);
+  assert.match(scene,/focus=\{readableWeights.database\}/);
   assert.doesNotMatch(scene,/SemanticTermHud|NOW IN FOCUS|ILLUSTRATIVE/);
   assert.doesNotMatch(scene,/\<Audio|\/generateSpeech|setTimeout|Math\.random\(/);
 });
