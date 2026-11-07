@@ -216,7 +216,10 @@ public class RemotionRenderController {
                 : new LinkedHashMap<>(request.inputProps());
         int durationInFrames = resolveDurationInFrames(composition, inputProps);
         inputProps.put("durationInFrames", durationInFrames);
-        String renderHash = renderHash(compositionId, profileName, output, inputProps);
+        Map<String,Object> semanticRenderProps=new LinkedHashMap<>(inputProps);
+        if("EP002-SHOT02-CANDIDATE".equals(compositionId))
+            semanticRenderProps.remove("renderRequestId");
+        String renderHash = renderHash(compositionId, profileName, output, semanticRenderProps);
 
         Optional<RenderRow> existing = findByHash(renderHash);
         if (existing.isPresent()) {
