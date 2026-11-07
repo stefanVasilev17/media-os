@@ -276,7 +276,7 @@ const ArrivalCounter: React.FC<{reveal:number;value:number;frame:number}> = ({re
     borderLeft:'2px solid rgba(88,234,192,.68)',padding:'11px 0 0 19px',
   }}>
     <div style={{fontSize:16,fontWeight:670,letterSpacing:'.045em',color:C.muted}}>
-      NEW LOGIN ARRIVALS / SECOND
+      ARRIVAL RATE · LOGIN REQUESTS / SECOND
     </div>
     <div style={{display:'flex',alignItems:'baseline',gap:17,marginTop:5}}>
       <span style={{fontSize:43,fontWeight:790,letterSpacing:'-.045em',
@@ -286,6 +286,23 @@ const ArrivalCounter: React.FC<{reveal:number;value:number;frame:number}> = ({re
     </div>
   </div>
 );
+
+const SpokenRequestMarker:React.FC<{
+  frame:number;cue:Shot02TermCue;nextStart:number;duration:number;
+}>=({frame,cue,nextStart,duration})=>{
+  const focus=shot02TermHold(frame,cue,nextStart,duration);
+  if(focus<=.005)return null;
+  return <div style={{
+    position:'absolute',left:792,top:645,width:204,height:46,zIndex:14,
+    display:'flex',alignItems:'center',justifyContent:'center',
+    borderRadius:11,border:'1.5px solid '+C.cyan,
+    background:'rgba(5,25,41,.96)',boxShadow:'0 0 15px rgba(89,217,244,.2)',
+    fontFamily:AT_FONT,fontSize:17.5,fontWeight:780,
+    letterSpacing:'.015em',color:C.ink,whiteSpace:'nowrap',
+    opacity:focus,transform:'translateY('+((1-focus)*7)+'px)',
+    pointerEvents:'none',
+  }}>LOGIN REQUEST</div>;
+};
 
 const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,frame})=>{
   const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
@@ -494,6 +511,8 @@ const ArchitectureWorld: React.FC<{
         <FocusedNodeInterior node="balancer" focus={focusWeights.balancer} frame={frame}/>
         <FocusedNodeInterior node="auth" focus={focusWeights.auth} frame={frame}/>
         <FocusedNodeInterior node="database" focus={focusWeights.database} frame={frame}/>
+        <SpokenRequestMarker frame={frame} cue={terms[0]}
+          nextStart={terms[1].startFrame} duration={duration}/>
         <SemanticNodeHalo cue={active} frame={frame}/>
       </ATCameraRig>
       <ContextLabel reveal={context}/>
