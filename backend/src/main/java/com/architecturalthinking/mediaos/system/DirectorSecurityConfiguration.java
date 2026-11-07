@@ -61,6 +61,8 @@ public class DirectorSecurityConfiguration {
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview",
                                 "/api/v1/creative/episodes/EP002/shots/SHOT02/generate-slow",
+                                "/api/v1/creative/episodes/EP002/shots/SHOT01/restore-older-take",
+
                                 "/api/v1/episodes",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/director-lock",
