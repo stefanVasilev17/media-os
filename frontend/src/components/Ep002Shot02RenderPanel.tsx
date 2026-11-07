@@ -103,8 +103,10 @@ export function Ep002Shot02RenderPanel(){
       No voice regeneration. All timing cues are remapped to the edited soundtrack.
     </p>}
     {editorial?.ready&&editorial.naturalSlowTake&&<p className="library-note">
-      New Slow Natural ElevenLabs Take: {((editorial.durationInFrames??0)/30).toFixed(2)}s.
-      The pauses are spoken naturally in the new recording, not inserted as artificial silence.
+      Approved Slow Natural ElevenLabs Take: {((editorial.sourceDurationInFrames??0)/30).toFixed(2)}s.
+      {' '}V5 preview: {((editorial.durationInFrames??0)/30).toFixed(2)}s,
+      including an exact two-second animated hold after the final spoken words.
+      The pauses are spoken naturally in the original recording, not inserted as artificial silence.
       No additional nine-gap editorial audio processing will run. Review the selected
       new Take and re-approve its genuine seven-term timing before a CPU preview.
     </p>}
