@@ -217,9 +217,10 @@ public class Ep002Shot02PreviewController {
                   and lineage.dependency_sha256=:fingerprint
                   and lineage.preferred_take_id::text=:take
                   and r.input_props->>'inputFingerprint'=:fingerprint
+                  and r.input_props->>'expectedSourceCommit'=:workerSha
                 order by lineage.created_at desc,lineage.id desc limit 1
                 """).param("fingerprint",verified.inputFingerprint())
-                .param("take",verified.voiceTakeId())
+                .param("take",verified.voiceTakeId()).param("workerSha",pinnedWorkerSha)
                 .query((rs,n)->{
                     Map<String,Object> result=new LinkedHashMap<>();
                     UUID id=rs.getObject("id",UUID.class);
