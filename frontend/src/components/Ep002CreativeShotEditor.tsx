@@ -270,6 +270,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
             <span>SLOW NATURAL · original words</span>}
           {take.id===state.preferredTakeId&&<span><CheckCircle2 size={15}/> PREFERRED</span>}
           {take.approvedAt&&take.id!==state.preferredTakeId&&<span>Previously selected</span>}
+          {take.restoredFromTakeNumber!=null&&<span>Audio restored from Take {take.restoredFromTakeNumber}</span>}
           {take.revision!==state.revision&&<span>Earlier version</span>}
         </div>
         <audio preload="none" ref={audio=>{audioRefs.current[take.id]=audio;}}
