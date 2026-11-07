@@ -331,6 +331,12 @@ public class Ep002CreativeVoiceService {
         if (current==null || current.revision()!=expectedRevision)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "The current script has changed. Refresh before restoring an earlier take.");
+        boolean unresolved=jdbc.sql("""
+                select exists(select 1 from ep002_creative_voice_request
+                    where shot_key=:shot and status in ('IN_FLIGHT','UNCERTAIN'))
+                """).param("shot",shot).query(Boolean.class).single();
+        if (unresolved) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "An unresolved paid voice request must be reconciled before changing the preferred Take.");
         EarlierTake earlier=jdbc.sql("""
                 select t.revision,t.take_number,t.narration_sha256,s.narration,s.voice_direction
                 from ep002_creative_voice_take t
