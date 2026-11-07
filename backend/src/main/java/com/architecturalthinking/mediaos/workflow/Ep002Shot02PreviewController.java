@@ -105,7 +105,12 @@ public class Ep002Shot02PreviewController {
                 ?cues.editorialPlan(verified):null;
         var props=new LinkedHashMap<String,Object>();
         props.put("shotKey","EP002_SHOT02");
-        props.put("durationInFrames",editorial?plan.durationInFrames():verified.durationInFrames());
+        int endHoldFrames=naturalSlow?60:0;
+        props.put("durationInFrames",editorial?plan.durationInFrames():verified.durationInFrames()+endHoldFrames);
+        if(endHoldFrames==60){
+            props.put("postVoiceHoldFrames",60);
+            props.put("sourceDurationInFrames",verified.durationInFrames());
+        }
         props.put("voiceTakeId",verified.voiceTakeId());
         props.put("scriptRevision",shot.scriptRevision());
         props.put("timingMode",editorial?plan.timingMode():verified.timingMode());
