@@ -13,7 +13,7 @@ export function shot02TapPulse(frame:number,start:number,end:number):number {
   if(!Number.isFinite(frame)||!Number.isFinite(start)||!Number.isFinite(end)
     ||end-start<12||frame<start||frame>=end-10)return 0;
   const sequence=Math.min(170,end-start-10);
-  const taps=Math.max(4,Math.min(9,Math.floor(sequence/12)));
+  const taps=Math.max(3,Math.min(5,Math.floor(sequence/25)));
   const phase=(frame-start)*taps/sequence;
   if(phase>=taps)return 0;
   const within=phase-Math.floor(phase);
@@ -21,23 +21,44 @@ export function shot02TapPulse(frame:number,start:number,end:number):number {
   return Math.sin(Math.PI*within/.58)**2;
 }
 
+export const SHOT02_MIN_NODE_READING_FRAMES=120;
+export const SHOT02_MIN_CAMERA_FOCUS_WINDOW_FRAMES=90;
+
 export function shot02TermHold(frame:number,cue:Shot02Interval,
   nextStart:number,finalFrame:number):number {
   if(!Number.isFinite(frame)||cue.endFrame<=cue.startFrame)return 0;
+  const release=Math.min(finalFrame,nextStart-4,
+    Math.max(cue.endFrame+45,cue.startFrame+SHOT02_MIN_CAMERA_FOCUS_WINDOW_FRAMES));
+  if(release-cue.startFrame<SHOT02_MIN_CAMERA_FOCUS_WINDOW_FRAMES
+      ||frame<cue.startFrame||frame>=release)return 0;
+  const onset=smooth((frame-cue.startFrame)/20);
+  const fadeStart=Math.max(cue.startFrame+20,release-22);
+  return clamp01(onset*(1-smooth((frame-fadeStart)/Math.max(1,release-fadeStart))));
+}
+
+export function shot02ReadableInterior(frame:number,cue:Shot02Interval,
+  finalFrame:number):number {
+  if(!Number.isFinite(frame)||cue.endFrame<=cue.startFrame
+      ||frame<cue.startFrame)return 0;
   const release=Math.min(finalFrame,
-    nextStart-2,Math.max(cue.endFrame+21,cue.startFrame+27));
-  if(release<=cue.startFrame+5||frame<cue.startFrame||frame>=release)return 0;
-  const onset=smooth((frame-cue.startFrame)/Math.min(12,
-    Math.max(5,Math.floor((release-cue.startFrame)/4))));
-  const fadeStart=Math.max(cue.startFrame+5,release-12);
-  const exit=1-smooth((frame-fadeStart)/Math.max(1,release-fadeStart));
-  return clamp01(onset*exit);
+    Math.max(cue.startFrame+SHOT02_MIN_NODE_READING_FRAMES,
+      cue.endFrame+42));
+  if(frame>=release)return 0;
+  const appear=smooth((frame-cue.startFrame)/18);
+  const fadeStart=Math.max(cue.startFrame+18,release-23);
+  return clamp01(appear*(1-smooth((frame-fadeStart)/Math.max(1,release-fadeStart))));
+}
+
+export function shot02AvailableReadingFrames(cue:Shot02Interval,finalFrame:number):number {
+  return Math.max(0,Math.min(finalFrame,
+    Math.max(cue.startFrame+SHOT02_MIN_NODE_READING_FRAMES,cue.endFrame+42))
+    -cue.startFrame);
 }
 
 export function shot02FlowIntensity(frame:number,start:number,
   end:number):number {
   if(frame<start)return 0;
-  const rise=smooth((frame-start)/Math.max(12,Math.min(45,end-start)));
+  const rise=smooth((frame-start)/Math.max(75,Math.min(90,end-start)));
   return clamp01(rise);
 }
 
