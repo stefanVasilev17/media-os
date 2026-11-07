@@ -1,12 +1,16 @@
 export type CreativeTake={
   id:string; revision:number; takeNumber:number; contentType:string;
   modelId:string; voiceId:string; generatedAt:string; approvedAt:string|null;
+  deliveryMode?:string;
 };
 export type CreativeShotState={
   shotKey:string; revision:number; narration:string|null; voiceDirection:string|null;
   takes:CreativeTake[]; hasCurrentTake:boolean; voiceApproved:boolean;
   preferredTakeId:string|null;
-  canGenerate:boolean; blockedReason:string|null; generationStatus:string;
+  canGenerate:boolean; canGenerateSlow?:boolean;
+  slowVoicePauseCount?:number; slowVoiceLongPauseCount?:number;
+  slowVoiceDeliveryMode?:string;
+  blockedReason:string|null; generationStatus:string;
   voiceModel:string; voiceIdentityVerified:boolean;
 };
 
@@ -45,6 +49,10 @@ export const ep002CreativeVoiceApi={
     request<CreativeShotState>(base(shot),'PUT',{expectedRevision,narration,voiceDirection}),
   generate:(shot:string,expectedRevision:number,requestId:string)=>
     request<CreativeShotState>(base(shot)+'/generate','POST',{expectedRevision,requestId}),
+  generateSlow:(shot:string,expectedRevision:number,requestId:string)=>
+    request<CreativeShotState>(base(shot)+'/generate-slow','POST',{
+      expectedRevision,requestId,confirmPaidGeneration:true
+    }),
   approve:(shot:string,revision:number,takeId:string)=>
     request<CreativeShotState>(base(shot)+'/approve','POST',{revision,takeId}),
   audio:(shot:string,takeId:string)=>base(shot)+'/takes/'+encodeURIComponent(takeId)+'/audio',
