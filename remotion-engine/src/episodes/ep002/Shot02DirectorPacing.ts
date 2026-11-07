@@ -58,7 +58,7 @@ export function shot02FocusCamera(
   const zoom=total*Math.min(.115,Math.max(0,1.24-base.scale));
   return {
     x:base.x-18*gateway-32*balancer-62*auth-100*database,
-    y:base.y+12*gateway+13*balancer+23*auth+18*database,
+    y:base.y+12*gateway+13*balancer+23*auth+30*database,
     scale:base.scale+zoom,
   };
 }
