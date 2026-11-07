@@ -53,8 +53,10 @@ public final class Ep002Shot02EditorialPausePlan {
             if(index<0)throw new IllegalArgumentException(
                     "SHOT02_EDITORIAL_SENTENCE_ANCHOR_NOT_IN_SELECTED_TAKE: "+spec.phrase());
             double seconds=speech.ends().get(index+phrase.length()-1);
-            int at=Math.max(0,(int)Math.ceil(seconds*FPS));
-            if(at<=previous||at>=frames||at-previous<9)
+            if(seconds>sourceSeconds.doubleValue()+.25d)throw new IllegalArgumentException("SHOT02_EDITORIAL_PAUSE_OUTSIDE_SELECTED_VOICE");
+            int at=Math.max(0,Math.min(frames,(int)Math.ceil(seconds*FPS)));
+            if(at<=previous||at>frames
+                    ||(at==frames&&pauses.size()!=BREAKS.size()-1)||at-previous<9)
                 throw new IllegalArgumentException("SHOT02_EDITORIAL_PAUSE_BOUNDARIES_INVALID");
             pauses.add(new Pause(spec.phrase(),at,spec.holdFrames()));
             previous=at;
@@ -105,7 +107,9 @@ public final class Ep002Shot02EditorialPausePlan {
                     ||!BREAKS.get(index).phrase().equals(row.get("afterPhrase")))
                 return -1;
             int at=cut.intValue(),frames=hold.intValue();
-            if(at<=previous||at>=original||frames!=BREAKS.get(index).holdFrames()
+            if(at<=previous||at>original
+                    ||(at==original&&index!=BREAKS.size()-1)
+                    ||frames!=BREAKS.get(index).holdFrames()
                     ||at-previous<9)return -1;
             previous=at;added+=frames;index++;
         }
