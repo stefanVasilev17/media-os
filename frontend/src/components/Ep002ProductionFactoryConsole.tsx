@@ -9,6 +9,7 @@ import {MediaOsVerificationPanel} from './MediaOsVerificationPanel';
 import {MediaOsVerificationAutopilotPanel} from './MediaOsVerificationAutopilotPanel';
 import {Ep002VisualDirectorFeedbackPanel} from './Ep002VisualDirectorFeedbackPanel';
 import {Ep002DirectorVisualAcceptancePanel} from './Ep002DirectorVisualAcceptancePanel';
+import {Ep002Shot02RenderPanel} from './Ep002Shot02RenderPanel';
 
 type Stage='VOICE'|'CODEX'|'CORRECTIONS'|'APPROVAL';
 type Status={nextShotKey:string|null;remainingSceneCount:number;
@@ -58,8 +59,9 @@ export function Ep002ProductionFactoryConsole(){
         :'Not yet production-ready'}.
       {status&&!status.realCueFramesVerified
         ?' Verified all-episode audio cue mapping is still missing.':''}
-      {' '}The approved SHOT01 remains protected. No screen here starts paid
-      TTS, Codex Cloud, CPU rendering, deployment or publishing.</p>
+      {' '}The approved SHOT01 remains protected. Viewing these panels never starts paid TTS, Codex Cloud, CPU rendering,
+      deployment or publishing. SHOT02 preview CPU requires a separate
+      explicit Director click and a pinned, verified Worker release.</p>
     <div className="library-episode-batch-actions" role="group"
       aria-label="EP002 production workflow stages">
       {stages.map(tab=><button key={tab.key} type="button"
@@ -77,7 +79,7 @@ export function Ep002ProductionFactoryConsole(){
     </>}
     {stage==='CODEX'&&<><MediaOsVerificationAutopilotPanel/><MediaOsVerificationPanel/><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
     {stage==='CORRECTIONS'&&<Ep002VisualDirectorFeedbackPanel/>}
-    {stage==='APPROVAL'&&<Ep002DirectorVisualAcceptancePanel/>}
+    {stage==='APPROVAL'&&<><Ep002Shot02RenderPanel/><Ep002DirectorVisualAcceptancePanel/></>}
     <p className="library-note">The complete product acceptance contract remains:
       verified voice + cues → one scoped Codex Remotion PR per SHOT →
       SHA-matching compiled Worker and Director-reviewed MP4 → next SHOT →

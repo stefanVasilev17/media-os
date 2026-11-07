@@ -1,7 +1,10 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
+import com.architecturalthinking.mediaos.workflow.Ep002Shot02EditorialPausePlan;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,17 +32,26 @@ public class RemotionCpuWorkerController {
     private final ObjectMapper objectMapper;
     private final StorageHealthService storage;
     private final String workerKey;
+    private final Ep002DirectorVoiceCueService ep002Cues;
 
+    @Autowired
     public RemotionCpuWorkerController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             StorageHealthService storage,
-            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey
+            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey,
+            Ep002DirectorVoiceCueService ep002Cues
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.storage = storage;
         this.workerKey = workerKey == null ? "" : workerKey.trim();
+        this.ep002Cues = ep002Cues;
+    }
+
+    public RemotionCpuWorkerController(JdbcClient jdbc, ObjectMapper mapper,
+                                       StorageHealthService storage, String workerKey) {
+        this(jdbc, mapper, storage, workerKey, null);
     }
 
     public record ProgressRequest(int progress) {}
@@ -50,19 +62,26 @@ public class RemotionCpuWorkerController {
     public ResponseEntity<Map<String, Object>> claim(
             @RequestHeader(value = "X-Media-OS-Worker-Key", required = false) String key,
             @RequestHeader(value = "X-Media-OS-Worker", required = false) String workerId,
-            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha", required = false) String sourceSha
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha", required = false) String sourceSha,
+            @RequestHeader(value = "X-Media-OS-Target-Composition", required = false) String targetComposition
     ) {
         requireWorker(key, workerId);
+        String scope=targetComposition==null?"":targetComposition.trim();
+        if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unsupported target composition for scoped CPU claim.");
+        }
 
         // An interrupted EP002 preview is terminal until the Director explicitly
         // requests another render. Never spend CPU repeatedly on stale voice mux failures.
+        if (scope.isEmpty()) {
         jdbc.sql("""
                 update remotion_render
                 set status='FAILED', progress=0,
                     error='EP002 preview interrupted after worker heartbeat timeout. No automatic retry.',
                     finished_at=now(), updated_at=now()
                 where project_id=:projectId
-                  and composition_id='EP002-SHOT01-DRAFT'
+                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -75,18 +94,21 @@ public class RemotionCpuWorkerController {
                     error='Recovered stale CPU render after worker heartbeat timeout.',
                     claimed_at=null, started_at=null, updated_at=now()
                 where project_id=:projectId
-                  and composition_id<>'EP002-SHOT01-DRAFT'
+                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
                 .param("projectId", PROJECT_ID)
                 .update();
 
+        }
+
         Map<String, Object> work = jdbc.sql("""
                 select id, episode_id, composition_id, render_key, engine_version, input_props::text as input_props,
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
+                  and (:targetComposition='' or composition_id=:targetComposition)
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
@@ -94,6 +116,10 @@ public class RemotionCpuWorkerController {
                                     and cap.source_commit=:sourceSha
                                     and cap.build_checked=true
                                     and cap.last_heartbeat_at>now()-interval '120 seconds')))
+                  and (composition_id<>'EP002-SHOT02-CANDIDATE'
+                    or (input_props->>'expectedSourceCommit'=:sourceSha
+                      and length(:sourceSha)=40
+                      and :sourceSha !~ '[^a-f0-9]'))
                 order by created_at
                 for update skip locked
                 limit 1
@@ -101,6 +127,7 @@ public class RemotionCpuWorkerController {
                 .param("projectId", PROJECT_ID)
                 .param("workerId",workerId.trim())
                 .param("sourceSha",sourceSha==null?"":sourceSha.trim())
+                .param("targetComposition",scope)
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("renderId", rs.getObject("id", UUID.class));
@@ -121,6 +148,29 @@ public class RemotionCpuWorkerController {
                 .orElse(null);
 
         if (work == null) return ResponseEntity.noContent().build();
+        if ("EP002-SHOT02-CANDIDATE".equals(work.get("compositionId"))) {
+            Object rawProps = work.get("inputProps");
+            Map<?,?> props = rawProps instanceof Map<?,?> map ? map : Map.of();
+            Object revision = props.get("scriptRevision");
+            int sourceFrames=Ep002Shot02EditorialPausePlan.sourceFramesForRender(
+                    props,(int) work.get("durationInFrames"));
+            boolean current = sourceFrames>0 && revision instanceof Number number && ep002Cues != null
+                    && ep002Cues.matchesCurrentShot02Render(
+                        String.valueOf(props.get("inputFingerprint")),
+                        String.valueOf(props.get("voiceTakeId")),
+                        number.intValue(),sourceFrames);
+            if (!current) {
+                jdbc.sql("""
+                    update remotion_render
+                    set status='FAILED',progress=0,
+                        error='SHOT02_SOURCE_OR_VOICE_STALE_BEFORE_CPU_CLAIM',
+                        finished_at=now(),updated_at=now()
+                    where id=:id and project_id=:project and status='QUEUED'
+                    """)
+                    .param("id",work.get("renderId")).param("project",PROJECT_ID).update();
+                return ResponseEntity.noContent().build();
+            }
+        }
 
         UUID renderId = (UUID) work.get("renderId");
         jdbc.sql("""
@@ -137,44 +187,83 @@ public class RemotionCpuWorkerController {
         return ResponseEntity.ok(work);
     }
 
+    public ResponseEntity<Map<String, Object>> claim(String key,String workerId,String sourceSha) {
+        return claim(key,workerId,sourceSha,null);
+    }
+
     @GetMapping("/{renderId}/ep002-selected-voice")
     public ResponseEntity<byte[]> selectedVoice(
             @PathVariable UUID renderId,
             @RequestHeader(value = "X-Media-OS-Worker-Key",required = false) String key,
-            @RequestHeader(value = "X-Media-OS-Worker",required = false) String workerId
+            @RequestHeader(value = "X-Media-OS-Worker",required = false) String workerId,
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha",required = false) String sourceSha
     ) {
         requireWorker(key,workerId);
         return jdbc.sql("""
-                select t.audio,t.content_type
+                select t.audio,t.content_type,r.composition_id,
+                       r.input_props->>'inputFingerprint' as fingerprint,
+                       r.input_props->>'voiceTakeId' as take_id,
+                       r.input_props->>'scriptRevision' as script_revision,
+                       r.duration_in_frames as duration_frames,
+                       r.input_props::text as input_props_json
                 from remotion_render r
                 join ep002_creative_voice_take t
-                  on t.id::text = r.input_props->>'voiceTakeId'
-                  and t.shot_key='SHOT01'
-                  and t.revision::text = r.input_props->>'scriptRevision'
+                  on t.id::text=r.input_props->>'voiceTakeId'
+                  and t.shot_key=case when r.composition_id='EP002-SHOT02-CANDIDATE'
+                        then 'SHOT02' else 'SHOT01' end
+                  and t.revision::text=r.input_props->>'scriptRevision'
                 where r.id=:render and r.project_id=:project
-                  and r.composition_id='EP002-SHOT01-DRAFT'
+                  and r.composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE')
                   and r.status='RUNNING' and r.worker_id=:worker
                   and t.revision=(
                     select max(s.revision) from ep002_creative_script_revision s
-                    where s.shot_key='SHOT01'
+                    where s.shot_key=t.shot_key
                   )
-                  and exists (
+                  and exists(
                     select 1 from ep002_creative_voice_choice choice
-                    where choice.shot_key='SHOT01' and choice.revision=t.revision
+                    where choice.shot_key=t.shot_key and choice.revision=t.revision
                       and choice.take_id=t.id
                       and choice.id=(
                         select newest.id from ep002_creative_voice_choice newest
-                        where newest.shot_key='SHOT01' and newest.revision=t.revision
+                        where newest.shot_key=t.shot_key and newest.revision=t.revision
                         order by newest.selected_at desc,newest.id desc limit 1
                       )
                   )
+                  and (r.composition_id<>'EP002-SHOT02-CANDIDATE'
+                    or (r.input_props->>'expectedSourceCommit'=:sourceSha
+                      and length(:sourceSha)=40
+                      and :sourceSha !~ '[^a-f0-9]'
+                      and r.input_props->>'shotKey'='EP002_SHOT02'
+                      and exists(
+                        select 1 from ep002_director_voice_cue_review review
+                        where review.shot_key='SHOT02'
+                          and review.selected_take_id=t.id
+                          and review.script_revision=t.revision
+                          and review.narration_sha256=t.narration_sha256
+                          and review.episode_fingerprint=r.input_props->>'inputFingerprint'
+                      )))
                 """)
                 .param("render",renderId).param("project",PROJECT_ID)
                 .param("worker",workerId.trim())
-                .query((rs,n)->ResponseEntity.ok()
-                        .contentType(MediaType.parseMediaType(rs.getString("content_type")))
-                        .cacheControl(CacheControl.noStore())
-                        .body(rs.getBytes("audio")))
+                .param("sourceSha",sourceSha==null?"":sourceSha.trim())
+                .query((rs,n)->{
+                    if ("EP002-SHOT02-CANDIDATE".equals(rs.getString("composition_id"))) {
+                        Map<String,Object> input=readMap(rs.getString("input_props_json"));
+                        int sourceFrames=Ep002Shot02EditorialPausePlan.sourceFramesForRender(
+                                input,rs.getInt("duration_frames"));
+                        boolean current=sourceFrames>0 && ep002Cues!=null
+                                && ep002Cues.matchesCurrentShot02Render(
+                                    rs.getString("fingerprint"),rs.getString("take_id"),
+                                    Integer.parseInt(rs.getString("script_revision")),
+                                    sourceFrames);
+                        if (!current) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "SHOT02 selected Take or source fingerprint changed during render.");
+                    }
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.parseMediaType(rs.getString("content_type")))
+                            .cacheControl(CacheControl.noStore())
+                            .body(rs.getBytes("audio"));
+                })
                 .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.CONFLICT,"No valid selected voice for this worker-owned EP002 render."));
     }

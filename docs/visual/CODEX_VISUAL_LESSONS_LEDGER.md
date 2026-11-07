@@ -46,6 +46,21 @@ AT-VIS-0000 is a **template, not a recorded correction**:
 
 **None imported yet.** The historical official style failure modes are enforced by the constitution. It would be inaccurate to invent a past corrections log based on general visual advice. Backfill only where an exact Director-approved conversation/screenshot and its referenced result are available.
 
+## Director-observed correction AT-VIS-0001 — SHOT02 comprehension pacing (2026-11-07)
+
+- **ID:** AT-VIS-0001.
+- **Date / Director decision:** 2026-11-07; Director REJECTED the V2 speed/readability and requested correction. New V3 implementation is PROPOSED, **not yet Director-accepted**.
+- **Scope:** SERIES acceptance gate; concrete first failure EP002 SHOT02.
+- **Context:** production V2 MP4 render `eba3a449-574e-4b99-8007-080e4c496e5c`, 1205 frames at 30 fps (40.17 seconds), approved current ElevenLabs Take and real 5 beat / 7 term anchors.
+- **Problem observed:** Director reports some main architecture objects are only visible for approximately one second, making the content hard to understand. In V2 code, focus fades after as little as ~21 frames past the named term and the node's enlarged interior disappears with it.
+- **Proposed correction:** keep each primary named node's enlarged interior visible for 120 frames (4 seconds) when the actual video has space; slow reveal, repeated Login clicks and arrival ramp; reject ultra-short camera focus windows and preserve actual spoken term onsets. Keep SHOT01/EP001 sources protected and do not change narration alignment.
+- **Preventive rule:** if an architectural object cannot be clearly read in a steady, meaningful 3–4 second window, it must not be treated as review-ready. If the unchanged voice forces a shorter window, flag an audio pacing/re-alignment requirement rather than faking timestamps.
+- **Affected assets:** `Shot02DirectorPacing.ts`, `Shot02GeneratedScene.tsx`, `shot02-director-v2.test.mjs`, series visual constitution. No protected shared components modified.
+- **Evidence:** Director feedback in this conversation, V2 render ID above; proposed fix on Draft PR #192.
+- **Verification:** 18/18 isolated pure source-test bodies passed against updated GitHub source, including camera bounds and minimum interior visibility; **V3 Remotion production build, frame QA, audible-pauses revision and MP4 Director review NOT VERIFIED**.
+- **Promotion:** visual constitution updated as rejection/prevention rule, without claiming new V3 visual acceptance.
+- **Supersedes:** the former interpretation that a 0.7-second post-word visual hold is sufficient.
+
 ## Mandatory per-SHOT read and filter
 
 Before working on each SHOT, Codex must read this **entire short ledger** and:

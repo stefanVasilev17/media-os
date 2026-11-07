@@ -37,6 +37,8 @@ public class RemotionRenderController {
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
             Map.entry("EP002-SHOT01-DRAFT",
                 new CompositionProfile("EP002_SHOT01_DRAFT", null, 1920, 1080, 30, 1200, true)),
+            Map.entry("EP002-SHOT02-CANDIDATE",
+                new CompositionProfile("EP002_SHOT02_CANDIDATE", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP001-VerticalSlice",
                 new CompositionProfile("EP001_VERTICAL_SLICE", EP001_ID, 1920, 1080, 30, 1920, false)),
             Map.entry("EP001-Shot01-VoiceSynced",
@@ -179,7 +181,8 @@ public class RemotionRenderController {
             @PathVariable String compositionId,
             @RequestBody(required = false) RenderRequest request
     ) {
-        if ("EP002-SHOT01-DRAFT".equals(compositionId)) {
+        if ("EP002-SHOT01-DRAFT".equals(compositionId)
+                || "EP002-SHOT02-CANDIDATE".equals(compositionId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "EP002 render inputs must come from the verified selected-voice Director endpoint.");
         }
@@ -189,6 +192,11 @@ public class RemotionRenderController {
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
         return ensureVerifiedRender("EP002-SHOT01-DRAFT",
                 new RenderRequest("FAST_PREVIEW",verifiedProps));
+    }
+
+    public Map<String,Object> ensureVerifiedEp002Shot02Preview(Map<String,Object> verifiedProps) {
+        return ensureVerifiedRender("EP002-SHOT02-CANDIDATE",
+                new RenderRequest("REVIEW",verifiedProps));
     }
 
     private Map<String,Object> ensureVerifiedRender(String compositionId,RenderRequest request) {

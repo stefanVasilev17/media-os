@@ -24,6 +24,9 @@ public class Ep002CreativeVoiceController {
                               @NotNull String narration,String voiceDirection) {}
     public record GenerateRequest(@NotNull @Min(1) Integer expectedRevision,
                                   @NotNull UUID requestId) {}
+    public record GenerateSlowRequest(@NotNull @Min(1) Integer expectedRevision,
+                                      @NotNull UUID requestId,
+                                      @NotNull Boolean confirmPaidGeneration) {}
     public record ApproveRequest(@NotNull @Min(1) Integer revision,
                                  @NotNull UUID takeId) {}
 
@@ -42,6 +45,13 @@ public class Ep002CreativeVoiceController {
     public Map<String,Object> generate(@PathVariable String shotKey,
                                        @Valid @RequestBody GenerateRequest request) {
         return voices.generate(shotKey,request.expectedRevision(),request.requestId());
+    }
+
+    @PostMapping("/generate-slow")
+    public Map<String,Object> generateSlow(@PathVariable String shotKey,
+                                           @Valid @RequestBody GenerateSlowRequest request) {
+        return voices.generateSlow(shotKey,request.expectedRevision(),request.requestId(),
+                Boolean.TRUE.equals(request.confirmPaidGeneration()));
     }
 
     @PostMapping("/approve")

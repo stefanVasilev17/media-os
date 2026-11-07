@@ -18,6 +18,12 @@ public class Ep002DirectorVoiceCueController {
         this.service=service;
     }
 
+    @GetMapping("/SHOT02/render-readiness")
+    public Ep002DirectorVoiceCueService.Shot02RenderReadiness shot02RenderReadiness() {
+        DirectorIdentity.requireDirector();
+        return service.shot02RenderReadiness();
+    }
+
     @GetMapping("/{shotKey}")
     public Ep002DirectorVoiceCueService.CueReview get(@PathVariable String shotKey) {
         DirectorIdentity.requireDirector();

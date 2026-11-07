@@ -30,6 +30,7 @@ public class Ep002CreativeVoiceService {
     private final boolean voiceEnabled;
 
     record Script(int revision, String narration, String voiceDirection) {}
+    private static final String STANDARD_DELIVERY="STANDARD";
 
     public Ep002CreativeVoiceService(JdbcClient jdbc, ElevenLabsTextToSpeechService elevenLabs,
                                     Ep002VoiceIdentityGuard identity,
@@ -75,7 +76,8 @@ public class Ep002CreativeVoiceService {
         Script current=latest(shot);
         List<Map<String,Object>> takes=jdbc.sql("""
                 select id,revision,take_number,content_type,model_id,voice_id,
-                       generated_at,approved_at
+                       generated_at,approved_at,
+                       elevenlabs_alignment->>'mediaos_delivery_mode' as delivery_mode
                 from ep002_creative_voice_take
                 where shot_key=:shot order by take_number desc
                 """).param("shot",shot).query((rs,n)->{
@@ -86,6 +88,8 @@ public class Ep002CreativeVoiceService {
                     row.put("contentType",rs.getString("content_type"));
                     row.put("modelId",rs.getString("model_id"));
                     row.put("voiceId",rs.getString("voice_id"));
+                    String deliveryMode=rs.getString("delivery_mode");
+                    row.put("deliveryMode",deliveryMode==null?STANDARD_DELIVERY:deliveryMode);
                     row.put("generatedAt",rs.getObject("generated_at",OffsetDateTime.class).toString());
                     OffsetDateTime approved=rs.getObject("approved_at",OffsetDateTime.class);
                     row.put("approvedAt",approved==null?null:approved.toString());
@@ -125,6 +129,14 @@ public class Ep002CreativeVoiceService {
         result.put("voiceApproved",currentApproved);
         result.put("preferredTakeId",preferredTakeId);
         result.put("canGenerate",blocker==null);
+        String configuredModel=elevenLabs.modelId();
+        boolean lockedShot="SHOT02".equals(shot) && current!=null
+                && configuredModel!=null && configuredModel.startsWith("eleven_v4")
+                && Ep002Shot02SlowNaturalVoice.matchesLockedNarration(current.narration());
+        result.put("canGenerateSlow",lockedShot&&blocker==null);
+        result.put("slowVoicePauseCount",lockedShot?Ep002Shot02SlowNaturalVoice.pauseCount():0);
+        result.put("slowVoiceLongPauseCount",lockedShot?Ep002Shot02SlowNaturalVoice.longPauseCount():0);
+        result.put("slowVoiceDeliveryMode",Ep002Shot02SlowNaturalVoice.DELIVERY_MODE);
         result.put("blockedReason",blocker);
         result.put("generationStatus",paidStatus);
         result.put("voiceModel",elevenLabs.modelId());
@@ -166,7 +178,25 @@ public class Ep002CreativeVoiceService {
     }
 
     public Map<String,Object> generate(String shot,int expectedRevision,UUID requestId) {
+        return generateInternal(shot,expectedRevision,requestId,false);
+    }
+
+    public Map<String,Object> generateSlow(String shot,int expectedRevision,
+                                           UUID requestId,boolean confirmPaidGeneration) {
+        if (!confirmPaidGeneration) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Explicit one-time paid Slow Natural ElevenLabs confirmation is required.");
+        }
+        return generateInternal(shot,expectedRevision,requestId,true);
+    }
+
+    private Map<String,Object> generateInternal(String shot,int expectedRevision,
+                                                 UUID requestId,boolean slowNatural) {
         checkShot(shot);
+        if (slowNatural && !"SHOT02".equals(shot)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Slow Natural delivery is limited to EP002 SHOT02.");
+        }
         requireWrites();
         if (requestId==null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"requestId is required.");
         identity.requireVerified("EP002");
@@ -177,6 +207,8 @@ public class Ep002CreativeVoiceService {
             Script latest=latest(shot);
             if (latest==null || latest.revision()!=expectedRevision)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,"Script changed. Review the saved version before paying.");
+            if (slowNatural) Ep002Shot02SlowNaturalVoice.prompt(
+                    shot,latest.narration(),elevenLabs.modelId());
             var actor=DirectorIdentity.requireDirector();
             try {
                 jdbc.sql("""
@@ -194,12 +226,22 @@ public class Ep002CreativeVoiceService {
             return latest;
         });
         try {
+            String ttsText=slowNatural
+                    ?Ep002Shot02SlowNaturalVoice.prompt(shot,saved.narration(),elevenLabs.modelId())
+                    :saved.narration();
             ElevenLabsTextToSpeechService.GenerationResult take=elevenLabs.generate(
-                    shot,saved.narration(),"","",Map.of(),
+                    shot,ttsText,"","",Map.of(),
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
             String originalTiming;
             try {
-                originalTiming=new ObjectMapper().writeValueAsString(take.alignmentResponse());
+                Map<String,Object> provenance=new LinkedHashMap<>(take.alignmentResponse());
+                provenance.put("mediaos_delivery_mode",slowNatural
+                        ?Ep002Shot02SlowNaturalVoice.DELIVERY_MODE:STANDARD_DELIVERY);
+                provenance.put("mediaos_spoken_script_sha256",
+                        EpisodeLockedScriptVoiceService.narrationHash(saved.narration()));
+                provenance.put("mediaos_tts_request_text_sha256",
+                        EpisodeLockedScriptVoiceService.narrationHash(ttsText));
+                originalTiming=new ObjectMapper().writeValueAsString(provenance);
             } catch (JsonProcessingException problem) {
                 throw new IllegalStateException("ElevenLabs alignment could not be serialized safely.",problem);
             }

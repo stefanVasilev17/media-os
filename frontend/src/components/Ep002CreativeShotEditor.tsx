@@ -22,6 +22,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [confirming,setConfirming]=useState(false);
+  const [slowConfirming,setSlowConfirming]=useState(false);
   const [playing,setPlaying]=useState<string|null>(null);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('');
@@ -98,7 +99,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
 
   async function save(){
     if(!state||busy||loading||!isDirty||!text.trim())return;
-    setBusy(true);setError('');setNotice('');setConfirming(false);
+    setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
     try{
       const next=await ep002CreativeVoiceApi.save(shot.shotKey,state.revision,text,direction);
       apply(next);onProductionChanged?.(shot.shotKey);
@@ -111,18 +112,25 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
     finally{setBusy(false);}
   }
 
-  async function generate(){
-    if(!state||busy||loading||isDirty||!state.canGenerate||state.revision<1||!confirming)return;
-    setBusy(true);setError('');setNotice('');setConfirming(false);
+  async function generate(mode:'standard'|'slow'='standard'){
+    const slow=mode==='slow';
+    if(!state||busy||loading||isDirty||!state.canGenerate||state.revision<1
+      ||(slow?(!slowConfirming||shot.shotKey!=='SHOT02'||!state.canGenerateSlow):!confirming))return;
+    setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
     try{
       const latest=await ep002CreativeVoiceApi.state(shot.shotKey);
       apply(latest);
       if(latest.revision!==state.revision || latest.narration!==state.narration
-        || latest.takes.length!==state.takes.length || !latest.canGenerate)
+        || latest.takes.length!==state.takes.length || !latest.canGenerate
+        ||(slow&&!latest.canGenerateSlow))
         throw new Error('Script or voice state changed. Review the latest version before spending credits.');
-      const next=await ep002CreativeVoiceApi.generate(shot.shotKey,latest.revision,crypto.randomUUID());
+      const next=slow
+        ?await ep002CreativeVoiceApi.generateSlow(shot.shotKey,latest.revision,crypto.randomUUID())
+        :await ep002CreativeVoiceApi.generate(shot.shotKey,latest.revision,crypto.randomUUID());
       stop();apply(next);onProductionChanged?.(shot.shotKey);
-      setNotice('New audio take saved. Listen below and choose your preferred take.');
+      setNotice(slow
+        ?'New slower Eleven v4 Take saved with natural pauses. Listen before selecting it. The original Take is unchanged.'
+        :'New audio take saved. Listen below and choose your preferred take.');
     }catch(cause){
       setError(String(cause)+' If the paid request status is uncertain, do not retry before checking it.');
     }finally{setBusy(false);}
@@ -144,7 +152,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   async function refresh(){
     if(busy||loading)return;
     if(isDirty&&!window.confirm('Discard unsaved edits and reload the saved version?'))return;
-    setLoading(true);setError('');setConfirming(false);
+    setLoading(true);setError('');setConfirming(false);setSlowConfirming(false);
     try{const next=await ep002CreativeVoiceApi.state(shot.shotKey);
       apply(next);setText(next.narration??shot.englishNarration);
       setDirection(next.voiceDirection??shot.voiceDirection);
@@ -192,11 +200,16 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
       </div>}
     {!editing&&<div className="creative-action-row">
       <button type="button" className="library-voice-button secondary" disabled={busy||loading}
-        onClick={()=>{setConfirming(false);setEditing(true);}}>
+        onClick={()=>{setConfirming(false);setSlowConfirming(false);setEditing(true);}}>
         <Pencil size={17}/> Edit script
       </button>
       <button type="button" className="library-voice-button" disabled={busy||loading||!state?.canGenerate}
-        onClick={()=>setConfirming(true)}>{generateLabel}</button>
+        onClick={()=>{setSlowConfirming(false);setConfirming(true);}}>{generateLabel}</button>
+      {shot.shotKey==='SHOT02'&&<button type="button"
+        className="library-voice-button" disabled={busy||loading||!state?.canGenerateSlow}
+        onClick={()=>{setConfirming(false);setSlowConfirming(true);}}>
+        Generate Slow Natural Take
+      </button>}
       <span className="library-voice-count">{allCurrent.length} current take(s) · {state?.takes.length??0} total in history</span>
     </div>}
     {confirming&&state&&<div className="library-voice-confirm" role="group">
@@ -206,7 +219,23 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
         <button type="button" className="library-voice-button secondary" disabled={busy}
           onClick={()=>setConfirming(false)}>No, keep saved text</button>
         <button type="button" className="library-voice-button" disabled={busy||!state.canGenerate||isDirty}
-          onClick={()=>void generate()}>Yes, {generateLabel} (paid)</button>
+          onClick={()=>void generate('standard')}>Yes, {generateLabel} (paid)</button>
+      </div>
+    </div>}
+    {slowConfirming&&state&&shot.shotKey==='SHOT02'&&<div
+      className="library-voice-confirm" role="group" aria-label="Confirm paid slower voice">
+      <p><strong>Generate one NEW SHOT02 voice recording with slower delivery?</strong>
+        {' '}This sends one paid ElevenLabs v4 request using the exact same 115 spoken
+        words from the locked Director script. The voice uses {state.slowVoicePauseCount??15}
+        {' '}natural timing tags, including {state.slowVoiceLongPauseCount??7} long pauses.
+        Actual pause duration is decided by ElevenLabs, so listen before approval.
+        The original recording, approval and script remain unchanged.</p>
+      <div className="library-voice-confirm-buttons">
+        <button type="button" className="library-voice-button secondary" disabled={busy}
+          onClick={()=>setSlowConfirming(false)}>Cancel</button>
+        <button type="button" className="library-voice-button"
+          disabled={busy||!state.canGenerateSlow||isDirty}
+          onClick={()=>void generate('slow')}>Yes, generate one Slow Natural Take (paid)</button>
       </div>
     </div>}
     {!editing&&<div className="creative-direction"><strong>Voice direction</strong>
@@ -218,6 +247,8 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
         className={'library-voice-take'+(take.approvedAt?' approved':'')}>
         <div className="library-voice-take-info">
           <strong>Take {take.takeNumber} · text v{take.revision}</strong>
+          {take.deliveryMode==='ELEVEN_V4_SLOW_NATURAL_PAUSES_V1'&&
+            <span>SLOW NATURAL · original words</span>}
           {take.id===state.preferredTakeId&&<span><CheckCircle2 size={15}/> PREFERRED</span>}
           {take.approvedAt&&take.id!==state.preferredTakeId&&<span>Previously selected</span>}
           {take.revision!==state.revision&&<span>Earlier version</span>}

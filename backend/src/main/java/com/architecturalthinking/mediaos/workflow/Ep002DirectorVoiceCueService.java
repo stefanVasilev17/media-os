@@ -38,6 +38,108 @@ public class Ep002DirectorVoiceCueService {
     private record Selected(UUID id,int revision,String narrationSha,
                             BigDecimal seconds,String alignment) {}
 
+    public record Shot02RenderReadiness(
+            String shotKey, String inputFingerprint, String voiceTakeId,
+            int durationInFrames, String timingMode,
+            List<Ep002VoiceBeatResolver.BeatCue> verifiedCues,
+            List<Ep002Shot02TermResolver.TermCue> termCues,
+            boolean ready, String reason) {}
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Shot02RenderReadiness shot02RenderReadiness() {
+        DirectorIdentity.requireDirector();
+        CueReview review=preview("SHOT02");
+        var current=episode.snapshot();
+        var shot=current.shots().stream()
+                .filter(s->"SHOT02".equals(s.shotKey()))
+                .findFirst().orElseThrow(()->conflict("SHOT02 source is unavailable."));
+        int duration=shot.durationFrames()==null?0:shot.durationFrames();
+        String takeId=shot.preferredTakeId();
+        if(!review.verified() || !review.inputFingerprint().equals(current.inputFingerprint())
+                || !shot.currentVoiceApproved() || !shot.hearSeeTimingVerified()
+                || takeId==null || !takeId.equals(review.selectedTakeId())
+                || duration<6 || review.frames().size()!=5) {
+            return new Shot02RenderReadiness("SHOT02",current.inputFingerprint(),takeId,
+                    duration,"ELEVENLABS_CHARACTER_TIMESTAMPS",
+                    List.of(),List.of(),false,"CURRENT_DIRECTOR_VOICE_CUE_REVIEW_REQUIRED");
+        }
+        Selected take=selected(shot);
+        if(take==null || take.alignment()==null || take.alignment().isBlank()
+                || take.seconds()==null
+                || take.seconds().compareTo(shot.measuredVoiceSeconds())!=0
+                || (int)Math.ceil(take.seconds().doubleValue()*30d)!=duration
+                || !take.id().toString().equals(takeId)
+                || !take.narrationSha().equals(shot.narrationSha256())
+                || take.revision()!=shot.scriptRevision()) {
+            return new Shot02RenderReadiness("SHOT02",current.inputFingerprint(),takeId,
+                    duration,"ELEVENLABS_CHARACTER_TIMESTAMPS",
+                    List.of(),List.of(),false,"CURRENT_SELECTED_TAKE_ALIGNMENT_INVALID");
+        }
+        try {
+            var terms=Ep002Shot02TermResolver.resolve(
+                    mapper,take.alignment(),take.seconds(),review.frames());
+            return new Shot02RenderReadiness("SHOT02",current.inputFingerprint(),takeId,
+                    duration,"ELEVENLABS_CHARACTER_TIMESTAMPS",
+                    review.frames(),terms,true,"VERIFIED_SAME_TAKE_REAL_CHARACTER_TIMESTAMPS");
+        } catch(IllegalArgumentException invalid) {
+            return new Shot02RenderReadiness("SHOT02",current.inputFingerprint(),takeId,
+                    duration,"ELEVENLABS_CHARACTER_TIMESTAMPS",
+                    List.of(),List.of(),false,invalid.getMessage());
+        }
+    }
+
+
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Ep002Shot02EditorialPausePlan.Plan editorialPlan(
+            Shot02RenderReadiness verified) {
+        DirectorIdentity.requireDirector();
+        if(verified==null||!verified.ready()||verified.voiceTakeId()==null
+                ||verified.verifiedCues().size()!=5||verified.termCues().size()!=7)
+            throw conflict("SHOT02_EDITORIAL_REQUIRES_CURRENT_VERIFIED_TAKE");
+        record Voice(BigDecimal seconds,String alignment) {}
+        Voice take=jdbc.sql("""
+                select duration_seconds,elevenlabs_alignment::text as alignment
+                from ep002_creative_voice_take where id=:id and shot_key='SHOT02'
+                """).param("id",UUID.fromString(verified.voiceTakeId()))
+                .query((rs,n)->new Voice(rs.getBigDecimal("duration_seconds"),
+                        rs.getString("alignment")))
+                .optional().orElseThrow(() -> conflict(
+                    "SHOT02_CURRENT_SELECTED_SOURCE_TAKE_NOT_FOUND"));
+        var plan=Ep002Shot02EditorialPausePlan.fromVerified(
+                mapper,take.alignment(),take.seconds(),
+                verified.verifiedCues(),verified.termCues());
+        if(plan.sourceDurationInFrames()!=verified.durationInFrames())
+            throw conflict("SHOT02_EDITORIAL_SOURCE_DURATION_CHANGED");
+        return plan;
+    }
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public boolean matchesCurrentShot02Render(String fingerprint, String takeId,
+                                               int scriptRevision, int durationFrames) {
+        if (fingerprint==null || !fingerprint.matches("[a-f0-9]{64}")
+                || takeId==null || !takeId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                || scriptRevision<1 || durationFrames<6) {
+            return false;
+        }
+        try {
+            var current=episode.snapshot();
+            var shot=current.shots().stream().filter(s->"SHOT02".equals(s.shotKey()))
+                    .findFirst().orElse(null);
+            return current.sourceVerified()
+                    && current.inputFingerprint().equals(fingerprint)
+                    && shot!=null
+                    && shot.currentVoiceApproved() && shot.hearSeeTimingVerified()
+                    && takeId.equals(shot.preferredTakeId())
+                    && scriptRevision==shot.scriptRevision()
+                    && shot.durationFrames()!=null
+                    && durationFrames==shot.durationFrames();
+        } catch (RuntimeException staleOrUnavailable) {
+            return false;
+        }
+    }
+
     private static void validateShot(String shot) {
         if(shot==null||!shot.matches("SHOT(0[1-9]|1[01])"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -169,7 +271,8 @@ public class Ep002DirectorVoiceCueService {
                         String cueDigest=Ep002ProductionContractService.sha256(
                                 shot+"|"+rs.getString("original_fingerprint")+
                                 "|"+take.id()+"|"+canonical);
-                        boolean verified=rs.getString("alignment_sha256").equals(
+                        boolean verified=fingerprint.equals(rs.getString("original_fingerprint"))
+                                && rs.getString("alignment_sha256").equals(
                                     Ep002ProductionContractService.sha256(take.alignment()))
                                 && rs.getString("cue_digest_sha256").equals(cueDigest)
                                 && source.measuredVoiceSeconds().compareTo(take.seconds())==0
