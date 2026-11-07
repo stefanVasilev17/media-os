@@ -38,6 +38,7 @@ export type Shot02TermCue = {
 
 export type Shot02GeneratedSceneProps = {
   durationInFrames: number;
+  postVoiceHoldFrames?: number;
   voiceTakeId: string;
   timingMode: 'ELEVENLABS_CHARACTER_TIMESTAMPS' | 'ELEVENLABS_REAL_TIMESTAMPS_PLUS_EDITORIAL_SILENCE_V1';
   verifiedCues: Shot02VerifiedCue[];
