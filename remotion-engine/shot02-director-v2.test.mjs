@@ -117,6 +117,10 @@ test('V2 is deterministic and never creates audio timings, fake voice or decorat
   assert.match(scene,/shot02FlowIntensity\(frame,terms\[4\]\.startFrame/);
   assert.match(scene,/clock=\{flowClock\}/);
   assert.match(scene,/<SpokenRequestMarker frame=\{frame\}/);
+  const marker=scene.slice(scene.indexOf('const SpokenRequestMarker:'),
+    scene.indexOf('const SemanticNodeHalo:'));
+  assert.match(marker,/shot02ReadableInterior\(frame,cue,duration\)/,
+    'real spoken LOGIN REQUEST label must stay visible even when new term follows');
   assert.match(scene,/<FocusedNodeInterior node="gateway"/);
   assert.match(scene,/<FocusedNodeInterior node="balancer"/);
   assert.match(scene,/<FocusedNodeInterior node="auth"/);
