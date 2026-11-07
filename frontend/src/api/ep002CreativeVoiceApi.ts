@@ -1,7 +1,7 @@
 export type CreativeTake={
   id:string; revision:number; takeNumber:number; contentType:string;
   modelId:string; voiceId:string; generatedAt:string; approvedAt:string|null;
-  deliveryMode?:string;
+  deliveryMode?:string;restoredFromTakeNumber?:number|null;
 };
 export type CreativeShotState={
   shotKey:string; revision:number; narration:string|null; voiceDirection:string|null;
@@ -56,6 +56,9 @@ export const ep002CreativeVoiceApi={
   approve:(shot:string,revision:number,takeId:string)=>
     request<CreativeShotState>(base(shot)+'/approve','POST',{revision,takeId}),
   audio:(shot:string,takeId:string)=>base(shot)+'/takes/'+encodeURIComponent(takeId)+'/audio',
+  restoreOlderTake:(shot:string,expectedRevision:number,sourceTakeId:string)=>
+    request<CreativeShotState>(base(shot)+'/restore-older-take','POST',{expectedRevision,sourceTakeId}),
+
   alignmentState:(shot:string)=>request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take'),
   alignExisting:(shot:string,preferredTakeId:string,expectedRevision:number,requestId:string)=>
     request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take','POST',{

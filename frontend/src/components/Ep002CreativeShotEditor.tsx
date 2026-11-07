@@ -150,6 +150,25 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   }
 
   async function refresh(){
+  async function restoreOlderTake(takeId:string,takeNumber:number,takeRevision:number){
+    if(!state||busy||loading||isDirty||shot.shotKey!=='SHOT01')return;
+    if(!window.confirm('Restore the exact narration from text v'+takeRevision+
+      ' and reuse the audio of Take '+takeNumber+'? This creates a NEW editable revision and a verified copy of the saved audio. '+
+      'The existing current script, Take history and original Take '+takeNumber+
+      ' remain unchanged. No ElevenLabs generation or credits will be used.'))return;
+    setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
+    try{
+      const next=await ep002CreativeVoiceApi.restoreOlderTake(shot.shotKey,state.revision,takeId);
+      stop();apply(next);onProductionChanged?.(shot.shotKey);
+      setText(next.narration??shot.englishNarration);
+      setDirection(next.voiceDirection??shot.voiceDirection);
+      setEditing(false);
+      setNotice('Restored original Take '+takeNumber+' audio as the approved current version. '+
+        'The prior Take and all revisions remain in history. Re-verify real voice cues before rendering.');
+    }catch(cause){setError(String(cause));}finally{setBusy(false);}
+  }
+
+
     if(busy||loading)return;
     if(isDirty&&!window.confirm('Discard unsaved edits and reload the saved version?'))return;
     setLoading(true);setError('');setConfirming(false);setSlowConfirming(false);
@@ -251,6 +270,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
             <span>SLOW NATURAL · original words</span>}
           {take.id===state.preferredTakeId&&<span><CheckCircle2 size={15}/> PREFERRED</span>}
           {take.approvedAt&&take.id!==state.preferredTakeId&&<span>Previously selected</span>}
+          {take.restoredFromTakeNumber!=null&&<span>Audio restored from Take {take.restoredFromTakeNumber}</span>}
           {take.revision!==state.revision&&<span>Earlier version</span>}
         </div>
         <audio preload="none" ref={audio=>{audioRefs.current[take.id]=audio;}}
@@ -305,6 +325,12 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
           {take.id!==state.preferredTakeId && take.revision===state.revision &&
             <button type="button" className="library-voice-button secondary" disabled={busy||isDirty}
               onClick={()=>void approve(take.id)}>Use this take</button>}
+          {shot.shotKey==='SHOT01'&&state.revision>take.revision&&
+            <button type="button" className="library-voice-button secondary"
+              disabled={busy||loading||isDirty}
+              onClick={()=>void restoreOlderTake(take.id,take.takeNumber,take.revision)}>
+              Restore &amp; use Take {take.takeNumber} · no TTS
+            </button>}
         </div>
       </div>)}
     </div>}

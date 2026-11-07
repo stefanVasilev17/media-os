@@ -29,6 +29,8 @@ class Ep002CreativeVoiceServiceTest {
                     ()->creative.generate(key,1,java.util.UUID.randomUUID()));
             assertThrows(ResponseStatusException.class,
                     ()->creative.approve(key,1,java.util.UUID.randomUUID()));
+            assertThrows(ResponseStatusException.class,
+                    ()->creative.restoreOlderTake(key,1,java.util.UUID.randomUUID()));
         }
     }
 
@@ -39,6 +41,20 @@ class Ep002CreativeVoiceServiceTest {
                 slow.generateSlow("SHOT02",1,java.util.UUID.randomUUID(),false));
         assertThrows(ResponseStatusException.class,()->
                 slow.generateSlow("SHOT03",1,java.util.UUID.randomUUID(),true));
+    }
+
+    @Test
+    void restorationIsShot01OnlyAndNeverSendsVoiceToProvider() {
+        var db=mock(JdbcClient.class);
+        var tts=mock(ElevenLabsTextToSpeechService.class);
+        var creative=new Ep002CreativeVoiceService(db,tts,
+                mock(Ep002VoiceIdentityGuard.class),
+                mock(PlatformTransactionManager.class),true);
+        assertThrows(ResponseStatusException.class,
+                ()->creative.restoreOlderTake("SHOT02",2,java.util.UUID.randomUUID()));
+        assertThrows(ResponseStatusException.class,
+                ()->creative.restoreOlderTake("SHOT03",2,java.util.UUID.randomUUID()));
+        verifyNoInteractions(db,tts);
     }
 
     @Test
