@@ -290,7 +290,7 @@ const ArrivalCounter: React.FC<{reveal:number;value:number;frame:number}> = ({re
 const SpokenRequestMarker:React.FC<{
   frame:number;cue:Shot02TermCue;nextStart:number;duration:number;
 }>=({frame,cue,nextStart,duration})=>{
-  const focus=shot02TermHold(frame,cue,nextStart,duration);
+  const focus=shot02ReadableInterior(frame,cue,duration);
   if(focus<=.005)return null;
   return <div style={{
     position:'absolute',...SHOT02_REQUEST_MARKER,zIndex:14,
