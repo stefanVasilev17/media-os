@@ -85,7 +85,8 @@ test('Three fixed text lanes stay outside the animated camera and upper-right cl
 test('Three independent Auth replica objects share one database and own lookup paths',()=>{
   for(const word of ['Auth Service','User Database','SHARED ACCOUNT LOOKUP'])
     assert.ok(shot02.includes(word),'missing architecture '+word);
-  assert.match(shot02,/THREE INDEPENDENT REPLICAS/);
+  assert.match(shot02,/<AuthReplicaCluster activity=\{authActivity\}/);
+  assert.doesNotMatch(shot02,/THREE INDEPENDENT REPLICAS/);
   assert.match(pressure,/AUTH 01/);
   assert.match(pressure,/AUTH 02/);
   assert.match(pressure,/AUTH 03/);
