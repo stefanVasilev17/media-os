@@ -37,6 +37,20 @@ const interpolateStops = (value:number, stops:readonly string[]):string => {
   return mixHex(stops[index],stops[index+1],p-index);
 };
 
+export const SHOT02_LOGIN_PARTICLE={
+  radius:9,
+  fill:'#73FFD0',
+  glow:'drop-shadow(0 0 11px rgba(104,255,190,.92))',
+} as const;
+
+export function shot02ClosingBannerReveal(frame:number,spokenFrames:number) {
+  return smooth01((frame-(spokenFrames-60))/24);
+}
+
+export function shot02DatabaseStress(frame:number,lastDatabaseTermEndFrame:number) {
+  return smooth01((frame-lastDatabaseTermEndFrame)/65);
+}
+
 export function shot02UserRequestPressure(
   context:number,wave:number,distribution:number,auth:number,arrival:number,
 ):number {
@@ -68,7 +82,7 @@ export function shot02RequestStreamActivation(frame:number,firstTapFrame:number)
 }
 
 export function shot02CounterLift(frame:number,spokenFrames:number) {
-  return 110*smooth01((frame-(spokenFrames-7))/25);
+  return 160*smooth01((frame-(spokenFrames-95))/32);
 }
 
 export function shot02ButtonColors(pressure:number) {
