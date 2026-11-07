@@ -1,7 +1,7 @@
 export type CreativeTake={
   id:string; revision:number; takeNumber:number; contentType:string;
   modelId:string; voiceId:string; generatedAt:string; approvedAt:string|null;
-  deliveryMode?:string;
+  deliveryMode?:string;restoredFromTakeNumber?:number|null;
 };
 export type CreativeShotState={
   shotKey:string; revision:number; narration:string|null; voiceDirection:string|null;
