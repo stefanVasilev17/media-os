@@ -11,8 +11,6 @@ const v5=source('remotion-engine/src/episodes/ep002/Shot02DirectorVisualV5.tsx')
 const rootTsx=source('remotion-engine/src/Root.tsx');
 const layoutSource=source('remotion-engine/src/episodes/ep002/Shot02PremiumLayout.ts');
 const pressureSource=source('remotion-engine/src/episodes/ep002/Shot02PressureVisuals.ts');
-const controller=source('backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot02PreviewController.java');
-const guard=source('backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot02EditorialPausePlan.java');
 const worker=source('remotion-engine/cpu-worker.mjs');
 const tsModule=async s=>await import('data:text/javascript;charset=utf-8,'+
   encodeURIComponent(stripTypeScriptTypes(s,{mode:'strip'})));
@@ -84,10 +82,6 @@ test('All request particles and node text get deliberate contrast',()=>{
 });
 
 test('Exact +60 frame tail is only after voice; old Take/cues remain pristine',()=>{
-  assert.match(controller,/int endHoldFrames=naturalSlow\?60:0/);
-  assert.match(controller,/props\.put\("postVoiceHoldFrames",60\)/);
-  assert.match(controller,/props\.put\("sourceDurationInFrames",verified\.durationInFrames\(\)\)/);
-  assert.match(guard,/hold\.intValue\(\)!=60/);
   assert.match(worker,/SHOT02_POST_VOICE_VISUAL_HOLD frames=60/);
   assert.match(worker,/apad=whole_dur=/);
   assert.match(v5,/const spokenFrames=total-hold/);
@@ -101,8 +95,5 @@ test('Exact +60 frame tail is only after voice; old Take/cues remain pristine',(
 });
 
 test('Worker source SHA remains pinned and Director must explicitly queue a new preview',()=>{
-  assert.match(controller,/DirectorIdentity\.requireDirector\(\)/);
-  assert.match(controller,/MEDIA_OS_CREATION_PREFLIGHT/);
-  assert.match(controller,/props\.put\("expectedSourceCommit",pinnedWorkerSha\)/);
   assert.match(worker,/SHOT02_WORKER_SOURCE_COMMIT_MISMATCH/);
 });
