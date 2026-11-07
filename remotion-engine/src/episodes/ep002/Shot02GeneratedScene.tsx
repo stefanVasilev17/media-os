@@ -33,7 +33,7 @@ export type Shot02TermCue = {
 export type Shot02GeneratedSceneProps = {
   durationInFrames: number;
   voiceTakeId: string;
-  timingMode: 'ELEVENLABS_CHARACTER_TIMESTAMPS';
+  timingMode: 'ELEVENLABS_CHARACTER_TIMESTAMPS' | 'ELEVENLABS_REAL_TIMESTAMPS_PLUS_EDITORIAL_SILENCE_V1';
   verifiedCues: Shot02VerifiedCue[];
   termCues: Shot02TermCue[];
 };
@@ -95,7 +95,8 @@ export function requireShot02VerifiedCues(
   if (!Number.isInteger(durationInFrames) || durationInFrames < 6 ||
       durationInFrames > 108000 || !voiceTakeId ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(voiceTakeId) ||
-      timingMode !== 'ELEVENLABS_CHARACTER_TIMESTAMPS' ||
+      (timingMode !== 'ELEVENLABS_CHARACTER_TIMESTAMPS' &&
+       timingMode !== 'ELEVENLABS_REAL_TIMESTAMPS_PLUS_EDITORIAL_SILENCE_V1') ||
       !Array.isArray(verifiedCues) || verifiedCues.length !== 5) {
     throw new Error('SHOT02_REQUIRES_DIRECTOR_VERIFIED_ELEVENLABS_CUES');
   }
