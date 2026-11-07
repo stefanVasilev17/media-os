@@ -13,7 +13,7 @@ const layout=await import('data:text/javascript;charset=utf-8,'+encodeURICompone
 
 test('SHOT02 premium HUD lanes do not overlap or leave 1080p frame',()=>{
   const lanes=Object.entries(layout.SHOT02_TEXT_LANES);
-  assert.equal(lanes.length,4);
+  assert.equal(lanes.length,3);
   for(const [name,area] of lanes){
     assert.ok(area.left>=44&&area.top>=40,name+' left/top margin');
     assert.ok(area.left+area.width<=1880&&area.top+area.height<=1040,
@@ -60,4 +60,17 @@ test('collision guard rejects unsafe camera translations or invalid camera scale
     /SHOT02_CAMERA_CONTRACT_INVALID/);
   assert.throws(()=>layout.assertShot02TextLanes({x:Number.NaN,y:0,scale:1}),
     /SHOT02_CAMERA_CONTRACT_INVALID/);
+});
+
+test('Spoken Login request label stays beside the path, not over Phone or server nodes',()=>{
+  const marker=layout.SHOT02_REQUEST_MARKER;
+  assert.deepEqual(marker,{left:792,top:645,width:204,height:46});
+  const phone={left:320,top:165,width:450,height:815};
+  const nodes=Object.values(layout.SHOT02_NODES).map(n=>({
+    left:n.x-n.width/2,top:n.y,width:n.width,height:n.height,
+  }));
+  for(const region of [...nodes,phone]){
+    assert.equal(layout.shot02Intersects(marker,region,12),false,
+      'Login packet label must not overlap protected architecture');
+  }
 });
