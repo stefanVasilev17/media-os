@@ -335,17 +335,13 @@ const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,fra
 };
 
 const FocusedNodeInterior:React.FC<{
-  node:Shot02FocusKey;focus:number;frame:number;
+  node:'gateway'|'balancer';focus:number;frame:number;
 }>=({node,focus,frame})=>{
   if(focus<=.005)return null;
   const box=SHOT02_NODES[node];
-  const auth=node==='auth';
-  const rows=auth?['AUTH 01','AUTH 02','AUTH 03']:
-    node==='gateway'?['REQUEST ENTRY','GATEWAY']:
-    node==='balancer'?['DISTRIBUTION','AUTH ROUTING']:
-      ['USER RECORDS','SHARED LOOKUP'];
-  const color=node==='gateway'?C.cyan:node==='balancer'?C.mint:C.violet;
-  const height=auth?230:Math.min(130,box.height-70);
+  const rows=node==='gateway'?['REQUEST ENTRY','GATEWAY']:['DISTRIBUTION','AUTH ROUTING'];
+  const color=node==='gateway'?C.cyan:C.mint;
+  const height=Math.min(130,box.height-70);
   return <div style={{
     position:'absolute',left:box.x-box.width/2+12,top:box.y+58,
     width:box.width-24,height,zIndex:12,
@@ -355,16 +351,16 @@ const FocusedNodeInterior:React.FC<{
     boxShadow:'0 0 '+(12+focus*24)+'px '+color+'33',
     transform:'translateY('+((1-focus)*9)+'px) scale('+(0.975+.025*focus)+')',
     transformOrigin:'50% 15%',opacity:focus,
-    display:'flex',flexDirection:'column',justifyContent:'center',gap:auth?10:8,
-    padding:auth?'13px 16px':'10px 12px',
+    display:'flex',flexDirection:'column',justifyContent:'center',gap:8,
+    padding:'10px 12px',
     pointerEvents:'none',fontFamily:AT_FONT,overflow:'hidden',
   }}>
     {rows.map((label,i)=><div key={label} style={{
-      minHeight:auth?47:38,borderRadius:8,display:'flex',
+      minHeight:38,borderRadius:8,display:'flex',
       alignItems:'center',justifyContent:'center',gap:9,
       border:'1px solid '+color+'66',
       background:'rgba(12,43,62,.95)',
-      color:C.ink,fontSize:auth?19:node==='database'?16:16,
+      color:C.ink,fontSize:16,
       fontWeight:770,letterSpacing:'-.025em',whiteSpace:'nowrap',
       boxShadow:'inset 0 0 14px '+color+'13',
     }}>
@@ -392,6 +388,14 @@ const AuthReplicaCluster:React.FC<{
       fontSize:24,fontWeight:790,color:C.ink,letterSpacing:'-.018em'}}>Auth Service</div>
     <div style={{position:'absolute',top:50,left:0,right:0,textAlign:'center',
       fontSize:13,fontWeight:740,color:C.muted,letterSpacing:'.10em'}}>THREE INDEPENDENT REPLICAS</div>
+    {SHOT02_AUTH_REPLICA_PORTS.map(replica=><React.Fragment key={replica.id}>
+      <div style={{position:'absolute',left:1,top:replica.y-box.y-1,
+        width:39,height:2,background:C.mint,
+        opacity:.28+.5*activity,pointerEvents:'none'}}/>
+      <div style={{position:'absolute',right:1,top:replica.y-box.y-1,
+        width:22,height:2,background:C.amber,
+        opacity:.18+.65*activity,pointerEvents:'none'}}/>
+    </React.Fragment>)}
     {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
       const activityLevel=clamp(activity*(.83+.13*Math.sin(frame*.026-i*.63)));
       return <div key={replica.id} style={{
