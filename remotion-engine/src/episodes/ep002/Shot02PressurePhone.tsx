@@ -123,7 +123,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,sp
 
 export type Shot02PressurePhoneProps = {
   pressure: number;
-  pressStartFrame: number;
+  pressStartFrame?: number;
   frame: number;
   reveal: number;
   credential: number;
@@ -140,7 +140,7 @@ export type Shot02PressurePhoneProps = {
   heroPush?: number;
 };
 
-export const Shot02PressurePhone: React.FC<Shot02PressurePhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,pressure,pressStartFrame,realism=1,heroPush=0}) => {
+export const Shot02PressurePhone: React.FC<Shot02PressurePhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,pressure,pressStartFrame=Number.POSITIVE_INFINITY,realism=1,heroPush=0}) => {
   const scale = .91 + heroPush*.016*(1-reveal) + (.70-.91)*reveal + (.60-.70)*credential + (.53-.60)*ui + .115;
   const top = 66 + (332-66)*reveal + (468-332)*credential + (592-468)*ui - 28;
   const rotateY = -2.2 + reveal*.8 + credential*.25 + ui*.15;
