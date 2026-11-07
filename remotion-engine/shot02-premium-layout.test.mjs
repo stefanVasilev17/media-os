@@ -50,7 +50,7 @@ test('V5 camera is stationary and all 3 safe text lanes remain unobstructed',()=
 
 test('collision guard rejects unsafe camera translations or invalid camera scale',()=>{
   assert.throws(()=>layout.assertShot02TextLanes({x:850,y:0,scale:1}),
-    /SHOT02_TEXT_OVERLAPS_ARCHITECTURE/);
+    /SHOT02_CAMERA_CONTRACT_INVALID/);
   assert.throws(()=>layout.assertShot02TextLanes({x:0,y:0,scale:2}),
     /SHOT02_CAMERA_CONTRACT_INVALID/);
   assert.throws(()=>layout.assertShot02TextLanes({x:Number.NaN,y:0,scale:1}),
