@@ -294,6 +294,47 @@ const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,fra
   }}/>;
 };
 
+const FocusedNodeInterior:React.FC<{
+  node:Shot02FocusKey;focus:number;frame:number;
+}>=({node,focus,frame})=>{
+  if(focus<=.005)return null;
+  const box=SHOT02_NODES[node];
+  const auth=node==='auth';
+  const rows=auth?['AUTH 01','AUTH 02','AUTH 03']:
+    node==='gateway'?['REQUEST ENTRY','GATEWAY']:
+    node==='balancer'?['DISTRIBUTION','AUTH ROUTING']:
+      ['USER RECORDS','SHARED LOOKUP'];
+  const color=node==='gateway'?C.cyan:node==='balancer'?C.mint:C.violet;
+  const height=auth?230:Math.min(130,box.height-70);
+  return <div style={{
+    position:'absolute',left:box.x-box.width/2+12,top:box.y+58,
+    width:box.width-24,height,zIndex:12,
+    borderRadius:13,border:'1.5px solid '+color+'99',
+    boxSizing:'border-box',
+    background:'linear-gradient(180deg,rgba(6,28,45,.985),rgba(4,14,27,.998))',
+    boxShadow:'0 0 '+(12+focus*24)+'px '+color+'33',
+    transform:'translateY('+((1-focus)*9)+'px) scale('+(0.975+.025*focus)+')',
+    transformOrigin:'50% 15%',opacity:focus,
+    display:'flex',flexDirection:'column',justifyContent:'center',gap:auth?10:8,
+    padding:auth?'13px 16px':'10px 12px',
+    pointerEvents:'none',fontFamily:AT_FONT,overflow:'hidden',
+  }}>
+    {rows.map((label,i)=><div key={label} style={{
+      minHeight:auth?47:38,borderRadius:8,display:'flex',
+      alignItems:'center',justifyContent:'center',gap:9,
+      border:'1px solid '+color+'66',
+      background:'rgba(12,43,62,.95)',
+      color:C.ink,fontSize:auth?19:node==='database'?16:16,
+      fontWeight:770,letterSpacing:'-.025em',whiteSpace:'nowrap',
+      boxShadow:'inset 0 0 14px '+color+'13',
+    }}>
+      <span style={{width:7,height:7,borderRadius:'50%',background:color,
+        opacity:.65+.25*Math.sin(frame*.055+i*1.1)}}/>
+      {label}
+    </div>)}
+  </div>;
+};
+
 const ReplicaRail:React.FC<{frame:number;reveal:number;focus:number}>=
 ({frame,reveal,focus})=>(
   <div style={{
@@ -331,11 +372,30 @@ const ArchitectureWorld: React.FC<{
   const database=ease(frame,terms[6].startFrame,terms[6].startFrame+33);
   const camGateway=ease(frame,terms[1].startFrame,terms[1].startFrame+40);
   const camDb=ease(frame,terms[6].startFrame,terms[6].startFrame+42);
-  const cameraX=-55*context-215*camGateway-280*camDb;
-  const cameraY=-8*camGateway-12*camDb;
-  const cameraScale=1.018-.045*context+.04*camGateway+.028*camDb;
+  const baseCamera={
+    x:-55*context-215*camGateway-280*camDb,
+    y:-8*camGateway-12*camDb,
+    scale:1.018-.045*context+.04*camGateway+.028*camDb,
+  };
+  const focusWeights:Shot02FocusWeights={
+    gateway:shot02TermHold(frame,terms[1],terms[2].startFrame,duration),
+    balancer:shot02TermHold(frame,terms[2],terms[3].startFrame,duration),
+    auth:Math.max(
+      shot02TermHold(frame,terms[3],terms[4].startFrame,duration),
+      shot02TermHold(frame,terms[5],terms[6].startFrame,duration)),
+    database:shot02TermHold(frame,terms[6],duration+1,duration),
+  };
+  const {x:cameraX,y:cameraY,scale:cameraScale}=
+    shot02FocusCamera(baseCamera,focusWeights);
+  const tapStart=starts[2];
+  const tapEnd=Math.max(tapStart+18,
+    Math.min(terms[1].startFrame-2,terms[0].endFrame+45));
+  const repeatedTap=shot02TapPulse(frame,tapStart,tapEnd);
   const requestMention=ease(frame,terms[0].startFrame,terms[0].startFrame+15);
-  const density=.21*context+.25*wave+.11*requestMention+.18*distribution+.17*database;
+  const flowBoost=shot02FlowIntensity(frame,terms[4].startFrame,
+    terms[4].endFrame+32);
+  const density=clamp(.18*context+.19*wave+.12*requestMention
+    +.16*distribution+.15*database+.20*flowBoost);
   const active=activeSpokenTerm(frame,terms);
   const named=active?.id??null;
   const countTransition=ease(frame,terms[4].endFrame+4,
@@ -360,7 +420,8 @@ const ArchitectureWorld: React.FC<{
       </AbsoluteFill>
       <ATCameraRig x={cameraX} y={cameraY} scale={cameraScale} zIndex={3}>
         <FlowPaths frame={frame} active={wave + gateway * .32}
-          distribution={distribution} database={database} density={density}/>
+          distribution={distribution} database={database} density={density}
+          acceleration={flowBoost} tap={repeatedTap}/>
         <div style={{
           position: 'absolute', inset: 0, zIndex: 3,
           transform: 'translate3d(-400px,-107px,0) scale(1.08)',
@@ -371,7 +432,7 @@ const ArchitectureWorld: React.FC<{
             frame={frame} reveal={1} credential={.22} ui={0}
             emailValue="user@example.com" passwordDots="••••••••"
             emailFocus={0} passwordFocus={0} localUi={0}
-            press={0} waiting={0} spinner={0}
+            press={repeatedTap} waiting={0} spinner={0}
             realism={1} heroPush={0}
           />
         </div>
@@ -419,11 +480,14 @@ const ArchitectureWorld: React.FC<{
         />
         <ReplicaRail frame={frame} reveal={authActivity} focus={
           named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?1:.3}/>
+        <FocusedNodeInterior node="gateway" focus={focusWeights.gateway} frame={frame}/>
+        <FocusedNodeInterior node="balancer" focus={focusWeights.balancer} frame={frame}/>
+        <FocusedNodeInterior node="auth" focus={focusWeights.auth} frame={frame}/>
+        <FocusedNodeInterior node="database" focus={focusWeights.database} frame={frame}/>
         <SemanticNodeHalo cue={active} frame={frame}/>
       </ATCameraRig>
       <ContextLabel reveal={context}/>
       <ArrivalCounter reveal={arrival} value={arrivalValue} frame={frame}/>
-      <SemanticTermHud frame={frame} cue={active}/>
     </ATBackground>
   );
 };
