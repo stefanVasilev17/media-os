@@ -8,14 +8,14 @@ import {
 } from './Shot02GeneratedScene';
 import {
   SHOT02_NODES,SHOT02_REQUEST_MARKER,SHOT02_TEXT_LANES,
-  SHOT02_PHONE_VISUAL_SAFE_BOUNDS,assertShot02TextLanes,
+  assertShot02TextLanes,
 } from './Shot02PremiumLayout';
 import {
   SHOT02_AUTH_REPLICA_PORTS,SHOT02_AUTH_CARD_LEFT,SHOT02_AUTH_CARD_RIGHT,
   SHOT02_DATABASE_ENTRY,SHOT02_BALANCER_EXIT,SHOT02_GATEWAY_ENTRY,
   SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY,SHOT02_PHONE_PIPE,
   shot02CubicPoint,shot02UserRequestPressure,shot02SharedDbPressure,
-  shot02ButtonColors,shot02DatabaseColors,
+  shot02DatabaseColors,
 } from './Shot02PressureVisuals';
 import {shot02TapPulse,shot02FlowClock,shot02FlowIntensity} from './Shot02DirectorPacing';
 
