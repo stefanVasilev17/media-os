@@ -56,6 +56,9 @@ export const ep002CreativeVoiceApi={
   approve:(shot:string,revision:number,takeId:string)=>
     request<CreativeShotState>(base(shot)+'/approve','POST',{revision,takeId}),
   audio:(shot:string,takeId:string)=>base(shot)+'/takes/'+encodeURIComponent(takeId)+'/audio',
+  restoreOlderTake:(shot:string,expectedRevision:number,sourceTakeId:string)=>
+    request<CreativeShotState>(base(shot)+'/restore-older-take','POST',{expectedRevision,sourceTakeId}),
+
   alignmentState:(shot:string)=>request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take'),
   alignExisting:(shot:string,preferredTakeId:string,expectedRevision:number,requestId:string)=>
     request<ExistingTakeAlignmentState>(base(shot)+'/align-existing-take','POST',{
