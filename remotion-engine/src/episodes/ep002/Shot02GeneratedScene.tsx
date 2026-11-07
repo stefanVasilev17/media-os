@@ -9,7 +9,7 @@ import {
 } from '../../components/architectural-thinking';
 import {Shot01ReadablePhone} from './Shot01ReadablePhone';
 import {SHOT02_NODES, SHOT02_TEXT_LANES, assertShot02TextLanes} from './Shot02PremiumLayout';
-import {shot02TapPulse,shot02TermHold,shot02FlowIntensity,shot02FocusCamera,
+import {shot02TapPulse,shot02TermHold,shot02FlowIntensity,shot02FocusCamera,shot02FlowClock,
   type Shot02FocusKey,type Shot02FocusWeights} from './Shot02DirectorPacing';
 
 export type Shot02VerifiedCue = {
@@ -173,72 +173,83 @@ function requestPoint(t: number) {
   };
 }
 
-const ArrivalWave: React.FC<{frame: number; density: number}> = ({frame, density}) => (
+const ArrivalWave: React.FC<{
+  clock:number;density:number;acceleration:number;tap:number;
+}>=({clock,density,acceleration,tap})=>(
   <g>
-    {Array.from({length: 18}, (_, i) => {
-      const available = density * 18 > i;
-      const progress = ((frame * .013 + i * .187) % 1 + 1) % 1;
-      const p = requestPoint(progress);
-      return (
-        <g key={i} opacity={available ? clamp(density * 1.15) * (.22 + .55 * (1 - Math.abs(2 * progress - 1))) : 0}>
-          <circle cx={p.x} cy={p.y} r={3.2} fill={i % 3 === 0 ? C.mint : C.cyan}/>
-        </g>
-      );
+    {Array.from({length:32},(_,i)=>{
+      const available=clamp(density*2.3)>(i/32);
+      const p=((clock+i*.173)%1+1)%1;
+      const trunk=p<.27?requestPoint(p/.27):{
+        x:858+(1330-858)*((p-.27)/.73),y:525,
+      };
+      const edge=clamp(Math.min(p,1-p)*11);
+      const boost=.6+.4*acceleration;
+      return <circle key={i} cx={trunk.x} cy={trunk.y}
+        r={2.8+1.8*acceleration+1.6*tap*(i%5===0?1:0)}
+        fill={i%3===0?C.mint:C.cyan}
+        opacity={available?clamp(density*1.4)*edge*boost:0}
+        style={{filter:'drop-shadow(0 0 6px rgba(88,234,192,.66))'}}/>;
     })}
   </g>
 );
 
 const FlowPaths: React.FC<{
-  frame: number; active: number; distribution: number; database: number; density: number;
-}> = ({frame, active, distribution, database, density}) => {
-  const authYs = [416, 493, 571] as const;
-  return (
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-      style={{position: 'absolute', inset: 0, zIndex: 1, overflow: 'visible', pointerEvents: 'none'}}>
-      <defs>
-        <linearGradient id="ep002-s02-main-path" x1="0%" x2="100%">
-          <stop offset="0%" stopColor={C.cyan}/>
-          <stop offset="55%" stopColor={C.mint}/>
-          <stop offset="100%" stopColor={C.violet}/>
-        </linearGradient>
-      </defs>
-      <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
-        fill="none" stroke="#244565" strokeWidth={9} strokeLinecap="round" opacity=".58"/>
-      <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
-        fill="none" stroke="url(#ep002-s02-main-path)" strokeWidth={2.5}
-        strokeLinecap="round" opacity={.27 + active * .48}/>
-      {authYs.map((y, i) => {
-        const branch = 'M 1280 525 C 1358 525 1360 ' + y + ' 1407 ' + y;
-        const destination = i === 0 ? 400 : i === 1 ? 475 : 552;
-        const dbPath = 'M 1708 ' + destination + ' C 1870 ' + destination + ' 1910 531 2015 531';
-        const p = ((frame * .010 + i / 3) % 1 + 1) % 1;
-        const q = 1 - p;
+  frame:number;active:number;distribution:number;database:number;
+  density:number;acceleration:number;tap:number;clock:number;
+}>=({frame,active,distribution,database,density,acceleration,tap,clock})=>{
+  const authYs=[416,493,571] as const;
+  return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
+    style={{position:'absolute',inset:0,zIndex:1,overflow:'visible',pointerEvents:'none'}}>
+    <defs>
+      <linearGradient id="ep002-s02-main-path" x1="0%" x2="100%">
+        <stop offset="0%" stopColor={C.cyan}/>
+        <stop offset="55%" stopColor={C.mint}/>
+        <stop offset="100%" stopColor={C.violet}/>
+      </linearGradient>
+    </defs>
+    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
+      fill="none" stroke="#244565" strokeWidth={9} strokeLinecap="round" opacity=".58"/>
+    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
+      fill="none" stroke="url(#ep002-s02-main-path)" strokeWidth={2.7}
+      strokeLinecap="round" opacity={clamp(.18+active*.44+acceleration*.22)}/>
+    {authYs.map((y,i)=>{
+      const branch='M 1280 525 C 1358 525 1360 '+y+' 1407 '+y;
+      const destination=i===0?400:i===1?475:552;
+      const dbPath='M 1708 '+destination+' C 1870 '+destination+' 1910 531 2015 531';
+      const dots=Array.from({length:8},(_,k)=>{
+        const p=((clock*.82+i/3+k/8)%1+1)%1,q=1-p;
         const branchX=q*q*q*1280+3*q*q*p*1358+3*q*p*p*1360+p*p*p*1407;
         const branchY=q*q*q*525+3*q*q*p*525+3*q*p*p*y+p*p*p*y;
         const dbX=q*q*q*1708+3*q*q*p*1870+3*q*p*p*1910+p*p*p*2015;
-        const dbY=q*q*q*destination+3*q*q*p*destination
-          +3*q*p*p*531+p*p*p*531;
-        return (
-          <g key={y}>
-            <path d={branch} fill="none" stroke="#335474" strokeWidth={6} opacity=".38"/>
-            <path d={branch} fill="none" stroke={C.mint} strokeWidth={2.1}
-              opacity={distribution * (.38 + .18 * Math.sin(frame * .05 + i))}/>
-            <circle cx={branchX} cy={branchY}
-              r={3.3} fill={C.mint} opacity={distribution * density * .66}
-              style={{filter:'drop-shadow(0 0 4px rgba(88,234,192,.48))'}}/>
-            <path d={dbPath} fill="none" stroke="#335474" strokeWidth={6}
-              opacity={database * .45}/>
-            <path d={dbPath} fill="none" stroke={C.violet} strokeWidth={2.1}
-              opacity={database * (.4 + .13 * Math.sin(frame * .035 + i))}/>
-            <circle cx={dbX} cy={dbY} r={3.8} fill={i%2===0?C.mint:C.violet}
-              opacity={database * density * (.50 + .22*Math.sin(frame*.03+i))}
-              style={{filter:'drop-shadow(0 0 6px rgba(179,163,255,.42))'}}/>
-          </g>
-        );
-      })}
-      <ArrivalWave frame={frame} density={density}/>
-    </svg>
-  );
+        const dbY=q*q*q*destination+3*q*q*p*destination+
+          3*q*p*p*531+p*p*p*531;
+        const visibility=clamp(density*(.62+acceleration*.52))*
+          clamp(Math.min(p,1-p)*12);
+        return <g key={k}>
+          <circle cx={branchX} cy={branchY} r={3.1+1.4*acceleration}
+            fill={C.mint} opacity={distribution*visibility}
+            style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.72))'}}/>
+          <circle cx={dbX} cy={dbY} r={3.1+1.3*acceleration}
+            fill={k%2===0?C.mint:C.violet}
+            opacity={database*visibility}
+            style={{filter:'drop-shadow(0 0 5px rgba(179,163,255,.65))'}}/>
+        </g>;
+      });
+      return <g key={y}>
+        <path d={branch} fill="none" stroke="#335474" strokeWidth={6} opacity=".38"/>
+        <path d={branch} fill="none" stroke={C.mint} strokeWidth={2.2}
+          opacity={distribution*(.35+.14*Math.sin(frame*.05+i)+.18*acceleration)}/>
+        <path d={dbPath} fill="none" stroke="#335474" strokeWidth={6}
+          opacity={database*.45}/>
+        <path d={dbPath} fill="none" stroke={C.violet} strokeWidth={2.1}
+          opacity={database*(.38+.12*Math.sin(frame*.035+i)+.19*acceleration)}/>
+        {dots}
+      </g>;
+    })}
+    <ArrivalWave clock={clock} density={density}
+      acceleration={acceleration} tap={tap}/>
+  </svg>;
 };
 
 const ContextLabel: React.FC<{reveal: number}> = ({reveal}) => (
@@ -398,9 +409,8 @@ const ArchitectureWorld: React.FC<{
     +.16*distribution+.15*database+.20*flowBoost);
   const active=activeSpokenTerm(frame,terms);
   const named=active?.id??null;
-  const countTransition=ease(frame,terms[4].endFrame+4,
-    Math.max(terms[4].endFrame+10,terms[6].startFrame-10));
-  const arrivalValue=Math.round((100+250*countTransition)/10)*10;
+  const flowClock=shot02FlowClock(frame,terms[4].startFrame);
+  const arrivalValue=Math.round((100+250*flowBoost)/10)*10;
   assertShot02TextLanes({x:cameraX,y:cameraY,scale:cameraScale});
 
   return (
@@ -421,7 +431,7 @@ const ArchitectureWorld: React.FC<{
       <ATCameraRig x={cameraX} y={cameraY} scale={cameraScale} zIndex={3}>
         <FlowPaths frame={frame} active={wave + gateway * .32}
           distribution={distribution} database={database} density={density}
-          acceleration={flowBoost} tap={repeatedTap}/>
+          acceleration={flowBoost} tap={repeatedTap} clock={flowClock}/>
         <div style={{
           position: 'absolute', inset: 0, zIndex: 3,
           transform: 'translate3d(-400px,-107px,0) scale(1.08)',
