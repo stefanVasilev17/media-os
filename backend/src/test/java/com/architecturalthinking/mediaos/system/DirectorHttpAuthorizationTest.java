@@ -61,6 +61,12 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
         String shot02Preview() { return "director-preview-only"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT02/generate-slow")
+        String shot02SlowVoice() { return "director-paid-voice-only"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/generate-slow")
+        String unapprovedPaidShot() { return "must-not-run"; }
+
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
         String unapprovedShotPreview() { return "blocked"; }
 
@@ -208,6 +214,23 @@ class DirectorHttpAuthorizationTest {
         }
         mvc.perform(post(path)).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void paidSlowVoiceRequiresDirectorAndOnlyShot02() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/shots/SHOT02/generate-slow";
+        mvc.perform(post(path).with(jwt().authorities(
+                new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for (String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(path).with(jwt().authorities(
+                    new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT03/generate-slow")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
