@@ -319,7 +319,7 @@ const SemanticTermHud:React.FC<{frame:number;cue:Shot02TermCue|null}>=({frame,cu
 const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,frame})=>{
   const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
   const node=term?.node?SHOT02_NODES[term.node]:null;
-  if(!node||!cue)return null;
+  if(!node||!cue||!term)return null;
   const appear=ease(frame,cue.startFrame,cue.startFrame+9);
   const disappear=1-ease(frame,cue.endFrame+16,cue.endFrame+38);
   const opacity=appear*disappear;
