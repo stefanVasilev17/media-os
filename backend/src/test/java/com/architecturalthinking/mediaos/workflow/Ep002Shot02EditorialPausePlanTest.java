@@ -95,11 +95,13 @@ class Ep002Shot02EditorialPausePlanTest {
             +p.pauses().stream().filter(x->x.atFrame()<=oldTerms.getFirst().startFrame())
                 .mapToInt(Ep002Shot02EditorialPausePlan.Pause::holdFrames).sum(),
                 p.termCues().getFirst().startFrame());
-        for(int i=0;i<7;i++)
-            assertEquals(oldTerms.get(i).endFrame()
-                +p.pauses().stream().filter(x->x.atFrame()<oldTerms.get(i).endFrame())
+        for(int i=0;i<7;i++){
+            final int originalEndFrame=oldTerms.get(i).endFrame();
+            assertEquals(originalEndFrame
+                +p.pauses().stream().filter(x->x.atFrame()<originalEndFrame)
                     .mapToInt(Ep002Shot02EditorialPausePlan.Pause::holdFrames).sum(),
                 p.termCues().get(i).endFrame());
+        }
     }
 
     @Test
