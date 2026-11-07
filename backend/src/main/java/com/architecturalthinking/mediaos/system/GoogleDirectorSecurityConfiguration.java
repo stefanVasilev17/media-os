@@ -101,6 +101,7 @@ public class GoogleDirectorSecurityConfiguration {
                             .hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
                                 "/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview",
+                                "/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview",
                                 "/api/v1/creative/episodes/EP002/shots/{shotKey}/align-existing-take",
                                 "/api/v1/creative/episodes/EP002/shots/{shotKey}/generate",
                                 "/api/v1/creative/episodes/EP002/shots/{shotKey}/approve",
