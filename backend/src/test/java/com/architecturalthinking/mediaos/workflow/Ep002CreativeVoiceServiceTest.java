@@ -33,6 +33,15 @@ class Ep002CreativeVoiceServiceTest {
     }
 
     @Test
+    void slowVoiceMustHaveExplicitPaidConfirmationAndNeverAffectOtherShots() {
+        var slow=service();
+        assertThrows(ResponseStatusException.class,()->
+                slow.generateSlow("SHOT02",1,java.util.UUID.randomUUID(),false));
+        assertThrows(ResponseStatusException.class,()->
+                slow.generateSlow("SHOT03",1,java.util.UUID.randomUUID(),true));
+    }
+
+    @Test
     void validatesJsonBoundariesBeforeCallingPaidService() {
         var db=mock(JdbcClient.class);
         var tts=mock(ElevenLabsTextToSpeechService.class);
