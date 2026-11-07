@@ -91,6 +91,30 @@ public class Ep002DirectorVoiceCueService {
 
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Ep002Shot02EditorialPausePlan.Plan editorialPlan(
+            Shot02RenderReadiness verified) {
+        DirectorIdentity.requireDirector();
+        if(verified==null||!verified.ready()||verified.voiceTakeId()==null
+                ||verified.verifiedCues().size()!=5||verified.termCues().size()!=7)
+            throw conflict("SHOT02_EDITORIAL_REQUIRES_CURRENT_VERIFIED_TAKE");
+        record Voice(BigDecimal seconds,String alignment) {}
+        Voice take=jdbc.sql("""
+                select duration_seconds,elevenlabs_alignment::text as alignment
+                from ep002_creative_voice_take where id=:id and shot_key='SHOT02'
+                """).param("id",UUID.fromString(verified.voiceTakeId()))
+                .query((rs,n)->new Voice(rs.getBigDecimal("duration_seconds"),
+                        rs.getString("alignment")))
+                .optional().orElseThrow(() -> conflict(
+                    "SHOT02_CURRENT_SELECTED_SOURCE_TAKE_NOT_FOUND"));
+        var plan=Ep002Shot02EditorialPausePlan.fromVerified(
+                mapper,take.alignment(),take.seconds(),
+                verified.verifiedCues(),verified.termCues());
+        if(plan.sourceDurationInFrames()!=verified.durationInFrames())
+            throw conflict("SHOT02_EDITORIAL_SOURCE_DURATION_CHANGED");
+        return plan;
+    }
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public boolean matchesCurrentShot02Render(String fingerprint, String takeId,
                                                int scriptRevision, int durationFrames) {
         if (fingerprint==null || !fingerprint.matches("[a-f0-9]{64}")
