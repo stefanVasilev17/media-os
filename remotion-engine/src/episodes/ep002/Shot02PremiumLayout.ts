@@ -20,7 +20,7 @@ export const SHOT02_TEXT_LANES={
 
 export const SHOT02_REQUEST_MARKER={left:536,top:710,width:330,height:64} as const;
 export const SHOT02_PHONE_VISUAL_SAFE_BOUNDS:Rect={
-  left:48,top:145,width:440,height:740,
+  left:55,top:160,width:445,height:800,
 };
 export const shot02Intersects=(a:Rect,b:Rect,margin=0):boolean=>
   a.left < b.left+b.width+margin && a.left+a.width+margin > b.left &&
