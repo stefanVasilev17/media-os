@@ -51,6 +51,26 @@ export function shot02SharedDbPressure(
   return clamp01(.15*l+.45*clamp01(dbReveal)+.4*l*clamp01(arrival));
 }
 
+export function shot02PressCycle(frame:number,firstTapFrame:number) {
+  const elapsed=frame-firstTapFrame;
+  if(!Number.isFinite(elapsed)||elapsed<0)
+    return {active:0,compression:0,rebound:0,ripple:0,shine:0};
+  const phase=((elapsed%40)+40)%40;
+  const compression=phase<15?Math.sin(Math.PI*phase/15)**2:0;
+  const rebound=phase>=15&&phase<29?Math.sin(Math.PI*(phase-15)/14)**2:0;
+  const ripple=phase>=4&&phase<33?Math.sin(Math.PI*(phase-4)/29)**2:0;
+  const shine=phase>=8&&phase<31?smooth01((phase-8)/23):0;
+  return {active:1,compression,rebound,ripple,shine};
+}
+
+export function shot02RequestStreamActivation(frame:number,firstTapFrame:number) {
+  return smooth01((frame-firstTapFrame)/9);
+}
+
+export function shot02CounterLift(frame:number,spokenFrames:number) {
+  return 110*smooth01((frame-(spokenFrames-7))/25);
+}
+
 export function shot02ButtonColors(pressure:number) {
   return {
     top:interpolateStops(pressure,
