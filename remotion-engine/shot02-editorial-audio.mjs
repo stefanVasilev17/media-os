@@ -27,7 +27,8 @@ export function validateShot02EditorialPlan(job,props){
   const pauses=props.editorialSilencePlan.map((entry,i)=>{
     const at=entry?.atFrame,hold=entry?.holdFrames;
     if(!Number.isInteger(at)||!Number.isInteger(hold)
-        ||at<=previous||at>=props.sourceDurationInFrames
+        ||at<=previous||at>props.sourceDurationInFrames
+        ||(at===props.sourceDurationInFrames&&i!==BREAKS.length-1)
         ||at-previous<9
         ||entry?.afterPhrase!==BREAKS[i][0]||hold!==BREAKS[i][1])
       throw Error('SHOT02_EDITORIAL_SILENCE_NOT_APPROVED_OR_ORDERED');
@@ -45,7 +46,8 @@ export function validateShot02EditorialPlan(job,props){
 export function buildShot02EditorialAudioFilter(plan){
   if(!plan||!Array.isArray(plan.pauses)||plan.pauses.length!==BREAKS.length)
     throw Error('SHOT02_EDITORIAL_FFMPEG_PLAN_MISSING');
-  const cuts=[0,...plan.pauses.map(p=>p.atFrame),plan.sourceFrames];
+  const cuts=[0,...plan.pauses.map(p=>p.atFrame)];
+  if(cuts.at(-1)<plan.sourceFrames)cuts.push(plan.sourceFrames);
   const labels=cuts.slice(0,-1).map((_,i)=>'part'+i);
   const graph=[
     '[1:a]aresample='+SAMPLE_RATE+
