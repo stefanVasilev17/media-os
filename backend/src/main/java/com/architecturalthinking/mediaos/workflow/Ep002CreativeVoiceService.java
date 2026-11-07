@@ -129,8 +129,9 @@ public class Ep002CreativeVoiceService {
         result.put("voiceApproved",currentApproved);
         result.put("preferredTakeId",preferredTakeId);
         result.put("canGenerate",blocker==null);
+        String configuredModel=elevenLabs.modelId();
         boolean lockedShot="SHOT02".equals(shot) && current!=null
-                && elevenLabs.modelId().startsWith("eleven_v4")
+                && configuredModel!=null && configuredModel.startsWith("eleven_v4")
                 && Ep002Shot02SlowNaturalVoice.matchesLockedNarration(current.narration());
         result.put("canGenerateSlow",lockedShot&&blocker==null);
         result.put("slowVoicePauseCount",lockedShot?Ep002Shot02SlowNaturalVoice.pauseCount():0);
