@@ -58,6 +58,12 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/voice-cue-review/SHOT02")
         String voiceCueReview() { return "director-reviewed"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
+        String shot02Preview() { return "director-preview-only"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
+        String unapprovedShotPreview() { return "blocked"; }
+
         @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
         String ep002CodexAutomation() { return "authorized"; }
 
@@ -186,6 +192,23 @@ class DirectorHttpAuthorizationTest {
                 .andExpect(status().isForbidden());
         mvc.perform(post(base + "/arbitrary").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ep002Shot02RenderPreviewRequiresDirectorAndOnlyThatSpecificShot() throws Exception {
+        String path="/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview";
+        mvc.perform(post(path).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for (String role : new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(path).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
 
