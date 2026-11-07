@@ -123,8 +123,8 @@ test('V2 is deterministic and never creates audio timings, fake voice or decorat
     'real spoken LOGIN REQUEST label must stay visible even when new term follows');
   assert.match(scene,/<FocusedNodeInterior node="gateway"/);
   assert.match(scene,/<FocusedNodeInterior node="balancer"/);
-  assert.match(scene,/<FocusedNodeInterior node="auth"/);
-  assert.match(scene,/<FocusedNodeInterior node="database"/);
+  assert.match(scene,/<AuthReplicaCluster activity=\{authActivity\}/);
+  assert.match(scene,/<PressureDatabaseNode reveal=\{dbReveal\}/);
   assert.match(scene,/const readableWeights:Shot02FocusWeights/);
   assert.match(scene,/shot02ReadableInterior\(frame,terms\[1\],duration\)/);
   assert.match(scene,/focus=\{readableWeights.gateway\}/);
