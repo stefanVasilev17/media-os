@@ -150,6 +150,25 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   }
 
   async function refresh(){
+  async function restoreOlderTake(takeId:string,takeNumber:number,takeRevision:number){
+    if(!state||busy||loading||isDirty||shot.shotKey!=='SHOT01')return;
+    if(!window.confirm('Restore the exact narration from text v'+takeRevision+
+      ' and reuse the audio of Take '+takeNumber+'? This creates a NEW editable revision and a linked audio copy. '+
+      'The existing current script, Take history and original Take '+takeNumber+
+      ' remain unchanged. No ElevenLabs generation or credits will be used.'))return;
+    setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
+    try{
+      const next=await ep002CreativeVoiceApi.restoreOlderTake(shot.shotKey,state.revision,takeId);
+      stop();apply(next);onProductionChanged?.(shot.shotKey);
+      setText(next.narration??shot.englishNarration);
+      setDirection(next.voiceDirection??shot.voiceDirection);
+      setEditing(false);
+      setNotice('Restored original Take '+takeNumber+' audio as the approved current version. '+
+        'The prior Take and all revisions remain in history. Re-verify real voice cues before rendering.');
+    }catch(cause){setError(String(cause));}finally{setBusy(false);}
+  }
+
+
     if(busy||loading)return;
     if(isDirty&&!window.confirm('Discard unsaved edits and reload the saved version?'))return;
     setLoading(true);setError('');setConfirming(false);setSlowConfirming(false);
