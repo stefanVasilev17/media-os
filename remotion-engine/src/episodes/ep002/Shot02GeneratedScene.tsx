@@ -9,6 +9,8 @@ import {
 } from '../../components/architectural-thinking';
 import {Shot01ReadablePhone} from './Shot01ReadablePhone';
 import {SHOT02_NODES, SHOT02_TEXT_LANES, assertShot02TextLanes} from './Shot02PremiumLayout';
+import {shot02TapPulse,shot02TermHold,shot02FlowIntensity,shot02FocusCamera,
+  type Shot02FocusKey,type Shot02FocusWeights} from './Shot02DirectorPacing';
 
 export type Shot02VerifiedCue = {
   beatNumber: number;
@@ -59,25 +61,16 @@ const WORLD = {
 const SPOKEN_TERMS: readonly {
   id: Shot02TermId;
   anchor: string;
-  headline: string;
-  detail: string;
-  node: 'gateway'|'balancer'|'auth'|'database'|null;
+  node: Shot02FocusKey|null;
   color: string;
 }[] = [
-  {id:'LOGIN_REQUEST',anchor:'Login request',headline:'LOGIN REQUEST',
-    detail:'ONE NEW REQUEST ENTERS THE SYSTEM',node:null,color:C.cyan},
-  {id:'API_GATEWAY',anchor:'API Gateway',headline:'API GATEWAY',
-    detail:'ENTRY BOUNDARY',node:'gateway',color:C.cyan},
-  {id:'LOAD_BALANCER',anchor:'Load Balancer',headline:'LOAD BALANCER',
-    detail:'DISTRIBUTES REQUESTS',node:'balancer',color:C.mint},
-  {id:'AUTH_SERVERS',anchor:'Auth servers',headline:'AUTH SERVERS',
-    detail:'THREE AUTH REPLICAS',node:'auth',color:C.violet},
-  {id:'ARRIVAL_RATE',anchor:'arrival rate',headline:'ARRIVAL RATE',
-    detail:'NEW LOGIN REQUESTS PER SECOND',node:null,color:C.mint},
-  {id:'AUTH_SERVERS_REPRISE',anchor:'Auth servers',headline:'AUTH SERVERS',
-    detail:'THREE SERVICES · ONE SHARED DATABASE',node:'auth',color:C.violet},
-  {id:'USER_DATABASE',anchor:'User Database',headline:'USER DATABASE',
-    detail:'SHARED ACCOUNT LOOKUP',node:'database',color:C.violet},
+  {id:'LOGIN_REQUEST',anchor:'Login request',node:null,color:C.cyan},
+  {id:'API_GATEWAY',anchor:'API Gateway',node:'gateway',color:C.cyan},
+  {id:'LOAD_BALANCER',anchor:'Load Balancer',node:'balancer',color:C.mint},
+  {id:'AUTH_SERVERS',anchor:'Auth servers',node:'auth',color:C.violet},
+  {id:'ARRIVAL_RATE',anchor:'arrival rate',node:null,color:C.mint},
+  {id:'AUTH_SERVERS_REPRISE',anchor:'Auth servers',node:'auth',color:C.violet},
+  {id:'USER_DATABASE',anchor:'User Database',node:'database',color:C.violet},
 ] as const;
 
 const clamp = (n: number) => Math.max(0, Math.min(1, n));
@@ -279,42 +272,9 @@ const ArrivalCounter: React.FC<{reveal:number;value:number;frame:number}> = ({re
         color:C.ink,filter:'drop-shadow(0 0 '+(4+7*Math.abs(Math.sin(frame*.06)))+'px rgba(88,234,192,.22))'}}>
         {value}
       </span>
-      <span style={{fontSize:13,letterSpacing:'.085em',fontWeight:690,color:C.mint}}>
-        ILLUSTRATIVE · NOT LIVE TELEMETRY
-      </span>
     </div>
   </div>
 );
-
-const SemanticTermHud:React.FC<{frame:number;cue:Shot02TermCue|null}>=({frame,cue})=>{
-  const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
-  if(!cue||!term)return null;
-  const appear=ease(frame,cue.startFrame,cue.startFrame+8);
-  const fade=1-ease(frame,cue.endFrame+15,cue.endFrame+36);
-  const opacity=appear*fade;
-  return <div style={{
-    position:'absolute',...SHOT02_TEXT_LANES.term,zIndex:26,
-    fontFamily:AT_FONT,opacity,pointerEvents:'none',
-    overflow:'hidden',whiteSpace:'nowrap',
-    transform:'translate3d('+((1-appear)*18)+'px,0,0)',
-  }}>
-    <div style={{display:'flex',alignItems:'center',gap:12,marginTop:7}}>
-      <div style={{width:8,height:8,borderRadius:'50%',background:term.color,
-        boxShadow:'0 0 20px '+term.color}}/>
-      <span style={{fontSize:14,fontWeight:740,letterSpacing:'.17em',
-        color:'rgba(177,207,230,.72)'}}>NOW IN FOCUS</span>
-    </div>
-    <div style={{fontSize:38,fontWeight:790,letterSpacing:'-.037em',marginTop:5,
-      lineHeight:'1.22',color:C.ink,textShadow:'0 0 28px rgba(72,155,207,.13)'}}>
-      {term.headline}
-    </div>
-    <div style={{fontSize:17,fontWeight:640,letterSpacing:'.07em',marginTop:5,
-      color:term.color}}>{term.detail}</div>
-    <div style={{position:'absolute',bottom:0,left:0,height:2,width:(appear*100)+'%',
-      maxWidth:510,background:'linear-gradient(90deg,'+term.color+',transparent)',
-      opacity:.65}}/>
-  </div>;
-};
 
 const SemanticNodeHalo:React.FC<{cue:Shot02TermCue|null;frame:number}>=({cue,frame})=>{
   const term=cue?SPOKEN_TERMS.find(x=>x.id===cue.id):null;
