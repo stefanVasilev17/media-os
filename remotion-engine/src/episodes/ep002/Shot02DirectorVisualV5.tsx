@@ -132,11 +132,19 @@ const DatabaseCard:React.FC<{pressure:number;reveal:number;frame:number}>=
       <ellipse cx="44" cy="60" rx="27" ry="11" stroke={pal.border} strokeWidth="3.8"/>
     </svg>
     <div style={{margin:'16px 13px 0',height:44,borderRadius:9,
-      border:'1.8px solid '+pal.border,
-      display:'flex',justifyContent:'center',gap:10,alignItems:'center',
-      color:'#FFD59B',fontSize:15,fontWeight:800,
-      background:'rgba(109,53,21,.34)'}}>
-      <span style={{fontSize:25}}>▥</span>PRESSURE RISING
+      border:'1.8px solid '+pal.border,position:'relative',
+      background:pressure>.01?'rgba(109,53,21,.34)':'rgba(9,38,65,.64)',
+      fontSize:15,fontWeight:800}}>
+      <span style={{position:'absolute',inset:0,display:'flex',gap:9,
+        alignItems:'center',justifyContent:'center',color:'#BFE9FF',
+        opacity:1-clamp(pressure*4)}}>
+        <span style={{fontSize:23}}>▥</span>SHARED LOOKUP
+      </span>
+      <span style={{position:'absolute',inset:0,display:'flex',gap:9,
+        alignItems:'center',justifyContent:'center',color:'#FFD59B',
+        opacity:clamp(pressure*4)}}>
+        <span style={{fontSize:23}}>▥</span>PRESSURE RISING
+      </span>
     </div>
   </div>;
 };
@@ -257,11 +265,12 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
   const balancer=ease(frame,terms[2].startFrame,terms[2].startFrame+38);
   const auth=ease(frame,terms[3].startFrame,terms[3].startFrame+42);
   const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+60);
-  const lookup=ease(frame,start[4],start[4]+49);
-  const database=ease(frame,terms[5].startFrame-35,terms[6].startFrame+33);
-  const visualHold=ease(frame,spokenFrames,spokenFrames+60);
+  const lookup=firstTapActive;
+  const database=firstTapActive;
+  const closingBannerReveal=shot02ClosingBannerReveal(frame,spokenFrames);
+  const problemMention=shot02DatabaseStress(frame,terms[6].endFrame);
   const pressure=shot02UserRequestPressure(context,gateway,balancer,auth,arrival);
-  const dbPressure=shot02SharedDbPressure(lookup,database,arrival);
+  const dbPressure=shot02SharedDbPressure(problemMention,problemMention,arrival);
   const flowClock=shot02FlowClock(frame,firstTapFrame);
   return <ATBackground>
     <ATControlledRealismLayer frame={frame} realism={.96}
@@ -273,10 +282,9 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>
     <div style={{position:'absolute',left:66,top:86,width:340,height:1,
       background:'linear-gradient(90deg,rgba(95,204,255,.66),transparent)',zIndex:28}}/>
-    <PathSystem frame={frame} clock={flowClock}
+    <PathSystem clock={flowClock}
       load={Math.max(.72*firstTapActive,clamp(.40*gateway+.60*balancer))}
-      arrival={arrival} lookup={lookup}
-      firstTapFrame={firstTapFrame} firstTapActive={firstTapActive}/>
+      arrival={arrival} lookup={lookup} stress={dbPressure}/>
     <GatewayCard activity={gateway}/>
     <BalancerCard activity={balancer}/>
     <AuthCluster activity={auth} frame={frame}/>
@@ -316,14 +324,14 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
         {Math.round((100+250*arrival)/10)*10}
       </div>
     </div>
-    {hold===60&&<div style={{position:'absolute',right:80,bottom:72,zIndex:25,
+    {hold===60&&<div style={{position:'absolute',right:80,bottom:170,zIndex:25,
       width:790,padding:'18px 18px',borderRadius:12,
       border:'1.7px solid rgba(255,173,92,.57)',
       background:'linear-gradient(90deg,rgba(44,22,13,.65),rgba(10,15,29,.86))',
       fontFamily:AT_FONT,fontSize:21,fontWeight:750,color:'#FFD6A0',
       textAlign:'center',letterSpacing:'.003em',whiteSpace:'nowrap',
-      transform:`translateY(${(1-visualHold)*15}px)`,
-      opacity:visualHold}}>
+      transform:`translateY(${(1-closingBannerReveal)*15}px)`,
+      opacity:closingBannerReveal}}>
       ONE DATABASE. THREE AUTH INSTANCES. RISING PRESSURE →
     </div>}
   </ATBackground>;
