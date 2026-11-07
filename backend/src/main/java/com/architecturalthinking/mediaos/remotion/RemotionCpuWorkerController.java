@@ -184,6 +184,10 @@ public class RemotionCpuWorkerController {
         return ResponseEntity.ok(work);
     }
 
+    public ResponseEntity<Map<String, Object>> claim(String key,String workerId,String sourceSha) {
+        return claim(key,workerId,sourceSha,null);
+    }
+
     @GetMapping("/{renderId}/ep002-selected-voice")
     public ResponseEntity<byte[]> selectedVoice(
             @PathVariable UUID renderId,
