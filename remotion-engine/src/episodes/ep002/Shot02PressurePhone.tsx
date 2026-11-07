@@ -85,7 +85,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,sp
         position:'absolute',inset:3,borderRadius:16,pointerEvents:'none',
         border:`2px solid rgba(255,255,255,${.12+.45*impact})`,
         boxShadow:`inset 0 0 ${8+12*impact}px ${palette.glow}55`,
-        opacity:.65+.35*motion.active,
+        opacity:Math.min(1,.54+aura),
       }}/>
       <div style={{
         position:'absolute',top:-24,bottom:-24,width:'38%',
