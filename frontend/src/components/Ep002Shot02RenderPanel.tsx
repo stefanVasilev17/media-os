@@ -7,6 +7,11 @@ type Readiness={
   verifiedCues:unknown[];termCues:unknown[];
 };
 type Capability={enabled:boolean;workerPinned:boolean;canQueue:boolean};
+type EditorialPlan={
+  ready:boolean;reason?:string;sourceDurationInFrames?:number;
+  durationInFrames?:number;addedFrames?:number;
+  pauses?:Array<{afterPhrase:string;atFrame:number;holdFrames:number}>;
+};
 type RenderStatus={
   status:string;renderId?:string;progress?:number;error?:string|null;
   videoUrl?:string|null;durationInFrames?:number;
@@ -17,6 +22,7 @@ const PREVIEW=BASE+'/shots/SHOT02/render-preview';
 export function Ep002Shot02RenderPanel(){
   const [readiness,setReadiness]=useState<Readiness|null>(null);
   const [capability,setCapability]=useState<Capability|null>(null);
+  const [editorial,setEditorial]=useState<EditorialPlan|null>(null);
   const [render,setRender]=useState<RenderStatus|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -29,6 +35,7 @@ export function Ep002Shot02RenderPanel(){
       fetch(BASE+'/voice-cue-review/SHOT02/render-readiness',{cache:'no-store'}),
       fetch(PREVIEW+'/capability',{cache:'no-store'}),
       fetch(PREVIEW,{cache:'no-store'}),
+      fetch(PREVIEW+'/editorial-plan',{cache:'no-store'}),
     ]).then(async responses=>{
       for(const r of responses){
         if(!r.ok)throw Error('SHOT02 pre-render state unavailable (HTTP '+r.status+').');
@@ -39,15 +46,16 @@ export function Ep002Shot02RenderPanel(){
       setReadiness(values[0] as Readiness);
       setCapability(values[1] as Capability);
       setRender(values[2] as RenderStatus);
-    }).catch(e=>{if(active){setError(String(e));setReadiness(null);setCapability(null);}});
+      setEditorial(values[3] as EditorialPlan);
+    }).catch(e=>{if(active){setError(String(e));setReadiness(null);setCapability(null);setEditorial(null);}});
     return()=>{active=false;};
   },[refresh]);
 
   async function requestPreview(){
     if(busy||!readiness?.ready||!capability?.canQueue)return;
     if(!window.confirm('Start one Director-authorized SHOT02 1920x1080 Railway CPU '+
-      'preview? This may incur cloud rendering costs. The verified selected voice '+
-      'will be reused; no new ElevenLabs or Codex request will be made.'))return;
+      'preview with natural editorial voice pauses? This may incur cloud rendering costs. '+
+      'The original approved ElevenLabs Take will be preserved without new TTS or Codex.'))return;
     setBusy(true);setError('');
     try{
       const response=await fetch(PREVIEW,{
@@ -55,6 +63,7 @@ export function Ep002Shot02RenderPanel(){
         body:JSON.stringify({
           requestId:window.crypto.randomUUID(),
           expectedEpisodeFingerprint:readiness.inputFingerprint,
+          editorialPauses:true,
         }),
       });
       if(!response.ok)throw Error('SHOT02 render was not queued (HTTP '+response.status+
@@ -65,13 +74,13 @@ export function Ep002Shot02RenderPanel(){
     }catch(e){setError(String(e));}finally{setBusy(false);}
   }
 
-  const ready=Boolean(readiness?.ready&&capability?.canQueue);
+  const ready=Boolean(readiness?.ready&&capability?.canQueue&&editorial?.ready);
   const active=['QUEUED','RENDERING','RUNNING'].includes(render?.status??'');
   return <section className="library-episode-batch" aria-label="EP002 SHOT02 verified render">
     <div className="library-episode-batch-heading">
       <div>
         <h2><Clapperboard size={21}/> SHOT02 — 1080p Voice-Synced Preview</h2>
-        <p>Render the existing selected ElevenLabs Take with seven genuine
+        <p>Create a slower editorial cut of the existing selected ElevenLabs Take with seven genuine
           spoken technical-term cues. Source SHA, Director approval and
           worker release must match before CPU work starts.</p>
       </div>
@@ -81,10 +90,17 @@ export function Ep002Shot02RenderPanel(){
     {error&&<p className="library-voice-error" role="alert">{error}</p>}
     <p className="library-note">
       <ShieldCheck size={15} aria-hidden="true"/>{' '}
-      Audio timing: {readiness?.ready?'7 REAL TERMS VERIFIED':readiness?.reason??'CHECKING'}.
+      Audio timing: {readiness?.ready?'7 REAL TERMS VERIFIED':readiness?.reason??'CHECKING'}. Editor pauses: {editorial?.ready?'NATURAL SENTENCE BREAKS VERIFIED':editorial?.reason??'CHECKING'}.
       {' '}Pinned Worker release: {capability?.canQueue?'ENABLED':'NOT ENABLED'}.
       {' '}Enable this preview only after independently verified Maven/Remotion QA and Director release approval.
     </p>
+    {editorial?.ready&&<p className="library-note">
+      Original Take: {((editorial.sourceDurationInFrames??0)/30).toFixed(2)}s.
+      {' '}Edited SHOT02: {((editorial.durationInFrames??0)/30).toFixed(2)}s.
+      {' '}Natural spoken-sentence pauses added: {((editorial.addedFrames??0)/30).toFixed(2)}s
+      {' '}across {editorial.pauses?.length??0} positions.
+      No voice regeneration. All timing cues are remapped to the edited soundtrack.
+    </p>}
     <div className="library-episode-batch-actions">
       <button type="button" className="library-voice-refresh"
         disabled={busy} onClick={()=>setRefresh(x=>x+1)}>
@@ -92,7 +108,7 @@ export function Ep002Shot02RenderPanel(){
       </button>
       <button type="button" className="library-voice-button"
         disabled={busy||!ready||active} onClick={()=>void requestPreview()}>
-        <Clapperboard size={15}/> {busy?'Requesting…':'Render SHOT02 — 1920×1080'}
+        <Clapperboard size={15}/> {busy?'Requesting…':'Render SHOT02 V3 — slower voice · 1920×1080'}
       </button>
     </div>
     {render?.renderId&&<p className="library-note">
