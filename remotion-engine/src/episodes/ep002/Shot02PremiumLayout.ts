@@ -17,7 +17,6 @@ export const SHOT02_NODES={
 export const SHOT02_TEXT_LANES={
   brand:{left:80,top:48,width:385,height:46},
   time:{left:850,top:127,width:348,height:65},
-  term:{left:1260,top:103,width:575,height:136},
   metric:{left:1330,top:842,width:490,height:116},
 } as const satisfies Record<string,Rect>;
 
