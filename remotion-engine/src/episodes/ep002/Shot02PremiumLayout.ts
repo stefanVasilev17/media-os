@@ -20,6 +20,7 @@ export const SHOT02_TEXT_LANES={
   metric:{left:1330,top:842,width:490,height:116},
 } as const satisfies Record<string,Rect>;
 
+export const SHOT02_REQUEST_MARKER={left:792,top:645,width:204,height:46} as const;
 const phoneProxy:Rect={left:320,top:165,width:450,height:815};
 export const shot02Intersects=(a:Rect,b:Rect,margin=0):boolean=>
   a.left < b.left+b.width+margin && a.left+a.width+margin > b.left &&
