@@ -386,8 +386,6 @@ const AuthReplicaCluster:React.FC<{
   }}>
     <div style={{position:'absolute',top:13,left:0,right:0,textAlign:'center',
       fontSize:24,fontWeight:790,color:C.ink,letterSpacing:'-.018em'}}>Auth Service</div>
-    <div style={{position:'absolute',top:50,left:0,right:0,textAlign:'center',
-      fontSize:13,fontWeight:740,color:C.muted,letterSpacing:'.10em'}}>THREE INDEPENDENT REPLICAS</div>
     {SHOT02_AUTH_REPLICA_PORTS.map(replica=><React.Fragment key={replica.id}>
       <div style={{position:'absolute',left:1,top:replica.y-box.y-1,
         width:39,height:2,background:C.mint,
