@@ -16,6 +16,7 @@ import {
   SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY,SHOT02_PHONE_PIPE,
   shot02CubicPoint,shot02UserRequestPressure,shot02SharedDbPressure,
   shot02DatabaseColors,shot02RequestStreamActivation,shot02CounterLift,
+  shot02ClosingBannerReveal,shot02DatabaseStress,SHOT02_LOGIN_PARTICLE,
 } from './Shot02PressureVisuals';
 import {shot02FlowClock} from './Shot02DirectorPacing';
 
@@ -140,11 +141,22 @@ const DatabaseCard:React.FC<{pressure:number;reveal:number;frame:number}>=
   </div>;
 };
 
+const RequestParticle:React.FC<{x:number;y:number;visibility:number}>=
+({x,y,visibility})=><circle cx={x} cy={y}
+  r={SHOT02_LOGIN_PARTICLE.radius}
+  fill={SHOT02_LOGIN_PARTICLE.fill}
+  opacity={clamp(visibility)}
+  style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>;
+
 const PathSystem:React.FC<{
-  frame:number;clock:number;load:number;arrival:number;lookup:number;
-  firstTapFrame:number;firstTapActive:number;
-}>=({frame,clock,load,arrival,lookup,firstTapFrame,firstTapActive})=>{
+  clock:number;load:number;arrival:number;lookup:number;stress:number;
+}>=({clock,load,arrival,lookup,stress})=>{
   const a=SHOT02_BALANCER_EXIT,db=SHOT02_DATABASE_ENTRY;
+  const dbColor=shot02DatabaseColors(stress);
+  const particleAlpha=(t:number,activity:number)=>
+    activity*clamp(Math.min(t,1-t)*10);
+  const phase=(index:number,count:number)=>
+    ((clock*.8+index/count)%1+1)%1;
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',overflow:'visible'}}>
     <defs>
@@ -153,71 +165,54 @@ const PathSystem:React.FC<{
         <path d="M1 2L9 6L1 10" stroke="#83F0FF" strokeWidth="3" fill="none"
           strokeLinecap="round" strokeLinejoin="round"/>
       </marker>
-      <marker id="s02v5-arrow-amber" markerWidth="12" markerHeight="12"
+      <marker id="s02v5-arrow-db" markerWidth="12" markerHeight="12"
         refX="8" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-        <path d="M1 2L9 6L1 10" stroke="#FFBD77" strokeWidth="3" fill="none"
+        <path d="M1 2L9 6L1 10" stroke={dbColor.border} strokeWidth="3" fill="none"
           strokeLinecap="round" strokeLinejoin="round"/>
       </marker>
     </defs>
-    <path d={`M ${SHOT02_PHONE_PIPE.x} ${SHOT02_PHONE_PIPE.y}
-      L ${SHOT02_GATEWAY_ENTRY.x} ${SHOT02_GATEWAY_ENTRY.y}`}
-      stroke="#7EEFFF" strokeWidth="4" fill="none" markerEnd="url(#s02v5-arrow-cyan)"
-      opacity={.55+.45*load}/>
-    <path d={`M ${SHOT02_GATEWAY_EXIT.x} ${SHOT02_GATEWAY_EXIT.y}
-      L ${SHOT02_BALANCER_ENTRY.x} ${SHOT02_BALANCER_ENTRY.y}`}
-      stroke="#7EEFFF" strokeWidth="4" fill="none" markerEnd="url(#s02v5-arrow-cyan)"
-      opacity={.38+.62*load}/>
+    {[
+      [SHOT02_PHONE_PIPE,SHOT02_GATEWAY_ENTRY],
+      [SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY],
+    ].map(([from,to],segment)=><g key={segment}>
+      <path d={'M '+from.x+' '+from.y+' L '+to.x+' '+to.y}
+        stroke="#7EEFFF" strokeWidth="4" fill="none"
+        markerEnd="url(#s02v5-arrow-cyan)" opacity={.32+.68*load}/>
+      <RequestParticle
+        x={from.x+(to.x-from.x)*phase(segment,2)}
+        y={from.y+(to.y-from.y)*phase(segment,2)}
+        visibility={particleAlpha(phase(segment,2),load)}/>
+    </g>)}
     {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
       const b={x:SHOT02_AUTH_CARD_LEFT+6,y:replica.y};
       const c={x:SHOT02_AUTH_CARD_RIGHT,y:replica.y};
       const target={x:db.x+5,y:db.y};
       const m1={x:1090,y:a.y},m2={x:1137,y:replica.y};
       const m3={x:1505,y:replica.y},m4={x:1540,y:db.y};
-      const branch=`M ${a.x} ${a.y} C ${m1.x} ${m1.y} ${m2.x} ${m2.y} ${b.x} ${b.y}`;
-      const lookupPath=`M ${c.x} ${c.y} C ${m3.x} ${m3.y} ${m4.x} ${m4.y} ${target.x} ${target.y}`;
+      const branch='M '+a.x+' '+a.y+' C '+m1.x+' '+m1.y+' '+m2.x+' '+m2.y+' '+b.x+' '+b.y;
+      const lookupPath='M '+c.x+' '+c.y+' C '+m3.x+' '+m3.y+' '+m4.x+' '+m4.y+' '+target.x+' '+target.y;
       return <g key={replica.id}>
         <path d={branch} fill="none" stroke="#2F7197" strokeWidth="9" opacity=".5"/>
         <path d={branch} fill="none" stroke="#84EEFF" strokeWidth="3.8"
-          markerEnd="url(#s02v5-arrow-cyan)" opacity={.17+.83*load}/>
-        <path d={lookupPath} fill="none" stroke="#B26C37" strokeWidth="8"
-          opacity={.40*lookup}/>
-        <path d={lookupPath} fill="none" stroke="#FFBD7C" strokeWidth="3.8"
-          markerEnd="url(#s02v5-arrow-amber)" opacity={.15+.85*lookup}/>
+          markerEnd="url(#s02v5-arrow-cyan)" opacity={.15+.85*load}/>
+        <path d={lookupPath} fill="none" stroke="#2F7197" strokeWidth="8"
+          opacity={.35+.25*lookup}/>
+        <path d={lookupPath} fill="none" stroke={dbColor.border} strokeWidth="3.8"
+          markerEnd="url(#s02v5-arrow-db)" opacity={.15+.85*lookup}/>
         {Array.from({length:4},(_,k)=>{
-          const t=((clock*.75+i/3+k/4)%1+1)%1;
+          const t=phase(i*4+k,12);
           const f=shot02CubicPoint(t,a,m1,m2,b);
           const g=shot02CubicPoint(t,c,m3,m4,target);
-          const fade=clamp(Math.min(t,1-t)*11);
+          const visible=clamp(.65+.35*arrival);
           return <g key={k}>
-            <circle cx={f.x} cy={f.y} r={7+2*arrival} fill="#77FFD4"
-              opacity={load*fade} style={{filter:'drop-shadow(0 0 11px #67FFD0)'}}/>
-            <circle cx={g.x} cy={g.y} r={7+3*arrival} fill="#FFC079"
-              opacity={lookup*fade} style={{filter:'drop-shadow(0 0 9px #FFA54B)'}}/>
+            <RequestParticle x={f.x} y={f.y}
+              visibility={particleAlpha(t,load)*visible}/>
+            <RequestParticle x={g.x} y={g.y}
+              visibility={particleAlpha(t,lookup)*visible}/>
           </g>;
         })}
       </g>;
     })}
-    {Array.from({length:11},(_,i)=>{
-      const t=((clock*.8+i/11)%1+1)%1;
-      const x=SHOT02_PHONE_PIPE.x+
-        (SHOT02_BALANCER_ENTRY.x-SHOT02_PHONE_PIPE.x)*t;
-      return <circle key={i} cx={x} cy={SHOT02_PHONE_PIPE.y} r={7+2*arrival}
-        fill="#73FFD0" opacity={load*clamp(Math.min(t,1-t)*10)}
-        style={{filter:'drop-shadow(0 0 10px rgba(104,255,190,.9))'}}/>;
-    })}
-    {frame>=firstTapFrame&&<g>
-      <circle
-        cx={SHOT02_PHONE_PIPE.x+(SHOT02_GATEWAY_ENTRY.x-SHOT02_PHONE_PIPE.x)*
-          Math.min(1,((frame-firstTapFrame)%40)/18)}
-        cy={SHOT02_PHONE_PIPE.y}
-        r={9+2*firstTapActive}
-        fill="#73FFD0" opacity={.35+.65*firstTapActive}
-        style={{filter:'drop-shadow(0 0 13px rgba(94,255,182,.94))'}}
-      />
-      <circle cx={SHOT02_PHONE_PIPE.x+12} cy={SHOT02_PHONE_PIPE.y}
-        r={5+2*firstTapActive} fill="#D5FFF1"
-        opacity={firstTapActive*(.7+.3*Math.sin(frame*.23)**2)}/>
-    </g>}
   </svg>;
 };
 
