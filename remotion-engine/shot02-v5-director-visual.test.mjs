@@ -87,7 +87,7 @@ test('Exact +60 frame tail is only after voice; old Take/cues remain pristine',(
   assert.match(v5,/const spokenFrames=total-hold/);
   assert.match(v5,/requireShot02VerifiedCues\(spokenFrames/);
   assert.match(v5,/requireShot02SpokenTerms\(spokenFrames/);
-  assert.match(v5,/ONE DATABASE\. THREE AUTH REPLICAS\. RISING PRESSURE/);
+  assert.match(v5,/ONE DATABASE\. THREE AUTH INSTANCES\. RISING PRESSURE/);
   assert.match(v5,/shot02UserRequestPressure/);
   assert.match(v5,/shot02SharedDbPressure/);
   assert.doesNotMatch(v5,/generateSpeech|fetch\(|<Audio|setTimeout/);
