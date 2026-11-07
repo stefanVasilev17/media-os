@@ -31,6 +31,11 @@ if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
 }
 const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
 const CLAIMS_ENABLED = shouldClaimRenderWork(process.env.MEDIA_OS_REMOTION_CLAIMS_ENABLED);
+const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITION || '').trim();
+if (TARGET_COMPOSITION && TARGET_COMPOSITION !== 'EP002-SHOT02-CANDIDATE') {
+  throw new Error('SHOT02_WORKER_TARGET_COMPOSITION_INVALID');
+}
+
 let leaseClient;
 const workloadTokens = createWorkerTokenTransport(
   process.env.MEDIA_OS_REMOTION_CPU_WORKLOAD_TOKEN,
@@ -88,7 +93,8 @@ async function claim() {
   await leaseClient.refresh();
   return requestJson(`${BACKEND_URL}/api/v1/remotion/renders/worker/claim`, {
     method: 'POST',
-    headers: headers(),
+    headers: headers(TARGET_COMPOSITION
+      ? {'X-Media-OS-Target-Composition': TARGET_COMPOSITION} : {}),
   });
 }
 
