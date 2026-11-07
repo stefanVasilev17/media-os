@@ -2,6 +2,10 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## Director visual rules LOCKED — comprehension-first SHOT direction (2026-11-07)
+
+For every future Architectural Thinking SHOT, apply the **five Director-accepted visual improvements** in `docs/visual/AT_REMOTION_VISUAL_CONSTITUTION_V1.md` (2026-11-07 amendment): repeated visible user actions when narration describes them (especially Login at 09:00), enough visual holds after genuine spoken technical terms, smooth readable enlarged focus on named system nodes and their internals, accelerating packet/dot traffic synchronized with request counters, and **no decorative top-right microtext or `ILLUSTRATIVE` filler**. This is not optional for new Remotion SHOTs. Guard zero overlaps and keep adjacent scene continuity. Do not alter the protected SHOT01 or original episode sources. Voice editorial silence requires separate approved and re-aligned audio; never shift/cut the selected Take implicitly. The new SHOT02 V2 code on Draft PR #192 is **source-only until an authorized new Worker build/render**, then requires Director MP4 acceptance before SHOT02 is LOCKED.
+
 ## DIRECTOR LOCK: CODEX USES CHATGPT SUBSCRIPTION ONLY (2026-11-06)
 
 **NEWER DIRECTOR DECISION SUPERSEDES ALL API-FALLBACK RECOMMENDATIONS.** MediaOS may consume Codex inference only from the Director's own eligible ChatGPT plan after supported, expressly approved authorization. No OpenAI Platform API key, pay-as-you-go coding, purchased ChatGPT credits, automatic credit top-ups, fallback to paid inference, rotation of ChatGPT accounts, GitHub Actions, or dependency on the Director's computer. `OPENAI_API_KEY` may be present in the Railway backend for other legacy features but MUST NOT be used for Codex coding. When subscription authorization/usage is absent or exhausted, **STOP**; do not auto-switch the billing route.
