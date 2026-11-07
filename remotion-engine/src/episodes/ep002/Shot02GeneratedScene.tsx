@@ -7,7 +7,13 @@ import {
   ATControlledRealismLayer,
   AT_FONT,
 } from '../../components/architectural-thinking';
-import {Shot01ReadablePhone} from './Shot01ReadablePhone';
+import {Shot02PressurePhone} from './Shot02PressurePhone';
+import {
+  SHOT02_AUTH_REPLICA_PORTS,SHOT02_AUTH_CARD_LEFT,SHOT02_AUTH_CARD_RIGHT,
+  SHOT02_DATABASE_ENTRY,SHOT02_BALANCER_EXIT,shot02CubicPoint,
+  shot02UserRequestPressure,shot02SharedDbPressure,
+  shot02ButtonColors,shot02DatabaseColors,
+} from './Shot02PressureVisuals';
 import {SHOT02_NODES, SHOT02_TEXT_LANES, SHOT02_REQUEST_MARKER, assertShot02TextLanes} from './Shot02PremiumLayout';
 import {shot02TapPulse,shot02TermHold,shot02ReadableInterior,shot02FlowIntensity,shot02FocusCamera,shot02FlowClock,
   type Shot02FocusKey,type Shot02FocusWeights} from './Shot02DirectorPacing';
@@ -199,7 +205,7 @@ const FlowPaths: React.FC<{
   frame:number;active:number;distribution:number;database:number;
   density:number;acceleration:number;tap:number;clock:number;
 }>=({frame,active,distribution,database,density,acceleration,tap,clock})=>{
-  const authYs=[416,493,571] as const;
+  const db=SHOT02_DATABASE_ENTRY;
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     style={{position:'absolute',inset:0,zIndex:1,overflow:'visible',pointerEvents:'none'}}>
     <defs>
@@ -209,42 +215,47 @@ const FlowPaths: React.FC<{
         <stop offset="100%" stopColor={C.violet}/>
       </linearGradient>
     </defs>
-    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
+    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1268"
       fill="none" stroke="#244565" strokeWidth={9} strokeLinecap="round" opacity=".58"/>
-    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1330"
+    <path d="M 725 590 C 810 590 786 525 858 525 H 1045 C 1112 525 1100 525 1150 525 H 1268"
       fill="none" stroke="url(#ep002-s02-main-path)" strokeWidth={2.7}
       strokeLinecap="round" opacity={clamp(.18+active*.44+acceleration*.22)}/>
-    {authYs.map((y,i)=>{
-      const branch='M 1280 525 C 1358 525 1360 '+y+' 1407 '+y;
-      const destination=i===0?400:i===1?475:552;
-      const dbPath='M 1708 '+destination+' C 1870 '+destination+' 1910 531 2015 531';
+    {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
+      const y=replica.y;
+      const a=SHOT02_BALANCER_EXIT;
+      const b={x:SHOT02_AUTH_CARD_LEFT,y};
+      const c={x:SHOT02_AUTH_CARD_RIGHT,y};
+      const mid1={x:1290,y:a.y};
+      const mid2={x:1302,y};
+      const db1={x:1808,y};
+      const db2={x:1918,y:db.y};
+      const branch='M '+a.x+' '+a.y+' C '+mid1.x+' '+mid1.y+' '+mid2.x+' '+mid2.y+' '+b.x+' '+b.y;
+      const lookup='M '+c.x+' '+c.y+' C '+db1.x+' '+db1.y+' '+db2.x+' '+db2.y+' '+db.x+' '+db.y;
       const dots=Array.from({length:8},(_,k)=>{
-        const p=((clock*.82+i/3+k/8)%1+1)%1,q=1-p;
-        const branchX=q*q*q*1280+3*q*q*p*1358+3*q*p*p*1360+p*p*p*1407;
-        const branchY=q*q*q*525+3*q*q*p*525+3*q*p*p*y+p*p*p*y;
-        const dbX=q*q*q*1708+3*q*q*p*1870+3*q*p*p*1910+p*p*p*2015;
-        const dbY=q*q*q*destination+3*q*q*p*destination+
-          3*q*p*p*531+p*p*p*531;
+        const p=((clock*.82+i/3+k/8)%1+1)%1;
+        const branchPoint=shot02CubicPoint(p,a,mid1,mid2,b);
+        const lookupPoint=shot02CubicPoint(p,c,db1,db2,db);
         const visibility=clamp(density*(.62+acceleration*.52))*
           clamp(Math.min(p,1-p)*12);
         return <g key={k}>
-          <circle cx={branchX} cy={branchY} r={3.1+1.4*acceleration}
-            fill={C.mint} opacity={distribution*visibility}
+          <circle cx={branchPoint.x} cy={branchPoint.y}
+            r={3.1+1.4*acceleration} fill={C.mint}
+            opacity={distribution*visibility}
             style={{filter:'drop-shadow(0 0 5px rgba(88,234,192,.72))'}}/>
-          <circle cx={dbX} cy={dbY} r={3.1+1.3*acceleration}
-            fill={k%2===0?C.mint:C.violet}
+          <circle cx={lookupPoint.x} cy={lookupPoint.y}
+            r={3.1+1.5*acceleration} fill={k%2===0?C.mint:C.amber}
             opacity={database*visibility}
-            style={{filter:'drop-shadow(0 0 5px rgba(179,163,255,.65))'}}/>
+            style={{filter:'drop-shadow(0 0 7px rgba(244,190,119,.55))'}}/>
         </g>;
       });
-      return <g key={y}>
+      return <g key={replica.id}>
         <path d={branch} fill="none" stroke="#335474" strokeWidth={6} opacity=".38"/>
         <path d={branch} fill="none" stroke={C.mint} strokeWidth={2.2}
-          opacity={distribution*(.35+.14*Math.sin(frame*.05+i)+.18*acceleration)}/>
-        <path d={dbPath} fill="none" stroke="#335474" strokeWidth={6}
+          opacity={distribution*(.35+.12*Math.sin(frame*.038+i)+.21*acceleration)}/>
+        <path d={lookup} fill="none" stroke="#335474" strokeWidth={6}
           opacity={database*.45}/>
-        <path d={dbPath} fill="none" stroke={C.violet} strokeWidth={2.1}
-          opacity={database*(.38+.12*Math.sin(frame*.035+i)+.19*acceleration)}/>
+        <path d={lookup} fill="none" stroke={C.amber} strokeWidth={2.1}
+          opacity={database*(.34+.11*Math.sin(frame*.03+i)+.24*acceleration)}/>
         {dots}
       </g>;
     })}
@@ -364,30 +375,87 @@ const FocusedNodeInterior:React.FC<{
   </div>;
 };
 
-const ReplicaRail:React.FC<{frame:number;reveal:number;focus:number}>=
-({frame,reveal,focus})=>(
-  <div style={{
-    position:'absolute',left:WORLD.authX-185,top:687,width:370,height:66,
-    display:'flex',gap:10,zIndex:10,pointerEvents:'none',
-    opacity:reveal,transform:'translateY('+((1-reveal)*8)+'px)',
+const AuthReplicaCluster:React.FC<{
+  activity:number;focus:number;pressure:number;frame:number;
+}>=({activity,focus,pressure,frame})=>{
+  const box=SHOT02_NODES.auth;
+  const highlight=shot02ButtonColors(pressure*.42);
+  return <div style={{
+    position:'absolute',left:box.x-box.width/2,top:box.y,
+    width:box.width,height:box.height,zIndex:6,boxSizing:'border-box',
+    border:'2px solid rgba(113,117,239,.68)',borderRadius:22,
+    background:'linear-gradient(180deg,rgba(7,21,39,.98),rgba(3,12,25,.99))',
+    boxShadow:'0 0 '+(14+18*focus)+'px rgba(141,116,247,'+(.14+.12*focus)+'),inset 0 1px 0 rgba(255,255,255,.08)',
+    fontFamily:AT_FONT,pointerEvents:'none',
   }}>
-    {['AUTH 01','AUTH 02','AUTH 03'].map((label,index)=>{
-      const beat=.55+.45*Math.sin(frame*.075-index*.78);
-      return <div key={label} style={{
-        width:116,height:43,display:'flex',alignItems:'center',justifyContent:'center',
-        borderRadius:9,fontFamily:AT_FONT,fontSize:16,fontWeight:720,
-        letterSpacing:'.035em',color:C.ink,
-        background:'rgba(8,26,41,.92)',
-        border:'1.5px solid rgba(103,202,220,'+(.34+.46*focus)+')',
-        boxShadow:'0 0 '+(5+focus*10)+'px rgba(88,234,192,'+(focus*beat*.12)+')',
+    <div style={{position:'absolute',top:13,left:0,right:0,textAlign:'center',
+      fontSize:24,fontWeight:790,color:C.ink,letterSpacing:'-.018em'}}>Auth Service</div>
+    <div style={{position:'absolute',top:50,left:0,right:0,textAlign:'center',
+      fontSize:13,fontWeight:740,color:C.muted,letterSpacing:'.10em'}}>THREE INDEPENDENT REPLICAS</div>
+    {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
+      const activityLevel=clamp(activity*(.83+.13*Math.sin(frame*.026-i*.63)));
+      return <div key={replica.id} style={{
+        position:'absolute',left:SHOT02_AUTH_CARD_LEFT-(box.x-box.width/2),
+        top:replica.y-box.y-33,width:SHOT02_AUTH_CARD_RIGHT-SHOT02_AUTH_CARD_LEFT,
+        height:66,borderRadius:11,boxSizing:'border-box',
+        display:'flex',alignItems:'center',justifyContent:'space-between',
+        padding:'0 15px',
+        background:'linear-gradient(135deg,rgba(14,47,66,.98),rgba(7,27,46,.98))',
+        border:'1.6px solid '+(activityLevel>.12?highlight.border:'#3B6283'),
+        boxShadow:'0 0 '+(8+16*activityLevel)+'px '+highlight.glow+'22,inset 0 1px 0 rgba(218,247,255,.09)',
+        opacity:.75+.25*activityLevel,
       }}>
-        <span style={{width:6,height:6,marginRight:8,borderRadius:'50%',
-          background:C.mint,opacity:.45+.5*reveal}}/>
-        {label}
+        <div style={{display:'flex',gap:11,alignItems:'center'}}>
+          <div style={{width:12,height:12,borderRadius:3,
+            border:'1px solid '+C.mint,background:C.mint,
+            boxShadow:'0 0 '+(5+9*activityLevel)+'px rgba(88,234,192,.32)'}}/>
+          <span style={{fontSize:22,fontWeight:790,color:C.ink,
+            letterSpacing:'-.018em'}}>{replica.id}</span>
+        </div>
+        <div style={{display:'flex',gap:4}}>
+          {[0,1,2].map(k=><div key={k} style={{
+            height:10,width:4,borderRadius:3,
+            background:activityLevel>(k+1)*.24?C.mint:'#31516B',
+            opacity:.6+.4*activityLevel,
+          }}/>)}
+        </div>
       </div>;
     })}
-  </div>
-);
+  </div>;
+};
+
+const PressureDatabaseNode:React.FC<{
+  reveal:number;pressure:number;focus:number;
+}>=({reveal,pressure,focus})=>{
+  const box=SHOT02_NODES.database;
+  const colors=shot02DatabaseColors(pressure);
+  return <div style={{
+    position:'absolute',left:box.x-box.width/2,top:box.y,
+    width:box.width,height:box.height,zIndex:7,boxSizing:'border-box',
+    opacity:reveal,transform:'translateY('+((1-reveal)*12)+'px)',
+    borderRadius:20,border:'2px solid '+colors.border,
+    background:'linear-gradient(180deg,rgba(6,22,37,.98),'+colors.core+')',
+    boxShadow:'0 0 '+(14+20*pressure+8*focus)+'px '+colors.glow+'55,inset 0 1px 0 rgba(255,255,255,.1)',
+    fontFamily:AT_FONT,pointerEvents:'none',
+  }}>
+    <div style={{textAlign:'center',marginTop:20,fontSize:23,fontWeight:790,
+      color:C.ink,whiteSpace:'nowrap'}}>User Database</div>
+    <div style={{marginTop:14,marginLeft:15,marginRight:15,
+      padding:'13px 7px',borderRadius:10,
+      border:'1px solid '+colors.border,
+      background:'rgba(5,19,33,.88)',textAlign:'center'}}>
+      <div style={{fontSize:13,fontWeight:720,letterSpacing:'.04em',
+        color:C.muted}}>SHARED ACCOUNT LOOKUP</div>
+      <div style={{marginTop:11,fontSize:18,fontWeight:730,color:C.ink}}>USER RECORDS</div>
+    </div>
+    <div style={{display:'flex',justifyContent:'center',gap:7,marginTop:17}}>
+      {[0,1,2,3,4,5,6].map(i=><div key={i} style={{
+        width:23,height:5,borderRadius:3,
+        background:pressure>(i+1)/9?colors.glow:'#2B5168',
+      }}/>)}
+    </div>
+  </div>;
+};
 
 const ArchitectureWorld: React.FC<{
   frame:number;duration:number;starts:readonly number[];terms:readonly Shot02TermCue[];
@@ -399,6 +467,8 @@ const ArchitectureWorld: React.FC<{
   const authActivity=ease(frame,terms[3].startFrame,terms[3].startFrame+48);
   const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+44);
   const database=ease(frame,terms[6].startFrame,terms[6].startFrame+67);
+  const lookup=ease(frame,starts[4],starts[4]+56);
+  const dbReveal=ease(frame,terms[5].startFrame,terms[5].startFrame+52);
   const camGateway=ease(frame,terms[1].startFrame,terms[1].startFrame+73);
   const camDb=ease(frame,terms[6].startFrame,terms[6].startFrame+82);
   const baseCamera={
@@ -434,6 +504,8 @@ const ArchitectureWorld: React.FC<{
     terms[4].endFrame+32);
   const density=clamp(.18*context+.19*wave+.12*requestMention
     +.16*distribution+.15*database+.20*flowBoost);
+  const userPressure=shot02UserRequestPressure(context,wave,distribution,authActivity,flowBoost);
+  const dbPressure=shot02SharedDbPressure(lookup,database,flowBoost);
   const active=activeSpokenTerm(frame,terms);
   const named=active?.id??null;
   const flowClock=shot02FlowClock(frame,terms[4].startFrame);
@@ -457,7 +529,7 @@ const ArchitectureWorld: React.FC<{
       </AbsoluteFill>
       <ATCameraRig x={cameraX} y={cameraY} scale={cameraScale} zIndex={3}>
         <FlowPaths frame={frame} active={wave + gateway * .32}
-          distribution={distribution} database={database} density={density}
+          distribution={distribution} database={lookup} density={density}
           acceleration={flowBoost} tap={repeatedTap} clock={flowClock}/>
         <div style={{
           position: 'absolute', inset: 0, zIndex: 3,
@@ -465,11 +537,12 @@ const ArchitectureWorld: React.FC<{
           transformOrigin: '50% 50%', opacity: 1 - .50 * camDb,
           filter: 'brightness(1.02) contrast(1.09) saturate(1.06)',
         }}>
-          <Shot01ReadablePhone
+          <Shot02PressurePhone
             frame={frame} reveal={1} credential={.22} ui={0}
             emailValue="user@example.com" passwordDots="••••••••"
             emailFocus={0} passwordFocus={0} localUi={0}
             press={repeatedTap} waiting={0} spinner={0}
+            pressure={userPressure}
             realism={1} heroPush={0}
           />
         </div>
@@ -489,38 +562,12 @@ const ArchitectureWorld: React.FC<{
           zIndex={5}
           sections={[{title: 'ROUTING', items: [{label: 'Balancer', activity: distribution}]}]}
         />
-        <ATBackendNode
-          title="Auth Service" x={WORLD.authX} y={WORLD.authY}
-          width={SHOT02_NODES.auth.width} height={SHOT02_NODES.auth.height} reveal={1}
-          active={clamp(.10+.35*authActivity+.26*distribution+
-            (named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?.28:0))}
-          quiet={.42 * (1 - distribution)} secondaryReveal={.68 + .32 * distribution}
-          zIndex={6}
-          sections={[{
-            title: 'THREE AUTH REPLICAS',
-            items: [
-              {label: 'Auth01', activity: distribution},
-              {label: 'Auth02', activity: distribution},
-              {label: 'Auth03', activity: distribution},
-            ],
-          }]}
-        />
-        <ATBackendNode
-          title="User Database" x={WORLD.databaseX} y={WORLD.databaseY}
-          width={SHOT02_NODES.database.width} height={SHOT02_NODES.database.height}
-          reveal={database} active={database*(named==='USER_DATABASE'?.75:.35)}
-          quiet={.45} secondaryReveal={database} zIndex={7}
-          sections={[{
-            title: 'SHARED ACCOUNT LOOKUP',
-            items: [{label: 'User records', activity: .08}],
-          }]}
-        />
-        <ReplicaRail frame={frame} reveal={authActivity} focus={
-          named==='AUTH_SERVERS'||named==='AUTH_SERVERS_REPRISE'?1:.3}/>
+        <AuthReplicaCluster activity={authActivity} focus={readableWeights.auth}
+          pressure={userPressure} frame={frame}/>
+        <PressureDatabaseNode reveal={dbReveal} pressure={dbPressure}
+          focus={readableWeights.database}/>
         <FocusedNodeInterior node="gateway" focus={readableWeights.gateway} frame={frame}/>
         <FocusedNodeInterior node="balancer" focus={readableWeights.balancer} frame={frame}/>
-        <FocusedNodeInterior node="auth" focus={readableWeights.auth} frame={frame}/>
-        <FocusedNodeInterior node="database" focus={readableWeights.database} frame={frame}/>
         <SpokenRequestMarker frame={frame} cue={terms[0]}
           nextStart={terms[1].startFrame} duration={duration}/>
         <SemanticNodeHalo cue={active} frame={frame}/>
