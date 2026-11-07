@@ -61,12 +61,19 @@ public class RemotionCpuWorkerController {
     public ResponseEntity<Map<String, Object>> claim(
             @RequestHeader(value = "X-Media-OS-Worker-Key", required = false) String key,
             @RequestHeader(value = "X-Media-OS-Worker", required = false) String workerId,
-            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha", required = false) String sourceSha
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha", required = false) String sourceSha,
+            @RequestHeader(value = "X-Media-OS-Target-Composition", required = false) String targetComposition
     ) {
         requireWorker(key, workerId);
+        String scope=targetComposition==null?"":targetComposition.trim();
+        if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unsupported target composition for scoped CPU claim.");
+        }
 
         // An interrupted EP002 preview is terminal until the Director explicitly
         // requests another render. Never spend CPU repeatedly on stale voice mux failures.
+        if (scope.isEmpty()) {
         jdbc.sql("""
                 update remotion_render
                 set status='FAILED', progress=0,
@@ -93,11 +100,14 @@ public class RemotionCpuWorkerController {
                 .param("projectId", PROJECT_ID)
                 .update();
 
+        }
+
         Map<String, Object> work = jdbc.sql("""
                 select id, episode_id, composition_id, render_key, engine_version, input_props::text as input_props,
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
+                  and (:targetComposition='' or composition_id=:targetComposition)
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
@@ -116,6 +126,7 @@ public class RemotionCpuWorkerController {
                 .param("projectId", PROJECT_ID)
                 .param("workerId",workerId.trim())
                 .param("sourceSha",sourceSha==null?"":sourceSha.trim())
+                .param("targetComposition",scope)
                 .query((rs, rowNum) -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("renderId", rs.getObject("id", UUID.class));
