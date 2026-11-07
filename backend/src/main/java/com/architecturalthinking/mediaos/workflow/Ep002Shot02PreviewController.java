@@ -152,7 +152,7 @@ public class Ep002Shot02PreviewController {
                 """).param("fingerprint",verified.inputFingerprint())
                 .param("take",verified.voiceTakeId())
                 .query((rs,n)->{
-                    var result=new LinkedHashMap<String,Object>();
+                    Map<String,Object> result=new LinkedHashMap<>();
                     UUID id=rs.getObject("id",UUID.class);
                     String status=rs.getString("status");
                     result.put("renderId",id.toString());
