@@ -8,7 +8,7 @@ type Readiness={
 };
 type Capability={enabled:boolean;workerPinned:boolean;canQueue:boolean};
 type EditorialPlan={
-  ready:boolean;reason?:string;sourceDurationInFrames?:number;
+  ready:boolean;reason?:string;naturalSlowTake?:boolean;sourceDurationInFrames?:number;
   durationInFrames?:number;addedFrames?:number;
   pauses?:Array<{afterPhrase:string;atFrame:number;holdFrames:number}>;
 };
@@ -53,9 +53,10 @@ export function Ep002Shot02RenderPanel(){
 
   async function requestPreview(){
     if(busy||!readiness?.ready||!capability?.canQueue)return;
-    if(!window.confirm('Start one Director-authorized SHOT02 1920x1080 Railway CPU '+
-      'preview with natural editorial voice pauses? This may incur cloud rendering costs. '+
-      'The original approved ElevenLabs Take will be preserved without new TTS or Codex.'))return;
+    const natural=Boolean(editorial?.naturalSlowTake);
+    if(!window.confirm(natural
+      ?'Start one Director-authorized SHOT02 1920x1080 Railway CPU preview with the newly approved Slow Natural ElevenLabs recording? No second editorial silence pass will be added. This may incur cloud rendering costs.'
+      :'Start one Director-authorized SHOT02 1920x1080 Railway CPU preview with natural editorial voice pauses? This may incur cloud rendering costs. The selected ElevenLabs Take is reused; no new TTS request is made.'))return;
     setBusy(true);setError('');
     try{
       const response=await fetch(PREVIEW,{
@@ -63,7 +64,7 @@ export function Ep002Shot02RenderPanel(){
         body:JSON.stringify({
           requestId:window.crypto.randomUUID(),
           expectedEpisodeFingerprint:readiness.inputFingerprint,
-          editorialPauses:true,
+          editorialPauses:!natural,
         }),
       });
       if(!response.ok)throw Error('SHOT02 render was not queued (HTTP '+response.status+
@@ -94,12 +95,18 @@ export function Ep002Shot02RenderPanel(){
       {' '}Pinned Worker release: {capability?.canQueue?'ENABLED':'NOT ENABLED'}.
       {' '}Enable this preview only after independently verified Maven/Remotion QA and Director release approval.
     </p>
-    {editorial?.ready&&<p className="library-note">
+    {editorial?.ready&&!editorial.naturalSlowTake&&<p className="library-note">
       Original Take: {((editorial.sourceDurationInFrames??0)/30).toFixed(2)}s.
       {' '}Edited SHOT02: {((editorial.durationInFrames??0)/30).toFixed(2)}s.
       {' '}Natural spoken-sentence pauses added: {((editorial.addedFrames??0)/30).toFixed(2)}s
       {' '}across {editorial.pauses?.length??0} positions.
       No voice regeneration. All timing cues are remapped to the edited soundtrack.
+    </p>}
+    {editorial?.ready&&editorial.naturalSlowTake&&<p className="library-note">
+      New Slow Natural ElevenLabs Take: {((editorial.durationInFrames??0)/30).toFixed(2)}s.
+      The pauses are spoken naturally in the new recording, not inserted as artificial silence.
+      No additional nine-gap editorial audio processing will run. Review the selected
+      new Take and re-approve its genuine seven-term timing before a CPU preview.
     </p>}
     <div className="library-episode-batch-actions">
       <button type="button" className="library-voice-refresh"
@@ -108,7 +115,9 @@ export function Ep002Shot02RenderPanel(){
       </button>
       <button type="button" className="library-voice-button"
         disabled={busy||!ready||active} onClick={()=>void requestPreview()}>
-        <Clapperboard size={15}/> {busy?'Requesting…':'Render SHOT02 V3 — slower voice · 1920×1080'}
+        <Clapperboard size={15}/> {busy?'Requesting…':editorial?.naturalSlowTake
+          ?'Render SHOT02 — new Slow Natural Take · 1920×1080'
+          :'Render SHOT02 V3 — slower voice · 1920×1080'}
       </button>
     </div>
     {render?.renderId&&<p className="library-note">
