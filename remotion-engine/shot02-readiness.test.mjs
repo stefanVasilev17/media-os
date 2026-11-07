@@ -10,6 +10,8 @@ const shot02=readFileSync(path.join(base,'Shot02GeneratedScene.tsx'),'utf8');
 const layout=readFileSync(path.join(base,'Shot02PremiumLayout.ts'),'utf8');
 const shot01=readFileSync(path.join(base,'Shot01LoginWaiting.tsx'),'utf8');
 const phone=readFileSync(path.join(base,'Shot01ReadablePhone.tsx'),'utf8');
+const pressurePhone=readFileSync(path.join(base,'Shot02PressurePhone.tsx'),'utf8');
+const pressure=readFileSync(path.join(base,'Shot02PressureVisuals.ts'),'utf8');
 
 test('SHOT02 never invents final voice frames or editorial fallback timing',()=>{
   assert.match(shot02,/requireShot02VerifiedCues/);
@@ -42,8 +44,9 @@ test('SHOT02 retains SHOT01 spatial geography and exact approved family of objec
   assert.match(shot01,/title="API Gateway" x=\{934\} y=\{420\}/);
   assert.match(shot01,/title="Load Balancer" x=\{1161\} y=\{420\}/);
   assert.match(shot01,/title="Auth Service" x=\{1510\} y=\{298\}/);
-  assert.match(shot02,/import \{Shot01ReadablePhone\}/);
-  assert.match(shot02,/<Shot01ReadablePhone/);
+  assert.match(shot02,/import \{Shot02PressurePhone\}/);
+  assert.match(shot02,/<Shot02PressurePhone/);
+  assert.match(pressurePhone,/Shot02PressurePhoneProps/);
   assert.match(phone,/Logging in \.\.\./);
   for(const component of [
     'ATBackground','ATBackendNode','ATCameraRig','ATControlledRealismLayer','AT_FONT'
@@ -54,12 +57,14 @@ test('Narrated terms get legible enlarged architecture focus without decorative 
   assert.match(shot02,/const FocusedNodeInterior/);
   assert.match(shot02,/const SpokenRequestMarker/);
   assert.match(shot02,/const SemanticNodeHalo/);
-  assert.match(shot02,/const ReplicaRail/);
+  assert.match(shot02,/const AuthReplicaCluster/);
+  assert.match(shot02,/const PressureDatabaseNode/);
   assert.match(shot02,/<SemanticNodeHalo cue=\{active\} frame=\{frame\}/);
   assert.match(shot02,/<FocusedNodeInterior node="gateway"/);
   assert.match(shot02,/<FocusedNodeInterior node="balancer"/);
-  assert.match(shot02,/<FocusedNodeInterior node="auth"/);
-  assert.match(shot02,/<FocusedNodeInterior node="database"/);
+  assert.match(shot02,/<AuthReplicaCluster activity=\{authActivity\}/);
+  assert.match(shot02,/<PressureDatabaseNode reveal=\{dbReveal\}/);
+  assert.doesNotMatch(shot02,/const ReplicaRail/);
   assert.match(shot02,/shot02TermHold\(frame,terms\[1\]/);
   assert.match(shot02,/shot02FocusCamera\(baseCamera,focusWeights\)/);
   assert.doesNotMatch(shot02,/SemanticTermHud|NOW IN FOCUS|term\.headline|term\.detail/);
@@ -77,13 +82,19 @@ test('Three fixed text lanes stay outside the animated camera and upper-right cl
   assert.doesNotMatch(shot02,/SHARED DEPENDENCY · PRESSURE BEGINS/);
 });
 
-test('Three Auth replicas converge toward one intact User Database',()=>{
-  for(const name of ['Auth01','Auth02','Auth03','AUTH 01','AUTH 02','AUTH 03','User Database'])
-    assert.ok(shot02.includes(name),'missing architecture '+name);
-  assert.match(shot02,/THREE AUTH REPLICAS/);
-  assert.match(shot02,/SHARED ACCOUNT LOOKUP/);
-  assert.match(shot02,/const dbPath=/);
-  assert.match(shot02,/cx=\{dbX\} cy=\{dbY\}/);
+test('Three independent Auth replica objects share one database and own lookup paths',()=>{
+  for(const word of ['Auth Service','User Database','SHARED ACCOUNT LOOKUP'])
+    assert.ok(shot02.includes(word),'missing architecture '+word);
+  assert.match(shot02,/<AuthReplicaCluster activity=\{authActivity\}/);
+  assert.doesNotMatch(shot02,/THREE INDEPENDENT REPLICAS/);
+  assert.match(pressure,/AUTH 01/);
+  assert.match(pressure,/AUTH 02/);
+  assert.match(pressure,/AUTH 03/);
+  assert.match(shot02,/SHOT02_AUTH_REPLICA_PORTS\.map\(\(replica,i\)=>/);
+  assert.match(shot02,/const branch=/);
+  assert.match(shot02,/const lookup=/);
+  assert.match(shot02,/shot02CubicPoint\(p,c,db1,db2,db\)/);
+  assert.match(shot02,/shot02SharedDbPressure\(lookup,database,flowBoost\)/);
   assert.doesNotMatch(shot02,/DATABASE OFFLINE|Please try again|CONNECTION LOST/);
 });
 

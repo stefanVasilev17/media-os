@@ -31,7 +31,7 @@ public class Ep002Shot02PreviewController {
             RemotionRenderController renders,
             JdbcClient jdbc,
             @Value("${mediaos.ep002.shot02-preview-enabled:false}") boolean renderEnabled,
-            @Value("${mediaos.ep002.shot02-worker-source-sha:}") String pinnedWorkerSha) {
+            @Value("${MEDIAOS_SHOT02_RELEASE_WORKER_SHA:${mediaos.ep002.shot02-worker-source-sha:}}") String pinnedWorkerSha) {
         this.cues=cues;
         this.episode=episode;
         this.renders=renders;
