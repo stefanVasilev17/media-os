@@ -26,31 +26,26 @@ test('SHOT02 premium HUD lanes do not overlap or leave 1080p frame',()=>{
   }
 });
 
-test('SHOT02 preserves SHOT01 node centers and reduces two touching nodes',()=>{
+test('SHOT02 V5 diagram fits the entire 1920x1080 canvas',()=>{
   const {gateway,balancer,auth,database}=layout.SHOT02_NODES;
   assert.deepEqual([gateway.x,gateway.y,balancer.x,balancer.y,auth.x,auth.y],
-    [934,420,1161,420,1510,298]);
-  assert.equal(database.x,2140);
-  assert.ok(gateway.x+gateway.width/2+16 <= balancer.x-balancer.width/2,
-    'Gateway and Balancer need a legible nonoverlap gap');
-  assert.ok(balancer.x+balancer.width/2+16<=auth.x-auth.width/2,
-    'Balancer must not collide with Auth Service');
+    [650,410,927,410,1326,315]);
+  assert.equal(database.x,1697);
+  for(const [name,n] of Object.entries(layout.SHOT02_NODES)){
+    assert.ok(n.x-n.width/2>=510,name+' not overlapping phone');
+    assert.ok(n.x+n.width/2<1870,name+' right edge not clipped');
+    assert.ok(n.y>250&&n.y+n.height<800,name+' vertical bounds');
+  }
+  assert.ok(gateway.x+gateway.width/2+14 <= balancer.x-balancer.width/2);
+  assert.ok(balancer.x+balancer.width/2+38<=auth.x-auth.width/2);
+  assert.ok(auth.x+auth.width/2+35<=database.x-database.width/2);
 });
 
-test('SHOT02 projected typography stays clear across 1331 sampled camera poses',()=>{
-  let sampled=0;
-  const ten=[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1];
-  for(const c of ten)for(const g of ten)for(const d of ten){
-    const camera={
-      x:-55*c-215*g-280*d,
-      y:-8*g-12*d,
-      scale:1.018-.045*c+.04*g+.028*d,
-    };
-    assert.doesNotThrow(()=>layout.assertShot02TextLanes(camera),
-      'layout collision at '+JSON.stringify(camera));
-    sampled++;
-  }
-  assert.equal(sampled,1331);
+test('V5 camera is stationary and all 3 safe text lanes remain unobstructed',()=>{
+  assert.doesNotThrow(()=>layout.assertShot02TextLanes({x:0,y:0,scale:1}));
+  assert.ok(layout.SHOT02_PHONE_VISUAL_SAFE_BOUNDS.left>=44);
+  assert.ok(layout.SHOT02_PHONE_VISUAL_SAFE_BOUNDS.left+
+    layout.SHOT02_PHONE_VISUAL_SAFE_BOUNDS.width<510);
 });
 
 test('collision guard rejects unsafe camera translations or invalid camera scale',()=>{
@@ -64,8 +59,8 @@ test('collision guard rejects unsafe camera translations or invalid camera scale
 
 test('Spoken Login request label stays beside the path, not over Phone or server nodes',()=>{
   const marker=layout.SHOT02_REQUEST_MARKER;
-  assert.deepEqual(marker,{left:792,top:645,width:204,height:46});
-  const phone={left:320,top:165,width:450,height:815};
+  assert.deepEqual(marker,{left:536,top:710,width:330,height:64});
+  const phone=layout.SHOT02_PHONE_VISUAL_SAFE_BOUNDS;
   const nodes=Object.values(layout.SHOT02_NODES).map(n=>({
     left:n.x-n.width/2,top:n.y,width:n.width,height:n.height,
   }));
