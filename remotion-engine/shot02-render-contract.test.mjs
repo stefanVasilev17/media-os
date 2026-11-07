@@ -24,7 +24,7 @@ const ui=read('frontend/src/components/Ep002Shot02RenderPanel.tsx');
 
 test('SHOT02 candidate is registered but requires genuine render input',()=>{
   assert.match(root,/id="EP002-SHOT02-CANDIDATE"/);
-  assert.match(root,/component=\{Shot02GeneratedScene\}/);
+  assert.match(root,/component=\{Shot02DirectorVisualV5\}/);
   assert.match(root,/durationInFrames=\{dynamicDuration \?\? 6\}/);
   assert.match(root,/voiceTakeId: ''/);
   assert.match(root,/verifiedCues: \[\]/);

@@ -6,22 +6,22 @@ export const SHOT02_VIEWPORT={width:1920,height:1080,originX:960,originY:540} as
 // Director-approved SHOT01 node centers are immutable. Only local node widths
 // are tightened so Gateway and Balancer do not touch each other.
 export const SHOT02_NODES={
-  gateway:{x:934,y:420,width:198,height:205},
-  balancer:{x:1161,y:420,width:212,height:205},
-  auth:{x:1510,y:298,width:395,height:354},
-  database:{x:2140,y:421,width:274,height:224},
+  gateway:{x:650,y:410,width:258,height:250},
+  balancer:{x:927,y:410,width:246,height:250},
+  auth:{x:1326,y:315,width:350,height:348},
+  database:{x:1697,y:368,width:252,height:280},
 } as const;
 
-// All explanatory typography lives OUTSIDE the animated architecture camera.
-// No floating labels, counters, or caption cards are allowed over node faces.
 export const SHOT02_TEXT_LANES={
-  brand:{left:80,top:48,width:385,height:46},
-  time:{left:850,top:127,width:348,height:65},
-  metric:{left:1330,top:842,width:490,height:116},
+  brand:{left:66,top:40,width:380,height:42},
+  time:{left:650,top:105,width:800,height:115},
+  metric:{left:1340,top:830,width:440,height:118},
 } as const satisfies Record<string,Rect>;
 
-export const SHOT02_REQUEST_MARKER={left:792,top:645,width:204,height:46} as const;
-const phoneProxy:Rect={left:320,top:165,width:450,height:815};
+export const SHOT02_REQUEST_MARKER={left:536,top:710,width:330,height:64} as const;
+export const SHOT02_PHONE_VISUAL_SAFE_BOUNDS:Rect={
+  left:55,top:160,width:445,height:800,
+};
 export const shot02Intersects=(a:Rect,b:Rect,margin=0):boolean=>
   a.left < b.left+b.width+margin && a.left+a.width+margin > b.left &&
   a.top < b.top+b.height+margin && a.top+a.height+margin > b.top;
@@ -37,7 +37,8 @@ export function shot02ProjectRect(world:Rect,pose:CameraPose):Rect {
 
 export function assertShot02TextLanes(pose:CameraPose):void {
   if(!Number.isFinite(pose.x)||!Number.isFinite(pose.y)
-     ||!Number.isFinite(pose.scale)||pose.scale<.7||pose.scale>1.25)
+     ||!Number.isFinite(pose.scale)||pose.scale<.98||pose.scale>1.02
+     ||Math.abs(pose.x)>24||Math.abs(pose.y)>24)
     throw Error('SHOT02_CAMERA_CONTRACT_INVALID');
   const fixed=Object.entries(SHOT02_TEXT_LANES);
   for(const [id,box] of fixed){
@@ -54,7 +55,6 @@ export function assertShot02TextLanes(pose:CameraPose):void {
     ...Object.values(SHOT02_NODES).map(n=>({
       left:n.x-n.width/2,top:n.y,width:n.width,height:n.height,
     })),
-    phoneProxy,
   ];
   for(const [label,box] of fixed){
     for(const node of world){

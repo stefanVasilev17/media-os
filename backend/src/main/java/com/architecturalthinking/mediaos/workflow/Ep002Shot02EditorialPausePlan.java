@@ -92,7 +92,17 @@ public final class Ep002Shot02EditorialPausePlan {
     }
 
     public static int sourceFramesForRender(java.util.Map<?,?> props,int outputFrames){
-        if(!TIMING_MODE.equals(props.get("timingMode")))return outputFrames;
+        if(!TIMING_MODE.equals(props.get("timingMode"))){
+            if(props.get("postVoiceHoldFrames") instanceof Number hold){
+                if(hold.intValue()!=60
+                        ||!(props.get("sourceDurationInFrames") instanceof Number n)
+                        ||n.intValue()<6 ||n.intValue()+60!=outputFrames
+                        ||props.containsKey("editorialSilencePlan"))
+                    return -1;
+                return n.intValue();
+            }
+            return outputFrames;
+        }
         if(!(props.get("sourceDurationInFrames") instanceof Number n)
                 ||!(props.get("editorialSilencePlan") instanceof List<?> entries)
                 ||entries.size()!=BREAKS.size())

@@ -1,13 +1,17 @@
 export const SHOT02_AUTH_REPLICA_PORTS = [
-  {id: 'AUTH 01', y: 405},
-  {id: 'AUTH 02', y: 488},
-  {id: 'AUTH 03', y: 571},
+  {id:'AUTH 01',y:412},
+  {id:'AUTH 02',y:498},
+  {id:'AUTH 03',y:584},
 ] as const;
 
-export const SHOT02_AUTH_CARD_LEFT = 1351;
-export const SHOT02_AUTH_CARD_RIGHT = 1685;
-export const SHOT02_DATABASE_ENTRY = {x: 2004, y: 533} as const;
-export const SHOT02_BALANCER_EXIT = {x: 1268, y: 525} as const;
+export const SHOT02_AUTH_CARD_LEFT = 1192;
+export const SHOT02_AUTH_CARD_RIGHT = 1460;
+export const SHOT02_DATABASE_ENTRY = {x:1582,y:509} as const;
+export const SHOT02_BALANCER_EXIT = {x:1050,y:535} as const;
+export const SHOT02_GATEWAY_ENTRY = {x:521,y:532} as const;
+export const SHOT02_GATEWAY_EXIT = {x:779,y:532} as const;
+export const SHOT02_BALANCER_ENTRY = {x:804,y:532} as const;
+export const SHOT02_PHONE_PIPE = {x:485,y:532} as const;
 
 const clamp01 = (value: number): number =>
   Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;

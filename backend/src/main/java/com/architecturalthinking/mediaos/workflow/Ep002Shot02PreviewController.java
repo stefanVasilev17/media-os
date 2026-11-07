@@ -105,7 +105,12 @@ public class Ep002Shot02PreviewController {
                 ?cues.editorialPlan(verified):null;
         var props=new LinkedHashMap<String,Object>();
         props.put("shotKey","EP002_SHOT02");
-        props.put("durationInFrames",editorial?plan.durationInFrames():verified.durationInFrames());
+        int endHoldFrames=naturalSlow?60:0;
+        props.put("durationInFrames",editorial?plan.durationInFrames():verified.durationInFrames()+endHoldFrames);
+        if(endHoldFrames==60){
+            props.put("postVoiceHoldFrames",60);
+            props.put("sourceDurationInFrames",verified.durationInFrames());
+        }
         props.put("voiceTakeId",verified.voiceTakeId());
         props.put("scriptRevision",shot.scriptRevision());
         props.put("timingMode",editorial?plan.timingMode():verified.timingMode());
@@ -157,8 +162,9 @@ public class Ep002Shot02PreviewController {
                 "reason","REAL_ELEVEN_V4_NATURAL_PAUSES_NO_EDITORIAL_SILENCE",
                 "timingMode",ready.timingMode(),
                 "sourceDurationInFrames",ready.durationInFrames(),
-                "durationInFrames",ready.durationInFrames(),
-                "addedFrames",0,
+                "durationInFrames",ready.durationInFrames()+60,
+                "addedFrames",60,
+                "endHoldFrames",60,
                 "pauses",java.util.List.of());
         }
         var plan=cues.editorialPlan(ready);
@@ -211,9 +217,10 @@ public class Ep002Shot02PreviewController {
                   and lineage.dependency_sha256=:fingerprint
                   and lineage.preferred_take_id::text=:take
                   and r.input_props->>'inputFingerprint'=:fingerprint
+                  and r.input_props->>'expectedSourceCommit'=:workerSha
                 order by lineage.created_at desc,lineage.id desc limit 1
                 """).param("fingerprint",verified.inputFingerprint())
-                .param("take",verified.voiceTakeId())
+                .param("take",verified.voiceTakeId()).param("workerSha",pinnedWorkerSha)
                 .query((rs,n)->{
                     Map<String,Object> result=new LinkedHashMap<>();
                     UUID id=rs.getObject("id",UUID.class);

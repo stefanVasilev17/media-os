@@ -575,6 +575,17 @@ async function muxEp002SelectedVoice(job, videoPath, inputProps) {
       args.push('-filter_complex',buildShot02EditorialAudioFilter(editorialPlan),
         '-map','0:v:0','-map','[editorial]');
       console.log(`SHOT02_EDITORIAL_VOICE_PAUSES sourceFrames=${editorialPlan.sourceFrames} addedFrames=${editorialPlan.addedFrames} outputFrames=${editorialPlan.outputFrames} noTts=true`);
+    }else if(job.compositionId==='EP002-SHOT02-CANDIDATE'
+      && inputProps.postVoiceHoldFrames===60){
+      const source=Number(inputProps.sourceDurationInFrames);
+      if(!Number.isInteger(source)||source<6
+        ||Number(job.durationInFrames)!==source+60
+        ||inputProps.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS')
+        throw Error('SHOT02_60_FRAME_VISUAL_HOLD_INVALID');
+      args.push('-filter_complex',
+        '[1:a]aresample=48000,apad=whole_dur='+String(job.durationInFrames/job.fps)+'[voicehold]',
+        '-map','0:v:0','-map','[voicehold]');
+      console.log('SHOT02_POST_VOICE_VISUAL_HOLD frames=60 existingTake=true noTts=true');
     }else{
       args.push('-map','0:v:0','-map','1:a:0');
     }

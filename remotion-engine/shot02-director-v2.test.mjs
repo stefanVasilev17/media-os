@@ -79,35 +79,14 @@ test('request-packet clock accelerates smoothly only after the genuine arrival-r
       pacing.shot02FlowClock(start+i-1,start));
 });
 
-test('Director focus stays within legal camera scale and 1080p text lanes',()=>{
-  let verified=0;
-  const steps=Array.from({length:21},(_,i)=>i/20);
-  const phases=[
-    {key:'gateway',configs:steps.map(g=>[1,g,0])},
-    {key:'balancer',configs:[[1,1,0]]},
-    {key:'auth',configs:[[1,1,0]]},
-    {key:'database',configs:steps.map(d=>[1,1,d])},
-  ];
-  for(const {key,configs} of phases){
-    for(const [context,gateway,database] of configs){
-      const baseCamera={
-        x:-55*context-215*gateway-280*database,
-        y:-8*gateway-12*database,
-        scale:1.018-.045*context+.04*gateway+.028*database,
-      };
-      for(const weight of steps){
-        const focus={gateway:0,balancer:0,auth:0,database:0};
-        focus[key]=weight;
-        const pose=pacing.shot02FocusCamera(baseCamera,focus);
-        assert.ok(pose.scale>=.7&&pose.scale<=1.25,
-          'focus zoom must stay below the Director maximum');
-        assert.doesNotThrow(()=>layout.assertShot02TextLanes(pose),
-          'Director V2 camera overlap at '+JSON.stringify({key,weight,pose}));
-        verified++;
-      }
-    }
-  }
-  assert.equal(verified,(21+1+1+21)*21);
+test('V5 replaces moving camera with safe fixed composition',()=>{
+  assert.doesNotThrow(()=>layout.assertShot02TextLanes({x:0,y:0,scale:1}));
+  const v5=ts('Shot02DirectorVisualV5.tsx');
+  assert.match(v5,/assertShot02TextLanes\(\{x:0,y:0,scale:1\}\)/);
+  assert.doesNotMatch(v5,/shot02FocusCamera\(/);
+  assert.match(v5,/translate3d\(-680px,-150px,0\) scale\(1.11\)/);
+  assert.ok(layout.SHOT02_NODES.database.x+
+    layout.SHOT02_NODES.database.width/2<1920);
 });
 
 test('V2 is deterministic and never creates audio timings, fake voice or decorative labels',()=>{

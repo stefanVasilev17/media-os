@@ -1,7 +1,7 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
 import {Shot01LoginWaiting} from './episodes/ep002/Shot01LoginWaiting';
-import {Shot02GeneratedScene} from './episodes/ep002/Shot02GeneratedScene';
+import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -67,7 +67,7 @@ export const Root: React.FC = () => {
     <>
       <Composition
         id="EP002-SHOT02-CANDIDATE"
-        component={Shot02GeneratedScene}
+        component={Shot02DirectorVisualV5}
         durationInFrames={dynamicDuration ?? 6}
         fps={30}
         width={1920}

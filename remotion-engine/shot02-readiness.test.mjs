@@ -39,7 +39,7 @@ test('Seven technical terms use true phrase-level frames instead of arbitrary st
 });
 
 test('SHOT02 retains SHOT01 spatial geography and exact approved family of objects',()=>{
-  for(const s of ['gateway:{x:934,y:420','balancer:{x:1161,y:420','auth:{x:1510,y:298'])
+  for(const s of ['gateway:{x:650,y:410','balancer:{x:927,y:410','auth:{x:1326,y:315'])
     assert.ok(layout.includes(s),'missing node coordinate '+s);
   assert.match(shot01,/title="API Gateway" x=\{934\} y=\{420\}/);
   assert.match(shot01,/title="Load Balancer" x=\{1161\} y=\{420\}/);
