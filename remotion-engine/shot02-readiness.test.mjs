@@ -50,26 +50,30 @@ test('SHOT02 retains SHOT01 spatial geography and exact approved family of objec
   ])assert.ok(shot02.includes(component));
 });
 
-test('Semantic term HUD and animated node halo guide the viewer to the spoken subject',()=>{
-  assert.match(shot02,/const SemanticTermHud/);
+test('Narrated terms get legible enlarged architecture focus without decorative HUD',()=>{
+  assert.match(shot02,/const FocusedNodeInterior/);
+  assert.match(shot02,/const SpokenRequestMarker/);
   assert.match(shot02,/const SemanticNodeHalo/);
   assert.match(shot02,/const ReplicaRail/);
   assert.match(shot02,/<SemanticNodeHalo cue=\{active\} frame=\{frame\}/);
-  assert.match(shot02,/<SemanticTermHud frame=\{frame\} cue=\{active\}/);
-  assert.match(shot02,/NOW IN FOCUS/);
-  assert.match(shot02,/term\.headline/);
-  assert.match(shot02,/term\.detail/);
+  assert.match(shot02,/<FocusedNodeInterior node="gateway"/);
+  assert.match(shot02,/<FocusedNodeInterior node="balancer"/);
+  assert.match(shot02,/<FocusedNodeInterior node="auth"/);
+  assert.match(shot02,/<FocusedNodeInterior node="database"/);
+  assert.match(shot02,/shot02TermHold\(frame,terms\[1\]/);
+  assert.match(shot02,/shot02FocusCamera\(baseCamera,focusWeights\)/);
+  assert.doesNotMatch(shot02,/SemanticTermHud|NOW IN FOCUS|term\.headline|term\.detail/);
 });
 
-test('All large editorial text sits outside moving camera in fixed safe zones',()=>{
+test('Three fixed text lanes stay outside the animated camera and upper-right clutter is gone',()=>{
   assert.match(shot02,/SHOT02_TEXT_LANES\.time/);
-  assert.match(shot02,/SHOT02_TEXT_LANES\.term/);
   assert.match(shot02,/SHOT02_TEXT_LANES\.metric/);
+  assert.doesNotMatch(layout,/term:\{left:/);
+  assert.doesNotMatch(shot02,/SHOT02_TEXT_LANES\.term/);
   assert.match(shot02,/assertShot02TextLanes\(\{x:cameraX,y:cameraY,scale:cameraScale\}\)/);
   const afterCamera=shot02.slice(shot02.indexOf('</ATCameraRig>'));
   assert.match(afterCamera,/<ContextLabel reveal=\{context\}/);
   assert.match(afterCamera,/<ArrivalCounter reveal=\{arrival\}/);
-  assert.match(afterCamera,/<SemanticTermHud frame=\{frame\} cue=\{active\}/);
   assert.doesNotMatch(shot02,/SHARED DEPENDENCY · PRESSURE BEGINS/);
 });
 
@@ -83,12 +87,19 @@ test('Three Auth replicas converge toward one intact User Database',()=>{
   assert.doesNotMatch(shot02,/DATABASE OFFLINE|Please try again|CONNECTION LOST/);
 });
 
-test('All five approved visual beats stay causally synced and avoid made-up telemetry',()=>{
+test('Director V2 makes the request journey visible without invented voice timings',()=>{
   for(const item of [
     '09:00','TICKETS ON SALE','ArrivalWave','API Gateway',
-    'Load Balancer','NEW LOGIN ARRIVALS / SECOND','User Database','ILLUSTRATIVE'
+    'Load Balancer','ARRIVAL RATE · LOGIN REQUESTS / SECOND',
+    'User Database','LOGIN REQUEST','FocusedNodeInterior','SpokenRequestMarker'
   ])assert.ok(shot02.includes(item),'missing semantic visual '+item);
-  assert.match(shot02,/Math\.round\(\(100\+250\*countTransition\)\/10\)\*10/);
-  assert.match(shot02,/NOT LIVE TELEMETRY/);
+  assert.match(shot02,/press=\{repeatedTap\}/);
+  assert.match(shot02,/shot02TapPulse\(frame,starts\[0\]\+15/);
+  assert.match(shot02,/shot02TapPulse\(frame,starts\[2\]/);
+  assert.match(shot02,/shot02FlowClock\(frame,terms\[4\]\.startFrame\)/);
+  assert.match(shot02,/Math\.round\(\(100\+250\*flowBoost\)\/10\)\*10/);
+  assert.match(shot02,/clock=\{flowClock\}/);
+  assert.match(shot02,/const dots=Array\.from\(\{length:8\}/);
+  assert.doesNotMatch(shot02,/ILLUSTRATIVE|NOT LIVE TELEMETRY|NOW IN FOCUS/);
   assert.doesNotMatch(shot02,/OPENAI_API_KEY|ELEVENLABS_API_KEY|fetch\(/);
 });
