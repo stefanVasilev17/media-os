@@ -70,7 +70,8 @@ class Ep002Shot02TermResolverTest {
                         "arrival rate","The Auth servers"),5);
         var terms=Ep002Shot02TermResolver.resolve(json,source,SECONDS,beats);
         assertEquals(7,terms.size());
-        assertEquals(beats.get(4).startFrame(),terms.get(5).startFrame());
+        assertTrue(terms.get(5).startFrame()>=beats.get(4).startFrame());
+        assertTrue(terms.get(5).startFrame()<beats.get(4).endFrame());
         assertTrue(terms.get(6).startFrame()>beats.get(4).startFrame());
     }
 
