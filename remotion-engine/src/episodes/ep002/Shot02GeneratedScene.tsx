@@ -415,10 +415,11 @@ const ArchitectureWorld: React.FC<{
   };
   const {x:cameraX,y:cameraY,scale:cameraScale}=
     shot02FocusCamera(baseCamera,focusWeights);
-  const tapStart=starts[2];
-  const tapEnd=Math.max(tapStart+18,
+  const nineOClockTap=shot02TapPulse(frame,starts[0]+15,
+    Math.min(starts[1]+15,starts[0]+165));
+  const loginTap=shot02TapPulse(frame,starts[2],
     Math.min(terms[1].startFrame-2,terms[0].endFrame+45));
-  const repeatedTap=shot02TapPulse(frame,tapStart,tapEnd);
+  const repeatedTap=Math.max(nineOClockTap,loginTap);
   const requestMention=ease(frame,terms[0].startFrame,terms[0].startFrame+15);
   const flowBoost=shot02FlowIntensity(frame,terms[4].startFrame,
     terms[4].endFrame+32);
