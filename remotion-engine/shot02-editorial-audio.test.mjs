@@ -66,6 +66,16 @@ test('tampered word anchors, reordered pauses, changed output duration and unwan
   assert.equal(validateShot02EditorialPlan(job,{timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS'}),null);
 });
 
+test('a natural sentence can end exactly at source audio end without zero-sample concat pieces',()=>{
+  const tail=props();
+  tail.editorialSilencePlan.at(-1).atFrame=tail.sourceDurationInFrames;
+  const plan=validateShot02EditorialPlan(job,tail);
+  const filter=buildShot02EditorialAudioFilter(plan);
+  assert.match(filter,/asplit=9/);
+  assert.match(filter,/concat=n=18:v=0:a=1/);
+  assert.doesNotMatch(filter,/atrim=start_sample=1928000:end_sample=1928000/);
+});
+
 test('audio editor never writes over existing voice source, regenerates voice or changes user narration',()=>{
   const source=buildShot02EditorialAudioFilter(validateShot02EditorialPlan(job,props()));
   assert.doesNotMatch(source,/fetch|POST|elevenlabs|voice_id|renderId|sourceTakeId/);
