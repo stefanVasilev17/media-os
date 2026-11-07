@@ -17,6 +17,14 @@
 
 **Review gates:** at every SHOT check (a) cause→effect actions, (b) real voice timing and visual comprehension holds, (c) readable node internals and zero text/camera overlap, (d) paths/counters moving together, (e) strictly useful typography. Source tests and bundle success do not replace Director inspection of the actual 1920×1080 MP4. Do not call a V2 shot Director-LOCKED until the corrected preview is rendered and accepted.
 
+## Director feedback — no one-second architectural objects (2026-11-07)
+
+**Director-observed failure in SHOT02 V2:** several named architecture objects appear and disappear so quickly that the audience cannot read or understand them. A technically synchronized animation is NOT educationally synchronized if the useful information is only visible for about one second. This observation applies to the entire series as an explicit quality rejection rule.
+
+**Production acceptance constraint:** primary named system objects and their meaningful internal labels should have a **target reading time of 3–4 seconds** (90–120 frames at 30fps), including a steady plateau after their controlled entrance. Never rush a camera push-in and reverse immediately; if the real narration spacing is too short, keep the earlier node's internals readable in its existing world position and omit the ineffective whip-zoom. Keep causality, precise term onset, and zero text overlap. Avoid forcing 3-second camera spotlights between back-to-back spoken words: overlapping camera moves can reduce readability even when every animation independently meets its duration.
+
+**Voice-length limitation:** when a key term appears near the end of the approved Take with less than 90 available frames, no amount of scene-local animation can create three full seconds before the audio-backed clip ends. Flag an explicit **VOICE_PACING_REVIEW_REQUIRED** and propose a separately approved edit of existing source audio with genuinely silent pauses plus re-alignment, or a newly approved Take if necessary. Do not silently insert silence, shift terms away from ElevenLabs timestamps, change a selected Take, fabricate cue frames or auto-charge TTS. A code-only V3 pass is **not** evidence that the spoken pacing issue has been solved.
+
 ## 1. Fixed series identity
 
 Every episode must feel like another journey **inside the same technical architecture world**, not a different presentation theme. Preserve consistent design tokens, shared component geometry, service names, node identity, proportions, animation semantics, camera perspective, architecture geography and visual hierarchy across adjacent SHOTs and related episodes. EP001 approved components and EP002 SHOT01 are the visual references; do not change approved originals to make new code fit.
