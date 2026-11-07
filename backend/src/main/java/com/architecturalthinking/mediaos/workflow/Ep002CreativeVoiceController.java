@@ -61,6 +61,16 @@ public class Ep002CreativeVoiceController {
     }
 
     @GetMapping("/takes/{takeId}/audio")
+    public record RestoreOlderRequest(@NotNull @Min(1) Integer expectedRevision,
+                                      @NotNull UUID sourceTakeId) {}
+
+    @PostMapping("/restore-older-take")
+    public Map<String,Object> restoreOlderTake(@PathVariable String shotKey,
+                                               @Valid @RequestBody RestoreOlderRequest request) {
+        return voices.restoreOlderTake(shotKey,request.expectedRevision(),request.sourceTakeId());
+    }
+
+
     public ResponseEntity<byte[]> audio(@PathVariable String shotKey,@PathVariable UUID takeId) {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType(voices.audioContentType(shotKey,takeId)))
