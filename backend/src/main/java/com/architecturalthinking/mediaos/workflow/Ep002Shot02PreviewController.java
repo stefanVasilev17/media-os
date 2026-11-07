@@ -41,7 +41,12 @@ public class Ep002Shot02PreviewController {
     }
 
     public record PreviewRequest(
-            UUID requestId, String expectedEpisodeFingerprint) {}
+            UUID requestId, String expectedEpisodeFingerprint,
+            Boolean editorialPauses) {
+        public PreviewRequest(UUID requestId,String expectedEpisodeFingerprint) {
+            this(requestId,expectedEpisodeFingerprint,false);
+        }
+    }
 
     @PostMapping
     @Transactional(isolation=Isolation.SERIALIZABLE)
@@ -89,14 +94,22 @@ public class Ep002Shot02PreviewController {
                     "Current real ElevenLabs beat and term timing failed SHOT02 render preflight.");
         }
 
+        boolean editorial=Boolean.TRUE.equals(request.editorialPauses());
+        Ep002Shot02EditorialPausePlan.Plan plan=editorial
+                ?cues.editorialPlan(verified):null;
         var props=new LinkedHashMap<String,Object>();
         props.put("shotKey","EP002_SHOT02");
-        props.put("durationInFrames",verified.durationInFrames());
+        props.put("durationInFrames",editorial?plan.durationInFrames():verified.durationInFrames());
         props.put("voiceTakeId",verified.voiceTakeId());
         props.put("scriptRevision",shot.scriptRevision());
-        props.put("timingMode",verified.timingMode());
-        props.put("verifiedCues",verified.verifiedCues());
-        props.put("termCues",verified.termCues());
+        props.put("timingMode",editorial?plan.timingMode():verified.timingMode());
+        props.put("verifiedCues",editorial?plan.verifiedCues():verified.verifiedCues());
+        props.put("termCues",editorial?plan.termCues():verified.termCues());
+        if(editorial){
+            props.put("sourceDurationInFrames",plan.sourceDurationInFrames());
+            props.put("editorialSilencePlan",plan.pauses());
+            props.put("editorialAddedFrames",plan.addedFrames());
+        }
         props.put("inputFingerprint",verified.inputFingerprint());
         props.put("visualSourceSha",Ep002ProductionContractService.VISUAL_SHA);
         props.put("expectedSourceCommit",pinnedWorkerSha);
@@ -123,6 +136,22 @@ public class Ep002Shot02PreviewController {
                 .param("render",renderId)
                 .param("worker",pinnedWorkerSha).update();
         return render;
+    }
+
+    @GetMapping("/editorial-plan")
+    @Transactional(readOnly=true)
+    public Map<String,Object> editorialPlan(){
+        DirectorIdentity.requireDirector();
+        var ready=cues.shot02RenderReadiness();
+        if(!ready.ready())return Map.of("ready",false,"reason",ready.reason());
+        var plan=cues.editorialPlan(ready);
+        return Map.of(
+            "ready",true,
+            "timingMode",plan.timingMode(),
+            "sourceDurationInFrames",plan.sourceDurationInFrames(),
+            "durationInFrames",plan.durationInFrames(),
+            "addedFrames",plan.addedFrames(),
+            "pauses",plan.pauses());
     }
 
     @GetMapping("/capability")
