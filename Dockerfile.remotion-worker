@@ -4,7 +4,7 @@ COPY remotion-engine/package*.json ./
 RUN npm install --no-audit --no-fund --prefer-offline
 COPY remotion-engine/ ./
 RUN node --check cpu-worker.mjs
-RUN node --test worker-token-rotation.test.mjs cpu-worker-lease.test.mjs worker-claim-authorization.test.mjs shot01-readability.test.mjs factory-media-worker.test.mjs validate-factory-scenes.test.mjs shot02-readiness.test.mjs shot02-premium-layout.test.mjs shot02-director-v2.test.mjs shot02-pressure-visuals.test.mjs shot02-editorial-audio.test.mjs
+RUN node --test worker-token-rotation.test.mjs cpu-worker-lease.test.mjs worker-claim-authorization.test.mjs shot01-readability.test.mjs factory-media-worker.test.mjs validate-factory-scenes.test.mjs shot02-readiness.test.mjs shot02-premium-layout.test.mjs shot02-director-v2.test.mjs shot02-pressure-visuals.test.mjs shot02-v5-director-visual.test.mjs shot02-editorial-audio.test.mjs
 RUN npm run generate:factory
 RUN node validate-factory-scenes.mjs
 RUN node build-typecheck-preflight.mjs
