@@ -94,7 +94,13 @@ public class Ep002Shot02PreviewController {
                     "Current real ElevenLabs beat and term timing failed SHOT02 render preflight.");
         }
 
+        boolean naturalSlow=usesSlowNaturalTake(verified.voiceTakeId());
         boolean editorial=Boolean.TRUE.equals(request.editorialPauses());
+        if (naturalSlow && editorial) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Slow Natural ElevenLabs voice already has spoken pauses. "
+                    +"Do not insert nine additional editorial silence gaps.");
+        }
         Ep002Shot02EditorialPausePlan.Plan plan=editorial
                 ?cues.editorialPlan(verified):null;
         var props=new LinkedHashMap<String,Object>();
@@ -144,6 +150,17 @@ public class Ep002Shot02PreviewController {
         DirectorIdentity.requireDirector();
         var ready=cues.shot02RenderReadiness();
         if(!ready.ready())return Map.of("ready",false,"reason",ready.reason());
+        if(usesSlowNaturalTake(ready.voiceTakeId())) {
+            return Map.of(
+                "ready",true,
+                "naturalSlowTake",true,
+                "reason","REAL_ELEVEN_V4_NATURAL_PAUSES_NO_EDITORIAL_SILENCE",
+                "timingMode",ready.timingMode(),
+                "sourceDurationInFrames",ready.durationInFrames(),
+                "durationInFrames",ready.durationInFrames(),
+                "addedFrames",0,
+                "pauses",java.util.List.of());
+        }
         var plan=cues.editorialPlan(ready);
         return Map.of(
             "ready",true,
@@ -152,6 +169,23 @@ public class Ep002Shot02PreviewController {
             "durationInFrames",plan.durationInFrames(),
             "addedFrames",plan.addedFrames(),
             "pauses",plan.pauses());
+    }
+
+    private boolean usesSlowNaturalTake(String takeId) {
+        if (takeId==null || takeId.isBlank()) return false;
+        try {
+            return jdbc.sql("""
+                    select coalesce(elevenlabs_alignment->>'mediaos_delivery_mode'
+                                    =:mode,false)
+                    from ep002_creative_voice_take
+                    where id=:take and shot_key='SHOT02'
+                    """)
+                    .param("mode",Ep002Shot02SlowNaturalVoice.DELIVERY_MODE)
+                    .param("take",UUID.fromString(takeId))
+                    .query(Boolean.class).optional().orElse(false);
+        } catch (IllegalArgumentException invalid) {
+            return false;
+        }
     }
 
     @GetMapping("/capability")
