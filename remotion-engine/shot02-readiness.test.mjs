@@ -82,7 +82,7 @@ test('Three Auth replicas converge toward one intact User Database',()=>{
     assert.ok(shot02.includes(name),'missing architecture '+name);
   assert.match(shot02,/THREE AUTH REPLICAS/);
   assert.match(shot02,/SHARED ACCOUNT LOOKUP/);
-  assert.match(shot02,/const dbPath =/);
+  assert.match(shot02,/const dbPath=/);
   assert.match(shot02,/cx=\{dbX\} cy=\{dbY\}/);
   assert.doesNotMatch(shot02,/DATABASE OFFLINE|Please try again|CONNECTION LOST/);
 });
