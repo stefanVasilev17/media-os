@@ -89,6 +89,29 @@ public final class Ep002Shot02EditorialPausePlan {
             List.copyOf(pauses),List.copyOf(shiftedBeats),List.copyOf(shiftedTerms));
     }
 
+    public static int sourceFramesForRender(java.util.Map<?,?> props,int outputFrames){
+        if(!TIMING_MODE.equals(props.get("timingMode")))return outputFrames;
+        if(!(props.get("sourceDurationInFrames") instanceof Number n)
+                ||!(props.get("editorialSilencePlan") instanceof List<?> entries)
+                ||entries.size()!=BREAKS.size())
+            return -1;
+        int original=n.intValue();
+        if(original<6||original>=outputFrames||original>108000)return -1;
+        int added=0,previous=-1,index=0;
+        for(Object item:entries){
+            if(!(item instanceof java.util.Map<?,?> row)
+                    ||!(row.get("atFrame") instanceof Number cut)
+                    ||!(row.get("holdFrames") instanceof Number hold)
+                    ||!BREAKS.get(index).phrase().equals(row.get("afterPhrase")))
+                return -1;
+            int at=cut.intValue(),frames=hold.intValue();
+            if(at<=previous||at>=original||frames!=BREAKS.get(index).holdFrames()
+                    ||at-previous<9)return -1;
+            previous=at;added+=frames;index++;
+        }
+        return original+added==outputFrames?original:-1;
+    }
+
     static int shiftStart(int frame,List<Pause> pauses){
         int delta=0;
         for(Pause p:pauses)if(p.atFrame()<=frame)delta+=p.holdFrames();
@@ -138,7 +161,7 @@ public final class Ep002Shot02EditorialPausePlan {
                 String glyph=block.path("characters").get(i).asText();
                 double start=block.path("character_start_times_seconds").get(i).asDouble(Double.NaN);
                 double end=block.path("character_end_times_seconds").get(i).asDouble(Double.NaN);
-                if(glyph.isBlank()&&glyph.length()>8||glyph.isEmpty()||glyph.length()>8
+                if(glyph.isEmpty()||glyph.length()>8
                    ||!Double.isFinite(start)||!Double.isFinite(end)
                    ||end<start||start<last)
                     throw new IllegalArgumentException("SHOT02_EDITORIAL_BAD_CHARACTER_TIMESTAMP");
