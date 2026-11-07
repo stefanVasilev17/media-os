@@ -162,8 +162,9 @@ public class Ep002Shot02PreviewController {
                 "reason","REAL_ELEVEN_V4_NATURAL_PAUSES_NO_EDITORIAL_SILENCE",
                 "timingMode",ready.timingMode(),
                 "sourceDurationInFrames",ready.durationInFrames(),
-                "durationInFrames",ready.durationInFrames(),
-                "addedFrames",0,
+                "durationInFrames",ready.durationInFrames()+60,
+                "addedFrames",60,
+                "endHoldFrames",60,
                 "pauses",java.util.List.of());
         }
         var plan=cues.editorialPlan(ready);
