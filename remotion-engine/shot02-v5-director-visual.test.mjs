@@ -40,7 +40,7 @@ test('V5 hero, phone and database are completely inside frame',()=>{
   assert.match(v5,/translate3d\(-680px,-150px,0\) scale\(1.11\)/);
   assert.match(v5,/SHOT02_PHONE_PIPE/);
   assert.deepEqual(layout.SHOT02_PHONE_VISUAL_SAFE_BOUNDS,
-    {left:48,top:145,width:440,height:740});
+    {left:55,top:160,width:445,height:800});
   assert.doesNotThrow(()=>layout.assertShot02TextLanes({x:0,y:0,scale:1}));
   for(const n of Object.values(layout.SHOT02_NODES)){
     assert.ok(n.x-n.width/2>=500);
