@@ -8,7 +8,7 @@ import {
   AT_FONT,
 } from '../../components/architectural-thinking';
 import {Shot01ReadablePhone} from './Shot01ReadablePhone';
-import {SHOT02_NODES, SHOT02_TEXT_LANES, assertShot02TextLanes} from './Shot02PremiumLayout';
+import {SHOT02_NODES, SHOT02_TEXT_LANES, SHOT02_REQUEST_MARKER, assertShot02TextLanes} from './Shot02PremiumLayout';
 import {shot02TapPulse,shot02TermHold,shot02FlowIntensity,shot02FocusCamera,shot02FlowClock,
   type Shot02FocusKey,type Shot02FocusWeights} from './Shot02DirectorPacing';
 
@@ -293,7 +293,7 @@ const SpokenRequestMarker:React.FC<{
   const focus=shot02TermHold(frame,cue,nextStart,duration);
   if(focus<=.005)return null;
   return <div style={{
-    position:'absolute',left:792,top:645,width:204,height:46,zIndex:14,
+    position:'absolute',...SHOT02_REQUEST_MARKER,zIndex:14,
     display:'flex',alignItems:'center',justifyContent:'center',
     borderRadius:11,border:'1.5px solid '+C.cyan,
     background:'rgba(5,25,41,.96)',boxShadow:'0 0 15px rgba(89,217,244,.2)',
