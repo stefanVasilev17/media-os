@@ -15,9 +15,9 @@ import {
   SHOT02_DATABASE_ENTRY,SHOT02_BALANCER_EXIT,SHOT02_GATEWAY_ENTRY,
   SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY,SHOT02_PHONE_PIPE,
   shot02CubicPoint,shot02UserRequestPressure,shot02SharedDbPressure,
-  shot02DatabaseColors,
+  shot02DatabaseColors,shot02RequestStreamActivation,shot02CounterLift,
 } from './Shot02PressureVisuals';
-import {shot02TapPulse,shot02FlowClock,shot02FlowIntensity} from './Shot02DirectorPacing';
+import {shot02FlowClock} from './Shot02DirectorPacing';
 
 const clamp=(value:number)=>Math.max(0,Math.min(1,value));
 const ease=(frame:number,start:number,end:number)=>interpolate(
@@ -142,7 +142,8 @@ const DatabaseCard:React.FC<{pressure:number;reveal:number;frame:number}>=
 
 const PathSystem:React.FC<{
   frame:number;clock:number;load:number;arrival:number;lookup:number;
-}>=({frame,clock,load,arrival,lookup})=>{
+  firstTapFrame:number;firstTapActive:number;
+}>=({frame,clock,load,arrival,lookup,firstTapFrame,firstTapActive})=>{
   const a=SHOT02_BALANCER_EXIT,db=SHOT02_DATABASE_ENTRY;
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',overflow:'visible'}}>
@@ -188,8 +189,8 @@ const PathSystem:React.FC<{
           const g=shot02CubicPoint(t,c,m3,m4,target);
           const fade=clamp(Math.min(t,1-t)*11);
           return <g key={k}>
-            <circle cx={f.x} cy={f.y} r={7+2*arrival} fill="#8FFFFA"
-              opacity={load*fade} style={{filter:'drop-shadow(0 0 9px #68DEFF)'}}/>
+            <circle cx={f.x} cy={f.y} r={7+2*arrival} fill="#77FFD4"
+              opacity={load*fade} style={{filter:'drop-shadow(0 0 11px #67FFD0)'}}/>
             <circle cx={g.x} cy={g.y} r={7+3*arrival} fill="#FFC079"
               opacity={lookup*fade} style={{filter:'drop-shadow(0 0 9px #FFA54B)'}}/>
           </g>;
@@ -201,9 +202,22 @@ const PathSystem:React.FC<{
       const x=SHOT02_PHONE_PIPE.x+
         (SHOT02_BALANCER_ENTRY.x-SHOT02_PHONE_PIPE.x)*t;
       return <circle key={i} cx={x} cy={SHOT02_PHONE_PIPE.y} r={7+2*arrival}
-        fill="#7EECFF" opacity={load*clamp(Math.min(t,1-t)*10)}
-        style={{filter:'drop-shadow(0 0 9px rgba(77,221,255,.8))'}}/>;
+        fill="#73FFD0" opacity={load*clamp(Math.min(t,1-t)*10)}
+        style={{filter:'drop-shadow(0 0 10px rgba(104,255,190,.9))'}}/>;
     })}
+    {frame>=firstTapFrame&&<g>
+      <circle
+        cx={SHOT02_PHONE_PIPE.x+(SHOT02_GATEWAY_ENTRY.x-SHOT02_PHONE_PIPE.x)*
+          Math.min(1,((frame-firstTapFrame)%40)/18)}
+        cy={SHOT02_PHONE_PIPE.y}
+        r={9+2*firstTapActive}
+        fill="#73FFD0" opacity={.35+.65*firstTapActive}
+        style={{filter:'drop-shadow(0 0 13px rgba(94,255,182,.94))'}}
+      />
+      <circle cx={SHOT02_PHONE_PIPE.x+12} cy={SHOT02_PHONE_PIPE.y}
+        r={5+2*firstTapActive} fill="#D5FFF1"
+        opacity={firstTapActive*(.7+.3*Math.sin(frame*.23)**2)}/>
+    </g>}
   </svg>;
 };
 
@@ -212,10 +226,14 @@ const TicketHero:React.FC<{frame:number;reveal:number}>=({frame,reveal})=>
     display:'flex',gap:20,alignItems:'center',justifyContent:'center',
     fontFamily:AT_FONT,opacity:reveal,
     transform:'translateY('+((1-reveal)*12)+'px)',whiteSpace:'nowrap'}}>
-    <span style={{fontSize:68,fontWeight:880,letterSpacing:'-.065em',color:'#FFE0A3',
-      textShadow:'0 0 26px rgba(255,170,72,.50),0 0 65px rgba(242,121,29,.24)'}}>
-      09:00
-    </span>
+    <div aria-label="09 : 00" style={{display:'flex',alignItems:'center',
+      gap:8,fontVariantNumeric:'tabular-nums',lineHeight:1,
+      color:'#FFE4B2',textShadow:'0 0 9px rgba(255,176,80,.22)'}}>
+      <span style={{fontSize:68,fontWeight:840,letterSpacing:'.008em'}}>09</span>
+      <span style={{fontSize:62,fontWeight:650,margin:'0 3px',
+        transform:'translateY(-3px)',color:'#FFD08B'}}>:</span>
+      <span style={{fontSize:68,fontWeight:840,letterSpacing:'.008em'}}>00</span>
+    </div>
     <span style={{width:2,height:60,background:'rgba(255,202,144,.83)'}}/>
     <span style={{fontSize:36,fontWeight:790,letterSpacing:'.085em',
       color:'#FFF9F2'}}>TICKETS ON SALE</span>
@@ -236,6 +254,9 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
   const terms=requireShot02SpokenTerms(spokenFrames,beats,props.termCues);
   assertShot02TextLanes({x:0,y:0,scale:1});
   const start=beats.map(c=>c.startFrame);
+  const firstTapFrame=start[0]+15;
+  const firstTapActive=shot02RequestStreamActivation(frame,firstTapFrame);
+  const counterLift=shot02CounterLift(frame,spokenFrames);
   const context=ease(frame,start[0],start[0]+35);
   const gateway=ease(frame,terms[1].startFrame,terms[1].startFrame+42);
   const balancer=ease(frame,terms[2].startFrame,terms[2].startFrame+38);
@@ -246,11 +267,7 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
   const visualHold=ease(frame,spokenFrames,spokenFrames+60);
   const pressure=shot02UserRequestPressure(context,gateway,balancer,auth,arrival);
   const dbPressure=shot02SharedDbPressure(lookup,database,arrival);
-  const phonePress=Math.max(
-    shot02TapPulse(frame,start[0]+15,Math.min(start[1]+15,start[0]+165)),
-    shot02TapPulse(frame,start[2],Math.min(terms[1].startFrame-2,terms[0].endFrame+45)),
-  );
-  const flowClock=shot02FlowClock(frame,terms[4].startFrame);
+  const flowClock=shot02FlowClock(frame,firstTapFrame);
   return <ATBackground>
     <ATControlledRealismLayer frame={frame} realism={.96}
       architectureReveal={.3+.4*context+.25*database}/>
@@ -261,8 +278,10 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>
     <div style={{position:'absolute',left:66,top:86,width:340,height:1,
       background:'linear-gradient(90deg,rgba(95,204,255,.66),transparent)',zIndex:28}}/>
-    <PathSystem frame={frame} clock={flowClock} load={clamp(.40*gateway+.60*balancer)}
-      arrival={arrival} lookup={lookup}/>
+    <PathSystem frame={frame} clock={flowClock}
+      load={Math.max(.72*firstTapActive,clamp(.40*gateway+.60*balancer))}
+      arrival={arrival} lookup={lookup}
+      firstTapFrame={firstTapFrame} firstTapActive={firstTapActive}/>
     <GatewayCard activity={gateway}/>
     <BalancerCard activity={balancer}/>
     <AuthCluster activity={auth} frame={frame}/>
@@ -273,7 +292,7 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
       <Shot02PressurePhone frame={frame} reveal={1} credential={.22} ui={0}
         emailValue="user@example.com" passwordDots="••••••••"
         emailFocus={0} passwordFocus={0} localUi={0}
-        press={phonePress} waiting={0} spinner={0}
+        press={0} pressStartFrame={firstTapFrame} waiting={0} spinner={0}
         pressure={pressure} realism={1} heroPush={0}/>
     </AbsoluteFill>
     <TicketHero frame={frame} reveal={context}/>
@@ -290,6 +309,8 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>
     <div style={{position:'absolute',...SHOT02_TEXT_LANES.metric,zIndex:24,
       opacity:arrival,fontFamily:AT_FONT,
+      transform:`translateY(-${counterLift}px) scale(${1+.027*Math.sin(Math.PI*Math.min(1,counterLift/110))})`,
+      transformOrigin:'50% 100%',
       background:'linear-gradient(90deg,rgba(3,15,32,.95),transparent)',
       borderLeft:'3px solid #5EECCE',padding:'12px 22px'}}>
       <div style={{fontSize:17,color:'#C1E2F3',letterSpacing:'.035em',fontWeight:710}}>
@@ -300,14 +321,15 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
         {Math.round((100+250*arrival)/10)*10}
       </div>
     </div>
-    {hold===60&&<div style={{position:'absolute',right:95,bottom:72,zIndex:25,
-      width:700,padding:'17px 20px',borderRadius:12,
+    {hold===60&&<div style={{position:'absolute',right:80,bottom:72,zIndex:25,
+      width:790,padding:'18px 18px',borderRadius:12,
       border:'1.7px solid rgba(255,173,92,.57)',
       background:'linear-gradient(90deg,rgba(44,22,13,.65),rgba(10,15,29,.86))',
-      fontFamily:AT_FONT,fontSize:24,fontWeight:700,color:'#FFD6A0',
-      textAlign:'center',letterSpacing:'.01em',
+      fontFamily:AT_FONT,fontSize:21,fontWeight:750,color:'#FFD6A0',
+      textAlign:'center',letterSpacing:'.003em',whiteSpace:'nowrap',
+      transform:`translateY(${(1-visualHold)*15}px)`,
       opacity:visualHold}}>
-      ONE DATABASE. THREE AUTH REPLICAS. RISING PRESSURE →
+      ONE DATABASE. THREE AUTH INSTANCES. RISING PRESSURE →
     </div>}
   </ATBackground>;
 };
