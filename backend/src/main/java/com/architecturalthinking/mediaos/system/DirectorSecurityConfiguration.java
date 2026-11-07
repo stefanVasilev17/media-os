@@ -59,6 +59,7 @@ public class DirectorSecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, EpisodeFactoryDirectorRoutes.POST_PATHS)
                             .hasRole("DIRECTOR")
                         .requestMatchers(HttpMethod.POST,
+                                "/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview",
                                 "/api/v1/episodes",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/draft",
                                 "/api/v1/episodes/{episodeId}/stages/{stageKey}/director-lock",
