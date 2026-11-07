@@ -37,7 +37,8 @@ export function shot02ProjectRect(world:Rect,pose:CameraPose):Rect {
 
 export function assertShot02TextLanes(pose:CameraPose):void {
   if(!Number.isFinite(pose.x)||!Number.isFinite(pose.y)
-     ||!Number.isFinite(pose.scale)||pose.scale<.7||pose.scale>1.25)
+     ||!Number.isFinite(pose.scale)||pose.scale<.98||pose.scale>1.02
+     ||Math.abs(pose.x)>24||Math.abs(pose.y)>24)
     throw Error('SHOT02_CAMERA_CONTRACT_INVALID');
   const fixed=Object.entries(SHOT02_TEXT_LANES);
   for(const [id,box] of fixed){
