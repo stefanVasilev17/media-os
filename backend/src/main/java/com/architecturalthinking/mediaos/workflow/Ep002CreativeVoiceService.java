@@ -30,6 +30,7 @@ public class Ep002CreativeVoiceService {
     private final boolean voiceEnabled;
 
     record Script(int revision, String narration, String voiceDirection) {}
+    record EarlierTake(int revision, int takeNumber, String narration, String voiceDirection, String narrationHash) {}
     private static final String STANDARD_DELIVERY="STANDARD";
 
     public Ep002CreativeVoiceService(JdbcClient jdbc, ElevenLabsTextToSpeechService elevenLabs,
@@ -77,7 +78,8 @@ public class Ep002CreativeVoiceService {
         List<Map<String,Object>> takes=jdbc.sql("""
                 select id,revision,take_number,content_type,model_id,voice_id,
                        generated_at,approved_at,
-                       elevenlabs_alignment->>'mediaos_delivery_mode' as delivery_mode
+                       elevenlabs_alignment->>'mediaos_delivery_mode' as delivery_mode,
+                        elevenlabs_alignment->>'mediaos_restored_from_take_number' as restored_from_take_number
                 from ep002_creative_voice_take
                 where shot_key=:shot order by take_number desc
                 """).param("shot",shot).query((rs,n)->{
@@ -90,6 +92,8 @@ public class Ep002CreativeVoiceService {
                     row.put("voiceId",rs.getString("voice_id"));
                     String deliveryMode=rs.getString("delivery_mode");
                     row.put("deliveryMode",deliveryMode==null?STANDARD_DELIVERY:deliveryMode);
+                    String restoredFrom=rs.getString("restored_from_take_number");
+                    row.put("restoredFromTakeNumber",restoredFrom==null?null:Integer.valueOf(restoredFrom));
                     row.put("generatedAt",rs.getObject("generated_at",OffsetDateTime.class).toString());
                     OffsetDateTime approved=rs.getObject("approved_at",OffsetDateTime.class);
                     row.put("approvedAt",approved==null?null:approved.toString());
@@ -310,6 +314,84 @@ public class Ep002CreativeVoiceService {
                 values (:id,:shot,:revision,:take,:issuer,:subject)
                 """).param("id",UUID.randomUUID()).param("shot",shot)
                 .param("revision",revision).param("take",takeId)
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
+        return state(shot);
+    }
+
+    @Transactional
+    public Map<String,Object> restoreOlderTake(String shot,int expectedRevision,UUID sourceTakeId) {
+        checkShot(shot);
+        if (!"SHOT01".equals(shot)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Older Take restoration is currently available only for EP002 SHOT01.");
+        requireWrites();
+        if (sourceTakeId==null || expectedRevision<1)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Expected current revision and source take ID.");
+        lockShot(shot);
+        Script current=latest(shot);
+        if (current==null || current.revision()!=expectedRevision)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The current script has changed. Refresh before restoring an earlier take.");
+        EarlierTake earlier=jdbc.sql("""
+                select t.revision,t.take_number,t.narration_sha256,s.narration,s.voice_direction
+                from ep002_creative_voice_take t
+                join ep002_creative_script_revision s
+                    on s.shot_key=t.shot_key and s.revision=t.revision
+                where t.shot_key=:shot and t.id=:take
+                """).param("shot",shot).param("take",sourceTakeId)
+                .query((rs,n)->new EarlierTake(rs.getInt("revision"),rs.getInt("take_number"),
+                        rs.getString("narration"),rs.getString("voice_direction"),
+                        rs.getString("narration_sha256")))
+                .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Earlier Take and its saved narration were not found."));
+        if (earlier.revision()>=current.revision())
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This Take is not from an earlier script version. Use the normal selection button.");
+        if (!EpisodeLockedScriptVoiceService.narrationHash(earlier.narration())
+                .equals(earlier.narrationHash()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The earlier Take does not match the exact saved narration. Nothing was restored.");
+        var actor=DirectorIdentity.requireDirector();
+        int newRevision=current.revision()+1;
+        UUID reusedId=UUID.randomUUID();
+        int newTakeNumber=jdbc.sql("""
+                select coalesce(max(take_number),0)+1 from ep002_creative_voice_take
+                where shot_key=:shot
+                """).param("shot",shot).query(Integer.class).single();
+        jdbc.sql("""
+                insert into ep002_creative_script_revision
+                    (id,shot_key,revision,narration,voice_direction,actor_issuer,actor_subject)
+                values (:id,:shot,:revision,:narration,:direction,:issuer,:subject)
+                """).param("id",UUID.randomUUID()).param("shot",shot)
+                .param("revision",newRevision).param("narration",earlier.narration())
+                .param("direction",earlier.voiceDirection())
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
+        int copied=jdbc.sql("""
+                insert into ep002_creative_voice_take
+                    (id,shot_key,revision,take_number,narration_sha256,audio,content_type,
+                     model_id,voice_id,elevenlabs_alignment,approved_at,
+                     approved_actor_issuer,approved_actor_subject)
+                select :newId,:shot,:newRevision,:number,t.narration_sha256,t.audio,t.content_type,
+                       t.model_id,t.voice_id,
+                       coalesce(t.elevenlabs_alignment,'{}'::jsonb) ||
+                       jsonb_build_object('mediaos_restored_from_take_id',t.id::text,
+                           'mediaos_restored_from_take_number',t.take_number,
+                           'mediaos_restored_from_revision',t.revision),
+                       now(),:issuer,:subject
+                from ep002_creative_voice_take t
+                where t.shot_key=:shot and t.id=:sourceTake
+                  and t.revision=:sourceRevision
+                """).param("newId",reusedId).param("shot",shot)
+                .param("newRevision",newRevision).param("number",newTakeNumber)
+                .param("sourceTake",sourceTakeId).param("sourceRevision",earlier.revision())
+                .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
+        if (copied!=1) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "The earlier Take changed before reuse. No restoration was committed.");
+        jdbc.sql("""
+                insert into ep002_creative_voice_choice
+                    (id,shot_key,revision,take_id,actor_issuer,actor_subject)
+                values (:id,:shot,:revision,:take,:issuer,:subject)
+                """).param("id",UUID.randomUUID()).param("shot",shot)
+                .param("revision",newRevision).param("take",reusedId)
                 .param("issuer",actor.issuer()).param("subject",actor.subject()).update();
         return state(shot);
     }
