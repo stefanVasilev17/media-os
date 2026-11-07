@@ -1,6 +1,7 @@
 package com.architecturalthinking.mediaos.remotion;
 
 import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
+import com.architecturalthinking.mediaos.workflow.Ep002Shot02EditorialPausePlan;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,11 +152,13 @@ public class RemotionCpuWorkerController {
             Object rawProps = work.get("inputProps");
             Map<?,?> props = rawProps instanceof Map<?,?> map ? map : Map.of();
             Object revision = props.get("scriptRevision");
-            boolean current = revision instanceof Number number && ep002Cues != null
+            int sourceFrames=Ep002Shot02EditorialPausePlan.sourceFramesForRender(
+                    props,(int) work.get("durationInFrames"));
+            boolean current = sourceFrames>0 && revision instanceof Number number && ep002Cues != null
                     && ep002Cues.matchesCurrentShot02Render(
                         String.valueOf(props.get("inputFingerprint")),
                         String.valueOf(props.get("voiceTakeId")),
-                        number.intValue(), (int) work.get("durationInFrames"));
+                        number.intValue(),sourceFrames);
             if (!current) {
                 jdbc.sql("""
                     update remotion_render
@@ -201,7 +204,8 @@ public class RemotionCpuWorkerController {
                        r.input_props->>'inputFingerprint' as fingerprint,
                        r.input_props->>'voiceTakeId' as take_id,
                        r.input_props->>'scriptRevision' as script_revision,
-                       r.duration_in_frames as duration_frames
+                       r.duration_in_frames as duration_frames,
+                       r.input_props::text as input_props_json
                 from remotion_render r
                 join ep002_creative_voice_take t
                   on t.id::text=r.input_props->>'voiceTakeId'
@@ -244,11 +248,14 @@ public class RemotionCpuWorkerController {
                 .param("sourceSha",sourceSha==null?"":sourceSha.trim())
                 .query((rs,n)->{
                     if ("EP002-SHOT02-CANDIDATE".equals(rs.getString("composition_id"))) {
-                        boolean current=ep002Cues!=null
+                        Map<String,Object> input=readMap(rs.getString("input_props_json"));
+                        int sourceFrames=Ep002Shot02EditorialPausePlan.sourceFramesForRender(
+                                input,rs.getInt("duration_frames"));
+                        boolean current=sourceFrames>0 && ep002Cues!=null
                                 && ep002Cues.matchesCurrentShot02Render(
                                     rs.getString("fingerprint"),rs.getString("take_id"),
                                     Integer.parseInt(rs.getString("script_revision")),
-                                    rs.getInt("duration_frames"));
+                                    sourceFrames);
                         if (!current) throw new ResponseStatusException(HttpStatus.CONFLICT,
                                 "SHOT02 selected Take or source fingerprint changed during render.");
                     }
