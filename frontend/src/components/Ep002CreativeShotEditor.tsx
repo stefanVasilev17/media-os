@@ -325,6 +325,12 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
           {take.id!==state.preferredTakeId && take.revision===state.revision &&
             <button type="button" className="library-voice-button secondary" disabled={busy||isDirty}
               onClick={()=>void approve(take.id)}>Use this take</button>}
+          {shot.shotKey==='SHOT01'&&state.revision>take.revision&&
+            <button type="button" className="library-voice-button secondary"
+              disabled={busy||loading||isDirty}
+              onClick={()=>void restoreOlderTake(take.id,take.takeNumber,take.revision)}>
+              Restore &amp; use Take {take.takeNumber} · no TTS
+            </button>}
         </div>
       </div>)}
     </div>}
