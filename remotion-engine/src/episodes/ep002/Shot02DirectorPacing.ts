@@ -41,6 +41,12 @@ export function shot02FlowIntensity(frame:number,start:number,
   return clamp01(rise);
 }
 
+export function shot02FlowClock(frame:number,start:number):number {
+  const elapsed=Math.max(0,frame-start);
+  const integrated=elapsed-22*(1-Math.exp(-elapsed/22));
+  return frame*.012+integrated*.035;
+}
+
 export function shot02FocusCamera(
   base:Shot02CameraPose,focus:Shot02FocusWeights,
 ):Shot02CameraPose {
