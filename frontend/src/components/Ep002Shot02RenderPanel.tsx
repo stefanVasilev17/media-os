@@ -51,6 +51,40 @@ export function Ep002Shot02RenderPanel(){
     return()=>{active=false;};
   },[refresh]);
 
+  const trackingRender=['QUEUED','RUNNING','RENDERING'].includes(render?.status??'');
+
+  useEffect(()=>{
+    if(!trackingRender||!render?.renderId)return;
+    const currentRenderId=render.renderId;
+    let mounted=true;
+    let inFlight=false;
+    let failures=0;
+    const poll=async()=>{
+      if(inFlight)return;
+      inFlight=true;
+      try{
+        const response=await fetch(PREVIEW,{cache:'no-store'});
+        if(!response.ok)throw Error('Render status HTTP '+response.status);
+        const latest=await response.json() as RenderStatus;
+        if(!mounted)return;
+        if(latest.renderId===currentRenderId){
+          failures=0;
+          setRender(latest);
+          setError('');
+        }
+      }catch(e){
+        if(!mounted)return;
+        failures++;
+        if(failures>=3)setError('Cannot update render progress automatically: '+String(e));
+      }finally{
+        inFlight=false;
+      }
+    };
+    void poll();
+    const timer=window.setInterval(()=>void poll(),1500);
+    return()=>{mounted=false;window.clearInterval(timer);};
+  },[render?.renderId,trackingRender]);
+
   async function requestPreview(){
     if(busy||!readiness?.ready||!capability?.canQueue)return;
     const natural=Boolean(editorial?.naturalSlowTake);
@@ -76,7 +110,12 @@ export function Ep002Shot02RenderPanel(){
   }
 
   const ready=Boolean(readiness?.ready&&capability?.canQueue&&editorial?.ready);
-  const active=['QUEUED','RENDERING','RUNNING'].includes(render?.status??'');
+  const active=trackingRender;
+  const displayStatus=render?.status==='QUEUED'?'STARTING'
+    :render?.status==='RUNNING'?'RENDERING'
+    :render?.status==='SUCCEEDED'?'COMPLETED'
+    :render?.status??'CHECKING';
+  const progress=Math.max(0,Math.min(100,render?.progress??0));
   return <section className="library-episode-batch" aria-label="EP002 SHOT02 verified render">
     <div className="library-episode-batch-heading">
       <div>
@@ -86,7 +125,7 @@ export function Ep002Shot02RenderPanel(){
           worker release must match before CPU work starts.</p>
       </div>
       <span className="library-episode-batch-state">
-        {render?.status??'CHECKING'}</span>
+        <span aria-live="polite">{displayStatus}</span></span>
     </div>
     {error&&<p className="library-voice-error" role="alert">{error}</p>}
     <p className="library-note">
@@ -122,11 +161,23 @@ export function Ep002Shot02RenderPanel(){
           :'Render SHOT02 V3 — slower voice · 1920×1080'}
       </button>
     </div>
-    {render?.renderId&&<p className="library-note">
-      Render ID: {render.renderId}. Status: {render.status}.
-      {render.progress!==undefined?' Progress: '+render.progress+'%.':''}
+    {render?.renderId&&<div className="library-note" aria-live="polite">
+      Render ID: {render.renderId}. Status: {displayStatus}.
+      {active?' Automatic progress updates are enabled.':''}
       {render.error?' Error: '+render.error:''}
-    </p>}
+      {(active||render?.status==='SUCCEEDED')&&<div style={{marginTop:12}}>
+        <div role="progressbar" aria-label="SHOT02 render progress"
+          aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}
+          style={{height:12,borderRadius:6,background:'rgba(54,88,111,.45)',overflow:'hidden'}}>
+          <div style={{width:progress+'%',height:'100%',borderRadius:6,
+            background:'linear-gradient(90deg,#31C9E9,#7AE3C3)',
+            transition:'width .3s ease-out'}}/>
+        </div>
+        <strong style={{display:'block',marginTop:7}}>
+          {displayStatus==='STARTING'?'Starting verified Remotion worker…':progress+'%'}
+        </strong>
+      </div>}
+    </div>}
     {render?.videoUrl&&<p>
       <a href={render.videoUrl} target="_blank" rel="noopener noreferrer">
         Review SHOT02 MP4 (Director approval required)
