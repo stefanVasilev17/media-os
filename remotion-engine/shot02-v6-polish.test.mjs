@@ -49,7 +49,7 @@ test('Green request dots start on the first true login press and flow continuous
   assert.match(visual,/const firstTapFrame=start\[0\]\+15/);
   assert.match(visual,/shot02FlowClock\(frame,firstTapFrame\)/);
   assert.match(visual,/Math\.max\(\.72\*firstTapActive,/);
-  assert.match(visual,/firstTapFrame=\{firstTapFrame\} firstTapActive=\{firstTapActive\}/);
+  assert.match(visual,/lookup=\{lookup\} stress=\{dbPressure\}/);
   assert.match(visual,/SHOT02_LOGIN_PARTICLE\.fill/);
   assert.match(visual,/SHOT02_LOGIN_PARTICLE\.radius/);
   assert.match(visual,/const lookup=firstTapActive/);
