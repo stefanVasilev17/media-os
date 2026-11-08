@@ -71,7 +71,8 @@ test('Director authorization and historic SHOT02 protection are explicit',()=>{
   assert.match(worker,/matchesCurrentShot03Render/);
   assert.match(worker,/SHOT03_SOURCE_VOICE_OR_CUES_STALE_BEFORE_CPU_CLAIM/);
   assert.match(worker,/composition_id<>'EP002-SHOT03-CANDIDATE'/);
-  assert.match(workerJS,/EP002_PINNED_WORKER_SOURCE_COMMIT_MISMATCH/);
+  assert.match(workerJS,/SHOT03_WORKER_SOURCE_COMMIT_MISMATCH/);
+  assert.match(workerJS,/SHOT02_WORKER_SOURCE_COMMIT_MISMATCH/);
   assert.match(workerJS,/muxEp002SelectedVoice/);
   assert.match(workerJS,/TARGET_COMPOSITION/);
   assert.match(controller,/renderEnabled/);
