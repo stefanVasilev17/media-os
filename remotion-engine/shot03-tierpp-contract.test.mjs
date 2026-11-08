@@ -92,7 +92,7 @@ test('one consistent Login request particle; separate completions',()=>{
      'SHOT02_LOGIN_PARTICLE.glow','SHOT03_OUTPUT_PORT','SHOT03_OUTPUT_END'])
     assert.ok(scene.includes(t));
   assert.match(scene,/shot02CubicPoint\(t,a,m1,m2,b\)/);
-  assert.match(scene,/shot02CubicPoint\(t2,c,m3,m4,target\)/);
+  assert.match(scene,/shot02CubicPoint\(approach,c,m3,m4,target\)/);
   assert.match(scene,/rect key=\{k\}/);
   assert.match(scene,/toLocaleString/);
 });
@@ -117,4 +117,58 @@ test('SHOT03 candidate is registered but cannot render with blank voice props',(
   assert.match(scene,/video.fps!==30/);
   assert.doesNotMatch(scene,/<Audio|generateSpeech|Math.random\(/);
   assert.doesNotMatch(scene,/postVoiceHoldFrames|editorialSilence/);
+});
+
+
+test('title transitions into SHOT03 instead of appearing fully in the first frame',()=>{
+  assert.match(scene,/const titleShow=shot03Ease\(frame,8,18\)/);
+  assert.match(scene,/const titleLineShow=shot03Ease\(frame,15,19\)/);
+  assert.match(scene,/const contextLabelShow=shot03Ease\(frame,19,18\)/);
+  assert.match(scene,/opacity:titleShow/);
+  assert.match(scene,/transform:'scaleX\('/);
+  assert.match(scene,/THE CAPACITY LIMIT/);
+  assert.equal(contract.shot03Ease(0,8,18),0);
+  assert.equal(contract.shot03Ease(29,8,18),1);
+});
+
+test('inbound flow increases in speed and density with real spoken pressure terms',()=>{
+  const six=650,nine=725,bottleneck=1670;
+  const early=contract.shot03RequestDensity(400,six,nine,bottleneck);
+  const during=contract.shot03RequestDensity(690,six,nine,bottleneck);
+  const high=contract.shot03RequestDensity(860,six,nine,bottleneck);
+  const peak=contract.shot03RequestDensity(1770,six,nine,bottleneck);
+  assert.equal(early,2);
+  assert.ok(during>early&&high>during&&peak>high);
+  const speedAt=frame=>contract.shot03FlowClock(frame+1,six,nine,bottleneck)
+    -contract.shot03FlowClock(frame,six,nine,bottleneck);
+  assert.ok(speedAt(1200)>speedAt(400)*2);
+  assert.ok(speedAt(1800)>speedAt(1200));
+  assert.match(scene,/shot03RequestDensity\(frame,sixFifty,nineHundred,bottleneck\)/);
+});
+
+test('queued work is illustrated outside DB with orange→dark-orange→red→bright-red stages',()=>{
+  const unfinished=1300,bottleneck=1670,saturation=1830;
+  const level=frame=>contract.shot03CongestionLevel(frame,unfinished,bottleneck,saturation);
+  assert.equal(level(unfinished-1),0);
+  assert.equal(level(unfinished),0);
+  assert.ok(level(unfinished+75)>.25&&level(unfinished+75)<.35);
+  assert.ok(level(bottleneck+75)>.60&&level(bottleneck+75)<.65);
+  assert.equal(level(saturation+80),1);
+  assert.equal(contract.shot03CongestionColor(0),'#F5A623');
+  assert.equal(contract.shot03CongestionColor(1),'#FF3B30');
+  assert.notEqual(contract.shot03CongestionColor(.33),
+    contract.shot03CongestionColor(.66));
+  assert.ok(contract.shot03ApproachPosition(.84,1)<.84);
+  assert.equal(contract.shot03ApproachPosition(.84,0),.84);
+  assert.doesNotThrow(()=>contract.assertShot03SafeLayout());
+  assert.match(scene,/AUTH POOL WAIT · DB PERMITS/);
+  assert.match(scene,/SHOT03_PRE_DB_WAIT_ZONE/);
+  assert.match(scene,/queueLevel=\{queueLevel\}/);
+  assert.match(scene,/saturated=\{frame>=starts.SATURATION\}/);
+  assert.match(scene,/COMPLETING WORK/);
+});
+
+test('closing sentence matches the precise Director-approved message',()=>{
+  assert.match(scene,/The database hasn&apos;t stopped working\. It just can&apos;t keep up!/);
+  assert.doesNotMatch(scene,/THE DATABASE IS WORKING\. IT JUST CAN&apos;T KEEP UP\./);
 });
