@@ -142,6 +142,51 @@ public class Ep002DirectorVoiceCueService {
     }
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public boolean matchesCurrentShot03Render(String fingerprint,String takeId,
+                                              int scriptRevision,int durationFrames) {
+        if(fingerprint==null||!fingerprint.matches("[a-f0-9]{64}")
+                ||takeId==null||!takeId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                ||scriptRevision<1||durationFrames<150)return false;
+        try {
+            var current=episode.snapshot();
+            var shot=current.shots().stream().filter(s->"SHOT03".equals(s.shotKey()))
+                    .findFirst().orElse(null);
+            if(!current.sourceVerified()||!current.inputFingerprint().equals(fingerprint)
+                    ||shot==null||!shot.currentVoiceApproved()||!shot.hearSeeTimingVerified()
+                    ||!takeId.equals(shot.preferredTakeId())
+                    ||scriptRevision!=shot.scriptRevision()
+                    ||shot.durationFrames()==null||durationFrames!=shot.durationFrames())
+                return false;
+            Selected take=selected(shot);
+            if(take==null||take.alignment()==null||take.seconds()==null
+                    ||shot.measuredVoiceSeconds()==null
+                    ||take.seconds().compareTo(shot.measuredVoiceSeconds())!=0
+                    ||!take.narrationSha().equals(shot.narrationSha256())
+                    ||(int)Math.ceil(take.seconds().doubleValue()*30d)!=durationFrames)
+                return false;
+            return jdbc.sql("""
+                    select exists(
+                        select 1 from ep002_director_voice_cue_review review
+                        where review.episode_key='EP002' and review.shot_key='SHOT03'
+                          and review.selected_take_id=:take
+                          and review.script_revision=:revision
+                          and review.episode_fingerprint=:fingerprint
+                          and review.narration_sha256=:narration
+                          and review.alignment_sha256=:alignment
+                          and review.preflight_audit_id is not null
+                    )
+                    """)
+                    .param("take",UUID.fromString(takeId))
+                    .param("revision",scriptRevision)
+                    .param("fingerprint",fingerprint)
+                    .param("narration",take.narrationSha())
+                    .param("alignment",Ep002ProductionContractService.sha256(take.alignment()))
+                    .query(Boolean.class).optional().orElse(false);
+        }catch(RuntimeException invalid){return false;}
+    }
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Ep002Shot02EditorialPausePlan.Plan editorialPlan(
             Shot02RenderReadiness verified) {
         DirectorIdentity.requireDirector();
