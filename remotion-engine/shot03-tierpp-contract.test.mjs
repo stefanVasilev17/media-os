@@ -71,9 +71,12 @@ test('show 500, then 650, then 900 only after their spoken terms',()=>{
 });
 
 test('database stays running and work queues outside the DB',()=>{
-  assert.equal(contract.shot03DatabasePressure(1670,1670,1830),.25);
-  assert.ok(contract.shot03DatabasePressure(1740,1670,1830)>.55);
-  assert.ok(contract.shot03DatabasePressure(1900,1670,1830)>.83);
+  assert.equal(contract.shot03DatabasePressure(1670,1670,1830),.55);
+  assert.ok(contract.shot03DatabasePressure(1740,1670,1830)>.72);
+  assert.ok(contract.shot03DatabasePressure(1900,1670,1830)>.84);
+  assert.equal(contract.shot03WaitingDepth(1299,1300,725),2);
+  assert.equal(contract.shot03WaitingDepth(1300,1300,725),2);
+  assert.equal(contract.shot03WaitingDepth(1400,1300,725),11);
   assert.ok(contract.shot03LatencyBar(2075,1990)>contract.shot03LatencyBar(1989,1990));
   for(const t of ['WAITING FOR RESOURCES','COMPLETING WORK','SATURATED · RUNNING'])
     assert.ok(scene.includes(t));
