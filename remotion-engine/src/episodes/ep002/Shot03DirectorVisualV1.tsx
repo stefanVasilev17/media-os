@@ -95,8 +95,8 @@ const AuthCluster:React.FC<{frame:number;waiting:number}>=({frame,waiting})=>{
   </div>;
 };
 
-const DatabaseCard:React.FC<{frame:number;pressure:number;workRate:number}>=
-({frame,pressure,workRate})=>{
+const DatabaseCard:React.FC<{frame:number;pressure:number;workRate:number;saturated:boolean}>=
+({frame,pressure,workRate,saturated})=>{
   const n=SHOT02_NODES.database,pal=shot02DatabaseColors(pressure);
   const heartbeat=.8+.2*Math.sin(frame*.075)**2;
   return <div style={{...fixed(n),...panel(pal.border,pal.glow+'75'),
@@ -116,9 +116,9 @@ const DatabaseCard:React.FC<{frame:number;pressure:number;workRate:number}>=
     <div style={{margin:'16px 12px 0',height:44,borderRadius:9,
       border:'1.7px solid '+pal.border,
       display:'flex',alignItems:'center',justifyContent:'center',
-      fontSize:16,fontWeight:800,color:pressure>.50?'#FFD7A2':'#BFE9FF',
+      fontSize:16,fontWeight:800,color:pressure>.45?'#FFD7A2':'#BFE9FF',
       background:'rgba(6,25,43,.79)'}}>
-      {pressure>.50?'SATURATED · RUNNING':'SHARED LOOKUP'}
+      {saturated?'SATURATED · RUNNING':pressure>.45?'PRESSURE RISING':'SHARED LOOKUP'}
     </div>
     <div style={{position:'absolute',right:13,top:7,width:8,height:8,borderRadius:8,
       background:MINT,boxShadow:'0 0 11px '+MINT,opacity:.72+.28*heartbeat}}/>
@@ -320,7 +320,8 @@ export const Shot03DirectorVisualV1:React.FC<Shot03SceneProps>=(props)=>{
     <GatewayCard/>
     <BalancerCard/>
     <AuthCluster frame={frame} waiting={waiting}/>
-    <DatabaseCard frame={frame} pressure={pressure} workRate={completed}/>
+    <DatabaseCard frame={frame} pressure={pressure} workRate={completed}
+      saturated={frame>=starts.SATURATION}/>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:12,
       transform:'translate3d(-680px,-150px,0) scale(1.11)',
       transformOrigin:'50% 50%'}}>
