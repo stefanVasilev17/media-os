@@ -185,6 +185,55 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
+  if(job.compositionId==='EP002-SHOT05-CANDIDATE'){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues,terms=props.termCues;
+    const expected=['CONNECTION_POOL','BORROWS_ONE','EIGHT_MAX','REPLAY',
+      'ONE_BUSY','FIVE_BUSY','SEVEN_BUSY','EIGHT_BUSY','POOL_EXHAUSTION',
+      'ANOTHER_LOGIN','WAIT_FOR_CONNECTION','REQUEST_QUEUEING',
+      'IN_FLIGHT','SPINNER','TIME_RUNNING_OUT'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+      ||Number(props.durationInFrames)!==frames
+      ||Number(props.postVoiceHoldFrames||0)!==0
+      ||props.shotKey!=='EP002_SHOT05'
+      ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
+      ||!integer(props.scriptRevision)||props.scriptRevision<1
+      ||!/^[a-f0-9]{64}$/i.test(String(props.inputFingerprint||''))
+      ||!Array.isArray(beats)||beats.length!==5
+      ||!Array.isArray(terms)||terms.length!==expected.length)
+      reject('SHOT05_SELECTED_REAL_VOICE_CUE_CONTRACT');
+    let previous=0;
+    for(let i=0;i<beats.length;i++){
+      const b=beats[i];
+      if(b?.beatNumber!==i+1||!integer(b.startFrame)
+        ||!integer(b.endFrame)||(i>0&&b.startFrame!==previous)
+        ||b.endFrame<=b.startFrame||b.endFrame>frames
+        ||!String(b.spokenAnchor||'').trim())
+        reject('SHOT05_DIRECTOR_BEAT_SEQUENCE_INVALID');
+      previous=b.endFrame;
+    }
+    if(previous!==frames)reject('SHOT05_REAL_AUDIO_FRAMES_NOT_COVERED');
+    previous=-1;
+    for(let i=0;i<expected.length;i++){
+      const t=terms[i];
+      if(t?.id!==expected[i]||!integer(t.startFrame)
+        ||!integer(t.endFrame)||t.startFrame<0
+        ||t.endFrame<=t.startFrame||t.endFrame>frames
+        ||t.startFrame<previous||!String(t.spokenAnchor||'').trim())
+        reject('SHOT05_REAL_SPOKEN_TERMS_INVALID');
+      previous=t.endFrame;
+    }
+    if(!(terms[3].startFrame<terms[4].startFrame &&
+      terms[4].startFrame<terms[5].startFrame &&
+      terms[5].startFrame<terms[6].startFrame &&
+      terms[6].startFrame<terms[7].startFrame &&
+      terms[7].startFrame<terms[8].startFrame))
+      reject('SHOT05_REPLAY_CAUSAL_TIMELINE_INVALID');
+    checks.push('SHOT05_CURRENT_DIRECTOR_APPROVED_TAKE',
+      'FIVE_REAL_VERIFIED_BEATS','FIFTEEN_REAL_CONNECTION_POOL_TERMS',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+  }
+
   return {
     standardId:AT_TIER_PLUS_PLUS_STANDARD_ID,
     status:'TECHNICAL_PRECHECK_PASS',
