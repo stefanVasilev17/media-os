@@ -7,8 +7,7 @@ import {SHOT02_NODES} from './Shot02PremiumLayout';
 import {
   SHOT02_AUTH_REPLICA_PORTS,SHOT02_AUTH_CARD_LEFT,SHOT02_AUTH_CARD_RIGHT,
   SHOT02_DATABASE_ENTRY,SHOT02_BALANCER_EXIT,
-  SHOT02_GATEWAY_ENTRY,SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY,
-  SHOT02_PHONE_PIPE,SHOT02_LOGIN_PARTICLE,shot02CubicPoint,
+  SHOT02_LOGIN_PARTICLE,shot02CubicPoint,
   shot02DatabaseColors,
 } from './Shot02PressureVisuals';
 import {
@@ -192,8 +191,8 @@ const Paths:React.FC<{frame:number;focus:number;blocked:number}>=
   </svg>;
 };
 
-const Journey:React.FC<{show:number;frame:number;focus:number}>=
-({show,frame,focus})=>{
+const Journey:React.FC<{show:number}>=
+({show})=>{
   const d=SHOT04_TEXT_AREAS.journey;
   const sequence=['PHONE','GATEWAY','BALANCER','AUTH','DATABASE','RESPONSE'];
   return <div style={{position:'absolute',...d,zIndex:24,
@@ -236,7 +235,6 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
   const live=shot04Ease(frame,cues.LIVENESS_PROBE,17);
   const ready=shot04Ease(frame,cues.READINESS_PROBE,17);
   const real=shot04Ease(frame,cues.REAL_LOGIN,30);
-  const compare=shot04Ease(frame,cues.SERVICE_AVAILABILITY,23);
   const journey=shot04Ease(frame,cues.END_TO_END_CHECK,25);
   const conclusion=shot04Ease(frame,cues.ALIVE_NOT_AVAILABLE,18);
   const cameraShift=5*shot04Ease(frame,cues.REAL_LOGIN,40)
@@ -293,7 +291,7 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
       color:AMBER,opacity:real,textAlign:'center'}}>
       USER LOOKUP WAITING
     </div>
-    <Journey show={journey} frame={frame} focus={compare}/>
+    <Journey show={journey}/>
     <div style={{position:'absolute',...SHOT04_TEXT_AREAS.conclusion,zIndex:30,
       ...panel('#E6AA64','rgba(236,154,81,.23)'),fontFamily:AT_FONT,
       display:'flex',alignItems:'center',justifyContent:'center',
