@@ -48,7 +48,7 @@ test('SHOT04 requires genuine current approved voice and nine ordered term cues'
     verifiedCues:beats.map((b,i)=>i===2?{...b,startFrame:b.startFrame+1}:b)}),
     /SHOT04_VERIFIED_BEAT_ORDER_INVALID/);
   assert.throws(()=>contract.validateShot04Source({...props,durationInFrames:1999}),
-    /SHOT04_BEATS_DO_NOT_COVER_MEASURED_AUDIO/);
+    /SHOT04_VERIFIED_BEAT_ORDER_INVALID|SHOT04_BEATS_DO_NOT_COVER_MEASURED_AUDIO/);
 });
 
 test('SHOT04 inherits exact SHOT02/03 architecture and same phone',()=>{
