@@ -69,7 +69,7 @@ export function validateShot05Source(props:Shot05SceneProps):{
       ||(i>0&&beat.startFrame!==beats[i-1].endFrame))
       throw Error('SHOT05_FIVE_VERIFIED_HEAR_SEE_BEATS_INVALID');
   }
-  if(beats.at(-1)?.endFrame!==props.durationInFrames)
+  if(beats[beats.length-1]?.endFrame!==props.durationInFrames)
     throw Error('SHOT05_BEATS_MUST_COVER_REAL_TAKE');
   for(let i=0;i<terms.length;i++){
     const cue=terms[i];
