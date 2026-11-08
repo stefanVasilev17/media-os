@@ -194,7 +194,7 @@ public class Ep002DirectorVoiceCueService {
             boolean ready,String reason) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
-    public Shot04RenderReadiness shot03RenderReadiness() {
+    public Shot04RenderReadiness shot04RenderReadiness() {
         DirectorIdentity.requireDirector();
         CueReview review=preview("SHOT04");
         var current=episode.snapshot();
