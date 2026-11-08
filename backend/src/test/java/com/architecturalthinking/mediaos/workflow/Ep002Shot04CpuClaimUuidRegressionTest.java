@@ -31,7 +31,7 @@ class Ep002Shot04CpuClaimUuidRegressionTest {
         var service=new Ep002DirectorVoiceCueService(jdbc,new ObjectMapper(),episode);
 
         assertFalse(service.matchesCurrentShot04Render(
-                EPISODE_FINGERPRINT,"0ba17c38-3302-4b20-8da5-2b76e108c153",1,1800));
+                EPISODE_FINGERPRINT,"0ba17c38-3302-4b20-8da5e108c153",1,1800));
 
         verifyNoInteractions(episode,jdbc);
     }
