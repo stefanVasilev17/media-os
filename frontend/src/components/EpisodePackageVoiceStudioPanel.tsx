@@ -4,7 +4,7 @@ import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
 type Take={
   id:string;revision:number;takeNumber:number;contentType:string;
   modelId:string;voiceId:string;durationSeconds:number|null;
-  hasAlignment:boolean;generatedAt:string;
+  hasAlignment:boolean;generatedAt:string;deliveryMode?:string;
 };
 type State={
   packageId:string;shotKey:string;revision:number;narration:string;
@@ -12,7 +12,8 @@ type State={
   selectedTakeId:string|null;approvedCurrentRevision:boolean;
   voiceStatus:string;generationStatus:string;configured:boolean;
   paidGateEnabled:boolean;canGenerate:boolean;blockedReason:string;
-  timingStatus:string;
+  timingStatus:string;canGenerateSlow:boolean;
+   slowVoicePauseCount:number;slowVoiceLongPauseCount:number;
 };
 
 const label=(text:string)=>text.replaceAll('_',' ').toLowerCase();
@@ -78,9 +79,11 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
     finally{inFlight.current=false;setBusy(false);}
   }
 
-  async function generate(){
-    if(!data||!data.canGenerate||dirty||!consent||busy||inFlight.current)return;
-    if(!window.confirm('This is a paid ElevenLabs API generation for '+shotKey+
+  async function generate(mode:'STANDARD'|'SLOW_NATURAL'='STANDARD'){
+    if(!data||!data.canGenerate||dirty||!consent||busy||inFlight.current
+      ||(mode==='SLOW_NATURAL'&&!data.canGenerateSlow))return;
+    if(!window.confirm('This is a '+(mode==='SLOW_NATURAL'?'Slow Natural':'Standard')
+      +' paid ElevenLabs API generation for '+shotKey+
       ' / revision '+data.revision+'. It may incur provider charges. '+
       'Continue once? A failed or uncertain request will NOT be retried automatically.'))return;
     inFlight.current=true;setBusy(true);setError('');setMessage('');
@@ -91,12 +94,13 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({expectedRevision:data.revision,
           expectedNarrationSha256:data.narrationSha256,requestId:id,
-          confirmPaidElevenLabs:true}),
+          confirmPaidElevenLabs:true,deliveryMode:mode}),
       }));
       pendingPaidId.current=null;
       apply(result);
       onStatusChanged?.();
-      setMessage('New audio Take stored. Listen to it and explicitly approve your chosen Take.');
+      setMessage((mode==='SLOW_NATURAL'?'New Slow Natural':'New Standard')
+        +' Take stored. Listen and approve your preferred Take; previous recordings are preserved.');
     }catch(e){
       setError(String(e)+' Payment status may be uncertain. Do not retry without reconciling the provider request.');
       setConsent(false);
@@ -164,7 +168,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
             </label>
             <p>{item.durationSeconds!=null?item.durationSeconds+'s measured':'Duration not measured'}
               {' · '}{item.hasAlignment?'Provider alignment saved':'No verified alignment'}
-              {' · '}{item.modelId}</p>
+              {' · '}{item.modelId}
+              {item.deliveryMode?.includes('SLOW_NATURAL')?' · SLOW NATURAL':''}</p>
             <audio controls preload="none"
               src={base+'/takes/'+encodeURIComponent(item.id)+'/audio'} />
           </div>)}
@@ -189,7 +194,17 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
         </label>
         <button type="button" className="episode-package-voice-primary"
           disabled={!data.canGenerate||!consent||busy||dirty}
-          onClick={()=>void generate()}><Mic2 size={16}/> Generate one Take (paid)</button>
+          onClick={()=>void generate('STANDARD')}><Mic2 size={16}/> Generate one Take (paid)</button>
+        <button type="button" className="episode-package-voice-primary"
+          disabled={!data.canGenerateSlow||!consent||busy||dirty}
+          onClick={()=>void generate('SLOW_NATURAL')}><Mic2 size={16}/>
+          Generate Slow Natural Take (paid)</button>
+        <p className="episode-package-voice-note">
+          Slow Natural adds {data.slowVoicePauseCount} sentence and concept pauses,
+          including {data.slowVoiceLongPauseCount} longer pauses, without changing the saved words.
+          It makes one separate paid ElevenLabs request and never replaces a selected Take.
+          Actual voice speed is reviewed by the Director after generation.
+        </p>
       </div>
     </>}
     {error&&<p className="episode-hub-error" role="alert">{error}</p>}
