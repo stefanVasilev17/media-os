@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,13 +31,15 @@ public class EpisodePackageVoiceStudioService {
     record Request(UUID shotId,int revision,String narration) {}
     public record VoiceTake(UUID id,int revision,int takeNumber,String contentType,
                             String modelId,String voiceId,BigDecimal durationSeconds,
-                            boolean hasAlignment,String generatedAt) {}
+                            boolean hasAlignment,String generatedAt,String deliveryMode) {}
     public record VoiceState(UUID packageId,String shotKey,int revision,String narration,
                              String voiceDirection,String narrationSha256,
                              List<VoiceTake> takes,String selectedTakeId,
                              boolean approvedCurrentRevision,String voiceStatus,
                              String generationStatus,boolean configured,boolean paidGateEnabled,
-                             boolean canGenerate,String blockedReason,String timingStatus) {}
+                             boolean canGenerate,String blockedReason,String timingStatus,
+                             boolean canGenerateSlow,int slowVoicePauseCount,
+                             int slowVoiceLongPauseCount) {}
 
     private final JdbcClient jdbc;
     private final ElevenLabsTextToSpeechService elevenLabs;
@@ -117,7 +120,8 @@ public class EpisodePackageVoiceStudioService {
         Revision revision=current(shot.id());
         List<VoiceTake> takes=jdbc.sql("""
                 select id,revision,take_number,content_type,model_id,voice_id,
-                       duration_seconds,generated_alignment::text,generated_at
+                       duration_seconds,generated_alignment::text,generated_at,
+                       generated_alignment->>'mediaos_delivery_mode' as delivery_mode
                 from episode_package_voice_take where shot_id=:shot
                 order by revision desc,take_number desc
                 """).param("shot",shot.id()).query((rs,n)->{
@@ -127,7 +131,8 @@ public class EpisodePackageVoiceStudioService {
                             rs.getString("model_id"),rs.getString("voice_id"),
                             rs.getBigDecimal("duration_seconds"),
                             hasRealProviderAlignment(alignment),
-                            rs.getObject("generated_at",OffsetDateTime.class).toString());
+                            rs.getObject("generated_at",OffsetDateTime.class).toString(),
+                             rs.getString("delivery_mode")==null?"STANDARD":rs.getString("delivery_mode"));
                 }).list();
         UUID selected=jdbc.sql("""
                 select c.take_id from episode_package_voice_choice c
@@ -165,12 +170,23 @@ public class EpisodePackageVoiceStudioService {
                 ?takes.stream().anyMatch(t->t.revision()==revision.revision())?"TAKES_NEED_DIRECTOR_APPROVAL"
                 :"PENDING_VOICE"
                 :"VOICE_APPROVED_TIMING_REVIEW_REQUIRED";
+        SlowNaturalVoicePrompt.Plan slowPlan=null;
+        if(elevenV4()&&revision.narration().length()<=MAX_CHARS) {
+            try {
+                slowPlan=SlowNaturalVoicePrompt.plan(revision.narration(),elevenLabs.modelId());
+            } catch(IllegalArgumentException invalid) {
+                // Standard voice remains available when Slow Natural is not eligible.
+            }
+        }
         return new VoiceState(packageId,key,revision.revision(),
                 revision.narration(),revision.voiceDirection(),
                 EpisodePackageValidator.sha256(revision.narration()),
                 takes,selected==null?null:selected.toString(),selected!=null,
                 voiceStatus,generationStatus,elevenLabs.configured(),paidGateEnabled,
-                canGenerate,blocker,timingStatus);
+                canGenerate,blocker,timingStatus,
+                 canGenerate&&slowPlan!=null,
+                 slowPlan==null?0:slowPlan.pauseCount(),
+                 slowPlan==null?0:slowPlan.longPauseCount());
     }
 
     static boolean hasRealProviderAlignment(String json) {
@@ -224,8 +240,22 @@ public class EpisodePackageVoiceStudioService {
                 .param("shot",shotId).query(UUID.class).single();
     }
 
+    private boolean elevenV4() {
+        return elevenLabs.modelId()!=null&&elevenLabs.modelId().startsWith("eleven_v4");
+    }
+
     public VoiceState generate(UUID packageId,String key,int expectedRevision,
                                String expectedHash,UUID requestId,Boolean confirmPaid) {
+        return generate(packageId,key,expectedRevision,expectedHash,requestId,confirmPaid,"STANDARD");
+    }
+
+    public VoiceState generate(UUID packageId,String key,int expectedRevision,
+                               String expectedHash,UUID requestId,Boolean confirmPaid,
+                               String deliveryMode) {
+        String selectedMode=deliveryMode==null?"STANDARD":deliveryMode;
+        if(!"STANDARD".equals(selectedMode)&&!"SLOW_NATURAL".equals(selectedMode))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unsupported voice delivery mode.");
+        boolean slow="SLOW_NATURAL".equals(selectedMode);
         DirectorIdentity.Actor actor=DirectorIdentity.requireDirector();
         requireDirectorPaidConfirmation(confirmPaid,requestId,expectedHash);
         if(!paidGateEnabled)
@@ -245,6 +275,7 @@ public class EpisodePackageVoiceStudioService {
                         "Narration or active revision changed. Refresh before any paid request.");
             if(active.narration().length()>MAX_CHARS)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,"Narration exceeds TTS limit.");
+            if(slow)SlowNaturalVoicePrompt.plan(active.narration(),elevenLabs.modelId());
             Long count=jdbc.sql("""
                     select count(*) from episode_package_voice_take where shot_id=:shot
                     """).param("shot",shot.id()).query(Long.class).single();
@@ -278,11 +309,16 @@ public class EpisodePackageVoiceStudioService {
         });
 
         try {
+            String ttsText=slow
+                    ?SlowNaturalVoicePrompt.plan(reserved.narration(),elevenLabs.modelId()).text()
+                    :reserved.narration();
             ElevenLabsTextToSpeechService.GenerationResult audio=elevenLabs.generate(
-                    key,reserved.narration(),"","",Map.of(),
+                    key,ttsText,"","",Map.of(),
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
             BigDecimal duration=durationProbe.measure(audio.audio(),audio.contentType());
-            transaction.executeWithoutResult(status->saveTake(reserved,requestId,audio,duration));
+            String persistedMode=slow?SlowNaturalVoicePrompt.DELIVERY_MODE:"STANDARD";
+            transaction.executeWithoutResult(status->saveTake(
+                    reserved,requestId,audio,duration,persistedMode));
         } catch(RuntimeException failure) {
             transaction.executeWithoutResult(status->jdbc.sql("""
                     update episode_package_voice_request set status='UNCERTAIN'
@@ -295,7 +331,7 @@ public class EpisodePackageVoiceStudioService {
 
     private void saveTake(Request request,UUID id,
                           ElevenLabsTextToSpeechService.GenerationResult audio,
-                          BigDecimal duration) {
+                          BigDecimal duration,String deliveryMode) {
         lockShot(request.shotId());
         String status=jdbc.sql("""
                 select status from episode_package_voice_request
@@ -315,7 +351,13 @@ public class EpisodePackageVoiceStudioService {
         String name="VOICE_"+request.shotId()+"_rev"+request.revision()+"_take"+number
                 +("audio/wav".equals(audio.contentType())?".wav":".mp3");
         String alignment;
-        try {alignment=mapper.writeValueAsString(audio.alignmentResponse());}
+        try {
+            Map<String,Object> provenance=new LinkedHashMap<>(audio.alignmentResponse());
+            provenance.put("mediaos_delivery_mode",deliveryMode);
+            provenance.put("mediaos_spoken_script_sha256",
+                    EpisodePackageValidator.sha256(request.narration()));
+            alignment=mapper.writeValueAsString(provenance);
+        }
         catch(JsonProcessingException ex) {
             throw new IllegalStateException("ElevenLabs alignment could not be stored.",ex);
         }
