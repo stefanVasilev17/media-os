@@ -154,8 +154,8 @@ test('queued work is illustrated outside DB with orange→dark-orange→red→br
   assert.ok(level(unfinished+75)>.25&&level(unfinished+75)<.35);
   assert.ok(level(bottleneck+75)>.60&&level(bottleneck+75)<.65);
   assert.equal(level(saturation+80),1);
-  assert.equal(contract.shot03CongestionColor(0),'#F5A623');
-  assert.equal(contract.shot03CongestionColor(1),'#FF3B30');
+  assert.equal(contract.shot03CongestionColor(0),'#f5a623');
+  assert.equal(contract.shot03CongestionColor(1),'#ff3b30');
   assert.notEqual(contract.shot03CongestionColor(.33),
     contract.shot03CongestionColor(.66));
   assert.ok(contract.shot03ApproachPosition(.84,1)<.84);
