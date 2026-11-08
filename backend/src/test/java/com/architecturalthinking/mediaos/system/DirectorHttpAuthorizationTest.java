@@ -73,9 +73,6 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT11/generate-slow")
         String shot11SlowVoice() { return "director-paid-voice-shot11"; }
 
-        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
-        String unapprovedShotPreview() { return "blocked"; }
-
         @PostMapping("/api/v1/creative/episodes/EP002/codex-automation/{action}")
         String ep002CodexAutomation() { return "authorized"; }
 
@@ -208,7 +205,7 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
-    void ep002Shot02RenderPreviewRequiresDirectorAndOnlyThatSpecificShot() throws Exception {
+    void ep002Shot02AndShot03RenderPreviewsRequireDirectorAndDenyOtherShots() throws Exception {
         String path="/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview";
         mvc.perform(post(path).with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
@@ -219,7 +216,17 @@ class DirectorHttpAuthorizationTest {
                     .andExpect(status().isForbidden());
         }
         mvc.perform(post(path)).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
+        String shot03="/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview";
+        mvc.perform(post(shot03).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for(String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(shot03).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(shot03)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT04/render-preview")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }

@@ -69,11 +69,11 @@ test('Each Load Balancer arrow reaches the left edge of its own Auth replica',()
       {x:1505,y:card.y},{x:1540,y:db.y},db),db);
   }
   assert.match(v5,/markerEnd="url\(#s02v5-arrow-cyan\)"/);
-  assert.match(v5,/markerEnd="url\(#s02v5-arrow-amber\)"/);
+  assert.match(v5,/markerEnd="url\(#s02v5-arrow-db\)"/);
 });
 
 test('All request particles and node text get deliberate contrast',()=>{
-  assert.match(v5,/r=\{7\+2\*arrival\}/);
+  assert.match(v5,/r=\{SHOT02_LOGIN_PARTICLE\.radius\}/);
   assert.match(v5,/fontSize:27,fontWeight:820/);
   assert.match(v5,/border:'2\.5px solid #64DFFF'/);
   assert.match(v5,/border:'2\.5px solid #63DEFF'/);
@@ -87,7 +87,7 @@ test('Exact +60 frame tail is only after voice; old Take/cues remain pristine',(
   assert.match(v5,/const spokenFrames=total-hold/);
   assert.match(v5,/requireShot02VerifiedCues\(spokenFrames/);
   assert.match(v5,/requireShot02SpokenTerms\(spokenFrames/);
-  assert.match(v5,/ONE DATABASE\. THREE AUTH REPLICAS\. RISING PRESSURE/);
+  assert.match(v5,/ONE DATABASE\. THREE AUTH INSTANCES\. RISING PRESSURE/);
   assert.match(v5,/shot02UserRequestPressure/);
   assert.match(v5,/shot02SharedDbPressure/);
   assert.doesNotMatch(v5,/generateSpeech|fetch\(|<Audio|setTimeout/);

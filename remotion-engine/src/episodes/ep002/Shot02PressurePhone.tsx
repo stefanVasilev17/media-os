@@ -1,6 +1,6 @@
 import React from 'react';
 import {AT_FONT} from '../../components/architectural-thinking';
-import {shot02ButtonColors} from './Shot02PressureVisuals';
+import {shot02ButtonColors,shot02PressCycle} from './Shot02PressureVisuals';
 
 const StatusBar: React.FC = () => (
   <>
@@ -56,6 +56,7 @@ const Field: React.FC<FieldProps> = ({label,value,focused,icon,masked}) => (
 type LoginButtonProps = {
   frame: number;
   pressure: number;
+  pressStartFrame: number;
   localUi: number;
   press: number;
   waiting: number;
@@ -64,20 +65,37 @@ type LoginButtonProps = {
   heroPush?: number;
 };
 
-const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner,pressure}) => {
+const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,spinner,pressure,pressStartFrame}) => {
   const working=spinner>.08 || localUi>.15 || waiting>.5;
   const palette=shot02ButtonColors(pressure);
+  const motion=shot02PressCycle(frame,pressStartFrame);
+  const impact=Math.max(press,motion.compression);
+  const bounce=motion.rebound;
+  const aura=.20+.24*motion.ripple+.26*impact;
   return (
     <div style={{
       height:88,borderRadius:20,
       border:`2.6px solid ${palette.border}`,
       background:`linear-gradient(135deg,${palette.top} 0%,${palette.bottom} 100%)`,
-      boxShadow:`0 19px 39px ${palette.glow}55,0 0 38px ${palette.glow}44,inset 0 2px 0 rgba(255,255,255,.32)`,
-      transform:`translateY(${press*5}px) scale(${1-press*.027})`,
+      boxShadow:`0 ${16-impact*8}px ${35+motion.ripple*10}px ${palette.glow}77,0 0 ${30+32*motion.ripple}px ${palette.glow}66,inset 0 ${2+impact*4}px 0 rgba(255,255,255,.27)`,
+      transform:`translateY(${impact*7-bounce*2}px) scale(${1-impact*.052+bounce*.022})`,
       display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden',
     }}>
       <div style={{
-        position:'absolute',left:20,right:20,top:1+press*2,height:2,
+        position:'absolute',inset:3,borderRadius:16,pointerEvents:'none',
+        border:`2px solid rgba(255,255,255,${.12+.45*impact})`,
+        boxShadow:`inset 0 0 ${8+12*impact}px ${palette.glow}55`,
+        opacity:Math.min(1,.54+aura),
+      }}/>
+      <div style={{
+        position:'absolute',top:-24,bottom:-24,width:'38%',
+        left:'-40%',pointerEvents:'none',
+        transform:`translateX(${motion.shine*560}px) skewX(-25deg)`,
+        background:'linear-gradient(90deg,transparent,rgba(255,255,255,.43),transparent)',
+        opacity:motion.active*(.15+.32*motion.ripple),
+      }}/>
+      <div style={{
+        position:'absolute',left:20,right:20,top:1+impact*2,height:2,
         background:'linear-gradient(90deg,transparent,rgba(255,255,255,.52),transparent)',
         opacity:working?.32:.83,
       }}/>
@@ -105,6 +123,7 @@ const LoginButton: React.FC<LoginButtonProps> = ({frame,localUi,press,waiting,sp
 
 export type Shot02PressurePhoneProps = {
   pressure: number;
+  pressStartFrame?: number;
   frame: number;
   reveal: number;
   credential: number;
@@ -121,7 +140,7 @@ export type Shot02PressurePhoneProps = {
   heroPush?: number;
 };
 
-export const Shot02PressurePhone: React.FC<Shot02PressurePhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,pressure,realism=1,heroPush=0}) => {
+export const Shot02PressurePhone: React.FC<Shot02PressurePhoneProps> = ({frame,reveal,credential,ui,emailValue,passwordDots,emailFocus,passwordFocus,localUi,press,waiting,spinner,pressure,pressStartFrame=Number.POSITIVE_INFINITY,realism=1,heroPush=0}) => {
   const scale = .91 + heroPush*.016*(1-reveal) + (.70-.91)*reveal + (.60-.70)*credential + (.53-.60)*ui + .115;
   const top = 66 + (332-66)*reveal + (468-332)*credential + (592-468)*ui - 28;
   const rotateY = -2.2 + reveal*.8 + credential*.25 + ui*.15;
@@ -152,7 +171,7 @@ export const Shot02PressurePhone: React.FC<Shot02PressurePhoneProps> = ({frame,r
               <Field label="Email" value={emailValue} focused={emailFocus} icon="email"/>
               <Field label="Password" value={passwordDots} focused={passwordFocus} icon="lock" masked/>
             </div>
-            <div style={{position:'absolute',left:0,right:0,bottom:28}}><LoginButton frame={frame} localUi={localUi} press={press} waiting={waiting} spinner={spinner} pressure={pressure}/></div>
+            <div style={{position:'absolute',left:0,right:0,bottom:28}}><LoginButton frame={frame} localUi={localUi} press={press} waiting={waiting} spinner={spinner} pressure={pressure} pressStartFrame={pressStartFrame}/></div>
           </div>
         </div>
       </div>

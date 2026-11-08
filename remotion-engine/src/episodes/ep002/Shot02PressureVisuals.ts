@@ -37,6 +37,20 @@ const interpolateStops = (value:number, stops:readonly string[]):string => {
   return mixHex(stops[index],stops[index+1],p-index);
 };
 
+export const SHOT02_LOGIN_PARTICLE={
+  radius:9,
+  fill:'#73FFD0',
+  glow:'drop-shadow(0 0 11px rgba(104,255,190,.92))',
+} as const;
+
+export function shot02ClosingBannerReveal(frame:number,spokenFrames:number) {
+  return smooth01((frame-(spokenFrames-60))/24);
+}
+
+export function shot02DatabaseStress(frame:number,lastDatabaseTermEndFrame:number) {
+  return smooth01((frame-lastDatabaseTermEndFrame)/65);
+}
+
 export function shot02UserRequestPressure(
   context:number,wave:number,distribution:number,auth:number,arrival:number,
 ):number {
@@ -49,6 +63,26 @@ export function shot02SharedDbPressure(
 ):number {
   const l=clamp01(lookup);
   return clamp01(.15*l+.45*clamp01(dbReveal)+.4*l*clamp01(arrival));
+}
+
+export function shot02PressCycle(frame:number,firstTapFrame:number) {
+  const elapsed=frame-firstTapFrame;
+  if(!Number.isFinite(elapsed)||elapsed<0)
+    return {active:0,compression:0,rebound:0,ripple:0,shine:0};
+  const phase=((elapsed%40)+40)%40;
+  const compression=phase<15?Math.sin(Math.PI*phase/15)**2:0;
+  const rebound=phase>=15&&phase<29?Math.sin(Math.PI*(phase-15)/14)**2:0;
+  const ripple=phase>=4&&phase<33?Math.sin(Math.PI*(phase-4)/29)**2:0;
+  const shine=phase>=8&&phase<31?smooth01((phase-8)/23):0;
+  return {active:1,compression,rebound,ripple,shine};
+}
+
+export function shot02RequestStreamActivation(frame:number,firstTapFrame:number) {
+  return smooth01((frame-firstTapFrame)/9);
+}
+
+export function shot02CounterLift(frame:number,spokenFrames:number) {
+  return 160*smooth01((frame-(spokenFrames-95))/32);
 }
 
 export function shot02ButtonColors(pressure:number) {

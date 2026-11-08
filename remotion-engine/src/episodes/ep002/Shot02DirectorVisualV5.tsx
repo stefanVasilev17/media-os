@@ -15,9 +15,10 @@ import {
   SHOT02_DATABASE_ENTRY,SHOT02_BALANCER_EXIT,SHOT02_GATEWAY_ENTRY,
   SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY,SHOT02_PHONE_PIPE,
   shot02CubicPoint,shot02UserRequestPressure,shot02SharedDbPressure,
-  shot02DatabaseColors,
+  shot02DatabaseColors,shot02RequestStreamActivation,shot02CounterLift,
+  shot02ClosingBannerReveal,shot02DatabaseStress,SHOT02_LOGIN_PARTICLE,
 } from './Shot02PressureVisuals';
-import {shot02TapPulse,shot02FlowClock,shot02FlowIntensity} from './Shot02DirectorPacing';
+import {shot02FlowClock} from './Shot02DirectorPacing';
 
 const clamp=(value:number)=>Math.max(0,Math.min(1,value));
 const ease=(frame:number,start:number,end:number)=>interpolate(
@@ -131,19 +132,39 @@ const DatabaseCard:React.FC<{pressure:number;reveal:number;frame:number}>=
       <ellipse cx="44" cy="60" rx="27" ry="11" stroke={pal.border} strokeWidth="3.8"/>
     </svg>
     <div style={{margin:'16px 13px 0',height:44,borderRadius:9,
-      border:'1.8px solid '+pal.border,
-      display:'flex',justifyContent:'center',gap:10,alignItems:'center',
-      color:'#FFD59B',fontSize:15,fontWeight:800,
-      background:'rgba(109,53,21,.34)'}}>
-      <span style={{fontSize:25}}>▥</span>PRESSURE RISING
+      border:'1.8px solid '+pal.border,position:'relative',
+      background:pressure>.01?'rgba(109,53,21,.34)':'rgba(9,38,65,.64)',
+      fontSize:15,fontWeight:800}}>
+      <span style={{position:'absolute',inset:0,display:'flex',gap:9,
+        alignItems:'center',justifyContent:'center',color:'#BFE9FF',
+        opacity:1-clamp(pressure*4)}}>
+        <span style={{fontSize:23}}>▥</span>SHARED LOOKUP
+      </span>
+      <span style={{position:'absolute',inset:0,display:'flex',gap:9,
+        alignItems:'center',justifyContent:'center',color:'#FFD59B',
+        opacity:clamp(pressure*4)}}>
+        <span style={{fontSize:23}}>▥</span>PRESSURE RISING
+      </span>
     </div>
   </div>;
 };
 
+const RequestParticle:React.FC<{x:number;y:number;visibility:number}>=
+({x,y,visibility})=><circle cx={x} cy={y}
+  r={SHOT02_LOGIN_PARTICLE.radius}
+  fill={SHOT02_LOGIN_PARTICLE.fill}
+  opacity={clamp(visibility)}
+  style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>;
+
 const PathSystem:React.FC<{
-  frame:number;clock:number;load:number;arrival:number;lookup:number;
-}>=({frame,clock,load,arrival,lookup})=>{
+  clock:number;load:number;arrival:number;lookup:number;stress:number;
+}>=({clock,load,arrival,lookup,stress})=>{
   const a=SHOT02_BALANCER_EXIT,db=SHOT02_DATABASE_ENTRY;
+  const dbColor=shot02DatabaseColors(stress);
+  const particleAlpha=(t:number,activity:number)=>
+    activity*clamp(Math.min(t,1-t)*10);
+  const phase=(index:number,count:number)=>
+    ((clock*.8+index/count)%1+1)%1;
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',overflow:'visible'}}>
     <defs>
@@ -152,57 +173,53 @@ const PathSystem:React.FC<{
         <path d="M1 2L9 6L1 10" stroke="#83F0FF" strokeWidth="3" fill="none"
           strokeLinecap="round" strokeLinejoin="round"/>
       </marker>
-      <marker id="s02v5-arrow-amber" markerWidth="12" markerHeight="12"
+      <marker id="s02v5-arrow-db" markerWidth="12" markerHeight="12"
         refX="8" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-        <path d="M1 2L9 6L1 10" stroke="#FFBD77" strokeWidth="3" fill="none"
+        <path d="M1 2L9 6L1 10" stroke={dbColor.border} strokeWidth="3" fill="none"
           strokeLinecap="round" strokeLinejoin="round"/>
       </marker>
     </defs>
-    <path d={`M ${SHOT02_PHONE_PIPE.x} ${SHOT02_PHONE_PIPE.y}
-      L ${SHOT02_GATEWAY_ENTRY.x} ${SHOT02_GATEWAY_ENTRY.y}`}
-      stroke="#7EEFFF" strokeWidth="4" fill="none" markerEnd="url(#s02v5-arrow-cyan)"
-      opacity={.55+.45*load}/>
-    <path d={`M ${SHOT02_GATEWAY_EXIT.x} ${SHOT02_GATEWAY_EXIT.y}
-      L ${SHOT02_BALANCER_ENTRY.x} ${SHOT02_BALANCER_ENTRY.y}`}
-      stroke="#7EEFFF" strokeWidth="4" fill="none" markerEnd="url(#s02v5-arrow-cyan)"
-      opacity={.38+.62*load}/>
+    {[
+      [SHOT02_PHONE_PIPE,SHOT02_GATEWAY_ENTRY],
+      [SHOT02_GATEWAY_EXIT,SHOT02_BALANCER_ENTRY],
+    ].map(([from,to],segment)=><g key={segment}>
+      <path d={'M '+from.x+' '+from.y+' L '+to.x+' '+to.y}
+        stroke="#7EEFFF" strokeWidth="4" fill="none"
+        markerEnd="url(#s02v5-arrow-cyan)" opacity={.32+.68*load}/>
+      <RequestParticle
+        x={from.x+(to.x-from.x)*phase(segment,2)}
+        y={from.y+(to.y-from.y)*phase(segment,2)}
+        visibility={particleAlpha(phase(segment,2),load)}/>
+    </g>)}
     {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
       const b={x:SHOT02_AUTH_CARD_LEFT+6,y:replica.y};
       const c={x:SHOT02_AUTH_CARD_RIGHT,y:replica.y};
       const target={x:db.x+5,y:db.y};
       const m1={x:1090,y:a.y},m2={x:1137,y:replica.y};
       const m3={x:1505,y:replica.y},m4={x:1540,y:db.y};
-      const branch=`M ${a.x} ${a.y} C ${m1.x} ${m1.y} ${m2.x} ${m2.y} ${b.x} ${b.y}`;
-      const lookupPath=`M ${c.x} ${c.y} C ${m3.x} ${m3.y} ${m4.x} ${m4.y} ${target.x} ${target.y}`;
+      const branch='M '+a.x+' '+a.y+' C '+m1.x+' '+m1.y+' '+m2.x+' '+m2.y+' '+b.x+' '+b.y;
+      const lookupPath='M '+c.x+' '+c.y+' C '+m3.x+' '+m3.y+' '+m4.x+' '+m4.y+' '+target.x+' '+target.y;
       return <g key={replica.id}>
         <path d={branch} fill="none" stroke="#2F7197" strokeWidth="9" opacity=".5"/>
         <path d={branch} fill="none" stroke="#84EEFF" strokeWidth="3.8"
-          markerEnd="url(#s02v5-arrow-cyan)" opacity={.17+.83*load}/>
-        <path d={lookupPath} fill="none" stroke="#B26C37" strokeWidth="8"
-          opacity={.40*lookup}/>
-        <path d={lookupPath} fill="none" stroke="#FFBD7C" strokeWidth="3.8"
-          markerEnd="url(#s02v5-arrow-amber)" opacity={.15+.85*lookup}/>
+          markerEnd="url(#s02v5-arrow-cyan)" opacity={.15+.85*load}/>
+        <path d={lookupPath} fill="none" stroke="#2F7197" strokeWidth="8"
+          opacity={.35+.25*lookup}/>
+        <path d={lookupPath} fill="none" stroke={dbColor.border} strokeWidth="3.8"
+          markerEnd="url(#s02v5-arrow-db)" opacity={.15+.85*lookup}/>
         {Array.from({length:4},(_,k)=>{
-          const t=((clock*.75+i/3+k/4)%1+1)%1;
+          const t=phase(i*4+k,12);
           const f=shot02CubicPoint(t,a,m1,m2,b);
           const g=shot02CubicPoint(t,c,m3,m4,target);
-          const fade=clamp(Math.min(t,1-t)*11);
+          const visible=clamp(.65+.35*arrival);
           return <g key={k}>
-            <circle cx={f.x} cy={f.y} r={7+2*arrival} fill="#8FFFFA"
-              opacity={load*fade} style={{filter:'drop-shadow(0 0 9px #68DEFF)'}}/>
-            <circle cx={g.x} cy={g.y} r={7+3*arrival} fill="#FFC079"
-              opacity={lookup*fade} style={{filter:'drop-shadow(0 0 9px #FFA54B)'}}/>
+            <RequestParticle x={f.x} y={f.y}
+              visibility={particleAlpha(t,load)*visible}/>
+            <RequestParticle x={g.x} y={g.y}
+              visibility={particleAlpha(t,lookup)*visible}/>
           </g>;
         })}
       </g>;
-    })}
-    {Array.from({length:11},(_,i)=>{
-      const t=((clock*.8+i/11)%1+1)%1;
-      const x=SHOT02_PHONE_PIPE.x+
-        (SHOT02_BALANCER_ENTRY.x-SHOT02_PHONE_PIPE.x)*t;
-      return <circle key={i} cx={x} cy={SHOT02_PHONE_PIPE.y} r={7+2*arrival}
-        fill="#7EECFF" opacity={load*clamp(Math.min(t,1-t)*10)}
-        style={{filter:'drop-shadow(0 0 9px rgba(77,221,255,.8))'}}/>;
     })}
   </svg>;
 };
@@ -212,10 +229,14 @@ const TicketHero:React.FC<{frame:number;reveal:number}>=({frame,reveal})=>
     display:'flex',gap:20,alignItems:'center',justifyContent:'center',
     fontFamily:AT_FONT,opacity:reveal,
     transform:'translateY('+((1-reveal)*12)+'px)',whiteSpace:'nowrap'}}>
-    <span style={{fontSize:68,fontWeight:880,letterSpacing:'-.065em',color:'#FFE0A3',
-      textShadow:'0 0 26px rgba(255,170,72,.50),0 0 65px rgba(242,121,29,.24)'}}>
-      09:00
-    </span>
+    <div aria-label="09 : 00" style={{display:'flex',alignItems:'center',
+      gap:8,fontVariantNumeric:'tabular-nums',lineHeight:1,
+      color:'#FFE4B2',textShadow:'0 0 9px rgba(255,176,80,.22)'}}>
+      <span style={{fontSize:68,fontWeight:840,letterSpacing:'.008em'}}>09</span>
+      <span style={{fontSize:62,fontWeight:650,margin:'0 3px',
+        transform:'translateY(-3px)',color:'#FFD08B'}}>:</span>
+      <span style={{fontSize:68,fontWeight:840,letterSpacing:'.008em'}}>00</span>
+    </div>
     <span style={{width:2,height:60,background:'rgba(255,202,144,.83)'}}/>
     <span style={{fontSize:36,fontWeight:790,letterSpacing:'.085em',
       color:'#FFF9F2'}}>TICKETS ON SALE</span>
@@ -236,21 +257,21 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
   const terms=requireShot02SpokenTerms(spokenFrames,beats,props.termCues);
   assertShot02TextLanes({x:0,y:0,scale:1});
   const start=beats.map(c=>c.startFrame);
+  const firstTapFrame=start[0]+15;
+  const firstTapActive=shot02RequestStreamActivation(frame,firstTapFrame);
+  const counterLift=shot02CounterLift(frame,spokenFrames);
   const context=ease(frame,start[0],start[0]+35);
   const gateway=ease(frame,terms[1].startFrame,terms[1].startFrame+42);
   const balancer=ease(frame,terms[2].startFrame,terms[2].startFrame+38);
   const auth=ease(frame,terms[3].startFrame,terms[3].startFrame+42);
   const arrival=ease(frame,terms[4].startFrame,terms[4].startFrame+60);
-  const lookup=ease(frame,start[4],start[4]+49);
-  const database=ease(frame,terms[5].startFrame-35,terms[6].startFrame+33);
-  const visualHold=ease(frame,spokenFrames,spokenFrames+60);
+  const lookup=firstTapActive;
+  const database=firstTapActive;
+  const closingBannerReveal=shot02ClosingBannerReveal(frame,spokenFrames);
+  const problemMention=shot02DatabaseStress(frame,terms[6].endFrame);
   const pressure=shot02UserRequestPressure(context,gateway,balancer,auth,arrival);
-  const dbPressure=shot02SharedDbPressure(lookup,database,arrival);
-  const phonePress=Math.max(
-    shot02TapPulse(frame,start[0]+15,Math.min(start[1]+15,start[0]+165)),
-    shot02TapPulse(frame,start[2],Math.min(terms[1].startFrame-2,terms[0].endFrame+45)),
-  );
-  const flowClock=shot02FlowClock(frame,terms[4].startFrame);
+  const dbPressure=shot02SharedDbPressure(problemMention,problemMention,arrival);
+  const flowClock=shot02FlowClock(frame,firstTapFrame);
   return <ATBackground>
     <ATControlledRealismLayer frame={frame} realism={.96}
       architectureReveal={.3+.4*context+.25*database}/>
@@ -261,8 +282,9 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>
     <div style={{position:'absolute',left:66,top:86,width:340,height:1,
       background:'linear-gradient(90deg,rgba(95,204,255,.66),transparent)',zIndex:28}}/>
-    <PathSystem frame={frame} clock={flowClock} load={clamp(.40*gateway+.60*balancer)}
-      arrival={arrival} lookup={lookup}/>
+    <PathSystem clock={flowClock}
+      load={Math.max(.72*firstTapActive,clamp(.40*gateway+.60*balancer))}
+      arrival={arrival} lookup={lookup} stress={dbPressure}/>
     <GatewayCard activity={gateway}/>
     <BalancerCard activity={balancer}/>
     <AuthCluster activity={auth} frame={frame}/>
@@ -273,7 +295,7 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
       <Shot02PressurePhone frame={frame} reveal={1} credential={.22} ui={0}
         emailValue="user@example.com" passwordDots="••••••••"
         emailFocus={0} passwordFocus={0} localUi={0}
-        press={phonePress} waiting={0} spinner={0}
+        press={0} pressStartFrame={firstTapFrame} waiting={0} spinner={0}
         pressure={pressure} realism={1} heroPush={0}/>
     </AbsoluteFill>
     <TicketHero frame={frame} reveal={context}/>
@@ -290,6 +312,8 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>
     <div style={{position:'absolute',...SHOT02_TEXT_LANES.metric,zIndex:24,
       opacity:arrival,fontFamily:AT_FONT,
+      transform:`translateY(-${counterLift}px) scale(${1+.027*Math.sin(Math.PI*Math.min(1,counterLift/110))})`,
+      transformOrigin:'50% 100%',
       background:'linear-gradient(90deg,rgba(3,15,32,.95),transparent)',
       borderLeft:'3px solid #5EECCE',padding:'12px 22px'}}>
       <div style={{fontSize:17,color:'#C1E2F3',letterSpacing:'.035em',fontWeight:710}}>
@@ -300,14 +324,15 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
         {Math.round((100+250*arrival)/10)*10}
       </div>
     </div>
-    {hold===60&&<div style={{position:'absolute',right:95,bottom:72,zIndex:25,
-      width:700,padding:'17px 20px',borderRadius:12,
+    {hold===60&&<div style={{position:'absolute',right:80,bottom:170,zIndex:25,
+      width:790,padding:'18px 18px',borderRadius:12,
       border:'1.7px solid rgba(255,173,92,.57)',
       background:'linear-gradient(90deg,rgba(44,22,13,.65),rgba(10,15,29,.86))',
-      fontFamily:AT_FONT,fontSize:24,fontWeight:700,color:'#FFD6A0',
-      textAlign:'center',letterSpacing:'.01em',
-      opacity:visualHold}}>
-      ONE DATABASE. THREE AUTH REPLICAS. RISING PRESSURE →
+      fontFamily:AT_FONT,fontSize:21,fontWeight:750,color:'#FFD6A0',
+      textAlign:'center',letterSpacing:'.003em',whiteSpace:'nowrap',
+      transform:`translateY(${(1-closingBannerReveal)*15}px)`,
+      opacity:closingBannerReveal}}>
+      ONE DATABASE. THREE AUTH INSTANCES. RISING PRESSURE →
     </div>}
   </ATBackground>;
 };

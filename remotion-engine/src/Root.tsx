@@ -2,6 +2,7 @@ import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
 import {Shot01LoginWaiting} from './episodes/ep002/Shot01LoginWaiting';
 import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
+import {Shot03DirectorVisualV1} from './episodes/ep002/Shot03DirectorVisualV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -65,6 +66,21 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP002-SHOT03-CANDIDATE"
+        component={Shot03DirectorVisualV1}
+        durationInFrames={dynamicDuration ?? 6}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          durationInFrames:6,
+          voiceTakeId:'',
+          timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS' as const,
+          verifiedCues:[],
+          termCues:[],
+        }}
+      />
       <Composition
         id="EP002-SHOT02-CANDIDATE"
         component={Shot02DirectorVisualV5}

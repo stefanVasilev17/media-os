@@ -9,6 +9,7 @@ import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
+import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -33,8 +34,10 @@ if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
 const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
 const CLAIMS_ENABLED = shouldClaimRenderWork(process.env.MEDIA_OS_REMOTION_CLAIMS_ENABLED);
 const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITION || '').trim();
-if (TARGET_COMPOSITION && TARGET_COMPOSITION !== 'EP002-SHOT02-CANDIDATE') {
-  throw new Error('SHOT02_WORKER_TARGET_COMPOSITION_INVALID');
+if (TARGET_COMPOSITION
+    && !['EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
+      'EP002-DIRECTOR-SHOT02-SHOT03'].includes(TARGET_COMPOSITION)) {
+  throw new Error('EP002_WORKER_TARGET_COMPOSITION_INVALID');
 }
 
 let leaseClient;
@@ -531,11 +534,14 @@ async function addShot10V6SoundDesign(job, outputPath, inputProps) {
 }
 
 async function readEp002SelectedVoice(job, inputProps) {
-  if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE'].includes(job.compositionId)) return null;
-  if (job.compositionId === 'EP002-SHOT02-CANDIDATE'
+  if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
+         'EP002-SHOT03-CANDIDATE'].includes(job.compositionId)) return null;
+  if (['EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE'].includes(job.compositionId)
       && (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
         || inputProps.expectedSourceCommit !== FACTORY_SOURCE_SHA)) {
-    throw new Error('SHOT02_WORKER_SOURCE_COMMIT_MISMATCH');
+    throw new Error(job.compositionId === 'EP002-SHOT02-CANDIDATE'
+      ?'SHOT02_WORKER_SOURCE_COMMIT_MISMATCH'
+      :'SHOT03_WORKER_SOURCE_COMMIT_MISMATCH');
   }
   const takeId = String(inputProps.voiceTakeId || '');
   const revision = Number(inputProps.scriptRevision);
@@ -562,7 +568,8 @@ async function readEp002SelectedVoice(job, inputProps) {
 }
 
 async function muxEp002SelectedVoice(job, videoPath, inputProps) {
-  if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE'].includes(job.compositionId)) return;
+  if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
+         'EP002-SHOT03-CANDIDATE'].includes(job.compositionId)) return;
   const editorialPlan=validateShot02EditorialPlan(job,inputProps);
   const audioBytes = await readEp002SelectedVoice(job, inputProps);
   const audioPath = path.join(os.tmpdir(),`media-os-ep002-${job.renderId}.mp3`);
@@ -634,6 +641,10 @@ async function muxFactorySelectedVoice(job,videoPath,inputProps) {
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
+  const tierPlusPlusPreflight=preflightTierPlusPlusRender(job,FACTORY_SOURCE_SHA);
+  if(tierPlusPlusPreflight)
+    console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_RENDER_START',
+      tierPlusPlusPreflight));
 
   console.log(
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
@@ -676,7 +687,8 @@ async function render(job) {
       return;
     }
 
-    if (['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE'].includes(job.compositionId)) {
+    if (['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
+          'EP002-SHOT03-CANDIDATE'].includes(job.compositionId)) {
       await readEp002SelectedVoice(job, inputProps);
     }
 
@@ -745,16 +757,26 @@ async function render(job) {
     if (job.compositionId === 'EP001-Shot10-SessionCreationShortV6') {
       await addShot10V6SoundDesign(job, outputPath, inputProps);
     }
-    if (['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE'].includes(job.compositionId)) {
+    if (['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
+          'EP002-SHOT03-CANDIDATE'].includes(job.compositionId)) {
       await muxEp002SelectedVoice(job, outputPath, inputProps);
     }
     if (job.compositionId === 'AT-FACTORY-SHOT') {
       await muxFactorySelectedVoice(job,outputPath,inputProps);
     }
+    if(tierPlusPlusPreflight){
+      // ffprobe independently checks H.264/AAC, 30 fps and a real output file.
+      const probed=await probeFactoryMedia(outputPath);
+      const mediaReceipt=verifyTierPlusPlusMedia(job,probed);
+      console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_MP4_QA',mediaReceipt));
+    }
     heartbeatProgress = 97;
     await progress(job.renderId, 97);
     const sizeBytes = await complete(job.renderId, outputPath);
     console.log(`Completed ${job.renderId}: ${sizeBytes} bytes`);
+    if(tierPlusPlusPreflight)
+      console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_DIRECTOR_REVIEW_PENDING',
+        {renderId:job.renderId,status:'VISUAL_DIRECTOR_REVIEW_REQUIRED'}));
   } finally {
     clearInterval(heartbeat);
     console.log(`REMOTION_RENDER_ELAPSED_SECONDS renderId=${job.renderId} elapsed=${((Date.now() - renderStartedAt) / 1000).toFixed(2)} concurrency=${RENDER_CONCURRENCY}`);

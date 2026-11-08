@@ -88,6 +88,11 @@ class LocalDirectorHttpLifecycleTest {
         public String paidSlowVoiceSecurityProbe() {
             return "director-only-route";
         }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
+        public String shot03CpuRenderSecurityProbe() {
+            return "director-only-shot03-render";
+        }
     }
 
     @Autowired private MockMvc mvc;
@@ -212,6 +217,27 @@ class LocalDirectorHttpLifecycleTest {
                     .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                             .content().string("director-only-route"));
         }
+    }
+
+    @Test
+    void shot03CpuRenderNeedsAnAuthenticatedDirectorAndCsrf() throws Exception {
+        Csrf token=csrf();
+        String path="/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview";
+        mvc.perform(post(path).cookie(token.cookie())
+                .header("X-XSRF-TOKEN",token.token()))
+                .andExpect(status().isUnauthorized());
+
+        MvcResult login=login(token,PASSWORD,currentCode());
+        assertEquals(200,login.getResponse().getStatus());
+        Cookie session=login.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+
+        mvc.perform(post(path).cookie(session)).andExpect(status().isForbidden());
+        mvc.perform(post(path).cookie(session,token.cookie())
+                .header("X-XSRF-TOKEN",token.token()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .content().string("director-only-shot03-render"));
     }
 
     @Test

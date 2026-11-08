@@ -152,6 +152,15 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                           and r.input_props->>'inputFingerprint'=lineage.dependency_sha256
                           and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha
                           and r.input_props->>'expectedSourceCommit'=lineage.remotion_commit_sha)
+                        or
+                        (r.composition_id='EP002-SHOT03-CANDIDATE'
+                          and lineage.shot_key='SHOT03'
+                          and r.input_props->>'shotKey'='EP002_SHOT03'
+                          and r.input_props->>'voiceTakeId'=lineage.preferred_take_id::text
+                          and r.input_props->>'scriptRevision'=lineage.script_revision::text
+                          and r.input_props->>'inputFingerprint'=lineage.dependency_sha256
+                          and r.input_props->>'visualSourceSha'=lineage.visual_source_git_blob_sha
+                          and r.input_props->>'expectedSourceCommit'=lineage.remotion_commit_sha)
                       )
                 )
                 """)
@@ -320,6 +329,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.equals("/api/v1/verification/runs")
                 || path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
+                || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
