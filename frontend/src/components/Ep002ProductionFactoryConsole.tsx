@@ -12,6 +12,7 @@ import {Ep002DirectorVisualAcceptancePanel} from './Ep002DirectorVisualAcceptanc
 import {Ep002Shot02RenderPanel} from './Ep002Shot02RenderPanel';
 import {Ep002Shot03RenderPanel} from './Ep002Shot03RenderPanel';
 import {Ep002Shot04RenderPanel} from './Ep002Shot04RenderPanel';
+import {Ep002Shot05RenderPanel} from './Ep002Shot05RenderPanel';
 
 type Stage='VOICE'|'CODEX'|'CORRECTIONS'|'APPROVAL';
 type Status={nextShotKey:string|null;remainingSceneCount:number;
@@ -81,7 +82,7 @@ export function Ep002ProductionFactoryConsole(){
     </>}
     {stage==='CODEX'&&<><MediaOsVerificationAutopilotPanel/><MediaOsVerificationPanel/><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
     {stage==='CORRECTIONS'&&<Ep002VisualDirectorFeedbackPanel/>}
-    {stage==='APPROVAL'&&<><Ep002Shot02RenderPanel/><Ep002Shot03RenderPanel/><Ep002Shot04RenderPanel/><Ep002DirectorVisualAcceptancePanel/></>}
+    {stage==='APPROVAL'&&<><Ep002Shot02RenderPanel/><Ep002Shot03RenderPanel/><Ep002Shot04RenderPanel/><Ep002Shot05RenderPanel/><Ep002DirectorVisualAcceptancePanel/></>}
     <p className="library-note">The complete product acceptance contract remains:
       verified voice + cues → one scoped Codex Remotion PR per SHOT →
       SHA-matching compiled Worker and Director-reviewed MP4 → next SHOT →
