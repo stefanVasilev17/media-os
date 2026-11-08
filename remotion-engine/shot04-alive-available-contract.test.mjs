@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
+import {preflightTierPlusPlusRender} from './tier-plus-plus-render-quality.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
 const ep002=path.join(root,'src/episodes/ep002');
@@ -92,4 +93,30 @@ test('SHOT04 voice-gated Remotion candidate is registered and fail-closed',()=>{
 test('Director final insight remains exactly the approved philosophical payoff',()=>{
   assert.match(scene,/Being alive is not the same as being available\./);
   assert.equal(contract.SHOT04_TERM_ORDER.at(-1),'ALIVE_NOT_AVAILABLE');
+});
+
+test('Tier++ render preflight refuses stale or fabricated SHOT04 voice',()=>{
+  const sourceSha='a'.repeat(40);
+  const job={compositionId:'EP002-SHOT04-CANDIDATE',
+    renderId:'audit-shot04-1',width:1920,height:1080,fps:30,
+    durationInFrames:props.durationInFrames,
+    inputProps:{...props,expectedSourceCommit:sourceSha,
+      shotKey:'EP002_SHOT04',scriptRevision:1,
+      inputFingerprint:'b'.repeat(64)}};
+  const valid=preflightTierPlusPlusRender(job,sourceSha);
+  assert.equal(valid.status,'TECHNICAL_PRECHECK_PASS');
+  assert.ok(valid.checks.includes('NINE_REAL_TECHNICAL_TERMS'));
+  assert.throws(()=>preflightTierPlusPlusRender({...job,
+    inputProps:{...job.inputProps,voiceTakeId:''}},sourceSha),
+    /SHOT04_SELECTED_REAL_VOICE_CUE_CONTRACT/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,
+    inputProps:{...job.inputProps,verifiedCues:[]}},sourceSha),
+    /SHOT04_SELECTED_REAL_VOICE_CUE_CONTRACT/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,
+    inputProps:{...job.inputProps,termCues:[...terms].reverse()}},sourceSha),
+    /SHOT04_REAL_SPOKEN_TERMS_INVALID/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,width:1280},sourceSha),
+    /REQUIRES_1920X1080_30FPS/);
+  assert.throws(()=>preflightTierPlusPlusRender(job,'c'.repeat(40)),
+    /WORKER_SHA_NOT_PINNED/);
 });
