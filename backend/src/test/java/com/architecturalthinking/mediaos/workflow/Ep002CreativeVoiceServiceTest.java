@@ -33,12 +33,12 @@ class Ep002CreativeVoiceServiceTest {
     }
 
     @Test
-    void slowVoiceMustHaveExplicitPaidConfirmationAndNeverAffectOtherShots() {
+    void slowVoiceMustHaveExplicitPaidConfirmationAndRejectUnknownShotKeys() {
         var slow=service();
         assertThrows(ResponseStatusException.class,()->
                 slow.generateSlow("SHOT02",1,java.util.UUID.randomUUID(),false));
         assertThrows(ResponseStatusException.class,()->
-                slow.generateSlow("SHOT04",1,java.util.UUID.randomUUID(),true));
+                slow.generateSlow("SHOT12",1,java.util.UUID.randomUUID(),true));
     }
 
     @Test
