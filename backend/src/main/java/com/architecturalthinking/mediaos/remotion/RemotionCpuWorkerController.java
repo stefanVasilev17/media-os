@@ -68,7 +68,8 @@ public class RemotionCpuWorkerController {
         requireWorker(key, workerId);
         String scope=targetComposition==null?"":targetComposition.trim();
         if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)
-                && !"EP002-SHOT03-CANDIDATE".equals(scope)) {
+                && !"EP002-SHOT03-CANDIDATE".equals(scope)
+                && !"EP002-DIRECTOR-SHOT02-SHOT03".equals(scope)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unsupported target composition for scoped CPU claim.");
         }
@@ -109,9 +110,13 @@ public class RemotionCpuWorkerController {
                        profile, width, height, fps, duration_in_frames
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
-                  and (:targetComposition='' or composition_id=:targetComposition)
+                  and (:targetComposition='' or composition_id=:targetComposition
+                    or (:targetComposition='EP002-DIRECTOR-SHOT02-SHOT03'
+                       and composition_id in ('EP002-SHOT02-CANDIDATE',
+                                              'EP002-SHOT03-CANDIDATE')))
                   and (composition_id<>'EP002-SHOT03-CANDIDATE'
-                    or :targetComposition='EP002-SHOT03-CANDIDATE')
+                    or :targetComposition in ('EP002-SHOT03-CANDIDATE',
+                                               'EP002-DIRECTOR-SHOT02-SHOT03'))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
