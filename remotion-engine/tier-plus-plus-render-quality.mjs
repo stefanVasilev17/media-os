@@ -163,7 +163,7 @@ export function preflightTierPlusPlusRender(job,sourceSha){
     for(let i=0;i<beats.length;i++){
       const b=beats[i];
       if(b?.beatNumber!==i+1||!integer(b.startFrame)
-        ||!integer(b.endFrame)||b.startFrame!==previous
+        ||!integer(b.endFrame)||(i>0&&b.startFrame!==previous)
         ||b.endFrame<=b.startFrame||b.endFrame>frames
         ||!String(b.spokenAnchor||'').trim())
         reject('SHOT04_DIRECTOR_BEAT_SEQUENCE_INVALID');
