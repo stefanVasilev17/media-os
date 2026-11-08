@@ -1,14 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {stripTypeScriptTypes} from 'node:module';
+import ts from 'typescript';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const project=path.dirname(fileURLToPath(import.meta.url));
 const ep002=path.join(project,'src/episodes/ep002');
 const read=name=>readFileSync(path.join(ep002,name),'utf8');
-const imports=source=>'data:text/javascript;charset=utf-8,'+
-  encodeURIComponent(stripTypeScriptTypes(source,{mode:'strip'}));
+const imports=source=>{
+  const output=ts.transpileModule(source,{
+    compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022},
+  }).outputText;
+  return 'data:text/javascript;base64,'+Buffer.from(output).toString('base64');
+};
 const layout=read('Shot02PremiumLayout.ts');
 const contractSource=read('Shot03VisualContract.ts')
   .replace(/^import\s+\{SHOT02_NODES,shot02Intersects,type Rect\}\s+from\s+'\.\/Shot02PremiumLayout';\s*/m,'');
