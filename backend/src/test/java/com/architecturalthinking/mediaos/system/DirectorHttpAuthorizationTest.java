@@ -65,7 +65,10 @@ class DirectorHttpAuthorizationTest {
         String shot02SlowVoice() { return "director-paid-voice-only"; }
 
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/generate-slow")
-        String unapprovedPaidShot() { return "must-not-run"; }
+        String shot03SlowVoice() { return "director-paid-voice-shot03"; }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT11/generate-slow")
+        String shot11SlowVoice() { return "director-paid-voice-shot11"; }
 
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
         String unapprovedShotPreview() { return "blocked"; }
@@ -219,18 +222,20 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
-    void paidSlowVoiceRequiresDirectorAndOnlyShot02() throws Exception {
-        String path="/api/v1/creative/episodes/EP002/shots/SHOT02/generate-slow";
-        mvc.perform(post(path).with(jwt().authorities(
-                new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
-                .andExpect(status().isOk());
-        for (String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+    void paidSlowVoiceRouteAllowsEveryEp002ShotForDirectorOnly() throws Exception {
+        for(String shot:new String[]{"SHOT01","SHOT02","SHOT03","SHOT11"}) {
+            String path="/api/v1/creative/episodes/EP002/shots/"+shot+"/generate-slow";
             mvc.perform(post(path).with(jwt().authorities(
-                    new SimpleGrantedAuthority(role))))
-                    .andExpect(status().isForbidden());
+                    new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+                mvc.perform(post(path).with(jwt().authorities(
+                        new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(path)).andExpect(status().isUnauthorized());
         }
-        mvc.perform(post(path)).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT03/generate-slow")
+        mvc.perform(post("/api/v1/creative/episodes/EP003/shots/SHOT03/generate-slow")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
