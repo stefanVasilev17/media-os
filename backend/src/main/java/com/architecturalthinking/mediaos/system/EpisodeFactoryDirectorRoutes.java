@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.system;
 
 final class EpisodeFactoryDirectorRoutes {
     static final String[] POST_PATHS = {
+            "/api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow",
             "/api/v1/creative/episodes/EP002/visual-feedback",
             "/api/v1/creative/episodes/EP002/visual-approvals",
             "/api/v1/creative/episodes/EP002/voice-cue-review/{shotKey}",

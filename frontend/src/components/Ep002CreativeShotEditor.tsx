@@ -115,7 +115,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   async function generate(mode:'standard'|'slow'='standard'){
     const slow=mode==='slow';
     if(!state||busy||loading||isDirty||!state.canGenerate||state.revision<1
-      ||(slow?(!slowConfirming||!['SHOT02','SHOT03'].includes(shot.shotKey)||!state.canGenerateSlow):!confirming))return;
+      ||(slow?(!slowConfirming||!state.canGenerateSlow):!confirming))return;
     setBusy(true);setError('');setNotice('');setConfirming(false);setSlowConfirming(false);
     try{
       const latest=await ep002CreativeVoiceApi.state(shot.shotKey);
@@ -205,7 +205,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
       </button>
       <button type="button" className="library-voice-button" disabled={busy||loading||!state?.canGenerate}
         onClick={()=>{setSlowConfirming(false);setConfirming(true);}}>{generateLabel}</button>
-      {['SHOT02','SHOT03'].includes(shot.shotKey)&&<button type="button"
+      {state?.canGenerateSlow&&<button type="button"
         className="library-voice-button" disabled={busy||loading||!state?.canGenerateSlow}
         onClick={()=>{setConfirming(false);setSlowConfirming(true);}}>
         Generate Slow Natural Take
@@ -222,7 +222,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
           onClick={()=>void generate('standard')}>Yes, {generateLabel} (paid)</button>
       </div>
     </div>}
-    {slowConfirming&&state&&['SHOT02','SHOT03'].includes(shot.shotKey)&&<div
+    {slowConfirming&&state&&<div
       className="library-voice-confirm" role="group" aria-label="Confirm paid slower voice">
       <p><strong>Generate one NEW {shot.shotKey} Slow Natural recording?</strong>
         {' '}This sends one paid ElevenLabs v4 request using the current saved script
@@ -249,7 +249,8 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
         <div className="library-voice-take-info">
           <strong>Take {take.takeNumber} · text v{take.revision}</strong>
           {(take.deliveryMode==='ELEVEN_V4_SLOW_NATURAL_PAUSES_V1'
-              ||take.deliveryMode==='ELEVEN_V4_SHOT03_SLOW_NATURAL_PAUSES_V1')&&
+              ||take.deliveryMode==='ELEVEN_V4_SHOT03_SLOW_NATURAL_PAUSES_V1'
+              ||take.deliveryMode==='ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1')&&
             <span>SLOW NATURAL · original words</span>}
           {take.id===state.preferredTakeId&&<span><CheckCircle2 size={15}/> PREFERRED</span>}
           {take.approvedAt&&take.id!==state.preferredTakeId&&<span>Previously selected</span>}

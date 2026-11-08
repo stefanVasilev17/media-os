@@ -12,6 +12,24 @@ import static org.junit.jupiter.api.Assertions.*;
 class EpisodePackageVoiceStudioServiceTest {
 
     @Test
+    void rejectsUnsupportedVoiceDeliveryModeBeforeAnyProviderOrDatabaseOperation() {
+        var jdbc=org.mockito.Mockito.mock(org.springframework.jdbc.core.simple.JdbcClient.class);
+        var provider=org.mockito.Mockito.mock(ElevenLabsTextToSpeechService.class);
+        var service=new EpisodePackageVoiceStudioService(jdbc,provider,
+                org.mockito.Mockito.mock(Ep002VoiceIdentityGuard.class),
+                org.mockito.Mockito.mock(EpisodePackageAudioDurationProbe.class),
+                new com.fasterxml.jackson.databind.ObjectMapper(),
+                org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),
+                true);
+        var failure=assertThrows(ResponseStatusException.class,()->
+                service.generate(UUID.randomUUID(),"SHOT01",1,
+                        EpisodePackageValidator.sha256("a valid narration"),
+                        UUID.randomUUID(),true,"UNSAFE_FAST"));
+        assertEquals(HttpStatus.BAD_REQUEST,failure.getStatusCode());
+        org.mockito.Mockito.verifyNoInteractions(jdbc,provider);
+    }
+
+    @Test
     void workingNarrationAllowsValidImportedSchemaLengths() {
         assertEquals("Hello world this is a narration!",
                 EpisodePackageVoiceStudioService.validatedNarration(
