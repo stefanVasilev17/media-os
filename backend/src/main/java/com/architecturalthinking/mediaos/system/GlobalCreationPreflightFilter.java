@@ -320,6 +320,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.equals("/api/v1/verification/runs")
                 || path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
+                || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")
                 || path.equals("/api/v1/creative/episodes/EP002/codex-automation/arm")
