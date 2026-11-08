@@ -61,13 +61,45 @@ test('SHOT04 inherits exact SHOT02/03 architecture and same phone',()=>{
   assert.doesNotMatch(scene,/Math.random\(|setTimeout\(|fetch\(|<Audio/);
 });
 
-test('Liveness/readiness remain green while login journey is incomplete',()=>{
-  for(const word of ['LIVENESS PASS','READINESS PASS',
-    'Illustrative shallow probes · Database not checked',
-    'USER LOOKUP WAITING','LOGIN JOURNEY','NOT COMPLETED',
-    'SATURATED · RUNNING','STILL COMPLETING'])
+test('SHOT04 Director revision inherits red SHOT03 saturation and avoids clutter',()=>{
+  for(const word of ['SATURATED · RUNNING','STILL COMPLETING',
+    'SERVICE AVAILABILITY · NOT PROVEN','LIVENESS','READINESS',
+    'Does this application need restarting?',
+    'Should this instance receive new requests?'])
     assert.ok(scene.includes(word),'missing '+word);
+  assert.match(scene,/shot03CongestionColor\(1\)/);
+  assert.match(scene,/<HealthSemantics liveness=\{live\} readiness=\{ready\}/);
+  assert.doesNotMatch(scene,/LIVENESS PASS|READINESS PASS/);
+  assert.doesNotMatch(scene,/Illustrative shallow probes|Database not checked/);
+  assert.doesNotMatch(scene,/USER LOOKUP WAITING|LOGIN JOURNEY|NOT COMPLETED/);
+  assert.doesNotMatch(scene,/const Journey:|<Journey|const Probe:|<Probe/);
   assert.doesNotMatch(scene,/DATABASE OFFLINE|CRASHED|Try Again|Please try again/);
+});
+
+test('three actual replica Bezier paths distribute moving packets on each lane',()=>{
+  assert.match(scene,/SHOT02_AUTH_REPLICA_PORTS\.map\(\(replica,i\)=>\{/);
+  assert.match(scene,/shot02CubicPoint\(t,entry,branchControl1,branchControl2,authStart\)/);
+  assert.match(scene,/shot04ReplicaPhase\(frame,i,packet\)/);
+  const phaseA=contract.shot04ReplicaPhase(90,0,0);
+  const phaseB=contract.shot04ReplicaPhase(90,1,0);
+  const phaseC=contract.shot04ReplicaPhase(90,2,0);
+  assert.notEqual(phaseA,phaseB);
+  assert.notEqual(phaseB,phaseC);
+  for(const val of [phaseA,phaseB,phaseC])assert.ok(val>=0&&val<1);
+  assert.throws(()=>contract.shot04ReplicaPhase(90,3,0),
+    /SHOT04_REPLICA_PACKET_ARGUMENT_INVALID/);
+});
+
+test('existing SHOT03 queue keeps accumulating red requests without DB outage',()=>{
+  assert.match(scene,/SHOT03_PRE_DB_WAIT_ZONE/);
+  assert.match(scene,/shot04QueueDepth\(frame\)/);
+  assert.match(scene,/shot03ApproachPosition\(tx,\.88\)/);
+  assert.equal(contract.shot04QueueDepth(0),7);
+  assert.ok(contract.shot04QueueDepth(400)>contract.shot04QueueDepth(0));
+  assert.ok(contract.shot04QueueDepth(1700)>contract.shot04QueueDepth(400));
+  assert.equal(contract.shot04QueueDepth(9000),14);
+  assert.equal(contract.SHOT04_TEXT_AREAS.semantics.top,719);
+  assert.ok(!('journey' in contract.SHOT04_TEXT_AREAS));
 });
 
 test('every teaching reveal depends on actual selected voice cues',()=>{
