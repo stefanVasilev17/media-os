@@ -38,7 +38,7 @@ class Ep002CreativeVoiceServiceTest {
         assertThrows(ResponseStatusException.class,()->
                 slow.generateSlow("SHOT02",1,java.util.UUID.randomUUID(),false));
         assertThrows(ResponseStatusException.class,()->
-                slow.generateSlow("SHOT03",1,java.util.UUID.randomUUID(),true));
+                slow.generateSlow("SHOT04",1,java.util.UUID.randomUUID(),true));
     }
 
     @Test

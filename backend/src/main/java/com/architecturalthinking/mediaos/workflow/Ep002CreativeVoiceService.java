@@ -130,13 +130,24 @@ public class Ep002CreativeVoiceService {
         result.put("preferredTakeId",preferredTakeId);
         result.put("canGenerate",blocker==null);
         String configuredModel=elevenLabs.modelId();
-        boolean lockedShot="SHOT02".equals(shot) && current!=null
-                && configuredModel!=null && configuredModel.startsWith("eleven_v4")
-                && Ep002Shot02SlowNaturalVoice.matchesLockedNarration(current.narration());
-        result.put("canGenerateSlow",lockedShot&&blocker==null);
-        result.put("slowVoicePauseCount",lockedShot?Ep002Shot02SlowNaturalVoice.pauseCount():0);
-        result.put("slowVoiceLongPauseCount",lockedShot?Ep002Shot02SlowNaturalVoice.longPauseCount():0);
-        result.put("slowVoiceDeliveryMode",Ep002Shot02SlowNaturalVoice.DELIVERY_MODE);
+        boolean supportedModel=configuredModel!=null&&configuredModel.startsWith("eleven_v4");
+        boolean shot02Supported="SHOT02".equals(shot)&&current!=null
+                &&supportedModel
+                &&Ep002Shot02SlowNaturalVoice.matchesLockedNarration(current.narration());
+        boolean shot03Supported="SHOT03".equals(shot)&&current!=null
+                &&supportedModel
+                &&Ep002Shot03SlowNaturalVoice.matchesNarration(current.narration());
+        boolean slowAvailable=(shot02Supported||shot03Supported);
+        result.put("canGenerateSlow",slowAvailable&&blocker==null);
+        result.put("slowVoicePauseCount",shot02Supported
+                ?Ep002Shot02SlowNaturalVoice.pauseCount()
+                :shot03Supported?Ep002Shot03SlowNaturalVoice.pauseCount():0);
+        result.put("slowVoiceLongPauseCount",shot02Supported
+                ?Ep002Shot02SlowNaturalVoice.longPauseCount()
+                :shot03Supported?Ep002Shot03SlowNaturalVoice.longPauseCount():0);
+        result.put("slowVoiceDeliveryMode",shot03Supported
+                ?Ep002Shot03SlowNaturalVoice.DELIVERY_MODE
+                :Ep002Shot02SlowNaturalVoice.DELIVERY_MODE);
         result.put("blockedReason",blocker);
         result.put("generationStatus",paidStatus);
         result.put("voiceModel",elevenLabs.modelId());
@@ -190,12 +201,20 @@ public class Ep002CreativeVoiceService {
         return generateInternal(shot,expectedRevision,requestId,true);
     }
 
+    private static String slowNaturalPrompt(String shot,String narration,String modelId) {
+        return switch(shot) {
+            case "SHOT02" -> Ep002Shot02SlowNaturalVoice.prompt(shot,narration,modelId);
+            case "SHOT03" -> Ep002Shot03SlowNaturalVoice.prompt(shot,narration,modelId);
+            default -> throw new IllegalArgumentException("UNSUPPORTED_SLOW_NATURAL_SHOT");
+        };
+    }
+
     private Map<String,Object> generateInternal(String shot,int expectedRevision,
                                                  UUID requestId,boolean slowNatural) {
         checkShot(shot);
-        if (slowNatural && !"SHOT02".equals(shot)) {
+        if (slowNatural && !("SHOT02".equals(shot)||"SHOT03".equals(shot))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Slow Natural delivery is limited to EP002 SHOT02.");
+                    "Slow Natural delivery is limited to EP002 SHOT02 and SHOT03.");
         }
         requireWrites();
         if (requestId==null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"requestId is required.");
@@ -207,8 +226,7 @@ public class Ep002CreativeVoiceService {
             Script latest=latest(shot);
             if (latest==null || latest.revision()!=expectedRevision)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,"Script changed. Review the saved version before paying.");
-            if (slowNatural) Ep002Shot02SlowNaturalVoice.prompt(
-                    shot,latest.narration(),elevenLabs.modelId());
+            if (slowNatural) slowNaturalPrompt(shot,latest.narration(),elevenLabs.modelId());
             var actor=DirectorIdentity.requireDirector();
             try {
                 jdbc.sql("""
@@ -227,7 +245,7 @@ public class Ep002CreativeVoiceService {
         });
         try {
             String ttsText=slowNatural
-                    ?Ep002Shot02SlowNaturalVoice.prompt(shot,saved.narration(),elevenLabs.modelId())
+                    ?slowNaturalPrompt(shot,saved.narration(),elevenLabs.modelId())
                     :saved.narration();
             ElevenLabsTextToSpeechService.GenerationResult take=elevenLabs.generate(
                     shot,ttsText,"","",Map.of(),
@@ -236,7 +254,8 @@ public class Ep002CreativeVoiceService {
             try {
                 Map<String,Object> provenance=new LinkedHashMap<>(take.alignmentResponse());
                 provenance.put("mediaos_delivery_mode",slowNatural
-                        ?Ep002Shot02SlowNaturalVoice.DELIVERY_MODE:STANDARD_DELIVERY);
+                        ?("SHOT03".equals(shot)?Ep002Shot03SlowNaturalVoice.DELIVERY_MODE
+                        :Ep002Shot02SlowNaturalVoice.DELIVERY_MODE):STANDARD_DELIVERY);
                 provenance.put("mediaos_spoken_script_sha256",
                         EpisodeLockedScriptVoiceService.narrationHash(saved.narration()));
                 provenance.put("mediaos_tts_request_text_sha256",
