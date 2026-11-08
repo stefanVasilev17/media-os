@@ -61,8 +61,7 @@ public final class Ep002Shot04TermResolver {
                 output.add(new TermCue(spec.id(),spec.phrase(),first,last));
                 cursor=found+normalized.length();
             }
-            if(output.get(0).startFrame()<beats.getFirst().startFrame()
-                    ||output.getLast().endFrame()>beats.getLast().endFrame())
+            if(output.getLast().endFrame()>beats.getLast().endFrame())
                 throw new IllegalArgumentException("SHOT04_TERMS_OUTSIDE_VERIFIED_VOICE_BEATS");
             return List.copyOf(output);
         }catch(IllegalArgumentException invalid){
