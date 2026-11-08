@@ -9,10 +9,10 @@ const ep002=path.join(project,'src/episodes/ep002');
 const read=name=>readFileSync(path.join(ep002,name),'utf8');
 const imports=source=>'data:text/javascript;charset=utf-8,'+
   encodeURIComponent(stripTypeScriptTypes(source,{mode:'strip'}));
-const layout=imports(read('Shot02PremiumLayout.ts'));
-const raw=read('Shot03VisualContract.ts')
-  .replace("from './Shot02PremiumLayout';","from '"+layout+"';");
-const contract=await import(imports(raw));
+const layout=read('Shot02PremiumLayout.ts');
+const contractSource=read('Shot03VisualContract.ts')
+  .replace(/^import\s+\{SHOT02_NODES,shot02Intersects,type Rect\}\s+from\s+'\.\/Shot02PremiumLayout';\s*/m,'');
+const contract=await import(imports(layout+'\n'+contractSource));
 const scene=read('Shot03DirectorVisualV1.tsx');
 const root=readFileSync(path.join(project,'src/Root.tsx'),'utf8');
 
