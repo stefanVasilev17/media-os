@@ -538,7 +538,9 @@ async function readEp002SelectedVoice(job, inputProps) {
   if (['EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE'].includes(job.compositionId)
       && (!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
         || inputProps.expectedSourceCommit !== FACTORY_SOURCE_SHA)) {
-    throw new Error('EP002_PINNED_WORKER_SOURCE_COMMIT_MISMATCH');
+    throw new Error(job.compositionId === 'EP002-SHOT02-CANDIDATE'
+      ?'SHOT02_WORKER_SOURCE_COMMIT_MISMATCH'
+      :'SHOT03_WORKER_SOURCE_COMMIT_MISMATCH');
   }
   const takeId = String(inputProps.voiceTakeId || '');
   const revision = Number(inputProps.scriptRevision);
