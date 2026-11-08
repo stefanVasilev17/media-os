@@ -61,6 +61,9 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview")
         String shot02Preview() { return "director-preview-only"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT04/render-preview")
+        String shot04Preview() { return "director-preview-shot04-only"; }
+
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT01/generate-slow")
         String shot01SlowVoice() { return "director-paid-voice-shot01"; }
 
@@ -205,7 +208,7 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
-    void ep002Shot02AndShot03RenderPreviewsRequireDirectorAndDenyOtherShots() throws Exception {
+    void ep002Shot02ThroughShot04RenderPreviewsRequireDirectorAndDenyOtherShots() throws Exception {
         String path="/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview";
         mvc.perform(post(path).with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
@@ -226,7 +229,17 @@ class DirectorHttpAuthorizationTest {
                     .andExpect(status().isForbidden());
         }
         mvc.perform(post(shot03)).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT04/render-preview")
+        String shot04="/api/v1/creative/episodes/EP002/shots/SHOT04/render-preview";
+        mvc.perform(post(shot04).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for(String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(shot04).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(shot04)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT05/render-preview")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
