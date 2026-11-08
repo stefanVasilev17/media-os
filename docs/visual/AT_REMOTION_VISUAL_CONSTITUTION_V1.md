@@ -13,7 +13,7 @@ The baseline now explicitly includes: full-frame crisp navy architecture with st
 
 **SHOT02-only reference numbers** (do not generalize): 9px green `#73FFD0` request particles, `09 : 00` hero, three Auth instances, 40-frame button press cycle, 160px counter lift, closing title `bottom:170` and start `spokenFrames-60`, 60-frame post-voice visual hold, 5 verified beats/7 term cues, Database stress after verified `USER_DATABASE` term end. The universal principles are semantic consistency, visibility, synchronization, and cause-before-effect; other episodes need their own exact values.
 
-**Acceptance split:** source QA, ffprobe and machine receipts show technical constraints were met; they **cannot** certify aesthetics or Director video approval. V7 GitHub/Railway build SUCCESS does not prove V7 MP4 frame quality. Every new shot needs its own acceptance suite and actual screened video. An unreviewed MP4 is `VISUAL_DIRECTOR_REVIEW_REQUIRED`, never automatically `LOCKED`.
+**Acceptance split:** source QA, ffprobe and machine receipts show technical constraints were met; they **cannot** certify aesthetics or Director video approval. V7 produced an actual MP4 (render `59567d1a-6a45-4e48-b390-8ae583f30171`) and Director praised the visual standard; those facts do not replace explicit LOCK for any subsequent SHOT. Every new shot needs its own acceptance suite and actual screened video. An unreviewed MP4 is `VISUAL_DIRECTOR_REVIEW_REQUIRED`, never automatically `LOCKED`.
 
 ## Director LOCK — comprehension-first visual pacing (2026-11-07)
 
