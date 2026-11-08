@@ -102,13 +102,13 @@ export function shot03CompletionRate(frame:number,fiveHundred:number):number{
 
 export function shot03DatabasePressure(frame:number,bottleneck:number,saturation:number):number{
   if(saturation<=bottleneck)throw Error('SHOT03_PRESSURE_CUE_ORDER_INVALID');
-  return clamp(.25+.31*shot03Ease(frame,bottleneck,65)
-    +.29*shot03Ease(frame,saturation,60));
+  return clamp(.55+.18*shot03Ease(frame,bottleneck,65)
+    +.12*shot03Ease(frame,saturation,60));
 }
 
 export function shot03WaitingDepth(frame:number,unfinished:number,nineHundred:number):number{
-  return Math.round(2+4*shot03Ease(frame,unfinished,55)
-    +5*shot03Ease(frame,nineHundred,65));
+  return Math.round(2+(4+5*shot03Ease(frame,nineHundred,65))
+    *shot03Ease(frame,unfinished,65));
 }
 
 export function shot03LatencyBar(frame:number,latency:number):number {
