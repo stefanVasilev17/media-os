@@ -83,6 +83,28 @@ test('reject wrong worker SHA, unapproved TTS timing, wrong geometry and frame c
   }
 });
 
+test('other explicitly approved SHOT02 Take lengths are allowed, but never counterfeit timing',()=>{
+  const legacy=shot();
+  legacy.durationInFrames=1462;
+  legacy.inputProps.durationInFrames=1462;
+  legacy.inputProps.postVoiceHoldFrames=0;
+  legacy.inputProps.sourceDurationInFrames=1462;
+  assert.equal(preflightTierPlusPlusRender(legacy,sha).status,'TECHNICAL_PRECHECK_PASS');
+  assert.ok(!preflightTierPlusPlusRender(legacy,sha).checks.includes(
+    'EXACTLY_60_POST_VOICE_FRAMES'));
+  const editorial=shot();
+  editorial.durationInFrames=1522;
+  editorial.inputProps.durationInFrames=1522;
+  editorial.inputProps.postVoiceHoldFrames=0;
+  editorial.inputProps.sourceDurationInFrames=1462;
+  editorial.inputProps.timingMode='ELEVENLABS_REAL_TIMESTAMPS_PLUS_EDITORIAL_SILENCE_V1';
+  editorial.inputProps.verifiedCues[4].endFrame=1522;
+  assert.equal(preflightTierPlusPlusRender(editorial,sha).status,'TECHNICAL_PRECHECK_PASS');
+  editorial.inputProps.timingMode='ELEVENLABS_CHARACTER_TIMESTAMPS';
+  assert.throws(()=>preflightTierPlusPlusRender(editorial,sha),
+    /SHOT02_SELECTED_VOICE_FRAME_CONTRACT/);
+});
+
 test('future Factory SHOTs must carry pinned source identity and full-HD/30fps metadata',()=>{
   const factory=shot();
   factory.compositionId='AT-FACTORY-SHOT';
