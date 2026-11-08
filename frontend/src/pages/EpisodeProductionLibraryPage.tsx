@@ -9,6 +9,7 @@ import {Ep002CreativeShotEditor} from '../components/Ep002CreativeShotEditor';
 import {Ep002ProductionContractPanel} from '../components/Ep002ProductionContractPanel';
 import {Ep002RemotionSceneContractPanel} from '../components/Ep002RemotionSceneContractPanel';
 import {Ep002ProductionFactoryConsole} from '../components/Ep002ProductionFactoryConsole';
+import {Ep002LockedCutReviewRoom} from '../components/Ep002LockedCutReviewRoom';
 import '../styles/episodeProductionLibrary.css';
 
 type EpisodeKey = 'EP001' | 'EP002';
@@ -136,6 +137,7 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
       <div><strong>{ep002.wordCount}</strong><span>Approved English words</span></div>
       <div><strong>59</strong><span>Visual beats in approved NEW Visual Pass</span></div>
     </div>
+    <Ep002LockedCutReviewRoom/>
     <Ep002ProductionFactoryConsole/>
     
     
