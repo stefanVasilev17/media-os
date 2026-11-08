@@ -61,6 +61,21 @@ AT-VIS-0000 is a **template, not a recorded correction**:
 - **Promotion:** visual constitution updated as rejection/prevention rule, without claiming new V3 visual acceptance.
 - **Supersedes:** the former interpretation that a 0.7-second post-word visual hold is sufficient.
 
+## Director instruction AT-VIS-0002 — Tier++ V5→V7 language becomes series-wide benchmark (2026-11-08)
+
+- **ID:** AT-VIS-0002.
+- **Date / Director decision:** 2026-11-08; **APPROVED GLOBAL STYLE DIRECTION** and instruction to preserve it in source files and monitor every future render. **V7 MP4 did complete**, and Director expressly praised its visual quality; no separate formal SHOT02 LOCK recorded.
+- **Scope:** GLOBAL / SERIES; exact reference EP002 SHOT02 V5, V6, V7; all future SHOTs/components.
+- **Context:** Director earlier saw the actual V5 SHOT02 MP4 and requested corrections for hero timer, button, live throughput, counter, end title, particle size, database state. V7 approved source/reference is [Draft PR #197](https://github.com/stefanVasilev17/media-os/pull/197), tested exact Worker source `be142b2573b190e3f70fab5586da6825a7a479d2`; V5 actual MP4 render ID `272a2217-aa43-469f-ad8d-fbc84f2fbf03` and V7 render ID `59567d1a-6a45-4e48-b390-8ae583f30171`.
+- **Problems observed:** blurry/time-ambiguous `09:00`; overlapped or clipped lower conclusion; different size/glow packets per hop; late-arriving DB lookup traffic; warning-orange DB before the spoken stress explanation; overly subtle or short button press; node/card nesting and cropped camera subjects in earlier versions.
+- **Director-approved cross-series correction:** Tier++ cinematic, readable, connected, causal living-map design. One readable architecture object per semantic entity; high-contrast clear card/edges; accurate replica routing; identical packet appearance at all hops; visible requests from first user action including normal healthy Database access; warning color only at narrated pressure/failure; meaningful continuous user interaction; legible hero title; safe spatial counter/title repositioning; camera and voice timing exact. **See `AT_TIER_PLUS_PLUS_VISUAL_RENDER_STANDARD_V1.md`.**
+- **Preventive rule:** before every SHOT render require a **shot-specific Tier++ preflight** confirming semantic flow, common particle token, actual voice cue/states, no clipping/collision and Director-readable title; machine-check source and actual media separately, human-review frames before LOCKED.
+- **Affected assets:** `Shot02DirectorVisualV5.tsx`, `Shot02PressureVisuals.ts`, `Shot02PressurePhone.tsx`, `Shot02PremiumLayout.ts`, `shot02-v7-final-caption-and-flow.test.mjs`, `AGENTS.md`, `AT_REMOTION_VISUAL_CONSTITUTION_V1.md`, future SceneSpec generators and visual registry.
+- **Evidence:** Director's 2026-11-08 instruction “За такова ниво се борим!... High Level Tier++ video rendering... всяка една част...”, Draft PRs #195/#196/#197, V5 completed render ID above, V7 verified Railway Worker release `060b73e6-f88c-4ae4-a1a1-46d6bdbe1f38` and Backend `1d6404b1-e201-4dd7-b724-1d50e004f798`.
+- **Verification:** V7 Node tests/build and pinned Worker startup verified. V7 completed MP4 **VERIFIED** in Worker logs (2026-11-07T23:39:28Z, 1522 frames, +60 end hold); subsequent Director message calls the visual result excellent and locks the desired *series-wide style level*. No explicit final SHOT02 `LOCKED` command was recorded. Tier++ render monitor has since passed 83/83 Node tests, zero new TypeScript errors, Remotion+Factory bundles and live Railway Worker deploy `5b0f81a7-720e-400e-8ee7-a16629c6c700` (exact SHA `d6b191...`). Backend deployment `175e66c7-ea8e-4137-940b-c86cb603af29` is SUCCESS with matching pinned Worker SHA. A fresh post-release actual MP4 QA receipt awaits the next Director-approved render; do not invent one.
+- **Promotion:** Global constitution amendment, canonical Tier++ standard and a reusable rendering QA policy/receipt. Episode-local exact coordinates/timings remain scoped to SHOT02; no indiscriminate propagation to unrelated shots.
+- **Supersedes:** any interpretation that a technically passing or visually decorative / nested / inconsistent shot is sufficient for release.
+
 ## Mandatory per-SHOT read and filter
 
 Before working on each SHOT, Codex must read this **entire short ledger** and:

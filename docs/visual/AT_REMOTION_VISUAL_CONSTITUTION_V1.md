@@ -5,6 +5,16 @@
 **Scope:** All future Architectural Thinking Remotion SHOT code, scene proposals, shared asset reuse, review, revisions and Shorts adaptation.
 **Principle:** ONE WORLD. ONE LIVING MAP. MANY ENGINEERING STORIES. Repeat the world, not the lesson.
 
+## Global Director Tier++ quality standard — LOCKED 2026-11-08
+
+**New minimum acceptance standard:** the Director has chosen EP002 SHOT02's V5→V7 cinematic living-map direction for **every future video segment and system component**. The authoritative, testable rules and current scope are in **`AT_TIER_PLUS_PLUS_VISUAL_RENDER_STANDARD_V1.md`**. All new SHOT code and agent SceneSpecs must read that document before production. Treat it as the quality benchmark, while keeping the original visual constitution, shot-specific locked voice, and source-authority rules intact.
+
+The baseline now explicitly includes: full-frame crisp navy architecture with strong contrast; single purposeful cards rather than confusing nested objects; every node/branch visibly connected with no fake telemetry; consistent same-size/same-color/same-glow moving request particles across **every** hop; first actual user action immediately launches end-to-end flow including healthy Database access; cool/normal-to-orange pressure only after a **genuine spoken problem**, not merely when a node appears; repeated tactile button interaction plus context-driven color escalation; legible hero text; safe phone/database placement; modern collision-free animated metric/caption repositioning; reading room for named objects; deterministic HEAR→SEE real-voice timing; signed approved source and full media QA; and mandatory final human visual preview.
+
+**SHOT02-only reference numbers** (do not generalize): 9px green `#73FFD0` request particles, `09 : 00` hero, three Auth instances, 40-frame button press cycle, 160px counter lift, closing title `bottom:170` and start `spokenFrames-60`, 60-frame post-voice visual hold, 5 verified beats/7 term cues, Database stress after verified `USER_DATABASE` term end. The universal principles are semantic consistency, visibility, synchronization, and cause-before-effect; other episodes need their own exact values.
+
+**Acceptance split:** source QA, ffprobe and machine receipts show technical constraints were met; they **cannot** certify aesthetics or Director video approval. V7 produced an actual MP4 (render `59567d1a-6a45-4e48-b390-8ae583f30171`) and Director praised the visual standard; those facts do not replace explicit LOCK for any subsequent SHOT. Every new shot needs its own acceptance suite and actual screened video. An unreviewed MP4 is `VISUAL_DIRECTOR_REVIEW_REQUIRED`, never automatically `LOCKED`.
+
 ## Director LOCK — comprehension-first visual pacing (2026-11-07)
 
 **Accepted by the Director for EP002 SHOT02 V2 and every future Architectural Thinking SHOT.** These are permanent five-part art direction rules. They supersede older suggestions to use tiny secondary explanation labels or top-right decorative term HUDs. Do not modify the Script v4.0 archive, approved Visual Pass or previously accepted SHOTs by back-propagation.
