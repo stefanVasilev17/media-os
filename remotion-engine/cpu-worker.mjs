@@ -9,6 +9,7 @@ import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
+import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -634,6 +635,10 @@ async function muxFactorySelectedVoice(job,videoPath,inputProps) {
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
+  const tierPlusPlusPreflight=preflightTierPlusPlusRender(job,FACTORY_SOURCE_SHA);
+  if(tierPlusPlusPreflight)
+    console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_RENDER_START',
+      tierPlusPlusPreflight));
 
   console.log(
     `Rendering ${job.compositionId} renderId=${job.renderId} ${job.width}x${job.height}@${job.fps} frames=${job.durationInFrames}`,
@@ -751,10 +756,19 @@ async function render(job) {
     if (job.compositionId === 'AT-FACTORY-SHOT') {
       await muxFactorySelectedVoice(job,outputPath,inputProps);
     }
+    if(tierPlusPlusPreflight){
+      // ffprobe independently checks H.264/AAC, 30 fps and a real output file.
+      const probed=await probeFactoryMedia(outputPath);
+      const mediaReceipt=verifyTierPlusPlusMedia(job,probed);
+      console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_MP4_QA',mediaReceipt));
+    }
     heartbeatProgress = 97;
     await progress(job.renderId, 97);
     const sizeBytes = await complete(job.renderId, outputPath);
     console.log(`Completed ${job.renderId}: ${sizeBytes} bytes`);
+    if(tierPlusPlusPreflight)
+      console.log(tierPlusPlusReceipt('AT_TIER_PLUS_PLUS_DIRECTOR_REVIEW_PENDING',
+        {renderId:job.renderId,status:'VISUAL_DIRECTOR_REVIEW_REQUIRED'}));
   } finally {
     clearInterval(heartbeat);
     console.log(`REMOTION_RENDER_ELAPSED_SECONDS renderId=${job.renderId} elapsed=${((Date.now() - renderStartedAt) / 1000).toFixed(2)} concurrency=${RENDER_CONCURRENCY}`);
