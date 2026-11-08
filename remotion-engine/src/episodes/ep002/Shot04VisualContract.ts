@@ -56,7 +56,6 @@ export function validateShot04Source(props:Shot04SceneProps):{
       ||!Number.isInteger(b.startFrame)||!Number.isInteger(b.endFrame)
       ||b.startFrame<0||b.endFrame>props.durationInFrames
       ||b.endFrame<=b.startFrame
-      ||(i===0&&b.startFrame!==0)
       ||(i>0&&(b.startFrame!==beats[i-1].endFrame
         ||b.startFrame<=beats[i-1].startFrame)))
       throw Error('SHOT04_VERIFIED_BEAT_ORDER_INVALID');
