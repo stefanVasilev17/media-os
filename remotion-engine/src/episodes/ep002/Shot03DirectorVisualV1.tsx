@@ -13,8 +13,11 @@ import {
 } from './Shot02PressureVisuals';
 import {
   SHOT03_TEXT_AREAS,SHOT03_OUTPUT_PORT,SHOT03_OUTPUT_END,
+  SHOT03_PRE_DB_WAIT_ZONE,SHOT03_PRE_DB_LABEL,
   shot03Ease,shot03ArrivalRate,shot03CompletionRate,
   shot03DatabasePressure,shot03WaitingDepth,shot03LatencyBar,shot03FlowClock,
+  shot03RequestDensity,shot03CongestionLevel,shot03CongestionColor,
+  shot03ApproachPosition,shot03BlendHex,
   validateShot03Source,assertShot03SafeLayout,type Shot03SceneProps,
 } from './Shot03VisualContract';
 
@@ -95,9 +98,17 @@ const AuthCluster:React.FC<{frame:number;waiting:number}>=({frame,waiting})=>{
   </div>;
 };
 
-const DatabaseCard:React.FC<{frame:number;pressure:number;workRate:number;saturated:boolean}>=
-({frame,pressure,workRate,saturated})=>{
-  const n=SHOT02_NODES.database,pal=shot02DatabaseColors(pressure);
+const DatabaseCard:React.FC<{
+  frame:number;pressure:number;workRate:number;saturated:boolean;queueLevel:number;
+}>=({frame,pressure,workRate,saturated,queueLevel})=>{
+  const n=SHOT02_NODES.database,base=shot02DatabaseColors(pressure);
+  const warm=shot03CongestionColor(queueLevel);
+  const blend=Math.min(1,queueLevel*1.65);
+  const pal={
+    border:shot03BlendHex(base.border,warm,blend),
+    glow:shot03BlendHex(base.glow,warm,blend),
+    core:shot03BlendHex(base.core,'#47202A',queueLevel*.85),
+  };
   const heartbeat=.8+.2*Math.sin(frame*.075)**2;
   return <div style={{...fixed(n),...panel(pal.border,pal.glow+'75'),
     zIndex:9,fontFamily:AT_FONT,borderWidth:3,
@@ -129,20 +140,28 @@ const DatabaseCard:React.FC<{frame:number;pressure:number;workRate:number;satura
   </div>;
 };
 
-const RequestParticle:React.FC<{x:number;y:number;opacity:number}>=
-({x,y,opacity})=><circle cx={x} cy={y}
+const RequestParticle:React.FC<{x:number;y:number;opacity:number;color?:string}>=
+({x,y,opacity,color})=><circle cx={x} cy={y}
   r={SHOT02_LOGIN_PARTICLE.radius}
-  fill={SHOT02_LOGIN_PARTICLE.fill}
+  fill={color??SHOT02_LOGIN_PARTICLE.fill}
   opacity={clamp(opacity)}
-  style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>;
+  style={{filter:color
+    ?'drop-shadow(0 0 8px '+color+')'
+    :SHOT02_LOGIN_PARTICLE.glow}}/>;
 
 const FlowPaths:React.FC<{
   frame:number;flowClock:number;pressure:number;throughput:boolean;arrival:number;
-}>=({frame,flowClock,pressure,throughput,arrival})=>{
+  sixFifty:number;nineHundred:number;bottleneck:number;unfinished:number;
+  queueLevel:number;
+}>=({frame,flowClock,pressure,throughput,arrival,
+     sixFifty,nineHundred,bottleneck,unfinished,queueLevel})=>{
   const phase=(slot:number,count:number)=>((flowClock+slot/count)%1+1)%1;
   const fade=(t:number)=>clamp(Math.min(t,1-t)*9);
   const db=SHOT02_DATABASE_ENTRY;
   const pal=shot02DatabaseColors(pressure);
+  const congestionColor=shot03CongestionColor(queueLevel);
+  const activeQueue=shot03Ease(frame,unfinished,30);
+  const tokenCount=shot03RequestDensity(frame,sixFifty,nineHundred,bottleneck);
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none',overflow:'visible'}}>
     <defs>
@@ -177,24 +196,58 @@ const FlowPaths:React.FC<{
       const m3={x:1505,y:replica.y},m4={x:1540,y:db.y};
       const branch='M'+a.x+' '+a.y+' C'+m1.x+' '+m1.y+' '+m2.x+' '+m2.y+' '+b.x+' '+b.y;
       const lookup='M'+c.x+' '+c.y+' C'+m3.x+' '+m3.y+' '+m4.x+' '+m4.y+' '+target.x+' '+target.y;
-      const tokenCount=arrival>=900?4:arrival>=650?3:2;
       return <g key={replica.id}>
         <path d={branch} fill="none" stroke="#326F93" strokeWidth="9" opacity=".52"/>
         <path d={branch} fill="none" stroke="#83F0FF" strokeWidth="3.8"
           markerEnd="url(#s03-request-arrow)" opacity=".88"/>
         <path d={lookup} fill="none" stroke="#2F7197" strokeWidth="8" opacity=".47"/>
-        <path d={lookup} fill="none" stroke={pal.border} strokeWidth="3.8"
+        <path d={lookup} fill="none"
+          stroke={shot03BlendHex(pal.border,congestionColor,queueLevel)}
+          strokeWidth="3.8"
           markerEnd="url(#s03-lookup-arrow)" opacity=".87"/>
         {Array.from({length:tokenCount},(_,k)=>{
-          const t=phase(i*4+k,12),p=shot02CubicPoint(t,a,m1,m2,b);
-          const t2=phase(i*4+k+3,13),q=shot02CubicPoint(t2,c,m3,m4,target);
+          const t=phase(i*9+k,27),p=shot02CubicPoint(t,a,m1,m2,b);
+          const t2=phase(i*9+k+3,29);
+          const approach=shot03ApproachPosition(t2,queueLevel);
+          const q=shot02CubicPoint(approach,c,m3,m4,target);
           return <g key={k}>
             <RequestParticle x={p.x} y={p.y} opacity={fade(t)}/>
-            <RequestParticle x={q.x} y={q.y} opacity={fade(t2)}/>
+            <RequestParticle x={q.x} y={q.y} opacity={fade(t2)}
+              color={queueLevel>.03
+                ?shot03BlendHex(SHOT02_LOGIN_PARTICLE.fill,congestionColor,queueLevel)
+                :undefined}/>
           </g>;
         })}
       </g>;
     })}
+    {activeQueue>0&&<g opacity={activeQueue}>
+      <rect x={SHOT03_PRE_DB_WAIT_ZONE.left}
+        y={SHOT03_PRE_DB_WAIT_ZONE.top}
+        width={SHOT03_PRE_DB_WAIT_ZONE.width}
+        height={SHOT03_PRE_DB_WAIT_ZONE.height}
+        rx="24" fill={congestionColor}
+        fillOpacity={.06+.16*queueLevel}
+        stroke={congestionColor} strokeWidth={1.8+1.5*queueLevel}
+        strokeOpacity={.20+.65*queueLevel}
+        style={{filter:'drop-shadow(0 0 '+(7+22*queueLevel)+'px '+congestionColor+')'}}/>
+      {SHOT02_AUTH_REPLICA_PORTS.map((port,i)=>
+        Array.from({length:Math.round(1+7*queueLevel)},(_,k)=>{
+          const x=SHOT03_PRE_DB_WAIT_ZONE.left+53-(k%6)*8.3
+            +Math.sin(frame*.055+k*1.9+i)*(.6+queueLevel);
+          const y=port.y-9+Math.floor(k/6)*11;
+          return <circle key={i+'-'+k} cx={x} cy={y}
+            r={4.4+1.3*queueLevel} fill={congestionColor}
+            opacity={.64+.30*Math.sin(frame*.037+k)**2}
+            style={{filter:'drop-shadow(0 0 '+(4+7*queueLevel)+'px '+congestionColor+')'}}/>;
+        })
+      )}
+      <text x={SHOT03_PRE_DB_LABEL.left+SHOT03_PRE_DB_LABEL.width/2}
+        y={SHOT03_PRE_DB_LABEL.top+20} textAnchor="middle"
+        fontFamily={AT_FONT} fontSize="15" fontWeight="800"
+        fill={congestionColor} letterSpacing=".6">
+        AUTH POOL WAIT · DB PERMITS
+      </text>
+    </g>}
     {throughput&&<g>
       <path d={'M'+SHOT03_OUTPUT_PORT.x+' '+SHOT03_OUTPUT_PORT.y
         +' L'+SHOT03_OUTPUT_END.x+' '+SHOT03_OUTPUT_END.y}
@@ -290,7 +343,13 @@ export const Shot03DirectorVisualV1:React.FC<Shot03SceneProps>=(props)=>{
   const completed=shot03CompletionRate(frame,starts.FIVE_HUNDRED);
   const pressure=shot03DatabasePressure(frame,starts.BOTTLENECK,starts.SATURATION);
   const waiting=shot03WaitingDepth(frame,starts.UNFINISHED_WORK,starts.NINE_HUNDRED);
-  const clock=shot03FlowClock(frame,starts.SIX_FIFTY,starts.NINE_HUNDRED);
+  const clock=shot03FlowClock(frame,starts.SIX_FIFTY,starts.NINE_HUNDRED,
+    starts.BOTTLENECK);
+  const queueLevel=shot03CongestionLevel(frame,starts.UNFINISHED_WORK,
+    starts.BOTTLENECK,starts.SATURATION);
+  const titleShow=shot03Ease(frame,8,18);
+  const titleLineShow=shot03Ease(frame,15,19);
+  const contextLabelShow=shot03Ease(frame,19,18);
   const throughputShow=shot03Ease(frame,starts.FIVE_HUNDRED,24);
   const arrivalFocus=shot03Ease(frame,starts.SIX_FIFTY,24);
   const boardsShow=shot03Ease(frame,starts.UNFINISHED_WORK,32);
@@ -306,22 +365,30 @@ export const Shot03DirectorVisualV1:React.FC<Shot03SceneProps>=(props)=>{
     <div style={{position:'absolute',...SHOT03_TEXT_AREAS.context,zIndex:24,
       display:'flex',flexDirection:'column',justifyContent:'center',
       fontFamily:AT_FONT}}>
-      <div style={{fontSize:15,letterSpacing:'.17em',color:'#91BDE0',fontWeight:730}}>
+      <div style={{fontSize:15,letterSpacing:'.17em',color:'#91BDE0',fontWeight:730,
+        opacity:contextLabelShow,
+        transform:'translateX('+((1-contextLabelShow)*-11)+'px)'}}>
         SHARED DEPENDENCY
       </div>
-      <div style={{fontSize:32,lineHeight:1.2,fontWeight:850,color:WHITE,marginTop:9}}>
+      <div style={{fontSize:32,lineHeight:1.2,fontWeight:850,color:WHITE,marginTop:9,
+        opacity:titleShow,transform:'translateX('+((1-titleShow)*-24)+'px)'}}>
         THE CAPACITY LIMIT
       </div>
       <div style={{height:2,width:298,marginTop:12,
+        transform:'scaleX('+titleLineShow+')',transformOrigin:'left center',
+        opacity:titleLineShow,
         background:'linear-gradient(90deg,#68D9F5,transparent)'}}/>
     </div>
     <FlowPaths frame={frame} flowClock={clock} arrival={arrival}
-      pressure={pressure} throughput={completed===500}/>
+      pressure={pressure} throughput={completed===500}
+      sixFifty={starts.SIX_FIFTY} nineHundred={starts.NINE_HUNDRED}
+      bottleneck={starts.BOTTLENECK} unfinished={starts.UNFINISHED_WORK}
+      queueLevel={queueLevel}/>
     <GatewayCard/>
     <BalancerCard/>
     <AuthCluster frame={frame} waiting={waiting}/>
     <DatabaseCard frame={frame} pressure={pressure} workRate={completed}
-      saturated={frame>=starts.SATURATION}/>
+      saturated={frame>=starts.SATURATION} queueLevel={queueLevel}/>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:12,
       transform:'translate3d(-680px,-150px,0) scale(1.11)',
       transformOrigin:'50% 50%'}}>
@@ -348,7 +415,7 @@ export const Shot03DirectorVisualV1:React.FC<Shot03SceneProps>=(props)=>{
       display:'flex',alignItems:'center',justifyContent:'center',
       fontSize:29,fontWeight:840,letterSpacing:'.01em',color:'#FFE4C2',
       whiteSpace:'nowrap'}}>
-      THE DATABASE IS WORKING. IT JUST CAN&apos;T KEEP UP.
+      The database hasn&apos;t stopped working. It just can&apos;t keep up!
     </div>
   </ATBackground>;
 };

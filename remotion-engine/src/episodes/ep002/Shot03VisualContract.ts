@@ -32,6 +32,12 @@ export const SHOT03_TEXT_AREAS={
 } as const satisfies Record<string,Rect>;
 
 export const SHOT03_AUTH_PORTS=[412,498,584] as const;
+export const SHOT03_PRE_DB_WAIT_ZONE={
+  left:1504,top:378,width:64,height:255,
+} as const satisfies Rect;
+export const SHOT03_PRE_DB_LABEL={
+  left:1438,top:665,width:224,height:31,
+} as const satisfies Rect;
 export const SHOT03_OUTPUT_PORT={x:1823,y:509};
 export const SHOT03_OUTPUT_END={x:1856,y:509};
 
@@ -115,10 +121,51 @@ export function shot03LatencyBar(frame:number,latency:number):number {
   return 45+204*shot03Ease(frame,latency,85);
 }
 
-export function shot03FlowClock(frame:number,sixFifty:number,nineHundred:number):number{
+export function shot03FlowClock(frame:number,sixFifty:number,nineHundred:number,
+                                bottleneck?:number):number{
   return .009*frame
-    +Math.max(0,frame-sixFifty)*.002*shot03Ease(frame,sixFifty,42)
-    +Math.max(0,frame-nineHundred)*.003*shot03Ease(frame,nineHundred,42);
+    +Math.max(0,frame-sixFifty)*.005*shot03Ease(frame,sixFifty,42)
+    +Math.max(0,frame-nineHundred)*.009*shot03Ease(frame,nineHundred,42)
+    +(bottleneck===undefined?0:
+      Math.max(0,frame-bottleneck)*.006*shot03Ease(frame,bottleneck,55));
+}
+
+export function shot03RequestDensity(frame:number,sixFifty:number,
+                                     nineHundred:number,bottleneck:number):number {
+  return 2+Math.round(2*shot03Ease(frame,sixFifty,46)
+    +3*shot03Ease(frame,nineHundred,58)
+    +2*shot03Ease(frame,bottleneck,55));
+}
+
+export function shot03CongestionLevel(frame:number,unfinished:number,
+                                      bottleneck:number,saturation:number):number {
+  if(!(unfinished<bottleneck&&bottleneck<saturation))
+    throw Error('SHOT03_REAL_PRESSURE_CUE_ORDER_INVALID');
+  return clamp(.28*shot03Ease(frame,unfinished,62)
+    +.34*shot03Ease(frame,bottleneck,65)
+    +.38*shot03Ease(frame,saturation,75));
+}
+
+export function shot03BlendHex(from:string,to:string,progress:number):string {
+  const t=clamp(progress),channel=(i:number)=>
+    Math.round(parseInt(from.slice(i,i+2),16)*(1-t)
+      +parseInt(to.slice(i,i+2),16)*t).toString(16).padStart(2,'0');
+  return '#'+channel(1)+channel(3)+channel(5);
+}
+
+export function shot03CongestionColor(level:number):string {
+  const palette=['#F5A623','#CF721F','#C84132','#FF3B30'];
+  const progress=clamp(level)*(palette.length-1);
+  const i=Math.min(palette.length-2,Math.floor(progress));
+  return shot03BlendHex(palette[i],palette[i+1],progress-i);
+}
+
+export function shot03ApproachPosition(t:number,level:number):number {
+  const value=clamp(t),pressure=clamp(level);
+  if(value<=.64)return value;
+  const portion=(value-.64)/.36;
+  const slow=.64+.36*Math.pow(portion,1+pressure*2.3);
+  return value+(slow-value)*pressure;
 }
 
 export function assertShot03SafeLayout():void{
@@ -140,6 +187,15 @@ export function assertShot03SafeLayout():void{
         throw Error('SHOT03_ARCHITECTURE_TEXT_COLLISION_'+name);
     }
   }
+  if(SHOT03_PRE_DB_WAIT_ZONE.left<auth.x+auth.width/2
+    ||SHOT03_PRE_DB_WAIT_ZONE.left+SHOT03_PRE_DB_WAIT_ZONE.width
+      >database.x-database.width/2
+    ||SHOT03_PRE_DB_WAIT_ZONE.top<database.y
+    ||SHOT03_PRE_DB_WAIT_ZONE.top+SHOT03_PRE_DB_WAIT_ZONE.height
+      >database.y+database.height
+    ||shot02Intersects(SHOT03_PRE_DB_LABEL,SHOT03_TEXT_AREAS.work,5)
+    ||shot02Intersects(SHOT03_PRE_DB_LABEL,SHOT03_TEXT_AREAS.latency,5))
+    throw Error('SHOT03_PRE_DB_AUTH_POOL_WAIT_ZONE_UNSAFE');
   if(SHOT03_OUTPUT_END.x>1870
     ||SHOT03_OUTPUT_END.x<=SHOT03_OUTPUT_PORT.x)
     throw Error('SHOT03_COMPLETION_OUTPUT_UNSAFE');
