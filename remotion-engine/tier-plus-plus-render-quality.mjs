@@ -142,6 +142,49 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
+
+  if(job.compositionId==='EP002-SHOT04-CANDIDATE'){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues,terms=props.termCues;
+    const expected=['USER_DATABASE','HEALTH_CHECKS','LIVENESS_PROBE',
+      'READINESS_PROBE','REAL_LOGIN','SERVICE_AVAILABILITY',
+      'END_TO_END_CHECK','SPINNER','ALIVE_NOT_AVAILABLE'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+      ||Number(props.durationInFrames)!==frames
+      ||Number(props.postVoiceHoldFrames||0)!==0
+      ||props.shotKey!=='EP002_SHOT04'
+      ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
+      ||!integer(props.scriptRevision)||props.scriptRevision<1
+      ||!/^[a-f0-9]{64}$/i.test(String(props.inputFingerprint||''))
+      ||!Array.isArray(beats)||beats.length!==5
+      ||!Array.isArray(terms)||terms.length!==expected.length)
+      reject('SHOT04_SELECTED_REAL_VOICE_CUE_CONTRACT');
+    let previous=0;
+    for(let i=0;i<beats.length;i++){
+      const b=beats[i];
+      if(b?.beatNumber!==i+1||!integer(b.startFrame)
+        ||!integer(b.endFrame)||b.startFrame!==previous
+        ||b.endFrame<=b.startFrame||b.endFrame>frames
+        ||!String(b.spokenAnchor||'').trim())
+        reject('SHOT04_DIRECTOR_BEAT_SEQUENCE_INVALID');
+      previous=b.endFrame;
+    }
+    if(previous!==frames)reject('SHOT04_REAL_AUDIO_FRAMES_NOT_COVERED');
+    previous=-1;
+    for(let i=0;i<expected.length;i++){
+      const t=terms[i];
+      if(t?.id!==expected[i]||!integer(t.startFrame)
+        ||!integer(t.endFrame)||t.startFrame<0
+        ||t.endFrame<=t.startFrame||t.endFrame>frames
+        ||t.startFrame<previous||!String(t.spokenAnchor||'').trim())
+        reject('SHOT04_REAL_SPOKEN_TERMS_INVALID');
+      previous=t.endFrame;
+    }
+    checks.push('SHOT04_CURRENT_DIRECTOR_APPROVED_TAKE',
+      'FIVE_REAL_VERIFIED_BEATS','NINE_REAL_TECHNICAL_TERMS',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+  }
+
   return {
     standardId:AT_TIER_PLUS_PLUS_STANDARD_ID,
     status:'TECHNICAL_PRECHECK_PASS',
