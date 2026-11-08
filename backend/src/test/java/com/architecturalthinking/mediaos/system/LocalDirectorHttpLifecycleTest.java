@@ -83,6 +83,11 @@ class LocalDirectorHttpLifecycleTest {
         public String reviewedQaRenderRoute() {
             return "qa-allowed";
         }
+
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow")
+        public String paidSlowVoiceSecurityProbe() {
+            return "director-only-route";
+        }
     }
 
     @Autowired private MockMvc mvc;
@@ -183,6 +188,30 @@ class LocalDirectorHttpLifecycleTest {
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .content().string("qa-allowed"));
+    }
+
+    @Test
+    void anyEp002SlowVoiceRouteKeepsDirectorSessionAndCsrfRequired() throws Exception {
+        Csrf token=csrf();
+        String path="/api/v1/creative/episodes/EP002/shots/SHOT03/generate-slow";
+        mvc.perform(post(path).cookie(token.cookie())
+                .header("X-XSRF-TOKEN",token.token()))
+                .andExpect(status().isUnauthorized());
+
+        MvcResult login=login(token,PASSWORD,currentCode());
+        assertEquals(200,login.getResponse().getStatus());
+        Cookie session=login.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+
+        mvc.perform(post(path).cookie(session)).andExpect(status().isForbidden());
+        for(String shot:new String[]{"SHOT01","SHOT03","SHOT07","SHOT11"}) {
+            mvc.perform(post("/api/v1/creative/episodes/EP002/shots/"+shot+"/generate-slow")
+                            .cookie(session,token.cookie())
+                            .header("X-XSRF-TOKEN",token.token()))
+                    .andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                            .content().string("director-only-route"));
+        }
     }
 
     @Test
