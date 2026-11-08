@@ -13,7 +13,12 @@ import {
 import {
   SHOT04_TEXT_AREAS,shot04Ease,validateShot04Source,
   assertShot04SafeLayout,type Shot04SceneProps,shot04StatusPalette,
+  shot04QueueDepth,shot04ReplicaPhase,
 } from './Shot04VisualContract';
+import {
+  SHOT03_PRE_DB_WAIT_ZONE,shot03ApproachPosition,
+  shot03BlendHex,shot03CongestionColor,
+} from './Shot03VisualContract';
 
 const WHITE='#F5FCFF';
 const CYAN='#68E5FF';
@@ -104,9 +109,15 @@ const Auth:React.FC<{frame:number;probe:number}>=({frame,probe})=>{
 
 const Database:React.FC<{frame:number}>=({frame})=>{
   const n=SHOT02_NODES.database;
-  const pal=shot02DatabaseColors(.77);
+  const original=shot02DatabaseColors(.9);
+  const red=shot03CongestionColor(1);
+  const pal={
+    border:red,
+    glow:shot03BlendHex(original.glow,red,.94),
+    core:shot03BlendHex(original.core,'#47202A',.92),
+  };
   const heartbeat=.80+.20*Math.sin(frame*.06)**2;
-  return <div style={{...fixed(n),...panel(pal.border,'rgba(241,144,68,.43)'),
+  return <div style={{...fixed(n),...panel(pal.border,'rgba(255,59,48,.5)'),
     borderWidth:3,zIndex:9,fontFamily:AT_FONT,
     background:'linear-gradient(150deg,rgba(9,26,44,.995),'+pal.core+')'}}>
     <div style={{marginTop:21,fontSize:27,fontWeight:840,color:WHITE,
@@ -121,7 +132,7 @@ const Database:React.FC<{frame:number}>=({frame})=>{
     </svg>
     <div style={{margin:'17px 13px 0',height:44,borderRadius:10,
       border:'1.7px solid '+pal.border,
-      background:'rgba(6,25,43,.79)',color:'#FFD8AB',
+      background:'rgba(6,25,43,.79)',color:'#FFE1DA',
       display:'flex',alignItems:'center',justifyContent:'center',
       fontSize:16,fontWeight:820}}>SATURATED · RUNNING</div>
     <div style={{position:'absolute',bottom:8,left:0,right:0,
@@ -129,96 +140,124 @@ const Database:React.FC<{frame:number}>=({frame})=>{
   </div>;
 };
 
-const Probe:React.FC<{
-  left:number;label:string;focus:number;visible:number;
-}>=({left,label,focus,visible})=><div style={{
-    position:'absolute',left,top:680,width:193,height:40,
-    border:'2px solid '+MINT,borderRadius:11,
-    background:'linear-gradient(135deg,rgba(13,61,55,.98),rgba(7,31,39,.98))',
-    boxShadow:'0 0 '+(10+15*focus)+'px rgba(90,255,173,'+(.19+.23*focus)+')',
-    display:'flex',alignItems:'center',justifyContent:'center',gap:8,
-    zIndex:22,opacity:visible,
-    fontFamily:AT_FONT,fontSize:15,fontWeight:850,color:'#CEFFE5',
-    transform:'translateY('+((1-visible)*9)+'px)',
-  }}>
-    <span style={{fontSize:20,color:MINT}}>✓</span>{label}
+const HealthSemantics:React.FC<{
+  liveness:number;readiness:number;endToEnd:number;
+}>=({liveness,readiness,endToEnd})=>{
+  const items=[
+    {id:'LIVENESS',description:'Does this application need restarting?',visible:liveness},
+    {id:'READINESS',description:'Should this instance receive new requests?',visible:readiness},
+  ];
+  return <div style={{position:'absolute',...SHOT04_TEXT_AREAS.semantics,
+    zIndex:24,display:'flex',gap:18,pointerEvents:'none',
+    fontFamily:AT_FONT}}>
+    {items.map(item=><div key={item.id} style={{
+      flex:1,minWidth:0,boxSizing:'border-box',
+      padding:'19px 18px 17px',height:138,
+      borderLeft:'3px solid '+MINT,borderRadius:'0 14px 14px 0',
+      background:'linear-gradient(90deg,rgba(12,49,59,.77),rgba(6,23,36,.31))',
+      boxShadow:'inset 0 1px 0 rgba(145,255,227,.1)',
+      opacity:item.visible,
+      transform:'translateY('+((1-item.visible)*11)+'px)',
+    }}>
+      <div style={{color:'#8FFFE0',fontWeight:850,
+        letterSpacing:'.10em',fontSize:16}}>{item.id}</div>
+      <div style={{color:WHITE,fontSize:19,lineHeight:1.4,
+        fontWeight:700,marginTop:12}}>
+        {item.description}
+      </div>
+      <div style={{width:70,height:2,marginTop:13,
+        background:MINT,transformOrigin:'left',
+        transform:'scaleX('+(0.65+.35*endToEnd)+')',
+        opacity:.42+.32*endToEnd}}/>
+    </div>)}
   </div>;
+};
 
 const Paths:React.FC<{frame:number;focus:number;blocked:number}>=
 ({frame,focus,blocked})=>{
-  const link=['M485 532 L521 532','M779 532 L804 532',
-    'M1050 535 C1094 535 1128 412 1192 412',
-    'M1050 535 C1108 535 1150 498 1192 498',
-    'M1050 535 C1094 535 1128 584 1192 584',
-    'M1460 412 C1504 412 1530 509 1582 509',
-    'M1460 498 C1515 498 1539 509 1582 509',
-    'M1460 584 C1504 584 1530 509 1582 509'];
-  const t=frame*.023;
-  const requestProgress=clamp(((frame%120)+120)%120/120);
-  const entering=shot02CubicPoint(requestProgress,
-    SHOT02_BALANCER_EXIT,{x:1090,y:535},{x:1136,y:498},
-    {x:SHOT02_AUTH_CARD_LEFT,y:498});
-  const stalled=shot02CubicPoint(
-    Math.min(.77,.5+.27*shot04Ease(frame,blocked,35)),
-    {x:SHOT02_AUTH_CARD_RIGHT,y:498},{x:1506,y:498},
-    {x:1540,y:509},SHOT02_DATABASE_ENTRY);
+  const db=SHOT02_DATABASE_ENTRY;
+  const red=shot03CongestionColor(1);
+  const queueDepth=shot04QueueDepth(frame);
+  const fade=(t:number)=>clamp(Math.min(t,1-t)*10);
+  const queueFocus=.81+.19*shot04Ease(frame,blocked,70);
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-    style={{position:'absolute',inset:0,zIndex:4,pointerEvents:'none'}}>
-    <defs>
-      <filter id="shot04Glow"><feGaussianBlur stdDeviation="4"/></filter>
-    </defs>
-    {link.map((d,i)=><path key={i} d={d} fill="none"
-      stroke={i>4?'#F2A15D':'#3F8AA6'} strokeWidth={i>4?4:3.6}
-      strokeLinecap="round" opacity={i>4?.65:.63}/>)}
-    {[0,1,2].map(i=><circle key={i}
-      cx={entering.x-((i*45)%85)} cy={entering.y}
-      r={SHOT02_LOGIN_PARTICLE.radius}
-      fill={SHOT02_LOGIN_PARTICLE.fill}
-      opacity={.50+.45*focus}
-      style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>)}
-    {[0,1,2,3].map(i=><circle key={i}
-      cx={stalled.x-i*15} cy={stalled.y+(i%2?4:-4)}
-      r={SHOT02_LOGIN_PARTICLE.radius*.84}
-      fill={i>=2?'#F4A45A':'#F4BC76'}
-      opacity={.5+.46*shot04Ease(frame,blocked,28)}
-      style={{filter:'drop-shadow(0 0 8px rgba(246,145,73,.66))'}}/>)}
-    <path d="M1552 509 L1569 509" stroke="#F7B66C"
-      strokeWidth="4" strokeLinecap="round" opacity={.3+.7*focus}
-      strokeDasharray="5 6"/>
-    <circle cx="1829" cy="509" r="6" fill={MINT}
-      opacity={.52+.25*Math.sin(t*4)}
-      style={{filter:'drop-shadow(0 0 7px '+MINT+')'}}/>
+    style={{position:'absolute',inset:0,zIndex:4,
+      overflow:'visible',pointerEvents:'none'}}>
+    <path d="M485 532 L521 532 M779 532 L804 532"
+      fill="none" stroke="#4FC5E7" strokeWidth="3.6" opacity=".69"
+      strokeLinecap="round"/>
+    {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
+      const entry=SHOT02_BALANCER_EXIT;
+      const authStart={x:SHOT02_AUTH_CARD_LEFT,y:replica.y};
+      const authEnd={x:SHOT02_AUTH_CARD_RIGHT,y:replica.y};
+      const branchControl1={x:1090,y:entry.y};
+      const branchControl2={x:1137,y:replica.y};
+      const lookupControl1={x:1505,y:replica.y};
+      const lookupControl2={x:1540,y:db.y};
+      const branch='M'+entry.x+' '+entry.y+' C'+branchControl1.x+' '+
+        branchControl1.y+' '+branchControl2.x+' '+branchControl2.y+
+        ' '+authStart.x+' '+authStart.y;
+      const lookup='M'+authEnd.x+' '+authEnd.y+' C'+
+        lookupControl1.x+' '+lookupControl1.y+' '+
+        lookupControl2.x+' '+lookupControl2.y+' '+db.x+' '+db.y;
+      return <g key={replica.id}>
+        <path d={branch} fill="none" stroke="#3A7797"
+          strokeWidth="8" opacity=".45"/>
+        <path d={branch} fill="none" stroke="#6BE6F0"
+          strokeWidth="3.8" opacity=".85"/>
+        <path d={lookup} fill="none" stroke="#7E343B"
+          strokeWidth="8" opacity=".34"/>
+        <path d={lookup} fill="none" stroke={red}
+          strokeWidth="3.8" opacity=".72"/>
+        {Array.from({length:4},(_,packet)=>{
+          const t=shot04ReplicaPhase(frame,i,packet);
+          const at=shot02CubicPoint(t,entry,branchControl1,branchControl2,authStart);
+          const tx=shot04ReplicaPhase(frame*.64,i,packet+1);
+          const approach=shot03ApproachPosition(tx,.88);
+          const to=shot02CubicPoint(
+            approach,authEnd,lookupControl1,lookupControl2,db);
+          return <g key={packet}>
+            <circle cx={at.x} cy={at.y}
+              r={SHOT02_LOGIN_PARTICLE.radius}
+              fill={SHOT02_LOGIN_PARTICLE.fill}
+              opacity={fade(t)*(.75+.25*focus)}
+              style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>
+            <circle cx={to.x} cy={to.y}
+              r={SHOT02_LOGIN_PARTICLE.radius*.84}
+              fill={red} opacity={fade(tx)*queueFocus}
+              style={{filter:'drop-shadow(0 0 8px rgba(255,59,48,.8))'}}/>
+          </g>;
+        })}
+      </g>;
+    })}
+    <rect x={SHOT03_PRE_DB_WAIT_ZONE.left}
+      y={SHOT03_PRE_DB_WAIT_ZONE.top}
+      width={SHOT03_PRE_DB_WAIT_ZONE.width}
+      height={SHOT03_PRE_DB_WAIT_ZONE.height}
+      rx="23" fill={red} fillOpacity=".13"
+      stroke={red} strokeWidth="2.8" strokeOpacity=".7"
+      style={{filter:'drop-shadow(0 0 20px rgba(255,59,48,.48))'}}/>
+    {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>
+      Array.from({length:queueDepth},(_,packet)=>{
+        const x=SHOT03_PRE_DB_WAIT_ZONE.left+53-(packet%6)*8.3+
+          Math.sin(frame*.041+packet*1.7+i)*.7;
+        const y=replica.y-9+Math.floor(packet/6)*11.5;
+        return <circle key={i+'-'+packet}
+          cx={x} cy={y} r={5.1}
+          fill={red} opacity={.74+.22*Math.sin(frame*.031+packet)**2}
+          style={{filter:'drop-shadow(0 0 6px '+red+')'}}/>;
+      })
+    )}
+    <path d="M1823 509 L1856 509" fill="none"
+      stroke="#6FECD4" strokeWidth="3.6" opacity=".84"/>
+    {[0,1].map(i=>{
+      const t=shot04ReplicaPhase(frame*.55,0,i);
+      return <circle key={i} cx={1823+33*t} cy={509}
+        r={SHOT02_LOGIN_PARTICLE.radius*.74}
+        fill={MINT} opacity={fade(t)*.83}
+        style={{filter:'drop-shadow(0 0 7px '+MINT+')'}}/>;
+    })}
   </svg>;
-};
-
-const Journey:React.FC<{show:number}>=
-({show})=>{
-  const d=SHOT04_TEXT_AREAS.journey;
-  const sequence=['PHONE','GATEWAY','BALANCER','AUTH','DATABASE','RESPONSE'];
-  return <div style={{position:'absolute',...d,zIndex:24,
-    ...panel('#E7A365','rgba(237,148,85,.21)'),fontFamily:AT_FONT,
-    padding:'15px 23px',opacity:show,
-    transform:'translateY('+((1-show)*13)+'px)'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <div style={{fontSize:17,fontWeight:850,color:WHITE,letterSpacing:'.07em'}}>
-        LOGIN JOURNEY
-      </div>
-      <div style={{fontSize:15,fontWeight:850,color:'#FFD09B',
-        textShadow:'0 0 12px rgba(236,132,81,.34)'}}>NOT COMPLETED</div>
-    </div>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',
-      marginTop:15,gap:5}}>
-      {sequence.map((step,i)=><React.Fragment key={step}>
-        <span style={{fontSize:14,fontWeight:770,letterSpacing:'.03em',
-          color:i>=4?'#F7C58E':'#C0EDF6',
-          opacity:i===5?.45:1}}>{step}</span>
-        {i<5?<span style={{fontSize:17,fontWeight:800,
-          color:i>=4?AMBER:CYAN,opacity:i===4?.55:1}}>
-          {i===4?'×':'→'}
-        </span>:null}
-      </React.Fragment>)}
-    </div>
-  </div>;
 };
 
 export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
@@ -231,12 +270,12 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
   const cues=Object.fromEntries(terms.map(t=>[t.id,t.startFrame])) as
     Record<(typeof terms)[number]['id'],number>;
   const title=shot04Ease(frame,8,20);
-  const probes=shot04Ease(frame,cues.HEALTH_CHECKS,22);
-  const live=shot04Ease(frame,cues.LIVENESS_PROBE,17);
-  const ready=shot04Ease(frame,cues.READINESS_PROBE,17);
+  const healthStart=shot04Ease(frame,cues.HEALTH_CHECKS,22);
+  const live=shot04Ease(frame,cues.LIVENESS_PROBE,19);
+  const ready=shot04Ease(frame,cues.READINESS_PROBE,19);
   const real=shot04Ease(frame,cues.REAL_LOGIN,30);
   const availability=shot04Ease(frame,cues.SERVICE_AVAILABILITY,22);
-  const journey=shot04Ease(frame,cues.END_TO_END_CHECK,25);
+  const endToEnd=shot04Ease(frame,cues.END_TO_END_CHECK,25);
   const conclusion=shot04Ease(frame,cues.ALIVE_NOT_AVAILABLE,18);
   const cameraShift=5*shot04Ease(frame,cues.REAL_LOGIN,40)
     -4*shot04Ease(frame,cues.SPINNER,40);
@@ -267,7 +306,7 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
       <Paths frame={frame} focus={Math.max(real,.3)} blocked={cues.REAL_LOGIN}/>
       <Gateway active={real}/>
       <Balancer/>
-      <Auth frame={frame} probe={Math.max(live,ready)}/>
+      <Auth frame={frame} probe={Math.max(healthStart,live,ready)}/>
       <Database frame={frame}/>
     </AbsoluteFill>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:12,
@@ -279,25 +318,12 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
         press={0} pressStartFrame={Number.POSITIVE_INFINITY}
         waiting={1} spinner={1} pressure={.70} realism={1} heroPush={0}/>
     </AbsoluteFill>
-    <Probe left={1138} label="LIVENESS PASS" focus={live} visible={probes}/>
-    <Probe left={1341} label="READINESS PASS" focus={ready} visible={probes}/>
-    <div style={{position:'absolute',...SHOT04_TEXT_AREAS.shallowNote,
-      zIndex:25,textAlign:'center',fontFamily:AT_FONT,
-      fontSize:14,fontWeight:780,letterSpacing:'.025em',
-      color:'#E6C8A1',opacity:Math.max(live,ready)}}>
-      Illustrative shallow probes · Database not checked
-    </div>
-    <div style={{position:'absolute',left:1417,top:649,width:218,
-      zIndex:25,fontFamily:AT_FONT,fontSize:14,fontWeight:850,
-      color:AMBER,opacity:real,textAlign:'center'}}>
-      USER LOOKUP WAITING
-    </div>
-    <div style={{position:'absolute',left:575,top:731,width:452,height:44,
+    <HealthSemantics liveness={live} readiness={ready} endToEnd={endToEnd}/>
+    <div style={{position:'absolute',left:575,top:744,width:422,height:44,
       zIndex:24,opacity:availability,fontFamily:AT_FONT,
       color:AMBER,fontSize:17,fontWeight:830,letterSpacing:'.045em'}}>
       SERVICE AVAILABILITY · NOT PROVEN
     </div>
-    <Journey show={journey}/>
     <div style={{position:'absolute',...SHOT04_TEXT_AREAS.conclusion,zIndex:30,
       ...panel('#E6AA64','rgba(236,154,81,.23)'),fontFamily:AT_FONT,
       display:'flex',alignItems:'center',justifyContent:'center',
