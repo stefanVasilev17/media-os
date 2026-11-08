@@ -26,8 +26,7 @@ export const SHOT04_TERM_ORDER:readonly Shot04TermId[]=[
 export const SHOT04_TEXT_AREAS={
   brand:{left:66,top:40,width:382,height:42},
   heading:{left:557,top:115,width:690,height:144},
-  shallowNote:{left:1063,top:721,width:755,height:45},
-  journey:{left:570,top:788,width:1247,height:106},
+  semantics:{left:1035,top:719,width:782,height:160},
   conclusion:{left:543,top:930,width:1280,height:76},
 } as const satisfies Record<string,Rect>;
 
@@ -96,7 +95,7 @@ export function assertShot04SafeLayout():void{
   for(const [name,node] of Object.entries(SHOT02_NODES)){
     const rect={left:node.x-node.width/2,top:node.y,
       width:node.width,height:node.height};
-    for(const field of ['heading','shallowNote','journey','conclusion'] as const)
+    for(const field of ['heading','semantics','conclusion'] as const)
       if(shot02Intersects(rect,SHOT04_TEXT_AREAS[field],8))
         throw Error('SHOT04_ARCHITECTURE_TEXT_COLLISION_'+name+'_'+field);
   }
@@ -108,3 +107,14 @@ export const shot04StatusPalette={
   overloaded:'#F06F58',
   silent:'#30516D',
 } as const;
+
+export const shot04QueueDepth=(frame:number):number=>
+  Math.min(14,Math.max(7,7+Math.floor(Math.max(0,frame)/180)));
+
+export const shot04ReplicaPhase=(frame:number,replica:number,packet:number):number=>{
+  if(!Number.isFinite(frame)||!Number.isInteger(replica)||replica<0||replica>2
+    ||!Number.isInteger(packet)||packet<0||packet>5)
+    throw Error('SHOT04_REPLICA_PACKET_ARGUMENT_INVALID');
+  const t=frame*.014+replica*.19+packet*.31;
+  return (t%1+1)%1;
+};
