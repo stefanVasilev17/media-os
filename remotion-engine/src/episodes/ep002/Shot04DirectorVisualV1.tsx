@@ -235,6 +235,7 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
   const live=shot04Ease(frame,cues.LIVENESS_PROBE,17);
   const ready=shot04Ease(frame,cues.READINESS_PROBE,17);
   const real=shot04Ease(frame,cues.REAL_LOGIN,30);
+  const availability=shot04Ease(frame,cues.SERVICE_AVAILABILITY,22);
   const journey=shot04Ease(frame,cues.END_TO_END_CHECK,25);
   const conclusion=shot04Ease(frame,cues.ALIVE_NOT_AVAILABLE,18);
   const cameraShift=5*shot04Ease(frame,cues.REAL_LOGIN,40)
@@ -290,6 +291,11 @@ export const Shot04DirectorVisualV1:React.FC<Shot04SceneProps>=(props)=>{
       zIndex:25,fontFamily:AT_FONT,fontSize:14,fontWeight:850,
       color:AMBER,opacity:real,textAlign:'center'}}>
       USER LOOKUP WAITING
+    </div>
+    <div style={{position:'absolute',left:575,top:731,width:452,height:44,
+      zIndex:24,opacity:availability,fontFamily:AT_FONT,
+      color:AMBER,fontSize:17,fontWeight:830,letterSpacing:'.045em'}}>
+      SERVICE AVAILABILITY · NOT PROVEN
     </div>
     <Journey show={journey}/>
     <div style={{position:'absolute',...SHOT04_TEXT_AREAS.conclusion,zIndex:30,
