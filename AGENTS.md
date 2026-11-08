@@ -2,6 +2,13 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## Director rule — Universal Slow Natural Take across editable SHOTs (2026-11-08)
+
+- **No more SHOT02-only or SHOT03-only paid Slow Natural authorization paths.** EP002 uses a centralized `POST /api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow` Director-only security matcher for all valid editable SHOT01–SHOT11. Reusable imported EP003+ Voice Studio supports explicit `SLOW_NATURAL` delivery on the existing paid generation route. For future episodes, design episode-agnostic voice modes; no one-off security whitelist per SHOT.
+- **Do not weaken authorization to make voice convenient:** preserve authenticated Director session/JWT, CSRF, source-revision/hash checks, paid explicit confirmation, verified creator-clone identity, server spend limits and IN_FLIGHT/UNCERTAIN ledger protection. Save new Take in history, never overwrite current approved Take or approve it automatically; real voice character alignment must be freshly verified if a new Take becomes preferred.
+- **Special LOCK protection:** EP002 SHOT02 V7 stays locked, with its exact approved narration and existing Slow Natural markers. Other editable SHOTs may use generic non-mutating punctuation/paragraph paced Eleven v4 source, but tags modify provider TTS *request* only, not saved words. Never claim guaranteed seconds or creative quality without listening.
+- **Incident proof:** SHOT03 `generate-slow` returned HTTP 403 at 2026-11-08 09:53:04 UTC because Spring Security whitelisted only SHOT02, not because the SHOT03 script was invalid. Corrected in [Draft PR #204](https://github.com/stefanVasilev17/media-os/pull/204), deployed Railway Backend SHA `b904d178d2092df2d069e6adbbd65317618cbc81` with full Maven/PostgreSQL tests and healthy startup. See [PROJECT_STATE.md](PROJECT_STATE.md) for evidence; not a new paid voice acceptance.
+
 ## Mandatory startup sequence
 
 1. Read [PROJECT_STATE.md](PROJECT_STATE.md) in full from the current `main` branch. Treat it as the **latest documented snapshot**, not a guaranteed live truth.
