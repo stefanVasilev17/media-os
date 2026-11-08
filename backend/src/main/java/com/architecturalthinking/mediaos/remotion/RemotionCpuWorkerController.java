@@ -67,7 +67,8 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
         String scope=targetComposition==null?"":targetComposition.trim();
-        if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)) {
+        if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)
+                && !"EP002-SHOT03-CANDIDATE".equals(scope)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unsupported target composition for scoped CPU claim.");
         }
@@ -81,7 +82,7 @@ public class RemotionCpuWorkerController {
                     error='EP002 preview interrupted after worker heartbeat timeout. No automatic retry.',
                     finished_at=now(), updated_at=now()
                 where project_id=:projectId
-                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE')
+                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -94,7 +95,7 @@ public class RemotionCpuWorkerController {
                     error='Recovered stale CPU render after worker heartbeat timeout.',
                     claimed_at=null, started_at=null, updated_at=now()
                 where project_id=:projectId
-                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE')
+                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -109,6 +110,8 @@ public class RemotionCpuWorkerController {
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
                   and (:targetComposition='' or composition_id=:targetComposition)
+                  and (composition_id<>'EP002-SHOT03-CANDIDATE'
+                    or :targetComposition='EP002-SHOT03-CANDIDATE')
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
@@ -116,7 +119,7 @@ public class RemotionCpuWorkerController {
                                     and cap.source_commit=:sourceSha
                                     and cap.build_checked=true
                                     and cap.last_heartbeat_at>now()-interval '120 seconds')))
-                  and (composition_id<>'EP002-SHOT02-CANDIDATE'
+                  and (composition_id not in ('EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE')
                     or (input_props->>'expectedSourceCommit'=:sourceSha
                       and length(:sourceSha)=40
                       and :sourceSha !~ '[^a-f0-9]'))
@@ -164,6 +167,29 @@ public class RemotionCpuWorkerController {
                     update remotion_render
                     set status='FAILED',progress=0,
                         error='SHOT02_SOURCE_OR_VOICE_STALE_BEFORE_CPU_CLAIM',
+                        finished_at=now(),updated_at=now()
+                    where id=:id and project_id=:project and status='QUEUED'
+                    """)
+                    .param("id",work.get("renderId")).param("project",PROJECT_ID).update();
+                return ResponseEntity.noContent().build();
+            }
+        }
+
+        if ("EP002-SHOT03-CANDIDATE".equals(work.get("compositionId"))) {
+            Object rawProps=work.get("inputProps");
+            Map<?,?> props=rawProps instanceof Map<?,?> map ? map : Map.of();
+            Object revision=props.get("scriptRevision");
+            int frames=(int)work.get("durationInFrames");
+            boolean current=revision instanceof Number number && ep002Cues!=null
+                    &&ep002Cues.matchesCurrentShot03Render(
+                        String.valueOf(props.get("inputFingerprint")),
+                        String.valueOf(props.get("voiceTakeId")),
+                        number.intValue(),frames);
+            if(!current){
+                jdbc.sql("""
+                    update remotion_render
+                    set status='FAILED',progress=0,
+                        error='SHOT03_SOURCE_VOICE_OR_CUES_STALE_BEFORE_CPU_CLAIM',
                         finished_at=now(),updated_at=now()
                     where id=:id and project_id=:project and status='QUEUED'
                     """)
