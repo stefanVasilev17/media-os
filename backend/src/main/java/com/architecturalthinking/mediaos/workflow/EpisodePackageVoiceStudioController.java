@@ -22,7 +22,8 @@ public class EpisodePackageVoiceStudioController {
 
     public record SaveRequest(int expectedRevision,String narration,String voiceDirection) {}
     public record GenerateRequest(int expectedRevision,String expectedNarrationSha256,
-                                  UUID requestId,Boolean confirmPaidElevenLabs) {}
+                                  UUID requestId,Boolean confirmPaidElevenLabs,
+                                  String deliveryMode) {}
     public record ApproveRequest(int expectedRevision,UUID takeId,String decision) {}
 
     @GetMapping
@@ -53,7 +54,7 @@ public class EpisodePackageVoiceStudioController {
                     "Current revision is required for paid generation.");
         return voices.generate(packageId,shotKey,request.expectedRevision(),
                 request.expectedNarrationSha256(),request.requestId(),
-                request.confirmPaidElevenLabs());
+                request.confirmPaidElevenLabs(),request.deliveryMode());
     }
 
     @PostMapping("/approve")
