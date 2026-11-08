@@ -259,6 +259,7 @@ export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
   assertShot05SafeLayout();
   const cue=Object.fromEntries(terms.map(t=>[t.id,t.startFrame])) as
     Record<Shot05TermId,number>;
+  const carryOver=1-shot05Ease(frame,8,27);
   const zoom=shot05Ease(frame,14,93);
   const mapExit=shot05Ease(frame,62,42);
   const interior=shot05Ease(frame,55,42);
@@ -289,14 +290,49 @@ export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
         press={0} pressStartFrame={Number.POSITIVE_INFINITY}
         waiting={1} spinner={1} pressure={.95} realism={1} heroPush={0}/>
     </AbsoluteFill>
-    <div style={{position:'absolute',left:260,top:94,zIndex:32,
+    <div style={{position:'absolute',left:557,top:115,zIndex:32,
       fontFamily:AT_FONT,opacity:1-shot05Ease(frame,70,24),
-      transform:'translateY('+(7*zoom)+'px)'}}>
-      <div style={{fontSize:17,color:'#B4D9F3',
-        letterSpacing:'.16em',fontWeight:790}}>FROM THE END OF SHOT04</div>
-      <div style={{fontSize:35,color:WHITE,fontWeight:900,marginTop:10}}>
+      transform:'translateX('+(-15*zoom)+'px)'}}>
+      <div style={{fontSize:15,color:'#91BDE0',
+        letterSpacing:'.17em',fontWeight:760}}>
+        COMPONENT HEALTH · USER AVAILABILITY
+      </div>
+      <div style={{fontSize:36,color:WHITE,fontWeight:870,marginTop:10}}>
         ALIVE IS NOT AVAILABLE
       </div>
+      <div style={{width:385,height:2,marginTop:17,
+        background:'linear-gradient(90deg,#68D9F5,transparent)'}}/>
+    </div>
+    <div style={{position:'absolute',left:1035,top:719,
+      width:782,height:160,zIndex:31,opacity:carryOver,
+      display:'flex',gap:18,fontFamily:AT_FONT,pointerEvents:'none'}}>
+      {[
+        ['LIVENESS','Does this application need restarting?'],
+        ['READINESS','Should this instance receive new requests?'],
+      ].map(([name,description])=><div key={name} style={{
+        flex:1,padding:'19px 18px 17px',
+        height:138,boxSizing:'border-box',
+        borderLeft:'3px solid '+MINT,borderRadius:'0 14px 14px 0',
+        background:'linear-gradient(90deg,rgba(12,49,59,.77),rgba(6,23,36,.31))'}}>
+        <div style={{fontSize:16,color:MINT,fontWeight:850,
+          letterSpacing:'.1em'}}>{name}</div>
+        <div style={{fontSize:19,color:WHITE,lineHeight:1.4,
+          fontWeight:700,marginTop:12}}>{description}</div>
+      </div>)}
+    </div>
+    <div style={{position:'absolute',left:575,top:744,width:422,height:44,
+      zIndex:31,opacity:carryOver,fontFamily:AT_FONT,
+      color:AMBER,fontSize:17,fontWeight:830,letterSpacing:'.045em'}}>
+      SERVICE AVAILABILITY · NOT PROVEN
+    </div>
+    <div style={{position:'absolute',left:543,top:930,width:1280,
+      height:76,zIndex:31,opacity:carryOver,
+      border:'2px solid #E6AA64',borderRadius:21,
+      background:'linear-gradient(145deg,rgba(8,32,53,.99),rgba(3,15,30,.998))',
+      boxShadow:'0 0 28px rgba(236,154,81,.23)',
+      display:'flex',alignItems:'center',justifyContent:'center',
+      fontFamily:AT_FONT,fontWeight:850,fontSize:33,color:'#FFE1B8'}}>
+      Being alive is not the same as being available.
     </div>
     <AbsoluteFill style={{zIndex:20,opacity:interior,pointerEvents:'none'}}>
       <div style={{position:'absolute',left:278,top:111,fontFamily:AT_FONT}}>
