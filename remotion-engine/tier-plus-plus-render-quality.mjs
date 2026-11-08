@@ -4,6 +4,7 @@ export const AT_TIER_PLUS_PLUS_STANDARD_ID='AT_TIER_PLUS_PLUS_V1';
 
 const PINNED_SHA=/^[a-f0-9]{40}$/;
 const SHOT_TWO='EP002-SHOT02-CANDIDATE';
+const SHOT_THREE='EP002-SHOT03-CANDIDATE';
 
 export function isTierPlusPlusShot(compositionId){
   return compositionId===SHOT_TWO
@@ -84,6 +85,61 @@ export function preflightTierPlusPlusRender(job,sourceSha){
     checks.push('SELECTED_VOICE_IMMUTABLE','FIVE_VERIFIED_BEATS',
       'SEVEN_REAL_TERM_CUES');
     if(hold===60)checks.push('EXACTLY_60_POST_VOICE_FRAMES');
+  }
+
+  if(job.compositionId===SHOT_THREE){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues;
+    const terms=props.termCues;
+    const expected=['USER_DATABASE','FIVE_HUNDRED','THROUGHPUT',
+      'SIX_FIFTY','NINE_HUNDRED','ARRIVAL_RATE','UNFINISHED_WORK',
+      'BOTTLENECK','SATURATION','LATENCY','STILL_WORKING'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+       ||Number(props.durationInFrames)!==frames
+       ||Number(props.postVoiceHoldFrames||0)!==0
+       ||!/^EP002_SHOT03$/.test(String(props.shotKey||''))
+       ||!/^[a-f0-9-]{36}$/i.test(String(props.voiceTakeId||''))
+       ||!integer(props.scriptRevision)||props.scriptRevision<1
+       ||!String(props.inputFingerprint||'').match(/^[a-f0-9]{64}$/)
+       ||!Array.isArray(beats)||beats.length!==5
+       ||!Array.isArray(terms)||terms.length!==11)
+      reject('SHOT03_SELECTED_REAL_VOICE_CUE_CONTRACT');
+    let previousEnd=-1;
+    for(let i=0;i<5;i++){
+      const beat=beats[i];
+      if(beat?.beatNumber!==i+1||!integer(beat.startFrame)
+        ||!integer(beat.endFrame)||beat.startFrame<0
+        ||beat.endFrame<=beat.startFrame||beat.endFrame>frames
+        ||!String(beat.spokenAnchor||'').trim()
+        ||(i>0&&beat.startFrame!==beats[i-1].endFrame))
+        reject('SHOT03_DIRECTOR_BEAT_SEQUENCE_INVALID');
+    }
+    if(beats.at(-1).endFrame!==frames)
+      reject('SHOT03_REAL_AUDIO_FRAMES_NOT_COVERED');
+    for(let i=0;i<expected.length;i++){
+      const term=terms[i];
+      if(term?.id!==expected[i]||!integer(term.startFrame)
+        ||!integer(term.endFrame)||term.startFrame<0
+        ||term.endFrame<=term.startFrame||term.endFrame>frames
+        ||!String(term.spokenAnchor||'').trim()
+        ||(i>0&&term.startFrame<previousEnd))
+        reject('SHOT03_REAL_TERM_SEQUENCE_INVALID');
+      previousEnd=term.endFrame;
+    }
+    if(terms[1].startFrame<beats[0].startFrame
+       ||terms[1].startFrame>=beats[0].endFrame
+       ||terms[3].startFrame<beats[1].startFrame
+       ||terms[4].startFrame>=beats[1].endFrame
+       ||terms[5].startFrame<beats[2].startFrame
+       ||terms[5].startFrame>=beats[2].endFrame
+       ||terms[6].startFrame<beats[3].startFrame
+       ||terms[6].startFrame>=beats[3].endFrame
+       ||terms[7].startFrame<beats[4].startFrame
+       ||terms[7].startFrame>=beats[4].endFrame)
+      reject('SHOT03_TERMS_BEATS_DISAGREE');
+    checks.push('SHOT03_CURRENT_DIRECTOR_APPROVED_TAKE',
+      'FIVE_REAL_VERIFIED_BEATS','ELEVEN_REAL_TECHNICAL_TERMS',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
   return {
