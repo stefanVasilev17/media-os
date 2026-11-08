@@ -37,17 +37,26 @@ export function preflightTierPlusPlusRender(job,sourceSha){
   ];
 
   if(job.compositionId===SHOT_TWO){
-    const voiceFrames=Number(props.sourceDurationInFrames);
-    const hold=Number(props.postVoiceHoldFrames);
+    const hold=props.postVoiceHoldFrames==null
+      ?0:Number(props.postVoiceHoldFrames);
+    const mode=props.timingMode;
+    const videoFrames=Number(job.durationInFrames);
+    const voiceFrames=hold===60?Number(props.sourceDurationInFrames):videoFrames;
+    const declaredSource=props.sourceDurationInFrames==null
+      ?videoFrames-hold:Number(props.sourceDurationInFrames);
     const take=String(props.voiceTakeId||'');
     const beats=props.verifiedCues;
     const terms=props.termCues;
-    if(!integer(voiceFrames)||voiceFrames<6
-      ||hold!==60||voiceFrames+hold!==Number(job.durationInFrames)
-      ||Number(props.durationInFrames)!==Number(job.durationInFrames))
-      reject('SHOT02_SELECTED_VOICE_AND_60_FRAME_HOLD');
+    if(!integer(voiceFrames)||voiceFrames<6||![0,60].includes(hold)
+      ||Number(props.durationInFrames)!==videoFrames
+      ||(hold===60&&(voiceFrames+hold!==videoFrames
+        ||mode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'))
+      ||(hold===0&&mode==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+        &&declaredSource!==videoFrames))
+      reject('SHOT02_SELECTED_VOICE_FRAME_CONTRACT');
     if(!/^[a-f0-9-]{36}$/i.test(take)
-      ||props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS')
+      ||!['ELEVENLABS_CHARACTER_TIMESTAMPS',
+           'ELEVENLABS_REAL_TIMESTAMPS_PLUS_EDITORIAL_SILENCE_V1'].includes(mode))
       reject('SHOT02_SELECTED_VOICE_PROVENANCE');
     if(!Array.isArray(beats)||beats.length!==5
       ||!Array.isArray(terms)||terms.length!==7)
@@ -73,7 +82,8 @@ export function preflightTierPlusPlusRender(job,sourceSha){
         reject('SHOT02_SPOKEN_TERM_TIMELINE');
     }
     checks.push('SELECTED_VOICE_IMMUTABLE','FIVE_VERIFIED_BEATS',
-      'SEVEN_REAL_TERM_CUES','EXACTLY_60_POST_VOICE_FRAMES');
+      'SEVEN_REAL_TERM_CUES');
+    if(hold===60)checks.push('EXACTLY_60_POST_VOICE_FRAMES');
   }
 
   return {
