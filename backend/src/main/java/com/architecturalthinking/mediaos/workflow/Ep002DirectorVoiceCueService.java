@@ -146,7 +146,7 @@ public class Ep002DirectorVoiceCueService {
                                               int scriptRevision,int durationFrames) {
         if(fingerprint==null||!fingerprint.matches("[a-f0-9]{64}")
                 ||takeId==null||!takeId.matches(
-                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
                 ||scriptRevision<1||durationFrames<150)return false;
         try {
             var current=episode.snapshot();
