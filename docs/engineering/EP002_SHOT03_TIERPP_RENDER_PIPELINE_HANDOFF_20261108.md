@@ -1,0 +1,26 @@
+# EP002 SHOT03 — Tier++ render pipeline implementation handoff (2026-11-08)
+
+## Director action verified
+On 2026-11-08 10:46:16.218Z (12:46:16 Europe/Sofia), production Railway Backend returned HTTP 200 for authenticated Director `POST /api/v1/creative/episodes/EP002/voice-cue-review/SHOT03`; subsequent GET of that review at 10:46:16.772Z returned HTTP 200. The production `Ep002DirectorVoiceCueService.approve` handler requires current selected approved Take, current episode fingerprint, exact five Director-confirmed unique phrases and real ElevenLabs character alignment. The UI rejects a returned `verified=false`. Logs alone do not expose the response body, actual stored Take identity or exact term/frame timestamps.
+
+## Proposed code, NOT a live render
+- PR #208: `remotion-engine/src/episodes/ep002/Shot03DirectorVisualV1.tsx`, `Shot03VisualContract.ts`, `shot03-tierpp-contract.test.mjs`; 1920×1080/30fps one continuous map, same V7 structural coordinates and login particle, causal DB 500 completions vs 650→900 arrivals, waiting external to DB, saturated yet functioning database and increasing latency. Requires five verified beats and eleven ordered technical terms from actual selected voice.
+- PR #209: `Ep002Shot03TermResolver`, `Ep002DirectorVoiceCueService.shot03RenderReadiness`, read-only Director endpoint `/api/v1/creative/episodes/EP002/voice-cue-review/SHOT03/render-readiness`. Fix for repeated User Database occurrences: sequential whole-phrase lookup over genuine ElevenLabs glyph timestamps. No unverified editorial times.
+- PR #211: combined production-backend lineage + **exact** V7 Worker source tree, explicit Director-only POST `/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview`, read-only capability/latest, separate `confirmPaidCpuRender`, creation audit, release feature flag default false, pinned 40-hex Worker source, selected Take/revision/fingerprint/alignment rechecks, immutable lineage, render dedup, protected worker claim and selected voice mux. Worker claims SHOT03 only if `MEDIA_OS_REMOTION_TARGET_COMPOSITION=EP002-SHOT03-CANDIDATE`, unlike currently active SHOT02. No automatic queue, provider TTS or audio regeneration.
+- New Director panel under EP002 Approval: current Take timing readiness, exact-pinned-Worker capability, one-confirmation paid render request, progress, Render ID, MP4 review URL. Video completion is NOT final visual acceptance.
+- Worker Tier++ source preflight verifies source SHA, 1920×1080/30fps, 5 contiguous beats, 11 ordered true-spoken terms, no unauthorized 60-frame hold. The real output must pass `probeFactoryMedia` on H.264/AAC/30fps and separate dimensions/duration before a Director visually reviews it.
+
+## Verifications performed
+- 9/9 V8 runtime assertions on actual GitHub `tier-plus-plus-render-quality.mjs` module passed using **synthetic fixture**: valid preflight and rejection of wrong SHA, dimensions, empty voice ID, missing/reversed terms, unapproved end hold, missing/reversed beats. NOT a production selected Take test or Remotion build.
+- Compared five protected SHOT02 V7 component files against Worker `d6b19101c41c809d2ede4bdf0db42119362d498c`: identical Git blob hashes; protected Director-LOCKED video and source never rewritten for SHOT03. Diff against separately deployed Backend source naturally includes V7 file restorations; reviewers must compare against V7 Worker, not treat this as SHOT02 creative revision.
+- Source-based audit of security defaults, Worker routing, required cue gate and new visual tests. Java 21 Maven/PostgreSQL suite, frontend TypeScript/Vite, and full Node/Remotion bundle **NOT EXECUTED**. No media file generated, no new paid service operation and no deployment performed.
+
+## Fail-closed release gates
+1. Run independent exact-SHA Java21 + PostgreSQL tests, npm/Node tests, full TypeScript/Vite and Remotion bundle checks, and fix any compile/runtime failures.
+2. Release only from one reviewed Git SHA containing Backend and Worker; preserve V7 SHOT02 source hashes and approved V7 MP4. Check current production Worker's SHOT02-only auto-claim policy and enforce global concurrency=1.
+3. Director verifies actual SHOT03 `render-readiness.ready` and selected Take/real 11-term frame map after controlled Backend release (not just HTTP 200 for Verify).
+4. Do not switch production Worker target to SHOT03, deploy a new service or activate paid render without explicit Director approval and exact source-pinned release gate. Do not re-attempt UNCERTAIN voice requests.
+5. Only after the UI confirms one separately approved CPU render, inspect the actual render ID, Worker receipts, ffprobe H.264/AAC/30fps/1920×1080/duration, framing, camera behavior and audio/visual synchronization. Director alone may LOCK SHOT03.
+
+## Next action
+Controlled test/build of combined PR #211, followed by explicitly approved source-SHA-pinned Railway Backend/Worker rollout. Then Director can initiate one SHOT03 render through MediaOS. Preserve PR #208/#209/#211 as Draft pending review and checks; do not auto-merge the stacked dependency branches.
