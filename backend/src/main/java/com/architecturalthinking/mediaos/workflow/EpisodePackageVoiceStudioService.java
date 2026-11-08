@@ -352,7 +352,8 @@ public class EpisodePackageVoiceStudioService {
                 +("audio/wav".equals(audio.contentType())?".wav":".mp3");
         String alignment;
         try {
-            Map<String,Object> provenance=new LinkedHashMap<>(audio.alignmentResponse());
+            Map<String,Object> provenance=new LinkedHashMap<>(audio.alignmentResponse()==null
+                    ?Map.of():audio.alignmentResponse());
             provenance.put("mediaos_delivery_mode",deliveryMode);
             provenance.put("mediaos_spoken_script_sha256",
                     EpisodePackageValidator.sha256(request.narration()));
