@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {AudioLines,CheckCircle2,RotateCcw} from 'lucide-react';
+import {suggestEp002VoiceCueAnchors} from '../lib/ep002VoiceCueAnchors';
 
 type Beat={number:number;direction:string};
 type Shot={shotKey:string;title:string;beatCount:number;narration:string;
@@ -12,13 +13,6 @@ type Reviewed={shotKey:string;inputFingerprint:string;selectedTakeId:string|null
   narrationRevision:number;requiredBeatCount:number;anchors:string[];
   frames:Cue[];verified:boolean;reason:string};
 const BASE='/api/v1/creative/episodes/EP002';
-
-function suggestion(direction:string,narration:string):string {
-  const match=direction.match(/(?:At|On|on)\s+[\x60“"]([^\x60”"]+)[\x60”"]/);
-  const text=match?.[1]?.trim()??'';
-  const clean=(x:string)=>x.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  return text.length>=3&&clean(narration).includes(clean(text))?text:'';
-}
 
 export function Ep002DirectorVoiceCuePanel(){
   const [plan,setPlan]=useState<Bridge|null>(null);
@@ -45,7 +39,8 @@ export function Ep002DirectorVoiceCuePanel(){
       setPlan(bridge);setReview(saved);
       const selected=bridge.shots.find(x=>x.shotKey===shot);
       setAnchors(saved.verified?saved.anchors:
-        selected?.approvedVisualStory.beats.map(b=>suggestion(b.direction,selected.narration))??[]);
+        selected?suggestEp002VoiceCueAnchors(shot,selected.narration,
+          selected.approvedVisualStory.beats):[]);
     }).catch(e=>{if(active){setError(String(e));setReview(null);}})
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
@@ -117,6 +112,15 @@ export function Ep002DirectorVoiceCuePanel(){
         <summary>Current narration — select spoken phrases from this text</summary>
         <p>{current.narration}</p>
       </details>
+      {!review.verified&&<p className="library-note">
+        MediaOS has automatically suggested {anchors.filter(value=>value.trim()).length}
+        {' '}of {current.beatCount} spoken phrases from the current saved narration.
+        These are drafts, not proof of the selected Take's audio. Listen and review
+        before confirming; the server must still validate real ElevenLabs timestamps.
+        {shot==='SHOT03'&&<> SHOT03 timing note: throughput is spoken before
+          six hundred and fifty, so the first beat establishes database completions;
+          the third beat highlights arrival rate while keeping throughput visible.</>}
+      </p>}
       <div className="library-episode-batch-shots">
         {current.approvedVisualStory.beats.map((beat,i)=>
           <div key={beat.number} className="library-episode-batch-shot">
