@@ -28,6 +28,7 @@ public class Ep002EpisodeBatchPlanService {
     private final ObjectMapper mapper;
     private final JsonNode scripts;
     private final JsonNode visuals;
+    private final JsonNode recoveryVisuals;
 
     record Script(int revision, String narration) {}
     record Voice(UUID takeId, BigDecimal measuredSeconds, boolean hasAlignment) {}
@@ -61,12 +62,14 @@ public class Ep002EpisodeBatchPlanService {
         this.mapper = mapper;
         try {
             this.scripts = mapper.readTree(
-                    new ClassPathResource("episode-production/ep002-locked-script-v4.json").getInputStream());
+                    new ClassPathResource(Ep002RecoverySource.SCRIPT_PATH).getInputStream());
             this.visuals = mapper.readTree(
                     new ClassPathResource("episode-production/ep002-approved-visual-source.json").getInputStream());
         } catch (IOException ex) {
             throw new IllegalStateException("EP002 approved batch sources cannot be loaded.", ex);
         }
+        this.recoveryVisuals=Ep002RecoverySource.load(mapper,Ep002RecoverySource.VISUAL_PATH);
+        Ep002RecoverySource.verify(scripts,visuals,recoveryVisuals);
         if (!"EP002".equals(scripts.path("episodeKey").asText())
                 || !"EP002".equals(visuals.path("episodeKey").asText())
                 || !"DIRECTOR_LOCKED".equals(scripts.path("directorFullScriptStatus").asText())
@@ -92,7 +95,7 @@ public class Ep002EpisodeBatchPlanService {
 
         for (int index = 0; index < 11; index++) {
             JsonNode source = scripts.path("shots").path(index);
-            JsonNode visual = visuals.path("shots").path(index);
+            JsonNode visual = Ep002RecoverySource.visual(visuals,recoveryVisuals,index);
             String key = String.format(java.util.Locale.ROOT, "SHOT%02d", index + 1);
             if (!key.equals(source.path("shotKey").asText())
                     || !key.equals(visual.path("shotKey").asText())) {
