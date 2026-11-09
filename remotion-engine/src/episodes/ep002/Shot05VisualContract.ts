@@ -20,10 +20,11 @@ export const SHOT05_TERM_ORDER:readonly Shot05TermId[]=[
 ] as const;
 export const SHOT05_TEXT_AREAS={
   brand:{left:75,top:38,width:370,height:40},
-  heading:{left:260,top:92,width:1100,height:118},
-  pool:{left:322,top:246,width:1240,height:510},
-  queue:{left:318,top:775,width:1265,height:88},
-  footer:{left:321,top:900,width:1250,height:94},
+  heading:{left:278,top:110,width:1100,height:70},
+  pool:{left:280,top:218,width:1240,height:535},
+  queue:{left:282,top:795,width:1236,height:96},
+  explainers:{left:282,top:903,width:1236,height:109},
+  phone:{left:1555,top:710,width:205,height:300},
 } as const satisfies Record<string,Rect>;
 const clamp=(v:number)=>Number.isFinite(v)?Math.max(0,Math.min(1,v)):0;
 export const shot05Ease=(frame:number,start:number,length:number):number=>{
@@ -119,7 +120,9 @@ export function assertShot05SafeLayout(){
       throw Error('SHOT05_SAFE_AREA_INVALID_'+name);
   }
   const heading=SHOT05_TEXT_AREAS.heading;
-  const phone:Rect={left:1589,top:741,width:254,height:255};
+  const phone:Rect=SHOT05_TEXT_AREAS.phone;
+  if(shot02Intersects(SHOT05_TEXT_AREAS.explainers,phone,22))
+    throw Error('SHOT05_SPOKEN_EXPLAINERS_PHONE_COLLISION');
   if(shot02Intersects(heading,phone,30))
     throw Error('SHOT05_PHONE_HEADER_COLLISION');
   const auth=SHOT02_NODES.auth;
