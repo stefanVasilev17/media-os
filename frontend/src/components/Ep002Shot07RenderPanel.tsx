@@ -25,16 +25,19 @@ export function Ep002Shot07RenderPanel(){
   useEffect(()=>{
     let mounted=true;
     setError('');
-    void Promise.all([
-      fetch(BASE+'/voice-cue-review/SHOT07/render-readiness',{cache:'no-store'}),
-      fetch(PREVIEW+'/capability',{cache:'no-store'}),
-      fetch(PREVIEW,{cache:'no-store'}),
-    ]).then(async responses=>{
-      for(const response of responses){
-        if(!response.ok)throw Error('SHOT07 read-only preflight HTTP '+response.status);
-      }
-      return Promise.all(responses.map(r=>r.json()));
-    }).then(values=>{
+    const endpoints=[
+      BASE+'/voice-cue-review/SHOT07/render-readiness',
+      PREVIEW+'/capability',
+      PREVIEW,
+    ];
+    void Promise.all(endpoints.map(url=>fetch(url,{cache:'no-store'})))
+      .then(async responses=>{
+        for(const [index,response] of responses.entries()){
+          if(!response.ok)throw Error('SHOT07 read-only preflight '+endpoints[index]+
+            ' HTTP '+response.status);
+        }
+        return Promise.all(responses.map(r=>r.json()));
+      }).then(values=>{
       if(!mounted)return;
       setReadiness(values[0] as Readiness);
       setCapability(values[1] as Capability);
