@@ -3,7 +3,7 @@ WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund --prefer-offline
 COPY frontend/ ./
-RUN npx vitest run src/components/Ep002LockedCutReviewRoom.test.ts src/lib/ep002VoiceCueAnchors.test.ts
+RUN npx vitest run src/components/Ep002LockedCutReviewRoom.test.ts src/lib/ep002VoiceCueAnchors.test.ts src/lib/episodeProductionLibrary.test.ts
 RUN npm run build
 
 FROM maven:3.9-eclipse-temurin-21 AS backend-build
