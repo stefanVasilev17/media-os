@@ -103,7 +103,7 @@ test('Request A and Request B callouts stay outside connection pool without any 
   assert.ok(lookupCallout.top+lookupCallout.height+24<meaning.top);
   assert.match(scene,/left:1550,top:476/);
   assert.match(scene,/opacity:notStarted\*\(1-B\)/);
-  assert.match(scene,/opacity:B,transform:'translateY'/);
+  assert.match(scene,/opacity:B,transform:'translateY\('/);
   assert.match(scene,/REQUEST A · DB LOOKUP NOT STARTED/);
   assert.match(scene,/REQUEST B · DB LOOKUP MAY STILL RUN/);
   assert.doesNotMatch(scene,/right:28,top:109/);
