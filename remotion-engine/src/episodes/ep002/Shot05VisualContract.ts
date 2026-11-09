@@ -24,7 +24,7 @@ export const SHOT05_TEXT_AREAS={
   pool:{left:280,top:218,width:1240,height:535},
   queue:{left:282,top:795,width:1236,height:96},
   explainers:{left:282,top:903,width:1236,height:109},
-  phone:{left:1555,top:710,width:205,height:300},
+  phone:{left:1580,top:710,width:165,height:270},
 } as const satisfies Record<string,Rect>;
 const clamp=(v:number)=>Number.isFinite(v)?Math.max(0,Math.min(1,v)):0;
 export const shot05Ease=(frame:number,start:number,length:number):number=>{
