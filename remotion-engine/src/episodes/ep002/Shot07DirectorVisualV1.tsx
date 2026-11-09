@@ -132,7 +132,7 @@ export const Shot07DirectorVisualV1:React.FC<Shot07SceneProps>=(props)=>{
         showPhone={1} showPools={0} initialPressure
         showLoginBadge={shot07Ease(frame,cue.ACCOUNT_LOOKUP,30)}
         showRetryAttempts={shot07Ease(frame,cue.AUTH_RETRY,27)}/>
-      <div style={{position:'absolute',left:80,top:78,
+      <div style={{position:'absolute',left:560,top:78,
         fontFamily:AT_FONT,color:WHITE,zIndex:23,opacity:reveal}}>
         <div style={{fontSize:39,fontWeight:890,letterSpacing:'-.02em'}}>
           WHEN RETRYING CREATES MORE FAILURE
