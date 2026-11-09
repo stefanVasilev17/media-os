@@ -41,10 +41,9 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   const growth=clamp(replicaGrowth);
   const dbWave=cascadeStartFrame>=0
     ?shot07Ease(frame,cascadeStartFrame,32)*(.5+.5*Math.sin((frame-cascadeStartFrame)*.13)**2)
-    :initialPressure?.33:0;
+    :initialPressure ? .33 : 0;
   const dbGlow=.12+.36*clamp(dbStress)+.27*dbWave;
   const replicas=['AUTH 01','AUTH 02','AUTH 03','AUTH 04','AUTH 05','AUTH 06'];
-  const starting=[0,1,2];
   return <AbsoluteFill style={{pointerEvents:'none'}}>
     <ATControlledRealismLayer frame={frame+2400} realism={.85} architectureReveal={.96}/>
     <svg width="1920" height="1080" viewBox="0 0 1920 1080"
