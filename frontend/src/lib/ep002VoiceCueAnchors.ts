@@ -25,6 +25,14 @@ export function uniqueSpokenPhrase(narration:string,phrase:string):PhraseMatch|n
   return found;
 }
 
+const SHOT05_CUE_PHRASES=[
+  ['database connection pool'],
+  ['up to eight'],
+  ['replay the last few moments'],
+  ['connection pool exhaustion'],
+  ['in-flight requests'],
+] as const;
+
 const SHOT03_CUE_PHRASES=[
   ['five hundred'],
   ['six hundred and fifty new Login requests','six hundred and fifty'],
@@ -44,8 +52,10 @@ export function suggestEp002VoiceCueAnchors(
 ):string[] {
   let previousEnd=-1;
   return beats.map((beat,index)=>{
-    const options=shotKey==='SHOT03'&&beats.length===5
-      ? [...SHOT03_CUE_PHRASES[index]] : fromDirection(beat.direction);
+    const options=shotKey==='SHOT05'&&beats.length===5
+      ? [...SHOT05_CUE_PHRASES[index]]
+      :shotKey==='SHOT03'&&beats.length===5
+        ? [...SHOT03_CUE_PHRASES[index]] : fromDirection(beat.direction);
     for(const phrase of options){
       const found=uniqueSpokenPhrase(narration,phrase);
       if(found&&found.start>previousEnd){

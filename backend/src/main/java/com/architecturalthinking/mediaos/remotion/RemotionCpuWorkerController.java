@@ -70,8 +70,10 @@ public class RemotionCpuWorkerController {
         if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)
                 && !"EP002-SHOT03-CANDIDATE".equals(scope)
                 && !"EP002-SHOT04-CANDIDATE".equals(scope)
+                && !"EP002-SHOT05-CANDIDATE".equals(scope)
                 && !"EP002-DIRECTOR-SHOT02-SHOT03".equals(scope)
-                && !"EP002-DIRECTOR-SHOT02-SHOT03-SHOT04".equals(scope)) {
+                && !"EP002-DIRECTOR-SHOT02-SHOT03-SHOT04".equals(scope)
+                && !"EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05".equals(scope)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unsupported target composition for scoped CPU claim.");
         }
@@ -85,7 +87,7 @@ public class RemotionCpuWorkerController {
                     error='EP002 preview interrupted after worker heartbeat timeout. No automatic retry.',
                     finished_at=now(), updated_at=now()
                 where project_id=:projectId
-                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE')
+                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -98,7 +100,7 @@ public class RemotionCpuWorkerController {
                     error='Recovered stale CPU render after worker heartbeat timeout.',
                     claimed_at=null, started_at=null, updated_at=now()
                 where project_id=:projectId
-                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE')
+                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -119,14 +121,24 @@ public class RemotionCpuWorkerController {
                     or (:targetComposition='EP002-DIRECTOR-SHOT02-SHOT03-SHOT04'
                        and composition_id in ('EP002-SHOT02-CANDIDATE',
                                               'EP002-SHOT03-CANDIDATE',
-                                              'EP002-SHOT04-CANDIDATE')))
+                                              'EP002-SHOT04-CANDIDATE'))
+                    or (:targetComposition='EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05'
+                       and composition_id in ('EP002-SHOT02-CANDIDATE',
+                                              'EP002-SHOT03-CANDIDATE',
+                                              'EP002-SHOT04-CANDIDATE',
+                                              'EP002-SHOT05-CANDIDATE')))
                   and (composition_id<>'EP002-SHOT03-CANDIDATE'
                     or :targetComposition in ('EP002-SHOT03-CANDIDATE',
                                                'EP002-DIRECTOR-SHOT02-SHOT03',
-                                               'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04'))
+                                               'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
+                                                'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05'))
                   and (composition_id<>'EP002-SHOT04-CANDIDATE'
                     or :targetComposition in ('EP002-SHOT04-CANDIDATE',
-                                               'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04'))
+                                               'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
+                                                'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05'))
+                  and (composition_id<>'EP002-SHOT05-CANDIDATE'
+                    or :targetComposition in ('EP002-SHOT05-CANDIDATE',
+                                               'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05'))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
@@ -134,7 +146,7 @@ public class RemotionCpuWorkerController {
                                     and cap.source_commit=:sourceSha
                                     and cap.build_checked=true
                                     and cap.last_heartbeat_at>now()-interval '120 seconds')))
-                  and (composition_id not in ('EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE')
+                  and (composition_id not in ('EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE')
                     or (input_props->>'expectedSourceCommit'=:sourceSha
                       and length(:sourceSha)=40
                       and :sourceSha !~ '[^a-f0-9]'))
@@ -236,6 +248,29 @@ public class RemotionCpuWorkerController {
             }
         }
 
+        if ("EP002-SHOT05-CANDIDATE".equals(work.get("compositionId"))) {
+            Object rawProps=work.get("inputProps");
+            Map<?,?> props=rawProps instanceof Map<?,?> map ? map : Map.of();
+            Object revision=props.get("scriptRevision");
+            int frames=(int)work.get("durationInFrames");
+            boolean current=revision instanceof Number number && ep002Cues!=null
+                    &&ep002Cues.matchesCurrentShot05Render(
+                        String.valueOf(props.get("inputFingerprint")),
+                        String.valueOf(props.get("voiceTakeId")),
+                        number.intValue(),frames);
+            if(!current){
+                jdbc.sql("""
+                    update remotion_render
+                    set status='FAILED',progress=0,
+                        error='SHOT05_SOURCE_VOICE_OR_CUES_STALE_BEFORE_CPU_CLAIM',
+                        finished_at=now(),updated_at=now()
+                    where id=:id and project_id=:project and status='QUEUED'
+                    """)
+                    .param("id",work.get("renderId")).param("project",PROJECT_ID).update();
+                return ResponseEntity.noContent().build();
+            }
+        }
+
         UUID renderId = (UUID) work.get("renderId");
         jdbc.sql("""
                 update remotion_render
@@ -276,11 +311,12 @@ public class RemotionCpuWorkerController {
                   and t.shot_key=case when r.composition_id='EP002-SHOT02-CANDIDATE'
                         then 'SHOT02' when r.composition_id='EP002-SHOT03-CANDIDATE'
                         then 'SHOT03' when r.composition_id='EP002-SHOT04-CANDIDATE'
-                        then 'SHOT04' else 'SHOT01' end
+                        then 'SHOT04' when r.composition_id='EP002-SHOT05-CANDIDATE'
+                         then 'SHOT05' else 'SHOT01' end
                   and t.revision::text=r.input_props->>'scriptRevision'
                 where r.id=:render and r.project_id=:project
                   and r.composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
-                                          'EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE')
+                                          'EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE')
                   and r.status='RUNNING' and r.worker_id=:worker
                   and t.revision=(
                     select max(s.revision) from ep002_creative_script_revision s
@@ -304,14 +340,16 @@ public class RemotionCpuWorkerController {
                           when r.composition_id='EP002-SHOT03-CANDIDATE'
                           then 'EP002_SHOT03'
                           when r.composition_id='EP002-SHOT04-CANDIDATE'
-                          then 'EP002_SHOT04' else 'EP002_SHOT02' end
+                          then 'EP002_SHOT04' when r.composition_id='EP002-SHOT05-CANDIDATE'
+                           then 'EP002_SHOT05' else 'EP002_SHOT02' end
                       and exists(
                         select 1 from ep002_director_voice_cue_review review
                         where review.shot_key=case
                             when r.composition_id='EP002-SHOT03-CANDIDATE'
                             then 'SHOT03'
                             when r.composition_id='EP002-SHOT04-CANDIDATE'
-                            then 'SHOT04' else 'SHOT02' end
+                            then 'SHOT04' when r.composition_id='EP002-SHOT05-CANDIDATE'
+                             then 'SHOT05' else 'SHOT02' end
                           and review.selected_take_id=t.id
                           and review.script_revision=t.revision
                           and review.narration_sha256=t.narration_sha256
@@ -339,6 +377,15 @@ public class RemotionCpuWorkerController {
                                     rs.getInt("duration_frames"));
                         if(!current)throw new ResponseStatusException(HttpStatus.CONFLICT,
                                 "SHOT04 selected Take or Director voice cues changed during render.");
+                    }
+                    if ("EP002-SHOT05-CANDIDATE".equals(rs.getString("composition_id"))) {
+                        boolean current=ep002Cues!=null
+                                &&ep002Cues.matchesCurrentShot05Render(
+                                    rs.getString("fingerprint"),rs.getString("take_id"),
+                                    Integer.parseInt(rs.getString("script_revision")),
+                                    rs.getInt("duration_frames"));
+                        if(!current)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                                "SHOT05 selected Take or Director voice cues changed during render.");
                     }
                     if ("EP002-SHOT02-CANDIDATE".equals(rs.getString("composition_id"))) {
                         Map<String,Object> input=readMap(rs.getString("input_props_json"));

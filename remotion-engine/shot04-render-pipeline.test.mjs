@@ -41,7 +41,7 @@ test('SHOT04 selected Take is revalidated before CPU claim and voice mux',()=>{
   assert.match(worker,/EP002-DIRECTOR-SHOT02-SHOT03-SHOT04/);
   assert.match(worker,/r\.input_props->>'shotKey'=case/);
   assert.match(worker,/then 'EP002_SHOT04'/);
-  assert.match(worker,/then 'SHOT04' else 'SHOT02' end/);
+  assert.match(worker,/then 'SHOT04' when r\.composition_id='EP002-SHOT05-CANDIDATE'/);
   assert.match(worker,/SHOT04 selected Take or Director voice cues changed during render/);
   const service=workflow('Ep002DirectorVoiceCueService.java');
   assert.match(service,/shot04RenderReadiness\(\)/);
