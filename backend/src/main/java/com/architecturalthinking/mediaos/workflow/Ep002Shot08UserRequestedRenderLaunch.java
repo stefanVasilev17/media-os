@@ -109,6 +109,32 @@ public class Ep002Shot08UserRequestedRenderLaunch implements ApplicationRunner {
                     .param("visual",Ep002RecoverySource.RECOVERY_VISUAL_BLOB_SHA)
                     .param("fingerprint",ready.inputFingerprint())
                     .param("render",id).param("worker",workerSha).update();
+            jdbc.sql("""
+                    select r.status, r.progress, r.composition_id,
+                           r.input_props->>'expectedSourceCommit' as props_source,
+                           r.input_props->>'voiceTakeId' as props_take,
+                           r.input_props->>'shotKey' as props_shot,
+                           r.input_props->>'durationInFrames' as props_frames,
+                           r.profile,
+                           exists(
+                             select 1 from remotion_render q
+                             where q.id=r.id and q.status='QUEUED'
+                               and q.composition_id='EP002-SHOT08-CANDIDATE'
+                               and q.input_props->>'expectedSourceCommit'=:workerSha
+                           ) as eligible_for_worker
+                    from remotion_render r where r.id=:renderId
+                    """)
+                    .param("renderId",id)
+                    .param("workerSha",workerSha)
+                    .query((rs,n)->{
+                        log.info("SHOT08_QUEUE_DIAGNOSTIC renderId={} status={} progress={} composition={} sourceSha={} takeMatches={} shot={} frames={} profile={} eligibleForWorker={}",
+                                id,rs.getString("status"),rs.getInt("progress"),
+                                rs.getString("composition_id"),rs.getString("props_source"),
+                                ready.voiceTakeId().equals(rs.getString("props_take")),
+                                rs.getString("props_shot"),rs.getString("props_frames"),
+                                rs.getString("profile"),rs.getBoolean("eligible_for_worker"));
+                        return Boolean.TRUE;
+                    }).optional();
             log.info("SHOT08_CHAT_DIRECTOR_USER_REQUEST_RENDER_QUEUED renderId={} voiceTakeId={} frames={} workerSha={} realBeats=6 realTerms=21",
                     id,ready.voiceTakeId(),ready.durationInFrames(),workerSha);
         }catch(Exception problem){
