@@ -30,18 +30,40 @@ export const shot05Ease=(frame:number,start:number,length:number):number=>{
   const t=clamp((frame-start)/Math.max(1,length));
   return t*t*(3-2*t);
 };
+export const shot05ReturnFrame=(terms:Record<Shot05TermId,number>):number=>
+  terms.BORROWS_ONE+Math.max(24,Math.floor((terms.REPLAY-terms.BORROWS_ONE)*.42));
+
 export const shot05ReplayBusy=(frame:number,terms:Record<Shot05TermId,number>):number=>{
   const r=terms.REPLAY,one=terms.ONE_BUSY,five=terms.FIVE_BUSY;
   const seven=terms.SEVEN_BUSY,eight=terms.EIGHT_BUSY;
   if(!(r<one&&one<five&&five<seven&&seven<eight))
     throw Error('SHOT05_REAL_SPOKEN_REPLAY_ORDER_INVALID');
-  if(frame<r)return frame>=terms.BORROWS_ONE?1:0;
-  if(frame<one)return Math.max(1,8-Math.floor(7*shot05Ease(frame,r,Math.max(1,one-r-3))));
+  if(frame<terms.BORROWS_ONE)return 0;
+  if(frame<r)return frame>=shot05ReturnFrame(terms)?0:1;
+  if(frame<one)return 0;
   if(frame<five)return 1;
   if(frame<seven)return 5;
   if(frame<eight)return 7;
   return 8;
 };
+
+export const shot05SlotFill=(
+  frame:number,index:number,terms:Record<Shot05TermId,number>,
+):number=>{
+  if(!Number.isInteger(index)||index<0||index>7)
+    throw Error('SHOT05_POOL_INDEX_OUT_OF_BOUNDS');
+  if(index===0&&frame<terms.REPLAY){
+    return shot05Ease(frame,terms.BORROWS_ONE,18)*
+      (1-shot05Ease(frame,shot05ReturnFrame(terms),20));
+  }
+  if(frame<terms.REPLAY)return 0;
+  const activation=index===0?terms.ONE_BUSY
+    :index<=4?terms.FIVE_BUSY+(index-1)*4
+      :index<=6?terms.SEVEN_BUSY+(index-5)*5
+        :terms.EIGHT_BUSY;
+  return shot05Ease(frame,activation,18);
+};
+
 export const shot05QueueDepth=(frame:number,terms:Record<Shot05TermId,number>):number=>{
   if(frame<terms.ANOTHER_LOGIN)return 0;
   return Math.min(7,1+Math.floor(Math.max(0,frame-terms.ANOTHER_LOGIN)/47));
