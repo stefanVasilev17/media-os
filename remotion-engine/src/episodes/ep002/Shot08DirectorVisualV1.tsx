@@ -78,7 +78,7 @@ export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
       </div>
       <Captions frame={frame} cue={cue} duration={props.durationInFrames}/>
       {conclusion>.03&&<div style={{position:'absolute',
-        left:560,top:960,width:1200,height:54,zIndex:25,
+        left:560,top:969,width:1200,height:54,zIndex:25,
         fontFamily:AT_FONT,fontSize:21,fontWeight:780,
         color:'#F8DDBB',opacity:conclusion}}>
         SIX AUTH REPLICAS CAN SHARE WORK · THEY CANNOT INCREASE DATABASE CAPACITY
