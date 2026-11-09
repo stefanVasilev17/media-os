@@ -465,7 +465,8 @@ public class RemotionCpuWorkerController {
                             then 'EP002_SHOT06' when r.composition_id='EP002-SHOT07-CANDIDATE'
                             then 'EP002_SHOT07' when r.composition_id='EP002-SHOT08-CANDIDATE'
                             then 'EP002_SHOT08' else 'EP002_SHOT02' end
-                      and exists(
+                      and (r.composition_id='EP002-SHOT08-CANDIDATE'
+                        or exists(
                         select 1 from ep002_director_voice_cue_review review
                         where review.shot_key=case
                             when r.composition_id='EP002-SHOT03-CANDIDATE'
@@ -480,7 +481,7 @@ public class RemotionCpuWorkerController {
                           and review.script_revision=t.revision
                           and review.narration_sha256=t.narration_sha256
                           and review.episode_fingerprint=r.input_props->>'inputFingerprint'
-                      )))
+                      ))))
                 """)
                 .param("render",renderId).param("project",PROJECT_ID)
                 .param("worker",workerId.trim())
