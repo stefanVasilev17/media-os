@@ -42,28 +42,30 @@ test('SHOT07 visual contract needs current real selected Take and fifteen ordere
     /SHOT07_FIVE_DIRECTOR_BEATS_INVALID/);
 });
 
-test('SHOT07 opens with protected SHOT06 final state and transitions to original architecture map',()=>{
+test('SHOT07 crossfades from protected SHOT06 and keeps the same clean world into SHOT08',()=>{
   assert.match(scene,/const FrozenShot06End/);
   assert.match(scene,/<FrozenShot06End frame=\{frame\} fade=\{transition\}/);
   assert.match(scene,/Shot06LockedSlot/);
-  assert.match(scene,/Shot05Shot04WorldV2/);
+  assert.match(scene,/Shot07CleanArchitectureWorld/);
   assert.match(scene,/shot07Ease\(frame,36,102\)/);
   assert.match(scene,/THE DEADLINE EXPIRES/);
   assert.match(scene,/Please try again\./);
-  assert.doesNotMatch(scene,/IF STOPPED → RESOURCES AVAILABLE SOONER/);
   assert.doesNotThrow(()=>c.assertShot07SafeLayout());
 });
 
-test('SHOT07 visually separates same-login retry from new arrivals and does not promise cancellation',()=>{
-  assert.match(scene,/SAME ACTIVE LOGIN/);
-  assert.match(scene,/ATTEMPT 1/);
-  assert.match(scene,/ATTEMPT 2/);
-  assert.match(scene,/NEW LOGIN ARRIVALS/);
-  assert.match(scene,/ACCOUNT LOOKUP ATTEMPTS/);
-  assert.match(scene,/STABLE/);
-  assert.match(scene,/RISING/);
-  assert.match(scene,/first lookup may still run/i);
-  assert.match(scene,/READ-ONLY LOOKUP RETRY ONLY · ACTIVE LOGIN/);
+test('SHOT07 V2 removes six Director-rejected visual elements without changing voice',()=>{
+  const world=src('Shot07CleanArchitectureWorld.tsx');
+  assert.match(world,/Shot02PressurePhone/);
+  assert.match(world,/showPhone/);
+  assert.match(world,/top:215,width:338/);
+  assert.match(world,/SAME ACTIVE LOGIN/);
+  assert.match(world,/ATTEMPT 1/);
+  assert.match(world,/ATTEMPT 2/);
+  assert.match(world,/User Database/);
+  assert.match(world,/cascadeStartFrame\+44\+row\*24/);
+  assert.doesNotMatch(scene,/NewAttemptPath|RateMeters|NEW LOGIN ARRIVALS|ACCOUNT LOOKUP ATTEMPTS/);
+  assert.doesNotMatch(scene,/READ-ONLY LOOKUP RETRY ONLY · ACTIVE LOGIN/);
+  assert.doesNotMatch(world,/shot02CubicPoint|SHOT02_LOGIN_PARTICLE|strokeDasharray/);
   assert.doesNotMatch(scene,/Retry the full Login|CANCELLATION SUCCEEDED|DATABASE OFFLINE/);
 });
 
