@@ -5,6 +5,14 @@
 > **Status class:** verified repository/deployment facts + explicitly labeled Director reports; not an automatically refreshed live dashboard.  
 > **How to use:** read this file, then `AGENTS.md`, the latest linked roadmap/handoff, and verify live GitHub/Railway evidence **before** modifying code. A newer merged PR or deployment can supersede this snapshot.
 
+## EP002 SHOT05 — ending Phone overlap corrected; source DEPLOYED, new MP4 pending (2026-11-09)
+
+Director's only additional request after SHOT05 V2 review: move the final Phone a little right so it no longer overlaps the Request Queueing / In-Flight Requests explanation window. In the SHOT05 candidate, the **original `Shot02PressurePhone` wrapper** X translation changed **1240px → 1320px** (+80px). All Y, size, timing, voice, graphics, cinematic transition and existing SHOT02/03/04 locked sources are unchanged. Updated only three SHOT05 files: scene, safe-area contract, and new regression test guaranteeing >=55px horizontal gap and no out-of-frame phone.
+
+**Exact new production SHA:** `86353dac288471dd6a506d26951f7f6c7e1b7093`, implementation [Draft PR #225](https://github.com/stefanVasilev17/media-os/pull/225). **Worker deploy** `840ac214-338c-428f-bd63-85f037274f69` SUCCESS/ONLINE; **120/120 Node tests PASS**, no new TypeScript diagnostics, Remotion main and Factory bundles PASS, worker capability registered exact new SHA. **Backend deploy** `0094495a-deeb-40d3-8596-99bea673ec20` SUCCESS/ONLINE, exact new SHA with `MEDIAOS_SHOT05_RELEASE_WORKER_SHA` pinned; healthcheck passed. Railway environment shows 0 warnings and 0 critical issues for both.
+
+**Render status:** SHOT05 newer visual code is now production-ready, but there is **no confirmed new MP4** incorporating this last change. A prior SHOT05 MP4 is not current. Existing approved Slow Natural Take `78961ce3-3ae5-43fe-a897-3a69532459b9` remains untouched. A new paid CPU render is gated by the authenticated Director UI's explicit confirmation, no service credential bypass. Do not Director-LOCK this version without actual visual review.
+
 ## EP002 SHOT05 Director Revision V2 — Visual Corrections DEPLOYED; MP4 requires Director render (2026-11-09)
 
 **Director corrections:** The earlier SHOT05 approximated the visual world of locked SHOT02/03/04, overlapped the Phone during the Auth zoom, abruptly toggled Available/In Use, and showed redundant labels. All four problems were corrected in the SHOT05-only implementation. See [Draft PR #225](https://github.com/stefanVasilev17/media-os/pull/225), exact source SHA **337b64d1bdc53c9976e544d24ea3d6ab2128c510**.
