@@ -11,7 +11,7 @@
 - Remove redundant/disconnected floating explanatory banners. Every caption must add distinct engineering understanding; the removed `IF STOPPED → RESOURCES AVAILABLE SOONER` must not return. Preserve the factual nuance: an in-flight DB operation **may** continue after a caller timeout, and cancellation frees resources sooner **only if honored**.
 - Retain approved voice-cue onsets, readable holds, visual continuity and existing protected SHOTs; source-code tests and passing bundles do not replace a real approved MP4.
 
-**Proof and memory:** `PROJECT_STATE.md` newest section; `docs/visual/CODEX_VISUAL_LESSONS_LEDGER.md` `AT-VIS-0002`; `docs/visual/AT_REMOTION_VISUAL_CONSTITUTION_V1.md`; [SHOT06 PR #231](https://github.com/stefanVasilev17/media-os/pull/231). SHOT07 Beat 1 and Beat 3 draft anchors are `Auth 01 tries again` and `New Login traffic hasn’t increased, but database attempts have`; they are not verified timings or authorization to lock without genuine selected-Take review.
+**Proof and memory:** `PROJECT_STATE.md` newest section; [accepted visual lesson AT-VIS-0002](docs/visual/EP002_SHOT06_V2_DIRECTOR_LOCKED_VISUAL_LESSONS_20261109.md); [SHOT06 PR #231](https://github.com/stefanVasilev17/media-os/pull/231). Do not rely on an unmerged feature-branch visual constitution/ledger being present on default main. SHOT07 Beat 1 and Beat 3 draft anchors are `Auth 01 tries again` and `New Login traffic hasn’t increased, but database attempts have`; they are not verified timings or authorization to lock without genuine selected-Take review.
 
 ## SHOT06 Director V2 — external A/B status messages; protected production rules (2026-11-09)
 
