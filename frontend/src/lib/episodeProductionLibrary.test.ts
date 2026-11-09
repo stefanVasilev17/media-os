@@ -11,15 +11,22 @@ describe('read-only production source library', () => {
     expect(ep001.historicalNotice).toContain('16-shot');
   });
 
-  it('shows eleven unmodified creative-LOCKED EP002 narration shots', () => {
+  it('preserves original seven SHOTs and applies approved recovery v5 to SHOT08-11', () => {
     expect(ep002.shots).toHaveLength(11);
     expect(ep002.shots.map(shot=>shot.shotKey)).toEqual(
       Array.from({length:11},(_,i)=>'SHOT'+String(i+1).padStart(2,'0'))
     );
     expect(ep002.shots.every(shot=>shot.scriptStatus==='DIRECTOR_LOCKED')).toBe(true);
-    expect(ep002.shots.reduce((n,shot)=>n+shot.wordCount,0)).toBe(1948);
+    expect(ep002.shots.reduce((n,shot)=>n+shot.wordCount,0)).toBe(1804);
+    expect(ep002.shots.slice(7).map(shot=>shot.title)).toEqual([
+      'Stop the Retry Storm','Protect the Shared Database',
+      'Prove the Recovery','Healthy Is Not the Same as Available',
+    ]);
+    expect(ep002.shots[7].englishNarration).not.toContain('Three Auth servers become six');
     expect(ep002.shots.every(shot=>shot.englishNarration.length>30)).toBe(true);
-    expect(ep002.shots.every(shot=>shot.audioStatus==='NOT_GENERATED')).toBe(true);
+    expect(ep002.shots.slice(0,7).every(shot=>shot.audioStatus==='NOT_GENERATED')).toBe(true);
+    expect(ep002.shots.slice(7).every(
+      shot=>shot.audioStatus==='NOT_GENERATED_FOR_CURRENT_REVISION')).toBe(true);
   });
 
   it('binds eleven visual shot plans to the approved new visual pass without inventing native locks', () => {
