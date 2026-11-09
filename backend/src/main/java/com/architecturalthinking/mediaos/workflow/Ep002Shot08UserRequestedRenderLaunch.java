@@ -102,7 +102,7 @@ public class Ep002Shot08UserRequestedRenderLaunch implements ApplicationRunner {
                     .param("workerSha",workerSha)
                     .param("authorization",AUTHORIZATION)
                     .query(Long.class).single();
-            if(failedCount>=3) {
+            if(failedCount>=5) {
                 log.error("SHOT08_CHAT_RETRY_LIMIT_REACHED_FOR_APPROVED_TAKE: {} prior failed attempts; manual Director review required",failedCount);
                 return;
             }
