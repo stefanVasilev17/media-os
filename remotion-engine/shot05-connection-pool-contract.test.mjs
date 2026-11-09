@@ -67,7 +67,7 @@ test('SHOT05 opens on the exact Director-locked SHOT04 world components, then cl
 });
 
 test('Director scene retains eight slots and voice-timed historical replay without occupancy jumps',()=>{
-  assert.match(scene,/gridTemplateColumns:'repeat\(4,minmax\(0,1fr\)'/);
+  assert.match(scene,/gridTemplateColumns:'repeat\(4,minmax\(0,1fr\)\)'/);
   assert.match(scene,/Array.from\(\{length:8\}/);
   assert.match(scene,/REPLAY · EARLIER MOMENTS/);
   assert.match(scene,/shot05SlotFill\(frame,index,terms\)/);
