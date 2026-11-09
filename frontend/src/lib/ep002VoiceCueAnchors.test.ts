@@ -1,4 +1,6 @@
 import {describe,expect,it} from 'vitest';
+import scriptV5 from '../data/EP002_FullScript_v5_0_LOCKED.json';
+import visualV5 from '../data/EP002_RecoveryVisualOverrides_v5_0.json';
 import {suggestEp002VoiceCueAnchors,uniqueSpokenPhrase} from './ep002VoiceCueAnchors';
 
 const shot03=`Now, all those Login requests are reaching the same User Database. And this is where things start to slow down.
@@ -43,5 +45,31 @@ describe('EP002 Director voice cue suggestions',()=>{
     expect(suggestEp002VoiceCueAnchors('SHOT04','On health checks, tests pass.',[
       {number:1,direction:'On `health checks`, show the two probes'},
     ])).toEqual(['health checks']);
+  });
+});
+
+describe('EP002 v5 recovery HEAR-to-SEE source automation',()=>{
+  it('prefills all 24 in-order unique real phrases across SHOT08–11',()=>{
+    expect(visualV5.shots.map(s=>s.beats.length)).toEqual([6,7,6,5]);
+    let total=0;
+    for(const visual of visualV5.shots){
+      const shot=scriptV5.shots.find(s=>s.shotKey===visual.shotKey);
+      expect(shot).toBeDefined();
+      const generated=suggestEp002VoiceCueAnchors(
+        visual.shotKey,shot!.englishNarration,visual.beats);
+      expect(generated).toHaveLength(visual.beats.length);
+      expect(generated.every(x=>x.trim().length>=5)).toBe(true);
+      for(let i=0;i<generated.length;i++){
+        expect(generated[i].toLowerCase()).toBe(visual.beats[i].spokenAnchor.toLowerCase());
+      }
+      total+=generated.length;
+    }
+    expect(total).toBe(24);
+  });
+
+  it('does not reuse superseded 3-to-6 scaling spoken markers',()=>{
+    expect(scriptV5.shots[7].englishNarration).not.toContain('Three Auth servers become six');
+    expect(visualV5.shots[0].beats.some(b=>b.spokenAnchor.includes('become six'))).toBe(false);
+    expect(scriptV5.shots[0].directorScriptRevision).toBe('v1.4');
   });
 });

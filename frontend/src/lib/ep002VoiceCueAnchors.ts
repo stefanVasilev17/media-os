@@ -1,4 +1,4 @@
-export type BeatDirection = {number:number;direction:string};
+export type BeatDirection = {number:number;direction:string;spokenAnchor?:string};
 
 type PhraseMatch = {text:string;start:number;end:number};
 
@@ -24,14 +24,6 @@ export function uniqueSpokenPhrase(narration:string,phrase:string):PhraseMatch|n
   }
   return found;
 }
-
-const SHOT08_CUE_PHRASES=[
-  ['What if we add more Auth servers'],
-  ['Three Auth servers become six'],
-  ['look where those connections lead'],
-  ['shared bottleneck'],
-  ['We scaled the Auth servers'],
-] as const;
 
 const SHOT07_CUE_PHRASES=[
   ['Auth 01 tries again'],
@@ -76,8 +68,8 @@ export function suggestEp002VoiceCueAnchors(
 ):string[] {
   let previousEnd=-1;
   return beats.map((beat,index)=>{
-    const options=shotKey==='SHOT08'&&beats.length===5
-      ? [...SHOT08_CUE_PHRASES[index]]
+    const options=beat.spokenAnchor?.trim()
+      ? [beat.spokenAnchor]
       :shotKey==='SHOT07'&&beats.length===5
       ? [...SHOT07_CUE_PHRASES[index]]
       :shotKey==='SHOT06'&&beats.length===5

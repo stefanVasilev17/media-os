@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {AudioLines,CheckCircle2,RotateCcw} from 'lucide-react';
 import {suggestEp002VoiceCueAnchors} from '../lib/ep002VoiceCueAnchors';
 
-type Beat={number:number;direction:string};
+type Beat={number:number;direction:string;spokenAnchor?:string};
 type Shot={shotKey:string;title:string;beatCount:number;narration:string;
   preferredTakeId:string|null;scriptRevision:number;
   durationFrames:number|null;hearSeeTimingVerified:boolean;
@@ -47,6 +47,9 @@ export function Ep002DirectorVoiceCuePanel(){
   },[shot,refresh]);
 
   const current=plan?.shots.find(x=>x.shotKey===shot);
+  const autoRecovery=/^SHOT(0[8-9]|1[0-1])$/.test(shot);
+  const automaticBeatCount=anchors.filter(x=>x.trim().length>=3).length;
+
 
   async function approve(){
     if(!current||!plan||!review||review.verified||saving)return;
@@ -109,14 +112,16 @@ export function Ep002DirectorVoiceCuePanel(){
           target="_blank" rel="noopener noreferrer">Listen to the selected ElevenLabs Take</a>
       </p>}
       <details className="library-episode-batch-breakdown">
-        <summary>Current narration — select spoken phrases from this text</summary>
+        <summary>Current narration — real spoken phrases are prepared automatically</summary>
         <p>{current.narration}</p>
       </details>
       {!review.verified&&<p className="library-note">
         MediaOS has automatically suggested {anchors.filter(value=>value.trim()).length}
         {' '}of {current.beatCount} spoken phrases from the current saved narration.
-        These are drafts, not proof of the selected Take's audio. Listen and review
-        before confirming; the server must still validate real ElevenLabs timestamps.
+        {autoRecovery
+          ? ' You do not need to type or edit any beat. The matching phrases come from the Director-approved recovery story.'
+          : ' These are editable suggestions, not proof of the selected audio.'}
+        {' '}Listen to the approved Take first. The server will still require genuine ElevenLabs character timestamps.
         {shot==='SHOT03'&&<> SHOT03 timing note: throughput is spoken before
           six hundred and fifty, so the first beat establishes database completions;
           the third beat highlights arrival rate while keeping throughput visible.</>}
@@ -126,22 +131,29 @@ export function Ep002DirectorVoiceCuePanel(){
           <div key={beat.number} className="library-episode-batch-shot">
             <strong>Beat {beat.number} — approved visual action</strong>
             <p>{beat.direction}</p>
-            <label>Exact unique spoken anchor
-              <input value={anchors[i]??''} maxLength={200}
-                disabled={saving||review.verified}
-                placeholder="Quote the selected recording accurately"
-                onChange={e=>setAnchors(a=>a.map((v,n)=>n===i?e.target.value:v))}/>
-            </label>
+            {autoRecovery
+              ? <p className="library-note"><strong>Automatic spoken anchor:</strong>{' '}
+                  {anchors[i]||'SOURCE_ANCHOR_MISSING — verify blocked'}</p>
+              : <label>Exact unique spoken anchor
+                  <input value={anchors[i]??''} maxLength={200}
+                    disabled={saving||review.verified}
+                    placeholder="Quote the selected recording accurately"
+                    onChange={e=>setAnchors(a=>a.map((v,n)=>n===i?e.target.value:v))}/>
+                </label>}
             {review.verified&&review.frames[i]&&
               <small>Frames {review.frames[i].startFrame}–{review.frames[i].endFrame}</small>}
           </div>)}
       </div>
+      {autoRecovery&&!review.verified&&<p className="library-note">
+        {automaticBeatCount}/{current.beatCount} beats prefilled. One review confirmation
+        will resolve all real audio frames; no manual beat entry is needed.
+      </p>}
       <button className="library-voice-button" type="button"
         disabled={saving||loading||review.verified||!current.preferredTakeId
           ||!current.durationFrames||anchors.length!==current.beatCount
           ||anchors.some(a=>a.trim().length<3)}
         onClick={()=>void approve()}>
-        <CheckCircle2 size={15}/> Verify real voice cues for {shot}
+        <CheckCircle2 size={15}/> {autoRecovery?'Verify all '+current.beatCount+' automatic beats':'Verify real voice cues for '+shot}
       </button>
     </>}
     <p className="library-note">Suggestions are only hints and never treated as

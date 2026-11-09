@@ -144,15 +144,26 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
     
     
     <section className="library-section">
-      <div className="library-section-title"><FileText size={19}/><h2>Full Script v4.0 and HEAR → SEE</h2></div>
-      <p>Original Script v4.0 is preserved as the approved source. You can edit, save and generate new recordings from a new Creative Draft at any time, without LOCK/UNLOCK. The displayed Visual Pass v1.0 is a <strong>new, separately approved reconstruction</strong> of the visual choreography, not the missing original v4.0 HEAR → SEE tables. Timing is editorial, not measured ElevenLabs timing.</p>
+      <div className="library-section-title"><FileText size={19}/><h2>Full Script v5.0 — Recovery SHOT08–11 and HEAR → SEE</h2></div>
+      <p>Original Script v4.0 is preserved as a historical source. Current Director-approved
+        v5.0 keeps SHOT01–07 word-for-word and introduces recovery scripts for
+        SHOT08–11. Their new text and 24 spoken beat anchors are already prepared
+        in the Voice Studio. Generate the FIRST Take directly in Slow Natural mode.
+        Beat inputs are populated automatically; you only listen and confirm before
+        real ElevenLabs character timestamps are accepted.</p>
       <div className="library-links">
-        {link(ep002.editorialApproval,'Full Script v4.0 — Director LOCK event')}
+        {link(ep002.editorialApproval,'Archived Full Script v4.0 — Director LOCK event')}
+        {link('https://github.com/stefanVasilev17/media-os/pull/239',
+          'Recovery Script SHOT08–11 v5.0 — Director-approved text')}
         {link(ep002.scriptAssembly,'Complete original script assembly and technical guardrails')}
         {link(ep002.visualApproval,'Visual Pass v1.0 — Director creative approval')}
         {link(ep002.qaAudit,'Research/Script/Scene QA database audit and provenance')}
       </div>
-      <p className="library-warning">The original Script v4.0 and Visual Pass remain preserved in the archive. Your editable Creative Draft is separate: Save creates a new version, never changes old files, and Voice generation requires an explicit paid confirmation. No Director LOCK/UNLOCK is needed for daily creative edits.</p>
+      <p className="library-warning">The original v4.0 narration, previously approved Takes, and Visual Pass v1.0
+        remain in the archive. The new recovery SHOT08–11 scripts are imported as
+        separate traceable revisions, never overwriting old recordings. Each new
+        Slow Natural Take requires your own explicit paid confirmation. The old
+        SHOT08 3-to-6 Auth scaling render has been retired.</p>
       <p className="library-voice-overview" role="status">
         <strong>{lockedCount} / 11 voice SHOTs LOCKED</strong> ·
         Green border means the selected voice take is approved for the current text version. You can still edit and save a newer version whenever you want.
@@ -180,9 +191,11 @@ function Ep002Library({production}: {production?: EpisodeSummary}) {
               {shot.shotKey==='SHOT01' &&
                 <Ep002RemotionSceneContractPanel refreshToken={contractEpochs[shot.shotKey]??0}/>}
 
-              <h3>SEE — Director-approved new Visual Pass v1.0</h3>
+              <h3>SEE — {index<7?'Director-approved Visual Pass v1.0':
+                'Recovery v5.0 — automatically prepared spoken beats'}</h3>
               {visual ? docText(visual.visualPlanMarkdown) : <p>Visual source unavailable for this SHOT.</p>}
-              <p className="library-note">Original source manifest audio: {shot.audioStatus}. Any newer production takes are displayed in Voice Studio above.</p>
+              <p className="library-note">Current script source audio: {shot.audioStatus}. Earlier recordings remain
+                visible in history; only a Take for the current revision can be approved.</p>
               {index===0 && <p className="library-note">All source text is rendered without AI rewriting.</p>}
             </div>
           </details>;
@@ -230,7 +243,7 @@ export function EpisodeProductionLibraryPage({episodeKey}: {episodeKey: EpisodeK
     <header className="library-header">
       <p>ARCHITECTURAL THINKING / DIRECTOR SOURCE LIBRARY / {episodeKey==='EP001'?'READ ONLY':'VOICE STUDIO'}</p>
       <h1>{episodeKey} — {episodeKey==='EP001'?ep001.title:ep002.title}</h1>
-      <p>{episodeKey==='EP001'?'Final approved 12-SHOT happy-path production':'Original Director-approved v4.0 Script · Editable creative drafts + Voice Studio · Approved Visual Pass v1.0'}</p>
+      <p>{episodeKey==='EP001'?'Final approved 12-SHOT happy-path production':'Director-approved v5.0 recovery SHOT08–11 · First-Take Slow Natural Voice Studio · automatic HEAR → SEE beats'}</p>
     </header>
     {catalogError && <p role="alert" className="library-warning">{catalogError}</p>}
     {episodeKey==='EP001'?<Ep001Library production={production}/>:<Ep002Library production={production}/>}

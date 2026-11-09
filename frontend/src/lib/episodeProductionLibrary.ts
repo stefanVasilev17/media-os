@@ -1,7 +1,18 @@
-import ep002Manifest from '../data/EP002_FullScript_v4_0_LOCKED.json';
+import ep002Manifest from '../data/EP002_FullScript_v5_0_LOCKED.json';
+import recoveryVisuals from '../data/EP002_RecoveryVisualOverrides_v5_0.json';
 import {buildApprovedEp002SceneDraft} from './ep002ApprovedVisualPassImport';
 
 const repo = 'https://github.com/stefanVasilev17/media-os/blob/main/';
+const originalVisualPlan=buildApprovedEp002SceneDraft();
+const v5VisualPlan:Record<string,unknown>={
+  ...originalVisualPlan,
+  visualPassVersion:'v1.0+RECOVERY_V5',
+  shots:(originalVisualPlan.shots as Array<{shotKey:string}>).map(shot=>{
+    const updated=recoveryVisuals.shots.find(x=>x.shotKey===shot.shotKey);
+    return updated?{...shot,...updated}:shot;
+  }),
+};
+
 
 export const ep001 = {
   title: 'What Really Happens When You Click Login?',
@@ -34,7 +45,7 @@ export const ep002 = {
   durationSeconds: ep002Manifest.editorialTotalDurationSeconds,
   wordCount: ep002Manifest.totalWordCount,
   shots: ep002Manifest.shots,
-  visualPlan: buildApprovedEp002SceneDraft(),
+  visualPlan: v5VisualPlan,
 } as const;
 
 export function renderVideoUrl(renderId: string): string {

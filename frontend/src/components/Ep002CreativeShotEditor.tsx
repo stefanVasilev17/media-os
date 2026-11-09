@@ -31,6 +31,7 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
   const audioRefs=useRef<Record<string,HTMLAudioElement|null>>({});
   const isDirty=Boolean(state) && (state?.revision===0 || text !== (state?.narration??shot.englishNarration)
       || direction !== (state?.voiceDirection??shot.voiceDirection));
+  const recoveryShot=/^SHOT(0[8-9]|1[0-1])$/.test(shot.shotKey);
   const currentTakes=state?.takes.filter(t=>t.revision===state.revision)??[];
   const generateLabel=currentTakes.length?'Regenerate':'Generate';
 
@@ -107,7 +108,10 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
       setEditing(false);
       stop();
       setNotice('Saved as version '+next.revision+'. Older scripts and recordings are preserved.');
-      if(next.canGenerate)setConfirming(true);
+      if(next.canGenerate){
+        if(recoveryShot&&next.canGenerateSlow)setSlowConfirming(true);
+        else setConfirming(true);
+      }
     }catch(cause){setError(String(cause));}
     finally{setBusy(false);}
   }
@@ -203,12 +207,15 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
         onClick={()=>{setConfirming(false);setSlowConfirming(false);setEditing(true);}}>
         <Pencil size={17}/> Edit script
       </button>
-      <button type="button" className="library-voice-button" disabled={busy||loading||!state?.canGenerate}
-        onClick={()=>{setSlowConfirming(false);setConfirming(true);}}>{generateLabel}</button>
+      {!recoveryShot&&<button type="button" className="library-voice-button"
+        disabled={busy||loading||!state?.canGenerate}
+        onClick={()=>{setSlowConfirming(false);setConfirming(true);}}>{generateLabel}</button>}
       {state?.canGenerateSlow&&<button type="button"
         className="library-voice-button" disabled={busy||loading||!state?.canGenerateSlow}
         onClick={()=>{setConfirming(false);setSlowConfirming(true);}}>
-        Generate Slow Natural Take
+        {recoveryShot
+          ?(allCurrent.length?'Regenerate Slow Natural Take':'Generate first Slow Natural Take')
+          :'Generate Slow Natural Take'}
       </button>}
       <span className="library-voice-count">{allCurrent.length} current take(s) · {state?.takes.length??0} total in history</span>
     </div>}
@@ -226,7 +233,9 @@ export function Ep002CreativeShotEditor({shot,onVoiceStatus,onProductionChanged}
       className="library-voice-confirm" role="group" aria-label="Confirm paid slower voice">
       <p><strong>Generate one NEW {shot.shotKey} Slow Natural recording?</strong>
         {' '}This sends one paid ElevenLabs v4 request using the current saved script
-        revision {state.revision}, without changing any spoken words.
+        revision {state.revision}, without changing any spoken words. It is the
+        intended FIRST recording for the recovery SHOT; no standard-speed
+        trial Take is required.
         The new recording adds {state.slowVoicePauseCount??0} natural timing tags,
         including {state.slowVoiceLongPauseCount??0} longer pauses.
         ElevenLabs decides the real pacing and duration. Listen before selecting it.
