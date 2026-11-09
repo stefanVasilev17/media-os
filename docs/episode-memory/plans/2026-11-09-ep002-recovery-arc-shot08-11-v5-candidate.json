@@ -85,9 +85,9 @@
       "editorialStart": "09:10",
       "editorialEnd": "11:10",
       "editorialDurationSeconds": 120,
-      "englishNarration": "Stopping retries helps. But it does not fix the mismatch. In our example, nine hundred new Login requests can arrive each second, while the User Database can finish about five hundred account lookups. Let everything through, and the queue will grow again.\n\nSo we add admission control to the existing Login path. This is not another server. It is a rule near the Gateway and Auth boundary that decides whether a Login can enter expensive database work.\n\nBecause we have three Auth instances, the budget must be shared. Giving each instance its own full allowance would overload the same database. Suppose we permit around four hundred and fifty total lookup attempts per second, leaving room for other database work. This is an example, not a universal setting.\n\nWhen demand goes beyond that limit, load shedding rejects some new Logins early. Those users receive a clear, fast failure instead of waiting for a long timeout. Nobody is signed in without an account check.\n\nWe also limit the number of lookups running at once. Engineers call this bounded concurrency. The three connection pools still exist, but they no longer decide the total pressure by themselves. A bulkhead can keep retries from using the capacity reserved for new account lookups.\n\nIf the database keeps timing out, a circuit breaker can briefly stop new attempts and fail those Logins fast. Later it permits a few test requests through before normal traffic resumes.\n\nHere is the trade-off. Some people cannot log in during overload. But the work we do accept has a better chance to finish. We have not made the database faster. We have stopped sending more work than it can safely handle.",
-      "wordCount": 279,
-      "averageWordsPerMinute": 140,
+      "englishNarration": "Stopping retries helps, but demand still exceeds capacity. In our example, nine hundred new Login requests arrive each second, while User Database finishes about five hundred account lookups. If all enter, the queue grows again.\n\nSo we add admission control to the existing Login path. It is a policy near the Gateway and Auth boundary, not a new server. It decides which requests can reach the costly database work.\n\nBecause we have three Auth instances, they must share one budget. Three separate full budgets would overload the same database. Suppose we allow four hundred and fifty total lookup attempts per second, leaving headroom. This is an illustration, not a universal limit.\n\nWhen demand exceeds that budget, load shedding rejects some Logins early. Those users receive a clear, fast failure instead of a long timeout. Nobody is signed in without an account lookup.\n\nWe also limit concurrent lookups, so the existing three connection pools cannot collectively overwhelm the database. This is bounded concurrency. A bulkhead keeps retries from taking resources reserved for new Login lookups.\n\nIf database calls keep timing out, a circuit breaker can briefly stop new attempts. It fails those Logins fast, then allows a few test requests before normal traffic resumes.\n\nHere is the trade-off. Some people cannot log in during overload. But the requests we accept have a better chance to finish. The database is not faster; the admitted work now fits its limits.",
+      "wordCount": 237,
+      "averageWordsPerMinute": 119,
       "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
       "beats": [
         {
@@ -111,7 +111,7 @@
         {
           "beatNumber": 4,
           "editorialOffsetEstimateSeconds": "71–97",
-          "spokenAnchorSuggestion": "We also limit the number of lookups",
+          "spokenAnchorSuggestion": "We also limit concurrent lookups",
           "visualDirection": "Focus the three 8-connection pool modules in existing Auth nodes; make active slot highlights respect a shared concurrency cap rather than opening extra links. A small RETRIES ≠ NEW LOGIN CAPACITY explanatory tag may appear only if not overlapping. Illustrate circuit breaker as temporarily CLOSED path for NEW lookup admission, without claiming permanent outage."
         },
         {
@@ -132,9 +132,9 @@
       "editorialStart": "11:10",
       "editorialEnd": "12:40",
       "editorialDurationSeconds": 90,
-      "englishNarration": "Look at the User Database again. With duplicate retries limited and new work admitted at a controlled rate, the waiting line can finally shrink.\n\nWhy? Because the database can now finish work faster than new work enters its queue. In our example, it can complete about five hundred lookups per second. The shared admission budget allows fewer total attempts, leaving room for the backlog to drain.\n\nConnections are returned to the Auth pools sooner. Accepted Logins spend less time waiting, and more of them finish before their deadlines. Database pressure fades from red toward amber, then normal, but only as the numbers improve.\n\nWatch the phone carefully. A Login that already timed out does not come back to life. That request is over. A different, newly accepted Login can now succeed.\n\nWe still need evidence. Measure valid Login success rate, failures caused by the system, and the time people wait. A wrong password is not an infrastructure failure. P95 and P99 latency reveal the slow requests an average can hide. Tracing shows whether time was lost in a connection queue or the database.\n\nAnd count the people we rejected early. Fast failures are better than endless timeouts, but they are still failures. Recovery means a shrinking queue and more admitted Logins finishing on time, not merely three green Auth servers.",
-      "wordCount": 220,
-      "averageWordsPerMinute": 147,
+      "englishNarration": "Look at the User Database again. With duplicate retries limited and new work controlled, its waiting queue finally starts to shrink.\n\nWhy? The database can now finish lookups faster than new attempts enter. In our example, it finishes about five hundred per second. The shared budget admits fewer, leaving space to drain the backlog.\n\nConnections are returned to Auth pools sooner. Accepted Logins wait less and finish before their deadlines more often. Database pressure fades from red toward amber, but only when real measurements improve.\n\nWatch the phone carefully. An earlier timed-out Login never comes back to life. That request is over. A different, newly accepted Login can now succeed.\n\nWe still need evidence. Measure valid Login success rate, system errors, and latency. A wrong password is not an infrastructure failure. P95 and P99 reveal the slow requests an average can hide. Tracing shows whether time was lost waiting for a connection or inside the database.\n\nCount rejected requests too. Fast failures beat endless timeouts, but are still failures for real people. Recovery means fewer queued lookups and more admitted Logins finishing on time, not merely green Auth servers.",
+      "wordCount": 189,
+      "averageWordsPerMinute": 126,
       "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
       "beats": [
         {
@@ -146,7 +146,7 @@
         {
           "beatNumber": 2,
           "editorialOffsetEstimateSeconds": "17–35",
-          "spokenAnchorSuggestion": "Because the database can now finish work",
+          "spokenAnchorSuggestion": "The database can now finish lookups",
           "visualDirection": "Short orange explanatory comparison in the lower free zone: COMPLETED LOOKUPS > NEW ADMITTED ATTEMPTS. Existing capacity ~500/s from SHOT03; illustrative total admission budget below that. The text is not another full overlay meter."
         },
         {
@@ -179,15 +179,15 @@
       "editorialStart": "12:40",
       "editorialEnd": "13:30",
       "editorialDurationSeconds": 50,
-      "englishNarration": "Look at the full Login journey. The Phone reaches the Gateway, the Load Balancer, three Auth servers, and one shared User Database.\n\nWe did not add servers. We did not make the database faster.\n\nWe reduced duplicate retries, limited database concurrency, and rejected excess Login work early. As new work fell below what the database could finish, the queue began to drain. More accepted Logins completed before their deadlines.\n\nSome people still received a fast failure. That is a real trade-off, not a perfect recovery. But the system stopped amplifying its own overload.\n\nHere is the lesson: a healthy server does not guarantee a successful Login. Reliability means protecting the whole user journey, even when capacity runs out.\n\nAnd what happens when one database is no longer enough? That is our next story.",
-      "wordCount": 133,
-      "averageWordsPerMinute": 160,
+      "englishNarration": "Look at the full journey: Phone, Gateway, Load Balancer, three Auth servers, one shared User Database.\n\nWe did not add servers or make the database faster.\n\nWe limited duplicate retries and concurrent lookups, then rejected excess work early. When fewer attempts arrived than the database could finish, the queue began to shrink. More accepted Logins completed on time.\n\nSome users still got a fast failure. That trade-off matters. But the system stopped amplifying its overload.\n\nHere is the lesson: healthy servers do not guarantee a successful Login. Reliability protects the whole user journey.\n\nWhat if one database is no longer enough? That is our next story.",
+      "wordCount": 106,
+      "averageWordsPerMinute": 127,
       "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
       "beats": [
         {
           "beatNumber": 1,
           "editorialOffsetEstimateSeconds": "00–10",
-          "spokenAnchorSuggestion": "Look at the full Login journey",
+          "spokenAnchorSuggestion": "Look at the full journey",
           "visualDirection": "Calm full 1920×1080 living map; one Phone, Gateway, Balancer, Auth01–03, one DB. No added replicas. Let the camera reveal the whole already-familiar world rather than building new props."
         },
         {
@@ -199,13 +199,13 @@
         {
           "beatNumber": 3,
           "editorialOffsetEstimateSeconds": "19–32",
-          "spokenAnchorSuggestion": "We reduced duplicate retries",
+          "spokenAnchorSuggestion": "We limited duplicate retries",
           "visualDirection": "Three small restrained highlights, not obstructing cards: BOUNDED RETRIES, ADMISSION CONTROL, BOUNDED CONCURRENCY. The queue is visibly smaller, not magically zero."
         },
         {
           "beatNumber": 4,
           "editorialOffsetEstimateSeconds": "32–41",
-          "spokenAnchorSuggestion": "Some people still received a fast failure",
+          "spokenAnchorSuggestion": "Some users still got a fast failure",
           "visualDirection": "One original Phone displays a clear result for a NEW attempt; short REJECTED EARLY label acknowledges tradeoff. Fade back to actual successful accepted Login state without reusing the same attempt."
         },
         {
