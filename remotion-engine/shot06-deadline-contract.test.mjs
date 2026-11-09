@@ -41,7 +41,7 @@ test('SHOT06 requires exact approved Take and five human voice beats plus fiftee
     /SHOT06_REQUIRES_DIRECTOR_APPROVED_REAL_TIMED_VOICE/);
   assert.throws(()=>spec.validateShot06Source({...props,termCues:termCues.slice(1)}),
     /SHOT06_REQUIRES_DIRECTOR_APPROVED_REAL_TIMED_VOICE/);
-  assert.throws(()=>spec.validateShot06Source({...props,termCues:termCues.toReversed()}),
+  assert.throws(()=>spec.validateShot06Source({...props,termCues:[...termCues].reverse()}),
     /SHOT06_FIFTEEN_ACTUAL_SPOKEN_TERMS_INVALID/);
   assert.throws(()=>spec.validateShot06Source({...props,
     verifiedCues:verifiedCues.map((b,i)=>i===1?{...b,startFrame:b.startFrame+1}:b)}),
