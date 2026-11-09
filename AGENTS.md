@@ -2,6 +2,12 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## EP002 SHOT07 — readiness GET 404 fixed + reusable route coverage rule (2026-11-09)
+
+**Active truth:** Production `GET /api/v1/creative/episodes/EP002/voice-cue-review/SHOT07/render-readiness` was 404 because the exact route was missing in Backend; `/SHOT07/render-preview` and `/capability` were 200. Corrected SHOT07 Controller `@GetMapping("/SHOT07/render-readiness")` with Director identity and source-bound 5+15 cue validation. Backend source SHA `aaf7914221574a8a251ac2432577af4a9edf95d5`, Railway deployment `348a62e5-a009-4665-a098-e4c02eb9b0b9` **SUCCESS/ONLINE**, 487 PostgreSQL Java tests/0 failures/errors/1 skipped, frontend build PASS. Worker unchanged `650e3d64` ONLINE. Fixed code in [Draft PR #234](https://github.com/stefanVasilev17/media-os/pull/234). **Agent rule:** Every new SHOT Render panel's three read-only requests MUST have exact Director-protected backend GET mappings (voice-cue render-readiness, render capability, render current status); regression-test and report failing URL, not just generic 404.
+
+**Supersedes stale timing warning:** New selected SHOT07 voice Take `3105980d-8a47-4a34-821e-53ae67605eb0` was followed by an authenticated `POST /voice-cue-review/SHOT07` **HTTP200 on 2026-11-09T12:15:55Z**, after Take selection. The Director must refresh readiness in MediaOS to verify actual 15 character-aligned technical terms; an HTTP200 POST alone is not proof of `ready:true`. The new deployed GET had not been invoked post-fix at last check. No paid MP4 render or SHOT07 visual LOCK. No agent may start paid CPU/TTS or bypass Director gates.
+
 ## EP002 SHOT07 — source production-ready, Director fresh HEAR→SEE / paid MP4 required (2026-11-09)
 
 **New selected/approved Slow Natural Take:** `3105980d-8a47-4a34-821e-53ae67605eb0` (real POST generate and approve HTTP200 at 11:19:57Z and 11:20:01Z). Important: latest Director `POST /voice-cue-review/SHOT07` at 11:19:18Z was BEFORE this newly generated Take and MUST be treated STALE. No human-verified five cues against new Take, no paid render POST, no real new SHOT07 MP4 and no SHOT07 Director LOCK as of last check. Never manufacture cue timestamps or call paid TTS/CPU directly.
