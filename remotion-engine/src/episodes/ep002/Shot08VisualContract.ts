@@ -16,7 +16,7 @@ export type Shot08SceneProps={
   verifiedCues:Shot08BeatCue[];termCues:Shot08TermCue[];
 };
 export const SHOT08_TEXT_AREAS={
-  title:{left:80,top:76,width:1120,height:123},
+  title:{left:560,top:76,width:1120,height:123},
   caption:{left:560,top:850,width:1220,height:95},
   final:{left:560,top:960,width:1200,height:54},
 } as const satisfies Record<string,Rect>;
