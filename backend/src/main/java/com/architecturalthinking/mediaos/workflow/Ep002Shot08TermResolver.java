@@ -25,7 +25,7 @@ public final class Ep002Shot08TermResolver {
             new TermSpec("DEADLINE_CHECK","Auth checks the Login deadline"),
             new TermSpec("STOP_EXPIRED","If no useful time remains"),
             new TermSpec("SHARED_BUDGET","We also add a retry budget"),
-            new TermSpec("SAFE_READ","safe, read-only lookup"),
+            new TermSpec("SAFE_READ","read-only lookup"),
             new TermSpec("BUDGET_EXHAUSTED","that budget is exhausted"),
             new TermSpec("NO_LOGIN_REPLAY","The whole Login is never repeated"),
             new TermSpec("EXP_BACKOFF","exponential backoff"),
