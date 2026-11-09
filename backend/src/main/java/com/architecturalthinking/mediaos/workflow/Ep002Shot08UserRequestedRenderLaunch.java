@@ -74,6 +74,38 @@ public class Ep002Shot08UserRequestedRenderLaunch implements ApplicationRunner {
                     ||shot.durationFrames()==null
                     ||shot.durationFrames()!=ready.durationInFrames())
                 throw new IllegalStateException("Current approved selected voice changed");
+            String existing=jdbc.sql("""
+                    select status from remotion_render
+                    where composition_id='EP002-SHOT08-CANDIDATE'
+                      and input_props->>'voiceTakeId'=:voiceTakeId
+                      and input_props->>'expectedSourceCommit'=:workerSha
+                      and input_props->>'authorizationSource'=:authorization
+                    order by created_at desc,id desc limit 1
+                    """)
+                    .param("voiceTakeId",ready.voiceTakeId())
+                    .param("workerSha",workerSha)
+                    .param("authorization",AUTHORIZATION)
+                    .query(String.class).optional().orElse(null);
+            if(existing!=null&&!"FAILED".equals(existing)) {
+                log.info("SHOT08_CHAT_REQUEST_ALREADY_PRESENT status={} takeId={} (no new paid render)",
+                        existing,ready.voiceTakeId());
+                return;
+            }
+            Long failedCount=jdbc.sql("""
+                    select count(*) from remotion_render
+                    where composition_id='EP002-SHOT08-CANDIDATE'
+                      and status='FAILED'
+                      and input_props->>'voiceTakeId'=:voiceTakeId
+                      and input_props->>'expectedSourceCommit'=:workerSha
+                      and input_props->>'authorizationSource'=:authorization
+                    """).param("voiceTakeId",ready.voiceTakeId())
+                    .param("workerSha",workerSha)
+                    .param("authorization",AUTHORIZATION)
+                    .query(Long.class).single();
+            if(failedCount>=3) {
+                log.error("SHOT08_CHAT_RETRY_LIMIT_REACHED_FOR_APPROVED_TAKE: {} prior failed attempts; manual Director review required",failedCount);
+                return;
+            }
             UUID requestId=UUID.nameUUIDFromBytes(
                     (AUTHORIZATION+"|"+ready.inputFingerprint()+"|"+
                             ready.voiceTakeId()+"|"+workerSha).getBytes(StandardCharsets.UTF_8));
