@@ -15,28 +15,33 @@ public final class Ep002Shot08TermResolver {
     private record Speech(String normalized,List<Double> start,List<Double> end) {}
 
     private static final List<TermSpec> TERMS=List.of(
-            new TermSpec("WHAT_IF_ADD_AUTH","What if we add more Auth servers"),
-            new TermSpec("HORIZONTAL_SCALING","horizontal scaling"),
-            new TermSpec("THREE_TO_SIX","Three Auth servers become six"),
-            new TermSpec("MORE_ROUTES","more places to send Login requests"),
-            new TermSpec("EIGHT_CONNECTIONS","pool of up to eight database connections"),
-            new TermSpec("MORE_SERVERS","More servers"),
-            new TermSpec("FOLLOW_CONNECTIONS","look where those connections lead"),
-            new TermSpec("SAME_USER_DATABASE","same User Database"),
-            new TermSpec("DB_AT_CAPACITY","database is already handling as much work as it can"),
-            new TermSpec("DB_NOT_FASTER","doesn’t make the database finish lookups faster"),
-            new TermSpec("MORE_COMPETITION","more requests compete"),
-            new TermSpec("SHARED_BOTTLENECK","shared bottleneck"),
-            new TermSpec("BRIDGE_ANALOGY","bridge ahead only one lane wide"),
-            new TermSpec("APP_NOT_LIMIT","application servers are the limit"),
-            new TermSpec("SCALED_NOT_BOTTLENECK","We scaled the Auth servers. Not the bottleneck.")
-    );
-    public static List<TermCue> resolve(
+            new TermSpec("AFTER_STORM","After that retry storm"),
+            new TermSpec("OWN_REPEATS","our own repeated attempts"),
+            new TermSpec("THREE_AUTH","We still have three Auth servers"),
+            new TermSpec("ONE_DB","one User Database"),
+            new TermSpec("CONTROL_FIRST","So we control retries first"),
+            new TermSpec("AUTH01","Watch Auth 01"),
+            new TermSpec("LOOKUP_TIMEOUT","A lookup times out"),
+            new TermSpec("DEADLINE_CHECK","Auth checks the Login deadline"),
+            new TermSpec("STOP_EXPIRED","If no useful time remains"),
+            new TermSpec("SHARED_BUDGET","We also add a retry budget"),
+            new TermSpec("SAFE_READ","safe, read-only lookup"),
+            new TermSpec("BUDGET_EXHAUSTED","that budget is exhausted"),
+            new TermSpec("NO_LOGIN_REPLAY","The whole Login is never repeated"),
+            new TermSpec("EXP_BACKOFF","exponential backoff"),
+            new TermSpec("JITTER","Jitter adds a small random change"),
+            new TermSpec("STAGGER","do not retry together"),
+            new TermSpec("WATCH_DB","Now watch User Database"),
+            new TermSpec("FEWER_ATTEMPTS","The extra attempts fall"),
+            new TermSpec("CAPACITY_UNCHANGED","These changes do not create more capacity"),
+            new TermSpec("STORM_CONTAINED","retry storm is no longer feeding itself"),
+            new TermSpec("NEW_ARRIVALS","new requests that keep arriving")
+    );    public static List<TermCue> resolve(
             ObjectMapper mapper,String rawAlignment,BigDecimal duration,
             List<Ep002VoiceBeatResolver.BeatCue> beats) {
         if(mapper==null||rawAlignment==null||rawAlignment.isBlank()
-                ||duration==null||duration.signum()<=0||beats==null||beats.size()!=5)
-            throw new IllegalArgumentException("SHOT08_VERIFIED_VOICE_ALIGNMENT_REQUIRED");
+                ||duration==null||duration.signum()<=0||beats==null||beats.size()!=6)
+            throw new IllegalArgumentException("SHOT08_RECOVERY_SIX_REAL_AUDIO_BEATS_REQUIRED");
         try {
             JsonNode root=mapper.readTree(rawAlignment);
             JsonNode alignment=root.path("normalized_alignment");
