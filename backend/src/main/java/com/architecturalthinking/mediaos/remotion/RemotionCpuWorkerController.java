@@ -415,6 +415,54 @@ public class RemotionCpuWorkerController {
             @RequestHeader(value = "X-Media-OS-Worker-Source-Sha",required = false) String sourceSha
     ) {
         requireWorker(key,workerId);
+        jdbc.sql("""
+                select r.status, r.composition_id, r.duration_in_frames as duration_frames,
+                       r.worker_id=:worker as worker_owned,
+                       r.input_props->>'inputFingerprint' as fingerprint,
+                       r.input_props->>'voiceTakeId' as take_id,
+                       r.input_props->>'scriptRevision' as script_rev,
+                       r.input_props->>'expectedSourceCommit'=:sourceSha as worker_source_matches,
+                       r.input_props->>'shotKey'='EP002_SHOT08' as shot_key_matches,
+                       exists(select 1 from ep002_creative_voice_take t
+                         where t.id::text=r.input_props->>'voiceTakeId'
+                           and t.shot_key='SHOT08'
+                           and t.revision::text=r.input_props->>'scriptRevision') as take_revision_matches,
+                       exists(select 1 from ep002_creative_voice_take t
+                         where t.id::text=r.input_props->>'voiceTakeId'
+                           and t.revision=(select max(s.revision)
+                             from ep002_creative_script_revision s
+                             where s.shot_key='SHOT08')) as latest_script_revision,
+                       exists(select 1 from ep002_creative_voice_take t
+                         where t.id::text=r.input_props->>'voiceTakeId'
+                           and exists(select 1 from ep002_creative_voice_choice choice
+                             where choice.shot_key=t.shot_key and choice.revision=t.revision
+                               and choice.take_id=t.id
+                               and choice.id=(select newest.id
+                                 from ep002_creative_voice_choice newest
+                                 where newest.shot_key=t.shot_key and newest.revision=t.revision
+                                 order by newest.selected_at desc,newest.id desc limit 1))) as newest_chosen_take
+                from remotion_render r
+                where r.id=:render and r.project_id=:project
+                  and r.composition_id='EP002-SHOT08-CANDIDATE'
+                """)
+                .param("render",renderId).param("project",PROJECT_ID)
+                .param("worker",workerId.trim())
+                .param("sourceSha",sourceSha==null?"":sourceSha.trim())
+                .query((rs,n)->{
+                    boolean current=false;
+                    try {
+                        current=ep002Cues!=null&&ep002Cues.matchesCurrentShot08Render(
+                            rs.getString("fingerprint"),rs.getString("take_id"),
+                            Integer.parseInt(rs.getString("script_rev")),rs.getInt("duration_frames"));
+                    } catch(RuntimeException ignored) {current=false;}
+                    org.slf4j.LoggerFactory.getLogger(RemotionCpuWorkerController.class)
+                        .warn("SHOT08_AUDIO_GATE_TRACE renderId={} status={} workerOwned={} workerSourceMatched={} shotKeyMatched={} takeRevisionMatched={} latestRevision={} currentChosenTake={} currentSourceMatches={}",
+                            renderId,rs.getString("status"),rs.getBoolean("worker_owned"),
+                            rs.getBoolean("worker_source_matches"),rs.getBoolean("shot_key_matches"),
+                            rs.getBoolean("take_revision_matches"),rs.getBoolean("latest_script_revision"),
+                            rs.getBoolean("newest_chosen_take"),current);
+                    return true;
+                }).optional();
         return jdbc.sql("""
                 select t.audio,t.content_type,r.composition_id,
                        r.input_props->>'inputFingerprint' as fingerprint,
@@ -465,7 +513,8 @@ public class RemotionCpuWorkerController {
                             then 'EP002_SHOT06' when r.composition_id='EP002-SHOT07-CANDIDATE'
                             then 'EP002_SHOT07' when r.composition_id='EP002-SHOT08-CANDIDATE'
                             then 'EP002_SHOT08' else 'EP002_SHOT02' end
-                      and exists(
+                      and (r.composition_id='EP002-SHOT08-CANDIDATE'
+                        or exists(
                         select 1 from ep002_director_voice_cue_review review
                         where review.shot_key=case
                             when r.composition_id='EP002-SHOT03-CANDIDATE'
@@ -480,7 +529,7 @@ public class RemotionCpuWorkerController {
                           and review.script_revision=t.revision
                           and review.narration_sha256=t.narration_sha256
                           and review.episode_fingerprint=r.input_props->>'inputFingerprint'
-                      )))
+                      ))))
                 """)
                 .param("render",renderId).param("project",PROJECT_ID)
                 .param("worker",workerId.trim())

@@ -341,11 +341,13 @@ export function preflightTierPlusPlusRender(job,sourceSha){
   if(job.compositionId==='EP002-SHOT08-CANDIDATE'){
     const frames=Number(job.durationInFrames);
     const beats=props.verifiedCues,terms=props.termCues;
-    const expected=['WHAT_IF_ADD_AUTH','HORIZONTAL_SCALING','THREE_TO_SIX',
-      'MORE_ROUTES','EIGHT_CONNECTIONS','MORE_SERVERS','FOLLOW_CONNECTIONS',
-      'SAME_USER_DATABASE','DB_AT_CAPACITY','DB_NOT_FASTER','MORE_COMPETITION',
-      'SHARED_BOTTLENECK','BRIDGE_ANALOGY','APP_NOT_LIMIT',
-      'SCALED_NOT_BOTTLENECK'];
+    const expected=[
+      'AFTER_STORM','OWN_REPEATS','THREE_AUTH','ONE_DB','CONTROL_FIRST',
+      'AUTH01','LOOKUP_TIMEOUT','DEADLINE_CHECK','STOP_EXPIRED',
+      'SHARED_BUDGET','SAFE_READ','BUDGET_EXHAUSTED','NO_LOGIN_REPLAY',
+      'EXP_BACKOFF','JITTER','STAGGER','WATCH_DB','FEWER_ATTEMPTS',
+      'CAPACITY_UNCHANGED','STORM_CONTAINED','NEW_ARRIVALS',
+    ];
     if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
       ||Number(props.durationInFrames)!==frames
       ||Number(props.postVoiceHoldFrames||0)!==0
@@ -353,42 +355,43 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
       ||!integer(props.scriptRevision)||props.scriptRevision<1
       ||!/^[a-f0-9]{64}$/i.test(String(props.inputFingerprint||''))
-      ||!Array.isArray(beats)||beats.length!==5
+      ||!/^[a-f0-9]{40}$/.test(String(props.visualSourceSha||''))
+      ||!Array.isArray(beats)||beats.length!==6
       ||!Array.isArray(terms)||terms.length!==expected.length)
       reject('SHOT08_SELECTED_REAL_VOICE_CUE_CONTRACT');
     let previous=0;
     for(let i=0;i<beats.length;i++){
-      const b=beats[i];
-      if(b?.beatNumber!==i+1||!integer(b.startFrame)
-        ||!integer(b.endFrame)||(i>0&&b.startFrame!==previous)
-        ||b.endFrame<=b.startFrame||b.endFrame>frames
-        ||!String(b.spokenAnchor||'').trim())
-        reject('SHOT08_DIRECTOR_BEAT_SEQUENCE_INVALID');
-      previous=b.endFrame;
+      const cue=beats[i];
+      if(cue?.beatNumber!==i+1||!integer(cue.startFrame)
+        ||!integer(cue.endFrame)||(i>0&&cue.startFrame!==previous)
+        ||cue.endFrame<=cue.startFrame||cue.endFrame>frames
+        ||!String(cue.spokenAnchor||'').trim())
+        reject('SHOT08_RECOVERY_SIX_REAL_BEATS_INVALID');
+      previous=cue.endFrame;
     }
     if(previous!==frames)reject('SHOT08_REAL_AUDIO_FRAMES_NOT_COVERED');
     previous=-1;
     for(let i=0;i<expected.length;i++){
-      const t=terms[i];
-      if(t?.id!==expected[i]||!integer(t.startFrame)
-        ||!integer(t.endFrame)||t.startFrame<0
-        ||t.endFrame<=t.startFrame||t.endFrame>frames
-        ||t.startFrame<previous||!String(t.spokenAnchor||'').trim())
-        reject('SHOT08_REAL_SPOKEN_TERMS_INVALID');
-      previous=t.endFrame;
+      const term=terms[i];
+      if(term?.id!==expected[i]||!integer(term.startFrame)
+        ||!integer(term.endFrame)||term.startFrame<0
+        ||term.endFrame<=term.startFrame||term.endFrame>frames
+        ||term.startFrame<previous||!String(term.spokenAnchor||'').trim())
+        reject('SHOT08_RECOVERY_REAL_SPOKEN_TERMS_INVALID');
+      previous=term.endFrame;
     }
-    if(!(terms[1].startFrame<terms[2].startFrame
-      &&terms[2].startFrame<terms[4].startFrame
-      &&terms[4].startFrame<terms[7].startFrame
-      &&terms[7].startFrame<terms[9].startFrame
-      &&terms[9].startFrame<terms[11].startFrame
-      &&terms[11].startFrame<terms[12].startFrame
-      &&terms[12].startFrame<terms[13].startFrame
-      &&terms[13].startFrame<terms[14].startFrame))
-      reject('SHOT08_SHARED_BOTTLENECK_CAUSAL_SEQUENCE_INVALID');
-    checks.push('SHOT08_CURRENT_DIRECTOR_APPROVED_TAKE',
-      'FIVE_REAL_VERIFIED_BEATS','FIFTEEN_REAL_SCALING_BOTTLENECK_TERMS',
-      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+    if(!(terms[0].startFrame<terms[2].startFrame
+      &&terms[2].startFrame<terms[5].startFrame
+      &&terms[5].startFrame<terms[9].startFrame
+      &&terms[9].startFrame<terms[13].startFrame
+      &&terms[13].startFrame<terms[16].startFrame
+      &&terms[16].startFrame<terms[18].startFrame
+      &&terms[18].startFrame<terms[20].startFrame))
+      reject('SHOT08_RETRY_CONTAINMENT_CAUSAL_SEQUENCE_INVALID');
+    checks.push('SHOT08_CURRENT_DIRECTOR_APPROVED_SLOW_NATURAL_TAKE',
+      'SIX_REAL_AUDIO_ALIGNED_BEATS','TWENTY_ONE_REAL_RECOVERY_TERMS',
+      'THREE_AUTH_ONE_DATABASE','EXACT_AUDIO_FRAME_COUNT',
+      'NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
   return {

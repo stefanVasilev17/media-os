@@ -50,7 +50,7 @@ public class Ep002Shot08PreviewController {
         boolean pinned=pinnedWorkerSha.matches("[a-f0-9]{40}");
         return Map.of("enabled",renderEnabled&&recoveryVisualContractReady,"workerPinned",pinned,
                 "canQueue",renderEnabled&&recoveryVisualContractReady&&pinned,
-                "reason","SHOT08_3_TO_6_SCALING_STORY_SUPERSEDED_RECOVERY_VISUAL_REQUIRED");
+                "reason",recoveryVisualContractReady?"RECOVERY_VISUAL_SOURCE_READY":"RECOVERY_VISUAL_SOURCE_NOT_RELEASED");
     }
 
     @GetMapping
@@ -94,7 +94,7 @@ public class Ep002Shot08PreviewController {
                                       HttpServletRequest http) {
         DirectorIdentity.requireDirector();
         if(!recoveryVisualContractReady)throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "SHOT08 scaling render is retired. Recovery visual/voice contract must be rebuilt.");
+                "SHOT08 recovery visual/voice contract is not released yet.");
         if(!renderEnabled||!pinnedWorkerSha.matches("[a-f0-9]{40}"))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "SHOT08 render requires separately approved pinned Worker release.");
@@ -116,7 +116,7 @@ public class Ep002Shot08PreviewController {
                         HttpStatus.CONFLICT,"Current SHOT08 unavailable."));
         if(!source.sourceVerified()
                 ||!source.inputFingerprint().equals(request.expectedEpisodeFingerprint())
-                ||!shot.currentVoiceApproved()||!shot.hearSeeTimingVerified()
+                ||!shot.currentVoiceApproved()
                 ||shot.preferredTakeId()==null||shot.measuredVoiceSeconds()==null
                 ||shot.durationFrames()==null||shot.durationFrames()<150)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -126,9 +126,9 @@ public class Ep002Shot08PreviewController {
         if(!ready.ready()||!ready.inputFingerprint().equals(source.inputFingerprint())
                 ||!shot.preferredTakeId().equals(ready.voiceTakeId())
                 ||shot.durationFrames()!=ready.durationInFrames()
-                ||ready.verifiedCues().size()!=5||ready.termCues().size()!=15)
+                ||ready.verifiedCues().size()!=6||ready.termCues().size()!=21)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "SHOT08 selected Take or fifteen genuine term cues are not render-ready.");
+                    "SHOT08 recovery Take requires six real beats and twenty-one spoken term cues.");
 
         Map<String,Object> props=new LinkedHashMap<>();
         props.put("shotKey","EP002_SHOT08");
@@ -139,7 +139,7 @@ public class Ep002Shot08PreviewController {
         props.put("verifiedCues",ready.verifiedCues());
         props.put("termCues",ready.termCues());
         props.put("inputFingerprint",ready.inputFingerprint());
-        props.put("visualSourceSha",Ep002ProductionContractService.VISUAL_SHA);
+        props.put("visualSourceSha",Ep002RecoverySource.RECOVERY_VISUAL_BLOB_SHA);
         props.put("expectedSourceCommit",pinnedWorkerSha);
         props.put("renderRequestId",request.requestId().toString());
         Map<String,Object> render=renders.ensureVerifiedEp002Shot08Preview(props);
@@ -157,7 +157,7 @@ public class Ep002Shot08PreviewController {
                 .param("id",UUID.randomUUID()).param("revision",shot.scriptRevision())
                 .param("narration",shot.narrationSha256())
                 .param("take",UUID.fromString(ready.voiceTakeId()))
-                .param("visual",Ep002ProductionContractService.VISUAL_SHA)
+                .param("visual",Ep002RecoverySource.RECOVERY_VISUAL_BLOB_SHA)
                 .param("fingerprint",ready.inputFingerprint()).param("render",renderId)
                 .param("worker",pinnedWorkerSha).update();
         return render;

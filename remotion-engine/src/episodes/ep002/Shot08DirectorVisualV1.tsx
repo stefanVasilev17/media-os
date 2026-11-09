@@ -2,87 +2,215 @@ import React from 'react';
 import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {Shot07CleanArchitectureWorld} from './Shot07CleanArchitectureWorld';
+import {SHOT02_NODES} from './Shot02PremiumLayout';
 import {shot08Ease,assertShot08SafeLayout,validateShot08Source,
   type Shot08SceneProps,type Shot08TermId} from './Shot08VisualContract';
 
-const WHITE='#F5FCFF',ORANGE='#F5A55A';
-const orangeText=()=>({
-  fontSize:25,fontWeight:880,color:ORANGE,
-  letterSpacing:'.028em',textShadow:'0 0 23px rgba(246,154,77,.26)',
-  fontFamily:AT_FONT,
+const WHITE='#F5FCFF',SOFT='#B5D2E6',ORANGE='#F5A55A';
+const MINT='#6FECD4',CYAN='#68E5FF',RED='#F06F58';
+const clamp=(n:number)=>Math.max(0,Math.min(1,n));
+const shell=(accent:string)=>({
+  background:'linear-gradient(153deg,rgba(8,32,53,.965),rgba(5,19,37,.985))',
+  border:'1.5px solid '+accent,
+  borderRadius:15,
+  boxShadow:'0 9px 34px rgba(0,0,0,.35),0 0 20px rgba(72,195,223,.09)',
+  boxSizing:'border-box' as const,
 });
-const Captions:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
+
+const OrangeCue:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   duration:number}>=({frame,cue,duration})=>{
-  const cards=[
-    {at:cue.HORIZONTAL_SCALING,text:'HORIZONTAL SCALING · MORE AUTH INSTANCES'},
-    {at:cue.THREE_TO_SIX,text:'THREE AUTH INSTANCES → SIX'},
-    {at:cue.EIGHT_CONNECTIONS,text:'EACH INSTANCE · UP TO 8 DATABASE CONNECTIONS'},
-    {at:cue.FOLLOW_CONNECTIONS,text:'WHERE DO ALL THOSE CONNECTIONS LEAD?'},
-    {at:cue.SAME_USER_DATABASE,text:'SIX AUTH INSTANCES · ONE USER DATABASE'},
-    {at:cue.DB_NOT_FASTER,text:'MORE AUTH SERVERS ≠ FASTER DATABASE'},
-    {at:cue.SHARED_BOTTLENECK,text:'SHARED BOTTLENECK · ONE LIMITED RESOURCE'},
-    {at:cue.BRIDGE_ANALOGY,text:'WIDER ROAD · SAME ONE-LANE BRIDGE'},
-    {at:cue.APP_NOT_LIMIT,text:'SCALING HELPS ONLY WHEN AUTH IS THE LIMIT'},
-    {at:cue.SCALED_NOT_BOTTLENECK,text:'WE SCALED AUTH · NOT THE BOTTLENECK'},
+  const events=[
+    {at:cue.OWN_REPEATS,text:'DUPLICATE LOOKUPS ADD WORK'},
+    {at:cue.THREE_AUTH,text:'THREE AUTH SERVERS · ONE SHARED DATABASE'},
+    {at:cue.CONTROL_FIRST,text:'FIRST: CONTROL THE RETRIES'},
+    {at:cue.LOOKUP_TIMEOUT,text:'LOOKUP TIMED OUT · CHECK LOGIN DEADLINE'},
+    {at:cue.STOP_EXPIRED,text:'NO USEFUL TIME LEFT → STOP'},
+    {at:cue.SHARED_BUDGET,text:'ONE SHARED RETRY BUDGET · THREE AUTH INSTANCES'},
+    {at:cue.SAFE_READ,text:'ONLY SAFE, READ-ONLY ACCOUNT LOOKUPS CAN RETRY'},
+    {at:cue.BUDGET_EXHAUSTED,text:'RETRY BUDGET EXHAUSTED · STOP RETRYING'},
+    {at:cue.NO_LOGIN_REPLAY,text:'NEVER REPEAT THE WHOLE LOGIN'},
+    {at:cue.EXP_BACKOFF,text:'EXPONENTIAL BACKOFF · INCREASING DELAYS'},
+    {at:cue.JITTER,text:'JITTER · DIFFERENT DELAYS FOR EACH AUTH'},
+    {at:cue.STAGGER,text:'AUTH 01, 02 AND 03 NO LONGER RETRY TOGETHER'},
+    {at:cue.FEWER_ATTEMPTS,text:'DUPLICATE DATABASE ATTEMPTS FALL'},
+    {at:cue.CAPACITY_UNCHANGED,text:'DATABASE CAPACITY HAS NOT CHANGED'},
+    {at:cue.STORM_CONTAINED,text:'RETRY AMPLIFICATION CONTAINED'},
+    {at:cue.NEW_ARRIVALS,text:'NEW LOGIN ARRIVALS STILL NEED CONTROL'},
   ];
-  let active=-1;
-  for(let i=0;i<cards.length;i++)if(frame>=cards[i].at)active=i;
-  if(active<0)return null;
-  const chosen=cards[active],next=active+1<cards.length
-    ?cards[active+1].at:duration;
-  const enter=shot08Ease(frame,chosen.at,24);
-  const exit=1-shot08Ease(frame,Math.min(next-27,duration-55),24);
-  return <div style={{position:'absolute',left:560,top:851,width:1220,
-    height:92,pointerEvents:'none',zIndex:25,
-    opacity:enter*exit,transform:'translateY('+((1-enter)*8)+'px)',
-    ...orangeText()}}>
-      {chosen.text}
+  const index=events.reduce((last,event,i)=>frame>=event.at?i:last,-1);
+  if(index<0)return null;
+  const event=events[index],next=index+1<events.length?events[index+1].at:duration;
+  const enter=shot08Ease(frame,event.at,19);
+  const leave=1-shot08Ease(frame,Math.max(event.at+20,next-20),18);
+  return <div style={{
+    position:'absolute',left:560,top:883,width:1190,height:75,
+    zIndex:26,pointerEvents:'none',fontFamily:AT_FONT,
+    fontSize:24,fontWeight:870,letterSpacing:'.02em',
+    color:ORANGE,textShadow:'0 0 16px rgba(245,165,90,.2)',
+    opacity:enter*leave,transform:'translateY('+((1-enter)*10)+'px)',
+  }}>{event.text}</div>;
+};
+
+const BudgetMeter:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame,cue})=>{
+  const progress=clamp((frame-cue.SHARED_BUDGET)/Math.max(35,cue.BUDGET_EXHAUSTED-cue.SHARED_BUDGET));
+  const exhausted=frame>=cue.BUDGET_EXHAUSTED;
+  const reveal=shot08Ease(frame,cue.SHARED_BUDGET,22)*
+    (1-shot08Ease(frame,cue.EXP_BACKOFF,24));
+  return <div style={{position:'absolute',left:1120,top:686,width:416,
+    height:142,padding:'15px 17px',zIndex:24,fontFamily:AT_FONT,
+    opacity:reveal,pointerEvents:'none',...shell(exhausted?ORANGE:CYAN)}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+      <span style={{fontSize:17,fontWeight:880,color:WHITE}}>SHARED RETRY BUDGET</span>
+      <span style={{fontSize:13,fontWeight:840,color:exhausted?ORANGE:MINT}}>
+        {exhausted?'LIMIT REACHED':'GUARDED'}</span>
+    </div>
+    <div style={{display:'flex',gap:5,marginTop:18}}>
+      {Array.from({length:9},(_,i)=>{
+        const filled=(i+1)/9<=progress;
+        return <div key={i} style={{flex:1,height:17,borderRadius:5,
+          background:filled?ORANGE:'rgba(53,133,153,.28)',
+          border:'1px solid '+(filled?'#FFD29B':'#346A7D'),
+          boxShadow:filled?'0 0 9px rgba(245,165,90,.37)':'none'}}/>;
+      })}
+    </div>
+    <div style={{fontSize:13,marginTop:17,color:SOFT,fontWeight:790}}>
+      ONE BUDGET · SAFE READ-ONLY LOOKUP RETRIES ONLY
+    </div>
   </div>;
 };
+
+const BackoffMeter:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame,cue})=>{
+  const show=shot08Ease(frame,cue.EXP_BACKOFF,23)*
+    (1-shot08Ease(frame,cue.WATCH_DB,22));
+  const jitter=shot08Ease(frame,cue.JITTER,20);
+  const duration=Math.max(1,cue.WATCH_DB-cue.EXP_BACKOFF);
+  const t=clamp((frame-cue.EXP_BACKOFF)/duration);
+  return <div style={{position:'absolute',left:1120,top:686,
+    width:416,height:142,zIndex:25,fontFamily:AT_FONT,
+    padding:'12px 16px',pointerEvents:'none',opacity:show,
+    ...shell('#68E5FF')}} >
+    <div style={{color:WHITE,fontSize:16,fontWeight:875,marginBottom:12}}>
+      BACKOFF <span style={{color:ORANGE}}>+ JITTER</span>
+    </div>
+    {['AUTH 01','AUTH 02','AUTH 03'].map((name,i)=>{
+      const delay=14+i*9+24*Math.pow(t,2);
+      const shifted=jitter*(i===0?0:i===1?12:23);
+      return <div key={name} style={{display:'flex',alignItems:'center',
+        gap:8,height:27,fontSize:12,color:SOFT,fontWeight:840}}>
+        <span style={{width:57}}>{name}</span>
+        <div style={{height:8,width:282,position:'relative',
+          borderRadius:6,background:'rgba(72,126,160,.22)'}}>
+          <div style={{position:'absolute',left:shifted+12,
+            width:Math.min(210,delay*2.6),height:8,
+            borderRadius:6,background:i===0?CYAN:i===1?MINT:ORANGE,
+            boxShadow:'0 0 10px rgba(92,230,218,.23)'}}/>
+        </div>
+      </div>;
+    })}
+  </div>;
+};
+
+const DBReadout:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame,cue})=>{
+  const show=shot08Ease(frame,cue.WATCH_DB,27);
+  const reduce=shot08Ease(frame,cue.FEWER_ATTEMPTS,47);
+  const hold=shot08Ease(frame,cue.CAPACITY_UNCHANGED,28);
+  return <div style={{position:'absolute',left:1573,top:685,width:256,
+    height:143,padding:'15px 14px',zIndex:25,pointerEvents:'none',
+    opacity:show,fontFamily:AT_FONT,...shell(ORANGE)}}>
+    <div style={{fontSize:16,fontWeight:900,color:WHITE}}>USER DATABASE</div>
+    <div style={{height:8,marginTop:15,borderRadius:5,
+      background:'rgba(237,103,82,.24)'}}>
+      <div style={{height:8,borderRadius:5,
+        width:(100-45*reduce)+'%',background:RED,
+        boxShadow:'0 0 11px rgba(242,105,76,.45)'}}/>
+    </div>
+    <div style={{fontSize:12,fontWeight:840,marginTop:11,
+      color:reduce>.5?MINT:ORANGE}}>
+      {reduce>.5?'FEWER DUPLICATE ATTEMPTS':'DUPLICATE WORK HIGH'}
+    </div>
+    <div style={{fontSize:12,marginTop:7,fontWeight:840,
+      color:hold>.4?ORANGE:SOFT}}>
+      CAPACITY · UNCHANGED
+    </div>
+  </div>;
+};
+
+const AuthFocus:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame,cue})=>{
+  const focus=shot08Ease(frame,cue.AUTH01,22)*
+    (1-shot08Ease(frame,cue.SHARED_BUDGET,23));
+  const stop=shot08Ease(frame,cue.STOP_EXPIRED,19);
+  const all=shot08Ease(frame,cue.THREE_AUTH,20)*
+    (1-shot08Ease(frame,cue.AUTH01,20));
+  const stagger=shot08Ease(frame,cue.JITTER,20)*
+    (1-shot08Ease(frame,cue.WATCH_DB,24));
+  const card=SHOT02_NODES.auth;
+  return <AbsoluteFill style={{pointerEvents:'none',zIndex:20}}>
+    {[0,1,2].map(i=>{
+      const glow=all*(.44+.56*Math.sin(Math.max(0,frame-cue.THREE_AUTH)*.10-i*1.25)**2)
+        +focus*(i===0?1:.08)+stagger*(.48+.52*Math.sin(frame*.075-i*1.6)**2);
+      return <div key={i} style={{
+        position:'absolute',left:card.x-card.width/2+35,top:card.y+69+i*87,
+        width:278,height:82,borderRadius:12,
+        border:'2px solid '+(focus>.4&&i===0?ORANGE:CYAN),
+        boxShadow:'0 0 '+(8+18*glow)+'px rgba(90,217,252,'+(glow*.34)+')',
+        opacity:clamp(glow*.86),
+      }}/>;
+    })}
+    {focus>.04&&<div style={{position:'absolute',left:1157,top:216,
+      width:338,height:73,zIndex:25,opacity:focus,fontFamily:AT_FONT,
+      padding:'10px 14px',...shell(stop>.5?ORANGE:CYAN)}}>
+      <div style={{fontSize:17,fontWeight:880,color:WHITE}}>AUTH 01 · DEADLINE CHECK</div>
+      <div style={{fontSize:14,marginTop:9,color:stop>.5?ORANGE:SOFT,fontWeight:820}}>
+        {stop>.5?'NO TIME LEFT · STOP':'LOOKUP TIMED OUT · VERIFY TIME LEFT'}
+      </div>
+    </div>}
+  </AbsoluteFill>;
+};
+
 export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
-  const frame=useCurrentFrame(),config=useVideoConfig();
-  if(config.width!==1920||config.height!==1080||config.fps!==30
-    ||config.durationInFrames!==props.durationInFrames)
+  const frame=useCurrentFrame(),video=useVideoConfig();
+  if(video.width!==1920||video.height!==1080||video.fps!==30
+    ||video.durationInFrames!==props.durationInFrames)
     throw Error('SHOT08_REQUIRES_REAL_1080P_30FPS_SELECTED_TAKE');
   const {positions:cue}=validateShot08Source(props);
   assertShot08SafeLayout();
-  const titleFade=shot08Ease(frame,26,92);
-  const replicaGrowth=shot08Ease(frame,cue.THREE_TO_SIX,135);
-  const showPools=shot08Ease(frame,cue.EIGHT_CONNECTIONS,56);
-  const attention=shot08Ease(frame,cue.SAME_USER_DATABASE,31);
-  const conclusion=shot08Ease(frame,cue.SCALED_NOT_BOTTLENECK,28);
+  const titleChange=shot08Ease(frame,28,65);
+  const stressReduction=shot08Ease(frame,cue.FEWER_ATTEMPTS,100);
+  const gentlePush=shot08Ease(frame,cue.WATCH_DB,130);
+  const showBadge=1-shot08Ease(frame,32,66);
+  const endMessage=shot08Ease(frame,cue.STORM_CONTAINED,28);
   return <ATBackground>
-    <Shot07CleanArchitectureWorld
-      frame={frame} replicaGrowth={replicaGrowth}
-      dbStress={.87+.13*attention}
-      cascadeStartFrame={-1}
-      showPhone={1} showPools={showPools}
-      showLoginBadge={1-shot08Ease(frame,22,63)}
-      showRetryAttempts={1}/>
-    <AbsoluteFill style={{pointerEvents:'none'}}>
-      <div style={{position:'absolute',left:560,top:76,zIndex:27,
-        width:1120,height:123,fontFamily:AT_FONT}}>
+    <AbsoluteFill style={{transform:'translate3d('+(-7*gentlePush)+'px,0,0) scale('+
+      (1+.007*gentlePush)+')',transformOrigin:'50% 50%'}}>
+      <Shot07CleanArchitectureWorld frame={frame}
+        replicaGrowth={0} dbStress={1-.18*stressReduction}
+        cascadeStartFrame={-1} showPhone={1} showPools={0}
+        initialPressure showLoginBadge={showBadge}
+        showRetryAttempts={showBadge}/>
+    </AbsoluteFill>
+    <AbsoluteFill style={{pointerEvents:'none',zIndex:22}}>
+      <div style={{position:'absolute',left:560,top:76,width:1130,
+        height:120,fontFamily:AT_FONT,zIndex:25}}>
+        <div style={{fontSize:39,fontWeight:890,color:WHITE,
+          opacity:1-titleChange}}>WHEN RETRYING CREATES MORE FAILURE</div>
         <div style={{position:'absolute',left:0,top:0,
-          fontSize:39,fontWeight:880,color:WHITE,
-          opacity:1-titleFade}}>
-          WHEN RETRYING CREATES MORE FAILURE
+          fontSize:39,fontWeight:890,color:WHITE,opacity:titleChange}}>
+          STOP THE RETRY STORM
         </div>
-        <div style={{position:'absolute',left:0,top:0,
-          fontSize:39,fontWeight:900,color:WHITE,
-          opacity:titleFade}}>
-          MORE SERVERS, SAME BOTTLENECK
-        </div>
-        <div style={{position:'absolute',left:0,top:68,height:2,width:690,
-          background:'linear-gradient(90deg,#6FECD4,transparent)',
-          opacity:.8}}/>
+        <div style={{position:'absolute',left:0,top:72,
+          width:700,height:2,background:'linear-gradient(90deg,'+MINT+',transparent)',
+          opacity:.88}}/>
       </div>
-      <Captions frame={frame} cue={cue} duration={props.durationInFrames}/>
-      {conclusion>.03&&<div style={{position:'absolute',
-        left:560,top:969,width:1200,height:54,zIndex:25,
-        fontFamily:AT_FONT,fontSize:21,fontWeight:780,
-        color:'#F8DDBB',opacity:conclusion}}>
-        SIX AUTH REPLICAS CAN SHARE WORK · THEY CANNOT INCREASE DATABASE CAPACITY
-      </div>}
+      <AuthFocus frame={frame} cue={cue}/>
+      <BudgetMeter frame={frame} cue={cue}/>
+      <BackoffMeter frame={frame} cue={cue}/>
+      <DBReadout frame={frame} cue={cue}/>
+      <OrangeCue frame={frame} cue={cue} duration={props.durationInFrames}/>
+      <div style={{position:'absolute',left:560,top:983,width:1220,
+        height:54,fontFamily:AT_FONT,fontSize:20,fontWeight:825,
+        color:'#E7D8C6',opacity:endMessage,letterSpacing:'.017em'}}>
+        RETRIES ARE BOUNDED · THE SHARED DATABASE STILL HAS FINITE CAPACITY
+      </div>
     </AbsoluteFill>
   </ATBackground>;
 };

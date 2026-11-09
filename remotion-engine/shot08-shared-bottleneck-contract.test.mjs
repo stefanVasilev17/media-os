@@ -7,81 +7,78 @@ import ts from 'typescript';
 import {preflightTierPlusPlusRender} from './tier-plus-plus-render-quality.mjs';
 
 const root=path.dirname(fileURLToPath(import.meta.url));
-const read=p=>readFileSync(path.join(root,p),'utf8');
-const src=n=>read('src/episodes/ep002/'+n);
-const scene=src('Shot08DirectorVisualV1.tsx');
-const clean=src('Shot07CleanArchitectureWorld.tsx');
+const src=n=>readFileSync(path.join(root,'src/episodes/ep002',n),'utf8');
 const layout=src('Shot02PremiumLayout.ts');
 const contract=src('Shot08VisualContract.ts')
   .replace(/^import\s+\{SHOT02_NODES,shot02Intersects,type Rect\}\s+from\s+'\.\/Shot02PremiumLayout';\s*/m,'');
-const transpile=s=>'data:text/javascript;base64,'+Buffer.from(ts.transpileModule(s,{
+const js=ts.transpileModule(layout+'\n'+contract,{
   compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022},
-}).outputText).toString('base64');
-const c=await import(transpile(layout+'\n'+contract));
-const durationInFrames=2700;
-const frames=[20,140,300,399,520,630,720,855,985,1119,1270,1450,1670,1970,2350];
-const termCues=c.SHOT08_TERM_ORDER.map((id,i)=>({
-  id,spokenAnchor:id,startFrame:frames[i],endFrame:frames[i]+20,
+}).outputText;
+const c=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+const scene=src('Shot08DirectorVisualV1.tsx');
+const world=src('Shot07CleanArchitectureWorld.tsx');
+const frames=2700;
+const starts=[22,110,210,305,415,505,615,705,790,900,980,1075,
+  1145,1245,1380,1490,1605,1740,1860,2020,2380];
+const terms=c.SHOT08_TERM_ORDER.map((id,i)=>({
+  id,spokenAnchor:'source voice '+id,startFrame:starts[i],endFrame:starts[i]+18,
 }));
-const beats=[0,475,1020,1550,2100].map((startFrame,i)=>({
-  beatNumber:i+1,spokenAnchor:'heard verified phrase '+(i+1),
-  startFrame,endFrame:i===4?durationInFrames:[475,1020,1550,2100][i],
+const beats=[0,475,890,1310,1750,2200].map((startFrame,i)=>({
+  beatNumber:i+1,spokenAnchor:'approved real audio phrase '+i,startFrame,
+  endFrame:i===5?frames:[475,890,1310,1750,2200][i],
 }));
-const props={durationInFrames,voiceTakeId:'de409d13-5667-4161-85d9-5ae57d0d30a3',
-  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues:beats,termCues};
+const props={durationInFrames:frames,voiceTakeId:'de409d13-5667-4161-85d9-5ae57d0d30a3',
+  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues:beats,termCues:terms};
 
-test('SHOT08 refuses fake audio timing, incomplete beats and re-ordered scaling terms',()=>{
+test('SHOT08 requires six continuous real voice beats and twenty-one source-spoken events',()=>{
   assert.doesNotThrow(()=>c.validateShot08Source(props));
   assert.throws(()=>c.validateShot08Source({...props,voiceTakeId:''}),
-    /SHOT08_REQUIRES_CURRENT_DIRECTOR_APPROVED_REAL_VOICE/);
-  assert.throws(()=>c.validateShot08Source({...props,termCues:termCues.slice(1)}),
-    /SHOT08_REQUIRES_CURRENT_DIRECTOR_APPROVED_REAL_VOICE/);
-  assert.throws(()=>c.validateShot08Source({...props,termCues:[...termCues].reverse()}),
-    /SHOT08_REAL_SPOKEN_TERM_ORDER_INVALID/);
+    /SHOT08_RECOVERY_REQUIRES_CURRENT_REAL_SELECTED_VOICE_AND_SIX_BEATS/);
+  assert.throws(()=>c.validateShot08Source({...props,termCues:terms.slice(1)}),
+    /SHOT08_RECOVERY_REQUIRES_CURRENT_REAL_SELECTED_VOICE_AND_SIX_BEATS/);
+  assert.throws(()=>c.validateShot08Source({...props,termCues:[...terms].reverse()}),
+    /SHOT08_RECOVERY_SPOKEN_TERM_ORDER_INVALID/);
   assert.throws(()=>c.validateShot08Source({...props,verifiedCues:beats.map((b,i)=>
     i===1?{...b,startFrame:b.startFrame+2}:b)}),
-    /SHOT08_FIVE_DIRECTOR_BEATS_INVALID/);
+    /SHOT08_SIX_AUDIO_ALIGNED_BEATS_INVALID/);
 });
 
-test('SHOT08 opens in the exact same clean architecture world as SHOT07',()=>{
-  const previous=src('Shot07DirectorVisualV1.tsx');
-  assert.match(previous,/Shot07CleanArchitectureWorld/);
+test('SHOT07→08 keeps original phone and 3 Auth / 1 DB diagram with cinematic title dissolve',()=>{
+  assert.match(src('Shot07DirectorVisualV1.tsx'),/Shot07CleanArchitectureWorld/);
   assert.match(scene,/Shot07CleanArchitectureWorld/);
   assert.match(scene,/WHEN RETRYING CREATES MORE FAILURE/);
-  assert.match(scene,/MORE SERVERS, SAME BOTTLENECK/);
-  assert.match(scene,/1-shot08Ease\(frame,22,63\)/);
-  assert.match(scene,/shot08Ease\(frame,cue.THREE_TO_SIX,135\)/);
-  assert.match(scene,/replicaGrowth=\{replicaGrowth\}/);
+  assert.match(scene,/STOP THE RETRY STORM/);
+  assert.match(scene,/replicaGrowth=\{0\}/);
+  assert.match(scene,/showPhone=\{1\}/);
+  assert.match(scene,/initialPressure/);
+  assert.match(scene,/showLoginBadge=\{showBadge\}/);
+  assert.match(scene,/shot08Ease\(frame,28,65\)/);
+  assert.match(world,/Shot02PressurePhone/);
+  assert.match(world,/User Database/);
+  assert.doesNotMatch(scene,/SIX AUTH|THREE AUTH INSTANCES → SIX|horizontal scaling/i);
   assert.doesNotThrow(()=>c.assertShot08SafeLayout());
 });
 
-test('SHOT08 uses six Auth replica cards and a single saturated DB with no flying requests',()=>{
-  assert.match(clean,/SHOT02_NODES/);
-  assert.match(clean,/Shot02PressurePhone/);
-  assert.match(clean,/AUTH 06/);
-  assert.match(clean,/User Database/);
-  assert.match(clean,/replicaGrowth/);
-  assert.match(clean,/POOL · UP TO 8 DB CONN/);
-  assert.doesNotMatch(clean,/shot02CubicPoint|SHOT02_LOGIN_PARTICLE|strokeDasharray|NewAttemptPath/);
-  assert.doesNotMatch(clean,/M1823 509 L1856|M1823 509 L/);
-  assert.match(scene,/SIX AUTH INSTANCES · ONE USER DATABASE/);
-  assert.match(scene,/WE SCALED AUTH · NOT THE BOTTLENECK/);
-  assert.doesNotMatch(scene,/ACCOUNT LOOKUP ATTEMPTS|NEW LOGIN ARRIVALS/);
+test('SHOT08 visualizes deadline, shared budget, backoff, jitter and honest DB result locally',()=>{
+  for(const token of ['BudgetMeter','BackoffMeter','DBReadout','AuthFocus',
+    'DEADLINE CHECK','SHARED RETRY BUDGET','BACKOFF','JITTER',
+    'CAPACITY · UNCHANGED','NEVER REPEAT THE WHOLE LOGIN'])
+    assert.ok(scene.includes(token),token);
+  assert.doesNotMatch(scene,/NewAttemptPath|NEW LOGIN ARRIVALS CARD|More Servers, Same Bottleneck/);
 });
 
-test('SHOT08 never starts paid rendering with invented voice/timing/source SHA',()=>{
-  const rootCode=read('src/Root.tsx');
-  assert.match(rootCode,/id="EP002-SHOT08-CANDIDATE"/);
-  assert.match(rootCode,/component=\{Shot08DirectorVisualV1\}/);
+test('worker preflight accepts source-pinned honest real voice and refuses mismatches',()=>{
   const sha='d'.repeat(40);
   const job={compositionId:'EP002-SHOT08-CANDIDATE',width:1920,
-    height:1080,fps:30,durationInFrames,inputProps:{
-      ...props,shotKey:'EP002_SHOT08',scriptRevision:1,
+    height:1080,fps:30,durationInFrames:frames,inputProps:{
+      ...props,shotKey:'EP002_SHOT08',scriptRevision:8,
       inputFingerprint:'a'.repeat(64),expectedSourceCommit:sha,
+      visualSourceSha:'b'.repeat(40),
   }};
   const pass=preflightTierPlusPlusRender(job,sha);
   assert.equal(pass.status,'TECHNICAL_PRECHECK_PASS');
-  assert.ok(pass.checks.includes('FIFTEEN_REAL_SCALING_BOTTLENECK_TERMS'));
+  assert.ok(pass.checks.includes('TWENTY_ONE_REAL_RECOVERY_TERMS'));
+  assert.ok(pass.checks.includes('SIX_REAL_AUDIO_ALIGNED_BEATS'));
   assert.throws(()=>preflightTierPlusPlusRender(job,'f'.repeat(40)),
     /WORKER_SHA_NOT_PINNED/);
   assert.throws(()=>preflightTierPlusPlusRender({...job,fps:24},sha),

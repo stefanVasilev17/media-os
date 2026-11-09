@@ -10,6 +10,7 @@ import java.util.Locale;
 
 public final class Ep002RecoverySource {
     static final String SCRIPT_PATH="episode-production/ep002-locked-script-v5.json";
+    static final String RECOVERY_VISUAL_BLOB_SHA="11a78bc7697c28f588f4369444ab076eb6bb8797";
     static final String VISUAL_PATH="episode-production/ep002-recovery-visual-overrides-v5.json";
     static final int PROTECTED_SHOTS=7;
     static final int FIRST_RECOVERY_SHOT=8;
