@@ -110,7 +110,7 @@ export function Ep002Shot08RenderPanel(){
       <div>
         <h2><Clapperboard size={21}/> SHOT08 — Tier++ More Servers, Same Bottleneck Render</h2>
         <p>The final SHOT07 architecture stays on screen as Auth Service grows
-          from three to six instances. All six still share ONE saturated
+          from recovery instances. All six still share ONE saturated
           User Database; no invented flying requests or downstream nodes.
           Five verified HEAR → SEE beats and fifteen real spoken markers
           from the CURRENT approved SHOT08 voice are mandatory. No new TTS
