@@ -16,12 +16,10 @@ export type Shot07SceneProps={
   verifiedCues:Shot07BeatCue[];termCues:Shot07TermCue[];
 };
 export const SHOT07_SAFE_ZONES={
-  title:{left:80,top:78,width:1450,height:107},
-  explanation:{left:80,top:847,width:1185,height:105},
-  metrics:{left:80,top:626,width:1120,height:187},
-  phone:{left:1520,top:690,width:300,height:325},
-  retryTag:{left:995,top:515,width:322,height:88},
-  dbCallout:{left:1506,top:240,width:322,height:93},
+  title:{left:80,top:78,width:1020,height:110},
+  activeLogin:{left:1157,top:215,width:338,height:79},
+  caption:{left:565,top:875,width:1060,height:69},
+  phone:{left:55,top:160,width:445,height:800},
 } as const satisfies Record<string,Rect>;
 const clamp=(n:number)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):0;
 export const shot07Ease=(frame:number,start:number,length:number):number=>{
@@ -72,19 +70,28 @@ export function validateShot07Source(props:Shot07SceneProps){
   return {beats:props.verifiedCues,terms:props.termCues,positions};
 }
 export function assertShot07SafeLayout(){
-  for(const [name,box] of Object.entries(SHOT07_SAFE_ZONES)){
-    if(box.left<40||box.top<40||box.left+box.width>1880
+  const items=Object.entries(SHOT07_SAFE_ZONES);
+  for(const [name,box] of items) {
+    if(box.left<44||box.top<40||box.left+box.width>1880
       ||box.top+box.height>1040)
       throw Error('SHOT07_OUTSIDE_SAFE_FRAME_'+name);
+    for(const [otherName,other] of items)
+      if(name<otherName&&shot02Intersects(box,other,18))
+        throw Error('SHOT07_DIRECTOR_TEXT_OVERLAP_'+name+'_'+otherName);
   }
-  const {metrics,explanation,phone,retryTag,dbCallout,title}=SHOT07_SAFE_ZONES;
-  const pairs:Array<[Rect,Rect,number]>=[
-    [metrics,phone,24],[explanation,phone,24],[retryTag,metrics,22],
-    [retryTag,phone,24],[dbCallout,phone,24],[dbCallout,title,22],
-    [dbCallout,metrics,22],[retryTag,explanation,24],
-  ];
-  if(pairs.some(([a,b,gap])=>shot02Intersects(a,b,gap)))
-    throw Error('SHOT07_DIRECTOR_CARD_OVERLAP');
-  if(SHOT02_NODES.auth.x!==1326||SHOT02_NODES.auth.y!==315)
+  const active=SHOT07_SAFE_ZONES.activeLogin;
+  const auth=SHOT02_NODES.auth;
+  if(active.top+active.height>auth.y-18
+    ||active.left<auth.x-auth.width/2
+    ||active.left+active.width>auth.x+auth.width/2)
+    throw Error('SHOT07_ACTIVE_LOGIN_MUST_BE_ABOVE_AUTH_SERVICE');
+  for(const [name,n] of Object.entries(SHOT02_NODES)){
+    const arch={left:n.x-n.width/2,top:n.y,
+      width:n.width,height:n.height};
+    if(shot02Intersects(arch,SHOT07_SAFE_ZONES.caption,20)
+      ||shot02Intersects(arch,SHOT07_SAFE_ZONES.phone,15))
+      throw Error('SHOT07_PROTECTED_ARCHITECTURE_COLLISION_'+name);
+  }
+  if(SHOT02_NODES.auth.x!==1326||SHOT02_NODES.database.x!==1697)
     throw Error('SHOT07_PROTECTED_ARCHITECTURE_GEOGRAPHY_CHANGED');
 }
