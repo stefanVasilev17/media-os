@@ -60,7 +60,7 @@ export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
       showLoginBadge={1-shot08Ease(frame,22,63)}
       showRetryAttempts={1}/>
     <AbsoluteFill style={{pointerEvents:'none'}}>
-      <div style={{position:'absolute',left:80,top:76,zIndex:27,
+      <div style={{position:'absolute',left:560,top:76,zIndex:27,
         width:1120,height:123,fontFamily:AT_FONT}}>
         <div style={{position:'absolute',left:0,top:0,
           fontSize:39,fontWeight:880,color:WHITE,
