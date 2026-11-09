@@ -31,6 +31,7 @@ public class Ep002FactoryReadinessBridgeService {
     private final Ep002EpisodeBatchPlanService batch;
     private final JsonNode scripts;
     private final JsonNode visuals;
+    private final JsonNode recoveryVisuals;
 
     record WorkingScript(int revision, String narration, String voiceDirection) {}
 
@@ -63,7 +64,7 @@ public class Ep002FactoryReadinessBridgeService {
         this.jdbc = jdbc;
         this.batch = batch;
         try (var original = new ClassPathResource(
-                    "episode-production/ep002-locked-script-v4.json").getInputStream();
+                    Ep002RecoverySource.SCRIPT_PATH).getInputStream();
              var approved = new ClassPathResource(
                     "episode-production/ep002-approved-visual-source.json").getInputStream()) {
             this.scripts = mapper.readTree(original);
@@ -71,9 +72,11 @@ public class Ep002FactoryReadinessBridgeService {
         } catch (IOException error) {
             throw new IllegalStateException("EP002 factory source cannot be read.", error);
         }
+        this.recoveryVisuals=Ep002RecoverySource.load(mapper,Ep002RecoverySource.VISUAL_PATH);
+        Ep002RecoverySource.verify(scripts,visuals,recoveryVisuals);
         if (!"EP002".equals(scripts.path("episodeKey").asText())
                 || !"DIRECTOR_LOCKED".equals(scripts.path("directorFullScriptStatus").asText())
-                || !"v4.0".equals(scripts.path("scriptVersion").asText())
+                || !"v5.0".equals(scripts.path("scriptVersion").asText())
                 || !"EP002".equals(visuals.path("episodeKey").asText())
                 || !"v1.0".equals(visuals.path("visualPassVersion").asText())
                 || !"DIRECTOR_APPROVED_GITHUB".equals(visuals.path("approval").asText())
@@ -142,7 +145,7 @@ public class Ep002FactoryReadinessBridgeService {
             Ep002EpisodeBatchPlanService.ShotPlan shot = plan.shots().get(i);
             String key = String.format(java.util.Locale.ROOT, "SHOT%02d", i + 1);
             JsonNode approvedScript = scripts.path("shots").path(i);
-            JsonNode approvedVisual = visuals.path("shots").path(i);
+            JsonNode approvedVisual = Ep002RecoverySource.visual(visuals,recoveryVisuals,i);
             int beats = approvedVisual.path("beats").size();
             if (!key.equals(shot.shotKey())
                     || !key.equals(approvedScript.path("shotKey").asText())
@@ -204,7 +207,7 @@ public class Ep002FactoryReadinessBridgeService {
         if (!uncertainRequests.isEmpty()) blockers.add("UNRESOLVED_PAID_VOICE_REQUESTS");
         blockers.add("REAL_HEAR_SEE_CUE_TIMINGS_NOT_YET_VERIFIED_FOR_ALL_11_SHOTS");
         blockers.add("EP002_FACTORY_CODE_RENDER_AND_SHOT01_REUSE_NOT_YET_CONNECTED");
-        return new Snapshot(VERSION, "EP002", "v4.0", "v1.0",
+        return new Snapshot(VERSION, "EP002", "v5.0", "v1.0+RECOVERY",
                 Ep002ProductionContractService.VISUAL_SHA, plan.inputFingerprint(),
                 11, 59, 810, 1, 10, selected, measured, 0,
                 true, false, false, false, List.copyOf(blockers), List.copyOf(out));
