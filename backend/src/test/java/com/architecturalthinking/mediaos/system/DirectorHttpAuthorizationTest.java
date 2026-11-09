@@ -70,6 +70,9 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT06/render-preview")
         String shot06Preview() { return "director-preview-shot06-only"; }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT07/render-preview")
+        String shot07Preview() { return "director-preview-shot07-only"; }
+
         @PostMapping("/api/v1/creative/episodes/EP002/shots/SHOT01/generate-slow")
         String shot01SlowVoice() { return "director-paid-voice-shot01"; }
 
