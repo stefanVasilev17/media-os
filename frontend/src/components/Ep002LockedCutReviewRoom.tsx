@@ -28,6 +28,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT04',title:'Alive Is Not Available — Director V2',
     renderId:'b006202f-7587-4f82-931a-fadf5eacbfcb',
     compositionId:'EP002-SHOT04-CANDIDATE'},
+  {shotKey:'SHOT05',title:'Connection Pool: The Hidden Queue — Director LOCK',
+    renderId:'b2b95685-8e1b-41df-9fe2-c83eefbf86e9',
+    compositionId:'EP002-SHOT05-CANDIDATE'},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze(['SHOT01',...REFERENCES.map(x=>x.shotKey)]);
