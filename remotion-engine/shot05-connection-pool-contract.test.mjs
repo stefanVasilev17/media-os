@@ -112,6 +112,17 @@ test('SHOT05 teaches spoken queueing and in-flight meanings without extra dashbo
   assert.equal(contract.SHOT05_TEXT_AREAS.explainers.top,903);
 });
 
+test('SHOT05 ending Phone is right of both voice explainers with clear separation',()=>{
+  assert.match(scene,/translate3d\(1320px,590px,0\) scale\(\.35\)/);
+  const explainers=contract.SHOT05_TEXT_AREAS.explainers;
+  const phone=contract.SHOT05_TEXT_AREAS.phone;
+  assert.ok(phone.left>=explainers.left+explainers.width+55,
+    'Phone must not overlap or visually touch the request explanations');
+  assert.ok(phone.left+phone.width<1878,
+    'Phone must remain within the premium 1920px safe frame');
+  assert.doesNotThrow(()=>contract.assertShot05SafeLayout());
+});
+
 test('SHOT05 root registers measured 1080p30 source with no fabricated cues',()=>{
   assert.match(rootScene,/id="EP002-SHOT05-CANDIDATE"/);
   assert.match(rootScene,/component=\{Shot05DirectorVisualV1\}/);
