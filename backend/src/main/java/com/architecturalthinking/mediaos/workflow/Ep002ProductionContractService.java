@@ -32,6 +32,7 @@ public class Ep002ProductionContractService {
     private final JdbcClient jdbc;
     private final JsonNode manifest;
     private final JsonNode visuals;
+    private final JsonNode recoveryVisuals;
 
     record Script(int revision, String narration, String voiceDirection, String sourceRevision) {}
     record Take(UUID id,int revision,int number,String contentType,String modelId,
@@ -40,7 +41,7 @@ public class Ep002ProductionContractService {
     public Ep002ProductionContractService(JdbcClient jdbc,ObjectMapper mapper) {
         this.jdbc=jdbc;
         try {
-            manifest=mapper.readTree(new ClassPathResource("episode-production/ep002-locked-script-v4.json").getInputStream());
+            manifest=Ep002RecoverySource.load(mapper,Ep002RecoverySource.SCRIPT_PATH);
             visuals=mapper.readTree(new ClassPathResource("episode-production/ep002-approved-visual-source.json").getInputStream());
         } catch (IOException error) {
             throw new IllegalStateException("Approved EP002 production sources cannot be loaded.",error);
@@ -50,6 +51,8 @@ public class Ep002ProductionContractService {
                 || !VISUAL_SHA.equals(visuals.path("gitBlobSha").asText())) {
             throw new IllegalStateException("EP002 source integrity validation failed.");
         }
+        recoveryVisuals=Ep002RecoverySource.load(mapper,Ep002RecoverySource.VISUAL_PATH);
+        Ep002RecoverySource.verify(manifest,visuals,recoveryVisuals);
         for(int i=0;i<11;i++) {
             String key=String.format(java.util.Locale.ROOT,"SHOT%02d",i+1);
             if (!key.equals(manifest.path("shots").path(i).path("shotKey").asText())
@@ -81,7 +84,7 @@ public class Ep002ProductionContractService {
                 preferredTake.toString(),visualSha));
     }
 
-    JsonNode sourceVisual(int index) { return visuals.path("shots").path(index); }
+    JsonNode sourceVisual(int index) { return Ep002RecoverySource.visual(visuals,recoveryVisuals,index); }
     JsonNode sourceScript(int index) { return manifest.path("shots").path(index); }
 
     private Script script(String shot,int index) {
@@ -204,9 +207,9 @@ public class Ep002ProductionContractService {
         voice.put("status",chosen==null?"NO_PREFERRED_TAKE":"PREFERRED_TAKE_SELECTED");
 
         Map<String,Object> visualResult=new LinkedHashMap<>();
-        visualResult.put("version",visuals.path("visualPassVersion").asText());
+        visualResult.put("version",i>=7?"v5.0_RECOVERY":visuals.path("visualPassVersion").asText());
         visualResult.put("sourceGitBlobSha",VISUAL_SHA);
-        visualResult.put("approval",visuals.path("approval").asText());
+        visualResult.put("approval",i>=7?"DIRECTOR_APPROVED_RECOVERY_SCRIPT":visuals.path("approval").asText());
         visualResult.put("editorialWindow",visual.path("editorialWindow").asText());
         visualResult.put("editorialDurationSeconds",approved.path("editorialDurationSeconds").asInt());
         visualResult.put("beatTimingAuthority",cues.size()==5
@@ -214,6 +217,7 @@ public class Ep002ProductionContractService {
                 : "EDITORIAL_ONLY_NOT_AUDIO_ALIGNED");
         visualResult.put("cueReviewStatus",sourceUnchanged?"SOURCE_TEXT_UNCHANGED":"REVIEW_AFTER_NARRATION_EDIT");
         visualResult.put("beats",visual.path("beats"));
+        visualResult.put("automaticSpokenAnchors",Ep002RecoverySource.suggestedAnchors(visuals,recoveryVisuals,shot));
         visualResult.put("visualGoal",visual.path("visualGoal").asText());
         visualResult.put("cameraDirection",visual.path("cameraDirection").asText());
         visualResult.put("assetDirection",visual.path("assetDirection").asText());
