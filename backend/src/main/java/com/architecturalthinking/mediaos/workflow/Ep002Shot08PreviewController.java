@@ -22,6 +22,7 @@ public class Ep002Shot08PreviewController {
     private final RemotionRenderController renders;
     private final JdbcClient jdbc;
     private final boolean renderEnabled;
+    private final boolean recoveryVisualContractReady;
     private final String pinnedWorkerSha;
 
     public Ep002Shot08PreviewController(
@@ -30,10 +31,13 @@ public class Ep002Shot08PreviewController {
             RemotionRenderController renders,
             JdbcClient jdbc,
             @Value("${mediaos.ep002.shot08-preview-enabled:false}") boolean renderEnabled,
+            @Value("${mediaos.ep002.shot08-recovery-visual-contract-ready:false}")
+                boolean recoveryVisualContractReady,
             @Value("${MEDIAOS_SHOT08_RELEASE_WORKER_SHA:${mediaos.ep002.shot08-worker-source-sha:}}")
                 String pinnedWorkerSha) {
         this.cues=cues;this.episode=episode;this.renders=renders;this.jdbc=jdbc;
         this.renderEnabled=renderEnabled;
+        this.recoveryVisualContractReady=recoveryVisualContractReady;
         this.pinnedWorkerSha=pinnedWorkerSha==null?"":pinnedWorkerSha.trim();
     }
 
@@ -44,8 +48,8 @@ public class Ep002Shot08PreviewController {
     public Map<String,Object> capability() {
         DirectorIdentity.requireDirector();
         boolean pinned=pinnedWorkerSha.matches("[a-f0-9]{40}");
-        return Map.of("enabled",false,"workerPinned",pinned,
-                "canQueue",false,
+        return Map.of("enabled",renderEnabled&&recoveryVisualContractReady,"workerPinned",pinned,
+                "canQueue",renderEnabled&&recoveryVisualContractReady&&pinned,
                 "reason","SHOT08_3_TO_6_SCALING_STORY_SUPERSEDED_RECOVERY_VISUAL_REQUIRED");
     }
 
@@ -89,7 +93,7 @@ public class Ep002Shot08PreviewController {
     public Map<String,Object> create(@RequestBody PreviewRequest request,
                                       HttpServletRequest http) {
         DirectorIdentity.requireDirector();
-        if(true)throw new ResponseStatusException(HttpStatus.CONFLICT,
+        if(!recoveryVisualContractReady)throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "SHOT08 scaling render is retired. Recovery visual/voice contract must be rebuilt.");
         if(!renderEnabled||!pinnedWorkerSha.matches("[a-f0-9]{40}"))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
