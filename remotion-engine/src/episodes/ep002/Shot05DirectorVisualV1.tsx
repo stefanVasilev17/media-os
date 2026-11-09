@@ -223,7 +223,7 @@ export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
         reveal={queueEntry}/>
       <ConceptExplainers frame={frame} terms={cue}/>
       <AbsoluteFill style={{zIndex:28,opacity:phone,
-        transform:'translate3d(1240px,590px,0) scale(.35)',
+        transform:'translate3d(1320px,590px,0) scale(.35)',
         transformOrigin:'top left',pointerEvents:'none'}}>
         <Shot02PressurePhone frame={frame} reveal={1} credential={.22} ui={0}
           emailValue="user@example.com" passwordDots="••••••••"
