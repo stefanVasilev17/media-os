@@ -78,7 +78,7 @@ export function assertShot07SafeLayout(){
       throw Error('SHOT07_OUTSIDE_SAFE_FRAME_'+name);
   }
   const {metrics,explanation,phone,retryTag,dbCallout,title}=SHOT07_SAFE_ZONES;
-  const pairs:[[Rect,Rect,number],...[Rect,Rect,number][]]=[
+  const pairs:Array<[Rect,Rect,number]>=[
     [metrics,phone,24],[explanation,phone,24],[retryTag,metrics,22],
     [retryTag,phone,24],[dbCallout,phone,24],[dbCallout,title,22],
     [dbCallout,metrics,22],[retryTag,explanation,24],
