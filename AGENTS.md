@@ -2,6 +2,13 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## SHOT05 V3 DIRECTOR-LOCKED — actual approved MP4, move to SHOT06 (2026-11-09)
+
+- **Creative Director LOCK:** Director explicitly said “Локваме!” after viewing final SHOT05 V3. Canonical approved MP4 render `b2b95685-8e1b-41df-9fe2-c83eefbf86e9` `EP002-SHOT05-CANDIDATE`, real 2,780 frames @30FPS, measured 92.667 sec H.264/AAC 1920×1080; Worker SHA `86353dac288471dd6a506d26951f7f6c7e1b7093` (Draft PR #225). Railway Worker `840ac214-338c-428f-bd63-85f037274f69` logged real selected Take, five reviewed beats, 15 aligned terms, `TECHNICAL_PRECHECK_PASS` and `ACTUAL_MP4_TECHNICAL_QA_PASS` at 2026-11-09T08:38:40Z; direct playback HTTP 206. This plus Director's distinct visual sign-off establishes final LOCK. Do not call this render "pending" based on historical notes below.
+- **Protect SHOT01–05:** SHOT05 V3 same real SHOT04 V2 visual world, right-shifted Phone (+80px, X=1320), 8-connection internal pool with smooth slot state fill/glow, historical REPLAY, small narration-aligned request queueing/in-flight descriptions; original Slow Natural Take `78961ce3-3ae5-43fe-a897-3a69532459b9`. Never overwrite locked MP4s, selected Takes, scripts, approved source or visuals without explicit new Director revisions. SHOT02 V7/SHOT03/SHOT04 remain canonical protected references.
+- **Review Room:** append Director-LOCKED SHOT05 exact Render ID only via `feat/ep002-locked-cut-shot05-20261109`, Draft PR #229, for read-only continuous SHOT01→SHOT05 playback and truthful chapter durations; do not create a master video or bill CPU for viewing.
+- **NEXT EP002 SHOT06:** Read canonical script/approved Visual Pass and current project status first. Build new shot only using previous LOCKED visual grammar and real voice alignment. Follow Director-only approval/audit gates for any paid voice and render. Never silently modify SHOT01–05.
+
 ## SHOT05 final Phone clearance correction in production (2026-11-09)
 
 - Source SHA `86353dac288471dd6a506d26951f7f6c7e1b7093`, [Draft PR #225](https://github.com/stefanVasilev17/media-os/pull/225). Ending SHOT05 original Phone translated +80px right (x=1320px instead of 1240px) to clear the real narration explanation strips; safe-area contract and test require >=55px margin. No other visual or voice/shot source modifications. This supersedes prior SHOT05 V2 SHA `337b64d1...` for **current SHOT05 render**.
