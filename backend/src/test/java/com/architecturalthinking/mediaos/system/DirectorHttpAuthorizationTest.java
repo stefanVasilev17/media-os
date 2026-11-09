@@ -214,7 +214,7 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
-    void ep002Shot02ThroughShot05RenderPreviewsRequireDirectorAndDenyOtherShots() throws Exception {
+    void ep002Shot02ThroughShot07RenderPreviewsRequireDirectorAndDenyUnreleasedShots() throws Exception {
         String path="/api/v1/creative/episodes/EP002/shots/SHOT02/render-preview";
         mvc.perform(post(path).with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
@@ -265,7 +265,17 @@ class DirectorHttpAuthorizationTest {
                     .andExpect(status().isForbidden());
         }
         mvc.perform(post(shot06)).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT07/render-preview")
+        String shot07="/api/v1/creative/episodes/EP002/shots/SHOT07/render-preview";
+        mvc.perform(post(shot07).with(
+                jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                .andExpect(status().isOk());
+        for(String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+            mvc.perform(post(shot07).with(
+                    jwt().authorities(new SimpleGrantedAuthority(role))))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(post(shot07)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/creative/episodes/EP002/shots/SHOT08/render-preview")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
     }
