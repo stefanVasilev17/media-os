@@ -52,3 +52,17 @@ test('SHOT08 render UI includes cost consent and recorded video link',()=>{
   assert.match(panel,/Watch SHOT08 MP4/);
   assert.doesNotMatch(panel,/\/generate-slow|\/align-existing-take/);
 });
+
+test('SHOT08 worker voice read accepts source-verified automatic cues, never bypasses Take ownership',()=>{
+  const cpuController=worker('RemotionCpuWorkerController.java');
+  assert.match(cpuController,/and r\.status='RUNNING' and r\.worker_id=:worker/);
+  assert.match(cpuController,/and t\.revision=\(/);
+  assert.match(cpuController,/and \(r\.composition_id='EP002-SHOT08-CANDIDATE'\s+or exists\(/);
+  assert.match(cpuController,/review\.selected_take_id=t\.id/);
+  assert.match(cpuController,/ep002Cues\.matchesCurrentShot08Render\(/);
+  assert.match(cpuController,/and r\.input_props->>'expectedSourceCommit'=:sourceSha/);
+  const once=workflow('Ep002Shot08UserRequestedRenderLaunch.java');
+  assert.match(once,/CHAT_RETRY_LIMIT_REACHED_FOR_APPROVED_TAKE/);
+  assert.match(once,/SHOT08_CHAT_REQUEST_ALREADY_PRESENT/);
+  assert.match(once,/USER_EXPLICIT_CHAT_REQUEST_2026_11_09_SHOT08_RECOVERY_RENDER/);
+});
