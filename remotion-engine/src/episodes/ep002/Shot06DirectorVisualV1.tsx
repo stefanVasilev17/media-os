@@ -84,22 +84,6 @@ const RequestWindow:React.FC<{
           8/8 BUSY
         </div>
       </div>
-      <div style={{position:'absolute',right:28,top:109,
-        opacity:notStarted*(1-B),
-        background:'rgba(62,32,35,.96)',border:'1px solid #C5685D',
-        padding:'5px 12px',borderRadius:7,color:'#FFD6CA',
-        fontSize:14,fontWeight:790}}>
-        REQUEST A · DB LOOKUP NOT STARTED
-      </div>
-      <div style={{position:'absolute',right:28,top:107,
-        opacity:B,display:'flex',alignItems:'center',gap:14,
-        color:'#B9EEEA',fontSize:14,fontWeight:850,
-        background:'rgba(7,45,53,.98)',
-        border:'1px solid #3BAF95',borderRadius:7,padding:'5px 13px'}}>
-        <span>REQUEST B · DB LOOKUP MAY STILL RUN</span>
-        <span style={{width:8,height:8,borderRadius:10,
-          background:MINT,boxShadow:'0 0 12px '+MINT}}/>
-      </div>
       {conditional>0&&<div style={{position:'absolute',left:30,right:30,
         bottom:21,height:63,padding:'8px 13px',
         background:'linear-gradient(90deg,rgba(10,43,44,.98),rgba(49,35,43,.97))',
@@ -119,6 +103,32 @@ const RequestWindow:React.FC<{
         opacity:cancellation}}>
         CANCELLATION SIGNAL · REQUEST B
       </div>}
+    </div>
+    <div style={{position:'absolute',left:1550,top:476,
+      width:302,height:92,zIndex:25,fontFamily:AT_FONT,
+      pointerEvents:'none'}}>
+      <div style={{position:'absolute',inset:0,
+        opacity:notStarted*(1-B),
+        transform:'translateY('+(1-notStarted)*9+'px)',
+        background:'linear-gradient(135deg,rgba(62,32,35,.97),rgba(27,22,38,.98))',
+        border:'1px solid #C5685D',borderLeft:'3px solid '+AMBER,
+        borderRadius:11,padding:'13px 15px',
+        boxSizing:'border-box',display:'flex',alignItems:'center',
+        color:'#FFD6CA',fontSize:16,lineHeight:1.35,
+        fontWeight:790}}>
+        REQUEST A · DB LOOKUP NOT STARTED
+      </div>
+      <div style={{position:'absolute',inset:0,
+        opacity:B,transform:'translateY('+((1-B)*9)+'px)',
+        background:'linear-gradient(135deg,rgba(7,45,53,.98),rgba(9,29,46,.99))',
+        border:'1px solid #3BAF95',borderLeft:'3px solid '+MINT,
+        borderRadius:11,padding:'13px 15px',
+        boxSizing:'border-box',display:'flex',gap:9,alignItems:'center',
+        color:'#B9EEEA',fontSize:16,lineHeight:1.35,fontWeight:850}}>
+        <span>REQUEST B · DB LOOKUP MAY STILL RUN</span>
+        <span style={{width:8,height:8,flexShrink:0,borderRadius:10,
+          background:MINT,boxShadow:'0 0 12px '+MINT}}/>
+      </div>
     </div>
     <div style={{position:'absolute',left:282,top:795,width:1236,
       height:96,zIndex:23,fontFamily:AT_FONT,
@@ -231,7 +241,6 @@ export const Shot06DirectorVisualV1:React.FC<Shot06SceneProps>=(props)=>{
   const reveal=shot06Ease(frame,18,82);
   const focus=shot06Ease(frame,40,112);
   const B=shot06Ease(frame,cue.REQUEST_B,22);
-  const end=shot06Ease(frame,cue.RESOURCES_FREE,25);
   return <ATBackground>
     <Shot06Shot05LockedEnd frame={frame} fade={reveal}/>
     <AbsoluteFill style={{zIndex:17,opacity:reveal,
@@ -249,16 +258,6 @@ export const Shot06DirectorVisualV1:React.FC<Shot06SceneProps>=(props)=>{
         <RequestWindow frame={frame} cue={cue}/>
       </AbsoluteFill>
       <PhoneOutcome frame={frame} cue={cue}/>
-      {end>0&&<div style={{position:'absolute',
-        left:383,top:159,zIndex:35,
-        padding:'9px 21px',borderRadius:9,
-        background:'rgba(8,51,46,.88)',
-        border:'1px solid #4C9D85',
-        boxShadow:'0 0 20px rgba(80,228,188,.16)',
-        fontFamily:AT_FONT,fontSize:16,fontWeight:820,
-        color:MINT,opacity:end}}>
-        IF STOPPED → RESOURCES AVAILABLE SOONER
-      </div>}
       {B>0&&<svg width="1920" height="1080" viewBox="0 0 1920 1080"
         style={{position:'absolute',inset:0,opacity:B,
           pointerEvents:'none',zIndex:18}}>
