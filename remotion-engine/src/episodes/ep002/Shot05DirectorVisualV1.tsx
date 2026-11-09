@@ -155,6 +155,38 @@ const RequestQueue:React.FC<{frame:number;terms:Record<Shot05TermId,number>;
   </div>;
 };
 
+const ConceptExplainers:React.FC<{
+  frame:number;terms:Record<Shot05TermId,number>;
+}>=({frame,terms})=>{
+  const lines=[
+    {name:'REQUEST QUEUEING',color:AMBER,
+      explanation:'Requests lining up until a connection becomes available.',
+      start:terms.REQUEST_QUEUEING},
+    {name:'IN-FLIGHT REQUESTS',color:MINT,
+      explanation:"Requests that have started but haven't finished.",
+      start:terms.IN_FLIGHT},
+  ];
+  return <div style={{position:'absolute',left:282,top:903,
+    width:1236,height:109,zIndex:26,fontFamily:AT_FONT,
+    display:'flex',flexDirection:'column',gap:8}}>
+    {lines.map(item=>{
+      const visible=shot05Ease(frame,item.start,20);
+      return <div key={item.name} style={{
+        width:'100%',height:49,borderLeft:'3px solid '+item.color,
+        background:'linear-gradient(90deg,rgba(8,32,53,.94),rgba(3,15,30,.86))',
+        borderRadius:'0 11px 11px 0',boxSizing:'border-box',
+        padding:'9px 18px',display:'flex',gap:21,alignItems:'center',
+        opacity:visible,transform:'translateY('+((1-visible)*9)+'px)'}}>
+        <span style={{color:item.color,fontSize:15,fontWeight:860,
+          minWidth:204,letterSpacing:'.035em'}}>{item.name}</span>
+        <span style={{fontSize:17,color:WHITE,fontWeight:650}}>
+          {item.explanation}
+        </span>
+      </div>;
+    })}
+  </div>;
+};
+
 export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
   const frame=useCurrentFrame(),video=useVideoConfig();
   if(video.width!==1920||video.height!==1080||video.fps!==30
@@ -164,131 +196,46 @@ export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
   assertShot05SafeLayout();
   const cue=Object.fromEntries(terms.map(t=>[t.id,t.startFrame])) as
     Record<Shot05TermId,number>;
-  const carryOver=1-shot05Ease(frame,8,27);
-  const zoom=shot05Ease(frame,14,93);
-  const mapExit=shot05Ease(frame,62,42);
-  const interior=shot05Ease(frame,55,42);
+  const phoneFade=shot05Ease(frame,12,38);
+  const cleanup=shot05Ease(frame,18,29);
+  const push=shot05Ease(frame,61,99);
+  const mapExit=shot05Ease(frame,167,36);
+  const interior=shot05Ease(frame,156,43);
   const busy=shot05ReplayBusy(frame,cue);
   const queue=shot05QueueDepth(frame,cue);
-  const status=shot05Ease(frame,cue.IN_FLIGHT,22);
-  const phone=shot05Ease(frame,cue.SPINNER,27);
+  const phone=shot05Ease(frame,cue.SPINNER,26);
   const final=shot05Ease(frame,cue.TIME_RUNNING_OUT,25);
   const queueEntry=shot05Ease(frame,cue.ANOTHER_LOGIN,24);
   const highlight=shot05Ease(frame,cue.CONNECTION_POOL,18);
   return <ATBackground>
-    <ATControlledRealismLayer frame={frame} realism={.96}
-      architectureReveal={.97}/>
-    <div style={{position:'absolute',left:75,top:38,zIndex:39,
-      color:'#A6D6F3',fontFamily:AT_FONT,
-      fontSize:17,fontWeight:740,letterSpacing:'.18em'}}>
-      ARCHITECTURAL THINKING
-    </div>
-    <div style={{position:'absolute',left:75,top:83,width:338,height:1,
-      background:'linear-gradient(90deg,rgba(97,212,243,.68),transparent)',zIndex:39}}/>
-    <MiniWorld frame={frame} opacity={1-mapExit} focus={zoom}/>
-    <AbsoluteFill style={{zIndex:7,transform:'translate3d(-680px,-150px,0) scale(1.11)',
-      transformOrigin:'50% 50%',pointerEvents:'none',
-      opacity:1-shot05Ease(frame,58,54)}}>
-      <Shot02PressurePhone frame={frame} reveal={1} credential={.22} ui={0}
-        emailValue="user@example.com" passwordDots="••••••••"
-        emailFocus={0} passwordFocus={0} localUi={0}
-        press={0} pressStartFrame={Number.POSITIVE_INFINITY}
-        waiting={1} spinner={1} pressure={.95} realism={1} heroPush={0}/>
-    </AbsoluteFill>
-    <div style={{position:'absolute',left:557,top:115,zIndex:32,
-      fontFamily:AT_FONT,opacity:1-shot05Ease(frame,70,24),
-      transform:'translateX('+(-15*zoom)+'px)'}}>
-      <div style={{fontSize:15,color:'#91BDE0',
-        letterSpacing:'.17em',fontWeight:760}}>
-        COMPONENT HEALTH · USER AVAILABILITY
-      </div>
-      <div style={{fontSize:36,color:WHITE,fontWeight:870,marginTop:10}}>
-        ALIVE IS NOT AVAILABLE
-      </div>
-      <div style={{width:385,height:2,marginTop:17,
-        background:'linear-gradient(90deg,#68D9F5,transparent)'}}/>
-    </div>
-    <div style={{position:'absolute',left:1035,top:719,
-      width:782,height:160,zIndex:31,opacity:carryOver,
-      display:'flex',gap:18,fontFamily:AT_FONT,pointerEvents:'none'}}>
-      {[
-        ['LIVENESS','Does this application need restarting?'],
-        ['READINESS','Should this instance receive new requests?'],
-      ].map(([name,description])=><div key={name} style={{
-        flex:1,padding:'19px 18px 17px',
-        height:138,boxSizing:'border-box',
-        borderLeft:'3px solid '+MINT,borderRadius:'0 14px 14px 0',
-        background:'linear-gradient(90deg,rgba(12,49,59,.77),rgba(6,23,36,.31))'}}>
-        <div style={{fontSize:16,color:MINT,fontWeight:850,
-          letterSpacing:'.1em'}}>{name}</div>
-        <div style={{fontSize:19,color:WHITE,lineHeight:1.4,
-          fontWeight:700,marginTop:12}}>{description}</div>
-      </div>)}
-    </div>
-    <div style={{position:'absolute',left:575,top:744,width:422,height:44,
-      zIndex:31,opacity:carryOver,fontFamily:AT_FONT,
-      color:AMBER,fontSize:17,fontWeight:830,letterSpacing:'.045em'}}>
-      SERVICE AVAILABILITY · NOT PROVEN
-    </div>
-    <div style={{position:'absolute',left:543,top:930,width:1280,
-      height:76,zIndex:31,opacity:carryOver,
-      border:'2px solid #E6AA64',borderRadius:21,
-      background:'linear-gradient(145deg,rgba(8,32,53,.99),rgba(3,15,30,.998))',
-      boxShadow:'0 0 28px rgba(236,154,81,.23)',
-      display:'flex',alignItems:'center',justifyContent:'center',
-      fontFamily:AT_FONT,fontWeight:850,fontSize:33,color:'#FFE1B8'}}>
-      Being alive is not the same as being available.
-    </div>
+    <Shot05Shot04WorldV2 frame={frame} cleanup={cleanup}
+      phoneFade={phoneFade} push={push} mapExit={mapExit}/>
     <AbsoluteFill style={{zIndex:20,opacity:interior,pointerEvents:'none'}}>
-      <div style={{position:'absolute',left:278,top:111,fontFamily:AT_FONT}}>
-        <div style={{fontSize:14,fontWeight:810,color:'#9DC7E6',
-          letterSpacing:'.18em'}}>INSIDE AUTH 01</div>
+      <div style={{position:'absolute',left:278,top:110,fontFamily:AT_FONT}}>
         <div style={{fontSize:38,fontWeight:890,color:WHITE,
-          marginTop:7,letterSpacing:'-.03em'}}>THE HIDDEN CONNECTION QUEUE</div>
+          letterSpacing:'-.03em'}}>THE HIDDEN CONNECTION QUEUE</div>
         <div style={{width:470,height:2,marginTop:15,
           background:'linear-gradient(90deg,#64CDE9,transparent)'}}/>
       </div>
-      <WorldBreadcrumb frame={frame} reveal={interior}/>
       <Connections frame={frame} active={highlight}
         busy={busy} terms={cue} intro={interior}/>
       <RequestQueue frame={frame} terms={cue} depth={queue}
         reveal={queueEntry}/>
-      <div style={{position:'absolute',left:284,top:920,width:850,height:76,
-        borderLeft:'3px solid '+(status?AMBER:MINT),
-        borderRadius:9,background:'rgba(6,26,43,.77)',
-        fontFamily:AT_FONT,padding:'11px 17px',boxSizing:'border-box',
-        display:'flex',alignItems:'center',gap:32}}>
-        <div style={{fontSize:20,color:WHITE,fontWeight:840}}>
-          {status>0.5?'IN-FLIGHT ≠ WAITING':'DATABASE LOOKUP IS SLOW'}
-        </div>
-        <div style={{fontSize:15,color:'#BED5E4',fontWeight:680}}>
-          {status>0.5?'8 busy connections · request queue outside pool':
-            'Database remains running · work takes longer'}
-        </div>
+      <ConceptExplainers frame={frame} terms={cue}/>
+      <AbsoluteFill style={{zIndex:28,opacity:phone,
+        transform:'translate3d(1240px,590px,0) scale(.35)',
+        transformOrigin:'top left',pointerEvents:'none'}}>
+        <Shot02PressurePhone frame={frame} reveal={1} credential={.22} ui={0}
+          emailValue="user@example.com" passwordDots="••••••••"
+          emailFocus={0} passwordFocus={0} localUi={0}
+          press={0} pressStartFrame={Number.POSITIVE_INFINITY}
+          waiting={1} spinner={1} pressure={.70} realism={1} heroPush={0}/>
+      </AbsoluteFill>
+      <div style={{position:'absolute',left:1555,top:995,zIndex:30,
+        fontFamily:AT_FONT,fontSize:15,fontWeight:830,
+        color:AMBER,letterSpacing:'.035em',opacity:final}}>
+        PHONE · TIME RUNNING OUT
       </div>
-      <div style={{position:'absolute',right:83,bottom:88,width:254,height:172,
-        ...box('#2D718C','rgba(45,132,173,.25)'),
-        fontFamily:AT_FONT,padding:16,opacity:.75+.25*phone,
-        display:'flex',alignItems:'center',gap:13}}>
-        <div style={{width:81,height:134,border:'3px solid #86A6BA',
-          borderRadius:17,background:'linear-gradient(140deg,#071F3C,#020B22)',
-          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-          <span style={{fontSize:29,color:'#F3A567',
-            display:'inline-block',transform:'rotate('+(frame*7.3)+'deg)'}}>◌</span>
-          <span style={{fontSize:9,color:'#E2EDF5',marginTop:10}}>Logging in ...</span>
-        </div>
-        <div style={{fontSize:15,fontWeight:800,color:WHITE,
-          lineHeight:1.5}}>PHONE
-          <div style={{fontSize:13,color:'#F9B57B'}}>STILL WAITING</div>
-          <div style={{fontSize:12,color:SOFT,marginTop:11,
-            opacity:final}}>TIME RUNNING OUT</div>
-        </div>
-      </div>
-      {final>0&&<div style={{position:'absolute',left:357,top:879,zIndex:30,
-        color:'#FFE8CE',fontFamily:AT_FONT,fontSize:17,fontWeight:800,
-        opacity:final,letterSpacing:'.05em'}}>
-        REQUEST A → NEXT: THE DEADLINE EXPIRES
-      </div>}
     </AbsoluteFill>
   </ATBackground>;
 };
