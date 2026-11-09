@@ -2,6 +2,12 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## SHOT05 final Phone clearance correction in production (2026-11-09)
+
+- Source SHA `86353dac288471dd6a506d26951f7f6c7e1b7093`, [Draft PR #225](https://github.com/stefanVasilev17/media-os/pull/225). Ending SHOT05 original Phone translated +80px right (x=1320px instead of 1240px) to clear the real narration explanation strips; safe-area contract and test require >=55px margin. No other visual or voice/shot source modifications. This supersedes prior SHOT05 V2 SHA `337b64d1...` for **current SHOT05 render**.
+- Production Worker `840ac214-338c-428f-bd63-85f037274f69` and Backend `0094495a-deeb-40d3-8596-99bea673ec20` both SUCCESS/ONLINE with exact SHA, 120 Node tests PASS, no new TS errors, both Remotion bundles PASS, 0 Railway issues. Existing SHOT02–04 Director LOCKs protected.
+- New MP4 NOT yet rendered/verified; authenticated Director must explicitly confirm paid `Render SHOT05` in MediaOS. Preserve approved Slow Natural Take and five verified real cues. Do not confuse source deployment with completed V3 MP4 or visual Director LOCK.
+
 ## SHOT05 Director V2 visual corrections in production — MP4 still pending (2026-11-09)
 
 - **Third-party-source fidelity:** The source for EP002 SHOT05 V2 is GitHub Draft PR #225, exact commit 337b64d1bdc53c9976e544d24ea3d6ab2128c510. New Shot05Shot04WorldV2.tsx contains a byte-identical copy of the real locked SHOT04 premium component definitions (Gateway, Auth, Balancer, red running Database, three routed lanes, original Phone, health cards). SHOT04 source remains unmodified. Future SHOT05 edits must retain matching source parity.
