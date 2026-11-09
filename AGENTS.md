@@ -2,6 +2,17 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## EP002 SHOT06 V2 — FINAL DIRECTOR LOCK + mandatory future-SHOT lessons (2026-11-09)
+
+**Director said “локваме. Харесва ми.” after reviewing the corrected video.** Real, verified final H.264/AAC 1920×1080 30fps MP4: `EP002-SHOT06-CANDIDATE`, Render ID `d42fe3a2-3810-4626-ab3a-0456463d4636`, 2,096 frames, measured 69.867s, exact corrected Remotion source SHA `c3206d6df701a83d0e2df4b7202492b60d8d4137`. Railway Worker recorded `ACTUAL_MP4_TECHNICAL_QA_PASS` at 2026-11-09T11:04:07Z, separately followed by the Director's explicit visual approval. SHOT01–06 are now Director-LOCKED; preserve their originals and approved audio.
+
+**New permanent prevention for every new SHOT:**
+- Before rendering, collision-test all text/status/HEAR→SEE callouts against node internals (including connection slots), queue, Phone, architecture paths, spoken explainer strips and safe-frame bounds. Put status callouts **outside** crowded operational panels instead of obscuring them; at least 20px gap from protected panels and 24px from adjacent elements where geometry permits; redesign the layout where it does not. Never blindly copy SHOT06 coordinates.
+- Remove redundant/disconnected floating explanatory banners. Every caption must add distinct engineering understanding; the removed `IF STOPPED → RESOURCES AVAILABLE SOONER` must not return. Preserve the factual nuance: an in-flight DB operation **may** continue after a caller timeout, and cancellation frees resources sooner **only if honored**.
+- Retain approved voice-cue onsets, readable holds, visual continuity and existing protected SHOTs; source-code tests and passing bundles do not replace a real approved MP4.
+
+**Proof and memory:** `PROJECT_STATE.md` newest section; `docs/visual/CODEX_VISUAL_LESSONS_LEDGER.md` `AT-VIS-0002`; `docs/visual/AT_REMOTION_VISUAL_CONSTITUTION_V1.md`; [SHOT06 PR #231](https://github.com/stefanVasilev17/media-os/pull/231). SHOT07 Beat 1 and Beat 3 draft anchors are `Auth 01 tries again` and `New Login traffic hasn’t increased, but database attempts have`; they are not verified timings or authorization to lock without genuine selected-Take review.
+
 ## SHOT06 Director V2 — external A/B status messages; protected production rules (2026-11-09)
 
 - **What Director corrected:** The real-voice-cued `REQUEST A · DB LOOKUP NOT STARTED` and `REQUEST B · DB LOOKUP MAY STILL RUN` callouts must be **outside** the eight-slot Database Connection Pool and must never overlap its slots, the Phone, request queue or explainer strips. Both use one external right-hand shared card at x=1550, y=476, 302×92, crossfading by their original real spoken cues. Keep a 20px+ pool margin and 24px+ clearance from other protected objects.
