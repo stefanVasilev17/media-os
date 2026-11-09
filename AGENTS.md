@@ -2,6 +2,14 @@
 
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
+## SHOT05 Director V2 visual corrections in production — MP4 still pending (2026-11-09)
+
+- **Third-party-source fidelity:** The source for EP002 SHOT05 V2 is GitHub Draft PR #225, exact commit 337b64d1bdc53c9976e544d24ea3d6ab2128c510. New Shot05Shot04WorldV2.tsx contains a byte-identical copy of the real locked SHOT04 premium component definitions (Gateway, Auth, Balancer, red running Database, three routed lanes, original Phone, health cards). SHOT04 source remains unmodified. Future SHOT05 edits must retain matching source parity.
+- **Director transition rule:** Start at the true locked SHOT04 final architecture; fade Phone and semantic overlays before camera zoom; ease camera only onto Auth; reveal 8-slot pool afterwards. Never show a Phone overlap during camera push. Remove rejected redundant interior texts and synthetic mini Phone.
+- **Director pool rule:** Animate occupancy with per-frame deterministic progressive fill, border glow and cross-faded state labels instead of boolean swaps; 1→5→7→8 historical REPLAY. Narration-cued REQUEST QUEUEING explanation (“Requests lining up until a connection becomes available.”) and IN-FLIGHT REQUESTS explanation (“Requests that have started but haven't finished.”) replace Database lookup is slow card. Keep approved Slow Natural Take and five real reviewed beats/fifteen actual term cues.
+- **Production proof:** Worker deployment fa7bad92-fad6-4f07-9a58-a422dc6786a7 and Backend 699fa9a1-99ab-49a2-a13a-1af7db3291d5 both SUCCESS/ONLINE, exact Worker/Backend commit 337b64d1..., 119/119 Node tests, zero new TypeScript errors, Remotion main/Factory bundles PASS, healthchecks PASS and no active Railway issues. No protected SHOT01–04 files changed.
+- **Unfinished gate:** New V2 MP4 is **not produced/verified merely because Worker was deployed**. Prior SHOT05 V1 Render 9ff9ea85-e989-4d69-97f1-1c59381ce0d1 uses old SHA 552cdaff and is not V2. An authenticated Director must explicitly trigger and confirm paid CPU Render SHOT05. Assistant can then monitor actual new render and MP4 QA, and Director visually reviews before LOCK. Never bypass audit/identity gates.
+
 ## SHOT05 premium connection pool production handoff — safe render gate still open (2026-11-09)
 
 - **Existing Director-approved Slow Natural Take:** `78961ce3-3ae5-43fe-a897-3a69532459b9`, generated and approved via actual production HTTP 200. Never regenerate it merely to render the scene.
