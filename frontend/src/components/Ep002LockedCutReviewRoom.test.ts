@@ -7,15 +7,16 @@ const shots=[
   {durationSeconds:61.2},
   {durationSeconds:69.2},
   {durationSeconds:1817/30},
+  {durationSeconds:2780/30},
 ];
 
 describe('EP002 Director locked cut review',()=>{
   it('keeps the immutable approved SHOT sequence',()=>{
-    expect(LOCKED_CUT_SHOT_ORDER).toEqual(['SHOT01','SHOT02','SHOT03','SHOT04']);
+    expect(LOCKED_CUT_SHOT_ORDER).toEqual(['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05']);
   });
 
   it('uses actual measured independent render durations',()=>{
-    expect(cutDuration(shots)).toBeCloseTo(32.64+61.2+69.2+1817/30,5);
+    expect(cutDuration(shots)).toBeCloseTo(32.64+61.2+69.2+1817/30+2780/30,5);
     expect(cutDuration([])).toBe(0);
   });
 
@@ -27,6 +28,10 @@ describe('EP002 Director locked cut review',()=>{
       .toEqual({index:3,localSeconds:0});
     expect(locateCutTime(shots,32.64+61.2+69.2+10))
       .toEqual({index:3,localSeconds:10});
+    expect(locateCutTime(shots,32.64+61.2+69.2+1817/30))
+      .toEqual({index:4,localSeconds:0});
+    expect(locateCutTime(shots,32.64+61.2+69.2+1817/30+10))
+      .toEqual({index:4,localSeconds:10});
   });
 
   it('clamps scrub time to beginning/end of actual cut',()=>{
@@ -34,7 +39,7 @@ describe('EP002 Director locked cut review',()=>{
     const end=locateCutTime(shots,Number.POSITIVE_INFINITY);
     expect(end.index).toBe(0);
     const final=locateCutTime(shots,cutDuration(shots)+100);
-    expect(final.index).toBe(3);
-    expect(final.localSeconds).toBeCloseTo(1817/30,5);
+    expect(final.index).toBe(4);
+    expect(final.localSeconds).toBeCloseTo(2780/30,5);
   });
 });
