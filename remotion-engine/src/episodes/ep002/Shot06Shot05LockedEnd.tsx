@@ -228,3 +228,6 @@ export const Shot06Shot05LockedEnd:React.FC<{fade:number;frame:number}>=
     </div>
   </AbsoluteFill>;
 };
+
+export const Shot06LockedSlot=Slot;
+export const SHOT06_LOCKED_PANEL=box;
