@@ -35,8 +35,8 @@ class Ep002FactoryReadinessBridgeServiceTest {
 
         assertEquals("EP002_FACTORY_READINESS_BRIDGE_V1", ready.schemaVersion());
         assertEquals("EP002", ready.episodeKey());
-        assertEquals("v4.0", ready.scriptVersion());
-        assertEquals("v1.0", ready.visualPassVersion());
+        assertEquals("v5.0", ready.scriptVersion());
+        assertEquals("v1.0+RECOVERY", ready.visualPassVersion());
         assertEquals(Ep002ProductionContractService.VISUAL_SHA,
                 ready.originalVisualGitBlobSha());
         assertEquals(fixture.plan().inputFingerprint(), ready.inputFingerprint());
@@ -76,6 +76,10 @@ class Ep002FactoryReadinessBridgeServiceTest {
         assertTrue(second.blockers().contains("DIRECTOR_SELECTED_TAKE_REQUIRED"));
         assertEquals("EDITORIAL_ONLY_NOT_AUDIO_ALIGNED", second.timingAuthority());
 
+        assertEquals("SHOT08",ready.shots().get(7).shotKey());
+        assertEquals(6,ready.shots().get(7).approvedVisualStory().path("beats").size());
+        assertEquals("After that retry storm",ready.shots().get(7)
+                .approvedVisualStory().path("beats").path(0).path("spokenAnchor").asText());
         assertEquals("SHOT11", ready.shots().getLast().shotKey());
         assertEquals("remotion-engine/src/episodes/ep002/Shot11GeneratedScene.tsx",
                 ready.shots().getLast().proposedScenePath());
