@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "episodeKey": "EP002",
+  "candidateScriptVersion": "v5.0-RECOVERY-DIRECTOR-REVIEW",
+  "status": "DIRECTOR_REVIEW_REQUIRED_NOT_PRODUCTION_SOURCE",
+  "sourceScriptVersion": "v4.0-DIRECTOR_LOCKED",
+  "preservedShots": [
+    "SHOT01",
+    "SHOT02",
+    "SHOT03",
+    "SHOT04",
+    "SHOT05",
+    "SHOT06",
+    "SHOT07"
+  ],
+  "constraints": {
+    "authInstances": 3,
+    "userDatabaseInstances": 1,
+    "episode002NoDatabaseReplicationOrPrimaryReplica": true,
+    "noMagicCapacityGain": true,
+    "noFullLoginRetries": true,
+    "neverResurrectTimedOutRequests": true,
+    "phoneOneOriginalLargePhone": true,
+    "keepOriginalAllProtectedShots": true,
+    "voiceTakeMustBeReGeneratedAfterDirectorScriptLock": true,
+    "playbackRemotionRequiresNewActualSelectedTake": true
+  },
+  "nextEpisodeReservedFor": [
+    "database capacity strategies",
+    "primary/replica architecture, formerly master/slave terminology",
+    "read-replica tradeoffs; consistency and failover"
+  ],
+  "shots": [
+    {
+      "shotKey": "SHOT08",
+      "revision": "v2.0-CANDIDATE",
+      "title": "Stop the Retry Storm",
+      "editorialStart": "07:45",
+      "editorialEnd": "09:10",
+      "editorialDurationSeconds": 85,
+      "englishNarration": "After that retry storm, the database is overloaded. But some of its work is coming from our own repeated attempts.\n\nWe still have three Auth servers and one User Database. More Auth servers would not remove this limit. So we control retries first.\n\nWatch Auth 01. A lookup times out. Before trying again, Auth checks the Login deadline. If no useful time remains, it stops.\n\nWe also add a retry budget: only a small share of active Logins may retry a safe, read-only lookup. When that budget is exhausted, no more retries. The whole Login is never repeated.\n\nFor an allowed retry, exponential backoff increases the delay after each failure. Jitter adds a small random change, so Auth 01, Auth 02, and Auth 03 do not retry together.\n\nNow watch User Database. The extra attempts fall. The database is still busy, and some Login requests will still fail. These changes do not create more capacity.\n\nBut the retry storm is no longer feeding itself. We've stopped wasting work. Next, we need to control the new requests that keep arriving.",
+      "wordCount": 179,
+      "averageWordsPerMinute": 126,
+      "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
+      "beats": [
+        {
+          "beatNumber": 1,
+          "editorialOffsetEstimateSeconds": "00–14",
+          "spokenAnchorSuggestion": "After that retry storm",
+          "visualDirection": "Start at the exact final SHOT07 map: one Phone, API Gateway, Load Balancer, three Auth instances, one User Database. Phone still shows an expired Login; DB remains red and saturated. Title morphs to STOP THE RETRY STORM. No new nodes."
+        },
+        {
+          "beatNumber": 2,
+          "editorialOffsetEstimateSeconds": "14–30",
+          "spokenAnchorSuggestion": "We still have three Auth servers",
+          "visualDirection": "Focus the three existing Auth instance cards, then User Database, with soft restrained highlight. Hold three instances; never grow to six. Show tiny orange caption: THREE AUTH SERVERS · ONE SHARED DB. Keep same Phone."
+        },
+        {
+          "beatNumber": 3,
+          "editorialOffsetEstimateSeconds": "30–49",
+          "spokenAnchorSuggestion": "Watch Auth 01",
+          "visualDirection": "Focus Auth 01 and its existing read-only lookup attempt marker. On timeout, make the retry attempt dim unless the active request has time left. A compact RETRY BUDGET indicator inside/above Auth Service falls to its defined limit. No lines or packet particles."
+        },
+        {
+          "beatNumber": 4,
+          "editorialOffsetEstimateSeconds": "49–67",
+          "spokenAnchorSuggestion": "For an allowed retry",
+          "visualDirection": "Local small timer rings on Auth 01/02/03 show staggered delays, labeled BACKOFF and JITTER. Do not draw a path from DB or imply a full Login replay. Three instances stay static, only highlights/timers change."
+        },
+        {
+          "beatNumber": 5,
+          "editorialOffsetEstimateSeconds": "67–85",
+          "spokenAnchorSuggestion": "Now watch User Database",
+          "visualDirection": "Reduce rapid DB pulse frequency/intensity, retain amber/red overload while pressure remains. A short orange caption: DUPLICATE LOOKUPS ↓ · CAPACITY UNCHANGED. On-screen queue does NOT instantly empty. End with the same architecture map, ready for admission control in SHOT09."
+        }
+      ],
+      "scriptStatus": "DIRECTOR_REVIEW_REQUIRED",
+      "audioStatus": "NO_APPROVED_TAKE_FOR_THIS_REVISED_SCRIPT",
+      "audioAlignmentStatus": "NO_REAL_VOICE_CUES_FOR_THIS_REVISED_SCRIPT"
+    },
+    {
+      "shotKey": "SHOT09",
+      "revision": "v2.0-CANDIDATE",
+      "title": "Protect the Shared Database",
+      "editorialStart": "09:10",
+      "editorialEnd": "11:10",
+      "editorialDurationSeconds": 120,
+      "englishNarration": "Stopping retries helps. But it does not fix the mismatch. In our example, nine hundred new Login requests can arrive each second, while the User Database can finish about five hundred account lookups. Let everything through, and the queue will grow again.\n\nSo we add admission control to the existing Login path. This is not another server. It is a rule near the Gateway and Auth boundary that decides whether a Login can enter expensive database work.\n\nBecause we have three Auth instances, the budget must be shared. Giving each instance its own full allowance would overload the same database. Suppose we permit around four hundred and fifty total lookup attempts per second, leaving room for other database work. This is an example, not a universal setting.\n\nWhen demand goes beyond that limit, load shedding rejects some new Logins early. Those users receive a clear, fast failure instead of waiting for a long timeout. Nobody is signed in without an account check.\n\nWe also limit the number of lookups running at once. Engineers call this bounded concurrency. The three connection pools still exist, but they no longer decide the total pressure by themselves. A bulkhead can keep retries from using the capacity reserved for new account lookups.\n\nIf the database keeps timing out, a circuit breaker can briefly stop new attempts and fail those Logins fast. Later it permits a few test requests through before normal traffic resumes.\n\nHere is the trade-off. Some people cannot log in during overload. But the work we do accept has a better chance to finish. We have not made the database faster. We have stopped sending more work than it can safely handle.",
+      "wordCount": 279,
+      "averageWordsPerMinute": 140,
+      "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
+      "beats": [
+        {
+          "beatNumber": 1,
+          "editorialOffsetEstimateSeconds": "00–23",
+          "spokenAnchorSuggestion": "Stopping retries helps",
+          "visualDirection": "Keep SHOT08 end-frame map; no camera reset. Reuse the original 3 Auth cards and 1 DB. Put one short orange timed statement in open negative space: 900 LOGIN ARRIVALS/s · ABOUT 500 DB LOOKUPS/s (illustrative from SHOT03). Do not reintroduce broad obstructing metric cards."
+        },
+        {
+          "beatNumber": 2,
+          "editorialOffsetEstimateSeconds": "23–44",
+          "spokenAnchorSuggestion": "So we add admission control",
+          "visualDirection": "Show a small ADMISSION CONTROL policy band anchored to existing Gateway/Auth entry, not as another service node. Gate activity is a border/highlight state, never red flying lines. Labels ADMIT / SHED appear locally and briefly."
+        },
+        {
+          "beatNumber": 3,
+          "editorialOffsetEstimateSeconds": "44–71",
+          "spokenAnchorSuggestion": "Because we have three Auth instances",
+          "visualDirection": "Show one total lookup-attempt budget shared across all Auth instances, illustrative 450/s. Explicit TOTAL ATTEMPTS INCLUDING RETRIES. Then show load shedding as rejected status badge on the EXISTING Phone with a fresh request label, not a second mini Phone. Important: rejected request is not signed in."
+        },
+        {
+          "beatNumber": 4,
+          "editorialOffsetEstimateSeconds": "71–97",
+          "spokenAnchorSuggestion": "We also limit the number of lookups",
+          "visualDirection": "Focus the three 8-connection pool modules in existing Auth nodes; make active slot highlights respect a shared concurrency cap rather than opening extra links. A small RETRIES ≠ NEW LOGIN CAPACITY explanatory tag may appear only if not overlapping. Illustrate circuit breaker as temporarily CLOSED path for NEW lookup admission, without claiming permanent outage."
+        },
+        {
+          "beatNumber": 5,
+          "editorialOffsetEstimateSeconds": "97–120",
+          "spokenAnchorSuggestion": "Here is the trade-off",
+          "visualDirection": "Some new Logins show fast/clear rejection, admitted Logins keep progressing. DB remains a single node, active work stabilizes. Keep USER DATABASE status amber/busy, not magically green. End on same map for queue drain in SHOT10."
+        }
+      ],
+      "scriptStatus": "DIRECTOR_REVIEW_REQUIRED",
+      "audioStatus": "NO_APPROVED_TAKE_FOR_THIS_REVISED_SCRIPT",
+      "audioAlignmentStatus": "NO_REAL_VOICE_CUES_FOR_THIS_REVISED_SCRIPT"
+    },
+    {
+      "shotKey": "SHOT10",
+      "revision": "v2.0-CANDIDATE",
+      "title": "Prove the Recovery",
+      "editorialStart": "11:10",
+      "editorialEnd": "12:40",
+      "editorialDurationSeconds": 90,
+      "englishNarration": "Look at the User Database again. With duplicate retries limited and new work admitted at a controlled rate, the waiting line can finally shrink.\n\nWhy? Because the database can now finish work faster than new work enters its queue. In our example, it can complete about five hundred lookups per second. The shared admission budget allows fewer total attempts, leaving room for the backlog to drain.\n\nConnections are returned to the Auth pools sooner. Accepted Logins spend less time waiting, and more of them finish before their deadlines. Database pressure fades from red toward amber, then normal, but only as the numbers improve.\n\nWatch the phone carefully. A Login that already timed out does not come back to life. That request is over. A different, newly accepted Login can now succeed.\n\nWe still need evidence. Measure valid Login success rate, failures caused by the system, and the time people wait. A wrong password is not an infrastructure failure. P95 and P99 latency reveal the slow requests an average can hide. Tracing shows whether time was lost in a connection queue or the database.\n\nAnd count the people we rejected early. Fast failures are better than endless timeouts, but they are still failures. Recovery means a shrinking queue and more admitted Logins finishing on time, not merely three green Auth servers.",
+      "wordCount": 220,
+      "averageWordsPerMinute": 147,
+      "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
+      "beats": [
+        {
+          "beatNumber": 1,
+          "editorialOffsetEstimateSeconds": "00–17",
+          "spokenAnchorSuggestion": "Look at the User Database again",
+          "visualDirection": "Continuation from SHOT09: single DB, three Auth cards, one Phone. Begin with queued-work indication already present; smoothly reduce queue depth rather than snapping it empty. Keep caption quiet and in negative space."
+        },
+        {
+          "beatNumber": 2,
+          "editorialOffsetEstimateSeconds": "17–35",
+          "spokenAnchorSuggestion": "Because the database can now finish work",
+          "visualDirection": "Short orange explanatory comparison in the lower free zone: COMPLETED LOOKUPS > NEW ADMITTED ATTEMPTS. Existing capacity ~500/s from SHOT03; illustrative total admission budget below that. The text is not another full overlay meter."
+        },
+        {
+          "beatNumber": 3,
+          "editorialOffsetEstimateSeconds": "35–51",
+          "spokenAnchorSuggestion": "Connections are returned",
+          "visualDirection": "Auth 01/02/03 pool-slot occupancy eases. DB pulse transitions red→amber only after a sustained window, never implies capacity increased. Last overdue waiting jobs finish or time out; do not resurrect them."
+        },
+        {
+          "beatNumber": 4,
+          "editorialOffsetEstimateSeconds": "51–68",
+          "spokenAnchorSuggestion": "Watch the phone carefully",
+          "visualDirection": "Keep ONE original large Phone. Replace an already-ended error with a clearly identified NEW LOGIN attempt, then show success for THAT NEW admitted request; never show the earlier timed-out request suddenly succeeding."
+        },
+        {
+          "beatNumber": 5,
+          "editorialOffsetEstimateSeconds": "68–90",
+          "spokenAnchorSuggestion": "We still need evidence",
+          "visualDirection": "Minimal voice-synced terms appear one at a time: VALID LOGIN SUCCESS · SYSTEM ERROR RATE · P95/P99 LATENCY · REJECTED REQUESTS. End with realistic state: accepted logins increasingly finish, but rejection count remains visible; 3 Auth and 1 DB unchanged."
+        }
+      ],
+      "scriptStatus": "DIRECTOR_REVIEW_REQUIRED",
+      "audioStatus": "NO_APPROVED_TAKE_FOR_THIS_REVISED_SCRIPT",
+      "audioAlignmentStatus": "NO_REAL_VOICE_CUES_FOR_THIS_REVISED_SCRIPT"
+    },
+    {
+      "shotKey": "SHOT11",
+      "revision": "v2.0-CANDIDATE",
+      "title": "Healthy Is Not the Same as Available",
+      "editorialStart": "12:40",
+      "editorialEnd": "13:30",
+      "editorialDurationSeconds": 50,
+      "englishNarration": "Look at the full Login journey. The Phone reaches the Gateway, the Load Balancer, three Auth servers, and one shared User Database.\n\nWe did not add servers. We did not make the database faster.\n\nWe reduced duplicate retries, limited database concurrency, and rejected excess Login work early. As new work fell below what the database could finish, the queue began to drain. More accepted Logins completed before their deadlines.\n\nSome people still received a fast failure. That is a real trade-off, not a perfect recovery. But the system stopped amplifying its own overload.\n\nHere is the lesson: a healthy server does not guarantee a successful Login. Reliability means protecting the whole user journey, even when capacity runs out.\n\nAnd what happens when one database is no longer enough? That is our next story.",
+      "wordCount": 133,
+      "averageWordsPerMinute": 160,
+      "voiceDirection": "Calm senior-architect documentary voice; controlled tension shifting toward genuine recovery. Simple English, concrete causal explanations. No hype. Director must review every word before TTS.",
+      "beats": [
+        {
+          "beatNumber": 1,
+          "editorialOffsetEstimateSeconds": "00–10",
+          "spokenAnchorSuggestion": "Look at the full Login journey",
+          "visualDirection": "Calm full 1920×1080 living map; one Phone, Gateway, Balancer, Auth01–03, one DB. No added replicas. Let the camera reveal the whole already-familiar world rather than building new props."
+        },
+        {
+          "beatNumber": 2,
+          "editorialOffsetEstimateSeconds": "10–19",
+          "spokenAnchorSuggestion": "We did not add servers",
+          "visualDirection": "Soft highlight over the unchanged 3 Auth + 1 DB topology. Short clear labels 3 AUTH · 1 DB · SAME CAPACITY; no misleading capacity increase."
+        },
+        {
+          "beatNumber": 3,
+          "editorialOffsetEstimateSeconds": "19–32",
+          "spokenAnchorSuggestion": "We reduced duplicate retries",
+          "visualDirection": "Three small restrained highlights, not obstructing cards: BOUNDED RETRIES, ADMISSION CONTROL, BOUNDED CONCURRENCY. The queue is visibly smaller, not magically zero."
+        },
+        {
+          "beatNumber": 4,
+          "editorialOffsetEstimateSeconds": "32–41",
+          "spokenAnchorSuggestion": "Some people still received a fast failure",
+          "visualDirection": "One original Phone displays a clear result for a NEW attempt; short REJECTED EARLY label acknowledges tradeoff. Fade back to actual successful accepted Login state without reusing the same attempt."
+        },
+        {
+          "beatNumber": 5,
+          "editorialOffsetEstimateSeconds": "41–50",
+          "spokenAnchorSuggestion": "Here is the lesson",
+          "visualDirection": "Final engineering statement in free space: HEALTHY SERVERS ≠ SUCCESSFUL LOGIN. Short next-episode hook ONE DATABASE · WHAT NEXT? Do NOT depict primary/replica or data topology yet."
+        }
+      ],
+      "scriptStatus": "DIRECTOR_REVIEW_REQUIRED",
+      "audioStatus": "NO_APPROVED_TAKE_FOR_THIS_REVISED_SCRIPT",
+      "audioAlignmentStatus": "NO_REAL_VOICE_CUES_FOR_THIS_REVISED_SCRIPT"
+    }
+  ]
+}
