@@ -16,7 +16,7 @@ export type Shot07SceneProps={
   verifiedCues:Shot07BeatCue[];termCues:Shot07TermCue[];
 };
 export const SHOT07_SAFE_ZONES={
-  title:{left:80,top:78,width:1020,height:110},
+  title:{left:560,top:78,width:950,height:110},
   activeLogin:{left:1157,top:215,width:338,height:79},
   caption:{left:565,top:875,width:1060,height:69},
   phone:{left:55,top:160,width:445,height:800},
