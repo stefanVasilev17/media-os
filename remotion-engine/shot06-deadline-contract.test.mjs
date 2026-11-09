@@ -86,8 +86,29 @@ test('Request B can stay in flight after caller timeout; cancellation never guar
   assert.match(scene,/REQUEST B · DB LOOKUP MAY STILL RUN/);
   assert.match(scene,/IF CANCELLATION HONORED → SLOT FREED SOONER/);
   assert.match(scene,/OTHERWISE → LOOKUP MAY CONTINUE/);
-  assert.match(scene,/IF STOPPED → RESOURCES AVAILABLE SOONER/);
+  assert.doesNotMatch(scene,/IF STOPPED → RESOURCES AVAILABLE SOONER/);
   assert.doesNotMatch(scene,/DATABASE OFFLINE|CANCELLATION SUCCEEDED|HTTP 504/);
+  assert.doesNotThrow(()=>spec.assertShot06SafeLayout());
+});
+
+test('Request A and Request B callouts stay outside connection pool without any overlay collision',()=>{
+  const {pool,lookupCallout,phone,queue,meaning}=spec.SHOT06_CARDS;
+  assert.equal(lookupCallout.left,1550);
+  assert.equal(lookupCallout.top,476);
+  assert.equal(lookupCallout.width,302);
+  assert.ok(lookupCallout.left>=pool.left+pool.width+20);
+  assert.ok(lookupCallout.left+lookupCallout.width<=1878);
+  assert.ok(lookupCallout.top+lookupCallout.height+24<phone.top);
+  assert.ok(lookupCallout.top+lookupCallout.height+24<queue.top);
+  assert.ok(lookupCallout.top+lookupCallout.height+24<meaning.top);
+  assert.match(scene,/left:1550,top:476/);
+  assert.match(scene,/opacity:notStarted\*\(1-B\)/);
+  assert.match(scene,/opacity:B,transform:'translateY'/);
+  assert.match(scene,/REQUEST A · DB LOOKUP NOT STARTED/);
+  assert.match(scene,/REQUEST B · DB LOOKUP MAY STILL RUN/);
+  assert.doesNotMatch(scene,/right:28,top:109/);
+  assert.doesNotMatch(scene,/right:28,top:107/);
+  assert.doesNotMatch(scene,/IF STOPPED → RESOURCES AVAILABLE SOONER/);
   assert.doesNotThrow(()=>spec.assertShot06SafeLayout());
 });
 
