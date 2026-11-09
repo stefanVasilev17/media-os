@@ -36,7 +36,7 @@ test('Worker refuses wrong SHA, Take, Director cues or unauthorized target scope
   assert.match(ctl,/EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05/);
   assert.match(ctl,/EP002-SHOT05-CANDIDATE/);
   assert.match(ctl,/then 'EP002_SHOT05'/);
-  assert.match(ctl,/then 'SHOT05' else 'SHOT02' end/);
+  assert.match(ctl,/then 'SHOT05' when r\.composition_id='EP002-SHOT06-CANDIDATE'/);
   assert.match(ctl,/SHOT05 selected Take or Director voice cues changed during render/);
   const service=workflow('Ep002DirectorVoiceCueService.java');
   assert.match(service,/shot05RenderReadiness\(\)/);

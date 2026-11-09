@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const read=p=>readFileSync(path.join(root,p),'utf8');
+const base='backend/src/main/java/com/architecturalthinking/mediaos/';
+const workflow=p=>read(base+'workflow/'+p);
+const worker=p=>read(base+'remotion/'+p);
+const system=p=>read(base+'system/'+p);
+const front=p=>read('frontend/src/components/'+p);
+
+test('SHOT06 is registered as a distinct Director-only explicitly paid CPU route',()=>{
+  const ctl=workflow('Ep002Shot06PreviewController.java');
+  assert.match(ctl,/@RequestMapping\("\/api\/v1\/creative\/episodes\/EP002\/shots\/SHOT06\/render-preview"\)/);
+  assert.match(ctl,/DirectorIdentity\.requireDirector\(\)/);
+  assert.match(ctl,/MEDIA_OS_CREATION_PREFLIGHT/);
+  assert.match(ctl,/confirmPaidCpuRender\(\)/);
+  assert.match(ctl,/shot06RenderReadiness\(\)/);
+  assert.match(ctl,/size\(\)!=15/);
+  assert.match(ctl,/shot06-preview-enabled:false/);
+  assert.match(ctl,/MEDIAOS_SHOT06_RELEASE_WORKER_SHA/);
+  assert.match(system('EpisodeFactoryDirectorRoutes.java'),/SHOT06\/render-preview/);
+  const audit=system('GlobalCreationPreflightFilter.java');
+  assert.match(audit,/SHOT06\/render-preview/);
+  assert.match(audit,/lineage\.shot_key='SHOT06'/);
+  assert.match(audit,/r\.input_props->>'expectedSourceCommit'=lineage\.remotion_commit_sha/);
+  assert.match(worker('RemotionRenderController.java'),/ensureVerifiedEp002Shot06Preview/);
+});
+
+test('Worker refuses wrong SHA, Take, Director cues or unauthorized target scope',()=>{
+  const ctl=worker('RemotionCpuWorkerController.java');
+  assert.match(ctl,/SHOT06_SOURCE_VOICE_OR_CUES_STALE_BEFORE_CPU_CLAIM/);
+  assert.match(ctl,/matchesCurrentShot06Render/);
+  assert.match(ctl,/EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05-SHOT06/);
+  assert.match(ctl,/EP002-SHOT06-CANDIDATE/);
+  assert.match(ctl,/then 'EP002_SHOT06'/);
+  assert.match(ctl,/then 'SHOT06' else 'SHOT02' end/);
+  assert.match(ctl,/SHOT06 selected Take or Director voice cues changed during render/);
+  const service=workflow('Ep002DirectorVoiceCueService.java');
+  assert.match(service,/shot06RenderReadiness\(\)/);
+  assert.match(service,/Ep002Shot06TermResolver\.resolve/);
+  assert.match(service,/review\.alignment_sha256=:alignment/);
+  const cpu=read('remotion-engine/cpu-worker.mjs');
+  assert.match(cpu,/SHOT06_WORKER_SOURCE_COMMIT_MISMATCH/);
+  assert.match(cpu,/muxEp002SelectedVoice\(job, outputPath, inputProps\)/);
+});
+
+test('SHOT06 Director controls are read-only until verified and explicitly confirmed',()=>{
+  const render=worker('RemotionRenderController.java');
+  assert.match(render,/"EP002-SHOT06-CANDIDATE"\.equals\(compositionId\)/);
+  assert.match(render,/new CompositionProfile\("EP002_SHOT06_CANDIDATE"/);
+  const ui=front('Ep002Shot06RenderPanel.tsx');
+  assert.match(ui,/confirmPaidCpuRender:true/);
+  assert.match(ui,/window\.confirm\(/);
+  assert.match(ui,/15 REAL TERMS VERIFIED/);
+  assert.match(front('Ep002ProductionFactoryConsole.tsx'),/<Ep002Shot06RenderPanel\/>/);
+  assert.doesNotMatch(ui,/\/generate-slow|\/align-existing-take/);
+  const terms=workflow('Ep002Shot06TermResolver.java');
+  assert.match(terms,/WAIT_FOR_CONNECTION/);
+  assert.match(terms,/RESOURCES_FREE/);
+  assert.match(terms,/normalize\(spec\.phrase\(\)\)/);
+});

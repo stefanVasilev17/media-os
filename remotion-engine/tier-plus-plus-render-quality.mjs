@@ -234,6 +234,57 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
+  if(job.compositionId==='EP002-SHOT06-CANDIDATE'){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues,terms=props.termCues;
+    const expected=['WAIT_FOR_CONNECTION','REQUEST_DEADLINE','CLOCK_CONTINUES',
+      'LOOKUP_NOT_STARTED','TIME_RUNS_OUT','REQUEST_TIMEOUT','PHONE_ERROR',
+      'SYSTEM_STILL_WORKING','REQUEST_B','LOOKUP_RUNNING','DB_CAPACITY',
+      'WAIT_LONGER','CANCELLATION','STOP_IF_POSSIBLE','RESOURCES_FREE'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+      ||Number(props.durationInFrames)!==frames
+      ||Number(props.postVoiceHoldFrames||0)!==0
+      ||props.shotKey!=='EP002_SHOT06'
+      ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
+      ||!integer(props.scriptRevision)||props.scriptRevision<1
+      ||!/^[a-f0-9]{64}$/i.test(String(props.inputFingerprint||''))
+      ||!Array.isArray(beats)||beats.length!==5
+      ||!Array.isArray(terms)||terms.length!==expected.length)
+      reject('SHOT06_SELECTED_REAL_VOICE_CUE_CONTRACT');
+    let previous=0;
+    for(let i=0;i<beats.length;i++){
+      const b=beats[i];
+      if(b?.beatNumber!==i+1||!integer(b.startFrame)
+        ||!integer(b.endFrame)||(i>0&&b.startFrame!==previous)
+        ||b.endFrame<=b.startFrame||b.endFrame>frames
+        ||!String(b.spokenAnchor||'').trim())
+        reject('SHOT06_DIRECTOR_BEAT_SEQUENCE_INVALID');
+      previous=b.endFrame;
+    }
+    if(previous!==frames)reject('SHOT06_REAL_AUDIO_FRAMES_NOT_COVERED');
+    previous=-1;
+    for(let i=0;i<expected.length;i++){
+      const t=terms[i];
+      if(t?.id!==expected[i]||!integer(t.startFrame)
+        ||!integer(t.endFrame)||t.startFrame<0
+        ||t.endFrame<=t.startFrame||t.endFrame>frames
+        ||t.startFrame<previous||!String(t.spokenAnchor||'').trim())
+        reject('SHOT06_REAL_SPOKEN_TERMS_INVALID');
+      previous=t.endFrame;
+    }
+    if(!(terms[1].startFrame<terms[4].startFrame
+      &&terms[4].startFrame<terms[6].startFrame
+      &&terms[6].startFrame<terms[8].startFrame
+      &&terms[8].startFrame<terms[9].startFrame
+      &&terms[9].startFrame<terms[12].startFrame
+      &&terms[12].startFrame<terms[13].startFrame
+      &&terms[13].startFrame<terms[14].startFrame))
+      reject('SHOT06_REAL_CAUSAL_SEQUENCE_INVALID');
+    checks.push('SHOT06_CURRENT_DIRECTOR_APPROVED_TAKE',
+      'FIVE_REAL_VERIFIED_BEATS','FIFTEEN_REAL_DEADLINE_CANCELLATION_TERMS',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+  }
+
   return {
     standardId:AT_TIER_PLUS_PLUS_STANDARD_ID,
     status:'TECHNICAL_PRECHECK_PASS',

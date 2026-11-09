@@ -25,6 +25,14 @@ export function uniqueSpokenPhrase(narration:string,phrase:string):PhraseMatch|n
   return found;
 }
 
+const SHOT06_CUE_PHRASES=[
+  ['Look at this Login'],
+  ['Then the time runs out'],
+  ['Watch another Login'],
+  ['cancellation matters'],
+  ['If the system can stop it'],
+] as const;
+
 const SHOT05_CUE_PHRASES=[
   ['database connection pool'],
   ['up to eight'],
@@ -52,8 +60,10 @@ export function suggestEp002VoiceCueAnchors(
 ):string[] {
   let previousEnd=-1;
   return beats.map((beat,index)=>{
-    const options=shotKey==='SHOT05'&&beats.length===5
-      ? [...SHOT05_CUE_PHRASES[index]]
+    const options=shotKey==='SHOT06'&&beats.length===5
+      ? [...SHOT06_CUE_PHRASES[index]]
+      :shotKey==='SHOT05'&&beats.length===5
+        ? [...SHOT05_CUE_PHRASES[index]]
       :shotKey==='SHOT03'&&beats.length===5
         ? [...SHOT03_CUE_PHRASES[index]] : fromDirection(beat.direction);
     for(const phrase of options){
