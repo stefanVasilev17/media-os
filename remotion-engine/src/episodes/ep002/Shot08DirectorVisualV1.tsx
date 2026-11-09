@@ -6,7 +6,7 @@ import {shot08Ease,assertShot08SafeLayout,validateShot08Source,
   type Shot08SceneProps,type Shot08TermId} from './Shot08VisualContract';
 
 const WHITE='#F5FCFF',ORANGE='#F5A55A';
-const orangeText=(title:string)=>({
+const orangeText=()=>({
   fontSize:25,fontWeight:880,color:ORANGE,
   letterSpacing:'.028em',textShadow:'0 0 23px rgba(246,154,77,.26)',
   fontFamily:AT_FONT,
@@ -35,7 +35,7 @@ const Captions:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   return <div style={{position:'absolute',left:560,top:851,width:1220,
     height:92,pointerEvents:'none',zIndex:25,
     opacity:enter*exit,transform:'translateY('+((1-enter)*8)+'px)',
-    ...orangeText(chosen.text)}}>
+    ...orangeText()}}>
       {chosen.text}
   </div>;
 };
