@@ -25,6 +25,14 @@ export function uniqueSpokenPhrase(narration:string,phrase:string):PhraseMatch|n
   return found;
 }
 
+const SHOT07_CUE_PHRASES=[
+  ['Auth 01 tries again'],
+  ['first lookup may still be running'],
+  ['New Login traffic'],
+  ['retry storm'],
+  ['cascading failure'],
+] as const;
+
 const SHOT06_CUE_PHRASES=[
   ['Look at this Login'],
   ['Then the time runs out'],
@@ -60,7 +68,9 @@ export function suggestEp002VoiceCueAnchors(
 ):string[] {
   let previousEnd=-1;
   return beats.map((beat,index)=>{
-    const options=shotKey==='SHOT06'&&beats.length===5
+    const options=shotKey==='SHOT07'&&beats.length===5
+      ? [...SHOT07_CUE_PHRASES[index]]
+      :shotKey==='SHOT06'&&beats.length===5
       ? [...SHOT06_CUE_PHRASES[index]]
       :shotKey==='SHOT05'&&beats.length===5
         ? [...SHOT05_CUE_PHRASES[index]]
