@@ -33,7 +33,7 @@ test('Worker refuses wrong SHA, Take, Director cues or unauthorized target scope
   const ctl=worker('RemotionCpuWorkerController.java');
   assert.match(ctl,/SHOT06_SOURCE_VOICE_OR_CUES_STALE_BEFORE_CPU_CLAIM/);
   assert.match(ctl,/matchesCurrentShot06Render/);
-  assert.match(ctl,/EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT06/);
+  assert.match(ctl,/EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05-SHOT06/);
   assert.match(ctl,/EP002-SHOT06-CANDIDATE/);
   assert.match(ctl,/then 'EP002_SHOT06'/);
   assert.match(ctl,/then 'SHOT06' else 'SHOT02' end/);
