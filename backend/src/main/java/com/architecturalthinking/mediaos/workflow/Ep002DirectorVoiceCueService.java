@@ -583,6 +583,10 @@ public class Ep002DirectorVoiceCueService {
         return currentShot08AudioReadiness();
     }
 
+    Shot08RenderReadiness shot08InternalReadiness() {
+        return currentShot08AudioReadiness();
+    }
+
     private Shot08RenderReadiness currentShot08AudioReadiness() {
         var current=episode.snapshot();
         var shot=current.shots().stream().filter(s->"SHOT08".equals(s.shotKey()))
