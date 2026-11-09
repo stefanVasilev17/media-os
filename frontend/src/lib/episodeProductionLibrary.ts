@@ -4,7 +4,7 @@ import {buildApprovedEp002SceneDraft} from './ep002ApprovedVisualPassImport';
 
 const repo = 'https://github.com/stefanVasilev17/media-os/blob/main/';
 const originalVisualPlan=buildApprovedEp002SceneDraft();
-const v5VisualPlan={
+const v5VisualPlan:Record<string,unknown>={
   ...originalVisualPlan,
   visualPassVersion:'v1.0+RECOVERY_V5',
   shots:(originalVisualPlan.shots as Array<{shotKey:string}>).map(shot=>{
