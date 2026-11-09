@@ -108,21 +108,23 @@ export function Ep002Shot08RenderPanel(){
     aria-label="EP002 SHOT08 Tier++ verified audio render">
     <div className="library-episode-batch-heading">
       <div>
-        <h2><Clapperboard size={21}/> SHOT08 — Recovery Render (visual update pending)</h2>
-        <p>SHOT08 now stops the retry storm with three existing Auth servers
-          and one shared database. The outdated six-server scaling Remotion
-          contract has been disabled. Generate and review your first Slow Natural
-          voice in the Voice Studio; rendering will unlock only after the
-          matching recovery visuals, spoken-term contract and tests are released.</p>
+        <h2><Clapperboard size={21}/> SHOT08 — Stop the Retry Storm · Director Render</h2>
+        <p>The SHOT07 living architecture continues without a hard cut:
+          one original Phone, three existing Auth instances and ONE shared
+          User Database. A calm title dissolve leads into deadline-aware
+          retries, one shared retry budget, exponential backoff and jitter.
+          MediaOS automatically matches six HEAR → SEE beats and twenty-one
+          spoken markers to the current approved Slow Natural Take.
+          Rendering does not generate or alter audio.</p>
       </div>
       <span className="library-episode-batch-state" aria-live="polite">{status}</span>
     </div>
     {error&&<p className="library-voice-error" role="alert">{error}</p>}
     <p className="library-note">
       <ShieldCheck size={15} aria-hidden="true"/>{' '}
-      Real voice: {readiness?.ready?'REAL CUES VERIFIED':
+      Real voice: {readiness?.ready?'6 REAL BEATS + 21 SPOKEN TERMS VERIFIED':
         readiness?.reason??'CHECKING'}. Pinned Worker:
-      {' '}{capability?.canQueue?'AUTHORIZED FOR MANUAL RENDER':'NOT YET ENABLED'}.
+      {' '}{capability?.canQueue?'READY FOR DIRECTOR REVIEW RENDER':'RELEASE OR VOICE NOT READY'}.
       {' '}Voice duration: {readiness?.durationInFrames
         ?(readiness.durationInFrames/30).toFixed(2)+'s':'NOT CONFIRMED'}.
     </p>
