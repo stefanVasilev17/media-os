@@ -17,7 +17,8 @@ export const SHOT06_TERM_ORDER:readonly Shot06TermId[]=[
 ] as const;
 export const SHOT06_CARDS={
   heading:{left:278,top:108,width:1120,height:78},
-  pool:{left:280,top:218,width:1238,height:535},
+  pool:{left:280,top:218,width:1240,height:535},
+  lookupCallout:{left:1550,top:476,width:302,height:92},
   queue:{left:282,top:795,width:1236,height:95},
   meaning:{left:282,top:905,width:1236,height:110},
   phone:{left:1580,top:710,width:165,height:270},
@@ -87,6 +88,13 @@ export function assertShot06SafeLayout(){
   if(shot02Intersects(SHOT06_CARDS.phone,SHOT06_CARDS.meaning,32)
     ||shot02Intersects(SHOT06_CARDS.phone,SHOT06_CARDS.heading,30))
     throw Error('SHOT06_PHONE_EXPLAINER_COLLISION');
+  const callout=SHOT06_CARDS.lookupCallout;
+  if(shot02Intersects(callout,SHOT06_CARDS.pool,20)
+    ||shot02Intersects(callout,SHOT06_CARDS.queue,24)
+    ||shot02Intersects(callout,SHOT06_CARDS.meaning,24)
+    ||shot02Intersects(callout,SHOT06_CARDS.phone,24)
+    ||shot02Intersects(callout,SHOT06_CARDS.heading,24))
+    throw Error('SHOT06_LOOKUP_CALLOUT_COLLISION');
   if(SHOT02_NODES.auth.x!==1326||SHOT02_NODES.auth.y!==315)
     throw Error('SHOT06_PROTECTED_AUTH_COORDINATES_CHANGED');
 }
