@@ -416,7 +416,8 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key,workerId);
         jdbc.sql("""
-                select r.status, r.composition_id, r.worker_id=:worker as worker_owned,
+                select r.status, r.composition_id, r.duration_in_frames as duration_frames,
+                       r.worker_id=:worker as worker_owned,
                        r.input_props->>'inputFingerprint' as fingerprint,
                        r.input_props->>'voiceTakeId' as take_id,
                        r.input_props->>'scriptRevision' as script_rev,
@@ -452,9 +453,7 @@ public class RemotionCpuWorkerController {
                     try {
                         current=ep002Cues!=null&&ep002Cues.matchesCurrentShot08Render(
                             rs.getString("fingerprint"),rs.getString("take_id"),
-                            Integer.parseInt(rs.getString("script_rev")),0+Integer.parseInt(
-                                jdbc.sql("select duration_in_frames from remotion_render where id=:id")
-                                  .param("id",renderId).query(String.class).single()));
+                            Integer.parseInt(rs.getString("script_rev")),rs.getInt("duration_frames"));
                     } catch(RuntimeException ignored) {current=false;}
                     org.slf4j.LoggerFactory.getLogger(RemotionCpuWorkerController.class)
                         .warn("SHOT08_AUDIO_GATE_TRACE renderId={} status={} workerOwned={} workerSourceMatched={} shotKeyMatched={} takeRevisionMatched={} latestRevision={} currentChosenTake={} currentSourceMatches={}",
