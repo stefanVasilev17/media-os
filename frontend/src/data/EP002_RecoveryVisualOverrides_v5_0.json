@@ -1,0 +1,191 @@
+{
+  "schema": "mediaos.ep002.recovery-visual-overrides.v5",
+  "episodeKey": "EP002",
+  "scriptVersion": "v5.0",
+  "status": "DIRECTOR_APPROVED_NARRATION_VISUAL_SOURCE_PENDING_MP4_REVIEW",
+  "protectedVisualSourceSha": "5c43c7fd3bd66b5899f0956a9cfd80bdead834f1",
+  "shotCount": 4,
+  "beatCount": 24,
+  "shots": [
+    {
+      "shotKey": "SHOT08",
+      "editorialWindow": "07:45–09:10",
+      "title": "Stop the Retry Storm",
+      "sourceNarrationRevision": "v2.0",
+      "visualGoal": "Architectural recovery: three original Auth instances plus one fixed-capacity shared User Database; no horizontal scaling or replica design.",
+      "startingFrame": "Exact SHOT07 V2 clean architecture world; one large Phone, Gateway, Balancer, AUTH01/02/03 and ONE User Database.",
+      "cameraDirection": "Contiguous SHOT07→08→09→10→11 wide architecture, restrained local focus and grounded reveal, no misleading flying request trails.",
+      "assetDirection": "Reuse SHOT07 V2 clean world and Phone; policy labels, budget and timer signals are local UI on existing nodes.",
+      "truthContinuity": "No 3→6 Auth scale, no new database instance/primary/replica, no fictional DB capacity gain; shed Logins still fail; expired requests never revive.",
+      "transition": "Keep same map/node positions; transition by subtle focused motion into next recovery intervention.",
+      "beats": [
+        {
+          "number": 1,
+          "spokenAnchor": "After that retry storm",
+          "direction": "Show the red saturated User Database without new packets; title shifts from retry storm to STOP THE RETRY STORM."
+        },
+        {
+          "number": 2,
+          "spokenAnchor": "We still have three Auth servers",
+          "direction": "Keep exactly AUTH 01, AUTH 02, AUTH 03 and single DB; softly emphasize all three then database. No 3-to-6 animation."
+        },
+        {
+          "number": 3,
+          "spokenAnchor": "Watch Auth 01",
+          "direction": "Show local Auth 01 deadline check: timed-out Login cannot be retried. No full Login replay."
+        },
+        {
+          "number": 4,
+          "spokenAnchor": "We also add a retry budget",
+          "direction": "Display one small shared retry-budget indicator above Auth instances, ending when budget is exhausted."
+        },
+        {
+          "number": 5,
+          "spokenAnchor": "For an allowed retry",
+          "direction": "Three local staggered backoff+jitter delay rings inside Auth01/02/03. No red dashed trajectories or flying requests."
+        },
+        {
+          "number": 6,
+          "spokenAnchor": "Now watch User Database",
+          "direction": "DB pulse frequency eases as duplicate lookups fall, yet DB remains busy. No claim of increased capacity."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT08 — Stop the Retry Storm\n\nExisting world: 3 AUTH, 1 DB, 1 original Phone. Start from previous scene end pose. All beat positions derive ONLY from a real selected ElevenLabs character-aligned recording, never editorial clock estimates.\n\n1. At spoken phrase \"After that retry storm\": Show the red saturated User Database without new packets; title shifts from retry storm to STOP THE RETRY STORM.\n2. At spoken phrase \"We still have three Auth servers\": Keep exactly AUTH 01, AUTH 02, AUTH 03 and single DB; softly emphasize all three then database. No 3-to-6 animation.\n3. At spoken phrase \"Watch Auth 01\": Show local Auth 01 deadline check: timed-out Login cannot be retried. No full Login replay.\n4. At spoken phrase \"We also add a retry budget\": Display one small shared retry-budget indicator above Auth instances, ending when budget is exhausted.\n5. At spoken phrase \"For an allowed retry\": Three local staggered backoff+jitter delay rings inside Auth01/02/03. No red dashed trajectories or flying requests.\n6. At spoken phrase \"Now watch User Database\": DB pulse frequency eases as duplicate lookups fall, yet DB remains busy. No claim of increased capacity."
+    },
+    {
+      "shotKey": "SHOT09",
+      "editorialWindow": "09:10–11:10",
+      "title": "Protect the Shared Database",
+      "sourceNarrationRevision": "v2.0",
+      "visualGoal": "Architectural recovery: three original Auth instances plus one fixed-capacity shared User Database; no horizontal scaling or replica design.",
+      "startingFrame": "Exact SHOT07 V2 clean architecture world; one large Phone, Gateway, Balancer, AUTH01/02/03 and ONE User Database.",
+      "cameraDirection": "Contiguous SHOT07→08→09→10→11 wide architecture, restrained local focus and grounded reveal, no misleading flying request trails.",
+      "assetDirection": "Reuse SHOT07 V2 clean world and Phone; policy labels, budget and timer signals are local UI on existing nodes.",
+      "truthContinuity": "No 3→6 Auth scale, no new database instance/primary/replica, no fictional DB capacity gain; shed Logins still fail; expired requests never revive.",
+      "transition": "Keep same map/node positions; transition by subtle focused motion into next recovery intervention.",
+      "beats": [
+        {
+          "number": 1,
+          "spokenAnchor": "Stopping retries helps",
+          "direction": "Hold the unchanged map and visualize 900 arrival/s versus ~500 lookup/s as brief voice-synced orange labels outside nodes."
+        },
+        {
+          "number": 2,
+          "spokenAnchor": "So we add admission control",
+          "direction": "Attach admission policy indication to existing Gateway/Auth entry, not a new service or server."
+        },
+        {
+          "number": 3,
+          "spokenAnchor": "Because we have three Auth instances",
+          "direction": "One shared budget across ALL THREE Auth instances; show illustrative 450 total DB lookup attempts/s INCLUDING retries."
+        },
+        {
+          "number": 4,
+          "spokenAnchor": "When demand exceeds that budget",
+          "direction": "One Phone shows a fast explicit shed/rejected NEW Login; cannot create session; don't hide user failure."
+        },
+        {
+          "number": 5,
+          "spokenAnchor": "We also limit concurrent lookups",
+          "direction": "Focus existing 3×8 per-server pool max slots, constrain total concurrent lookups globally. Add restrained retry bulkhead label."
+        },
+        {
+          "number": 6,
+          "spokenAnchor": "If database calls keep timing out",
+          "direction": "Circuit breaker temporarily rejects NEW DB-dependent Login, then checks limited half-open probes. Avoid green DB before verified recovery."
+        },
+        {
+          "number": 7,
+          "spokenAnchor": "Here is the trade-off",
+          "direction": "Accepted Login requests have a chance to finish, shed users fail fast; DB capacity remains 500/s illustrative."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT09 — Protect the Shared Database\n\nExisting world: 3 AUTH, 1 DB, 1 original Phone. Start from previous scene end pose. All beat positions derive ONLY from a real selected ElevenLabs character-aligned recording, never editorial clock estimates.\n\n1. At spoken phrase \"Stopping retries helps\": Hold the unchanged map and visualize 900 arrival/s versus ~500 lookup/s as brief voice-synced orange labels outside nodes.\n2. At spoken phrase \"So we add admission control\": Attach admission policy indication to existing Gateway/Auth entry, not a new service or server.\n3. At spoken phrase \"Because we have three Auth instances\": One shared budget across ALL THREE Auth instances; show illustrative 450 total DB lookup attempts/s INCLUDING retries.\n4. At spoken phrase \"When demand exceeds that budget\": One Phone shows a fast explicit shed/rejected NEW Login; cannot create session; don't hide user failure.\n5. At spoken phrase \"We also limit concurrent lookups\": Focus existing 3×8 per-server pool max slots, constrain total concurrent lookups globally. Add restrained retry bulkhead label.\n6. At spoken phrase \"If database calls keep timing out\": Circuit breaker temporarily rejects NEW DB-dependent Login, then checks limited half-open probes. Avoid green DB before verified recovery.\n7. At spoken phrase \"Here is the trade-off\": Accepted Login requests have a chance to finish, shed users fail fast; DB capacity remains 500/s illustrative."
+    },
+    {
+      "shotKey": "SHOT10",
+      "editorialWindow": "11:10–12:40",
+      "title": "Prove the Recovery",
+      "sourceNarrationRevision": "v2.0",
+      "visualGoal": "Architectural recovery: three original Auth instances plus one fixed-capacity shared User Database; no horizontal scaling or replica design.",
+      "startingFrame": "Exact SHOT07 V2 clean architecture world; one large Phone, Gateway, Balancer, AUTH01/02/03 and ONE User Database.",
+      "cameraDirection": "Contiguous SHOT07→08→09→10→11 wide architecture, restrained local focus and grounded reveal, no misleading flying request trails.",
+      "assetDirection": "Reuse SHOT07 V2 clean world and Phone; policy labels, budget and timer signals are local UI on existing nodes.",
+      "truthContinuity": "No 3→6 Auth scale, no new database instance/primary/replica, no fictional DB capacity gain; shed Logins still fail; expired requests never revive.",
+      "transition": "Keep same map/node positions; transition by subtle focused motion into next recovery intervention.",
+      "beats": [
+        {
+          "number": 1,
+          "spokenAnchor": "Look at the User Database again",
+          "direction": "Keep single database and three Auth cards; show backlog shrinking only if completed > newly admitted attempts."
+        },
+        {
+          "number": 2,
+          "spokenAnchor": "The database can now finish lookups",
+          "direction": "Brief comparison caption: ~500 DB completions/s > admitted work e.g. 450 total attempts/s; real sustainable capacity conditional."
+        },
+        {
+          "number": 3,
+          "spokenAnchor": "Connections are returned",
+          "direction": "Show pool slots returning, DB pulse red to amber as measured queue falls."
+        },
+        {
+          "number": 4,
+          "spokenAnchor": "Watch the phone carefully",
+          "direction": "Show ONE large Phone: old timed-out attempt remains ended; a DIFFERENT clearly named new Login is accepted and succeeds."
+        },
+        {
+          "number": 5,
+          "spokenAnchor": "We still need evidence",
+          "direction": "Minimal timed labels for success, system errors, P95/P99 latency and traces, no heavy panels covering architecture."
+        },
+        {
+          "number": 6,
+          "spokenAnchor": "Count rejected requests too",
+          "direction": "Track early rejection count as real user failure. Healthy probes alone do not imply full Login availability."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT10 — Prove the Recovery\n\nExisting world: 3 AUTH, 1 DB, 1 original Phone. Start from previous scene end pose. All beat positions derive ONLY from a real selected ElevenLabs character-aligned recording, never editorial clock estimates.\n\n1. At spoken phrase \"Look at the User Database again\": Keep single database and three Auth cards; show backlog shrinking only if completed > newly admitted attempts.\n2. At spoken phrase \"The database can now finish lookups\": Brief comparison caption: ~500 DB completions/s > admitted work e.g. 450 total attempts/s; real sustainable capacity conditional.\n3. At spoken phrase \"Connections are returned\": Show pool slots returning, DB pulse red to amber as measured queue falls.\n4. At spoken phrase \"Watch the phone carefully\": Show ONE large Phone: old timed-out attempt remains ended; a DIFFERENT clearly named new Login is accepted and succeeds.\n5. At spoken phrase \"We still need evidence\": Minimal timed labels for success, system errors, P95/P99 latency and traces, no heavy panels covering architecture.\n6. At spoken phrase \"Count rejected requests too\": Track early rejection count as real user failure. Healthy probes alone do not imply full Login availability."
+    },
+    {
+      "shotKey": "SHOT11",
+      "editorialWindow": "12:40–13:30",
+      "title": "Healthy Is Not the Same as Available",
+      "sourceNarrationRevision": "v2.0",
+      "visualGoal": "Architectural recovery: three original Auth instances plus one fixed-capacity shared User Database; no horizontal scaling or replica design.",
+      "startingFrame": "Exact SHOT07 V2 clean architecture world; one large Phone, Gateway, Balancer, AUTH01/02/03 and ONE User Database.",
+      "cameraDirection": "Contiguous SHOT07→08→09→10→11 wide architecture, restrained local focus and grounded reveal, no misleading flying request trails.",
+      "assetDirection": "Reuse SHOT07 V2 clean world and Phone; policy labels, budget and timer signals are local UI on existing nodes.",
+      "truthContinuity": "No 3→6 Auth scale, no new database instance/primary/replica, no fictional DB capacity gain; shed Logins still fail; expired requests never revive.",
+      "transition": "Isolate unchanged single DB; tee up future primary/replica episode without illustrating topology.",
+      "beats": [
+        {
+          "number": 1,
+          "spokenAnchor": "Look at the full journey",
+          "direction": "Full clean familiar map one Phone, Gateway, Balancer, AUTH 01–03 and one DB; no replicas."
+        },
+        {
+          "number": 2,
+          "spokenAnchor": "We did not add servers",
+          "direction": "Highlight exactly three Auth and one DB, same capacity before and after mitigations."
+        },
+        {
+          "number": 3,
+          "spokenAnchor": "We limited duplicate retries",
+          "direction": "Short voice-synced cues for retry limit, admitted request budget, and bounded concurrency; no extra scene objects."
+        },
+        {
+          "number": 4,
+          "spokenAnchor": "Some users still got a fast failure",
+          "direction": "On Phone distinguish one shed fast failure from a separate newly admitted successful Login; never revive timeout."
+        },
+        {
+          "number": 5,
+          "spokenAnchor": "Here is the lesson",
+          "direction": "Final clear architecture truth; gently isolate one DB to ask next-episode capacity question, no primary/replica shown."
+        }
+      ],
+      "visualPlanMarkdown": "### SHOT11 — Healthy Is Not the Same as Available\n\nExisting world: 3 AUTH, 1 DB, 1 original Phone. Start from previous scene end pose. All beat positions derive ONLY from a real selected ElevenLabs character-aligned recording, never editorial clock estimates.\n\n1. At spoken phrase \"Look at the full journey\": Full clean familiar map one Phone, Gateway, Balancer, AUTH 01–03 and one DB; no replicas.\n2. At spoken phrase \"We did not add servers\": Highlight exactly three Auth and one DB, same capacity before and after mitigations.\n3. At spoken phrase \"We limited duplicate retries\": Short voice-synced cues for retry limit, admitted request budget, and bounded concurrency; no extra scene objects.\n4. At spoken phrase \"Some users still got a fast failure\": On Phone distinguish one shed fast failure from a separate newly admitted successful Login; never revive timeout.\n5. At spoken phrase \"Here is the lesson\": Final clear architecture truth; gently isolate one DB to ask next-episode capacity question, no primary/replica shown."
+    }
+  ]
+}
