@@ -42,36 +42,74 @@ test('SHOT05 requires current Director five beats and fifteen genuine ordered te
     /SHOT05_FIVE_VERIFIED_HEAR_SEE_BEATS_INVALID/);
 });
 
-test('SHOT05 visibly continues SHOT04 spatial world through Auth01 camera dive',()=>{
+test('SHOT05 opens on the exact Director-locked SHOT04 world components, then clears Phone before zoom',()=>{
   assert.doesNotThrow(()=>contract.assertShot05SafeLayout());
-  for(const name of ['SHOT02_NODES','SHOT02_AUTH_REPLICA_PORTS',
-    'SHOT02_BALANCER_EXIT','SHOT02_DATABASE_ENTRY','Shot02PressurePhone',
-    'shot03CongestionColor(1)','SATURATED · RUNNING','Auth Service',
-    'AUTH 01','translate3d','zoom','INSIDE AUTH 01'])
-    assert.ok(scene.includes(name),'missing '+name);
+  const locked=read('Shot04DirectorVisualV1.tsx');
+  const inherited=read('Shot05Shot04WorldV2.tsx');
+  const prefix=locked.slice(0,locked.indexOf('export const Shot04DirectorVisualV1:'));
+  assert.ok(inherited.startsWith(prefix),
+    'SHOT04 frozen premium Gateway, Auth, DB, paths and semantic overlay components must be identical');
+  for(const name of ['SHOT02_AUTH_REPLICA_PORTS','SHOT02_BALANCER_EXIT',
+    'SHOT02_DATABASE_ENTRY','Shot02PressurePhone','shot03CongestionColor(1)',
+    'SATURATED · RUNNING','Auth Service','HealthSemantics','Paths frame=',
+    'Gateway active=','Balancer','Database frame='])
+    assert.ok(inherited.includes(name),'missing locked component: '+name);
+  assert.match(scene,/<Shot05Shot04WorldV2 frame=\{frame\}/);
+  assert.match(scene,/const phoneFade=shot05Ease\(frame,12,38\)/);
+  assert.match(scene,/const push=shot05Ease\(frame,61,99\)/);
+  assert.match(scene,/const mapExit=shot05Ease\(frame,167,36\)/);
+  assert.ok(12+38<61,'Phone must disappear before architectural zoom');
+  assert.match(inherited,/opacity:1-phoneFade/);
+  assert.match(inherited,/transform:cameraTransform/);
+  assert.doesNotMatch(scene,/MiniWorld|WorldBreadcrumb|INSIDE AUTH 01|AUTH 01 \/ INTERNAL VIEW/);
   assert.doesNotMatch(scene,/Math.random\(|fetch\(|setTimeout\(|<Audio/);
   assert.doesNotMatch(scene,/Please try again|DATABASE OFFLINE|CONNECTION POOL CRASHED/);
 });
 
-test('Director source and editorial: 2x4 connection slots, replay and queue outside the pool',()=>{
-  assert.match(scene,/gridTemplateColumns:'repeat\(4,minmax\(0,1fr\)\)'/);
+test('Director scene retains eight slots and voice-timed historical replay without occupancy jumps',()=>{
+  assert.match(scene,/gridTemplateColumns:'repeat\(4,minmax\(0,1fr\)'/);
   assert.match(scene,/Array.from\(\{length:8\}/);
   assert.match(scene,/REPLAY · EARLIER MOMENTS/);
-  assert.match(scene,/WAITING FOR CONNECTION/);
-  assert.match(scene,/IN-FLIGHT ≠ WAITING/);
-  assert.match(scene,/REQUEST A/);
-  assert.match(scene,/THE DEADLINE EXPIRES/);
+  assert.match(scene,/shot05SlotFill\(frame,index,terms\)/);
+  assert.doesNotMatch(scene,/busy\?'IN USE':'AVAILABLE'/);
+  assert.doesNotMatch(scene,/BORROW → LOOKUP → RETURN|DATABASE LOOKUP IS SLOW/);
+  assert.match(scene,/opacity:1-occupied/);
+  assert.match(scene,/opacity:occupied/);
   assert.equal(contract.shot05ReplayBusy(0,cues),0);
   assert.equal(contract.shot05ReplayBusy(cues.ONE_BUSY,cues),1);
   assert.equal(contract.shot05ReplayBusy(cues.FIVE_BUSY,cues),5);
   assert.equal(contract.shot05ReplayBusy(cues.SEVEN_BUSY,cues),7);
   assert.equal(contract.shot05ReplayBusy(cues.EIGHT_BUSY,cues),8);
+  assert.ok(contract.shot05SlotFill(cues.BORROWS_ONE+25,0,cues)>.95);
+  assert.equal(contract.shot05SlotFill(cues.REPLAY-1,0,cues),0);
+  assert.equal(contract.shot05SlotFill(cues.ONE_BUSY,0,cues),0);
+  assert.ok(contract.shot05SlotFill(cues.ONE_BUSY+20,0,cues)>.95);
+  assert.equal(contract.shot05SlotFill(cues.FIVE_BUSY,2,cues),0);
+  assert.ok(contract.shot05SlotFill(cues.FIVE_BUSY+30,2,cues)>.99);
+  assert.equal(contract.shot05SlotFill(cues.EIGHT_BUSY,7,cues),0);
+  assert.ok(contract.shot05SlotFill(cues.EIGHT_BUSY+20,7,cues)>.99);
+  assert.throws(()=>contract.shot05SlotFill(100,8,cues),
+    /SHOT05_POOL_INDEX_OUT_OF_BOUNDS/);
+  assert.throws(()=>contract.shot05ReplayBusy(100,{...cues,REPLAY:800}),
+    /SHOT05_REAL_SPOKEN_REPLAY_ORDER_INVALID/);
+});
+
+test('SHOT05 teaches spoken queueing and in-flight meanings without extra dashboard text',()=>{
+  assert.match(scene,/WAITING FOR CONNECTION/);
+  assert.match(scene,/REQUEST A/);
+  assert.match(scene,/TIME RUNNING OUT/);
+  assert.match(scene,/REQUEST QUEUEING/);
+  assert.match(scene,/Requests lining up until a connection becomes available/);
+  assert.match(scene,/IN-FLIGHT REQUESTS/);
+  assert.match(scene,/Requests that have started but haven't finished/);
+  assert.match(scene,/start:terms\.REQUEST_QUEUEING/);
+  assert.match(scene,/start:terms\.IN_FLIGHT/);
   assert.equal(contract.shot05QueueDepth(cues.ANOTHER_LOGIN-1,cues),0);
   assert.equal(contract.shot05QueueDepth(cues.ANOTHER_LOGIN,cues),1);
   assert.ok(contract.shot05QueueDepth(cues.IN_FLIGHT,cues)>=2);
   assert.equal(contract.shot05WaitingForConnection(cues.WAIT_FOR_CONNECTION,cues),true);
-  assert.throws(()=>contract.shot05ReplayBusy(100,{...cues,REPLAY:800}),
-    /SHOT05_REAL_SPOKEN_REPLAY_ORDER_INVALID/);
+  assert.ok(!('footer' in contract.SHOT05_TEXT_AREAS));
+  assert.equal(contract.SHOT05_TEXT_AREAS.explainers.top,903);
 });
 
 test('SHOT05 root registers measured 1080p30 source with no fabricated cues',()=>{
