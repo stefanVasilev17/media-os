@@ -1,141 +1,66 @@
 import React from 'react';
 import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
-import {ATBackground,ATControlledRealismLayer,AT_FONT}
-  from '../../components/architectural-thinking';
+import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {Shot02PressurePhone} from './Shot02PressurePhone';
-import {SHOT02_NODES} from './Shot02PremiumLayout';
-import {SHOT02_AUTH_REPLICA_PORTS,SHOT02_BALANCER_EXIT,
-  SHOT02_AUTH_CARD_LEFT,SHOT02_AUTH_CARD_RIGHT,SHOT02_DATABASE_ENTRY,
-  shot02CubicPoint,SHOT02_LOGIN_PARTICLE} from './Shot02PressureVisuals';
-import {shot03CongestionColor} from './Shot03VisualContract';
-import {shot05Ease,shot05QueueDepth,shot05ReplayBusy,shot05WaitingForConnection,
-  validateShot05Source,assertShot05SafeLayout,type Shot05SceneProps,
-  type Shot05TermId} from './Shot05VisualContract';
+import {shot04StatusPalette} from './Shot04VisualContract';
+import {shot03BlendHex,shot03CongestionColor} from './Shot03VisualContract';
+import {Shot05Shot04WorldV2,SHOT05_LOCKED_PANEL} from './Shot05Shot04WorldV2';
+import {shot05Ease,shot05QueueDepth,shot05ReplayBusy,shot05SlotFill,
+  shot05WaitingForConnection,validateShot05Source,assertShot05SafeLayout,
+  type Shot05SceneProps,type Shot05TermId} from './Shot05VisualContract';
 
-const WHITE='#F1FAFF',MINT='#73FFD0',CYAN='#68E5FF',RED=shot03CongestionColor(1);
-const AMBER='#F2B46F',SOFT='#ABCBDD';
+const WHITE='#F5FCFF',MINT=shot04StatusPalette.healthy;
+const CYAN='#68E5FF',RED=shot03CongestionColor(1);
+const AMBER=shot04StatusPalette.waiting,SOFT='#B5D2E6';
+const box=SHOT05_LOCKED_PANEL;
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
-const box=(stroke:string,shadow:string)=>({
-  border:'2px solid '+stroke,borderRadius:19,
-  background:'linear-gradient(155deg,rgba(9,28,49,.98),rgba(3,14,29,.995))',
-  boxShadow:'0 0 23px '+shadow+',inset 0 1px 0 rgba(219,248,255,.12)',
-  boxSizing:'border-box' as const,
-});
-const move=(phase:number)=>{
-  const t=((phase%1)+1)%1;
-  return t;
-};
 
-const MiniWorld:React.FC<{frame:number;opacity:number;focus:number}>=
-({frame,opacity,focus})=>{
-  const auth=SHOT02_NODES.auth,db=SHOT02_NODES.database;
-  const scale=1+1.76*focus;
-  const x=-466*focus,y=110*focus;
-  return <AbsoluteFill style={{zIndex:5,pointerEvents:'none',opacity,
-    transform:'translate3d('+x+'px,'+y+'px,0) scale('+scale+')',
-    transformOrigin:'1326px 412px'}}>
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-      style={{position:'absolute',inset:0}}>
-      <path d="M485 532H521 M779 532H804" stroke={CYAN}
-        strokeWidth="3" opacity=".69"/>
-      {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>{
-        const first=SHOT02_BALANCER_EXIT;
-        const p1={x:1090,y:first.y},p2={x:1137,y:replica.y};
-        const end={x:SHOT02_AUTH_CARD_LEFT,y:replica.y};
-        return <g key={replica.id}>
-          <path d={'M'+first.x+' '+first.y+' C'+p1.x+' '+p1.y+' '+
-            p2.x+' '+p2.y+' '+end.x+' '+end.y} fill="none"
-            stroke="#4FACC6" strokeWidth="4" opacity=".8"/>
-          <path d={'M'+SHOT02_AUTH_CARD_RIGHT+' '+replica.y+' C1512 '+
-            replica.y+' 1546 509 '+SHOT02_DATABASE_ENTRY.x+' 509'}
-            fill="none" stroke={RED} strokeWidth="3.7" opacity=".68"/>
-          {[0,1,2].map(k=>{
-            const t=move(frame*.013+i*.21+k*.33);
-            const point=shot02CubicPoint(t,first,p1,p2,end);
-            return <circle key={k} cx={point.x} cy={point.y}
-              r={SHOT02_LOGIN_PARTICLE.radius}
-              fill={MINT} opacity={Math.min(1,(1-t)*5,t*5)}
-              style={{filter:SHOT02_LOGIN_PARTICLE.glow}}/>;
-          })}
-        </g>;
-      })}
-    </svg>
-    {[
-      {n:SHOT02_NODES.gateway,label:'API Gateway',sub:'ONLINE',color:CYAN},
-      {n:SHOT02_NODES.balancer,label:'Load Balancer',sub:'ROUTING',color:CYAN},
-    ].map(({n,label,sub,color})=>
-      <div key={label} style={{position:'absolute',
-        left:n.x-n.width/2,top:n.y,width:n.width,height:n.height,
-        ...box(color,'rgba(29,187,230,.22)'),padding:22}}>
-        <div style={{fontSize:25,fontWeight:840}}>{label}</div>
-        <div style={{fontSize:16,marginTop:18,color:MINT}}>● {sub}</div>
-        <div style={{height:1,background:'#315E7B',marginTop:32}}/>
-      </div>)}
-    <div style={{position:'absolute',left:auth.x-auth.width/2,top:auth.y,
-      width:auth.width,height:auth.height,...box('#9087FF','rgba(125,111,255,.38)'),
-      background:'linear-gradient(135deg,#101B41,#070E22)'}}>
-      <div style={{textAlign:'center',fontSize:27,marginTop:17,fontWeight:840}}>
-        Auth Service
-      </div>
-      {SHOT02_AUTH_REPLICA_PORTS.map((replica,i)=>
-        <div key={replica.id} style={{position:'absolute',
-          left:SHOT02_AUTH_CARD_LEFT-(auth.x-auth.width/2),
-          top:replica.y-auth.y-35,
-          width:SHOT02_AUTH_CARD_RIGHT-SHOT02_AUTH_CARD_LEFT,height:70,
-          border:'2px solid '+(i===0?'#8DFFE4':'#4484AD'),
-          background:'rgba(6,35,59,.98)',borderRadius:11,
-          display:'flex',alignItems:'center',padding:'0 16px',
-          fontSize:23,fontWeight:790,color:WHITE,
-          boxShadow:i===0?'0 0 '+(19+12*focus)+'px rgba(115,255,208,.43)':'none'}}>
-          <span style={{fontSize:14,color:MINT,marginRight:12}}>◆</span>
-          {replica.id}
-          {i===0&&<span style={{marginLeft:'auto',fontSize:12,color:MINT}}>FOCUS</span>}
-        </div>)}
-    </div>
-    <div style={{position:'absolute',left:db.x-db.width/2,top:db.y,
-      width:db.width,height:db.height,...box(RED,'rgba(255,59,48,.49)'),
-      textAlign:'center',paddingTop:18}}>
-      <div style={{fontWeight:830,fontSize:25}}>User Database</div>
-      <svg width="80" height="85" viewBox="0 0 80 85"
-        style={{display:'block',margin:'12px auto'}}>
-        <ellipse cx="40" cy="16" rx="25" ry="10" stroke={RED} strokeWidth="4" fill="none"/>
-        <path d="M15 16V67Q40 80 65 67V16M15 40Q40 55 65 40"
-          stroke={RED} strokeWidth="4" fill="none"/>
-        <ellipse cx="40" cy="67" rx="25" ry="10" stroke={RED} strokeWidth="4" fill="none"/>
-      </svg>
-      <div style={{fontWeight:800,fontSize:16,color:'#FFB8AA'}}>SATURATED · RUNNING</div>
-      <div style={{fontSize:12,color:MINT,marginTop:13}}>● STILL COMPLETING</div>
-    </div>
-    <div style={{position:'absolute',left:auth.x-160,top:auth.y+95,
-      width:320,height:80,borderRadius:16,border:'3px solid '+MINT,
-      opacity:focus*.65,boxShadow:'0 0 37px rgba(111,255,219,.7)'}}/>
-  </AbsoluteFill>;
-};
-
-const Slot:React.FC<{index:number;busy:boolean;frame:number;highlight:number}>=
-({index,busy,frame,highlight})=>{
-  const glow=busy?'rgba(252,138,87,.30)':'rgba(76,218,207,.12)';
-  const red=busy?AMBER:MINT;
-  return <div style={{height:126,borderRadius:14,
-    border:'2px solid '+(busy?'#C57A59':'#277F91'),
-    background:busy
-      ?'linear-gradient(150deg,rgba(82,40,41,.83),rgba(22,23,44,.98))'
-      :'linear-gradient(150deg,rgba(6,48,60,.83),rgba(3,25,43,.99))',
-    boxShadow:'0 0 '+(10+highlight*16)+'px '+glow,
+const Slot:React.FC<{index:number;frame:number;fill:number}>=
+({index,frame,fill})=>{
+  const occupied=clamp(fill);
+  const accent=shot03BlendHex('#74E7D2','#F6AF80',occupied);
+  const border=shot03BlendHex('#397FAD','#C77B5F',occupied);
+  const sweep=shot05Ease(frame,0,16);
+  return <div style={{height:126,borderRadius:12,
+    border:'2px solid '+border,
+    background:'linear-gradient(145deg,rgba(10,47,71,.99),rgba(5,26,48,.99))',
+    boxShadow:'0 0 '+(8+occupied*19)+'px '+
+      (occupied>.25?'rgba(252,141,87,.30)':'rgba(55,202,252,.18)'),
     padding:'15px 17px',boxSizing:'border-box',
     position:'relative',overflow:'hidden'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <span style={{fontSize:16,color:SOFT,fontWeight:730}}>CONN {String(index+1).padStart(2,'0')}</span>
-      <span style={{width:11,height:11,borderRadius:12,background:red,
-        boxShadow:'0 0 13px '+red,opacity:.76+.24*Math.sin(frame*.05+index)**2}}/>
+    <div style={{position:'absolute',inset:0,
+      width:(occupied*100)+'%',pointerEvents:'none',
+      borderRight:'2px solid '+accent,
+      background:'linear-gradient(100deg,rgba(243,142,93,.08),rgba(238,127,76,.26))',
+      boxShadow:'0 0 '+(22*occupied)+'px rgba(246,157,96,.32)',
+      opacity:occupied}}/>
+    <div style={{position:'relative',display:'flex',
+      justifyContent:'space-between',alignItems:'center'}}>
+      <span style={{fontSize:16,color:SOFT,fontWeight:730}}>
+        CONN {String(index+1).padStart(2,'0')}
+      </span>
+      <span style={{width:11,height:11,borderRadius:12,
+        background:accent,boxShadow:'0 0 '+(8+occupied*12)+'px '+accent,
+        opacity:.78+.2*Math.sin(frame*.05+index)**2}}/>
     </div>
-    <div style={{fontSize:22,fontWeight:860,color:busy?'#FFCEAB':'#A2FFE7',marginTop:19}}>
-      {busy?'IN USE':'AVAILABLE'}
+    <div style={{height:32,marginTop:18,position:'relative',
+      transform:'translateY('+(1-occupied)*1.5+'px)'}}>
+      <div style={{position:'absolute',left:0,top:0,
+        fontSize:21,fontWeight:820,color:'#A2FFE7',
+        opacity:1-occupied,transform:'translateY('+(occupied*-6)+'px)'}}>
+        AVAILABLE
+      </div>
+      <div style={{position:'absolute',left:0,top:0,
+        fontSize:21,fontWeight:850,color:'#FFCEAB',
+        opacity:occupied,transform:'translateY('+((1-occupied)*7)+'px)'}}>
+        IN USE
+      </div>
     </div>
-    <div style={{height:5,width:'90%',marginTop:11,borderRadius:5,
-      background:'#1D344B',overflow:'hidden'}}>
-      <div style={{height:'100%',width:busy?'100%':'18%',background:red,
-        boxShadow:'0 0 9px '+red}}/>
+    <div style={{height:5,width:'90%',marginTop:7,borderRadius:5,
+      background:'#1D344B',overflow:'hidden',position:'relative'}}>
+      <div style={{height:'100%',width:(14+86*occupied)+'%',
+        background:'linear-gradient(90deg,#77F4DB,'+accent+')',
+        boxShadow:'0 0 '+(9*sweep)+'px '+accent}}/>
     </div>
   </div>;
 };
@@ -150,14 +75,12 @@ const Connections:React.FC<{frame:number;active:number;busy:number;
   return <div style={{position:'absolute',...pool,zIndex:21,
     transform:'translateY('+((1-intro)*22)+'px)',
     opacity:intro,pointerEvents:'none',fontFamily:AT_FONT}}>
-    <div style={{...box('#5679C8','rgba(70,122,235,.33)'),
+    <div style={{...box('#9184FF','rgba(125,111,255,.29)'),
       width:'100%',height:'100%',padding:'22px 27px 26px',
-      background:'linear-gradient(160deg,rgba(13,27,58,.965),rgba(4,15,33,.987))'}}>
+      background:'linear-gradient(150deg,rgba(11,22,50,.99),rgba(4,13,34,.998))'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <div>
-          <div style={{color:'#A3BED9',fontSize:14,fontWeight:800,
-            letterSpacing:'.17em'}}>AUTH 01 / INTERNAL VIEW</div>
-          <div style={{color:WHITE,fontSize:29,fontWeight:880,marginTop:7}}>
+          <div style={{color:WHITE,fontSize:30,fontWeight:850,marginTop:4}}>
             Database Connection Pool
           </div>
         </div>
@@ -171,13 +94,12 @@ const Connections:React.FC<{frame:number;active:number;busy:number;
         gap:'16px 18px'}}>
         {Array.from({length:8},(_,index)=>
           <Slot key={index} index={index} frame={frame}
-            busy={index<busy} highlight={index===busy-1?active:0}/>)}
+            fill={shot05SlotFill(frame,index,terms)}/>)}
       </div>
       <div style={{display:'flex',justifyContent:'space-between',marginTop:22,
         alignItems:'center',gap:20}}>
         <div style={{fontSize:17,fontWeight:760,color:'#A8CADF'}}>
-          {replay?'REPLAY · EARLIER MOMENTS':
-            frame>=terms.ANOTHER_LOGIN?'CONNECTIONS UNAVAILABLE':'BORROW → LOOKUP → RETURN'}
+          {replay?'EARLIER MOMENTS':null}
         </div>
         <div style={{fontSize:28,fontWeight:900,color:busy===8?'#FFAF87':MINT,
           textShadow:busy===8?'0 0 15px rgba(255,87,71,.5)':'none'}}>
@@ -232,23 +154,6 @@ const RequestQueue:React.FC<{frame:number;terms:Record<Shot05TermId,number>;
       textAlign:'right'}}>{depth} WAIT</div>
   </div>;
 };
-
-const WorldBreadcrumb:React.FC<{frame:number;reveal:number}>=({frame,reveal})=>
-  <div style={{position:'absolute',top:92,right:88,width:330,zIndex:26,
-    opacity:reveal,fontFamily:AT_FONT,padding:'15px 18px',
-    ...box('#466786','rgba(20,127,181,.13)')}}>
-    <div style={{color:SOFT,fontSize:14,fontWeight:780,
-      letterSpacing:'.09em'}}>SAME LIVING ARCHITECTURE</div>
-    <div style={{display:'flex',gap:8,alignItems:'center',marginTop:15,
-      color:'#D2E8F3',fontSize:14,fontWeight:790}}>
-      <span>GATEWAY</span><span style={{color:CYAN}}>→</span>
-      <span style={{color:MINT}}>AUTH 01</span><span style={{color:RED}}>→ DB</span>
-    </div>
-    <div style={{height:3,background:'#324A60',marginTop:12,borderRadius:5}}>
-      <div style={{background:RED,width:'77%',height:'100%',
-        opacity:.7+.3*Math.sin(frame*.036)**2}}/>
-    </div>
-  </div>;
 
 export const Shot05DirectorVisualV1:React.FC<Shot05SceneProps>=(props)=>{
   const frame=useCurrentFrame(),video=useVideoConfig();
