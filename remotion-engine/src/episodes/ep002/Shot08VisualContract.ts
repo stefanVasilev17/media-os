@@ -18,7 +18,7 @@ export type Shot08SceneProps={
 export const SHOT08_TEXT_AREAS={
   title:{left:560,top:76,width:1120,height:123},
   caption:{left:560,top:850,width:1220,height:95},
-  final:{left:560,top:960,width:1200,height:54},
+  final:{left:560,top:969,width:1200,height:54},
 } as const satisfies Record<string,Rect>;
 const clamp=(n:number)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):0;
 export const shot08Ease=(frame:number,start:number,length:number)=>{
