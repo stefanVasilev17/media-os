@@ -44,8 +44,9 @@ public class Ep002Shot08PreviewController {
     public Map<String,Object> capability() {
         DirectorIdentity.requireDirector();
         boolean pinned=pinnedWorkerSha.matches("[a-f0-9]{40}");
-        return Map.of("enabled",renderEnabled,"workerPinned",pinned,
-                "canQueue",renderEnabled&&pinned);
+        return Map.of("enabled",false,"workerPinned",pinned,
+                "canQueue",false,
+                "reason","SHOT08_3_TO_6_SCALING_STORY_SUPERSEDED_RECOVERY_VISUAL_REQUIRED");
     }
 
     @GetMapping
@@ -88,6 +89,8 @@ public class Ep002Shot08PreviewController {
     public Map<String,Object> create(@RequestBody PreviewRequest request,
                                       HttpServletRequest http) {
         DirectorIdentity.requireDirector();
+        if(true)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "SHOT08 scaling render is retired. Recovery visual/voice contract must be rebuilt.");
         if(!renderEnabled||!pinnedWorkerSha.matches("[a-f0-9]{40}"))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "SHOT08 render requires separately approved pinned Worker release.");
