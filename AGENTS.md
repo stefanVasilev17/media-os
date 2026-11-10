@@ -1,5 +1,15 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 ACTIVE Director LOCK correction: EP002 SHOT07 IS LOCKED; no latest-successful substitution
+
+**New Director instruction:** "shot 07 e locked." Treat EP002 SHOT07 as **Director Visual LOCKED**, superseding older no-lock assessments in this handoff. SHOT06 is already Director V2 LOCKED; SHOT01–07 form the protected locked review segment. Do NOT edit or regenerate these protected videos, Take audio or source without new express Director direction. A successful render alone is not a visual LOCK; SHOT07 has the distinct Director approval here.
+
+**Exact production MP4s:** SHOT06 `EP002-SHOT06-CANDIDATE` = `d42fe3a2-3810-4626-ab3a-0456463d4636` (final V2, previously Director accepted). SHOT07 `EP002-SHOT07-CANDIDATE` = `5ef67a78-76df-476c-938d-eb421d83549b` (video HTTP 206 confirmed in Railway 2026-11-10 13:09, 13:50 and 14:11 UTC; independently declared Director LOCKED in chat). Lock the *specific files*, never dynamic newest candidate in their place.
+
+**Pending code and deployment:** Draft PR [#246](https://github.com/stefanVasilev17/media-os/pull/246), stacked on Draft PR #244, changes `Ep002LockedCutReviewRoom.tsx` and its Vitest regression to pin exact SHOT06/SHOT07 Render IDs. Only SHOT08 stays latest successful **REVIEW / NOT LOCKED**. Source/static comparison verified two changed files; **Vitest not rerun and PR #246 not yet merged/deployed**. Do NOT claim production Review Room updated until the real deployment. Earlier documentation saying SHOT06–08 dynamically load latest-successful was accurate at the time but superseded as the **desired source contract**, not evidence that the new branch is live. `PROJECT_STATE.md` has the detailed dated update.
+
+**SHOT08 safety:** Old MP4 `8bcd7e71-c7c5-4110-8fec-a7bee3860b7e` is a real technically successful but visually rejected review asset; do not lock or automatically replace it. New corrected source in Draft PR #244 requires separate Director-approved paid CPU rendering, actual review and then new Director LOCK. No speculative paid renders/TTS, no silent media replacement.
+
 ## 2026-11-10 Director correction — SHOT05→08 continuity and SHOT08 motion/slow captions
 
 **Director feedback:** Actual technically successful SHOT08 recovery MP4 `8bcd7e71-c7c5-4110-8fec-a7bee3860b7e` **is NOT visually approved/locked**: Request particles from Phone/Gateway/Load Balancer into three Auth instances and each Auth instance into the ONE User Database were missing from the new shared world; architecture looked significantly different from earlier SHOT02–04 videos. Orange captions changed too frequently to read. Maintain exact original 3 Auth + 1 DB, no primary/replica in EP002, do not remove normal incoming request animations. A successful H.264/AAC ffprobe does **NOT** mean Director Visual LOCK.
