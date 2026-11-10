@@ -324,6 +324,10 @@ export function preflightTierPlusPlusRender(job,sourceSha){
         reject('SHOT07_REAL_SPOKEN_TERMS_INVALID');
       previous=t.endFrame;
     }
+    if(!integer(props.criticalPulseStartFrame)
+      ||props.criticalPulseStartFrame<terms[12].endFrame
+      ||props.criticalPulseStartFrame>=terms[13].startFrame)
+      reject('SHOT07_CRITICAL_PULSE_REQUIRES_REAL_NOW_WATCH_SPOKEN_FRAME');
     if(!(terms[2].startFrame<terms[6].startFrame
       &&terms[6].startFrame<terms[8].startFrame
       &&terms[8].startFrame<terms[9].startFrame
@@ -335,6 +339,7 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       reject('SHOT07_REAL_RETRY_CAUSAL_SEQUENCE_INVALID');
     checks.push('SHOT07_CURRENT_DIRECTOR_APPROVED_TAKE',
       'FIVE_REAL_VERIFIED_BEATS','FIFTEEN_REAL_RETRY_STORM_TERMS',
+      'REAL_NOW_WATCH_DATABASE_PULSE_ONSET',
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
