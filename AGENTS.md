@@ -1,5 +1,13 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 CURRENT PRODUCTION — SHOT07 incorrect MP4 pin REMOVED; V2 final MP4 NOT FOUND
+
+**LIVE / QA verified:** Railway production MediaOS Backend `98dfa24a-3c4b-4df5-bcea-f6bf7c2eedcc` SUCCESS / ONLINE, source SHA `740ba528a166cd380c523772ccf649c5759ff264`, explicit predeploy SHA guard `EP002_SHOT07_PROVENANCE_SHA_VERIFIED`. Frontend 18/18 tests PASS, frontend build PASS, Maven/Postgres16 494/494 with 0 failures/errors and 1 skipped on integration PASS, build and Railway healthcheck PASS. Render Worker unchanged SUCCESS/ONLINE. [Draft PR #247](https://github.com/stefanVasilev17/media-os/pull/247) is **still UNMERGED** despite its SHA now running in production.
+
+**SHOT07 is currently a MISSING required chapter, not a final playable file.** Do not identify `5ef67a78-76df-476c-938d-eb421d83549b` as Director final. That prior MP4 was created from old Worker SHA `650e3d64a481de851efdd0e233ab7ca780030b43` before approved later six V2 visual corrections. Production `Ep002LockedCutReviewRoom.tsx` now omits this incorrect reference, shows an explicit missing V2 artifact reason, prevents silent 06→08 auto-advance and disables invalid seam controls. Existing SHOT01–06 Director-protected real MP4s including SHOT06 V2 remain intact; SHOT08 remains separate review-only. Director's report that intended SHOT07 is creatively locked is not proof that a specific old MP4 is approved. No alternate verified final V2 MP4 found in checked Railway/GitHub history.
+
+**No new SHOT07 video exists as a result of this fix.** No new CPU render or ElevenLabs call was authorized/executed, and the UI-only deployment does not allow the user to approve absent footage. **NEXT:** locate exact matching final MP4 in a source-verified archive, or obtain a distinct explicit Director authorization for paid Remotion CPU V2 render from existing approved source and selected Take, then conduct H264/AAC and Director visual checks before adding pinned exact video to MediaOS. Production URL https://media-os-backend-production.up.railway.app/#/library/EP002 . Direct Director browser viewing after new release still unverified. Read latest PROJECT_STATE.md before acting. Earlier sections suggesting wrong SHOT07 old MP4 is final are superseded.
+
 ## 2026-11-10 HIGHEST-PRIORITY CORRECTION — WRONG SHOT07 V2 MP4 PIN (current)
 
 **Stop displaying or describing render ID `5ef67a78-76df-476c-938d-eb421d83549b` as the final EP002 SHOT07 Director-LOCKED video.** The Director just reported this file is not the final locked version. Previous sections below naming this ID as the final approved media are explicitly SUPERSEDED with respect to the **file identity**, not the Director's creative lock decision.
