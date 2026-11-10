@@ -99,6 +99,7 @@ export const Root: React.FC = () => {
           timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS' as const,
           verifiedCues:[],
           termCues:[],
+          criticalPulseStartFrame:0,
         }}
       />
       <Composition
