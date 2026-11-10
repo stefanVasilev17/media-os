@@ -20,34 +20,23 @@ const shell=(accent:string)=>({
 const OrangeCue:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   duration:number}>=({frame,cue,duration})=>{
   const events=[
-    {at:cue.OWN_REPEATS,text:'DUPLICATE LOOKUPS ADD WORK'},
-    {at:cue.THREE_AUTH,text:'THREE AUTH SERVERS · ONE SHARED DATABASE'},
-    {at:cue.CONTROL_FIRST,text:'FIRST: CONTROL THE RETRIES'},
-    {at:cue.LOOKUP_TIMEOUT,text:'LOOKUP TIMED OUT · CHECK LOGIN DEADLINE'},
-    {at:cue.STOP_EXPIRED,text:'NO USEFUL TIME LEFT → STOP'},
-    {at:cue.SHARED_BUDGET,text:'ONE SHARED RETRY BUDGET · THREE AUTH INSTANCES'},
-    {at:cue.SAFE_READ,text:'ONLY SAFE, READ-ONLY ACCOUNT LOOKUPS CAN RETRY'},
-    {at:cue.BUDGET_EXHAUSTED,text:'RETRY BUDGET EXHAUSTED · STOP RETRYING'},
-    {at:cue.NO_LOGIN_REPLAY,text:'NEVER REPEAT THE WHOLE LOGIN'},
-    {at:cue.EXP_BACKOFF,text:'EXPONENTIAL BACKOFF · INCREASING DELAYS'},
-    {at:cue.JITTER,text:'JITTER · DIFFERENT DELAYS FOR EACH AUTH'},
-    {at:cue.STAGGER,text:'AUTH 01, 02 AND 03 NO LONGER RETRY TOGETHER'},
-    {at:cue.FEWER_ATTEMPTS,text:'DUPLICATE DATABASE ATTEMPTS FALL'},
-    {at:cue.CAPACITY_UNCHANGED,text:'DATABASE CAPACITY HAS NOT CHANGED'},
-    {at:cue.STORM_CONTAINED,text:'RETRY AMPLIFICATION CONTAINED'},
-    {at:cue.NEW_ARRIVALS,text:'NEW LOGIN ARRIVALS STILL NEED CONTROL'},
+    {at:cue.AFTER_STORM,text:'THE RETRY STORM'},
+    {at:cue.DEADLINE_CHECK,text:'CHECK THE LOGIN DEADLINE'},
+    {at:cue.SHARED_BUDGET,text:'ONE SHARED RETRY BUDGET'},
+    {at:cue.JITTER,text:'BACKOFF + JITTER'},
+    {at:cue.FEWER_ATTEMPTS,text:'FEWER DUPLICATE DATABASE LOOKUPS'},
   ];
   const index=events.reduce((last,event,i)=>frame>=event.at?i:last,-1);
   if(index<0)return null;
   const event=events[index],next=index+1<events.length?events[index+1].at:duration;
-  const enter=shot08Ease(frame,event.at,19);
-  const leave=1-shot08Ease(frame,Math.max(event.at+20,next-20),18);
+  const enter=shot08Ease(frame,event.at,27);
+  const leave=1-shot08Ease(frame,Math.max(event.at+100,next-36),32);
   return <div style={{
     position:'absolute',left:560,top:883,width:1190,height:75,
     zIndex:26,pointerEvents:'none',fontFamily:AT_FONT,
-    fontSize:24,fontWeight:870,letterSpacing:'.02em',
+    fontSize:27,fontWeight:855,letterSpacing:'.012em',
     color:ORANGE,textShadow:'0 0 16px rgba(245,165,90,.2)',
-    opacity:enter*leave,transform:'translateY('+((1-enter)*10)+'px)',
+    opacity:enter*leave,transform:'translateY('+((1-enter)*6)+'px)',
   }}>{event.text}</div>;
 };
 
@@ -178,7 +167,9 @@ export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
   const stressReduction=shot08Ease(frame,cue.FEWER_ATTEMPTS,100);
   const gentlePush=shot08Ease(frame,cue.WATCH_DB,130);
   const showBadge=1-shot08Ease(frame,32,66);
-  const endMessage=shot08Ease(frame,cue.STORM_CONTAINED,28);
+  const endMessage=shot08Ease(frame,cue.STORM_CONTAINED,34);
+  const boundedRetries=1-.84*shot08Ease(frame,cue.BUDGET_EXHAUSTED,120);
+  const staggered=shot08Ease(frame,cue.JITTER,75);
   return <ATBackground>
     <AbsoluteFill style={{transform:'translate3d('+(-7*gentlePush)+'px,0,0) scale('+
       (1+.007*gentlePush)+')',transformOrigin:'50% 50%'}}>
@@ -186,7 +177,9 @@ export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
         replicaGrowth={0} dbStress={1-.18*stressReduction}
         cascadeStartFrame={-1} showPhone={1} showPools={0}
         initialPressure showLoginBadge={showBadge}
-        showRetryAttempts={showBadge}/>
+        showRetryAttempts={showBadge}
+        flowRetryLevel={boundedRetries}
+        flowJitterLevel={staggered}/>
     </AbsoluteFill>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:22}}>
       <div style={{position:'absolute',left:560,top:76,width:1130,

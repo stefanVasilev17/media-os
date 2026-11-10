@@ -5,6 +5,8 @@ import {Shot02PressurePhone} from './Shot02PressurePhone';
 import {SHOT02_NODES} from './Shot02PremiumLayout';
 import {shot04StatusPalette} from './Shot04VisualContract';
 import {shot07Ease} from './Shot07VisualContract';
+import {Shot07RequestFlows} from './Shot07RequestFlows';
+import {SHOT02_AUTH_REPLICA_PORTS} from './Shot02PressureVisuals';
 
 const WHITE='#F5FCFF',SOFT='#B5D2E6',CYAN='#68E5FF';
 const MINT=shot04StatusPalette.healthy,AMBER=shot04StatusPalette.waiting;
@@ -32,11 +34,14 @@ export type CleanArchitectureProps={
   showLoginBadge?:number;
   showRetryAttempts?:number;
   initialPressure?:boolean;
+  flowRetryLevel?:number;
+  flowJitterLevel?:number;
 };
 
 export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   frame,replicaGrowth,dbStress,cascadeStartFrame,showPhone,showPools,
   showLoginBadge=0,showRetryAttempts=0,initialPressure=false,
+  flowRetryLevel=1,flowJitterLevel=0,
 })=>{
   const growth=clamp(replicaGrowth);
   const dbWave=cascadeStartFrame>=0
@@ -46,14 +51,8 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   const replicas=['AUTH 01','AUTH 02','AUTH 03','AUTH 04','AUTH 05','AUTH 06'];
   return <AbsoluteFill style={{pointerEvents:'none'}}>
     <ATControlledRealismLayer frame={frame+2400} realism={.85} architectureReveal={.96}/>
-    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
-      style={{position:'absolute',inset:0,zIndex:3,pointerEvents:'none'}}>
-      <path d="M485 535 H521 M779 535 H804 M1050 535 H1151 M1501 535 H1571"
-        fill="none" stroke={CYAN} strokeWidth="3.5" opacity=".43"
-        strokeLinecap="round"/>
-      <path d="M1501 535 H1571" fill="none" stroke={AMBER}
-        strokeWidth="3.5" opacity=".56"/>
-    </svg>
+    <Shot07RequestFlows frame={frame} retryLevel={flowRetryLevel}
+      jitterLevel={flowJitterLevel}/>
     <div style={{...node('gateway'),...box('#5DCEE8','rgba(42,176,223,.21)'),
       zIndex:9,padding:'27px 20px',fontFamily:AT_FONT}}>
       <b style={{color:WHITE,fontSize:24}}>API Gateway</b>
@@ -90,7 +89,7 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
         const entering=i>=3;
         const appear=entering?shot07Ease(growth*100,(i-3)*17,40):1;
         const row=i%3;
-        const y=75+row*87;
+        const y=SHOT02_AUTH_REPLICA_PORTS[row].y-SHOT02_NODES.auth.y-35;
         const oldLeft=40,smallLeft=11;
         const left=entering?179:oldLeft+(smallLeft-oldLeft)*growth;
         const width=entering?158:268-110*growth;
