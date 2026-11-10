@@ -77,6 +77,27 @@ test('SHOT07 V2 removes six Director-rejected visual elements without changing v
   assert.doesNotMatch(scene,/Retry the full Login|CANCELLATION SUCCEEDED|DATABASE OFFLINE/);
 });
 
+test('SHOT07 spoken orange callouts have a high contrast framed badge without cue timing changes',()=>{
+  const cue=scene.slice(scene.indexOf('const OrangeCue:'),scene.indexOf('export const Shot07DirectorVisualV1'));
+  assert.ok(cue.length>0);
+  assert.ok(cue.includes("border:'2px solid rgba(245,165,90,.92)'"));
+  assert.ok(cue.includes("borderRadius:13"));
+  assert.ok(cue.includes("background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))'"));
+  assert.ok(cue.includes("display:'flex',alignItems:'center',padding:'0 23px',boxSizing:'border-box'"));
+  assert.ok(cue.includes("left:565,top:875"));
+  assert.ok(cue.includes('width:1060,height:69,zIndex:23'));
+  assert.ok(cue.includes('opacity:inMotion*outMotion'));
+  assert.ok(cue.includes('shot07Ease(frame,chosen.at,22)'));
+  assert.ok(cue.includes('1-shot07Ease(frame,Math.min(nextAt-26,duration-54),23)'));
+  for (const message of [
+    'RETRY MECHANISM · A SECOND READ-ONLY LOOKUP',
+    'RETRY AMPLIFICATION · EXTRA DATABASE WORK',
+    'RETRY STORM · PRESSURE IS MULTIPLYING',
+    'CASCADING FAILURE · DATABASE → AUTH WAITING',
+    'ONLY THE ACCOUNT LOOKUP IS RETRIED',
+  ]) assert.ok(cue.includes(message));
+});
+
 test('SHOT07 must use actual audio timing and 1080p30 source pinned media QA',()=>{
   const rootScene=readFileSync(path.join(root,'src/Root.tsx'),'utf8');
   assert.match(rootScene,/id="EP002-SHOT07-CANDIDATE"/);
