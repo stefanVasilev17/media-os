@@ -62,9 +62,14 @@ test('SHOT07→08 keeps original phone and 3 Auth / 1 DB diagram with cinematic 
 test('SHOT08 visualizes deadline, shared budget, backoff, jitter and honest DB result locally',()=>{
   for(const token of ['BudgetMeter','BackoffMeter','DBReadout','AuthFocus',
     'DEADLINE CHECK','SHARED RETRY BUDGET','BACKOFF','JITTER',
-    'CAPACITY · UNCHANGED','NEVER REPEAT THE WHOLE LOGIN'])
+    'CAPACITY · UNCHANGED','FEWER DUPLICATE DATABASE LOOKUPS'])
     assert.ok(scene.includes(token),token);
   assert.doesNotMatch(scene,/NewAttemptPath|NEW LOGIN ARRIVALS CARD|More Servers, Same Bottleneck/);
+  assert.match(scene,/flowRetryLevel=\{boundedRetries\}/);
+  assert.match(scene,/flowJitterLevel=\{staggered\}/);
+  assert.match(world,/Shot07RequestFlows/);
+  assert.match(scene,/at:cue\.JITTER,text:'BACKOFF \+ JITTER'/);
+  assert.equal((scene.match(/\{at:cue\./g)||[]).length,5);
 });
 
 test('worker preflight accepts source-pinned honest real voice and refuses mismatches',()=>{
