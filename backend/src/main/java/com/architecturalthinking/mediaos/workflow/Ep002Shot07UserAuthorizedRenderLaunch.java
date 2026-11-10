@@ -41,9 +41,9 @@ public class Ep002Shot07UserAuthorizedRenderLaunch implements ApplicationRunner 
             RemotionRenderController renders,
             JdbcClient jdbc,
             ObjectMapper mapper,
-            @Value("\${mediaos.ep002.shot07-chat-render-once:false}") boolean userAuthorizedOnce,
-            @Value("\${mediaos.ep002.shot07-preview-enabled:false}") boolean renderEnabled,
-            @Value("\${MEDIAOS_SHOT07_RELEASE_WORKER_SHA:}") String workerSha) {
+            @Value("${mediaos.ep002.shot07-chat-render-once:false}") boolean userAuthorizedOnce,
+            @Value("${mediaos.ep002.shot07-preview-enabled:false}") boolean renderEnabled,
+            @Value("${MEDIAOS_SHOT07_RELEASE_WORKER_SHA:}") String workerSha) {
         this.cues=cues;
         this.bridge=bridge;
         this.renders=renders;
