@@ -6,7 +6,10 @@ type Readiness={
   voiceTakeId:string|null;durationInFrames:number;
   verifiedCues:unknown[];termCues:unknown[];
 };
-type Capability={enabled:boolean;workerPinned:boolean;canQueue:boolean};
+type Capability={
+  enabled:boolean;workerPinned:boolean;canQueue:boolean;
+  lockedShot07BoundaryReady?:boolean;reason?:string;
+};
 type RenderStatus={
   status:string;renderId?:string;progress?:number;error?:string|null;
   videoUrl?:string|null;durationInFrames?:number;
@@ -109,10 +112,11 @@ export function Ep002Shot08RenderPanel(){
     <div className="library-episode-batch-heading">
       <div>
         <h2><Clapperboard size={21}/> SHOT08 — Stop the Retry Storm · Director Render</h2>
-        <p>The SHOT07 living architecture continues without a hard cut:
-          one original Phone, three existing Auth instances and ONE shared
-          User Database. A calm title dissolve leads into deadline-aware
-          retries, one shared retry budget, exponential backoff and jitter.
+        <p>The LOCKED SHOT07 V3 last frame continues with no request-particle
+          timeline reset: the same Phone, three Auth instances, one shared
+          User Database, and the same red critical pulse. The title changes
+          on the spoken recovery decision; then deadline checks, a shared
+          retry budget, backoff and jitter reduce duplicate lookup work.
           MediaOS automatically matches six HEAR → SEE beats and twenty-one
           spoken markers to the current approved Slow Natural Take.
           Rendering does not generate or alter audio.</p>
@@ -125,6 +129,9 @@ export function Ep002Shot08RenderPanel(){
       Real voice: {readiness?.ready?'6 REAL BEATS + 21 SPOKEN TERMS VERIFIED':
         readiness?.reason??'CHECKING'}. Pinned Worker:
       {' '}{capability?.canQueue?'READY FOR DIRECTOR REVIEW RENDER':'RELEASE OR VOICE NOT READY'}.
+      {' '}Locked SHOT07 V3 seam:
+      {' '}{capability?.lockedShot07BoundaryReady?'VERIFIED EXACT MP4 HANDOFF':
+        capability?.reason??'NOT VERIFIED'}.
       {' '}Voice duration: {readiness?.durationInFrames
         ?(readiness.durationInFrames/30).toFixed(2)+'s':'NOT CONFIRMED'}.
     </p>
