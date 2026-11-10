@@ -14,7 +14,7 @@ type RenderEvidence={
   durationInFrames?:number;fps?:number;width?:number;height?:number;
   compositionId?:string;
 };
-type LockedReference={shotKey:string;title:string;renderId:string;compositionId:string};
+type LockedReference={shotKey:string;title:string;renderId:string;compositionId:string;durationInFrames?:number};
 
 const RENDER='/api/v1/remotion/renders/';
 const CURRENT_SHOT01='/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview';
@@ -38,10 +38,13 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT06',title:'The Deadline Expires — Director V2 LOCK',
     renderId:'d42fe3a2-3810-4626-ab3a-0456463d4636',
     compositionId:'EP002-SHOT06-CANDIDATE'},
+  {shotKey:'SHOT07',title:'When Retrying Creates More Failure — Director V3 LOCK',
+    renderId:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
+    compositionId:'EP002-SHOT07-CANDIDATE',durationInFrames:2674},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
-  'SHOT01',...REFERENCES.map(x=>x.shotKey),'SHOT07',...LIVE_REVIEW_SHOTS.map(x=>x.shotKey),
+  'SHOT01',...REFERENCES.map(x=>x.shotKey),...LIVE_REVIEW_SHOTS.map(x=>x.shotKey),
 ]);
 export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
   {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
@@ -80,13 +83,14 @@ async function getRender(id:string):Promise<RenderEvidence>{
   return await response.json() as RenderEvidence;
 }
 
-function playable(evidence:RenderEvidence,expectedId:string,expectedComposition:string){
+function playable(evidence:RenderEvidence,expectedId:string,expectedComposition:string,expectedFrames?:number){
   if(evidence.renderId!==expectedId
     ||evidence.compositionId!==expectedComposition
     ||evidence.status!=='READY'
     ||evidence.width!==1920||evidence.height!==1080
     ||evidence.fps!==30||!Number.isInteger(evidence.durationInFrames)
     ||(evidence.durationInFrames??0)<150
+    ||(expectedFrames!==undefined&&evidence.durationInFrames!==expectedFrames)
     ||evidence.videoUrl!==RENDER+expectedId+'/video')
     throw Error('Pinned 1080p/30fps approved MP4 evidence unavailable');
   return (evidence.durationInFrames as number)/30;
@@ -98,7 +102,7 @@ export async function loadLockedCut():Promise<{
   const entries=await Promise.all(REFERENCES.map(async ref=>{
     try{
       const info=await getRender(ref.renderId);
-      const durationSeconds=playable(info,ref.renderId,ref.compositionId);
+      const durationSeconds=playable(info,ref.renderId,ref.compositionId,ref.durationInFrames);
       return {ok:true as const,shot:{
         shotKey:ref.shotKey,title:ref.title,renderId:ref.renderId,
         videoUrl:RENDER+ref.renderId+'/video',durationSeconds,
@@ -109,11 +113,7 @@ export async function loadLockedCut():Promise<{
     }
   }));
   const shots:LockedShot[]=[];
-  const missing:string[]=[
-    'SHOT07: final V2 MP4 has not been located in production storage. '+
-    'The archived SHOT07 render (5ef67a78…) predates V2 visual corrections '+
-    'and is NOT the approved final file. No paid render or substitution performed.',
-  ];
+  const missing:string[]=[];
   try{
     const response=await fetch(CURRENT_SHOT01,{cache:'no-store'});
     if(!response.ok)throw Error('SHOT01 preview HTTP '+response.status);
@@ -236,10 +236,9 @@ export function Ep002LockedCutReviewRoom(){
     <div className="library-section-title">
       <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
     </div>
-    <p>Watch the pinned Director-locked SHOT01–06 MP4s and the separate
-      stored SHOT08 review candidate. SHOT07 V2 final video is missing; compare available endings and
-      beginnings without generating another video. Do not treat an older SHOT07 render as
-      the V2 Director-locked final MP4. This room starts no paid TTS, CPU render or export.</p>
+    <p>Watch the Director-locked SHOT01–07 videos in original order, including
+      the exact approved SHOT07 V3 MP4. SHOT08 remains a separate stored review candidate,
+      not Director-locked. This room starts no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">
       <div className="locked-cut-toolbar">
         <strong><ShieldCheck size={17}/> EP002 · Original locks + live review candidates</strong>
@@ -339,12 +338,12 @@ export function Ep002LockedCutReviewRoom(){
         <strong>Not included: matching approved MP4 not confirmed</strong>
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
-      <p className="library-note">SHOT01–06 are pinned protected MP4 references. SHOT07's final V2 visual source
-         is protected, but its final matching MP4 has not been found; the older
-         SHOT07 candidate is deliberately excluded from locked playback.
-        SHOT08 loads its latest real completed stored Full HD MP4,
-        even if a later episode source revision changed the selected fingerprint.
-        These are historical review snapshots, not automatically current or locked.
+      <p className="library-note">SHOT01–06 retain their protected MP4 references.
+        SHOT07 is pinned to the Director-approved V3 render
+        b2a335dd-cb71-48f2-bf47-0f8bdcdd969d (2674 frames, 1920×1080, 30 fps).
+        Older SHOT07 renders are never substituted. SHOT08 loads its latest
+        real completed stored Full HD MP4 as a review candidate only,
+        not as a Director-locked video.
         The boundary shortcuts start eight seconds before each cut. The player
         switches between original stored MP4s; it is not a frame-perfect
         exported master and may briefly buffer at a boundary.
