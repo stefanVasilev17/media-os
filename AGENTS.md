@@ -1,5 +1,15 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 HIGHEST-PRIORITY CORRECTION — WRONG SHOT07 V2 MP4 PIN (current)
+
+**Stop displaying or describing render ID `5ef67a78-76df-476c-938d-eb421d83549b` as the final EP002 SHOT07 Director-LOCKED video.** The Director just reported this file is not the final locked version. Previous sections below naming this ID as the final approved media are explicitly SUPERSEDED with respect to the **file identity**, not the Director's creative lock decision.
+
+**Production evidence:** This older SHOT07 video was rendered Nov 9 12:34–12:51 UTC with Remotion Worker SHA `650e3d64a481de851efdd0e233ab7ca780030b43`, completed 2674 frames / 89.133s 1080p30 H264/AAC with status `VISUAL_DIRECTOR_REVIEW_REQUIRED`. It predates the six SHOT07 V2 visual corrections in a later deployed Worker source SHA `9d69a7a9da597a2b22c3b586d59debf84fde0bcd`. Nov 8–10 Worker logs show only this one finished SHOT07 MP4. No matching newer V2 completed MP4 was identified in checked MediaOS/Railway logs or GitHub PR-workflow artifacts. A played HTTP206 video is **not** proof of approval. A Director statement that SHOT07 is LOCKED is **not** approval of an arbitrarily inferred render ID.
+
+**Safe corrective UI patch:** Draft PR [#247](https://github.com/stefanVasilev17/media-os/pull/247) removes false pinned SHOT07 media and clearly marks SHOT07 V2 master **MISSING**, preserving SHOT01–06 locks and SHOT08's distinct review-only candidate with no auto-skip across 07. Source + test diff static checks passed, **Vitest not run, PR #247 NOT deployed**. Railway still runs prior erroneously pinned SHOT07 UI until separately authorized deployment. Do not claim old file has been removed from production or a final video has been added.
+
+**NEXT:** Find an actual Director-approved V2 MP4 with matching visual source, verified stored Render ID and explicit user visual acceptance, then update the pin; if absent, request fresh explicit paid Remotion CPU authorization before any generation. Do not automatically regenerate voice/video or modify original locked material. See newest `PROJECT_STATE.md` section for exact provenance and release constraints.
+
 ## 2026-11-10 ACTIVE PRODUCTION LOCKED ROOM — SHOT06 + SHOT07 now live (supersedes earlier draft-only note)
 
 **DONE / DEPLOYED:** MediaOS Backend Railway prod deployment `f38a4822-7684-4ac3-8f66-d2ac6a7456ae` **SUCCESS/ONLINE** since 2026-11-10T14:30:40Z, source SHA `471d5f42ae000b457ff874ee48763db5421fba69`, branch `fix/ep002-pin-director-locked-shot06-20261110`. Predeploy SHA gate `EP002_LOCKED_ROOM_BACKEND_SHA_VERIFIED` passed. This **supersedes** previous notes that Draft PR #246 was not deployed. The source PR is still **DRAFT / unmerged** even though exact code SHA is running in production. Never claim branch PR merge just from deployment success.
