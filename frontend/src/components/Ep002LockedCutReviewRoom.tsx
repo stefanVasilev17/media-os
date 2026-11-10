@@ -18,10 +18,7 @@ type LockedReference={shotKey:string;title:string;renderId:string;compositionId:
 
 const RENDER='/api/v1/remotion/renders/';
 const CURRENT_SHOT01='/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview';
-const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[
-  {shotKey:'SHOT08',title:'Stop the Retry Storm — recovery review render',
-    compositionId:'EP002-SHOT08-CANDIDATE'},
-];
+const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[];
 const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT02',title:'9:00 AM: The Ticket Sale Opens',
     renderId:'59567d1a-6a45-4e48-b390-8ae583f30171',
@@ -41,6 +38,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT07',title:'When Retrying Creates More Failure — Director V3 LOCK',
     renderId:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
     compositionId:'EP002-SHOT07-CANDIDATE',durationInFrames:2674},
+  {shotKey:'SHOT08',title:'Stop the Retry Storm — Director LOCK',
+    renderId:'3415073a-5906-489d-bb69-6af7446c2c9b',
+    compositionId:'EP002-SHOT08-CANDIDATE',durationInFrames:2314},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
@@ -236,12 +236,13 @@ export function Ep002LockedCutReviewRoom(){
     <div className="library-section-title">
       <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
     </div>
-    <p>Watch the Director-locked SHOT01–07 videos in original order, including
-      the exact approved SHOT07 V3 MP4. SHOT08 remains a separate stored review candidate,
-      not Director-locked. This room starts no paid TTS, CPU render or export.</p>
+    <p>Watch the Director-locked SHOT01–08 videos in their original order,
+      including the exact approved SHOT07 V3 and SHOT08 MP4s. Both are
+      pinned to their final Director-approved render IDs. This room starts
+      no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">
       <div className="locked-cut-toolbar">
-        <strong><ShieldCheck size={17}/> EP002 · Original locks + live review candidates</strong>
+        <strong><ShieldCheck size={17}/> EP002 · Director-locked MP4 sequence</strong>
         <span>{loading?'Checking stored MP4 files…':
           shots.length+' / '+LOCKED_CUT_SHOT_ORDER.length+' available'}</span>
         <button type="button" className="library-voice-refresh"
@@ -339,11 +340,11 @@ export function Ep002LockedCutReviewRoom(){
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
       <p className="library-note">SHOT01–06 retain their protected MP4 references.
-        SHOT07 is pinned to the Director-approved V3 render
+        SHOT07 is pinned to its Director-approved V3 render
         b2a335dd-cb71-48f2-bf47-0f8bdcdd969d (2674 frames, 1920×1080, 30 fps).
-        Older SHOT07 renders are never substituted. SHOT08 loads its latest
-        real completed stored Full HD MP4 as a review candidate only,
-        not as a Director-locked video.
+        SHOT08 is pinned to its Director-approved final render
+        3415073a-5906-489d-bb69-6af7446c2c9b (2314 frames, 1920×1080, 30 fps).
+        Earlier SHOT07 and SHOT08 renders are never substituted.
         The boundary shortcuts start eight seconds before each cut. The player
         switches between original stored MP4s; it is not a frame-perfect
         exported master and may briefly buffer at a boundary.
