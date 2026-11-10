@@ -19,8 +19,6 @@ type LockedReference={shotKey:string;title:string;renderId:string;compositionId:
 const RENDER='/api/v1/remotion/renders/';
 const CURRENT_SHOT01='/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview';
 const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[
-  {shotKey:'SHOT06',title:'The Deadline Expires — current review render',
-    compositionId:'EP002-SHOT06-CANDIDATE'},
   {shotKey:'SHOT07',title:'When Retrying Creates More Failure — current review render',
     compositionId:'EP002-SHOT07-CANDIDATE'},
   {shotKey:'SHOT08',title:'Stop the Retry Storm — recovery review render',
@@ -39,6 +37,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT05',title:'Connection Pool: The Hidden Queue — Director LOCK',
     renderId:'b2b95685-8e1b-41df-9fe2-c83eefbf86e9',
     compositionId:'EP002-SHOT05-CANDIDATE'},
+  {shotKey:'SHOT06',title:'The Deadline Expires — Director V2 LOCK',
+    renderId:'d42fe3a2-3810-4626-ab3a-0456463d4636',
+    compositionId:'EP002-SHOT06-CANDIDATE'},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
@@ -233,8 +234,8 @@ export function Ep002LockedCutReviewRoom(){
     <div className="library-section-title">
       <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
     </div>
-    <p>Watch the original Director-locked SHOT01–05 MP4s followed by the latest
-      successful stored SHOT06, SHOT07 and SHOT08 review candidates. Compare the endings and
+    <p>Watch the pinned Director-locked SHOT01–06 MP4s followed by the latest
+      successful stored SHOT07 and SHOT08 review candidates. Compare the endings and
       beginnings without generating another video. A playable candidate is not
       Director Visual LOCK. This room starts no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">
@@ -336,8 +337,8 @@ export function Ep002LockedCutReviewRoom(){
         <strong>Not included: current matching stored MP4 not confirmed</strong>
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
-      <p className="library-note">SHOT01–05 are pinned protected references.
-        SHOT06–08 load their latest real completed stored Full HD MP4,
+      <p className="library-note">SHOT01–06 are pinned protected references, including Director-locked SHOT06 V2.
+        SHOT07–08 load their latest real completed stored Full HD MP4,
         even if a later episode source revision changed the selected fingerprint.
         These are historical review snapshots, not automatically current or locked.
         The boundary shortcuts start eight seconds before each cut. The player
