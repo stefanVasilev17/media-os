@@ -61,14 +61,14 @@ describe('EP002 Director locked cut review',()=>{
 });
 
 describe('EP002 real stored MP4 continuity discovery',()=>{
-  it('joins pinned SHOT05 and latest completed SHOT06/07/08 references without a new render',async()=>{
+  it('pins Director-locked SHOT06 V2 and looks up only SHOT07/08 as review candidates',async()=>{
     const ids:Record<string,string>={
       SHOT01:'00000000-0000-4000-8000-000000000001',
       SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
       SHOT03:'6e8ea02e-1de1-440b-9e2a-dc23d07c466c',
       SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
       SHOT05:'b2b95685-8e1b-41df-9fe2-c83eefbf86e9',
-      SHOT06:'00000000-0000-4000-8000-000000000006',
+      SHOT06:'d42fe3a2-3810-4626-ab3a-0456463d4636',
       SHOT07:'00000000-0000-4000-8000-000000000007',
       SHOT08:'00000000-0000-4000-8000-000000000008',
     };
@@ -101,11 +101,16 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       expect(result.missing).toEqual([]);
       expect(result.shots.map(s=>s.shotKey)).toEqual(LOCKED_CUT_SHOT_ORDER);
       expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
-      expect(result.shots.slice(5).every(s=>s.source==='LIVE_DIRECTOR_REVIEW_CANDIDATE'))
+      expect(result.shots[5].source).toBe('PINNED_DIRECTOR_LOCK');
+      expect(result.shots[5].renderId).toBe(ids.SHOT06);
+      expect(result.shots[5].durationSeconds).toBeCloseTo(2000/30,5);
+      expect(result.shots.slice(6).every(s=>s.source==='LIVE_DIRECTOR_REVIEW_CANDIDATE'))
         .toBe(true);
       expect(result.shots[7].durationSeconds).toBeCloseTo(2314/30,5);
-      expect(mock.mock.calls.some(([url])=>url.includes('/latest-successful?profile=REVIEW')))
-        .toBe(true);
+      expect(mock.mock.calls.filter(([url])=>url.includes('/latest-successful?profile=REVIEW')).length)
+        .toBe(2);
+      expect(mock.mock.calls.some(([url])=>url.includes('EP002-SHOT06-CANDIDATE/latest-successful')))
+        .toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes('render-preview/SHOT08')))
         .toBe(false);
     }finally{vi.unstubAllGlobals();}
