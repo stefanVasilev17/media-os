@@ -363,6 +363,44 @@ public class RemotionRenderController {
                 ));
     }
 
+    @GetMapping("/compositions/{compositionId}/latest-successful")
+    public Map<String,Object> latestSuccessfulReviewVideo(
+            @PathVariable String compositionId,
+            @RequestParam(defaultValue="REVIEW") String profile
+    ) {
+        if(!compositionId.matches("EP002-SHOT(06|07|08)-CANDIDATE"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Only SHOT06–08 completed preview MP4 references belong in this review room.");
+        CompositionProfile composition=requireComposition(compositionId);
+        String profileName=profile.trim().toUpperCase(Locale.ROOT);
+        requireOutputProfile(profileName,composition);
+        if(!"REVIEW".equals(profileName))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Director continuity review uses actual Full HD REVIEW MP4s only.");
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id=:compositionId
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>0
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .param("compositionId",compositionId)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "compositionId",compositionId,
+                        "reason","NO_REAL_COMPLETED_REVIEW_MP4"));
+    }
+
     @GetMapping("/provider-status")
     public Map<String, Object> providerStatus() {
         return Map.of(
