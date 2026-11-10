@@ -385,6 +385,17 @@ export function preflightTierPlusPlusRender(job,sourceSha){
         reject('SHOT08_RECOVERY_REAL_SPOKEN_TERMS_INVALID');
       previous=term.endFrame;
     }
+    const locked=props.lockedShot07Handoff;
+    if(!locked
+      ||locked.renderId!=='b2a335dd-cb71-48f2-bf47-0f8bdcdd969d'
+      ||locked.sourceCommit!=='d4fd0701f7298903dad2167e38bb7931edeae6bb'
+      ||locked.lastFrame!==2673
+      ||!integer(locked.criticalPulseStartFrame)
+      ||!integer(locked.cascadeStartFrame)
+      ||locked.criticalPulseStartFrame<0
+      ||locked.cascadeStartFrame<=locked.criticalPulseStartFrame
+      ||locked.cascadeStartFrame>=2674)
+      reject('SHOT08_LOCKED_SHOT07_V3_FRAME_AND_SPEECH_BOUNDARY_REQUIRED');
     if(!(terms[0].startFrame<terms[2].startFrame
       &&terms[2].startFrame<terms[5].startFrame
       &&terms[5].startFrame<terms[9].startFrame
@@ -395,7 +406,8 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       reject('SHOT08_RETRY_CONTAINMENT_CAUSAL_SEQUENCE_INVALID');
     checks.push('SHOT08_CURRENT_DIRECTOR_APPROVED_SLOW_NATURAL_TAKE',
       'SIX_REAL_AUDIO_ALIGNED_BEATS','TWENTY_ONE_REAL_RECOVERY_TERMS',
-      'THREE_AUTH_ONE_DATABASE','EXACT_AUDIO_FRAME_COUNT',
+      'THREE_AUTH_ONE_DATABASE','LOCKED_SHOT07_V3_EXACT_FINAL_FRAME',
+      'EXACT_AUDIO_FRAME_COUNT',
       'NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
