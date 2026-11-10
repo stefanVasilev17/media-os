@@ -1,5 +1,15 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 ACTIVE PRODUCTION LOCKED ROOM — SHOT06 + SHOT07 now live (supersedes earlier draft-only note)
+
+**DONE / DEPLOYED:** MediaOS Backend Railway prod deployment `f38a4822-7684-4ac3-8f66-d2ac6a7456ae` **SUCCESS/ONLINE** since 2026-11-10T14:30:40Z, source SHA `471d5f42ae000b457ff874ee48763db5421fba69`, branch `fix/ep002-pin-director-locked-shot06-20261110`. Predeploy SHA gate `EP002_LOCKED_ROOM_BACKEND_SHA_VERIFIED` passed. This **supersedes** previous notes that Draft PR #246 was not deployed. The source PR is still **DRAFT / unmerged** even though exact code SHA is running in production. Never claim branch PR merge just from deployment success.
+
+**LOCKED MEDIA:** Review Room `#/library/EP002` now uses exact immutable real MP4 references: SHOT06 Director V2 `d42fe3a2-3810-4626-ab3a-0456463d4636` and SHOT07 Director-approved `5ef67a78-76df-476c-938d-eb421d83549b`. User explicitly corrected that SHOT07 **IS Director LOCKED**; Railway showed its video actually served (HTTP206). Source/test removes dynamic latest-successful for both. SHOT01–07 are the protected lock segment. SHOT08 is **REVIEW ONLY / NOT LOCKED**; visually rejected prior MP4 and #244 source corrections remain distinct, no fresh corrected video yet.
+
+**QA and cost:** Exact production Docker build ran frontend Vitest **18/18 PASS**, including 7 locked review room tests, TypeScript/Vite production build PASS; Java/Maven initial 494 tests 0 failures (46 skipped) and isolated PostgreSQL16 integration 494 tests **0 failures, 0 errors, 1 skipped**, BUILD SUCCESS. Production Backend healthcheck/Online verified. Render Worker unchanged and **no paid render, ElevenLabs audio, media overwrite, DB migration** for this UI-only release. Prod URL https://media-os-backend-production.up.railway.app/#/library/EP002 . Direct Director browser UI viewing after release has not been verified.
+
+**Future protection:** Never replace SHOT06 or SHOT07 LOCK with latest-successful. Don't allow source SHA drift past Railway predeploy pin. For new SHOT08 MP4, require separate Director paid CPU consent and actual visual review/LOCK. Details and follow-up in `PROJECT_STATE.md`.
+
 ## 2026-11-10 ACTIVE Director LOCK correction: EP002 SHOT07 IS LOCKED; no latest-successful substitution
 
 **New Director instruction:** "shot 07 e locked." Treat EP002 SHOT07 as **Director Visual LOCKED**, superseding older no-lock assessments in this handoff. SHOT06 is already Director V2 LOCKED; SHOT01–07 form the protected locked review segment. Do NOT edit or regenerate these protected videos, Take audio or source without new express Director direction. A successful render alone is not a visual LOCK; SHOT07 has the distinct Director approval here.
