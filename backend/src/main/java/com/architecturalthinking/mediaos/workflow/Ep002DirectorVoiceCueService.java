@@ -479,6 +479,7 @@ public class Ep002DirectorVoiceCueService {
             int durationInFrames,String timingMode,
             List<Ep002VoiceBeatResolver.BeatCue> verifiedCues,
             List<Ep002Shot07TermResolver.TermCue> termCues,
+            Integer criticalPulseStartFrame,
             boolean ready,String reason) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -497,7 +498,7 @@ public class Ep002DirectorVoiceCueService {
                 ||takeId==null||!takeId.equals(review.selectedTakeId())
                 ||duration<150||review.frames().size()!=5) {
             return new Shot07RenderReadiness("SHOT07",current.inputFingerprint(),
-                    takeId,duration,mode,List.of(),List.of(),false,
+                    takeId,duration,mode,List.of(),List.of(),null,false,
                     "CURRENT_DIRECTOR_SHOT07_HEAR_SEE_CUE_VERIFICATION_REQUIRED");
         }
         Selected take=selected(shot);
@@ -509,18 +510,20 @@ public class Ep002DirectorVoiceCueService {
                 ||!take.narrationSha().equals(shot.narrationSha256())
                 ||take.revision()!=shot.scriptRevision()) {
             return new Shot07RenderReadiness("SHOT07",current.inputFingerprint(),
-                    takeId,duration,mode,List.of(),List.of(),false,
+                    takeId,duration,mode,List.of(),List.of(),null,false,
                     "SHOT07_SELECTED_TAKE_DURATION_OR_ALIGNMENT_CHANGED");
         }
         try {
             var terms=Ep002Shot07TermResolver.resolve(
                     mapper,take.alignment(),take.seconds(),review.frames());
+            int criticalPulseStart=Ep002Shot07TermResolver.resolveCriticalPulseStartFrame(
+                    mapper,take.alignment(),take.seconds(),terms.get(12),terms.get(13));
             return new Shot07RenderReadiness("SHOT07",current.inputFingerprint(),
-                    takeId,duration,mode,review.frames(),terms,true,
-                    "DIRECTOR_APPROVED_TAKE_REAL_15_TERMS_AND_5_BEATS");
+                    takeId,duration,mode,review.frames(),terms,criticalPulseStart,true,
+                    "DIRECTOR_APPROVED_TAKE_REAL_15_TERMS_5_BEATS_AND_CRITICAL_PULSE");
         } catch(IllegalArgumentException invalid) {
             return new Shot07RenderReadiness("SHOT07",current.inputFingerprint(),
-                    takeId,duration,mode,List.of(),List.of(),false,
+                    takeId,duration,mode,List.of(),List.of(),null,false,
                     invalid.getMessage());
         }
     }
