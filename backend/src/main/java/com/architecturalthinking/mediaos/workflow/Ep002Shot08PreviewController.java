@@ -41,6 +41,49 @@ public class Ep002Shot08PreviewController {
         this.pinnedWorkerSha=pinnedWorkerSha==null?"":pinnedWorkerSha.trim();
     }
 
+    private static final UUID SHOT07_LOCKED_RENDER=UUID.fromString(
+            "b2a335dd-cb71-48f2-bf47-0f8bdcdd969d");
+    private static final String SHOT07_LOCKED_SOURCE_SHA=
+            "d4fd0701f7298903dad2167e38bb7931edeae6bb";
+    private static final int SHOT07_LOCKED_DURATION_FRAMES=2674;
+
+    private record Shot07Boundary(Integer criticalPulseStartFrame,
+                                  Integer cascadeStartFrame) {}
+
+    private Map<String,Object> lockedShot07Boundary() {
+        Shot07Boundary boundary=jdbc.sql("""
+                select (r.input_props->>'criticalPulseStartFrame')::integer
+                           as critical_pulse_start,
+                       (select (cue->>'startFrame')::integer
+                          from jsonb_array_elements(r.input_props->'termCues') cue
+                         where cue->>'id'='CASCADING_FAILURE') as cascade_start
+                  from remotion_render r
+                 where r.id=:id and r.composition_id='EP002-SHOT07-CANDIDATE'
+                   and r.status='SUCCEEDED' and r.width=1920 and r.height=1080
+                   and r.fps=30 and r.duration_in_frames=:frames
+                   and r.input_props->>'expectedSourceCommit'=:sourceSha
+                """)
+                .param("id",SHOT07_LOCKED_RENDER)
+                .param("frames",SHOT07_LOCKED_DURATION_FRAMES)
+                .param("sourceSha",SHOT07_LOCKED_SOURCE_SHA)
+                .query((rs,row)->new Shot07Boundary(
+                        (Integer)rs.getObject("critical_pulse_start"),
+                        (Integer)rs.getObject("cascade_start")))
+                .optional().orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.CONFLICT,"SHOT08_REQUIRES_LOCKED_SHOT07_V3_MP4_BOUNDARY"));
+        Integer critical=boundary.criticalPulseStartFrame();
+        Integer cascade=boundary.cascadeStartFrame();
+        if(critical==null||cascade==null||critical<0||cascade<=critical
+                ||cascade>=SHOT07_LOCKED_DURATION_FRAMES)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT08_LOCKED_SHOT07_V3_AUDIO_BOUNDARY_INVALID");
+        return Map.of("renderId",SHOT07_LOCKED_RENDER.toString(),
+                "sourceCommit",SHOT07_LOCKED_SOURCE_SHA,
+                "lastFrame",SHOT07_LOCKED_DURATION_FRAMES-1,
+                "criticalPulseStartFrame",critical,
+                "cascadeStartFrame",cascade);
+    }
+
     public record PreviewRequest(UUID requestId,String expectedEpisodeFingerprint,
                                  Boolean confirmPaidCpuRender) {}
 
@@ -48,9 +91,15 @@ public class Ep002Shot08PreviewController {
     public Map<String,Object> capability() {
         DirectorIdentity.requireDirector();
         boolean pinned=pinnedWorkerSha.matches("[a-f0-9]{40}");
-        return Map.of("enabled",renderEnabled&&recoveryVisualContractReady,"workerPinned",pinned,
-                "canQueue",renderEnabled&&recoveryVisualContractReady&&pinned,
-                "reason",recoveryVisualContractReady?"RECOVERY_VISUAL_SOURCE_READY":"RECOVERY_VISUAL_SOURCE_NOT_RELEASED");
+        boolean boundaryReady;
+        try { lockedShot07Boundary();boundaryReady=true; }
+        catch(ResponseStatusException unavailable) { boundaryReady=false; }
+        boolean enabled=renderEnabled&&recoveryVisualContractReady;
+        return Map.of("enabled",enabled,"workerPinned",pinned,
+                "lockedShot07BoundaryReady",boundaryReady,
+                "canQueue",enabled&&pinned&&boundaryReady,
+                "reason",!boundaryReady?"LOCKED_SHOT07_V3_BOUNDARY_NOT_AVAILABLE":
+                        recoveryVisualContractReady?"RECOVERY_VISUAL_SOURCE_READY":"RECOVERY_VISUAL_SOURCE_NOT_RELEASED");
     }
 
     @GetMapping
@@ -130,8 +179,10 @@ public class Ep002Shot08PreviewController {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "SHOT08 recovery Take requires six real beats and twenty-one spoken term cues.");
 
+        Map<String,Object> lockedBoundary=lockedShot07Boundary();
         Map<String,Object> props=new LinkedHashMap<>();
         props.put("shotKey","EP002_SHOT08");
+        props.put("lockedShot07Handoff",lockedBoundary);
         props.put("durationInFrames",ready.durationInFrames());
         props.put("voiceTakeId",ready.voiceTakeId());
         props.put("scriptRevision",shot.scriptRevision());
