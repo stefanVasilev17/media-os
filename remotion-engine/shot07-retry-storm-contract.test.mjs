@@ -27,7 +27,8 @@ const verifiedCues=beatStart.map((n,i)=>({
   startFrame:n,endFrame:i===4?durationInFrames:beatStart[i+1],
 }));
 const props={durationInFrames,voiceTakeId:'3105980d-8a47-4a34-821e-53ae67605eb0',
-  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues,termCues};
+  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues,termCues,
+  criticalPulseStartFrame:1710};
 
 test('SHOT07 visual contract needs current real selected Take and fifteen ordered terms',()=>{
   assert.doesNotThrow(()=>c.validateShot07Source(props));
@@ -83,9 +84,15 @@ test('SHOT07 spoken orange callouts have a high contrast framed badge without cu
   assert.ok(cue.includes("border:'2px solid rgba(245,165,90,.92)'"));
   assert.ok(cue.includes("borderRadius:13"));
   assert.ok(cue.includes("background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))'"));
-  assert.ok(cue.includes("display:'flex',alignItems:'center',padding:'0 23px',boxSizing:'border-box'"));
+  assert.ok(cue.includes("display:'inline-flex',alignItems:'center',padding:'0 19px',boxSizing:'border-box'"));
+  assert.ok(cue.includes("width:'max-content',maxWidth:1060"));
+  assert.ok(cue.includes("whiteSpace:'nowrap'"));
+  assert.ok(cue.includes("const hasDivider=chosen.text.includes(' · ')"));
+  assert.ok(cue.includes("const parts=hasDivider?chosen.text.split(' · '):chosen.text.split(' IS RETRIED')"));
+  assert.ok(cue.includes("<span style={{color:AMBER}}>{heading}</span>"));
+  assert.ok(cue.includes("<span style={{color:'#F5F8ED'}}>{detail}</span>"));
   assert.ok(cue.includes("left:565,top:875"));
-  assert.ok(cue.includes('width:1060,height:69,zIndex:23'));
+  assert.ok(cue.includes("width:'max-content',maxWidth:1060,height:69,zIndex:23"));
   assert.ok(cue.includes('opacity:inMotion*outMotion'));
   assert.ok(cue.includes('shot07Ease(frame,chosen.at,22)'));
   assert.ok(cue.includes('1-shot07Ease(frame,Math.min(nextAt-26,duration-54),23)'));
@@ -96,6 +103,24 @@ test('SHOT07 spoken orange callouts have a high contrast framed badge without cu
     'CASCADING FAILURE · DATABASE → AUTH WAITING',
     'ONLY THE ACCOUNT LOOKUP IS RETRIED',
   ]) assert.ok(cue.includes(message));
+});
+
+test('SHOT07 V3 critical DB pulse begins on real Now watch, before cascading Auth pressure',()=>{
+  const world=src('Shot07CleanArchitectureWorld.tsx');
+  assert.match(scene,/criticalPulseStartFrame=\{props\.criticalPulseStartFrame\}/);
+  assert.match(world,/criticalPulseStartFrame=-1/);
+  assert.match(world,/const dbPulseStart=criticalPulseStartFrame>=0/);
+  assert.match(world,/shot07Ease\(frame,dbPulseStart,14\)/);
+  assert.match(world,/Math\.sin\(dbPulseAge\*\.088\)\*\*2/);
+  assert.match(world,/\.46\*dbWave/);
+  assert.match(world,/borderWidth:3\+2\*dbWave/);
+  assert.match(world,/cascadeStartFrame\+44\+row\*24/);
+  assert.doesNotThrow(()=>c.validateShot07Source(props));
+  assert.throws(()=>c.validateShot07Source({...props,criticalPulseStartFrame:NaN}),
+    /SHOT07_CRITICAL_PULSE_REQUIRES_SPOKEN_NOW_WATCH_ALIGNMENT/);
+  assert.throws(()=>c.validateShot07Source({...props,
+    criticalPulseStartFrame:termCues[13].startFrame}),
+    /SHOT07_CRITICAL_PULSE_REQUIRES_SPOKEN_NOW_WATCH_ALIGNMENT/);
 });
 
 test('SHOT07 must use actual audio timing and 1080p30 source pinned media QA',()=>{
@@ -109,6 +134,16 @@ test('SHOT07 must use actual audio timing and 1080p30 source pinned media QA',()
   const okay=preflightTierPlusPlusRender(job,sha);
   assert.equal(okay.status,'TECHNICAL_PRECHECK_PASS');
   assert.ok(okay.checks.includes('FIFTEEN_REAL_RETRY_STORM_TERMS'));
+  assert.ok(okay.checks.includes('REAL_NOW_WATCH_DATABASE_PULSE_ONSET'));
+  assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
+    ...job.inputProps,criticalPulseStartFrame:undefined}},sha),
+    /SHOT07_CRITICAL_PULSE_REQUIRES_REAL_NOW_WATCH_SPOKEN_FRAME/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
+    ...job.inputProps,criticalPulseStartFrame:termCues[12].endFrame-1}},sha),
+    /SHOT07_CRITICAL_PULSE_REQUIRES_REAL_NOW_WATCH_SPOKEN_FRAME/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
+    ...job.inputProps,criticalPulseStartFrame:termCues[13].startFrame}},sha),
+    /SHOT07_CRITICAL_PULSE_REQUIRES_REAL_NOW_WATCH_SPOKEN_FRAME/);
   assert.throws(()=>preflightTierPlusPlusRender(job,'f'.repeat(40)),
     /WORKER_SHA_NOT_PINNED/);
   assert.throws(()=>preflightTierPlusPlusRender({...job, fps:24},sha),
