@@ -14,6 +14,7 @@ export type Shot07SceneProps={
   durationInFrames:number;voiceTakeId:string;
   timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS';
   verifiedCues:Shot07BeatCue[];termCues:Shot07TermCue[];
+  criticalPulseStartFrame:number;
 };
 export const SHOT07_SAFE_ZONES={
   title:{left:560,top:78,width:950,height:110},
@@ -59,6 +60,10 @@ export function validateShot07Source(props:Shot07SceneProps){
   }
   const positions=Object.fromEntries(props.termCues.map(t=>[t.id,t.startFrame])) as
     Record<Shot07TermId,number>;
+  if(!Number.isInteger(props.criticalPulseStartFrame)
+    ||props.criticalPulseStartFrame<props.termCues[12].endFrame
+    ||props.criticalPulseStartFrame>=props.termCues[13].startFrame)
+    throw Error('SHOT07_CRITICAL_PULSE_REQUIRES_SPOKEN_NOW_WATCH_ALIGNMENT');
   if(!(positions.AUTH_RETRY<positions.FIRST_LOOKUP_RUNNING
     &&positions.FIRST_LOOKUP_RUNNING<positions.OTHER_AUTH_RETRIES
     &&positions.TRAFFIC_STABLE<positions.ATTEMPTS_GROW
