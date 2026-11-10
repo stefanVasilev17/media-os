@@ -12,6 +12,7 @@ COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot0
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot07PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot07PreviewController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot08PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot08PreviewController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002DirectorVoiceCueService.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002DirectorVoiceCueService.java
+COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot08UserRequestedRenderLaunch.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot08UserRequestedRenderLaunch.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot04TermResolver.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot04TermResolver.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot05TermResolver.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot05TermResolver.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot06TermResolver.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot06TermResolver.java
