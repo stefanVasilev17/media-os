@@ -104,17 +104,23 @@ const OrangeCue:React.FC<{frame:number;cue:Record<Shot07TermId,number>;
   const nextAt=index<messages.length-1?messages[index+1].at:duration;
   const inMotion=shot07Ease(frame,chosen.at,22);
   const outMotion=1-shot07Ease(frame,Math.min(nextAt-26,duration-54),23);
+  const hasDivider=chosen.text.includes(' · ');
+  const parts=hasDivider?chosen.text.split(' · '):chosen.text.split(' IS RETRIED');
+  const heading=parts[0],detail=hasDivider?parts[1]:'IS RETRIED';
   return <div style={{position:'absolute',left:565,top:875,
-    width:1060,height:69,zIndex:23,pointerEvents:'none',
-    display:'flex',alignItems:'center',padding:'0 23px',boxSizing:'border-box',
+    width:'max-content',maxWidth:1060,height:69,zIndex:23,pointerEvents:'none',
+    display:'inline-flex',alignItems:'center',padding:'0 19px',boxSizing:'border-box',
+    whiteSpace:'nowrap',
     border:'2px solid rgba(245,165,90,.92)',borderRadius:13,
     background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))',
     boxShadow:'0 0 19px rgba(245,165,90,.19),inset 0 0 0 1px rgba(245,165,90,.10)',
     fontFamily:AT_FONT,fontSize:25,fontWeight:860,letterSpacing:'.025em',
-    color:AMBER,textShadow:'0 0 18px rgba(245,165,90,.26)',
+    textShadow:'0 0 18px rgba(245,165,90,.26)',
     opacity:inMotion*outMotion,
     transform:'translateY('+((1-inMotion)*9)+'px)'}}>
-    {chosen.text}
+    <span style={{color:AMBER}}>{heading}</span>
+    <span style={{color:'#C4D7E4'}}>{hasDivider?' · ':' '}</span>
+    <span style={{color:'#F5F8ED'}}>{detail}</span>
   </div>;
 };
 
@@ -133,6 +139,7 @@ export const Shot07DirectorVisualV1:React.FC<Shot07SceneProps>=(props)=>{
       <Shot07CleanArchitectureWorld frame={frame}
         replicaGrowth={0} dbStress={1}
         cascadeStartFrame={cue.CASCADING_FAILURE}
+        criticalPulseStartFrame={props.criticalPulseStartFrame}
         showPhone={1} showPools={0} initialPressure
         showLoginBadge={shot07Ease(frame,cue.ACCOUNT_LOOKUP,30)}
         showRetryAttempts={shot07Ease(frame,cue.AUTH_RETRY,27)}/>
