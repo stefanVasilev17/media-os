@@ -45,3 +45,17 @@ test('SHOT08 uses five audio-anchored readable chapter captions not sixteen flas
   assert.match(s08,/shot08Ease\(frame,event\.at,27\)/);
   assert.doesNotMatch(s08,/DUPLICATE LOOKUPS ADD WORK|NEW LOGIN ARRIVALS STILL NEED CONTROL/);
 });
+
+test('SHOT08 starts from exact locked SHOT07 last world frame, not a reset particle clock',()=>{
+  assert.match(s08,/const worldFrame=handoff.lastFrame\+frame/);
+  assert.match(s08,/frame=\{worldFrame\}/);
+  assert.match(s08,/cascadeStartFrame=\{handoff.cascadeStartFrame\}/);
+  assert.match(s08,/criticalPulseStartFrame=\{handoff.criticalPulseStartFrame\}/);
+  assert.match(s08,/showLoginBadge=\{showBadge\}/);
+  assert.match(s08,/recoveryLevel=\{stressReduction\}/);
+  assert.match(world,/recoveryLevel=0/);
+  assert.match(world,/\*\(1-\.72\*recovery\)/);
+  assert.match(s08,/Math.max\(36,cue.CONTROL_FIRST-24\)/);
+  assert.match(s07,/marginTop:15,width:690,height:2/);
+  assert.match(s08,/marginTop:15,width:690,height:2/);
+});
