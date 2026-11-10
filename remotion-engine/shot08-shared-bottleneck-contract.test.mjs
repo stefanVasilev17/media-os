@@ -28,7 +28,12 @@ const beats=[0,475,890,1310,1750,2200].map((startFrame,i)=>({
   endFrame:i===5?frames:[475,890,1310,1750,2200][i],
 }));
 const props={durationInFrames:frames,voiceTakeId:'de409d13-5667-4161-85d9-5ae57d0d30a3',
-  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues:beats,termCues:terms};
+  timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS',verifiedCues:beats,termCues:terms,
+  lockedShot07Handoff:{
+    renderId:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
+    sourceCommit:'d4fd0701f7298903dad2167e38bb7931edeae6bb',
+    lastFrame:2673,criticalPulseStartFrame:1750,cascadeStartFrame:2020,
+  }};
 
 test('SHOT08 requires six continuous real voice beats and twenty-one source-spoken events',()=>{
   assert.doesNotThrow(()=>c.validateShot08Source(props));
@@ -52,7 +57,14 @@ test('SHOT07→08 keeps original phone and 3 Auth / 1 DB diagram with cinematic 
   assert.match(scene,/showPhone=\{1\}/);
   assert.match(scene,/initialPressure/);
   assert.match(scene,/showLoginBadge=\{showBadge\}/);
-  assert.match(scene,/shot08Ease\(frame,28,65\)/);
+  assert.match(scene,/shot08Ease\(frame,Math.max\(36,cue.CONTROL_FIRST-24\),65\)/);
+  assert.match(scene,/const worldFrame=handoff.lastFrame\+frame/);
+  assert.match(scene,/frame=\{worldFrame\}/);
+  assert.match(scene,/cascadeStartFrame=\{handoff.cascadeStartFrame\}/);
+  assert.match(scene,/criticalPulseStartFrame=\{handoff.criticalPulseStartFrame\}/);
+  assert.match(scene,/recoveryLevel=\{stressReduction\}/);
+  assert.match(scene,/left:560,top:78/);
+  assert.match(scene,/marginTop:15,width:690,height:2/);
   assert.match(world,/Shot02PressurePhone/);
   assert.match(world,/User Database/);
   assert.doesNotMatch(scene,/SIX AUTH|THREE AUTH INSTANCES → SIX|horizontal scaling/i);
@@ -68,7 +80,11 @@ test('SHOT08 visualizes deadline, shared budget, backoff, jitter and honest DB r
   assert.match(scene,/flowRetryLevel=\{boundedRetries\}/);
   assert.match(scene,/flowJitterLevel=\{staggered\}/);
   assert.match(world,/Shot07RequestFlows/);
-  assert.match(scene,/at:cue\.JITTER,text:'BACKOFF \+ JITTER'/);
+  assert.match(scene,/at:cue\.JITTER,label:'BACKOFF \+ JITTER'/);
+  assert.match(scene,/width:'max-content',maxWidth:1060,height:69/);
+  assert.match(scene,/border:'2px solid rgba\(245,165,90,.92\)'/);
+  assert.match(scene,/color:'#F5F8ED'/);
+  assert.match(world,/recoveryLevel=0/);
   assert.equal((scene.match(/\{at:cue\./g)||[]).length,5);
 });
 
@@ -84,6 +100,16 @@ test('worker preflight accepts source-pinned honest real voice and refuses misma
   assert.equal(pass.status,'TECHNICAL_PRECHECK_PASS');
   assert.ok(pass.checks.includes('TWENTY_ONE_REAL_RECOVERY_TERMS'));
   assert.ok(pass.checks.includes('SIX_REAL_AUDIO_ALIGNED_BEATS'));
+  assert.ok(pass.checks.includes('LOCKED_SHOT07_V3_EXACT_FINAL_FRAME'));
+  assert.throws(()=>c.validateShot08Source({...props,lockedShot07Handoff:null}),
+    /SHOT08_REQUIRES_IMMUTABLE_SHOT07_V3_ACTUAL_FINAL_FRAME/);
+  assert.throws(()=>c.validateShot08Source({...props,lockedShot07Handoff:{
+    ...props.lockedShot07Handoff,lastFrame:2669}}),
+    /SHOT08_REQUIRES_IMMUTABLE_SHOT07_V3_ACTUAL_FINAL_FRAME/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
+    ...job.inputProps,lockedShot07Handoff:{...props.lockedShot07Handoff,
+      sourceCommit:'f'.repeat(40)}}},sha),
+    /SHOT08_LOCKED_SHOT07_V3_FRAME_AND_SPEECH_BOUNDARY_REQUIRED/);
   assert.throws(()=>preflightTierPlusPlusRender(job,'f'.repeat(40)),
     /WORKER_SHA_NOT_PINNED/);
   assert.throws(()=>preflightTierPlusPlusRender({...job,fps:24},sha),
