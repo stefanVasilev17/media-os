@@ -18,7 +18,6 @@ type LockedReference={shotKey:string;title:string;renderId:string;compositionId:
 
 const RENDER='/api/v1/remotion/renders/';
 const CURRENT_SHOT01='/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview';
-const EP002='/api/v1/creative/episodes/EP002';
 const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[
   {shotKey:'SHOT06',title:'The Deadline Expires — current review render',
     compositionId:'EP002-SHOT06-CANDIDATE'},
@@ -131,14 +130,13 @@ async function loadLockedCut():Promise<{
   }
   const candidates=await Promise.all(LIVE_REVIEW_SHOTS.map(async ref=>{
     try {
-      const response=await fetch(EP002+'/shots/'+ref.shotKey+'/render-preview',
+      const response=await fetch(RENDER+'compositions/'+
+        encodeURIComponent(ref.compositionId)+'/latest-successful?profile=REVIEW',
         {cache:'no-store'});
-      if(!response.ok)throw Error('Current preview HTTP '+response.status);
+      if(!response.ok)throw Error('Stored MP4 lookup HTTP '+response.status);
       const latest=await response.json() as RenderEvidence;
-      if(latest.status!=='SUCCEEDED'||!latest.renderId)
-        throw Error('Current selected Take has no SUCCEEDED preview');
-      const info=await getRender(latest.renderId);
-      const durationSeconds=playable(info,latest.renderId,ref.compositionId);
+      if(!latest.renderId)throw Error('No completed stored Full HD MP4');
+      const durationSeconds=playable(latest,latest.renderId,ref.compositionId);
       return {ok:true as const,shot:{
         shotKey:ref.shotKey,title:ref.title,renderId:latest.renderId,
         videoUrl:RENDER+latest.renderId+'/video',durationSeconds,
@@ -236,7 +234,7 @@ export function Ep002LockedCutReviewRoom(){
       <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
     </div>
     <p>Watch the original Director-locked SHOT01–05 MP4s followed by the latest
-      stored SHOT06, SHOT07 and SHOT08 review candidates. Compare the endings and
+      successful stored SHOT06, SHOT07 and SHOT08 review candidates. Compare the endings and
       beginnings without generating another video. A playable candidate is not
       Director Visual LOCK. This room starts no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">
@@ -278,7 +276,7 @@ export function Ep002LockedCutReviewRoom(){
           <div className="locked-cut-now">
             <b>{active.shotKey}</b><span>{active.title}
               {' · '}{active.source==='LIVE_DIRECTOR_REVIEW_CANDIDATE'
-                ?'VISUAL REVIEW · NOT LOCKED':'LOCKED REFERENCE'}</span>
+                ?'STORED REVIEW SNAPSHOT · NOT LOCKED':'LOCKED REFERENCE'}</span>
           </div>
         </div>
         <div className="locked-cut-controls">
@@ -339,8 +337,9 @@ export function Ep002LockedCutReviewRoom(){
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
       <p className="library-note">SHOT01–05 are pinned protected references.
-        SHOT06–08 load only their current real SUCCEEDED MP4 render evidence,
-        and remain review candidates until independently Director-locked.
+        SHOT06–08 load their latest real completed stored Full HD MP4,
+        even if a later episode source revision changed the selected fingerprint.
+        These are historical review snapshots, not automatically current or locked.
         The boundary shortcuts start eight seconds before each cut. The player
         switches between original stored MP4s; it is not a frame-perfect
         exported master and may briefly buffer at a boundary.
