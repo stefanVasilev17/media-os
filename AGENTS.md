@@ -1,5 +1,13 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 ACTIVE SHOT07 V2 RENDERING — do not duplicate or prematurely LOCK (LATEST)
+
+**Real authorized paid CPU job is RUNNING.** Director performed an authentic new 5-beat HEAR→SEE confirmation at 2026-11-10T15:34:51Z, then clicked paid SHOT07 render at 15:35:07Z; both POST requests HTTP200. Old Worker did not claim the job despite `claimsEnabled=true`. Staged then deployed *only* one new Worker variable `MEDIA_OS_REMOTION_TARGET_COMPOSITION=EP002-SHOT07-CANDIDATE` without an additional render POST, new audio generation or touching original LOCKED SHOT01–06. The prior target variable was **absent**, not verified to have been set to SHOT08, so do not claim source root cause without more evidence.
+
+**Precise production proof:** Worker deployment `27f0525d-6c4d-482a-81d9-a055c1f50cef` SUCCESS/ONLINE, unchanged real V2 Remotion SHA `fa4a0d534f8e091fe9d68587e210a574bcd1e854`, scoped to SHOT07. At 2026-11-10T15:43:25Z Worker logged `Claimed Remotion render 5f795361-b1f6-4d9f-90b3-e53dcea9a733`, `AT_TIER_PLUS_PLUS_RENDER_START TECHNICAL_PRECHECK_PASS` (1920×1080@30, 2674 frames, 5 real verified beats, 15 voice-aligned terms, exact selected approved Take and Worker SHA), and started actual rendering. Last verified progress was 5% at 2026-11-10T15:43:27Z. **NOT YET MP4 QA / NOT YET SUCCEEDED / NOT YET DIRECTOR VISUAL LOCK** on last read. Old `5ef67a78...` remains known wrong SHOT07 render, never substitute. A new paid CPU authorization is NOT required for the current render; do not start or duplicate this job. Wait for actual render success and final H.264/AAC QA, then let Director review real video in MediaOS `#/library/EP002`, and only then pin on explicit visual approval.
+
+See latest `PROJECT_STATE.md` for full log timestamps and Railway source/deployment evidence.
+
 ## 2026-11-10 LATEST — SHOT07 V2 paid render authorized, but one-shot startup correctly BLOCKED (do not invent a video)
 
 Director explicitly authorized ONE paid SHOT07 V2 Remotion CPU render with existing approved voice. New guarded, default-OFF starter in Draft PR [#248](https://github.com/stefanVasilev17/media-os/pull/248) source SHA `a4f7ae912b92d65acf337ad157c514966eb8c5e3` deployed to Railway Backend deployment `a2bf47cb-15cd-4343-8301-94cc6c9f4500`, **SUCCESS/ONLINE**. Backend Vitest 18/18, TypeScript/Vite PASS, Maven **497/497 zero failures/errors and 1 skipped** in PostgreSQL16 integration. Render Worker unchanged, source SHA `fa4a0d534f8e091fe9d68587e210a574bcd1e854`, SUCCESS/ONLINE; byte-identical SHOT07 scene/world/motion code already deployed.
