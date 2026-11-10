@@ -1,5 +1,6 @@
 import {describe,expect,it} from 'vitest';
-import {LOCKED_CUT_SHOT_ORDER,cutDuration,locateCutTime}
+import {LOCKED_CUT_SHOT_ORDER,DIRECTOR_REVIEW_BOUNDARIES,
+  actualShotOrderIsContinuous,cutDuration,locateCutTime}
   from './Ep002LockedCutReviewRoom';
 
 const shots=[
@@ -12,7 +13,22 @@ const shots=[
 
 describe('EP002 Director locked cut review',()=>{
   it('keeps the immutable approved SHOT sequence',()=>{
-    expect(LOCKED_CUT_SHOT_ORDER).toEqual(['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05']);
+    expect(LOCKED_CUT_SHOT_ORDER).toEqual([
+      'SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08',
+    ]);
+  });
+
+  it('prepares real stored MP4 seam review for 05→06→07→08 and refuses gaps',()=>{
+    expect(DIRECTOR_REVIEW_BOUNDARIES).toEqual([
+      {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
+      {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
+      {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
+    ]);
+    expect(actualShotOrderIsContinuous('SHOT05','SHOT06')).toBe(true);
+    expect(actualShotOrderIsContinuous('SHOT06','SHOT07')).toBe(true);
+    expect(actualShotOrderIsContinuous('SHOT07','SHOT08')).toBe(true);
+    expect(actualShotOrderIsContinuous('SHOT05','SHOT07')).toBe(false);
+    expect(actualShotOrderIsContinuous('SHOT07','SHOT09')).toBe(false);
   });
 
   it('uses actual measured independent render durations',()=>{
