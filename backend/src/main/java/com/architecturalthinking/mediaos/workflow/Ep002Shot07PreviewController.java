@@ -119,7 +119,9 @@ public class Ep002Shot07PreviewController {
         if(!ready.ready()||!ready.inputFingerprint().equals(source.inputFingerprint())
                 ||!shot.preferredTakeId().equals(ready.voiceTakeId())
                 ||shot.durationFrames()!=ready.durationInFrames()
-                ||ready.verifiedCues().size()!=5||ready.termCues().size()!=15)
+                ||ready.verifiedCues().size()!=5||ready.termCues().size()!=15
+                ||ready.criticalPulseStartFrame()==null
+                ||ready.criticalPulseStartFrame()<0)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "SHOT07 selected Take or fifteen genuine term cues are not render-ready.");
 
@@ -131,6 +133,7 @@ public class Ep002Shot07PreviewController {
         props.put("timingMode",ready.timingMode());
         props.put("verifiedCues",ready.verifiedCues());
         props.put("termCues",ready.termCues());
+        props.put("criticalPulseStartFrame",ready.criticalPulseStartFrame());
         props.put("inputFingerprint",ready.inputFingerprint());
         props.put("visualSourceSha",Ep002ProductionContractService.VISUAL_SHA);
         props.put("expectedSourceCommit",pinnedWorkerSha);
