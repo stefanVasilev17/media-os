@@ -21,6 +21,14 @@ test('SHOT08 recovery is one Director-controlled paid render with current approv
   assert.match(ctrl,/shot08RenderReadiness\(\)/);
   assert.match(ctrl,/MEDIAOS_SHOT08_RELEASE_WORKER_SHA/);
   assert.match(ctrl,/Ep002RecoverySource\.RECOVERY_VISUAL_BLOB_SHA/);
+  assert.match(ctrl,/SHOT07_LOCKED_RENDER=UUID\.fromString/);
+  assert.match(ctrl,/b2a335dd-cb71-48f2-bf47-0f8bdcdd969d/);
+  assert.match(ctrl,/d4fd0701f7298903dad2167e38bb7931edeae6bb/);
+  assert.match(ctrl,/r\.status='SUCCEEDED'/);
+  assert.match(ctrl,/r\.input_props->>'criticalPulseStartFrame'/);
+  assert.match(ctrl,/jsonb_array_elements\(r\.input_props->'termCues'\)/);
+  assert.match(ctrl,/lockedShot07Boundary\(\)/);
+  assert.match(ctrl,/props\.put\("lockedShot07Handoff",lockedBoundary\)/);
   const service=workflow('Ep002DirectorVoiceCueService.java');
   assert.match(service,/CURRENT_APPROVED_SLOW_NATURAL_TAKE_REAL_6_BEATS_21_TERMS_AUTO_ALIGNED/);
   assert.match(service,/Ep002VoiceBeatResolver\.resolve/);
