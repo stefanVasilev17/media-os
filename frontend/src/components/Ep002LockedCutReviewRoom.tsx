@@ -93,7 +93,7 @@ function playable(evidence:RenderEvidence,expectedId:string,expectedComposition:
   return (evidence.durationInFrames as number)/30;
 }
 
-async function loadLockedCut():Promise<{
+export async function loadLockedCut():Promise<{
   shots:LockedShot[];missing:string[];
 }>{
   const entries=await Promise.all(REFERENCES.map(async ref=>{
