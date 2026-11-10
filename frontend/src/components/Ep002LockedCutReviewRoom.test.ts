@@ -61,7 +61,7 @@ describe('EP002 Director locked cut review',()=>{
 });
 
 describe('EP002 real stored MP4 continuity discovery',()=>{
-  it('pins Director-locked SHOT06 and SHOT07 and looks up only SHOT08 as review candidate',async()=>{
+  it('pins only the confirmed SHOT06 MP4, refuses old SHOT07, and reviews SHOT08 separately',async()=>{
     const ids:Record<string,string>={
       SHOT01:'00000000-0000-4000-8000-000000000001',
       SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
@@ -69,7 +69,6 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
       SHOT05:'b2b95685-8e1b-41df-9fe2-c83eefbf86e9',
       SHOT06:'d42fe3a2-3810-4626-ab3a-0456463d4636',
-      SHOT07:'5ef67a78-76df-476c-938d-eb421d83549b',
       SHOT08:'00000000-0000-4000-8000-000000000008',
     };
     const lookup=Object.fromEntries(Object.entries(ids).map(([shot,id])=>[id,shot]));
@@ -98,22 +97,25 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
     vi.stubGlobal('fetch',mock);
     try{
       const result=await loadLockedCut();
-      expect(result.missing).toEqual([]);
-      expect(result.shots.map(s=>s.shotKey)).toEqual(LOCKED_CUT_SHOT_ORDER);
+      expect(result.missing).toHaveLength(1);
+      expect(result.missing[0]).toContain('SHOT07: final V2 MP4');
+      expect(result.shots.map(s=>s.shotKey)).toEqual(
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08']);
       expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].renderId).toBe(ids.SHOT06);
       expect(result.shots[5].durationSeconds).toBeCloseTo(2000/30,5);
-      expect(result.shots[6].source).toBe('PINNED_DIRECTOR_LOCK');
-      expect(result.shots[6].renderId).toBe(ids.SHOT07);
-      expect(result.shots[6].durationSeconds).toBeCloseTo(2000/30,5);
-      expect(result.shots[7].source).toBe('LIVE_DIRECTOR_REVIEW_CANDIDATE');
-      expect(result.shots[7].durationSeconds).toBeCloseTo(2314/30,5);
+      expect(result.shots[6].source).toBe('LIVE_DIRECTOR_REVIEW_CANDIDATE');
+      expect(result.shots[6].durationSeconds).toBeCloseTo(2314/30,5);
+      expect(actualShotOrderIsContinuous(result.shots[5].shotKey,
+        result.shots[6].shotKey)).toBe(false);
       expect(mock.mock.calls.filter(([url])=>url.includes('/latest-successful?profile=REVIEW')).length)
         .toBe(1);
       expect(mock.mock.calls.some(([url])=>url.includes('EP002-SHOT06-CANDIDATE/latest-successful')))
         .toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes('EP002-SHOT07-CANDIDATE/latest-successful')))
+        .toBe(false);
+      expect(mock.mock.calls.some(([url])=>url.includes('5ef67a78-76df-476c-938d-eb421d83549b')))
         .toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes('render-preview/SHOT08')))
         .toBe(false);
@@ -132,6 +134,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.shots).toEqual([]);
       expect(result.missing.some(s=>s.startsWith('SHOT06:'))).toBe(true);
+      expect(result.missing.some(s=>s.startsWith('SHOT07: final V2 MP4'))).toBe(true);
       expect(actualShotOrderIsContinuous('SHOT05','SHOT07')).toBe(false);
     }finally{vi.unstubAllGlobals();}
   });
