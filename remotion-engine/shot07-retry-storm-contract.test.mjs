@@ -62,6 +62,14 @@ test('SHOT07 V2 removes six Director-rejected visual elements without changing v
   assert.match(world,/ATTEMPT 1/);
   assert.match(world,/ATTEMPT 2/);
   assert.match(world,/User Database/);
+  const realFlows=src('Shot07RequestFlows.tsx');
+  assert.match(world,/Shot07RequestFlows/);
+  assert.match(realFlows,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(realFlows,/SHOT02_DATABASE_ENTRY/);
+  assert.match(realFlows,/shot02CubicPoint/);
+  assert.match(realFlows,/retryLevel/);
+  assert.match(realFlows,/jitterLevel/);
+  assert.doesNotMatch(realFlows,/DATABASE_EXIT|DB_EGRESS|strokeDasharray/);
   assert.match(world,/cascadeStartFrame\+44\+row\*24/);
   assert.doesNotMatch(scene,/NewAttemptPath|RateMeters|NEW LOGIN ARRIVALS|ACCOUNT LOOKUP ATTEMPTS/);
   assert.doesNotMatch(scene,/READ-ONLY LOOKUP RETRY ONLY · ACTIVE LOGIN/);
