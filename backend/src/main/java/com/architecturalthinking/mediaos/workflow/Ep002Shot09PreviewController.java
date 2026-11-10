@@ -54,10 +54,10 @@ public class Ep002Shot09PreviewController {
 
     private Map<String,Object> lockedShot08Boundary() {
         ActualShot08Boundary boundary=jdbc.sql("""
-                select (r.input_props->'lockedShot08Handoff'->>'lastFrame')::integer as shot07_last,
-                       (r.input_props->'lockedShot08Handoff'->>'criticalPulseStartFrame')::integer
+                select (r.input_props->'lockedShot07Handoff'->>'lastFrame')::integer as shot07_last,
+                       (r.input_props->'lockedShot07Handoff'->>'criticalPulseStartFrame')::integer
                            as critical_pulse,
-                       (r.input_props->'lockedShot08Handoff'->>'cascadeStartFrame')::integer
+                       (r.input_props->'lockedShot07Handoff'->>'cascadeStartFrame')::integer
                            as cascade_start,
                        jsonb_array_length(r.input_props->'verifiedCues') as beats,
                        jsonb_array_length(r.input_props->'termCues') as terms
@@ -66,7 +66,7 @@ public class Ep002Shot09PreviewController {
                    and r.status='SUCCEEDED' and r.width=1920 and r.height=1080
                    and r.fps=30 and r.duration_in_frames=:frames
                    and r.input_props->>'expectedSourceCommit'=:sha
-                   and r.input_props->'lockedShot08Handoff'->>'renderId'=
+                   and r.input_props->'lockedShot07Handoff'->>'renderId'=
                         'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d'
                 """)
                 .param("id",LOCKED_SHOT08_RENDER)
