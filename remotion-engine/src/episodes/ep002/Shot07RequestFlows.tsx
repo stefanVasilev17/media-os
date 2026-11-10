@@ -20,6 +20,9 @@ export type Shot07RequestFlowsProps={
   retryLevel?:number;
   jitterLevel?:number;
   visibility?:number;
+  admissionLevel?:number;
+  breakerLevel?:number;
+  probeLevel?:number;
 };
 
 /**
@@ -30,8 +33,11 @@ export type Shot07RequestFlowsProps={
  */
 export const Shot07RequestFlows:React.FC<Shot07RequestFlowsProps>=({
   frame,retryLevel=1,jitterLevel=0,visibility=1,
+  admissionLevel=1,breakerLevel=0,probeLevel=0,
 })=>{
   const retry=clamp(retryLevel),jitter=clamp(jitterLevel),visible=clamp(visibility);
+  const allowed=clamp(admissionLevel)*(1-clamp(breakerLevel))
+    +clamp(probeLevel)*clamp(breakerLevel)*.12;
   return <svg width="1920" height="1080" viewBox="0 0 1920 1080"
     aria-label="Animated incoming login requests through the gateway, load balancer, three Auth instances and one shared User Database"
     style={{position:'absolute',inset:0,zIndex:4,pointerEvents:'none',overflow:'visible',
@@ -84,7 +90,7 @@ export const Shot07RequestFlows:React.FC<Shot07RequestFlowsProps>=({
           const point=shot02CubicPoint(t,authExit,controlOut1,controlOut2,SHOT02_DATABASE_ENTRY);
           return <circle key={'normal'+packet} cx={point.x} cy={point.y}
             r={SHOT02_LOGIN_PARTICLE.radius*.68}
-            fill={MINT} opacity={edge(t)*.88}
+            fill={MINT} opacity={edge(t)*.88*allowed}
             style={{filter:'drop-shadow(0 0 8px rgba(112,236,212,.75))'}}/>;
         })}
         {Array.from({length:3},(_,packet)=>{
@@ -92,7 +98,7 @@ export const Shot07RequestFlows:React.FC<Shot07RequestFlowsProps>=({
           const point=shot02CubicPoint(t,authExit,controlOut1,controlOut2,SHOT02_DATABASE_ENTRY);
           return <circle key={'retry'+packet} cx={point.x} cy={point.y}
             r={SHOT02_LOGIN_PARTICLE.radius*.60}
-            fill={RED} opacity={edge(t)*retry*.9}
+            fill={RED} opacity={edge(t)*retry*.9*allowed}
             style={{filter:'drop-shadow(0 0 8px rgba(239,113,91,.68))'}}/>;
         })}
       </g>;

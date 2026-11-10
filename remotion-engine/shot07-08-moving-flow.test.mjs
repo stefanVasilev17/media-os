@@ -29,8 +29,8 @@ test('request animation matches the original SHOT02→04 three Auth ports and on
 
 test('normal inbound requests stay moving while duplicate DB lookup retries fade on budget exhaustion',()=>{
   assert.match(flow,/retryLevel=1,jitterLevel=0/);
-  assert.match(flow,/opacity=\{edge\(t\)\*retry\*\.9\}/);
-  assert.match(flow,/fill=\{MINT\} opacity=\{edge\(t\)\*\.88\}/);
+  assert.match(flow,/opacity=\{edge\(t\)\*retry\*\.9\*allowed\}/);
+  assert.match(flow,/fill=\{MINT\} opacity=\{edge\(t\)\*\.88\*allowed\}/);
   assert.match(s08,/boundedRetries=1-\.84\*shot08Ease\(frame,cue\.BUDGET_EXHAUSTED,120\)/);
   assert.match(s08,/staggered=shot08Ease\(frame,cue\.JITTER,75\)/);
   assert.match(s08,/flowRetryLevel=\{boundedRetries\}/);

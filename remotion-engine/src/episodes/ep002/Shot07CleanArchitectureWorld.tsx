@@ -38,6 +38,9 @@ export type CleanArchitectureProps={
   initialPressure?:boolean;
   flowRetryLevel?:number;
   flowJitterLevel?:number;
+  admissionLevel?:number;
+  breakerLevel?:number;
+  probeLevel?:number;
 };
 
 export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
@@ -45,6 +48,7 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   recoveryLevel=0,showPhone,showPools,showLoginBadge=0,
   showRetryAttempts=0,initialPressure=false,
   flowRetryLevel=1,flowJitterLevel=0,
+  admissionLevel=1,breakerLevel=0,probeLevel=0,
 })=>{
   const growth=clamp(replicaGrowth);
   const recovery=clamp(recoveryLevel);
@@ -60,7 +64,9 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   return <AbsoluteFill style={{pointerEvents:'none'}}>
     <ATControlledRealismLayer frame={frame+2400} realism={.85} architectureReveal={.96}/>
     <Shot07RequestFlows frame={frame} retryLevel={flowRetryLevel}
-      jitterLevel={flowJitterLevel}/>
+      jitterLevel={flowJitterLevel}
+      admissionLevel={admissionLevel} breakerLevel={breakerLevel}
+      probeLevel={probeLevel}/>
     <div style={{...node('gateway'),...box('#5DCEE8','rgba(42,176,223,.21)'),
       zIndex:9,padding:'27px 20px',fontFamily:AT_FONT}}>
       <b style={{color:WHITE,fontSize:24}}>API Gateway</b>
