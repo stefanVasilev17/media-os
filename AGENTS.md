@@ -1,5 +1,23 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 LATEST — SHOT08 AUTH BORDERS AND FINAL 3 CUES CORRECTED; PRODUCTION SUCCESS, READY FOR MANUAL PAID RENDER
+
+**Director feedback:** Actual SHOT08 review found misaligned/oversized blue Auth border overlays, last three orange badge messages did not explain retry recovery. **Scope approved:** Fix SOURCE only and prepare for render; NEVER auto-submit paid Remotion render or new ElevenLabs generation; protect SHOT01–07 Director LOCKED media and exact SHOT07 V3 handoff.
+
+**Live source:** [PR #253](https://github.com/stefanVasilev17/media-os/pull/253) draft/unmerged, exact code SHA **`a0dbdc8927cb2d47d5a1a3e691c6405bf0c28390`**. Railway Backend **`2948f141-ab3a-44e0-83e0-19b1f2ebda9b` SUCCESS / ONLINE**, Worker **`8b2b565a-9ad5-4fd4-b2b5-53ff055090cf` SUCCESS / ONLINE**, exact same SHA via independent predeploy guards and Worker runtime `Factory capability confirmed source=a0dbdc...`. SHOT08 worker pin updated, selected voice and shot07 historic pin preserved, Worker target SHOT08 only; auto paid render disabled. No new paid MP4 has been created under this release.
+
+**Precise fix:** `Shot08DirectorVisualV1.AuthFocus` previously drew cyan `278x82` overlays at `left:auth.x-auth.width/2+35,top:auth.y+69+i*87`, vs actual original orange-bordered Auth cards `left:auth.x-auth.width/2+40,top:SHOT02_AUTH_REPLICA_PORTS[i].y-35`, `268x71px`, radius11. New focus overlay uses matching orange 2px border + amber glow, exact actual rects `(1191,377), (1191,463), (1191,549)`, all width268,height71. No shared world or SHOT07 source touched.
+
+**Exact final captions** (first two original unchanged and all five existing voice anchors preserved):
+`SHARED_BUDGET` → **SET A RETRY LIMIT · STOP WHEN THE BUDGET RUNS OUT**
+`JITTER` → **SPREAD OUT RETRIES · DO NOT HIT THE DATABASE AT ONCE**
+`FEWER_ATTEMPTS` → **FEWER DUPLICATE DB READS · LESS EXTRA WORK FOR THE DATABASE**
+Each stays in the same amber/cream two-tone pill at same voice time, no false entire-login retry or new DB capacity. Changed **only 3 files**: `Shot08DirectorVisualV1.tsx`, `shot08-shared-bottleneck-contract.test.mjs`, `shot07-08-moving-flow.test.mjs`.
+
+**Test proof:** SHOT08 focused Remotion Node **20 PASS**, full Worker Node **152 PASS**, main+factory bundles built, zero new TS errors (existing locked EP001 TS baseline). Backend image built/healthchecked successfully; unchanged Backend Java source and prior 501 passing Postgres integration tests remain the relevant Java evidence. Git PR draft, source actually deployed. No direct frame screenshot of the new render exists yet, so do NOT claim user approved the updated SHOT08 visuals or Director LOCK.
+
+**Next:** User should open https://media-os-backend-production.up.railway.app/#/library/EP002 → SHOT08 Refresh verification. Require real Take + 6 beats + 21 terms + locked SHOT07 V3 historic source and lastFrame2673 readiness, Worker pin. Then user presses Render SHOT08 and consents to CPU cost. Verify real new render ID, H264/AAC output, real orange Auth overlay alignment and new last captions, and continuous SHOT07→08 in Director Review Room. Human Director LOCK is separate. `PROJECT_STATE.md` contains fuller evidence.
+
 ## 2026-11-10 LATEST — SHOT08 TRUE LOCKED-SHOT07 V3 FRAME HANDOFF RENDER-READY IN PRODUCTION
 
 **Director directive:** SHOT07 V3 is visually **LOCKED** and pinned to `b2a335dd-cb71-48f2-bf47-0f8bdcdd969d` in Director Room, historical Remotion SHA `d4fd0701f7298903dad2167e38bb7931edeae6bb`, **2674 frames @1920x1080/30fps**. SHOT01–07 remain immutable. Director requested SHOT08's best possible continuity + ready-to-render, **NOT an actual new paid render**.
