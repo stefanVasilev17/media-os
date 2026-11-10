@@ -10,14 +10,22 @@ export const SHOT08_TERM_ORDER=[
 export type Shot08TermId=typeof SHOT08_TERM_ORDER[number];
 export type Shot08BeatCue={beatNumber:number;spokenAnchor:string;startFrame:number;endFrame:number};
 export type Shot08TermCue={id:Shot08TermId;spokenAnchor:string;startFrame:number;endFrame:number};
+export type LockedShot07Handoff={
+  renderId:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d';
+  sourceCommit:'d4fd0701f7298903dad2167e38bb7931edeae6bb';
+  lastFrame:2673;
+  criticalPulseStartFrame:number;
+  cascadeStartFrame:number;
+};
 export type Shot08SceneProps={
   durationInFrames:number;voiceTakeId:string;
   timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS';
   verifiedCues:Shot08BeatCue[];termCues:Shot08TermCue[];
+  lockedShot07Handoff:LockedShot07Handoff;
 };
 export const SHOT08_TEXT_AREAS={
   title:{left:560,top:76,width:1130,height:120},
-  caption:{left:560,top:875,width:1200,height:78},
+  caption:{left:565,top:875,width:1060,height:69},
   final:{left:560,top:983,width:1220,height:54},
   budget:{left:1120,top:686,width:416,height:142},
   databaseMeter:{left:1573,top:685,width:256,height:143},
@@ -47,6 +55,17 @@ export function validateShot08Source(props:Shot08SceneProps){
     prior=b.endFrame;
   }
   if(prior!==props.durationInFrames)throw Error('SHOT08_BEATS_MUST_SPAN_REAL_AUDIO');
+  const handoff=props.lockedShot07Handoff;
+  if(!handoff
+    ||handoff.renderId!=='b2a335dd-cb71-48f2-bf47-0f8bdcdd969d'
+    ||handoff.sourceCommit!=='d4fd0701f7298903dad2167e38bb7931edeae6bb'
+    ||handoff.lastFrame!==2673
+    ||!Number.isInteger(handoff.criticalPulseStartFrame)
+    ||!Number.isInteger(handoff.cascadeStartFrame)
+    ||handoff.criticalPulseStartFrame<0
+    ||handoff.cascadeStartFrame<=handoff.criticalPulseStartFrame
+    ||handoff.cascadeStartFrame>=2674)
+    throw Error('SHOT08_REQUIRES_IMMUTABLE_SHOT07_V3_ACTUAL_FINAL_FRAME');
   let previous=-1;
   for(let i=0;i<SHOT08_TERM_ORDER.length;i++){
     const t=props.termCues[i];
