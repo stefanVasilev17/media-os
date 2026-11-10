@@ -1,5 +1,15 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 CURRENT — SHOT07 V3 HUMAN DIRECTOR LOCK + EXACT REVIEW ROOM VIDEO PIN LIVE
+
+Director actually viewed the newly rendered V3 video and explicitly said "Много добре! Локваме!!!!", then requested adding it among the other videos in Director Room. **SHOT07 V3 is now Director VISUALLY LOCKED.** The correct immutable real MP4 is Render ID **`b2a335dd-cb71-48f2-bf47-0f8bdcdd969d`**, Worker source SHA **`d4fd0701f7298903dad2167e38bb7931edeae6bb`**, 2674 frames (89.133s), 1920×1080@30 H264/AAC, actual technical QA PASS on 2026-11-10T19:18:34Z followed by Director visual approval later. Prior worker log `VISUAL_DIRECTOR_REVIEW_REQUIRED` was accurate *at render time*; DO NOT treat it as a current user rejection after explicit visual approval.
+
+**PRODUCTION REVIEW ROOM PIN:** [Draft PR #251](https://github.com/stefanVasilev17/media-os/pull/251), Backend source commit **`164793d83b56e57359edf7adc1ad6a33957a6de3`**, successfully deployed Railway Backend **`370a538f-be61-4924-b1dd-600c1bd5887d`** (SHA guard, SUCCESS, Spring Boot and /actuator/health PASS). Only two frontend files changed: `Ep002LockedCutReviewRoom.tsx` + tests. Exact V3 Render ID now hard-pinned after SHOT06 and validated for `READY`, correct composition, FullHD/30, **exact 2674 frames**. SHOT01–07 now marked LOCKED in sequence, SHOT08 remains the unapproved historical REVIEW candidate. Never auto-pin "latest" for SHOT07, substitute old V2 `5f795361...` or original invalid `5ef67a78...`, or skip absent adjoining videos. Correct review URL https://media-os-backend-production.up.railway.app/#/library/EP002.
+
+**Tests/cost:** 19/19 frontend tests, TypeScript and Vite build PASS; backend 500 tests 0 failures/errors 46 skipped, PostgreSQL integration 500 tests 0 failures/errors 1 skipped. **Worker was NOT redeployed**: production Worker SHA remains `d4fd0701f7298903dad2167e38bb7931edeae6bb`, release pin `MEDIAOS_SHOT07_RELEASE_WORKER_SHA` must continue pointing there despite Backend-only frontend commit changing Backend SHA. `MEDIAOS_EP002_SHOT07_CHAT_RENDER_ONCE=false`; no new paid render or ElevenLabs generation. No edits to protected SHOT01–06 assets; protect newly LOCKED SHOT07 as well. Next practical video is SHOT08, still not visually approved.
+
+Read latest `PROJECT_STATE.md` for exact verification evidence and the latest user Director decision.
+
 ## 2026-11-10 LATEST — EP002 SHOT07 V3 SOURCE LIVE; NO NEW PAID RENDER / NO FINAL LOCK
 
 Director requested three narrow V3 corrections after seeing amber badges: text-fitted border instead of fixed long badge; second part after ` · ` in distinct pale off-white while headline remains amber; stronger red User Database pulse commencing **exactly at spoken "Now watch what happens"** from the approved real voice, not later Auth cascading failure cue. **Draft PR [#250](https://github.com/stefanVasilev17/media-os/pull/250)** (stacked on #249), exact code SHA `d4fd0701f7298903dad2167e38bb7931edeae6bb`.
