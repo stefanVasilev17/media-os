@@ -77,6 +77,45 @@ public final class Ep002Shot07TermResolver {
         }
     }
 
+    public static int resolveCriticalPulseStartFrame(
+            ObjectMapper mapper,String rawAlignment,BigDecimal duration,
+            TermCue retryStorm,TermCue cascadingFailure) {
+        if(mapper==null||rawAlignment==null||rawAlignment.isBlank()
+                ||duration==null||duration.signum()<=0||retryStorm==null
+                ||cascadingFailure==null
+                ||!"RETRY_STORM".equals(retryStorm.id())
+                ||!"CASCADING_FAILURE".equals(cascadingFailure.id()))
+            throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_REAL_ALIGNMENT_REQUIRED");
+        try {
+            JsonNode root=mapper.readTree(rawAlignment);
+            JsonNode alignment=root.path("normalized_alignment");
+            if(!valid(alignment))alignment=root.path("alignment");
+            if(!valid(alignment))
+                throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_ALIGNMENT_MISSING");
+            Speech speech=map(alignment);
+            String phrase=normalize("Now watch what happens");
+            int found=nextWholePhrase(speech.normalized(),phrase,0);
+            if(found<0||nextWholePhrase(speech.normalized(),phrase,found+phrase.length())>=0)
+                throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_PHRASE_MISSING_OR_AMBIGUOUS");
+            double start=speech.start().get(found);
+            double end=speech.end().get(found+phrase.length()-1);
+            int totalFrames=(int)Math.ceil(duration.doubleValue()*30d);
+            if(!Double.isFinite(start)||!Double.isFinite(end)
+                    ||start<0||end<=start||end>duration.doubleValue()+.25)
+                throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_AUDIO_TIME_INVALID");
+            int first=(int)Math.floor(start*30d);
+            int last=(int)Math.ceil(end*30d);
+            if(first<retryStorm.endFrame()||last>cascadingFailure.startFrame()
+                    ||first>=last||last>totalFrames)
+                throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_MUST_BE_BETWEEN_STORM_AND_CASCADE");
+            return first;
+        }catch(IllegalArgumentException invalid) {
+            throw invalid;
+        }catch(Exception invalid) {
+            throw new IllegalArgumentException("SHOT07_CRITICAL_PULSE_ALIGNMENT_UNREADABLE",invalid);
+        }
+    }
+
     private static int nextWholePhrase(String text,String phrase,int cursor) {
         int found=text.indexOf(phrase,cursor);
         while(found>=0){
