@@ -29,6 +29,7 @@ export type CleanArchitectureProps={
   replicaGrowth:number;
   dbStress:number;
   cascadeStartFrame:number;
+  criticalPulseStartFrame?:number;
   showPhone:number;
   showPools:number;
   showLoginBadge?:number;
@@ -39,15 +40,18 @@ export type CleanArchitectureProps={
 };
 
 export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
-  frame,replicaGrowth,dbStress,cascadeStartFrame,showPhone,showPools,
-  showLoginBadge=0,showRetryAttempts=0,initialPressure=false,
+  frame,replicaGrowth,dbStress,cascadeStartFrame,criticalPulseStartFrame=-1,
+  showPhone,showPools,showLoginBadge=0,showRetryAttempts=0,initialPressure=false,
   flowRetryLevel=1,flowJitterLevel=0,
 })=>{
   const growth=clamp(replicaGrowth);
-  const dbWave=cascadeStartFrame>=0
-    ?shot07Ease(frame,cascadeStartFrame,32)*(.5+.5*Math.sin((frame-cascadeStartFrame)*.13)**2)
-    :initialPressure ? .33 : 0;
-  const dbGlow=.12+.36*clamp(dbStress)+.27*dbWave;
+  const dbPulseStart=criticalPulseStartFrame>=0
+    ?criticalPulseStartFrame:cascadeStartFrame;
+  const dbPulseAge=Math.max(0,frame-dbPulseStart);
+  const dbWave=dbPulseStart>=0
+    ?shot07Ease(frame,dbPulseStart,14)*(.42+.58*Math.sin(dbPulseAge*.088)**2)
+    :initialPressure?.33:0;
+  const dbGlow=.12+.36*clamp(dbStress)+.46*dbWave;
   const replicas=['AUTH 01','AUTH 02','AUTH 03','AUTH 04','AUTH 05','AUTH 06'];
   return <AbsoluteFill style={{pointerEvents:'none'}}>
     <ATControlledRealismLayer frame={frame+2400} realism={.85} architectureReveal={.96}/>
@@ -123,15 +127,18 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
       })}
     </div>
     <div style={{...node('database'),...box(RED,
-      'rgba(243,91,77,'+dbGlow.toFixed(3)+')'),borderWidth:3,zIndex:10,
-      fontFamily:AT_FONT,
-      transform:'scale('+(1+.012*dbWave)+')',
+      'rgba(243,91,77,'+dbGlow.toFixed(3)+')'),
+      borderWidth:3+2*dbWave,zIndex:10,fontFamily:AT_FONT,
+      boxShadow:'0 0 '+(24+32*dbWave)+'px rgba(243,91,77,'+dbGlow.toFixed(3)+
+        '),0 0 '+(12+35*dbWave)+'px rgba(255,126,76,'+
+        (.10+.24*dbWave).toFixed(3)+'),inset 0 1px 0 rgba(255,255,255,.09)',
+      transform:'scale('+(1+.018*dbWave)+')',
       background:'linear-gradient(150deg,rgba(9,26,44,.99),rgba(57,24,31,.99))'}}>
       <div style={{marginTop:24,textAlign:'center',fontWeight:880,
         fontSize:26,color:WHITE}}>User Database</div>
       <svg width="90" height="91" viewBox="0 0 90 90"
         style={{display:'block',margin:'18px auto 0',overflow:'visible',
-          filter:'drop-shadow(0 0 '+(7+14*dbWave)+'px '+RED+')'}}>
+          filter:'drop-shadow(0 0 '+(7+25*dbWave)+'px '+RED+')'}}>
         <ellipse cx="45" cy="17" rx="29" ry="11" fill="none" stroke={RED} strokeWidth="4"/>
         <path d="M16 17V65Q45 83 74 65V17M16 40Q45 58 74 40"
           fill="none" stroke={RED} strokeWidth="4"/>
