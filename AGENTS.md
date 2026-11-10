@@ -1,5 +1,11 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-10 LATEST Director-requested SHOT07 amber text borders — code prepared, NOT live/LOCKED
+
+Director responded to the actual SHOT07 video with a narrow visual correction: wrap the five orange timed spoken-term captions in a contrasting border so they are easier to notice. **Draft PR [#249](https://github.com/stefanVasilev17/media-os/pull/249)**, stacked on #248, changes only the SHOT07 `OrangeCue` React layer (2px amber border, dark navy rounded panel, subtle amber glow, 23px horizontal padding) plus a regression contract. Position x=565/y=875, 1060x69 box, original five messages and voice timings are unchanged. This code is **NOT deployed**; new Node tests / rendered frames NOT executed. Do not claim current production MP4 contains this style, and do not alter protected SHOT01–06 or SHOT08.
+
+The prior V2 MP4 `5f795361-b1f6-4d9f-90b3-e53dcea9a733` was technically **SUCCEEDED** on 2026-11-10T15:52:54Z, H.264/AAC 1920x1080@30, 89.133s; human requested the border AFTER this render. Its final visual LOCK is **not confirmed** and archived MP4 must not be rewritten. User feedback authorizes editing source, not silently spending another CPU render. Next require separate explicit consent for one more paid render, then update source-pinned Worker + Backend source SHA / render preflight, run tests, produce single revised MP4 with same selected approved Take and verified HEAR→SEE, QA and present to Director before any LOCK. Read latest `PROJECT_STATE.md`.
+
 ## 2026-11-10 ACTIVE SHOT07 V2 RENDERING — do not duplicate or prematurely LOCK (LATEST)
 
 **Real authorized paid CPU job is RUNNING.** Director performed an authentic new 5-beat HEAR→SEE confirmation at 2026-11-10T15:34:51Z, then clicked paid SHOT07 render at 15:35:07Z; both POST requests HTTP200. Old Worker did not claim the job despite `claimsEnabled=true`. Staged then deployed *only* one new Worker variable `MEDIA_OS_REMOTION_TARGET_COMPOSITION=EP002-SHOT07-CANDIDATE` without an additional render POST, new audio generation or touching original LOCKED SHOT01–06. The prior target variable was **absent**, not verified to have been set to SHOT08, so do not claim source root cause without more evidence.
