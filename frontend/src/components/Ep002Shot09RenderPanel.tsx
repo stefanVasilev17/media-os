@@ -8,7 +8,7 @@ type Readiness={
 };
 type Capability={
   enabled:boolean;workerPinned:boolean;canQueue:boolean;
-  lockedShot07BoundaryReady?:boolean;reason?:string;
+  lockedShot08BoundaryReady?:boolean;reason?:string;
 };
 type RenderStatus={
   status:string;renderId?:string;progress?:number;error?:string|null;
@@ -111,7 +111,7 @@ export function Ep002Shot09RenderPanel(){
     aria-label="EP002 SHOT09 Tier++ verified audio render">
     <div className="library-episode-batch-heading">
       <div>
-        <h2><Clapperboard size={21}/> SHOT09 — Stop the Retry Storm · Director Render</h2>
+        <h2><Clapperboard size={21}/> SHOT09 — Protect the Shared Database · Director Render</h2>
         <p>The LOCKED SHOT08 final world frame continues without restarting
           the Phone, Gateway, Balancer, three Auth services, shared Database,
           or moving request packets. Seven HEAR → SEE beats and twenty-one
@@ -130,7 +130,7 @@ export function Ep002Shot09RenderPanel(){
         readiness?.reason??'CHECKING'}. Pinned Worker:
       {' '}{capability?.canQueue?'READY FOR DIRECTOR REVIEW RENDER':'RELEASE OR VOICE NOT READY'}.
       {' '}Locked SHOT08 final-frame seam:
-      {' '}{capability?.lockedShot07BoundaryReady?'VERIFIED EXACT MP4 HANDOFF':
+      {' '}{capability?.lockedShot08BoundaryReady?'VERIFIED EXACT MP4 HANDOFF':
         capability?.reason??'NOT VERIFIED'}.
       {' '}Voice duration: {readiness?.durationInFrames
         ?(readiness.durationInFrames/30).toFixed(2)+'s':'NOT CONFIRMED'}.
