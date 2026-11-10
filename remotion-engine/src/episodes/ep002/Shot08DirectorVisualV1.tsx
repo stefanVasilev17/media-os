@@ -3,6 +3,7 @@ import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {Shot07CleanArchitectureWorld} from './Shot07CleanArchitectureWorld';
 import {SHOT02_NODES} from './Shot02PremiumLayout';
+import {SHOT02_AUTH_REPLICA_PORTS} from './Shot02PressureVisuals';
 import {shot08Ease,assertShot08SafeLayout,validateShot08Source,
   type Shot08SceneProps,type Shot08TermId} from './Shot08VisualContract';
 
@@ -22,9 +23,9 @@ const OrangeCue:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   const events=[
     {at:cue.AFTER_STORM,label:'THE RETRY STORM',detail:'THE SHARED DATABASE IS STILL OVERLOADED'},
     {at:cue.DEADLINE_CHECK,label:'CHECK THE LOGIN DEADLINE',detail:'STOP WHEN THERE IS NO USEFUL TIME'},
-    {at:cue.SHARED_BUDGET,label:'ONE SHARED RETRY BUDGET',detail:'ONLY SAFE READ-ONLY LOOKUP RETRIES'},
-    {at:cue.JITTER,label:'BACKOFF + JITTER',detail:'AUTH RETRIES DO NOT ARRIVE TOGETHER'},
-    {at:cue.FEWER_ATTEMPTS,label:'FEWER DUPLICATE DATABASE LOOKUPS',detail:'LESS SELF-INFLICTED WORK'},
+    {at:cue.SHARED_BUDGET,label:'SET A RETRY LIMIT',detail:'STOP WHEN THE BUDGET RUNS OUT'},
+    {at:cue.JITTER,label:'SPREAD OUT RETRIES',detail:'DO NOT HIT THE DATABASE AT ONCE'},
+    {at:cue.FEWER_ATTEMPTS,label:'FEWER DUPLICATE DB READS',detail:'LESS EXTRA WORK FOR THE DATABASE'},
   ];
   const index=events.reduce((last,event,i)=>frame>=event.at?i:last,-1);
   if(index<0)return null;
@@ -148,11 +149,13 @@ const AuthFocus:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame
       const glow=all*(.44+.56*Math.sin(Math.max(0,frame-cue.THREE_AUTH)*.10-i*1.25)**2)
         +focus*(i===0?1:.08)+stagger*(.48+.52*Math.sin(frame*.075-i*1.6)**2);
       return <div key={i} style={{
-        position:'absolute',left:card.x-card.width/2+35,top:card.y+69+i*87,
-        width:278,height:82,borderRadius:12,
-        border:'2px solid '+(focus>.4&&i===0?ORANGE:CYAN),
-        boxShadow:'0 0 '+(8+18*glow)+'px rgba(90,217,252,'+(glow*.34)+')',
-        opacity:clamp(glow*.86),
+        position:'absolute',
+        left:card.x-card.width/2+40,top:SHOT02_AUTH_REPLICA_PORTS[i].y-35,
+        width:268,height:71,borderRadius:11,boxSizing:'border-box',
+        border:'2px solid '+ORANGE,
+        boxShadow:'0 0 '+(8+19*glow)+'px rgba(245,165,90,'+
+          Math.min(.42,glow*.3).toFixed(3)+')',
+        opacity:clamp(glow*.78),
       }}/>;
     })}
     {focus>.04&&<div style={{position:'absolute',left:1157,top:216,

@@ -74,18 +74,56 @@ test('SHOT07→08 keeps original phone and 3 Auth / 1 DB diagram with cinematic 
 test('SHOT08 visualizes deadline, shared budget, backoff, jitter and honest DB result locally',()=>{
   for(const token of ['BudgetMeter','BackoffMeter','DBReadout','AuthFocus',
     'DEADLINE CHECK','SHARED RETRY BUDGET','BACKOFF','JITTER',
-    'CAPACITY · UNCHANGED','FEWER DUPLICATE DATABASE LOOKUPS'])
+    'CAPACITY · UNCHANGED','FEWER DUPLICATE DB READS'])
     assert.ok(scene.includes(token),token);
   assert.doesNotMatch(scene,/NewAttemptPath|NEW LOGIN ARRIVALS CARD|More Servers, Same Bottleneck/);
   assert.match(scene,/flowRetryLevel=\{boundedRetries\}/);
   assert.match(scene,/flowJitterLevel=\{staggered\}/);
   assert.match(world,/Shot07RequestFlows/);
-  assert.match(scene,/at:cue\.JITTER,label:'BACKOFF \+ JITTER'/);
+  assert.match(scene,/at:cue\.JITTER,label:'SPREAD OUT RETRIES'/);
+  for(const [cue,label,detail] of [
+    ['SHARED_BUDGET','SET A RETRY LIMIT','STOP WHEN THE BUDGET RUNS OUT'],
+    ['JITTER','SPREAD OUT RETRIES','DO NOT HIT THE DATABASE AT ONCE'],
+    ['FEWER_ATTEMPTS','FEWER DUPLICATE DB READS','LESS EXTRA WORK FOR THE DATABASE'],
+  ]) {
+    assert.ok(scene.includes("at:cue."+cue+",label:'"+label+"',detail:'"+detail+"'"),
+      'Unambiguous, audience-friendly spoken cue '+cue);
+  }
   assert.match(scene,/width:'max-content',maxWidth:1060,height:69/);
   assert.match(scene,/border:'2px solid rgba\(245,165,90,.92\)'/);
   assert.match(scene,/color:'#F5F8ED'/);
   assert.match(world,/recoveryLevel=0/);
   assert.equal((scene.match(/\{at:cue\./g)||[]).length,5);
+});
+
+test('Auth highlight uses exact positions and size of the existing amber card, no offset blue boxes',()=>{
+  const ports=src('Shot02PressureVisuals.ts');
+  const nodes=src('Shot02PremiumLayout.ts');
+  assert.match(ports,/\{id:'AUTH 01',y:412\}/);
+  assert.match(ports,/\{id:'AUTH 02',y:498\}/);
+  assert.match(ports,/\{id:'AUTH 03',y:584\}/);
+  assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(world,/const y=SHOT02_AUTH_REPLICA_PORTS\[row\]\.y-SHOT02_NODES\.auth\.y-35/);
+  assert.match(world,/const oldLeft=40,smallLeft=11/);
+  assert.match(world,/const width=entering\?158:268-110\*growth/);
+  assert.match(world,/position:'absolute',left,top:y,width,height:71/);
+  assert.match(scene,/import \{SHOT02_AUTH_REPLICA_PORTS\} from '\.\/Shot02PressureVisuals'/);
+  assert.match(scene,/left:card\.x-card\.width\/2\+40,top:SHOT02_AUTH_REPLICA_PORTS\[i\]\.y-35/);
+  assert.match(scene,/width:268,height:71,borderRadius:11,boxSizing:'border-box'/);
+  assert.match(scene,/border:'2px solid '\+ORANGE/);
+  assert.match(scene,/rgba\(245,165,90,/);
+  assert.doesNotMatch(scene,/top:card\.y\+69\+i\*87/);
+  assert.doesNotMatch(scene,/width:278,height:82/);
+  assert.doesNotMatch(scene,/focus>\.4&&i===0\?ORANGE:CYAN/);
+  const expected=[
+    {left:1191,top:377,width:268,height:71},
+    {left:1191,top:463,width:268,height:71},
+    {left:1191,top:549,width:268,height:71},
+  ];
+  const actual=[412,498,584].map(y=>({
+    left:1326-350/2+40,top:y-35,width:268,height:71,
+  }));
+  assert.deepEqual(actual,expected);
 });
 
 test('worker preflight accepts source-pinned honest real voice and refuses mismatches',()=>{

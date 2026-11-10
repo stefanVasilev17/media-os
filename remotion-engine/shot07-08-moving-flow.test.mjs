@@ -40,8 +40,13 @@ test('normal inbound requests stay moving while duplicate DB lookup retries fade
 test('SHOT08 uses five audio-anchored readable chapter captions not sixteen flashing strings',()=>{
   assert.equal((s08.match(/\{at:cue\./g)||[]).length,5);
   for(const t of ['THE RETRY STORM','CHECK THE LOGIN DEADLINE',
-    'ONE SHARED RETRY BUDGET','BACKOFF + JITTER',
-    'FEWER DUPLICATE DATABASE LOOKUPS'])assert.ok(s08.includes(t),t);
+    'SET A RETRY LIMIT','STOP WHEN THE BUDGET RUNS OUT',
+    'SPREAD OUT RETRIES','DO NOT HIT THE DATABASE AT ONCE',
+    'FEWER DUPLICATE DB READS','LESS EXTRA WORK FOR THE DATABASE'])
+    assert.ok(s08.includes(t),t);
+  for(const obsolete of ['ONLY SAFE READ-ONLY LOOKUP RETRIES',
+    'AUTH RETRIES DO NOT ARRIVE TOGETHER','LESS SELF-INFLICTED WORK'])
+    assert.ok(!s08.includes(obsolete),'Vague old caption: '+obsolete);
   assert.match(s08,/shot08Ease\(frame,event\.at,27\)/);
   assert.doesNotMatch(s08,/DUPLICATE LOOKUPS ADD WORK|NEW LOGIN ARRIVALS STILL NEED CONTROL/);
 });
