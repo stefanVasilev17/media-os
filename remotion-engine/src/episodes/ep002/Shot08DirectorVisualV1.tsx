@@ -20,11 +20,11 @@ const shell=(accent:string)=>({
 const OrangeCue:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   duration:number}>=({frame,cue,duration})=>{
   const events=[
-    {at:cue.AFTER_STORM,text:'THE RETRY STORM'},
-    {at:cue.DEADLINE_CHECK,text:'CHECK THE LOGIN DEADLINE'},
-    {at:cue.SHARED_BUDGET,text:'ONE SHARED RETRY BUDGET'},
-    {at:cue.JITTER,text:'BACKOFF + JITTER'},
-    {at:cue.FEWER_ATTEMPTS,text:'FEWER DUPLICATE DATABASE LOOKUPS'},
+    {at:cue.AFTER_STORM,label:'THE RETRY STORM',detail:'THE SHARED DATABASE IS STILL OVERLOADED'},
+    {at:cue.DEADLINE_CHECK,label:'CHECK THE LOGIN DEADLINE',detail:'STOP WHEN THERE IS NO USEFUL TIME'},
+    {at:cue.SHARED_BUDGET,label:'ONE SHARED RETRY BUDGET',detail:'ONLY SAFE READ-ONLY LOOKUP RETRIES'},
+    {at:cue.JITTER,label:'BACKOFF + JITTER',detail:'AUTH RETRIES DO NOT ARRIVE TOGETHER'},
+    {at:cue.FEWER_ATTEMPTS,label:'FEWER DUPLICATE DATABASE LOOKUPS',detail:'LESS SELF-INFLICTED WORK'},
   ];
   const index=events.reduce((last,event,i)=>frame>=event.at?i:last,-1);
   if(index<0)return null;
@@ -32,12 +32,22 @@ const OrangeCue:React.FC<{frame:number;cue:Record<Shot08TermId,number>;
   const enter=shot08Ease(frame,event.at,27);
   const leave=1-shot08Ease(frame,Math.max(event.at+100,next-36),32);
   return <div style={{
-    position:'absolute',left:560,top:883,width:1190,height:75,
+    position:'absolute',left:565,top:875,
+    width:'max-content',maxWidth:1060,height:69,
     zIndex:26,pointerEvents:'none',fontFamily:AT_FONT,
-    fontSize:27,fontWeight:855,letterSpacing:'.012em',
-    color:ORANGE,textShadow:'0 0 16px rgba(245,165,90,.2)',
+    display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',
+    padding:'0 19px',boxSizing:'border-box',
+    border:'2px solid rgba(245,165,90,.92)',borderRadius:13,
+    background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))',
+    boxShadow:'0 0 19px rgba(245,165,90,.19),inset 0 0 0 1px rgba(245,165,90,.10)',
+    fontSize:24,fontWeight:860,letterSpacing:'.012em',
+    textShadow:'0 0 18px rgba(245,165,90,.26)',
     opacity:enter*leave,transform:'translateY('+((1-enter)*6)+'px)',
-  }}>{event.text}</div>;
+  }}>
+    <span style={{color:ORANGE}}>{event.label}</span>
+    <span style={{color:'#C4D7E4'}}> · </span>
+    <span style={{color:'#F5F8ED'}}>{event.detail}</span>
+  </div>;
 };
 
 const BudgetMeter:React.FC<{frame:number;cue:Record<Shot08TermId,number>}>=({frame,cue})=>{
@@ -163,36 +173,39 @@ export const Shot08DirectorVisualV1:React.FC<Shot08SceneProps>=(props)=>{
     throw Error('SHOT08_REQUIRES_REAL_1080P_30FPS_SELECTED_TAKE');
   const {positions:cue}=validateShot08Source(props);
   assertShot08SafeLayout();
-  const titleChange=shot08Ease(frame,28,65);
+  const handoff=props.lockedShot07Handoff;
+  const worldFrame=handoff.lastFrame+frame;
+  const titleChange=shot08Ease(frame,Math.max(36,cue.CONTROL_FIRST-24),65);
   const stressReduction=shot08Ease(frame,cue.FEWER_ATTEMPTS,100);
   const gentlePush=shot08Ease(frame,cue.WATCH_DB,130);
-  const showBadge=1-shot08Ease(frame,32,66);
+  const showBadge=1-shot08Ease(frame,cue.AUTH01,32);
   const endMessage=shot08Ease(frame,cue.STORM_CONTAINED,34);
   const boundedRetries=1-.84*shot08Ease(frame,cue.BUDGET_EXHAUSTED,120);
   const staggered=shot08Ease(frame,cue.JITTER,75);
   return <ATBackground>
     <AbsoluteFill style={{transform:'translate3d('+(-7*gentlePush)+'px,0,0) scale('+
       (1+.007*gentlePush)+')',transformOrigin:'50% 50%'}}>
-      <Shot07CleanArchitectureWorld frame={frame}
+      <Shot07CleanArchitectureWorld frame={worldFrame}
         replicaGrowth={0} dbStress={1-.18*stressReduction}
-        cascadeStartFrame={-1} showPhone={1} showPools={0}
+        cascadeStartFrame={handoff.cascadeStartFrame}
+        criticalPulseStartFrame={handoff.criticalPulseStartFrame}
+        recoveryLevel={stressReduction}
+        showPhone={1} showPools={0}
         initialPressure showLoginBadge={showBadge}
         showRetryAttempts={showBadge}
         flowRetryLevel={boundedRetries}
         flowJitterLevel={staggered}/>
     </AbsoluteFill>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:22}}>
-      <div style={{position:'absolute',left:560,top:76,width:1130,
-        height:120,fontFamily:AT_FONT,zIndex:25}}>
-        <div style={{fontSize:39,fontWeight:890,color:WHITE,
+      <div style={{position:'absolute',left:560,top:78,
+        fontFamily:AT_FONT,color:WHITE,zIndex:25}}>
+        <div style={{fontSize:39,fontWeight:890,letterSpacing:'-.02em',
           opacity:1-titleChange}}>WHEN RETRYING CREATES MORE FAILURE</div>
         <div style={{position:'absolute',left:0,top:0,
-          fontSize:39,fontWeight:890,color:WHITE,opacity:titleChange}}>
-          STOP THE RETRY STORM
-        </div>
-        <div style={{position:'absolute',left:0,top:72,
-          width:700,height:2,background:'linear-gradient(90deg,'+MINT+',transparent)',
-          opacity:.88}}/>
+          fontSize:39,fontWeight:890,letterSpacing:'-.02em',
+          opacity:titleChange}}>STOP THE RETRY STORM</div>
+        <div style={{marginTop:15,width:690,height:2,
+          background:'linear-gradient(90deg,#6FECD4,transparent)'}}/>
       </div>
       <AuthFocus frame={frame} cue={cue}/>
       <BudgetMeter frame={frame} cue={cue}/>

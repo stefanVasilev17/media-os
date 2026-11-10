@@ -84,6 +84,12 @@ export const Root: React.FC = () => {
           timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS' as const,
           verifiedCues:[],
           termCues:[],
+          lockedShot07Handoff:{
+            renderId:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
+            sourceCommit:'d4fd0701f7298903dad2167e38bb7931edeae6bb',
+            lastFrame:2673,
+            criticalPulseStartFrame:0,cascadeStartFrame:1,
+          },
         }}
       />
       <Composition

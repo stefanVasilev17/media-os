@@ -30,6 +30,7 @@ export type CleanArchitectureProps={
   dbStress:number;
   cascadeStartFrame:number;
   criticalPulseStartFrame?:number;
+  recoveryLevel?:number;
   showPhone:number;
   showPools:number;
   showLoginBadge?:number;
@@ -41,15 +42,18 @@ export type CleanArchitectureProps={
 
 export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   frame,replicaGrowth,dbStress,cascadeStartFrame,criticalPulseStartFrame=-1,
-  showPhone,showPools,showLoginBadge=0,showRetryAttempts=0,initialPressure=false,
+  recoveryLevel=0,showPhone,showPools,showLoginBadge=0,
+  showRetryAttempts=0,initialPressure=false,
   flowRetryLevel=1,flowJitterLevel=0,
 })=>{
   const growth=clamp(replicaGrowth);
+  const recovery=clamp(recoveryLevel);
   const dbPulseStart=criticalPulseStartFrame>=0
     ?criticalPulseStartFrame:cascadeStartFrame;
   const dbPulseAge=Math.max(0,frame-dbPulseStart);
   const dbWave=dbPulseStart>=0
     ?shot07Ease(frame,dbPulseStart,14)*(.42+.58*Math.sin(dbPulseAge*.088)**2)
+        *(1-.72*recovery)
     :initialPressure?.33:0;
   const dbGlow=.12+.36*clamp(dbStress)+.46*dbWave;
   const replicas=['AUTH 01','AUTH 02','AUTH 03','AUTH 04','AUTH 05','AUTH 06'];
@@ -99,7 +103,8 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
         const width=entering?158:268-110*growth;
         const surge=cascadeStartFrame<0?0:
           shot07Ease(frame,cascadeStartFrame+44+row*24,18);
-        const wave=surge*(.55+.45*Math.sin(Math.max(0,frame-cascadeStartFrame-row*24)*.14)**2);
+        const wave=surge*(.55+.45*Math.sin(Math.max(0,frame-cascadeStartFrame-row*24)*.14)**2)
+          *(1-.72*recovery);
         return <div key={label} style={{
           position:'absolute',left,top:y,width,height:71,
           boxSizing:'border-box',display:'flex',flexDirection:'column',
