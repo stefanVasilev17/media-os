@@ -1,6 +1,6 @@
-import {describe,expect,it} from 'vitest';
+import {describe,expect,it,vi} from 'vitest';
 import {LOCKED_CUT_SHOT_ORDER,DIRECTOR_REVIEW_BOUNDARIES,
-  actualShotOrderIsContinuous,cutDuration,locateCutTime}
+  actualShotOrderIsContinuous,cutDuration,locateCutTime,loadLockedCut}
   from './Ep002LockedCutReviewRoom';
 
 const shots=[
@@ -57,5 +57,73 @@ describe('EP002 Director locked cut review',()=>{
     const final=locateCutTime(shots,cutDuration(shots)+100);
     expect(final.index).toBe(4);
     expect(final.localSeconds).toBeCloseTo(2780/30,5);
+  });
+});
+
+describe('EP002 real stored MP4 continuity discovery',()=>{
+  it('joins pinned SHOT05 and latest completed SHOT06/07/08 references without a new render',async()=>{
+    const ids:Record<string,string>={
+      SHOT01:'00000000-0000-4000-8000-000000000001',
+      SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
+      SHOT03:'6e8ea02e-1de1-440b-9e2a-dc23d07c466c',
+      SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
+      SHOT05:'b2b95685-8e1b-41df-9fe2-c83eefbf86e9',
+      SHOT06:'00000000-0000-4000-8000-000000000006',
+      SHOT07:'00000000-0000-4000-8000-000000000007',
+      SHOT08:'00000000-0000-4000-8000-000000000008',
+    };
+    const lookup=Object.fromEntries(Object.entries(ids).map(([shot,id])=>[id,shot]));
+    const mock=vi.fn(async(url:string)=>{
+      let result:unknown={status:'EMPTY'};
+      if(url.endsWith('/SHOT01/render-preview'))result={status:'SUCCEEDED',renderId:ids.SHOT01};
+      else if(url.includes('/latest-successful?profile=REVIEW')){
+        const shot=url.match(/EP002-(SHOT0[678])-CANDIDATE/)?.[1];
+        if(shot)result={renderId:ids[shot],status:'READY',
+          compositionId:'EP002-'+shot+'-CANDIDATE',
+          width:1920,height:1080,fps:30,durationInFrames:2314,
+          videoUrl:'/api/v1/remotion/renders/'+ids[shot]+'/video'};
+      }else{
+        const id=url.split('/').pop()!;
+        const shot=lookup[id];
+        if(shot)result={renderId:id,compositionId:shot==='SHOT01'
+          ?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
+          status:'READY',width:1920,height:1080,fps:30,
+          durationInFrames:2000,
+          videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
+      }
+      return new Response(JSON.stringify(result),{
+        status:200,headers:{'Content-Type':'application/json'},
+      });
+    });
+    vi.stubGlobal('fetch',mock);
+    try{
+      const result=await loadLockedCut();
+      expect(result.missing).toEqual([]);
+      expect(result.shots.map(s=>s.shotKey)).toEqual(LOCKED_CUT_SHOT_ORDER);
+      expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
+      expect(result.shots.slice(5).every(s=>s.source==='LIVE_DIRECTOR_REVIEW_CANDIDATE'))
+        .toBe(true);
+      expect(result.shots[7].durationSeconds).toBeCloseTo(2314/30,5);
+      expect(mock.mock.calls.some(([url])=>url.includes('/latest-successful?profile=REVIEW')))
+        .toBe(true);
+      expect(mock.mock.calls.some(([url])=>url.includes('render-preview/SHOT08')))
+        .toBe(false);
+    }finally{vi.unstubAllGlobals();}
+  });
+
+  it('does not claim a missing SHOT06 is a seamless 05→07 cut',async()=>{
+    const calls:Record<string,number>={};
+    vi.stubGlobal('fetch',async(url:string)=>{
+      calls[url]=(calls[url]??0)+1;
+      return new Response(JSON.stringify({status:'EMPTY'}),{
+        status:200,headers:{'Content-Type':'application/json'},
+      });
+    });
+    try{
+      const result=await loadLockedCut();
+      expect(result.shots).toEqual([]);
+      expect(result.missing.some(s=>s.startsWith('SHOT06:'))).toBe(true);
+      expect(actualShotOrderIsContinuous('SHOT05','SHOT07')).toBe(false);
+    }finally{vi.unstubAllGlobals();}
   });
 });
