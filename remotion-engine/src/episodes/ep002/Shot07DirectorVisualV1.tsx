@@ -106,6 +106,10 @@ const OrangeCue:React.FC<{frame:number;cue:Record<Shot07TermId,number>;
   const outMotion=1-shot07Ease(frame,Math.min(nextAt-26,duration-54),23);
   return <div style={{position:'absolute',left:565,top:875,
     width:1060,height:69,zIndex:23,pointerEvents:'none',
+    display:'flex',alignItems:'center',padding:'0 23px',boxSizing:'border-box',
+    border:'2px solid rgba(245,165,90,.92)',borderRadius:13,
+    background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))',
+    boxShadow:'0 0 19px rgba(245,165,90,.19),inset 0 0 0 1px rgba(245,165,90,.10)',
     fontFamily:AT_FONT,fontSize:25,fontWeight:860,letterSpacing:'.025em',
     color:AMBER,textShadow:'0 0 18px rgba(245,165,90,.26)',
     opacity:inMotion*outMotion,
