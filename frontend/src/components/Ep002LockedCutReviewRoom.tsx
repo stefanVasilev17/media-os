@@ -44,6 +44,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT09',title:'Protect the Shared Database — Director LOCK',
     renderId:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
     compositionId:'EP002-SHOT09-CANDIDATE',durationInFrames:3063},
+  {shotKey:'SHOT10',title:'Prove the Recovery — Director LOCK',
+    renderId:'2034d8c6-99b2-46a5-9469-bf3df325d6c0',
+    compositionId:'EP002-SHOT10-CANDIDATE',durationInFrames:2360},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
@@ -54,6 +57,7 @@ export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
   {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
   {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
   {from:'SHOT08',to:'SHOT09',label:'Review 08 → 09'},
+  {from:'SHOT09',to:'SHOT10',label:'Review 09 → 10'},
 ]);
 export function actualShotOrderIsContinuous(previous:string,next:string):boolean{
   const a=Number(previous.slice(4)),b=Number(next.slice(4));
@@ -238,9 +242,9 @@ export function Ep002LockedCutReviewRoom(){
   return <section id="ep002-locked-cut" className="library-section"
     aria-label="EP002 director review room continuous video comparison">
     <div className="library-section-title">
-      <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
+      <Film size={20}/><h2>Director Review Room — SHOT01–10 continuity</h2>
     </div>
-    <p>Watch the Director-locked SHOT01–09 videos in their original order,
+    <p>Watch the Director-locked SHOT01–10 videos in their original order,
       including the exact approved SHOT07 V3, SHOT08 and SHOT09 MP4s. All are
       pinned to their final Director-approved render IDs. This room starts
       no paid TTS, CPU render or export.</p>
@@ -348,7 +352,11 @@ export function Ep002LockedCutReviewRoom(){
         b2a335dd-cb71-48f2-bf47-0f8bdcdd969d (2674 frames, 1920×1080, 30 fps).
         SHOT08 is pinned to its Director-approved final render
         3415073a-5906-489d-bb69-6af7446c2c9b (2314 frames, 1920×1080, 30 fps).
-        Earlier SHOT07 and SHOT08 renders are never substituted.
+        SHOT09 is pinned to d4b6c8ff-10c5-4181-aa59-fcd16a4470ba
+        (3063 frames). SHOT10 is pinned to its human-approved final render
+        2034d8c6-99b2-46a5-9469-bf3df325d6c0
+        (2360 frames, source a4d9fe5d1dcec033f36ce68a190160fd8077faea).
+        Earlier SHOT07–SHOT10 renders are never substituted.
         The boundary shortcuts start eight seconds before each cut. The player
         switches between original stored MP4s; it is not a frame-perfect
         exported master and may briefly buffer at a boundary.

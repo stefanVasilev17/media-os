@@ -65,7 +65,7 @@ test('SHOT08 worker voice read accepts source-verified automatic cues, never byp
   const cpuController=worker('RemotionCpuWorkerController.java');
   assert.match(cpuController,/and r\.status='RUNNING' and r\.worker_id=:worker/);
   assert.match(cpuController,/and t\.revision=\(/);
-  assert.match(cpuController,/and \(r\.composition_id in \('EP002-SHOT08-CANDIDATE',\s*'EP002-SHOT09-CANDIDATE',\s*'EP002-SHOT10-CANDIDATE'\)\s+or exists\(/);
+  assert.match(cpuController,/and \(r\.composition_id in \('EP002-SHOT08-CANDIDATE',\s*'EP002-SHOT09-CANDIDATE',\s*'EP002-SHOT10-CANDIDATE',\s*'EP002-SHOT11-CANDIDATE'\)\s+or exists\(/);
   assert.match(cpuController,/review\.selected_take_id=t\.id/);
   assert.match(cpuController,/ep002Cues\.matchesCurrentShot08Render\(/);
   assert.match(cpuController,/r\.input_props->>'expectedSourceCommit'=:sourceSha/);

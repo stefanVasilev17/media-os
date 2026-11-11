@@ -14,7 +14,7 @@ const shots=[
 describe('EP002 Director locked cut review',()=>{
   it('keeps the immutable approved SHOT sequence',()=>{
     expect(LOCKED_CUT_SHOT_ORDER).toEqual([
-      'SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09',
+      'SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09','SHOT10',
     ]);
   });
 
@@ -24,11 +24,13 @@ describe('EP002 Director locked cut review',()=>{
       {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
       {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
       {from:'SHOT08',to:'SHOT09',label:'Review 08 → 09'},
+      {from:'SHOT09',to:'SHOT10',label:'Review 09 → 10'},
     ]);
     expect(actualShotOrderIsContinuous('SHOT05','SHOT06')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT06','SHOT07')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT07','SHOT08')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT08','SHOT09')).toBe(true);
+    expect(actualShotOrderIsContinuous('SHOT09','SHOT10')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT05','SHOT07')).toBe(false);
     expect(actualShotOrderIsContinuous('SHOT07','SHOT09')).toBe(false);
   });
@@ -74,6 +76,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       SHOT07:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
       SHOT08:'3415073a-5906-489d-bb69-6af7446c2c9b',
       SHOT09:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
+      SHOT10:'2034d8c6-99b2-46a5-9469-bf3df325d6c0',
     };
     const lookup=Object.fromEntries(Object.entries(ids).map(([shot,id])=>[id,shot]));
     const mock=vi.fn(async(url:string)=>{
@@ -91,7 +94,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         if(shot)result={renderId:id,compositionId:shot==='SHOT01'
           ?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
           status:'READY',width:1920,height:1080,fps:30,
-          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2314:shot==='SHOT09'?3063:2000,
+          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -103,7 +106,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.missing).toHaveLength(0);
       expect(result.shots.map(s=>s.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09','SHOT10']);
       expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].renderId).toBe(ids.SHOT06);
@@ -117,6 +120,9 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       expect(result.shots[8].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[8].renderId).toBe(ids.SHOT09);
       expect(result.shots[8].durationSeconds).toBeCloseTo(3063/30,5);
+      expect(result.shots[9].source).toBe('PINNED_DIRECTOR_LOCK');
+      expect(result.shots[9].renderId).toBe(ids.SHOT10);
+      expect(result.shots[9].durationSeconds).toBeCloseTo(2360/30,5);
       expect(actualShotOrderIsContinuous(result.shots[5].shotKey,
         result.shots[6].shotKey)).toBe(true);
       expect(actualShotOrderIsContinuous(result.shots[6].shotKey,
@@ -148,6 +154,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       SHOT06:'d42fe3a2-3810-4626-ab3a-0456463d4636',
       SHOT08:'3415073a-5906-489d-bb69-6af7446c2c9b',
       SHOT09:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
+      SHOT10:'2034d8c6-99b2-46a5-9469-bf3df325d6c0',
     };
     const lookup=Object.fromEntries(Object.entries(ids).map(([shot,id])=>[id,shot]));
     const mock=vi.fn(async(url:string)=>{
@@ -163,7 +170,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         if(shot)result={renderId:id,compositionId:shot==='SHOT01'
           ?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
           status:'READY',width:1920,height:1080,fps:30,
-          durationInFrames:shot==='SHOT08'?2314:shot==='SHOT09'?3063:2000,
+          durationInFrames:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -175,7 +182,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.missing.some(s=>s.startsWith('SHOT07:'))).toBe(true);
       expect(result.shots.map(s=>s.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08','SHOT09']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08','SHOT09','SHOT10']);
       expect(actualShotOrderIsContinuous(result.shots[5].shotKey,
         result.shots[6].shotKey)).toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes(
@@ -200,6 +207,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       SHOT07:'b2a335dd-cb71-48f2-bf47-0f8bdcdd969d',
       SHOT08:'3415073a-5906-489d-bb69-6af7446c2c9b',
       SHOT09:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
+      SHOT10:'2034d8c6-99b2-46a5-9469-bf3df325d6c0',
     };
     const lookup=Object.fromEntries(Object.entries(ids).map(([shot,id])=>[id,shot]));
     const fetchMock=vi.fn(async(url:string)=>{
@@ -211,7 +219,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         if(shot)result={renderId:id,
           compositionId:shot==='SHOT01'?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
           status:'READY',width:1920,height:1080,fps:30,
-          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2313:shot==='SHOT09'?3063:2000,
+          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2313:shot==='SHOT09'?3063:shot==='SHOT10'?2360:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -222,7 +230,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
     try{
       const result=await loadLockedCut();
       expect(result.shots.map(x=>x.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT09']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT09','SHOT10']);
       expect(result.missing.some(x=>x.startsWith('SHOT08:'))).toBe(true);
       expect(fetchMock.mock.calls.some(([url])=>url.includes(
         '/api/v1/remotion/renders/'+ids.SHOT08))).toBe(true);
