@@ -27,12 +27,9 @@ export type Shot11SceneProps={
   lockedShot10Handoff:Shot11LockedShot10Handoff;
 };
 export const SHOT11_TEXT_AREAS={
-  title:{left:560,top:78,width:1010,height:92},
-  leftCard:{left:560,top:695,width:448,height:115},
-  rightCard:{left:1090,top:695,width:445,height:115},
-  database:{left:1573,top:685,width:256,height:105},
-  caption:{left:565,top:875,width:1130,height:72},
-  footer:{left:560,top:983,width:1220,height:54},
+  lockedTitle:{left:560,top:78,width:1010,height:92},
+  orangeStory:{left:560,top:742,width:1240,height:176},
+  lockedFooter:{left:560,top:983,width:1220,height:54},
 } as const satisfies Record<string,Rect>;
 const clamp=(v:number)=>Number.isFinite(v)?Math.max(0,Math.min(1,v)):0;
 export const shot11Ease=(frame:number,start:number,duration:number)=>{
