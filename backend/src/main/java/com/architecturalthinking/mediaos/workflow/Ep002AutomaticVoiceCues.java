@@ -33,8 +33,28 @@ public final class Ep002AutomaticVoiceCues {
                 return new Result(anchors,List.of(),"AUTOMATIC_REAL_ALIGNMENT_INCOMPLETE");
             return new Result(anchors,frames,"AUTO_VERIFIED_REAL_ELEVENLABS_ALIGNMENT");
         }catch(IllegalArgumentException invalid) {
-            return new Result(anchors,List.of(),"AUTOMATIC_REAL_ALIGNMENT_UNRESOLVED");
+            var state=Ep002SavedAlignmentInspection.inspect(mapper,alignment);
+            return new Result(anchors,List.of(),
+                    state==Ep002SavedAlignmentInspection.State.MISSING
+                    ?"SELECTED_TAKE_MISSING_REAL_CHARACTER_ALIGNMENT"
+                    :state==Ep002SavedAlignmentInspection.State.MALFORMED
+                    ?"SAVED_CHARACTER_TIMESTAMPS_MALFORMED"
+                    :safeReason(invalid.getMessage()));
         }
+
+    }
+
+    private static String safeReason(String failure) {
+        if(failure!=null) {
+            var numbered=java.util.regex.Pattern.compile("Beat ([1-9][0-9]?)")
+                    .matcher(failure);
+            if(numbered.find())return "EXISTING_TIMESTAMP_ANCHOR_UNMATCHED_BEAT_"+numbered.group(1);
+            if(failure.contains("spoken order"))return "EXISTING_TIMESTAMP_ANCHORS_OUT_OF_ORDER";
+            if(failure.contains("measured"))return "EXISTING_TIMESTAMP_DURATION_MISMATCH";
+        }
+        return "EXISTING_TIMESTAMP_ANCHORS_UNRESOLVED";
+    }
+
     }
 
     public static List<String> anchors(String shot,String narration,JsonNode visual) {

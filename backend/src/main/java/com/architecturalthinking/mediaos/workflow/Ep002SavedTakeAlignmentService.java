@@ -32,7 +32,8 @@ public class Ep002SavedTakeAlignmentService {
     private final boolean writesEnabled;
 
     record Selected(UUID id,int revision,String narration,String hash,String contentType,
-                    byte[] audio,boolean aligned,BigDecimal duration) {}
+                    byte[] audio,Ep002SavedAlignmentInspection.State alignmentState,
+                    BigDecimal duration,String originalAlignmentJson) {}
 
     public Ep002SavedTakeAlignmentService(JdbcClient jdbc,ElevenLabsForcedAlignmentService provider,
                                          PlatformTransactionManager manager,ObjectMapper mapper,
@@ -58,7 +59,7 @@ public class Ep002SavedTakeAlignmentService {
         String fields=includeAudio?"t.audio,":"";
         return jdbc.sql("""
             select t.id,t.revision,s.narration,t.narration_sha256,t.content_type,
-                   t.elevenlabs_alignment is not null as aligned,t.duration_seconds,
+                   t.elevenlabs_alignment::text as alignment_json,t.duration_seconds,
                    """+fields+"""
                    t.shot_key as actual_shot
             from ep002_creative_voice_choice choice
@@ -70,12 +71,15 @@ public class Ep002SavedTakeAlignmentService {
                   select max(latest.revision) from ep002_creative_script_revision latest
                   where latest.shot_key=:shot)
             order by choice.selected_at desc,choice.id desc limit 1
-            """).param("shot",shot).query((rs,n)->new Selected(
-                   rs.getObject("id",UUID.class),rs.getInt("revision"),
-                   rs.getString("narration"),rs.getString("narration_sha256"),
-                   rs.getString("content_type"),includeAudio?rs.getBytes("audio"):null,
-                   rs.getBoolean("aligned"),rs.getBigDecimal("duration_seconds")))
-               .optional().orElse(null);
+            """).param("shot",shot).query((rs,n)->{
+                   String existingJson=rs.getString("alignment_json");
+                   return new Selected(
+                       rs.getObject("id",UUID.class),rs.getInt("revision"),
+                       rs.getString("narration"),rs.getString("narration_sha256"),
+                       rs.getString("content_type"),includeAudio?rs.getBytes("audio"):null,
+                       Ep002SavedAlignmentInspection.inspect(mapper,existingJson),
+                       rs.getBigDecimal("duration_seconds"),existingJson);
+               }).optional().orElse(null);
     }
 
     record LastRequest(String status,String failureCategory,OffsetDateTime startedAt) {}
@@ -105,25 +109,38 @@ public class Ep002SavedTakeAlignmentService {
         Selected take=selected(shot,false);
         LastRequest latest=take==null?new LastRequest("NONE",null,null):latestRequest(take.id());
         String requestStatus=latest.status();
-        boolean available=take!=null && !take.aligned() && writesEnabled && provider.configured()
-                && !"IN_FLIGHT".equals(requestStatus) && !"UNCERTAIN".equals(requestStatus);
+        boolean available=take!=null
+                && take.alignmentState()==Ep002SavedAlignmentInspection.State.MISSING
+                && writesEnabled && provider.configured()
+                && !"IN_FLIGHT".equals(requestStatus)
+                && !"UNCERTAIN".equals(requestStatus)
+                && !"COMPLETED".equals(requestStatus);
         Map<String,Object> result=new LinkedHashMap<>();
         result.put("shotKey",shot);
         result.put("preferredTakeId",take==null?null:take.id().toString());
         result.put("revision",take==null?null:take.revision());
-        result.put("alignmentPresent",take!=null && take.aligned());
+        result.put("alignmentPresent",take!=null
+                && take.alignmentState()==Ep002SavedAlignmentInspection.State.PRESENT);
+        result.put("alignmentDataState",take==null?"NO_TAKE":take.alignmentState().name());
         result.put("paidRequestStatus",requestStatus);
         result.put("lastAttemptAt",latest.startedAt()==null?null:latest.startedAt().toString());
         result.put("lastFailureCategory",latest.failureCategory());
         result.put("canAlign",available);
         result.put("reason",take==null?"Choose a preferred take for current saved narration."
-                :take.aligned()?"This recording already has saved timestamps."
+                :take.alignmentState()==Ep002SavedAlignmentInspection.State.PRESENT
+                  ?"This recording has real character timestamps; do not purchase alignment again."
+                :take.alignmentState()==Ep002SavedAlignmentInspection.State.MALFORMED
+                  ?"Stored timestamp arrays are malformed. Do not purchase alignment again before resolving this."
                 :!writesEnabled?"Paid voice operations are disabled."
+                :"COMPLETED".equals(requestStatus)
+                  ?"A previous paid alignment is marked completed but no valid timestamps remain. Reconcile before any new paid operation."
                 :"NOT_SENT".equals(requestStatus)
-                  ?"Previous attempt failed inside MediaOS before the paid provider request was sent. This attempt remains in history; a new alignment still requires explicit paid confirmation."
+                  ?"Previous attempt failed before the paid provider request was sent. A new request still needs explicit paid confirmation."
                 :!provider.configured()?"ElevenLabs API is not configured."
                 :"IN_FLIGHT".equals(requestStatus)||"UNCERTAIN".equals(requestStatus)
-                  ?"An earlier paid alignment request is unresolved. Do not retry. Check the ElevenLabs Developers Request Log and credit usage for this time before reconciliation."
+                  ?"An earlier paid alignment request is unresolved. Do not retry. Check the ElevenLabs Developers Request Log and credit usage before reconciliation."
+                :take.originalAlignmentJson()!=null
+                  ?"The selected recording has ElevenLabs metadata, but NO real character timestamps. One separately paid Forced Alignment of this SAME MP3 can provide them after your explicit confirmation."
                 :null);
         return result;
     }
@@ -147,8 +164,9 @@ public class Ep002SavedTakeAlignmentService {
             if(take==null || !take.id().equals(expectedTake) || take.revision()!=expectedRevision)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Preferred take or script changed. Reload before any paid request.");
-            if(take.aligned()) throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Alignment already exists. No paid API call was made.");
+            if(take.alignmentState()!=Ep002SavedAlignmentInspection.State.MISSING)
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Real alignment already exists or stored timestamps are unsafe. No paid API call was made.");
             if(take.audio()==null || take.audio().length<512 || take.audio().length>24*1024*1024)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Selected recording has invalid audio.");
             if(!EpisodeLockedScriptVoiceService.narrationHash(take.narration()).equals(take.hash()))
@@ -181,15 +199,20 @@ public class Ep002SavedTakeAlignmentService {
                 Selected current=selected(shot,false);
                 if(current==null || !current.id().equals(original.id())
                     || current.revision()!=original.revision()
+                    || current.alignmentState()!=Ep002SavedAlignmentInspection.State.MISSING
                     || !EpisodeLockedScriptVoiceService.narrationHash(current.narration()).equals(original.hash()))
                     throw new ResponseStatusException(HttpStatus.CONFLICT,
                             "Preferred take changed during paid alignment. Reconcile before retrying.");
                 int changed=jdbc.sql("""
                     update ep002_creative_voice_take
-                    set elevenlabs_alignment=cast(:alignment as jsonb),
+                    set elevenlabs_alignment=coalesce(elevenlabs_alignment,'{}'::jsonb)
+                            || cast(:alignment as jsonb),
                         alignment_source='ELEVENLABS_FORCED_ALIGNMENT'
-                    where id=:take and elevenlabs_alignment is null
-                    """).param("alignment",canonical).param("take",original.id()).update();
+                    where id=:take
+                      and elevenlabs_alignment is not distinct from cast(:original as jsonb)
+                    """).param("alignment",canonical)
+                       .param("original",original.originalAlignmentJson())
+                       .param("take",original.id()).update();
                 if(changed!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "Recording was aligned concurrently. Reconcile paid request.");
                 int completed=jdbc.sql("""
