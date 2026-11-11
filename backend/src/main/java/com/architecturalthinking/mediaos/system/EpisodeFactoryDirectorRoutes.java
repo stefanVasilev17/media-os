@@ -11,6 +11,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/creative/episodes/EP002/shots/SHOT08/render-preview",
             "/api/v1/creative/episodes/EP002/shots/SHOT09/render-preview",
             "/api/v1/creative/episodes/EP002/shots/SHOT10/render-preview",
+            "/api/v1/creative/episodes/EP002/shots/SHOT11/render-preview",
             "/api/v1/creative/episodes/EP002/visual-feedback",
             "/api/v1/creative/episodes/EP002/visual-approvals",
             "/api/v1/creative/episodes/EP002/voice-cue-review/{shotKey}",
