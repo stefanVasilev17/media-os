@@ -29,12 +29,13 @@ const LockedShot10LastFrame:React.FC<{opacity:number}>=({opacity})=>{
   const database=shot10DbMeterSize();
   return <AbsoluteFill style={{zIndex:26,opacity,pointerEvents:'none'}}>
     <div style={{position:'absolute',left:560,top:78,
-      color:WHITE,fontFamily:AT_FONT,fontSize:39,fontWeight:890,
-      letterSpacing:'-.02em'}}>
-      RECOVERY IS A USER OUTCOME
+      color:WHITE,fontFamily:AT_FONT}}>
+      <div style={{fontSize:39,fontWeight:890,letterSpacing:'-.02em'}}>
+        RECOVERY IS A USER OUTCOME
+      </div>
+      <div style={{marginTop:15,width:690,height:2,
+        background:'linear-gradient(90deg,#6FECD4,transparent)'}}/>
     </div>
-    <div style={{position:'absolute',left:560,top:151,width:690,height:2,
-      background:'linear-gradient(90deg,#6FECD4,transparent)'}}/>
     <div style={{position:'absolute',left:560,top:695,
       width:leftSize.width,height:leftSize.height,
       padding:'13px 20px',fontFamily:AT_FONT,...panel(AMBER)}}>
