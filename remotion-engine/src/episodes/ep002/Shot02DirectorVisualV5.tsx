@@ -336,3 +336,5 @@ export const Shot02DirectorVisualV5:React.FC<Shot02GeneratedSceneProps>=(props)=
     </div>}
   </ATBackground>;
 };
+
+export {GatewayCard,BalancerCard,AuthCluster,DatabaseCard,PathSystem};
