@@ -1,6 +1,16 @@
 # MediaOS — Agent Startup and Handoff Rules
 
 
+## 2026-11-11 LATEST — AUTO READ-ONLY EP002 HEAR→SEE SHIPPED; ONLY DIRECTOR CAN CLICK GENERATE (SLOW INTAKE) / RENDER VIDEO
+
+Director has explicitly removed requirement for typing HEAR→SEE anchors or clicking manual Verify; treat all EP002 source cue text/frame determination as automatic read-only producer responsibility, for all 11 SHOTs. Manual paid actions ONLY: user clicks `Generate (slow intake)` when a new voice is really needed, then separately `Render video` once real current alignment ready. Do not trigger paid TTS/CPU renders or auto-approve existing Takes. Do not synthesize timing data.
+
+**Actual validated Railway production:** Draft unmerged PR #264 branch `feat/ep002-shot01-shot02-visual-parity-candidate-20261111`, exact SHA `362c8ed79cdb5fc53ea92ec0c2ef6f6f7dea265d`, Backend deployment `bb176deb-2bd4-48e9-972e-36a0cad099da` SUCCESS and Worker `44dd20e8-9f33-4f6a-a559-cea1ba428a16` SUCCESS, SHA guards and Backend release SHA matching, /actuator/health PASS. 28/28 frontend tests PASS + TypeScript/Vite PASS, final PostgreSQL Maven 514 tests 0 failures/errors (1 skipped), auto cue source test 3/3 PASS (all 59 unique in-order cues, fail closed without alignment). Earlier builds `647ba49a` and `4cf480d5` were FAILED due to read-only frontend TS18047, final SHA `362c8ed7` fixed.
+
+New `Ep002AutomaticVoiceCues`: deterministic anchors for 11 SHOTs; factory bridge and voice cue read-only GET compute genuine selected-Take ElevenLabs frames when all strict source/Take checks match; missing alignment blocks. Frontend `Ep002DirectorVoiceCuePanel` does NOT issue verification POST; `Ep002RemotionSceneContractPanel` has `Render video · 1920×1080` only with real 5 SHOT01 scene cues and human paid confirmation, and preserves old LOCKED MP4. Existing underlying manual POST endpoint remains protected and unused; do NOT disable Spring Security/CSRF.
+
+**NEXT:** Director must open production EP002 and check read-only five SHOT01 frame intervals and active render button. Authenticated live Take 2 timing has NOT been externally confirmed; no SHOT01 new V2 video render yet. If blocked, extract actual reason server-side; don't ask user to type text or click Verify. After Director click render, review new 1080p review MP4 and seam to SHOT02, then optionally human-LOCK. Full evidence PROJECT_STATE.md latest.
+
 ## 2026-11-11 LATEST — SECOND SHOT01 REAL TIMING 403; SAFE RUNTIME CLASSIFIER VERIFIED ON PROD
 
 **Evidence:** Director re-tried after the prior deployed frontend fix (fresh `/api/v1/auth/csrf` in `Ep002DirectorVoiceCuePanel`). Actual Railway HTTP **2026-11-11 15:01:37 UTC** `GET /api/v1/auth/csrf 200` immediately followed by `POST .../EP002/voice-cue-review/SHOT01 403`; Director session/GET read remained successful. Hence prior SHA `fbd9ddae...` deployed correctly but did **not** fix user verification. Do not infer security rejection source from 403 alone. CSRF is active and must NOT be disabled.
