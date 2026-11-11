@@ -152,6 +152,10 @@ export function Ep002FullMasterPanel(){
       <a href={master!.videoUrl!} target="_blank" rel="noopener noreferrer">
         Open the entire EP002 review MP4
       </a>
+      {' · '}
+      <a href={master!.videoUrl!} download="EP002_Director_Review_Master.mp4">
+        Download EP002 review master MP4
+      </a>
     </div>}
     <p className="library-note">Read-only checks and Refresh are free of paid
       video actions. Rendering requires a separate affirmative Director click
