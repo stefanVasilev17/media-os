@@ -552,6 +552,82 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
+
+  if(job.compositionId==='EP002-SHOT11-CANDIDATE'){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues,terms=props.termCues;
+    const expected=['FULL_JOURNEY','PHONE_GATEWAY_BALANCER','THREE_AUTH',
+      'ONE_DATABASE','NO_NEW_SERVERS','NO_FASTER_DB','LIMIT_RETRIES',
+      'CONCURRENT_LOOKUPS','REJECT_EXCESS','QUEUE_SHRINK','ON_TIME_LOGINS',
+      'FAST_FAILURE','TRADEOFF','STOP_AMPLIFICATION','LESSON',
+      'HEALTHY_NOT_AVAILABLE','WHOLE_JOURNEY','ONE_DB_QUESTION','NEXT_STORY'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+      ||Number(props.durationInFrames)!==frames
+      ||Number(props.postVoiceHoldFrames||0)!==0
+      ||props.shotKey!=='EP002_SHOT11'
+      ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
+      ||!integer(props.scriptRevision)||props.scriptRevision<1
+      ||!/^[a-f0-9]{64}$/.test(String(props.inputFingerprint||''))
+      ||!/^[a-f0-9]{40}$/.test(String(props.visualSourceSha||''))
+      ||!Array.isArray(beats)||beats.length!==5
+      ||!Array.isArray(terms)||terms.length!==expected.length)
+      reject('SHOT11_CURRENT_SELECTED_REAL_TAKE_CONTRACT_REQUIRED');
+    let previous=0;
+    for(let i=0;i<beats.length;i++){
+      const beat=beats[i];
+      if(beat?.beatNumber!==i+1||!integer(beat.startFrame)
+        ||!integer(beat.endFrame)
+        ||(i===0?beat.startFrame<0:beat.startFrame!==previous)
+        ||beat.endFrame<=beat.startFrame||beat.endFrame>frames
+        ||!String(beat.spokenAnchor||'').trim())
+        reject('SHOT11_FIVE_REAL_AUDIO_BEATS_INVALID');
+      previous=beat.endFrame;
+    }
+    if(previous!==frames)reject('SHOT11_REAL_VOICE_FRAMES_NOT_COVERED');
+    previous=-1;
+    for(let i=0;i<expected.length;i++){
+      const term=terms[i];
+      if(term?.id!==expected[i]||!integer(term.startFrame)
+        ||!integer(term.endFrame)||term.startFrame<0
+        ||term.endFrame<=term.startFrame||term.startFrame<previous
+        ||term.endFrame>frames||!String(term.spokenAnchor||'').trim())
+        reject('SHOT11_NINETEEN_REAL_SPOKEN_TERMS_INVALID');
+      previous=term.endFrame;
+    }
+    const h=props.lockedShot10Handoff;
+    if(!h
+      ||h.renderId!=='2034d8c6-99b2-46a5-9469-bf3df325d6c0'
+      ||h.sourceCommit!=='a4d9fe5d1dcec033f36ce68a190160fd8077faea'
+      ||h.durationInFrames!==2360||h.lastFrame!==2359
+      ||h.shot09WorldLastFrame!==8048||h.worldLastFrame!==10407
+      ||!integer(h.criticalPulseStartFrame)
+      ||!integer(h.cascadeStartFrame)
+      ||h.criticalPulseStartFrame<0
+      ||h.cascadeStartFrame<=h.criticalPulseStartFrame
+      ||h.cascadeStartFrame>=2674)
+      reject('SHOT11_EXACT_DIRECTOR_LOCKED_SHOT10_10407_WORLD_HANDOFF_REQUIRED');
+    if(!(terms[0].startFrame<terms[4].startFrame
+      &&terms[4].startFrame<terms[6].startFrame
+      &&terms[6].startFrame<terms[8].startFrame
+      &&terms[8].startFrame<terms[9].startFrame
+      &&terms[9].startFrame<terms[10].startFrame
+      &&terms[10].startFrame<terms[11].startFrame
+      &&terms[11].startFrame<terms[14].startFrame
+      &&terms[14].startFrame<terms[15].startFrame
+      &&terms[15].startFrame<terms[17].startFrame
+      &&terms[17].startFrame<terms[18].startFrame))
+      reject('SHOT11_CONCLUSION_CAUSAL_ORDER_INVALID');
+    checks.push('SHOT11_CURRENT_DIRECTOR_APPROVED_SLOW_NATURAL_TAKE',
+      'FIVE_REAL_AUDIO_ALIGNED_BEATS','NINETEEN_REAL_CONCLUSION_TERMS',
+      'EXACT_LOCKED_SHOT10_10407_FINAL_WORLD_FRAME',
+      'ORIGINAL_THREE_AUTH_ONE_DATABASE',
+      'NO_NEW_SERVERS_OR_REPLICAS',
+      'FAST_REJECTED_LOGIN_NEVER_SILENTLY_SUCCEEDS',
+      'NO_FALSE_DATABASE_CAPACITY_GAIN',
+      'CONTENT_FITTED_LEGIBLE_HEAR_SEE_LABELS',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+  }
+
   return {
     standardId:AT_TIER_PLUS_PLUS_STANDARD_ID,
     status:'TECHNICAL_PRECHECK_PASS',
