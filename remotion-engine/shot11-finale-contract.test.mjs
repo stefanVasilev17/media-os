@@ -76,7 +76,9 @@ test('SHOT11 continues the exact SHOT10 frame and preserves one original databas
 test('SHOT11 callouts are readable, content-fitted, dynamic, and do not repeat SHOT10 redundant queue',()=>{
   const live=scene.slice(scene.indexOf('type PanelState='),
     scene.indexOf('export const Shot11DirectorVisualV1:'));
-  const cards=[...live.matchAll(/heading:'([^']+)',\s*primary:'([^']+)'/g)]
+  const actualCards=scene.slice(scene.indexOf('const LastStory:'),
+    scene.indexOf('export const Shot11DirectorVisualV1:'));
+  const cards=[...actualCards.matchAll(/heading:'([^']+)',\s*primary:'([^']+)'/g)]
     .map(([,heading,primary])=>({heading,primary}));
   const caps=[...live.matchAll(/main:'([^']+)',\s*detail:'([^']+)'/g)]
     .map(([,main,detail])=>({main,detail}));
