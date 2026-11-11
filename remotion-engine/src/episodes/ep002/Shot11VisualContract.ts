@@ -81,8 +81,7 @@ export function validateShot11Source(props:Shot11SceneProps){
     ||h.criticalPulseStartFrame<0||h.cascadeStartFrame<=h.criticalPulseStartFrame
     ||h.cascadeStartFrame>=2674)
     throw Error('SHOT11_EXACT_DIRECTOR_LOCKED_SHOT10_FINAL_MP4_HANDOFF_REQUIRED');
-  const positions=Object.fromEntries(props.termCues.map(t=>[t.id,t.startFrame]))
-    as Record<Shot11TermId,number>;
+  const positions=Object.fromEntries(props.termCues.map(t=>[t.id,t.startFrame])) as Record<Shot11TermId,number>;
   if(!(positions.FULL_JOURNEY<positions.NO_NEW_SERVERS
     &&positions.NO_NEW_SERVERS<positions.LIMIT_RETRIES
     &&positions.LIMIT_RETRIES<positions.REJECT_EXCESS
