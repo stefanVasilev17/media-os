@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {AudioLines,CheckCircle2,RotateCcw} from 'lucide-react';
 import {suggestEp002VoiceCueAnchors} from '../lib/ep002VoiceCueAnchors';
+import {ensureLocalCsrf} from '../auth/localSession';
 
 type Beat={number:number;direction:string;spokenAnchor?:string};
 type Shot={shotKey:string;title:string;beatCount:number;narration:string;
@@ -57,8 +58,9 @@ export function Ep002DirectorVoiceCuePanel(){
         'phrases for '+shot+'. Verify exact ElevenLabs character timings?'))return;
     setSaving(true);setError('');setMessage('');
     try{
+      const csrf=await ensureLocalCsrf();
       const r=await fetch(BASE+'/voice-cue-review/'+shot,{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:{'Content-Type':'application/json',[csrf.header]:csrf.token},
         body:JSON.stringify({
           requestId:window.crypto.randomUUID(),
           expectedEpisodeFingerprint:plan.inputFingerprint,
