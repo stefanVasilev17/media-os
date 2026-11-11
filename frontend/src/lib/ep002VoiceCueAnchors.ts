@@ -25,6 +25,14 @@ export function uniqueSpokenPhrase(narration:string,phrase:string):PhraseMatch|n
   return found;
 }
 
+const SHOT01_CUE_PHRASES=[
+  ['tap Login'],
+  ['A few seconds pass. Then ten'],
+  ['server responsible for signing you in is still running'],
+  ['your login is still waiting'],
+  ['go back to nine o’clock'],
+] as const;
+
 const SHOT07_CUE_PHRASES=[
   ['Auth 01 tries again'],
   ['first lookup may still be running'],
@@ -70,6 +78,8 @@ export function suggestEp002VoiceCueAnchors(
   return beats.map((beat,index)=>{
     const options=beat.spokenAnchor?.trim()
       ? [beat.spokenAnchor]
+      :shotKey==='SHOT01'&&beats.length===5
+      ? [...SHOT01_CUE_PHRASES[index]]
       :shotKey==='SHOT07'&&beats.length===5
       ? [...SHOT07_CUE_PHRASES[index]]
       :shotKey==='SHOT06'&&beats.length===5

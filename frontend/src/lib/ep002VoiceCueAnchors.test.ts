@@ -16,6 +16,26 @@ The database hasn’t stopped working. It just can’t keep up.`;
 const beats=[1,2,3,4,5].map(number=>({number,direction:'Approved visual action'}));
 
 describe('EP002 Director voice cue suggestions',()=>{
+  it('prefills all five SHOT01 beats from the original Director-locked narration',()=>{
+    const source=scriptV5.shots.find(s=>s.shotKey==='SHOT01');
+    expect(source).toBeDefined();
+    expect(suggestEp002VoiceCueAnchors(
+      'SHOT01',source!.englishNarration,beats)).toEqual([
+      'tap Login',
+      'A few seconds pass. Then ten',
+      'server responsible for signing you in is still running',
+      'your login is still waiting',
+      'go back to nine o’clock',
+    ]);
+  });
+  it('fails closed instead of inventing a missing SHOT01 spoken cue',()=>{
+    const original=scriptV5.shots[0].englishNarration;
+    const edited=original.replace('A few seconds pass. Then ten','Time passes');
+    const suggestions=suggestEp002VoiceCueAnchors('SHOT01',edited,beats);
+    expect(suggestions).toHaveLength(5);
+    expect(suggestions[1]).toBe('');
+    expect(suggestions.filter(Boolean)).toHaveLength(4);
+  });
   it('fills five genuinely ordered SHOT03 anchors using unchanged current narration',()=>{
     expect(suggestEp002VoiceCueAnchors('SHOT03',shot03,beats)).toEqual([
       'five hundred',
