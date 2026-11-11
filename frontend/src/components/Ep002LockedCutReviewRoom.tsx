@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,Film,Pause,Play,RotateCcw,ShieldCheck} from 'lucide-react';
+import {Ep002FullMasterPanel} from './Ep002FullMasterPanel';
 
 type LockedShot={
   shotKey:string;
@@ -249,8 +250,9 @@ export function Ep002LockedCutReviewRoom(){
       SHOT02–11 retain their individually verified original Full HD files.
       SHOT11 is pinned to its Director-approved 1572-frame recording
       with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
-      All are pinned to their final Director-approved render IDs. This room starts
-      no paid TTS, CPU render or export.</p>
+      All are pinned to their final Director-approved render IDs. Only the
+      separately confirmed Full Episode Master action can start billable CPU.</p>
+    <Ep002FullMasterPanel/>
     <div className="locked-cut-room">
       <div className="locked-cut-toolbar">
         <strong><ShieldCheck size={17}/> EP002 · Director-locked MP4 sequence</strong>
