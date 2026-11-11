@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {preflightTierPlusPlusRender} from './tier-plus-plus-render-quality.mjs';
+import {shot09PolicyPanelSize,shot09TweenPanelSize,
+  shot09AdmissionStatusSize} from './shot09-adaptive-panel-layout.mjs';
 const src=name=>fs.readFileSync(path.join('src/episodes/ep002',name),'utf8');
 const scene=src('Shot09DirectorVisualV1.tsx');
 const contract=src('Shot09VisualContract.ts');
@@ -115,4 +117,61 @@ test('paid Worker refuses any stale voice, SHOT08 identity/frame, or guessed ons
   assert.match(worker,/EP002-SHOT09-CANDIDATE/);
   assert.match(api,/matchesCurrentShot09Render/);
   assert.match(api,/EP002_SHOT09/);
+});
+
+test('SHOT09 policy panel fits eight spoken states without excess fixed-space and animates deterministically',()=>{
+  const states=[
+    ['ADMISSION CONTROL','POLICY ON THE EXISTING LOGIN PATH',false],
+    ['ONE BUDGET · THREE AUTH','450 TOTAL DB ATTEMPTS/S · EXAMPLE',false],
+    ['EARLY LOAD SHEDDING','REJECTED LOGIN · NO SESSION CREATED',false],
+    ['LIMIT ACTIVE DB LOOKUPS','ONE GLOBAL LIMIT ACROSS 3 AUTH POOLS',false],
+    ['RETRY BULKHEAD','RESERVE ROOM FOR NEW LOGIN LOOKUPS',true],
+    ['CIRCUIT BREAKER · OPEN','NEW DB CALLS FAIL FAST TEMPORARILY',false],
+    ['HALF-OPEN · SMALL TEST','ONLY LIMITED PROBES · DO NOT REOPEN YET',false],
+    ['CAPACITY DID NOT INCREASE','SOME REJECTED · ACCEPTED WORK HAS A CHANCE',false],
+  ];
+  const sizes=states.map(([heading,line,hasChips])=>
+    shot09PolicyPanelSize({heading,line,hasChips}));
+  assert.equal(sizes.length,8);
+  for(const size of sizes){
+    assert.ok(size.width>=310&&size.width<=445);
+    assert.ok(size.height>=100&&size.height<=127);
+    assert.ok(1090+size.width<=1535);
+    assert.ok(695+size.height<843);
+  }
+  assert.ok(sizes.some(x=>x.width<365));
+  assert.ok(new Set(sizes.map(x=>x.width)).size>=4);
+  assert.equal(sizes[4].height,127);
+  assert.ok(sizes[7].width>sizes[0].width);
+  assert.deepEqual(shot09TweenPanelSize(sizes[0],sizes[7],0),sizes[0]);
+  assert.deepEqual(shot09TweenPanelSize(sizes[0],sizes[7],1),sizes[7]);
+  const half=shot09TweenPanelSize(sizes[0],sizes[7],.5);
+  assert.ok(half.width>=sizes[0].width&&half.width<=sizes[7].width);
+  assert.ok(half.height>=100&&half.height<=127);
+  assert.deepEqual(shot09TweenPanelSize(sizes[0],sizes[7],-1),sizes[0]);
+  assert.deepEqual(shot09TweenPanelSize(sizes[0],sizes[7],2),sizes[7]);
+  assert.match(scene,/const target=shot09PolicyPanelSize/);
+  assert.match(scene,/const size=shot09TweenPanelSize/);
+  assert.match(scene,/width:size\.width,height:size\.height/);
+  assert.match(scene,/shot09Ease\(frame,entry\.at,24\)/);
+  assert.match(scene,/const copyReveal=shot09Ease\(frame,entry\.at\+7,16\)/);
+  assert.doesNotMatch(scene,/left:1090,top:695,width:445/);
+});
+
+test('SHOT09 PROBE ONLY badge gets readable padding, smooth expansion and stays clear of policy panel',()=>{
+  const idle=shot09AdmissionStatusSize(0);
+  const probe=shot09AdmissionStatusSize(1);
+  assert.deepEqual(idle,{width:94,height:27});
+  assert.deepEqual(probe,{width:122,height:32});
+  assert.ok(probe.width>idle.width&&probe.height>idle.height);
+  assert.ok(1101+probe.width/2<1180);
+  assert.ok(674+probe.height/2<695);
+  const middle=shot09AdmissionStatusSize(.5);
+  assert.ok(middle.width>idle.width&&middle.width<probe.width);
+  assert.match(scene,/shot09AdmissionStatusSize/);
+  assert.match(scene,/left:1101-statusSize\.width\/2,top:674-statusSize\.height\/2/);
+  assert.match(scene,/width:statusSize\.width,height:statusSize\.height/);
+  assert.match(scene,/padding:'0 9px',boxSizing:'border-box',whiteSpace:'nowrap'/);
+  assert.match(scene,/probe>\.5\?'PROBE ONLY':'OPEN'/);
+  assert.doesNotMatch(scene,/left:1060,top:662,width:82,height:23/);
 });

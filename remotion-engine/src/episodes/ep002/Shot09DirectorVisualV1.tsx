@@ -4,6 +4,8 @@ import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {Shot07CleanArchitectureWorld} from './Shot07CleanArchitectureWorld';
 import {shot09Ease,assertShot09SafeLayout,validateShot09Source,
   type Shot09SceneProps,type Shot09TermId} from './Shot09VisualContract';
+import {shot09PolicyPanelSize,shot09TweenPanelSize,
+  shot09AdmissionStatusSize} from '../../../shot09-adaptive-panel-layout.mjs';
 
 const WHITE='#F5FCFF',SOFT='#B5D2E6',AMBER='#F5A55A';
 const MINT='#6FECD4',CYAN='#68E5FF',RED='#F06F58';
@@ -124,21 +126,38 @@ const InterventionPanel:React.FC<{frame:number;cue:Record<Shot09TermId,number>}>
     :Number.POSITIVE_INFINITY;
   const appear=shot09Ease(frame,entry.at,21);
   const leave=Number.isFinite(next)?1-shot09Ease(frame,Math.max(entry.at+60,next-26),22):1;
-  return <div style={{position:'absolute',left:1090,top:695,width:445,
-    height:148,padding:'17px 20px',zIndex:24,pointerEvents:'none',
+  const target=shot09PolicyPanelSize({
+    heading:entry.heading,line:entry.line,hasChips:index===4,
+  });
+  const previous=index===0
+    ?{width:Math.max(300,target.width-35),height:82}
+    :shot09PolicyPanelSize({heading:events[index-1].heading,
+      line:events[index-1].line,hasChips:index-1===4});
+  const size=shot09TweenPanelSize(previous,target,
+    shot09Ease(frame,entry.at,24));
+  const copyReveal=shot09Ease(frame,entry.at+7,16);
+  return <div style={{position:'absolute',left:1090,top:695,
+    width:size.width,height:size.height,
+    padding:'14px 20px 12px',overflow:'hidden',
+    zIndex:24,pointerEvents:'none',
     opacity:appear*leave,fontFamily:AT_FONT,...panel(entry.accent)}}>
-    <div style={{color:WHITE,fontSize:20,fontWeight:890}}>{entry.heading}</div>
-    <div style={{height:2,width:300,marginTop:15,
-      background:'linear-gradient(90deg,'+entry.accent+',transparent)'}}/>
-    <div style={{color:SOFT,fontSize:15,fontWeight:790,marginTop:17}}>
-      {entry.line}
+    <div style={{opacity:copyReveal}}>
+      <div style={{color:WHITE,fontSize:20,fontWeight:890,
+        whiteSpace:'nowrap'}}>{entry.heading}</div>
+      <div style={{height:2,width:'100%',marginTop:10,
+        background:'linear-gradient(90deg,'+entry.accent+',transparent)'}}/>
+      <div style={{color:SOFT,fontSize:15,fontWeight:790,
+        marginTop:11,whiteSpace:'nowrap',letterSpacing:'-.015em'}}>
+        {entry.line}
+      </div>
+      {index===4&&<div style={{display:'flex',gap:6,marginTop:10,
+        whiteSpace:'nowrap'}}>
+        {['NEW LOGIN','READ RETRY'].map((label,i)=>
+          <span key={label} style={{fontSize:11,color:i?AMBER:MINT,fontWeight:850}}>
+            {i?'RETRY IS LIMITED':'NEW LOGIN PROTECTED'}
+          </span>)}
+      </div>}
     </div>
-    {index===4&&<div style={{display:'flex',gap:6,marginTop:10}}>
-      {['NEW LOGIN','READ RETRY'].map((label,i)=>
-        <span key={label} style={{fontSize:11,color:i?AMBER:MINT,fontWeight:850}}>
-          {i?'RETRY IS LIMITED':'NEW LOGIN PROTECTED'}
-        </span>)}
-    </div>}
   </div>;
 };
 
@@ -148,12 +167,17 @@ const AdmissionPolicy:React.FC<{frame:number;cue:Record<Shot09TermId,number>}>=
   const shed=shot09Ease(frame,cue.SHEDDING,28);
   const breaker=shot09Ease(frame,cue.BREAKER_OPEN,25);
   const probe=shot09Ease(frame,cue.TEST_PROBES,31);
+  const statusSize=shot09AdmissionStatusSize(
+    shot09Ease(frame,cue.TEST_PROBES,23));
   return <AbsoluteFill style={{pointerEvents:'none',zIndex:17,opacity:show}}>
     <div style={{position:'absolute',left:1092,top:446,width:4,height:201,
       borderRadius:3,background:breaker>.5?RED:shed>.5?AMBER:CYAN,
       boxShadow:'0 0 17px rgba(245,165,90,.23)'}}/>
-    <div style={{position:'absolute',left:1060,top:662,width:82,height:23,
+    <div style={{position:'absolute',
+      left:1101-statusSize.width/2,top:674-statusSize.height/2,
+      width:statusSize.width,height:statusSize.height,
       display:'flex',justifyContent:'center',alignItems:'center',
+      padding:'0 9px',boxSizing:'border-box',whiteSpace:'nowrap',
       color:breaker>.5?RED:AMBER,fontFamily:AT_FONT,fontWeight:880,fontSize:12,
       borderRadius:7,background:'rgba(8,26,45,.94)',
       border:'1px solid rgba(245,165,90,.64)'}}>
