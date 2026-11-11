@@ -20,6 +20,7 @@ describe('EP002 Director locked cut review',()=>{
 
   it('prepares real stored MP4 seam review for 05→06→07→08 and refuses gaps',()=>{
     expect(DIRECTOR_REVIEW_BOUNDARIES).toEqual([
+      {from:'SHOT01',to:'SHOT02',label:'Review 01 → 02'},
       {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
       {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
       {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
@@ -27,6 +28,7 @@ describe('EP002 Director locked cut review',()=>{
       {from:'SHOT09',to:'SHOT10',label:'Review 09 → 10'},
       {from:'SHOT10',to:'SHOT11',label:'Review 10 → 11'},
     ]);
+    expect(actualShotOrderIsContinuous('SHOT01','SHOT02')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT05','SHOT06')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT06','SHOT07')).toBe(true);
     expect(actualShotOrderIsContinuous('SHOT07','SHOT08')).toBe(true);
