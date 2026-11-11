@@ -4,6 +4,8 @@ import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {Shot07CleanArchitectureWorld} from './Shot07CleanArchitectureWorld';
 import {shot09PolicyPanelSize,shot09AdmissionStatusSize}
   from '../../../shot09-adaptive-panel-layout.mjs';
+import {shot10ContentCardSize,shot10CaptionSize,shot10DbMeterSize,shot10TweenSize}
+  from '../../../shot10-content-fit-layout.mjs';
 import {shot10Ease,assertShot10SafeLayout,validateShot10Source,
   type Shot10SceneProps,type Shot10TermId} from './Shot10VisualContract';
 
@@ -17,9 +19,9 @@ const panel=(accent:string)=>({
 });
 const fadeAfter=(frame:number,cue:number,duration=26)=>
   shot10Ease(frame,cue,duration);
-const min=(a:number,b:number)=>Math.min(a,b);
 
-const DirectorLockedShot09Closing:React.FC<{opacity:number}>=({opacity})=>{
+const DirectorLockedShot09Closing:React.FC<{opacity:number;frame:number}>=({opacity,frame})=>{
+  const smallCopyFade=1-shot10Ease(frame,0,12);
   const closingPanel=shot09PolicyPanelSize({
     heading:'CAPACITY DID NOT INCREASE',
     line:'SOME REJECTED · ACCEPTED WORK HAS A CHANCE',
@@ -45,7 +47,7 @@ const DirectorLockedShot09Closing:React.FC<{opacity:number}>=({opacity})=>{
         <div style={{color:SOFT,fontSize:14,fontWeight:810}}>DB LOOKUPS FINISHED</div>
       </div>
       <div style={{position:'absolute',right:12,bottom:9,
-        color:MINT,fontWeight:860,fontSize:12}}>
+        color:MINT,fontWeight:860,fontSize:12,opacity:smallCopyFade}}> 
         LIMIT: 450 TOTAL DB ATTEMPTS/S
       </div>
     </div>
@@ -79,93 +81,83 @@ const DirectorLockedShot09Closing:React.FC<{opacity:number}>=({opacity})=>{
   </AbsoluteFill>;
 };
 
-type Phase='DRAIN'|'PROOF'|'PHONE'|'MEASURE'|'REJECT';
-const phaseAt=(frame:number,cue:Record<Shot10TermId,number>):Phase=>
-  frame>=cue.REJECTIONS?'REJECT':
-  frame>=cue.EVIDENCE?'MEASURE':
-  frame>=cue.OLD_TIMEOUT?'PHONE':
-  frame>=cue.CONNECTIONS_RETURN?'PROOF':'DRAIN';
 
-const RecoveryReadouts:React.FC<{frame:number;cue:Record<Shot10TermId,number>;
-  phase:Phase}>=({frame,cue,phase})=>{
-  const appear=fadeAfter(frame,cue.LOOK_DATABASE,32);
-  const shrink=fadeAfter(frame,cue.QUEUE_SHRINK,96);
-  const example=fadeAfter(frame,cue.DB_COMPLETIONS,28);
-  const pool=fadeAfter(frame,cue.CONNECTIONS_RETURN,45);
-  const old=fadeAfter(frame,cue.OLD_TIMEOUT,22);
-  const fresh=fadeAfter(frame,cue.NEW_LOGIN,32);
-  const evidence=fadeAfter(frame,cue.EVIDENCE,34);
-  const tail=fadeAfter(frame,cue.REJECTIONS,30);
-  const meter=.82-.58*shrink;
-  const left=phase==='PHONE'?
-    {heading:'OLD LOGIN · A',accent:RED,primary:'TIMED OUT · FINISHED',
-      detail:'NEVER RESUMES OR CREATES A SESSION'}:
-    phase==='MEASURE'?
-    {heading:'REAL USER OUTCOMES',accent:CYAN,primary:'VALID LOGIN SUCCESS RATE',
-      detail:'SYSTEM ERRORS ≠ WRONG PASSWORD'}:
-    phase==='REJECT'?
-    {heading:'COUNT ALL USER FAILURES',accent:AMBER,primary:'REJECTED LOGINS ARE FAILURES',
-      detail:'FAST REJECTION IS NOT A SUCCESS'}:
-    phase==='PROOF'?
-    {heading:'AUTH POOLS · RECOVERING',accent:MINT,primary:'CONNECTIONS RETURN SOONER',
-      detail:'ACCEPTED LOGINS FINISH BEFORE DEADLINES'}:
-    {heading:'DATABASE QUEUE · DRAINING',accent:AMBER,primary:'COMPLETED > ADMITTED',
-      detail:'ILLUSTRATIVE 500/s > 450/s · NOT LIVE'};
-  const right=phase==='PHONE'?
-    {heading:'NEW LOGIN · B',accent:MINT,primary:'DIFFERENT REQUEST · ACCEPTED',
-      detail:'SUCCEEDS ONLY AFTER A NEW LOOKUP'}:
-    phase==='MEASURE'?
-    {heading:'TAIL LATENCY · TRACE',accent:CYAN,primary:'P95 / P99 · VALID LOGINS',
-      detail:'TRACE: POOL WAIT → DATABASE WORK'}:
-    phase==='REJECT'?
-    {heading:'RECOVERY · VERIFIED',accent:MINT,primary:'SMALLER QUEUE · ON-TIME WORK',
-      detail:'NO EXTRA DATABASE CAPACITY'}:
-    phase==='PROOF'?
-    {heading:'DATABASE · PRESSURE',accent:AMBER,primary:'RED → AMBER · WHEN MEASURED',
-      detail:'THE SAME FINITE DATABASE'}:
-    {heading:'ONE SHARED DB BUDGET',accent:CYAN,primary:'~500/s COMPLETED',
-      detail:'450/s TOTAL ADMITTED · EXAMPLE'};
-  const showNew=phase==='PHONE'?fresh:
-    phase==='MEASURE'?evidence:phase==='REJECT'?tail:example;
+type CardCopy={at:number;heading:string;primary:string;accent:string};
+const VoiceDrivenCard:React.FC<{frame:number;left:number;
+  states:CardCopy[]}>=({frame,left,states})=>{
+  const index=states.reduce((last,value,i)=>frame>=value.at?i:last,-1);
+  if(index<0)return null;
+  const current=states[index];
+  const target=shot10ContentCardSize(current);
+  const previous=index===0
+    ?{width:Math.max(244,target.width-24),height:74}
+    :shot10ContentCardSize(states[index-1]);
+  const size=shot10TweenSize(previous,target,shot10Ease(frame,current.at,28));
+  const reveal=shot10Ease(frame,current.at+7,20);
+  const panelOpacity=shot10Ease(frame,current.at,19);
+  return <div style={{position:'absolute',left,top:695,
+    width:size.width,height:size.height,padding:'13px 20px',
+    overflow:'hidden',pointerEvents:'none',zIndex:24,
+    fontFamily:AT_FONT,opacity:panelOpacity,...panel(current.accent)}}>
+    <div style={{opacity:reveal,whiteSpace:'nowrap'}}>
+      <div style={{fontSize:18,lineHeight:'22px',fontWeight:870,color:WHITE}}>
+        {current.heading}
+      </div>
+      <div style={{marginTop:9,fontSize:20,lineHeight:'25px',
+        fontWeight:870,color:current.accent}}>
+        {current.primary}
+      </div>
+    </div>
+  </div>;
+};
+
+const RecoveryReadouts:React.FC<{frame:number;
+  cue:Record<Shot10TermId,number>}>=({frame,cue})=>{
+  const appear=fadeAfter(frame,cue.LOOK_DATABASE,30);
+  const backlog=fadeAfter(frame,cue.QUEUE_SHRINK,96);
+  const dbSize=shot10DbMeterSize();
+  const left:CardCopy[]=[
+    {at:cue.CONNECTIONS_RETURN,heading:'AUTH POOLS',
+      primary:'CONNECTIONS RETURN',accent:MINT},
+    {at:cue.OLD_TIMEOUT,heading:'OLD LOGIN · A',
+      primary:'TIMED OUT · ENDED',accent:RED},
+    {at:cue.EVIDENCE,heading:'VALID LOGIN OUTCOMES',
+      primary:'SUCCESS ≠ SYSTEM ERROR',accent:CYAN},
+    {at:cue.REJECTIONS,heading:'REJECTED LOGINS',
+      primary:'FAILURES COUNT TOO',accent:AMBER},
+  ];
+  const right:CardCopy[]=[
+    {at:cue.DB_COMPLETIONS,heading:'EXAMPLE · SHARED DB BUDGET',
+      primary:'450/s IN · ~500/s OUT',accent:CYAN},
+    {at:cue.MEASUREMENT,heading:'DATABASE PRESSURE',
+      primary:'RED → AMBER · IF MEASURED',accent:AMBER},
+    {at:cue.NEW_LOGIN,heading:'NEW LOGIN · B',
+      primary:'NEW REQUEST · ACCEPTED',accent:MINT},
+    {at:cue.EVIDENCE,heading:'LOGIN QUALITY',
+      primary:'SUCCESS RATE · ERRORS',accent:CYAN},
+    {at:cue.P95_P99,heading:'TAIL LATENCY',
+      primary:'P95 / P99 · VALID LOGINS',accent:CYAN},
+    {at:cue.TRACING,heading:'SINGLE REQUEST TRACE',
+      primary:'POOL WAIT → DB WORK',accent:CYAN},
+    {at:cue.REJECTIONS,heading:'RECOVERY CHECK',
+      primary:'REJECTIONS ARE FAILURES',accent:AMBER},
+    {at:cue.RECOVERY,heading:'RECOVERY MEASURED',
+      primary:'ON-TIME WORK · SAME DB',accent:MINT},
+  ];
   return <AbsoluteFill style={{pointerEvents:'none',zIndex:24,opacity:appear}}>
-    <div style={{position:'absolute',left:560,top:695,width:448,height:148,
-      padding:'16px 19px',fontFamily:AT_FONT,...panel(left.accent)}}>
-      <div style={{fontSize:17,fontWeight:870,color:WHITE}}>{left.heading}</div>
-      <div style={{marginTop:17,fontSize:20,fontWeight:870,color:left.accent}}>
-        {left.primary}
+    <VoiceDrivenCard frame={frame} left={560} states={left}/>
+    <VoiceDrivenCard frame={frame} left={1090} states={right}/>
+    <div style={{position:'absolute',left:1573,top:685,
+      width:dbSize.width,height:dbSize.height,
+      padding:'13px 15px',fontFamily:AT_FONT,zIndex:25,...panel(AMBER)}}>
+      <div style={{fontSize:18,lineHeight:'23px',fontWeight:900,color:WHITE}}>
+        USER DATABASE
       </div>
-      <div style={{marginTop:12,fontSize:13,fontWeight:800,color:SOFT}}>
-        {left.detail}
-      </div>
-      <div style={{position:'absolute',bottom:8,right:12,fontSize:11,
-        color:SOFT,fontWeight:780,opacity:phase==='DRAIN'?shrink:1}}>
-        {phase==='DRAIN'?'QUEUE SHRINKS ONLY IF COMPLETIONS WIN':'REQUEST-LEVEL EVIDENCE'}
-      </div>
-    </div>
-    <div style={{position:'absolute',left:1090,top:695,width:445,height:148,
-      padding:'16px 18px',fontFamily:AT_FONT,opacity:showNew,...panel(right.accent)}}>
-      <div style={{fontSize:17,fontWeight:870,color:WHITE}}>{right.heading}</div>
-      <div style={{marginTop:17,fontSize:20,fontWeight:870,color:right.accent}}>
-        {right.primary}
-      </div>
-      <div style={{marginTop:12,fontSize:13,fontWeight:800,color:SOFT}}>
-        {right.detail}
-      </div>
-    </div>
-    <div style={{position:'absolute',left:1573,top:685,width:256,height:143,
-      padding:'15px 14px',zIndex:25,fontFamily:AT_FONT,...panel(AMBER)}}>
-      <div style={{fontSize:16,fontWeight:900,color:WHITE}}>USER DATABASE</div>
-      <div style={{height:8,marginTop:15,borderRadius:5,
-        background:'rgba(237,103,82,.24)'}}>
-        <div style={{height:8,borderRadius:5,width:(meter*100)+'%',
-          background:shrink>.7?AMBER:RED,
+      <div style={{height:10,marginTop:11,borderRadius:5,
+        background:'rgba(237,103,82,.24)',overflow:'hidden'}}>
+        <div style={{height:10,borderRadius:5,
+          width:((.82-.58*backlog)*100)+'%',background:backlog>.7?AMBER:RED,
           boxShadow:'0 0 11px rgba(242,105,76,.35)'}}/>
-      </div>
-      <div style={{fontSize:12,fontWeight:840,marginTop:11,color:pool>.7?MINT:AMBER}}>
-        {shrink>.6?'BACKLOG · DECREASING':'BACKLOG · STILL HIGH'}
-      </div>
-      <div style={{fontSize:12,marginTop:7,fontWeight:840,color:AMBER}}>
-        CAPACITY · UNCHANGED
       </div>
     </div>
   </AbsoluteFill>;
@@ -174,33 +166,51 @@ const RecoveryReadouts:React.FC<{frame:number;cue:Record<Shot10TermId,number>;
 const VoiceMarkers:React.FC<{frame:number;cue:Record<Shot10TermId,number>;
   duration:number}>=({frame,cue,duration})=>{
   const entries=[
-    {at:cue.QUEUE_SHRINK,main:'QUEUE DRAINS',detail:'ONLY WHEN COMPLETIONS EXCEED ADMISSIONS'},
-    {at:cue.DB_COMPLETIONS,main:'~500/s FINISHED',detail:'450/s ADMITTED · ILLUSTRATIVE'},
-    {at:cue.CONNECTIONS_RETURN,main:'POOL SLOTS RETURN',detail:'LESS WAIT FOR ACCEPTED LOGINS'},
-    {at:cue.OLD_TIMEOUT,main:'OLD LOGIN · OVER',detail:'A TIMED-OUT REQUEST NEVER REVIVES'},
-    {at:cue.NEW_LOGIN,main:'NEW LOGIN · B',detail:'A DIFFERENT ACCEPTED REQUEST MAY SUCCEED'},
-    {at:cue.P95_P99,main:'P95 / P99',detail:'THE TAIL AN AVERAGE CAN HIDE'},
-    {at:cue.TRACING,main:'DISTRIBUTED TRACE',detail:'POOL WAIT ≠ DATABASE EXECUTION'},
-    {at:cue.REJECTIONS,main:'REJECTIONS COUNT',detail:'FAST FAILURES STILL AFFECT USERS'},
+    {at:cue.QUEUE_SHRINK,main:'QUEUE DRAINS',
+      detail:'COMPLETIONS > ADMISSIONS'},
+    {at:cue.DB_COMPLETIONS,main:'~500/s FINISHED',
+      detail:'450/s ADMITTED · EXAMPLE'},
+    {at:cue.CONNECTIONS_RETURN,main:'POOL SLOTS RETURN',
+      detail:'ACCEPTED LOGINS WAIT LESS'},
+    {at:cue.OLD_TIMEOUT,main:'OLD LOGIN · OVER',
+      detail:'TIMED-OUT REQUEST NEVER REVIVES'},
+    {at:cue.NEW_LOGIN,main:'NEW LOGIN · B',
+      detail:'DIFFERENT ACCEPTED REQUEST'},
+    {at:cue.P95_P99,main:'P95 / P99',
+      detail:'TAIL LATENCY, NOT THE AVERAGE'},
+    {at:cue.TRACING,main:'DISTRIBUTED TRACE',
+      detail:'POOL WAIT ≠ DB EXECUTION'},
+    {at:cue.REJECTIONS,main:'REJECTIONS COUNT',
+      detail:'FAST FAILURE IS STILL FAILURE'},
   ];
   const index=entries.reduce((last,e,i)=>frame>=e.at?i:last,-1);
   if(index<0)return null;
-  const e=entries[index],next=index+1<entries.length?entries[index+1].at:duration;
-  const fadeIn=shot10Ease(frame,e.at,19);
-  const fadeOut=1-shot10Ease(frame,Math.max(e.at+54,next-28),25);
+  const entry=entries[index],next=index+1<entries.length
+    ?entries[index+1].at:duration;
+  const target=shot10CaptionSize(entry);
+  const previous=index===0
+    ?{width:Math.max(265,target.width-36),height:48}
+    :shot10CaptionSize(entries[index-1]);
+  const size=shot10TweenSize(previous,target,shot10Ease(frame,entry.at,26));
+  const contentOpacity=shot10Ease(frame,entry.at+7,18);
+  const fadeIn=shot10Ease(frame,entry.at,19);
+  const fadeOut=1-shot10Ease(frame,Math.max(entry.at+54,next-28),25);
   return <div style={{position:'absolute',left:565,top:875,zIndex:26,
-    width:'max-content',maxWidth:1060,height:69,
+    width:size.width,height:size.height,
     padding:'0 19px',display:'inline-flex',alignItems:'center',
-    boxSizing:'border-box',pointerEvents:'none',
+    boxSizing:'border-box',pointerEvents:'none',overflow:'hidden',
     border:'2px solid rgba(245,165,90,.92)',borderRadius:13,
     background:'linear-gradient(110deg,rgba(8,25,44,.97),rgba(6,19,36,.95))',
     boxShadow:'0 0 19px rgba(245,165,90,.19)',
-    fontSize:22,fontFamily:AT_FONT,fontWeight:860,whiteSpace:'nowrap',
+    fontFamily:AT_FONT,fontWeight:860,whiteSpace:'nowrap',
     opacity:fadeIn*fadeOut,
     transform:'translateY('+((1-fadeIn)*6)+'px)'}}>
-    <span style={{color:AMBER}}>{e.main}</span>
-    <span style={{color:SOFT}}> · </span>
-    <span style={{color:WHITE}}>{e.detail}</span>
+    <div style={{display:'inline-flex',alignItems:'center',gap:9,
+      opacity:contentOpacity,whiteSpace:'nowrap'}}>
+      <span style={{color:AMBER,fontSize:22}}>{entry.main}</span>
+      <span style={{color:SOFT,fontSize:19}}>·</span>
+      <span style={{color:WHITE,fontSize:19}}>{entry.detail}</span>
+    </div>
   </div>;
 };
 
@@ -219,7 +229,6 @@ export const Shot10DirectorVisualV1:React.FC<Shot10SceneProps>=(props)=>{
   const takeover=shot10Ease(frame,cue.LOOK_DATABASE,40);
   const titleFade=shot10Ease(frame,cue.LOOK_DATABASE,48);
   const chapter=shot10Ease(frame,cue.RECOVERY,30);
-  const phase=phaseAt(frame,cue);
   return <ATBackground>
     <AbsoluteFill style={{transform:'translate3d(-7px,0,0) scale(1.007)',
       transformOrigin:'50% 50%'}}>
@@ -235,7 +244,7 @@ export const Shot10DirectorVisualV1:React.FC<Shot10SceneProps>=(props)=>{
         admissionLevel={.5}
         breakerLevel={1-.82*measured} probeLevel={1}/>
     </AbsoluteFill>
-    <DirectorLockedShot09Closing opacity={1-takeover}/>
+    <DirectorLockedShot09Closing opacity={1-takeover} frame={frame}/>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:22,opacity:titleFade}}>
       <div style={{position:'absolute',left:560,top:78,
         fontFamily:AT_FONT,color:WHITE,zIndex:26}}>
@@ -245,7 +254,7 @@ export const Shot10DirectorVisualV1:React.FC<Shot10SceneProps>=(props)=>{
         <div style={{marginTop:15,width:690,height:2,
           background:'linear-gradient(90deg,#6FECD4,transparent)'}}/>
       </div>
-      <RecoveryReadouts frame={frame} cue={cue} phase={phase}/>
+      <RecoveryReadouts frame={frame} cue={cue}/>
       <VoiceMarkers frame={frame} cue={cue} duration={props.durationInFrames}/>
       <div style={{position:'absolute',left:560,top:983,width:1220,height:54,
         fontFamily:AT_FONT,fontSize:20,fontWeight:825,

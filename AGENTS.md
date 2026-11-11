@@ -1,5 +1,11 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+
+## PERMANENT DIRECTOR DESIGN RULE — 2026-11-11: ALL NEW VISUAL CONTAINERS CONTENT-FITTED, NO MICROCOPY
+
+This is a **global, non-negotiable instruction for EVERY future Architectural Thinking / EP002 MediaOS visual authoring agent**. **No gratuitously oversized fixed blue/info/diagram containers:** size width AND height to the visible heading/value/line (using deterministic text measurement or genuine CSS intrinsic sizing), and animate every dimension that changes at each real spoken cue. No unused panel space or clipped letters. Safe bounds protect original Spline/Remotion Living Architecture nodes, 1080p frame, and other annotations. **No unreadable tiny explanatory copy**: 18px minimum normal secondary at 1920x1080; 20px+ primary; when a line duplicates audio or animation, REMOVE it rather than shrinking it. **No redundant panels:** Director specifically ordered removing the SHOT10 "DATABASE QUEUE · DRAINING" card and all sub-18px microcopy/footnotes. Empty information panels do not appear until their actual HEAR→SEE voice trigger. Exact first frame of a new shot MUST still match the prior Director-LOCKED MP4; legacy first-frame hold is the only exception and must fade without jump. Always test every actual phrase (width, height, padding, no clipping), no overlap, 21 genuine words and 6 beats, scene builds and Full HD legibility before Director paid render/LOCK. **Read** [the detailed Director visual rule](docs/engineering/AT_CONTENT_FIT_AND_VISUAL_READABILITY_DIRECTOR_RULE_20261111.md) before making any new SHOT components. The rule is durable project source, not a one-off note. SHOT01–09 locked MP4s remain untouched.
+
+
 **This is a repository instruction file for AI coding assistants.** Follow it whenever working on `stefanVasilev17/media-os`. Agents without automatic repository-instruction loading should be explicitly told to read this file at the beginning of every new conversation.
 
 ## Director natural-voice editorial pacing contract (2026-11-07)
