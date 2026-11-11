@@ -849,6 +849,98 @@ public class Ep002DirectorVoiceCueService {
         }catch(RuntimeException invalid){return false;}
     }
 
+    public record Shot11RenderReadiness(
+            String shotKey,String inputFingerprint,String voiceTakeId,
+            int durationInFrames,String timingMode,
+            List<Ep002VoiceBeatResolver.BeatCue> verifiedCues,
+            List<Ep002Shot11TermResolver.TermCue> termCues,
+            boolean ready,String reason) {}
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Shot11RenderReadiness shot11RenderReadiness() {
+        DirectorIdentity.requireDirector();
+        return currentShot11AudioReadiness();
+    }
+
+    Shot11RenderReadiness shot11InternalReadiness() {
+        return currentShot11AudioReadiness();
+    }
+
+    private Shot11RenderReadiness currentShot11AudioReadiness() {
+        var current=episode.snapshot();
+        var shot=current.shots().stream().filter(s->"SHOT11".equals(s.shotKey()))
+                .findFirst().orElseThrow(()->conflict("SHOT11 source unavailable."));
+        int duration=shot.durationFrames()==null?0:shot.durationFrames();
+        String takeId=shot.preferredTakeId();
+        final String mode="ELEVENLABS_CHARACTER_TIMESTAMPS";
+        if(!current.sourceVerified()||!shot.currentVoiceApproved()
+                ||shot.beatCount()!=5||takeId==null||duration<150)
+            return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
+                    takeId,duration,mode,List.of(),List.of(),false,
+                    "SHOT11_CURRENT_SLOW_NATURAL_APPROVED_TAKE_REQUIRED");
+        var canonical=Ep002RecoverySource.load(mapper,Ep002RecoverySource.SCRIPT_PATH);
+        String original=canonical.path("shots").path(10).path("englishNarration").asText();
+        if(!original.equals(shot.narration()))
+            return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
+                    takeId,duration,mode,List.of(),List.of(),false,
+                    "SHOT11_V5_DIRECTOR_APPROVED_NARRATION_CHANGED");
+        Selected take=selected(shot);
+        if(take==null||take.alignment()==null||take.alignment().isBlank()
+                ||take.seconds()==null||shot.measuredVoiceSeconds()==null
+                ||take.seconds().compareTo(shot.measuredVoiceSeconds())!=0
+                ||(int)Math.ceil(take.seconds().doubleValue()*30d)!=duration
+                ||!take.id().toString().equals(takeId)
+                ||!take.narrationSha().equals(shot.narrationSha256())
+                ||take.revision()!=shot.scriptRevision())
+            return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
+                    takeId,duration,mode,List.of(),List.of(),false,
+                    "SHOT11_SELECTED_TAKE_SOURCE_OR_REAL_ALIGNMENT_CHANGED");
+        try {
+            var archived=Ep002RecoverySource.load(mapper,
+                    "episode-production/ep002-approved-visual-source.json");
+            var recovery=Ep002RecoverySource.load(mapper,Ep002RecoverySource.VISUAL_PATH);
+            List<String> anchors=Ep002RecoverySource.suggestedAnchors(
+                    archived,recovery,"SHOT11");
+            var verified=Ep002VoiceBeatResolver.resolve(
+                    mapper,take.alignment(),take.seconds(),anchors,5);
+            var terms=Ep002Shot11TermResolver.resolve(
+                    mapper,take.alignment(),take.seconds(),verified);
+            if(terms.size()!=19)
+                throw new IllegalArgumentException("SHOT11_REQUIRES_ALL_19_REAL_SPOKEN_TERMS");
+            return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
+                    takeId,duration,mode,verified,terms,true,
+                    "CURRENT_APPROVED_SLOW_NATURAL_TAKE_REAL_5_BEATS_19_TERMS_AUTO_ALIGNED");
+        }catch(IllegalArgumentException invalid) {
+            return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
+                    takeId,duration,mode,List.of(),List.of(),false,invalid.getMessage());
+        }
+    }
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public boolean matchesCurrentShot11Render(String fingerprint,String takeId,
+                                              int scriptRevision,int durationFrames) {
+        if(fingerprint==null||!fingerprint.matches("[a-f0-9]{64}")
+                ||takeId==null||!takeId.matches(
+                    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                ||scriptRevision<1||durationFrames<150)return false;
+        try {
+            var source=episode.snapshot();
+            var shot=source.shots().stream().filter(s->"SHOT11".equals(s.shotKey()))
+                    .findFirst().orElse(null);
+            if(shot==null||!source.sourceVerified()
+                    ||!source.inputFingerprint().equals(fingerprint)
+                    ||!takeId.equals(shot.preferredTakeId())
+                    ||scriptRevision!=shot.scriptRevision()
+                    ||shot.durationFrames()==null||durationFrames!=shot.durationFrames()
+                    ||!shot.currentVoiceApproved())return false;
+            var ready=currentShot11AudioReadiness();
+            return ready.ready()&&ready.verifiedCues().size()==5
+                    &&ready.termCues().size()==19
+                    &&takeId.equals(ready.voiceTakeId())
+                    &&fingerprint.equals(ready.inputFingerprint());
+        }catch(RuntimeException invalid){return false;}
+    }
+
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Ep002Shot02EditorialPausePlan.Plan editorialPlan(
             Shot02RenderReadiness verified) {
