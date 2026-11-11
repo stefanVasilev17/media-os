@@ -36,7 +36,7 @@ public class Ep002RemotionSceneContractService {
                                 Inputs inputs,List<Asset> assets,List<Beat> beats,
                                 String cameraDirection,String continuityGuardrails,
                                 String endingTransition,String cueTimingAuthority,
-                                Readiness readiness) {}
+                                Readiness readiness,String cueTimingDiagnostic) {}
 
     private static final List<Asset> ASSETS=List.of(
         new Asset("PHONE_LOGIN",AssetUsage.REUSE_REFERENCE,AssetResolution.UNVERIFIED),
@@ -85,10 +85,10 @@ public class Ep002RemotionSceneContractService {
         long alignedBeats=scene.beats().stream().filter(b->
                 b.cueStatus()==CueStatus.AUDIO_ALIGNED && b.startFrame()!=null && b.endFrame()!=null).count();
         org.slf4j.LoggerFactory.getLogger(Ep002RemotionSceneContractService.class)
-                .info("EP002_SHOT01_SCENE_READINESS status={} selectedTake={} durationMeasured={} alignedBeats={} blockers={}",
+                .info("EP002_SHOT01_SCENE_READINESS status={} selectedTake={} durationMeasured={} alignedBeats={} cueDiagnostic={} blockers={}",
                         scene.readiness().status(),scene.inputs().preferredTakeId()!=null,
                         scene.inputs().measuredDurationSeconds()!=null,alignedBeats,
-                        scene.readiness().blockers());
+                        scene.cueTimingDiagnostic(),scene.readiness().blockers());
         return scene;
     }
 
@@ -193,6 +193,7 @@ public class Ep002RemotionSceneContractService {
                 "REVIEWED_SOURCE_CHANGES_ONLY_NO_AUTO_EXECUTION",video,inputs,
                 ASSETS,List.copyOf(beats),(String)visual.get("cameraDirection"),
                 (String)visual.get("truthContinuity"),(String)visual.get("transition"),
-                aligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",readiness);
+                aligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",
+                readiness,(String)voice.getOrDefault("cueTimingDiagnostic","NOT_INSPECTED"));
     }
 }

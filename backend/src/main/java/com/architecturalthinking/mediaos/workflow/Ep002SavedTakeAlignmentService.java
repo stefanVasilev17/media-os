@@ -167,6 +167,11 @@ public class Ep002SavedTakeAlignmentService {
             if(take.alignmentState()!=Ep002SavedAlignmentInspection.State.MISSING)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Real alignment already exists or stored timestamps are unsafe. No paid API call was made.");
+            LastRequest previous=latestRequest(take.id());
+            if("IN_FLIGHT".equals(previous.status())||"UNCERTAIN".equals(previous.status())
+                    ||"COMPLETED".equals(previous.status()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "An earlier paid alignment request requires reconciliation. No new provider call was made.");
             if(take.audio()==null || take.audio().length<512 || take.audio().length>24*1024*1024)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Selected recording has invalid audio.");
             if(!EpisodeLockedScriptVoiceService.narrationHash(take.narration()).equals(take.hash()))

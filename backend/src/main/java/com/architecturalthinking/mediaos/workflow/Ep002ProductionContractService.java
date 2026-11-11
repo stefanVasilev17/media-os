@@ -177,13 +177,13 @@ public class Ep002ProductionContractService {
         boolean sourceUnchanged=script.narration().equals(approved.path("englishNarration").asText());
         Take chosen=chosenTake(shot,script.revision());
         BigDecimal measured=measuredDuration(chosen);
-        var cues=chosen!=null && "SHOT01".equals(shot)
-                ? Ep002AutomaticVoiceCues.resolve(shot,script.narration(),visual,
-                        chosen.alignmentJson(),measured,new ObjectMapper())
-                    .frames().stream().map(c->new Ep002VoiceCueTiming.TimedBeat(
+        Ep002AutomaticVoiceCues.Result automatic=chosen!=null && "SHOT01".equals(shot)
+                ?Ep002AutomaticVoiceCues.resolve(shot,script.narration(),visual,
+                        chosen.alignmentJson(),measured,new ObjectMapper()):null;
+        var cues=automatic==null?List.<Ep002VoiceCueTiming.TimedBeat>of()
+                :automatic.frames().stream().map(c->new Ep002VoiceCueTiming.TimedBeat(
                         c.beatNumber(),c.spokenAnchor(),c.spokenStartSeconds(),
-                        c.spokenEndSeconds(),c.startFrame(),c.endFrame())).toList()
-                : List.<Ep002VoiceCueTiming.TimedBeat>of();
+                        c.spokenEndSeconds(),c.startFrame(),c.endFrame())).toList();
         String signature=chosen==null?null:fingerprint(EPISODE,shot,script.revision(),
                 narrationHash,chosen.id(),VISUAL_SHA);
         Map<String,Object> scriptResult=new LinkedHashMap<>();
@@ -205,6 +205,7 @@ public class Ep002ProductionContractService {
                 +shot+"/takes/"+chosen.id()+"/audio");
         voice.put("durationSeconds",measured);
         voice.put("cueTimings",cues);
+        voice.put("cueTimingDiagnostic",automatic==null?"NO_SELECTED_TAKE":automatic.reason());
         voice.put("alignmentAuthority",cues.size()==5?"ELEVENLABS_CHARACTER_TIMESTAMPS":"NOT_AVAILABLE");
         voice.put("durationAuthority",chosen==null?"NO_PREFERRED_TAKE":
                 measured==null?"MEASUREMENT_UNAVAILABLE":"FFPROBE_MEASURED");

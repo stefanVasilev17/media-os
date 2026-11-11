@@ -207,6 +207,9 @@ export function Ep002RemotionSceneContractPanel(
               ?'The existing approved MP3 needs one separately paid ElevenLabs Forced Alignment. You can authorize it together with Render video using this single button. Only successful real timing allows rendering.'
               :decision.reason}
           </p>}
+          {!hasRealCues&&scene.cueTimingDiagnostic&&<p className="library-note" role="status">
+            Audio source diagnosis: {scene.cueTimingDiagnostic.replaceAll('_',' ').toLowerCase()}.
+          </p>}
           <p>{scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
             ? 'Uses real ElevenLabs voice timestamps for the five spoken cue anchors. Director visual review remains required.'
             : 'Current real audio timing is incomplete. No substitute editorial timing will be rendered.'}</p>

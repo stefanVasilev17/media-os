@@ -25,6 +25,7 @@ export type Ep002SceneContract={
   }>;
   cameraDirection:string;continuityGuardrails:string;endingTransition:string;
   cueTimingAuthority:'EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT'|'ELEVENLABS_CHARACTER_TIMESTAMPS';
+  cueTimingDiagnostic?:string;
   readiness:{
     status:'BLOCKED'|'READY_FOR_CODE_GENERATION';
     blockers:string[];
