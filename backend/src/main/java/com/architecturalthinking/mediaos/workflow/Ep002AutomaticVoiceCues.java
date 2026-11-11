@@ -55,8 +55,6 @@ public final class Ep002AutomaticVoiceCues {
         return "EXISTING_TIMESTAMP_ANCHORS_UNRESOLVED";
     }
 
-    }
-
     public static List<String> anchors(String shot,String narration,JsonNode visual) {
         if(narration==null||narration.isBlank()||visual==null||!visual.path("beats").isArray())
             return List.of();
