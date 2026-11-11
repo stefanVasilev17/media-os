@@ -1012,7 +1012,19 @@ public class Ep002DirectorVoiceCueService {
             return new CueReview(shotKey,source.inputFingerprint(),null,
                     shot.scriptRevision(),shot.beatCount(),List.of(),List.of(),
                     false,"SELECT_AND_MEASURE_CURRENT_VOICE_TAKE",null);
-        return existing(shotKey,source.inputFingerprint(),shot,take,actor);
+        CueReview saved=existing(shotKey,source.inputFingerprint(),shot,take,actor);
+        if(saved.verified())return saved;
+        if(!shot.currentVoiceApproved() || shot.measuredVoiceSeconds()==null
+                || take.seconds()==null || take.revision()!=shot.scriptRevision()
+                || !shot.narrationSha256().equals(take.narrationSha())
+                || shot.measuredVoiceSeconds().compareTo(take.seconds())!=0)
+            return saved;
+        var auto=Ep002AutomaticVoiceCues.resolve(
+                shotKey,shot.narration(),shot.approvedVisualStory(),
+                take.alignment(),take.seconds(),mapper);
+        return new CueReview(shotKey,source.inputFingerprint(),take.id().toString(),
+                shot.scriptRevision(),shot.beatCount(),auto.anchors(),auto.frames(),
+                auto.ready(),auto.reason(),null);
     }
 
     @Transactional(isolation=Isolation.SERIALIZABLE)
