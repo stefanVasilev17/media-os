@@ -22,7 +22,8 @@ class Ep002DirectorMasterContractTest {
         assertFalse(ids.contains("447f2846-3d1d-4d6c-924c-ea3918520625"));
         assertEquals("73ec0e6f-d348-4518-a32b-573bf89a8ab5",ids.get(10));
         for(int i=0;i<ids.size();i++) {
-            assertDoesNotThrow(()->UUID.fromString(ids.get(0)));
+            String id=ids.get(i);
+            assertDoesNotThrow(()->UUID.fromString(id));
             assertEquals(i==0?"EP002-SHOT01-DRAFT":
                     String.format("EP002-SHOT%02d-CANDIDATE",i+1),
                     Ep002DirectorMasterController.expectedComposition(i));
@@ -32,14 +33,14 @@ class Ep002DirectorMasterContractTest {
     @Test
     void noInventedFrameCountForUnavailableReferenceMetadata() {
         assertEquals(11,Ep002DirectorMasterController.EXPECTED_FRAMES.size());
-        assertEquals(1172,Ep002DirectorMasterController.EXPECTED_FRAMES.get(0));
+        assertEquals(1172,Ep002DirectorMasterController.EXPECTED_FRAMES.get(0).intValue());
         for(int index=1;index<=5;index++)
             assertNull(Ep002DirectorMasterController.EXPECTED_FRAMES.get(index));
-        assertEquals(2674,Ep002DirectorMasterController.EXPECTED_FRAMES.get(6));
-        assertEquals(2314,Ep002DirectorMasterController.EXPECTED_FRAMES.get(7));
-        assertEquals(3063,Ep002DirectorMasterController.EXPECTED_FRAMES.get(8));
-        assertEquals(2360,Ep002DirectorMasterController.EXPECTED_FRAMES.get(9));
-        assertEquals(1572,Ep002DirectorMasterController.EXPECTED_FRAMES.get(10));
+        assertEquals(2674,Ep002DirectorMasterController.EXPECTED_FRAMES.get(6).intValue());
+        assertEquals(2314,Ep002DirectorMasterController.EXPECTED_FRAMES.get(7).intValue());
+        assertEquals(3063,Ep002DirectorMasterController.EXPECTED_FRAMES.get(8).intValue());
+        assertEquals(2360,Ep002DirectorMasterController.EXPECTED_FRAMES.get(9).intValue());
+        assertEquals(1572,Ep002DirectorMasterController.EXPECTED_FRAMES.get(10).intValue());
     }
 
     @Test
