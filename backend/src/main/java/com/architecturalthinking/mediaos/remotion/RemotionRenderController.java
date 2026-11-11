@@ -55,6 +55,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP002_SHOT09_CANDIDATE", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT10-CANDIDATE",
                 new CompositionProfile("EP002_SHOT10_CANDIDATE", null, 1920, 1080, 30, 6, true)),
+            Map.entry("EP002-SHOT11-CANDIDATE",
+                new CompositionProfile("EP002_SHOT11_CANDIDATE", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP001-VerticalSlice",
                 new CompositionProfile("EP001_VERTICAL_SLICE", EP001_ID, 1920, 1080, 30, 1920, false)),
             Map.entry("EP001-Shot01-VoiceSynced",
@@ -206,7 +208,8 @@ public class RemotionRenderController {
                 ||"EP002-SHOT07-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT08-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT09-CANDIDATE".equals(compositionId)
-                ||"EP002-SHOT10-CANDIDATE".equals(compositionId)) {
+                ||"EP002-SHOT10-CANDIDATE".equals(compositionId)
+                ||"EP002-SHOT11-CANDIDATE".equals(compositionId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "EP002 render inputs must come from the verified selected-voice Director endpoint.");
         }
@@ -259,6 +262,10 @@ public class RemotionRenderController {
         return ensureVerifiedRender("EP002-SHOT10-CANDIDATE",
                 new RenderRequest("REVIEW",verifiedProps));
     }
+    public Map<String,Object> ensureVerifiedEp002Shot11Preview(Map<String,Object> verifiedProps) {
+        return ensureVerifiedRender("EP002-SHOT11-CANDIDATE",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
 
 
     private Map<String,Object> ensureVerifiedRender(String compositionId,RenderRequest request) {
@@ -287,7 +294,8 @@ public class RemotionRenderController {
                 ||"EP002-SHOT07-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT08-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT09-CANDIDATE".equals(compositionId)
-                ||"EP002-SHOT10-CANDIDATE".equals(compositionId))
+                ||"EP002-SHOT10-CANDIDATE".equals(compositionId)
+                ||"EP002-SHOT11-CANDIDATE".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         String renderHash = renderHash(compositionId, profileName, output, semanticRenderProps);
 
