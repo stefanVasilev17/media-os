@@ -47,7 +47,7 @@ const job={
 test('SHOT10 shares exact LOCKED SHOT09 last world frame and original living map',()=>{
   assert.match(scene,/const worldFrame=handoff\.worldLastFrame\+frame/);
   assert.match(scene,/frame=\{worldFrame\}/);
-  assert.match(scene,/worldLastFrame:8048/);
+  assert.match(contract,/worldLastFrame:8048/);
   assert.match(scene,/transform:'translate3d\(-7px,0,0\) scale\(1\.007\)'/);
   assert.match(scene,/replicaGrowth=\{0\} dbStress=/);
   assert.match(scene,/recoveryLevel=\{1\}/);
