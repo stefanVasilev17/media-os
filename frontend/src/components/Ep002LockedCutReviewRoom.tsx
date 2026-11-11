@@ -41,6 +41,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT08',title:'Stop the Retry Storm — Director LOCK',
     renderId:'3415073a-5906-489d-bb69-6af7446c2c9b',
     compositionId:'EP002-SHOT08-CANDIDATE',durationInFrames:2314},
+  {shotKey:'SHOT09',title:'Protect the Shared Database — Director LOCK',
+    renderId:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
+    compositionId:'EP002-SHOT09-CANDIDATE',durationInFrames:3063},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
@@ -50,6 +53,7 @@ export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
   {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
   {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
   {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
+  {from:'SHOT08',to:'SHOT09',label:'Review 08 → 09'},
 ]);
 export function actualShotOrderIsContinuous(previous:string,next:string):boolean{
   const a=Number(previous.slice(4)),b=Number(next.slice(4));
@@ -236,8 +240,8 @@ export function Ep002LockedCutReviewRoom(){
     <div className="library-section-title">
       <Film size={20}/><h2>Director Review Room — SHOT01–08 continuity</h2>
     </div>
-    <p>Watch the Director-locked SHOT01–08 videos in their original order,
-      including the exact approved SHOT07 V3 and SHOT08 MP4s. Both are
+    <p>Watch the Director-locked SHOT01–09 videos in their original order,
+      including the exact approved SHOT07 V3, SHOT08 and SHOT09 MP4s. All are
       pinned to their final Director-approved render IDs. This room starts
       no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">

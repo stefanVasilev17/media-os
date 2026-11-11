@@ -477,6 +477,81 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
   }
 
+
+  if(job.compositionId==='EP002-SHOT10-CANDIDATE'){
+    const frames=Number(job.durationInFrames);
+    const beats=props.verifiedCues,terms=props.termCues;
+    const expected=['LOOK_DATABASE','RETRIES_LIMITED','QUEUE_SHRINK',
+      'DB_COMPLETIONS','SHARED_BUDGET','DRAIN_BACKLOG',
+      'CONNECTIONS_RETURN','LATENCY_IMPROVES','PRESSURE_AMBER','MEASUREMENT',
+      'OLD_TIMEOUT','OLD_OVER','NEW_LOGIN','EVIDENCE','VALID_SUCCESS',
+      'SYSTEM_ERRORS','WRONG_PASSWORD','P95_P99','TRACING','REJECTIONS','RECOVERY'];
+    if(props.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+      ||Number(props.durationInFrames)!==frames
+      ||Number(props.postVoiceHoldFrames||0)!==0
+      ||props.shotKey!=='EP002_SHOT10'
+      ||!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(String(props.voiceTakeId||''))
+      ||!integer(props.scriptRevision)||props.scriptRevision<1
+      ||!/^[a-f0-9]{64}$/.test(String(props.inputFingerprint||''))
+      ||!/^[a-f0-9]{40}$/.test(String(props.visualSourceSha||''))
+      ||!Array.isArray(beats)||beats.length!==6
+      ||!Array.isArray(terms)||terms.length!==expected.length)
+      reject('SHOT10_REAL_SELECTED_TAKE_CONTRACT_REQUIRED');
+    let previous=0;
+    for(let i=0;i<beats.length;i++){
+      const beat=beats[i];
+      if(beat?.beatNumber!==i+1||!integer(beat.startFrame)
+        ||!integer(beat.endFrame)
+        ||(i===0?beat.startFrame<0:beat.startFrame!==previous)
+        ||beat.endFrame<=beat.startFrame||beat.endFrame>frames
+        ||!String(beat.spokenAnchor||'').trim())
+        reject('SHOT10_SIX_REAL_SPOKEN_BEATS_INVALID');
+      previous=beat.endFrame;
+    }
+    if(previous!==frames)reject('SHOT10_REAL_VOICE_FRAMES_NOT_COVERED');
+    previous=-1;
+    for(let i=0;i<expected.length;i++){
+      const term=terms[i];
+      if(term?.id!==expected[i]||!integer(term.startFrame)
+        ||!integer(term.endFrame)||term.startFrame<0
+        ||term.endFrame<=term.startFrame||term.endFrame>frames
+        ||term.startFrame<previous||!String(term.spokenAnchor||'').trim())
+        reject('SHOT10_TWENTY_ONE_REAL_SPOKEN_TERMS_INVALID');
+      previous=term.endFrame;
+    }
+    const locked=props.lockedShot09Handoff;
+    if(!locked
+      ||locked.renderId!=='d4b6c8ff-10c5-4181-aa59-fcd16a4470ba'
+      ||locked.sourceCommit!=='b33f00ee81f89301115a4fd79874802c712f2724'
+      ||locked.lastFrame!==3062||locked.durationInFrames!==3063
+      ||locked.shot08WorldLastFrame!==4986||locked.worldLastFrame!==8048
+      ||!integer(locked.criticalPulseStartFrame)
+      ||!integer(locked.cascadeStartFrame)
+      ||locked.criticalPulseStartFrame<0
+      ||locked.cascadeStartFrame<=locked.criticalPulseStartFrame
+      ||locked.cascadeStartFrame>=2674)
+      reject('SHOT10_EXACT_DIRECTOR_LOCKED_SHOT09_MP4_8048_HANDOFF_REQUIRED');
+    if(!(terms[0].startFrame<terms[2].startFrame
+      &&terms[2].startFrame<terms[3].startFrame
+      &&terms[3].startFrame<terms[5].startFrame
+      &&terms[5].startFrame<terms[6].startFrame
+      &&terms[6].startFrame<terms[9].startFrame
+      &&terms[9].startFrame<terms[10].startFrame
+      &&terms[10].startFrame<terms[12].startFrame
+      &&terms[12].startFrame<terms[13].startFrame
+      &&terms[13].startFrame<terms[17].startFrame
+      &&terms[17].startFrame<terms[18].startFrame
+      &&terms[18].startFrame<terms[19].startFrame
+      &&terms[19].startFrame<terms[20].startFrame))
+      reject('SHOT10_RECOVERY_CAUSAL_ORDER_INVALID');
+    checks.push('SHOT10_CURRENT_DIRECTOR_APPROVED_SLOW_NATURAL_TAKE',
+      'SIX_REAL_AUDIO_ALIGNED_BEATS','TWENTY_ONE_REAL_RECOVERY_TERMS',
+      'EXACT_LOCKED_SHOT09_8048_FINAL_WORLD_FRAME',
+      'ORIGINAL_THREE_AUTH_ONE_DATABASE',
+      'OLD_TIMEOUT_NEVER_REVIVED','NO_FAKE_DB_CAPACITY_INCREASE',
+      'EXACT_AUDIO_FRAME_COUNT','NO_UNAPPROVED_EDITORIAL_SILENCE');
+  }
+
   return {
     standardId:AT_TIER_PLUS_PLUS_STANDARD_ID,
     status:'TECHNICAL_PRECHECK_PASS',
