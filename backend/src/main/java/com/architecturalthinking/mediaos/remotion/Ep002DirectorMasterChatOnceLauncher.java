@@ -16,18 +16,22 @@ public class Ep002DirectorMasterChatOnceLauncher implements ApplicationRunner {
 
     private final Ep002DirectorMasterController master;
     private final boolean explicitChatAuthorization;
+    private final boolean exactHttp403RepairAuthorized;
 
     public Ep002DirectorMasterChatOnceLauncher(
             Ep002DirectorMasterController master,
             @Value("${MEDIAOS_EP002_MASTER_CHAT_RENDER_ONCE:false}")
-                boolean explicitChatAuthorization) {
+                boolean explicitChatAuthorization,
+            @Value("${MEDIAOS_EP002_MASTER_CHAT_ROUTE_REPAIR_ONCE:false}")
+                boolean exactHttp403RepairAuthorized) {
         this.master=master;
         this.explicitChatAuthorization=explicitChatAuthorization;
+        this.exactHttp403RepairAuthorized=exactHttp403RepairAuthorized;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        if(!explicitChatAuthorization)return;
+        if(explicitChatAuthorization) {
         try {
             Map<String,Object> result=master.queueVerifiedChatMasterOnce(
                     Ep002DirectorMasterController.CHAT_AUTHORIZATION);
@@ -36,6 +40,16 @@ public class Ep002DirectorMasterChatOnceLauncher implements ApplicationRunner {
         } catch(Exception failure) {
             log.error("EP002_MASTER_CHAT_ONE_TIME_NOT_QUEUED: {}",
                     failure.toString());
+        }
+        if(exactHttp403RepairAuthorized) {
+            try {
+                Map<String,Object> repaired=master.queueScopedRouteRepairOnce(
+                        Ep002DirectorMasterController.SCOPED_ROUTE_REPAIR_AUTHORIZATION);
+                log.info("EP002_MASTER_CHAT_HTTP403_REPAIR_RESULT status={} renderId={} reason={}",
+                        repaired.get("status"),repaired.get("renderId"),repaired.get("reason"));
+            } catch(Exception issue) {
+                log.error("EP002_MASTER_CHAT_HTTP403_REPAIR_NOT_QUEUED: {}",issue.toString());
+            }
         }
     }
 }
