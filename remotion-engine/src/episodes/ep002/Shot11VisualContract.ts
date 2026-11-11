@@ -90,6 +90,8 @@ export function validateShot11Source(props:Shot11SceneProps){
     &&positions.HEALTHY_NOT_AVAILABLE<positions.ONE_DB_QUESTION
     &&positions.ONE_DB_QUESTION<positions.NEXT_STORY))
     throw Error('SHOT11_ARCHITECTURAL_TRUTH_CAUSAL_SEQUENCE_INVALID');
+  if(props.durationInFrames-positions.ONE_DB_QUESTION<120)
+    throw Error('SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS');
   return {positions,beats:props.verifiedCues,terms:props.termCues};
 }
 export function assertShot11SafeLayout(){
