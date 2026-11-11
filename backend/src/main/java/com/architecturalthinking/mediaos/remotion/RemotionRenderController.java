@@ -35,6 +35,8 @@ public class RemotionRenderController {
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
+            Map.entry("EP002-DIRECTOR-MASTER",
+                new CompositionProfile("EP002_DIRECTOR_MASTER", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT01-DRAFT",
                 new CompositionProfile("EP002_SHOT01_DRAFT", null, 1920, 1080, 30, 1200, true)),
             Map.entry("EP002-SHOT02-CANDIDATE",
@@ -199,7 +201,8 @@ public class RemotionRenderController {
             @PathVariable String compositionId,
             @RequestBody(required = false) RenderRequest request
     ) {
-        if ("EP002-SHOT01-DRAFT".equals(compositionId)
+        if ("EP002-DIRECTOR-MASTER".equals(compositionId)
+                || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
                 || "EP002-SHOT03-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT04-CANDIDATE".equals(compositionId)
@@ -267,6 +270,11 @@ public class RemotionRenderController {
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
+
+    public Map<String,Object> ensureVerifiedEp002Master(Map<String,Object> exactApprovedProps) {
+        return ensureVerifiedRender("EP002-DIRECTOR-MASTER",
+                new RenderRequest("REVIEW",exactApprovedProps));
+    }
 
     private Map<String,Object> ensureVerifiedRender(String compositionId,RenderRequest request) {
         CompositionProfile composition = requireComposition(compositionId);
