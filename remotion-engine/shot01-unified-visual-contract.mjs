@@ -35,7 +35,7 @@ export const shot01UnifiedState=(frame,duration,starts)=>{
   const rewindActive=shot01UnifiedEase(frame,rewind,rewind+18);
   return {
     closing,press,waiting,health,focus,rail,rewindActive,
-    cameraX:-11*focus,cameraY:3*focus,cameraScale:1+.012*focus,
+    cameraX:focus>0?-11*focus:0,cameraY:3*focus,cameraScale:1+.012*focus,
     canonicalFrame:Math.round(frame*remaining),
     packetProgress:clamp((frame-tap-5)/110),
     packetVisible:frame>=tap+5 && frame<wait+12 && remaining>.15,
