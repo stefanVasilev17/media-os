@@ -47,6 +47,9 @@ const REFERENCES:readonly LockedReference[]=[
   {shotKey:'SHOT10',title:'Prove the Recovery — Director LOCK',
     renderId:'2034d8c6-99b2-46a5-9469-bf3df325d6c0',
     compositionId:'EP002-SHOT10-CANDIDATE',durationInFrames:2360},
+  {shotKey:'SHOT11',title:'Healthy Is Not the Same as Available — Director LOCK',
+    renderId:'73ec0e6f-d348-4518-a32b-573bf89a8ab5',
+    compositionId:'EP002-SHOT11-CANDIDATE',durationInFrames:1572},
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
@@ -58,6 +61,7 @@ export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
   {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
   {from:'SHOT08',to:'SHOT09',label:'Review 08 → 09'},
   {from:'SHOT09',to:'SHOT10',label:'Review 09 → 10'},
+  {from:'SHOT10',to:'SHOT11',label:'Review 10 → 11'},
 ]);
 export function actualShotOrderIsContinuous(previous:string,next:string):boolean{
   const a=Number(previous.slice(4)),b=Number(next.slice(4));
@@ -242,11 +246,13 @@ export function Ep002LockedCutReviewRoom(){
   return <section id="ep002-locked-cut" className="library-section"
     aria-label="EP002 director review room continuous video comparison">
     <div className="library-section-title">
-      <Film size={20}/><h2>Director Review Room — SHOT01–10 continuity</h2>
+      <Film size={20}/><h2>Director Review Room — SHOT01–11 continuity</h2>
     </div>
-    <p>Watch the Director-locked SHOT01–10 videos in their original order,
-      including the exact approved SHOT07 V3, SHOT08 and SHOT09 MP4s. All are
-      pinned to their final Director-approved render IDs. This room starts
+    <p>Watch the Director-locked SHOT01–11 videos in their original order,
+      including the exact approved SHOT07 V3, SHOT08, SHOT09, SHOT10 and SHOT11
+      MP4s. SHOT11 is pinned to its Director-approved 1572-frame recording
+      with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
+      All are pinned to their final Director-approved render IDs. This room starts
       no paid TTS, CPU render or export.</p>
     <div className="locked-cut-room">
       <div className="locked-cut-toolbar">
@@ -353,10 +359,12 @@ export function Ep002LockedCutReviewRoom(){
         SHOT08 is pinned to its Director-approved final render
         3415073a-5906-489d-bb69-6af7446c2c9b (2314 frames, 1920×1080, 30 fps).
         SHOT09 is pinned to d4b6c8ff-10c5-4181-aa59-fcd16a4470ba
-        (3063 frames). SHOT10 is pinned to its human-approved final render
-        2034d8c6-99b2-46a5-9469-bf3df325d6c0
-        (2360 frames, source a4d9fe5d1dcec033f36ce68a190160fd8077faea).
-        Earlier SHOT07–SHOT10 renders are never substituted.
+        (3063 frames). SHOT10 is pinned to 2034d8c6-99b2-46a5-9469-bf3df325d6c0
+        (2360 frames, SHA a4d9fe5d1dcec033f36ce68a190160fd8077faea).
+        SHOT11 is pinned to its Director-approved final MP4
+        73ec0e6f-d348-4518-a32b-573bf89a8ab5
+        (1572 frames, SHA e08f4ed554dbe1d208939422b5282be9437ced9c).
+        Earlier SHOT07–SHOT11 renders are never substituted.
         The boundary shortcuts start eight seconds before each cut. The player
         switches between original stored MP4s; it is not a frame-perfect
         exported master and may briefly buffer at a boundary.
