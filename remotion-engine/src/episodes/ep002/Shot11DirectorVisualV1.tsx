@@ -161,8 +161,6 @@ const LastStory:React.FC<{frame:number;cue:Shot11Positions;
         primary:'SAME FINITE CAPACITY',accent:AMBER},
       {at:cue.CONCURRENT_LOOKUPS,heading:'CONCURRENT LOOKUPS',
         primary:'BOUNDED',accent:MINT},
-      {at:cue.QUEUE_SHRINK,heading:'DATABASE QUEUE',
-        primary:'FEWER WAITING LOOKUPS',accent:MINT},
       {at:cue.ON_TIME_LOGINS,heading:'ANOTHER USER',
         primary:'LOGIN FINISHES ON TIME',accent:MINT},
       {at:cue.LESSON,heading:'END-TO-END RELIABILITY',
