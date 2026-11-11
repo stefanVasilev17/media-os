@@ -119,9 +119,12 @@ export function Ep002Shot11RenderPanel(){
           no added servers, no faster Database, bounded retries and concurrency,
           early Login rejection, more on-time accepted completions, and proof that
           healthy servers do not guarantee a successful end-to-end Login.
-          The final camera keeps only the EXISTING single Database in focus to tee
-          up a future episode. No replicas or imaginary capacity gains.
-          No paid voice generation happens here.</p>
+          All small, quickly changing panels are removed. Only five large
+          content-fitted orange messages remain; the final text says
+          “NEXT: MULTIPLE DATABASE INSTANCES.” for at least four real
+          voice-aligned seconds through the final frame. The existing ONE
+          Database is highlighted without introducing any fictional replicas.
+          No additional voice, silent padding or paid voice generation happens here.</p>
       </div>
       <span className="library-episode-batch-state" aria-live="polite">{status}</span>
     </div>
@@ -131,7 +134,7 @@ export function Ep002Shot11RenderPanel(){
       Real voice: {readiness?.ready?'5 REAL BEATS + 19 SPOKEN TERMS VERIFIED':
         readiness?.reason??'CHECKING'}. Pinned Worker:
       {' '}{capability?.canQueue?'READY FOR DIRECTOR REVIEW RENDER':'RELEASE OR VOICE NOT READY'}.
-      {' '}Locked SHOT09 final-frame seam:
+      {' '}Locked SHOT10 final-frame seam:
       {' '}{capability?.lockedShot10BoundaryReady?'VERIFIED EXACT MP4 HANDOFF':
         capability?.reason??'NOT VERIFIED'}.
       {' '}Voice duration: {readiness?.durationInFrames

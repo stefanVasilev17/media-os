@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import {preflightTierPlusPlusRender} from './tier-plus-plus-render-quality.mjs';
-import {shot10TextWidth,shot10ContentCardSize,shot10CaptionSize,
-  shot10TweenSize} from './shot10-content-fit-layout.mjs';
+import {shot10TextWidth,shot10TweenSize} from './shot10-content-fit-layout.mjs';
+import {SHOT11_LARGE_AMBER_STORY,shot11LargeAmberSize,shot11LargeAmberIndex}
+  from './shot11-large-amber-story.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const scene=read('src/episodes/ep002/Shot11DirectorVisualV1.tsx');
@@ -59,10 +60,11 @@ test('SHOT11 continues the exact SHOT10 frame and preserves one original databas
   assert.match(scene,/dbStress=\{\.33-\.10\*recovery\}/);
   assert.match(scene,/flowRetryLevel=\{\.16-\.08\*loop\}/);
   assert.match(scene,/admissionLevel=\{\.5\}/);
-  assert.match(scene,/HEALTHY SERVERS/);
-  assert.match(scene,/RELIABILITY/);
-  assert.match(scene,/ONE DATABASE/);
-  assert.match(scene,/ONE USER/);
+  assert.match(scene,/LockedShot10LastFrame/);
+  assert.match(scene,/LargeAmberStory/);
+  assert.match(scene,/OneDatabaseFocus/);
+  assert.match(scene,/frame=\{worldFrame\}/);
+  assert.match(contract,/orangeStory:\{left:560,top:742,width:1240,height:176\}/);
   assert.match(api,/r\.id=:id and r\.composition_id='EP002-SHOT10-CANDIDATE'/);
   assert.match(api,/r\.status='SUCCEEDED'/);
   assert.match(api,/r\.input_props->'lockedShot09Handoff'/);
@@ -73,46 +75,73 @@ test('SHOT11 continues the exact SHOT10 frame and preserves one original databas
   assert.match(root,/id="EP002-SHOT11-CANDIDATE"/);
 });
 
-test('SHOT11 callouts are readable, content-fitted, dynamic, and do not repeat SHOT10 redundant queue',()=>{
-  const live=scene.slice(scene.indexOf('type PanelState='),
+test('SHOT11 shows only five meaningful LARGE orange panels, all copy-fitted and readable',()=>{
+  const live=scene.slice(scene.indexOf('const LargeAmberStory:'),
     scene.indexOf('export const Shot11DirectorVisualV1:'));
-  const actualCards=scene.slice(scene.indexOf('const LastStory:'),
-    scene.indexOf('export const Shot11DirectorVisualV1:'));
-  const cards=[...actualCards.matchAll(/heading:'([^']+)',\s*primary:'([^']+)'/g)]
-    .map(([,heading,primary])=>({heading,primary}));
-  const caps=[...live.matchAll(/main:'([^']+)',\s*detail:'([^']+)'/g)]
-    .map(([,main,detail])=>({main,detail}));
-  assert.equal(cards.length,9);
-  assert.equal(caps.length,8);
-  const sizes=cards.map(s=>shot10ContentCardSize(s));
-  const captionSizes=caps.map(s=>shot10CaptionSize(s));
-  assert.ok(new Set(sizes.map(s=>s.width)).size>=6);
-  assert.ok(new Set(captionSizes.map(s=>s.width)).size>=6);
-  for(let i=0;i<cards.length;i++){
-    const card=cards[i],size=sizes[i];
-    assert.ok(size.width>=244&&size.width<=445&&size.height===89);
-    assert.ok(shot10TextWidth(card.heading,18)+45<=size.width);
-    assert.ok(shot10TextWidth(card.primary,20)+45<=size.width);
-    assert.ok(1090+size.width<1573,'Overlaps database readout');
+  assert.equal(SHOT11_LARGE_AMBER_STORY.length,5);
+  assert.deepEqual(SHOT11_LARGE_AMBER_STORY.map(s=>s.cue),[
+    'ONE_DATABASE','REJECT_EXCESS','FAST_FAILURE',
+    'HEALTHY_NOT_AVAILABLE','ONE_DB_QUESTION']);
+  const sizes=SHOT11_LARGE_AMBER_STORY.map(shot11LargeAmberSize);
+  assert.ok(new Set(sizes.map(x=>x.width)).size>=4,
+    'Different real texts must produce different panel widths');
+  for(let i=0;i<SHOT11_LARGE_AMBER_STORY.length;i++){
+    const {eyebrow,headline,featured}=SHOT11_LARGE_AMBER_STORY[i];
+    const size=sizes[i];
+    assert.ok(size.width<=1240&&size.width>=530);
+    assert.ok(size.height===166||size.height===176);
+    assert.ok(shot10TextWidth(eyebrow,size.headingFont)+94<=size.width,
+      'Eyebrow clipped: '+eyebrow);
+    assert.ok(shot10TextWidth(headline,size.headlineFont)+94<=size.width,
+      'Headline clipped: '+headline);
+    assert.ok(size.headingFont>=30&&size.headlineFont>=42);
+    assert.ok(560+size.width<=1800,'Panel overlaps horizontal safe margin');
+    assert.ok(742+size.height<983,'Panel overlaps previous footer lane');
+    assert.equal(featured,i===SHOT11_LARGE_AMBER_STORY.length-1);
   }
-  for(let i=0;i<caps.length;i++){
-    const c=caps[i],size=captionSizes[i];
-    assert.ok(size.height===56&&size.width<=1060);
-    assert.ok(shot10TextWidth(c.main,22)+shot10TextWidth(c.detail,19)+65<=size.width);
-  }
-  assert.deepEqual(shot10TweenSize(sizes[0],sizes[1],0),sizes[0]);
-  assert.deepEqual(shot10TweenSize(sizes[0],sizes[1],1),sizes[1]);
-  assert.match(live,/shot10TweenSize\(previous,target,shot11Ease\(frame,state\.at,29\)\)/);
-  assert.match(live,/shot10TweenSize\(previous,target,shot11Ease\(frame,state\.at,28\)\)/);
-  assert.match(live,/width:size\.width,height:size\.height/);
-  assert.doesNotMatch(live,/width:448,height:148|width:445,height:148|width:256,height:143/);
-  assert.doesNotMatch(live,/fontSize:(?:10|11|12|13|14|15|16|17)\b/);
-  assert.doesNotMatch(live,/heading:'DATABASE QUEUE'/);
+  assert.match(live,/width:size.width,height:size.height/);
+  assert.match(live,/shot10TweenSize\(previous,target,shot11Ease\(frame,start,34\)\)/);
+  assert.match(live,/border:'3px solid '\+AMBER/);
+  assert.match(live,/background:'linear-gradient\(112deg,rgba\(78,42,22,.97\)/);
+  assert.doesNotMatch(live,/ResponsiveCard|ResponsiveCaption|PanelState|CaptionState/);
+  assert.doesNotMatch(live,/width:448,height:148|width:445,height:148/);
+  assert.doesNotMatch(live,/fontSize:(?:10|11|12|13|14|15|16|17|18|19|20|21|22)\b/);
   assert.doesNotMatch(live,/REQUEST-LEVEL EVIDENCE|QUEUE SHRINKS ONLY IF/);
+  assert.doesNotMatch(live,/heading:'DATABASE QUEUE'/);
   assert.match(scene,/OneDatabaseFocus frame=\{frame\} cue=\{cue\}/);
   assert.match(scene,/left:n.x-n.width\/2-11,top:n.y-11/);
+  assert.match(scene,/LockedShot10LastFrame opacity=\{1-first\}/);
+  assert.deepEqual(shot10TweenSize(sizes[0],sizes[1],0),{
+    width:sizes[0].width,height:sizes[0].height
+  });
+  assert.deepEqual(shot10TweenSize(sizes[0],sizes[1],1),{
+    width:sizes[1].width,height:sizes[1].height
+  });
 });
 
+test('SHOT11 final orange promise clearly announces MULTIPLE DATABASE INSTANCES and STAYS through frame end',()=>{
+  const positions=Object.fromEntries(ids.map((id,i)=>[id,terms[i].startFrame]));
+  const last=SHOT11_LARGE_AMBER_STORY.at(-1);
+  assert.equal(last?.cue,'ONE_DB_QUESTION');
+  assert.equal(last?.eyebrow,'ONE DATABASE IS NOT ENOUGH?');
+  assert.equal(last?.headline,'NEXT: MULTIPLE DATABASE INSTANCES.');
+  assert.equal(last?.featured,true);
+  assert.equal(shot11LargeAmberIndex(positions.ONE_DATABASE-1,positions),-1);
+  assert.equal(shot11LargeAmberIndex(positions.ONE_DATABASE,positions),0);
+  assert.equal(shot11LargeAmberIndex(positions.ONE_DB_QUESTION-1,positions),3);
+  assert.equal(shot11LargeAmberIndex(positions.ONE_DB_QUESTION,positions),4);
+  assert.equal(shot11LargeAmberIndex(positions.NEXT_STORY,positions),4);
+  assert.equal(shot11LargeAmberIndex(props.durationInFrames-1,positions),4);
+  assert.ok(props.durationInFrames-positions.ONE_DB_QUESTION>=120,
+    'The verified final story requires several seconds of clear exposure');
+  const live=scene.slice(scene.indexOf('const LargeAmberStory:'),
+    scene.indexOf('const OneDatabaseFocus:'));
+  assert.match(live,/story\.featured\?shot11Ease\(frame,cue\.NEXT_STORY,30\):0/);
+  assert.match(live,/shot11LargeAmberIndex\(frame,cue\)/);
+  assert.doesNotMatch(live,/fadeOut|fadeOutStart|disappear|duration-frame|lastFrameFade/);
+  assert.match(scene,/replicaGrowth=\{0\}/);
+  assert.match(scene,/dbStress=\{\.33-\.10\*recovery\}/);
+});
 test('SHOT11 real aligned five beat, nineteen term, original source gate rejects invented data',()=>{
   const pass=preflightTierPlusPlusRender(job,'a'.repeat(40));
   assert.equal(pass.status,'TECHNICAL_PRECHECK_PASS');
@@ -138,7 +167,16 @@ test('SHOT11 real aligned five beat, nineteen term, original source gate rejects
     assert.throws(()=>preflightTierPlusPlusRender(bad,'a'.repeat(40)),
       /AT_TIER_PLUS_PLUS_PRECHECK_FAILED_/);
   }
+  const tooShort=structuredClone(job);
+  tooShort.inputProps.termCues[17].startFrame=2890;
+  tooShort.inputProps.termCues[17].endFrame=2910;
+  tooShort.inputProps.termCues[18].startFrame=2930;
+  tooShort.inputProps.termCues[18].endFrame=2950;
+  assert.throws(()=>preflightTierPlusPlusRender(tooShort,'a'.repeat(40)),
+    /SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
   assert.match(voice,/currentShot11AudioReadiness/);
+  assert.match(voice,/SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
+  assert.match(contract,/SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
   assert.match(voice,/anchors,5/);
   assert.match(voice,/Ep002Shot11TermResolver.resolve/);
   assert.match(api,/ready\.verifiedCues\(\)\.size\(\)!=5/);
