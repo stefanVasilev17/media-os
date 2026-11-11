@@ -164,6 +164,78 @@ public class Ep002DirectorMasterController {
         return renders.ensureVerifiedEp002Master(props);
     }
 
+    static final String SCOPED_ROUTE_REPAIR_AUTHORIZATION =
+            "USER_EXPLICIT_CHAT_2026_11_12_EP002_MASTER_HTTP403_SCOPED_ROUTE_REPAIR_ONCE";
+    private static final UUID FIRST_FAILED_MASTER=UUID.fromString(
+            "b9e3f213-d6bf-4981-ab7a-084dad69640c");
+    private static final String FIRST_FAILED_WORKER_SHA =
+            "e2a86f512d06614ae729b9b8ad464f48e555c9e5";
+
+    @Transactional(isolation=Isolation.SERIALIZABLE)
+    public Map<String,Object> queueScopedRouteRepairOnce(String authorization) {
+        if(!SCOPED_ROUTE_REPAIR_AUTHORIZATION.equals(authorization))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Unrecognized one-time Director-authorized technical repair.");
+        if(!enabled||!pinnedSha.matches("[a-f0-9]{40}")
+                ||!pinnedSha.equals(System.getenv("RAILWAY_GIT_COMMIT_SHA"))
+                ||pinnedSha.equals(FIRST_FAILED_WORKER_SHA))
+            return Map.of("status","BLOCKED","reason","REPAIR_WORKER_SOURCE_NOT_READY");
+
+        Snapshot snap=snapshot();
+        if(!snap.blockers().isEmpty())
+            return Map.of("status","BLOCKED","reason",
+                    "REPAIR_REQUIRES_ALL_11_UNCHANGED_ORIGINAL_LOCKED_MP4S",
+                    "blockers",snap.blockers());
+
+        Boolean exactPriorFailure=jdbc.sql("""
+                select exists(select 1 from remotion_render r
+                    where r.id=:id and r.project_id=:project
+                      and r.composition_id='EP002-DIRECTOR-MASTER'
+                      and r.status='FAILED' and r.progress=0
+                      and r.video_data is null and coalesce(r.size_bytes,0)=0
+                      and r.input_props->>'authorizationSource'=:approval
+                      and r.input_props->>'expectedSourceCommit'=:oldWorkerSha
+                      and r.input_props->>'sourceDigest'=:digest
+                      and r.input_props->>'directorPaidCpuConfirmed'='true'
+                      and r.error like '%EP002_MASTER_EXACT_SOURCE_UNAVAILABLE SHOT01 HTTP 403%'
+                )
+                """).param("id",FIRST_FAILED_MASTER).param("project",PROJECT_ID)
+                .param("approval",CHAT_AUTHORIZATION)
+                .param("oldWorkerSha",FIRST_FAILED_WORKER_SHA)
+                .param("digest",snap.digest())
+                .query(Boolean.class).single();
+        if(!Boolean.TRUE.equals(exactPriorFailure))
+            return Map.of("status","BLOCKED",
+                    "reason","ORIGINAL_ZERO_OUTPUT_403_FAILURE_NOT_INDEPENDENTLY_VERIFIED");
+
+        Map<String,Object> existing=existingMaster(snap.digest());
+        if(!"NOT_RENDERED".equals(existing.get("status")))return existing;
+
+        Long repairCount=jdbc.sql("""
+                select count(*) from remotion_render
+                  where project_id=:project and composition_id='EP002-DIRECTOR-MASTER'
+                    and input_props->>'authorizationSource'=:approval
+                """).param("project",PROJECT_ID)
+                .param("approval",SCOPED_ROUTE_REPAIR_AUTHORIZATION)
+                .query(Long.class).single();
+        if(repairCount!=null&&repairCount>0)
+            return Map.of("status","BLOCKED","reason","TECHNICAL_REPAIR_ALREADY_ATTEMPTED_NO_RETRY");
+
+        UUID requestId=UUID.nameUUIDFromBytes(
+                (SCOPED_ROUTE_REPAIR_AUTHORIZATION+"|"+snap.digest()+"|"+pinnedSha)
+                        .getBytes(StandardCharsets.UTF_8));
+        Map<String,Object> props=new LinkedHashMap<>();
+        props.put("durationInFrames",snap.totalFrames());
+        props.put("sourceRenderIds",SOURCE_IDS);
+        props.put("sourceDigest",snap.digest());
+        props.put("expectedSourceCommit",pinnedSha);
+        props.put("directorPaidCpuConfirmed",true);
+        props.put("renderRequestId",requestId.toString());
+        props.put("masterMode","EXACT_DIRECTOR_APPROVED_STREAM_COPY");
+        props.put("authorizationSource",SCOPED_ROUTE_REPAIR_AUTHORIZATION);
+        return renders.ensureVerifiedEp002Master(props);
+    }
+
     @GetMapping("/preflight")
     @Transactional(readOnly=true)
     public Map<String,Object> preflight() {
