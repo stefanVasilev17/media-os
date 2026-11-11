@@ -84,6 +84,11 @@ class LocalDirectorHttpLifecycleTest {
             return "qa-allowed";
         }
 
+        @PostMapping("/api/v1/creative/episodes/EP002/voice-cue-review/{shotKey}")
+        public String cueTimingSecurityProbe() {
+            return "cue-review-security-allowed";
+        }
+
         @PostMapping("/api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow")
         public String paidSlowVoiceSecurityProbe() {
             return "director-only-route";
@@ -166,6 +171,33 @@ class LocalDirectorHttpLifecycleTest {
                 | (hash[offset + 3] & 255);
         Arrays.fill(secret, (byte) 0);
         return "%06d".formatted(value % 1_000_000);
+    }
+
+    @Test
+    void shot01VoiceCuePostRequiresTheExactDirectorSessionAndCsrf() throws Exception {
+        Csrf token = csrf();
+        String path = "/api/v1/creative/episodes/EP002/voice-cue-review/SHOT01";
+        mvc.perform(post(path).cookie(token.cookie())
+                .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isUnauthorized());
+        MvcResult loggedIn = login(token, PASSWORD, currentCode());
+        assertEquals(200, loggedIn.getResponse().getStatus());
+        Cookie session = loggedIn.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+        mvc.perform(post(path).cookie(session, token.cookie()))
+                .andExpect(status().isForbidden())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .header().string("X-MediaOS-Denial-Reason", "CSRF_COOKIE_HEADER_MISMATCH"));
+        mvc.perform(post(path).cookie(session)
+                .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isForbidden())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .header().string("X-MediaOS-Denial-Reason", "CSRF_COOKIE_MISSING"));
+        mvc.perform(post(path).cookie(session,token.cookie())
+                .header("X-XSRF-TOKEN", token.token()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .content().string("cue-review-security-allowed"));
     }
 
     @Test

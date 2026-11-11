@@ -57,7 +57,8 @@ public class LocalDirectorSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, reason) ->
-                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED)))
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler(new DirectorVoiceCueAccessDeniedHandler()))
                 .authorizeHttpRequests(authorization -> authorization
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/api/v1/auth/mode", "/api/v1/auth/csrf", "/api/v1/auth/login", "/api/v1/auth/claim/redeem").permitAll()
                         .requestMatchers(HttpMethod.POST,

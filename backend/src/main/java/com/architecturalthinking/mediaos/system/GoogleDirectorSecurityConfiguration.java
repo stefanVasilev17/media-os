@@ -86,7 +86,8 @@ public class GoogleDirectorSecurityConfiguration {
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(
-                        (request, response, error) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+                        (request, response, error) -> response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler(new DirectorVoiceCueAccessDeniedHandler()))
                 .authorizeHttpRequests(access -> access
                         .requestMatchers("/actuator/health", "/actuator/health/**",
                                 "/api/v1/auth/mode", "/api/v1/auth/csrf",
