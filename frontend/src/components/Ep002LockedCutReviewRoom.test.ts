@@ -182,7 +182,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.missing.some(s=>s.startsWith('SHOT07:'))).toBe(true);
       expect(result.shots.map(s=>s.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08','SHOT09']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08','SHOT09','SHOT10']);
       expect(actualShotOrderIsContinuous(result.shots[5].shotKey,
         result.shots[6].shotKey)).toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes(
@@ -230,7 +230,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
     try{
       const result=await loadLockedCut();
       expect(result.shots.map(x=>x.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT09']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT09','SHOT10']);
       expect(result.missing.some(x=>x.startsWith('SHOT08:'))).toBe(true);
       expect(fetchMock.mock.calls.some(([url])=>url.includes(
         '/api/v1/remotion/renders/'+ids.SHOT08))).toBe(true);
