@@ -35,7 +35,7 @@ const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
 const CLAIMS_ENABLED = shouldClaimRenderWork(process.env.MEDIA_OS_REMOTION_CLAIMS_ENABLED);
 const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITION || '').trim();
 if (TARGET_COMPOSITION
-    && !['EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
+    && !['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
       'EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE',
       'EP002-DIRECTOR-SHOT02-SHOT03',
       'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
@@ -540,6 +540,21 @@ async function addShot10V6SoundDesign(job, outputPath, inputProps) {
 }
 
 async function readEp002SelectedVoice(job, inputProps) {
+  if(job.compositionId==='EP002-SHOT01-DRAFT'){
+    const beats=inputProps.beatStartFrames;
+    const duration=Number(job.durationInFrames);
+    if(job.profile!=='REVIEW'||Number(job.width)!==1920||Number(job.height)!==1080
+       ||Number(job.fps)!==30
+       ||inputProps.visualStylePass!=='SHOT01_SHOT02_UNIFIED_V2'
+       ||inputProps.timingMode!=='ELEVENLABS_CHARACTER_TIMESTAMPS'
+       ||!Array.isArray(beats)||beats.length!==5
+       ||beats.some((n,i)=>!Number.isInteger(n)||n<0||n>=duration
+           ||i>0&&n<=beats[i-1])
+       ||duration-beats[4]<15
+       ||!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+       ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA)
+      throw Error('SHOT01_UNIFIED_REAL_TAKE_FIVE_CUES_1080P_SOURCE_MISMATCH');
+  }
   if (!['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
          'EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE'].includes(job.compositionId)) return null;
   if (['EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE'].includes(job.compositionId)
