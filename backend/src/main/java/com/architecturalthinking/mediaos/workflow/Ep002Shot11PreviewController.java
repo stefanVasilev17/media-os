@@ -212,7 +212,7 @@ public class Ep002Shot11PreviewController {
         props.put("verifiedCues",ready.verifiedCues());
         props.put("termCues",ready.termCues());
         props.put("inputFingerprint",ready.inputFingerprint());
-        props.put("visualSourceSha",Ep002RecoverySource.FINALE_VISUAL_BLOB_SHA);
+        props.put("visualSourceSha",Ep002RecoverySource.RECOVERY_VISUAL_BLOB_SHA);
         props.put("expectedSourceCommit",pinnedWorkerSha);
         props.put("renderRequestId",request.requestId().toString());
         Map<String,Object> render=renders.ensureVerifiedEp002Shot11Preview(props);
@@ -230,7 +230,7 @@ public class Ep002Shot11PreviewController {
                 .param("id",UUID.randomUUID()).param("revision",shot.scriptRevision())
                 .param("narration",shot.narrationSha256())
                 .param("take",UUID.fromString(ready.voiceTakeId()))
-                .param("visual",Ep002RecoverySource.FINALE_VISUAL_BLOB_SHA)
+                .param("visual",Ep002RecoverySource.RECOVERY_VISUAL_BLOB_SHA)
                 .param("fingerprint",ready.inputFingerprint()).param("render",renderId)
                 .param("worker",pinnedWorkerSha).update();
         return render;
