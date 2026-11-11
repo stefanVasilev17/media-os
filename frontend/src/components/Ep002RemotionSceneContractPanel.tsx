@@ -82,9 +82,11 @@ export function Ep002RemotionSceneContractPanel(
   return <details open={expanded} className="library-production-contract library-scene-contract">
     <summary>
       <span className="library-production-title"><Code2 size={17}/> Remotion Scene Blueprint · SHOT01 — Render video</span>
-      <span className={'library-production-state'+(scene?.readiness.status==='READY_FOR_CODE_GENERATION'?' ready':'')}>
-        {loading?'Checking…':scene?.readiness.status==='READY_FOR_CODE_GENERATION'
-          ?'READY FOR PREVIEW':'INPUTS REQUIRED'}
+      <span className={'library-production-state'+(canPreview?' ready':'')}>
+        {loading?'Checking…':error?'SCENE UNAVAILABLE':canPreview?'READY TO RENDER':
+          !scene?'SCENE UNAVAILABLE':scene.inputs.preferredTakeId===null?'VOICE TAKE REQUIRED':
+          scene.inputs.measuredDurationSeconds===null?'MEASURED AUDIO REQUIRED':
+          !hasRealCues?'REAL VOICE TIMING REQUIRED':'CHECK RENDER PREREQUISITES'}
       </span>
     </summary>
     <div className="library-production-content">
@@ -99,7 +101,10 @@ export function Ep002RemotionSceneContractPanel(
           <div><span>Visual plan</span><strong>{scene.beats.length} beats</strong><small>{scene.assets.length} asset references</small></div>
         </div>
         {scene.readiness.blockers.length>0&&
-          <p className="library-warning">Code-generation prerequisites: {scene.readiness.blockers.map(label).join('; ')}.</p>}
+          <p className="library-warning" role="status">
+            Automatic render prerequisites: {scene.readiness.blockers.map(label).join('; ')}.
+            {' '}No text entry or manual voice-cue Verify is required.
+          </p>}
         <p className="library-note">{scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
           ? 'Voice-synced: these beat frames are derived from real ElevenLabs character timestamps for the selected take.'
           : 'Provisional: this recording has no saved ElevenLabs character timestamps. Visual beats use approximate editorial positions.'}</p>

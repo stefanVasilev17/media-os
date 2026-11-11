@@ -81,7 +81,15 @@ public class Ep002RemotionSceneContractService {
         if (!"SHOT01".equals(shotKey))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "Stage 2 typed scene contract is implemented only for EP002 SHOT01.");
-        return fromProductionData(production.contract(shotKey));
+        SceneContract scene=fromProductionData(production.contract(shotKey));
+        long alignedBeats=scene.beats().stream().filter(b->
+                b.cueStatus()==CueStatus.AUDIO_ALIGNED && b.startFrame()!=null && b.endFrame()!=null).count();
+        org.slf4j.LoggerFactory.getLogger(Ep002RemotionSceneContractService.class)
+                .info("EP002_SHOT01_SCENE_READINESS status={} selectedTake={} durationMeasured={} alignedBeats={} blockers={}",
+                        scene.readiness().status(),scene.inputs().preferredTakeId()!=null,
+                        scene.inputs().measuredDurationSeconds()!=null,alignedBeats,
+                        scene.readiness().blockers());
+        return scene;
     }
 
     @SuppressWarnings("unchecked")
@@ -145,7 +153,7 @@ public class Ep002RemotionSceneContractService {
         List<String> blockers=new ArrayList<>();
         if (takeId==null) blockers.add("PREFERRED_VOICE_REQUIRED");
         if (takeId!=null && measured==null) blockers.add("MEASURED_AUDIO_DURATION_REQUIRED");
-        if (!"SOURCE_TEXT_UNCHANGED".equals(visual.get("cueReviewStatus")))
+        if (!"SOURCE_TEXT_UNCHANGED".equals(visual.get("cueReviewStatus")) && !aligned)
             blockers.add("NARRATION_CUE_REVIEW_REQUIRED");
         if (takeId!=null && !Integer.valueOf(revision.intValue()).equals(voice.get("sourceScriptRevision")))
             throw new IllegalArgumentException("Preferred voice take belongs to a different script revision.");

@@ -99,6 +99,25 @@ class Ep002RemotionSceneContractServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void realAudioAlignmentAutomaticallyClearsLegacyManualNarrationReviewForCurrentTake() {
+        var source=fixture(true,true);
+        var voice=(Map<String,Object>)source.get("voice");
+        voice.put("cueTimings",java.util.stream.IntStream.rangeClosed(1,5)
+                .mapToObj(i->new Ep002VoiceCueTiming.TimedBeat(
+                        i,"source-true verified phrase "+i,
+                        i*2.0,i*2.0+1.0,i*60,i*60+45)).toList());
+        var scene=Ep002RemotionSceneContractService.fromProductionData(source);
+        assertEquals("READY_FOR_CODE_GENERATION",scene.readiness().status());
+        assertTrue(scene.readiness().blockers().isEmpty());
+        assertFalse(scene.readiness().cueAlignmentRequired());
+        assertEquals("ELEVENLABS_CHARACTER_TIMESTAMPS",scene.cueTimingAuthority());
+        assertEquals(5,scene.beats().stream()
+                .filter(beat->beat.cueStatus()==Ep002RemotionSceneContractService.CueStatus.AUDIO_ALIGNED)
+                .count());
+    }
+
+    @Test
     void rejectsStaleVoiceTakeOrTamperedVisualPlan() {
         var stale=fixture(true,false);
         @SuppressWarnings("unchecked")
