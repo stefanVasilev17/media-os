@@ -42,19 +42,23 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
     return()=>{active=false;if(interval)clearInterval(interval);};
   },[refreshToken,refresh]);
 
-  const canPreview=!!scene && scene.inputs.preferredTakeId!==null
-    && scene?.inputs.measuredDurationSeconds!==null
-    && scene?.video.durationInFrames!==null
-    && !scene?.readiness.blockers.some(b=>b!=='NARRATION_CUE_REVIEW_REQUIRED');
+  const hasRealCues=!!scene
+    && scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
+    && scene.beats.length===5
+    && scene.beats.every(b=>b.cueStatus==='AUDIO_ALIGNED'
+      && b.startFrame!==null && b.endFrame!==null);
+  const canPreview=!!scene && hasRealCues && scene.inputs.preferredTakeId!==null
+    && scene.inputs.measuredDurationSeconds!==null
+    && scene.video.durationInFrames!==null
+    && !scene.readiness.blockers.some(b=>b!=='NARRATION_CUE_REVIEW_REQUIRED');
 
   const previewActive=preview?.status==='QUEUED'||preview?.status==='RUNNING';
 
   async function requestPreview(){
     if(!scene||!canPreview||rendering||previewActive||requestInFlight.current)return;
     const hasAlignedCues=scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS';
-    if(!window.confirm(hasAlignedCues
-      ? 'Create a NEW EP002 SHOT01 visual preview using the current Remotion code and existing selected voice? This uses Railway CPU, saves previous previews and makes NO new ElevenLabs purchase.'
-      : 'Create a NEW provisional EP002 SHOT01 visual preview with approximate visual beat timing? This uses Railway CPU, preserves previous previews and makes NO new ElevenLabs purchase.'))return;
+    if(!hasAlignedCues)return;
+    if(!window.confirm('Render a NEW EP002 SHOT01 Full HD 1920×1080 / 30fps candidate using the existing approved voice and real ElevenLabs beat timestamps? This is a paid Railway CPU render. No new voice will be generated, and existing Director locks stay untouched.'))return;
     const renderRequestId=pendingRenderRequestId.current??window.crypto.randomUUID();
     pendingRenderRequestId.current=renderRequestId;
     requestInFlight.current=true;
@@ -62,7 +66,7 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
     try{
       const response=await fetch('/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:!hasAlignedCues,renderRequestId})
+        body:JSON.stringify({expectedContractId:scene.contractId,acceptProvisionalCueTiming:false,renderRequestId})
       });
       if(!response.ok)throw new Error('Preview request failed: HTTP '+response.status
         +' '+(await response.text()).slice(0,220));
@@ -125,8 +129,7 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
           <button type="button" className="library-voice-button"
             disabled={!canPreview||rendering||previewActive}
             onClick={()=>void requestPreview()}>
-            {rendering?'Starting…':previewActive?'Render already running':scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
-              ? 'Create new voice-synced preview':'Create new provisional preview'}
+            {rendering?'Starting…':previewActive?'Render already running':hasRealCues?'Render video · 1920×1080':'Real audio timing required'}
           </button>
           {preview&&<p role="status">Render: {preview.status}
             {typeof preview.progress==='number'?' · '+preview.progress+'%':''}
