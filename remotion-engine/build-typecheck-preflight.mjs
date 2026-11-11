@@ -17,6 +17,10 @@ const diagnostics = output.split(/\r?\n/).map(line => line.trim()).filter(line =
 const unexpected = diagnostics.filter(line => !knownBaseline.has(line));
 
 if (result.error || (result.status !== 0 && diagnostics.length === 0) || unexpected.length > 0 || result.signal) {
+  process.stdout.write('REMOTION_TYPECHECK_FAILED diagnostics='
+    + diagnostics.length + ' unexpected=' + unexpected.length
+    + ' exit=' + result.status + ' signal=' + (result.signal || 'none') + '\\n');
+  process.stdout.write(output + '\\n');
   process.stderr.write(output);
   throw new Error('Remotion preflight failed: ' + unexpected.length + ' unexpected diagnostics, exit=' + result.status + ', signal=' + (result.signal || 'none'));
 }
