@@ -617,6 +617,8 @@ export function preflightTierPlusPlusRender(job,sourceSha){
       &&terms[15].startFrame<terms[17].startFrame
       &&terms[17].startFrame<terms[18].startFrame))
       reject('SHOT11_CONCLUSION_CAUSAL_ORDER_INVALID');
+    if(frames-terms[17].startFrame<120)
+      reject('SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS');
     checks.push('SHOT11_CURRENT_DIRECTOR_APPROVED_SLOW_NATURAL_TAKE',
       'FIVE_REAL_AUDIO_ALIGNED_BEATS','NINETEEN_REAL_CONCLUSION_TERMS',
       'EXACT_LOCKED_SHOT10_10407_FINAL_WORLD_FRAME',
