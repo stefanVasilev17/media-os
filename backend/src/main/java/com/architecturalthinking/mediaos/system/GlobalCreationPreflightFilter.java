@@ -254,7 +254,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         if (!callback.matches()) return false;
         String operation = callback.group(2);
         if (!(("complete".equals(operation) && "PUT".equals(request.getMethod()))
-                || ("fail".equals(operation) && "POST".equals(request.getMethod()))) return false;
+                || ("fail".equals(operation) && "POST".equals(request.getMethod())))) return false;
         if (request.getHeader("X-MediaOS-Episode-Id") != null) return false;
         String worker = request.getHeader("X-Media-OS-Worker");
         String sourceSha = request.getHeader("X-Media-OS-Worker-Source-Sha");
