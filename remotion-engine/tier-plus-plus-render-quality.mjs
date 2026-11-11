@@ -431,7 +431,8 @@ export function preflightTierPlusPlusRender(job,sourceSha){
     for(let i=0;i<beats.length;i++){
       const beat=beats[i];
       if(beat?.beatNumber!==i+1||!integer(beat.startFrame)
-        ||!integer(beat.endFrame)||beat.startFrame!==previous
+        ||!integer(beat.endFrame)
+        ||(i===0?beat.startFrame<0:beat.startFrame!==previous)
         ||beat.endFrame<=beat.startFrame||beat.endFrame>frames
         ||!String(beat.spokenAnchor||'').trim())
         reject('SHOT09_SEVEN_REAL_SPOKEN_BEATS_INVALID');

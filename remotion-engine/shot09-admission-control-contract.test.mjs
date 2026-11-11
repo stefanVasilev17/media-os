@@ -17,7 +17,7 @@ const terms=['STOP_RETRIES','NINE_HUNDRED','FIVE_HUNDRED','QUEUE_GROWS',
   'ILLUSTRATION','SHEDDING','FAIL_FAST','NO_SIGN_IN','CONCURRENCY','THREE_POOLS',
   'BULKHEAD','BREAKER_OPEN','TEST_PROBES','TRADEOFF','SOME_FAIL','ADMITTED_WORK'];
 const beats=Array.from({length:7},(_,i)=>({beatNumber:i+1,
-  spokenAnchor:'genuine selected phrase '+i,startFrame:i*600,endFrame:(i+1)*600}));
+  spokenAnchor:'genuine selected phrase '+i,startFrame:i===0?9:i*600,endFrame:(i+1)*600}));
 const termCues=terms.map((id,i)=>({id,spokenAnchor:'genuine spoken '+id,
   startFrame:10+i*180,endFrame:35+i*180}));
 const lockedShot08Handoff={
@@ -103,6 +103,9 @@ test('paid Worker refuses any stale voice, SHOT08 identity/frame, or guessed ons
   assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
     ...props,termCues:termCues.slice(1)}},'a'.repeat(40)),
     /SHOT09_REAL_SELECTED_TAKE_CONTRACT_REQUIRED/);
+  assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
+    ...props,verifiedCues:beats.map((b,i)=>i===0?{...b,startFrame:-1}:b)}},'a'.repeat(40)),
+    /SHOT09_SEVEN_REAL_SPOKEN_BEATS_INVALID/);
   assert.throws(()=>preflightTierPlusPlusRender({...job,inputProps:{
     ...props,verifiedCues:beats.map((b,i)=>i===4?{...b,startFrame:b.startFrame+20}:b)}},'a'.repeat(40)),
     /SHOT09_SEVEN_REAL_SPOKEN_BEATS_INVALID/);
