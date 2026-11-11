@@ -907,6 +907,9 @@ public class Ep002DirectorVoiceCueService {
                     mapper,take.alignment(),take.seconds(),verified);
             if(terms.size()!=19)
                 throw new IllegalArgumentException("SHOT11_REQUIRES_ALL_19_REAL_SPOKEN_TERMS");
+            if(duration-terms.get(17).startFrame()<120)
+                throw new IllegalArgumentException(
+                        "SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS");
             return new Shot11RenderReadiness("SHOT11",current.inputFingerprint(),
                     takeId,duration,mode,verified,terms,true,
                     "CURRENT_APPROVED_SLOW_NATURAL_TAKE_REAL_5_BEATS_19_TERMS_AUTO_ALIGNED");
