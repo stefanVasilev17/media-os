@@ -38,7 +38,7 @@ export const shot11LargeAmberSize=({eyebrow,headline,featured=false})=>{
   const headlineFont=featured?43:42;
   const naturalWidth=Math.max(
     shot10TextWidth(eyebrow,headingFont),
-    shot10TextWidth(headline,headlineFont))+78;
+    shot10TextWidth(headline,headlineFont))+94;
   if(naturalWidth>1240){
     throw Error('SHOT11_LARGE_AMBER_TEXT_EXCEEDS_SAFE_FRAME');
   }
