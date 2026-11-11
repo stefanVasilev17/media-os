@@ -1,5 +1,20 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 VERIFIED PRODUCTION — EP002 EXACT ELEVEN-SHOT REVIEW MASTER SAVED IN MEDIAOS
+
+**Current verified status: FULL EP002 REVIEW MASTER MP4 SUCCEEDED/STORED, NOT YET FINAL DIRECTOR VISUAL LOCK.** The source implementation lives in open/draft [PR #265](https://github.com/stefanVasilev17/media-os/pull/265) branch `feat/ep002-shot01-v2-lock-and-master-assembly-20261111`, but **the branch's exact commit `1e9dec4c4bd3dbdf77535a5f9f05045ad5f62565` has been deployed directly to Railway production**, and Backend+Worker deployed independently and healthily. **Do not confuse PR unmerged with code not live.**
+
+**Root cause of the original HTTP 403:** `WorkloadRoute.java` in the first master release `e2a86f512d06614ae729b9b8ad464f48e555c9e5` DID NOT recognize worker GET `/{targetId}/ep002-master-source/{sourceId}`, so the `WorkloadIdentityFilter` returned 403 before reaching the scoped media controller. The repaired source has strict UUID-validated `ep002MasterSourceOperation()` in BOTH method-aware and generic route matching; no broad API access was enabled. Original paid attempt `b9e3f213-d6bf-4981-ab7a-084dad69640c` failed HTTP 403 before source download. A separately authorized **one-time technical repair** was queued from the exact previously failed record, without automatic retries.
+
+**Railway confirmed repair:** production Backend deployment `4dce2c9c-bc2b-45fc-a0ca-df4b37798fdb` SUCCESS; production Worker deployment `bea2df3a-617d-49a4-921e-4811e14e5845` SUCCESS; both on pinned SHA `1e9dec4c4bd3dbdf77535a5f9f05045ad5f62565`, online, no active warnings/criticals at latest tool check.
+
+**Director master artifact — immutable exact IDs:** Render ID **`8876235a-8037-4f19-8f5c-d2398f3ef22f`**, composition `EP002-DIRECTOR-MASTER`. Worker logged `EP002_DIRECTOR_MASTER_REVIEW_READY` at 2026-11-11 **23:07:20 UTC** with sourceCount **11**, totalFrames **23,446**, digest `996de37c5aa4e5e50d280b8cd4f1f454cfe8d7391ac9ed83d2bd48b8def7ee71`, status `CREATIVE_REVIEW_REQUIRED`; **at 23:07:21 UTC Worker additionally logged `EP002 full eleven-SHOT Director review MP4 stored: 8876235a-8037-4f19-8f5c-d2398f3ef22f bytes=84647711`**. This log follows successful authenticated `PUT /api/v1/remotion/renders/worker/{renderId}/complete`, i.e. real stored MP4 not the old sequential `Play all` playlist. 1920×1080, 30 fps, runtime **23,446 / 30 = 781.533 seconds (13:01.53)**; 84,647,711 bytes. Exact SHOT01 V2 ID `8f46fafd-9613-4375-bce2-ea98854e8b20` + ten previously approved individual SHOT02–SHOT11 unchanged. Genuine existing voice audio in source MP4s, no new TTS or visual generation.
+
+**Watch/download inside authenticated MediaOS:** [EP002 Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002), `Ep002FullMasterPanel` now has a single stored MP4 player and `Download EP002 review master MP4` link, which resolves to authenticated `/api/v1/remotion/renders/8876235a-8037-4f19-8f5c-d2398f3ef22f/video`. The backend's `RemotionRenderController.video` serves `SUCCEEDED` DB artifact with HTTP Range support. **A separate browser-session playback/HTTP-206 probe and Director visual/audio seam inspection has not yet been directly observed from this chat**; the Worker output QA passed and media was persisted.
+
+**NEXT:** Director reviews the real master in MediaOS, especially all ten visual/audio boundaries and final SHOT11 ending. Only then decide `Director final master LOCK`; keep original EP002 script, visuals, all locked individual MP4s and EP001 unchanged. Update main through reviewed PR; do not rerender by default.
+
+
 ## 2026-11-11 STAGED / NOT LIVE — Director-Approved SHOT01 V2 + EP002 11-SHOT Master Integration
 
 **Explicit Director approvals:** SHOT01 V2 `8f46fafd-9613-4375-bce2-ea98854e8b20` approved; Director requests a *single exported MP4* of exact SHOT01–SHOT11. New SHOT01 V2 is 1920×1080, 1172 frames at 30 fps. The original pinned 720p V3 `447f2846-3d1d-4d6c-924c-ea3918520625` remains archived. SHOT02–11 individually locked render IDs unchanged. **This approval is NOT automatic paid CPU consent or final assembled master LOCK.**
