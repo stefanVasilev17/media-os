@@ -7,7 +7,8 @@ describe('EP002 production render stage',()=>{
   it('shows SHOT01 first in the same render stage as SHOT02 to SHOT11',()=>{
     const html=renderToStaticMarkup(createElement(Ep002VerifiedPreviewRenderStage,{refreshToken:0}));
     expect(html).toContain('Remotion Scene Blueprint · SHOT01');
-    expect(html).toContain('Render video · 1920×1080');
+    expect(html).toContain('Remotion Scene Blueprint · SHOT01 — Render video');
+    expect(html).toContain('Checking…');
     expect(html).toContain('SHOT02 — 1080p Voice-Synced Preview');
     expect(html).toContain('SHOT11');
     expect(html.indexOf('Remotion Scene Blueprint · SHOT01'))
