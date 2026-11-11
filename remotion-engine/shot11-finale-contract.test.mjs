@@ -90,9 +90,9 @@ test('SHOT11 shows only five meaningful LARGE orange panels, all copy-fitted and
     const size=sizes[i];
     assert.ok(size.width<=1240&&size.width>=530);
     assert.ok(size.height===166||size.height===176);
-    assert.ok(shot10TextWidth(eyebrow,size.headingFont)+78<=size.width,
+    assert.ok(shot10TextWidth(eyebrow,size.headingFont)+94<=size.width,
       'Eyebrow clipped: '+eyebrow);
-    assert.ok(shot10TextWidth(headline,size.headlineFont)+78<=size.width,
+    assert.ok(shot10TextWidth(headline,size.headlineFont)+94<=size.width,
       'Headline clipped: '+headline);
     assert.ok(size.headingFont>=30&&size.headlineFont>=42);
     assert.ok(560+size.width<=1800,'Panel overlaps horizontal safe margin');
