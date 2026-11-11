@@ -27,7 +27,10 @@ export const shot10CaptionSize=({main,detail})=>({
   height:56,
 });
 
-export const shot10DbMeterSize=()=>({width:219,height:72});
+export const shot10DbMeterSize=(label='USER DATABASE')=>({
+  width:Math.max(191,Math.min(256,shot10TextWidth(label,18)+32)),
+  height:70,
+});
 
 export const shot10TweenSize=(previous,target,progress)=>{
   const t=clamp(progress);
