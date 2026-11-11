@@ -4,8 +4,7 @@ import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_MANIFEST=path.resolve(HERE,
-  '../docs/engineering/EP002_DIRECTOR_LOCKED_MASTER_INPUTS_20261111.json');
+const DEFAULT_MANIFEST=path.resolve(HERE,'ep002-approved-master-manifest.json');
 
 function fail(message) {
   throw new Error('EP002_MASTER_ASSEMBLY_BLOCKED: '+message);
