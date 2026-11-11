@@ -7,19 +7,23 @@ type LockedShot={
   renderId:string;
   videoUrl:string;
   durationSeconds:number;
-  source:'PINNED_DIRECTOR_LOCK'|'SHOT01_CURRENT_LOCKED_PREVIEW'|'LIVE_DIRECTOR_REVIEW_CANDIDATE';
+  source:'PINNED_DIRECTOR_LOCK'|'LIVE_DIRECTOR_REVIEW_CANDIDATE';
 };
 type RenderEvidence={
   status?:string;renderId?:string;videoUrl?:string|null;
   durationInFrames?:number;fps?:number;width?:number;height?:number;
   compositionId?:string;
 };
-type LockedReference={shotKey:string;title:string;renderId:string;compositionId:string;durationInFrames?:number};
+type LockedReference={shotKey:string;title:string;renderId:string;compositionId:string;
+  durationInFrames?:number;width?:number;height?:number};
 
 const RENDER='/api/v1/remotion/renders/';
-const CURRENT_SHOT01='/api/v1/creative/episodes/EP002/shots/SHOT01/render-preview';
 const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[];
 const REFERENCES:readonly LockedReference[]=[
+  {shotKey:'SHOT01',title:'What Happens When You Click Login? — Director v3 LOCK',
+    renderId:'447f2846-3d1d-4d6c-924c-ea3918520625',
+    compositionId:'EP002-SHOT01-DRAFT',durationInFrames:980,
+    width:1280,height:720},
   {shotKey:'SHOT02',title:'9:00 AM: The Ticket Sale Opens',
     renderId:'59567d1a-6a45-4e48-b390-8ae583f30171',
     compositionId:'EP002-SHOT02-CANDIDATE'},
@@ -53,9 +57,10 @@ const REFERENCES:readonly LockedReference[]=[
 ];
 
 export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
-  'SHOT01',...REFERENCES.map(x=>x.shotKey),...LIVE_REVIEW_SHOTS.map(x=>x.shotKey),
+  ...REFERENCES.map(x=>x.shotKey),...LIVE_REVIEW_SHOTS.map(x=>x.shotKey),
 ]);
 export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
+  {from:'SHOT01',to:'SHOT02',label:'Review 01 → 02'},
   {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
   {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
   {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
@@ -95,16 +100,19 @@ async function getRender(id:string):Promise<RenderEvidence>{
   return await response.json() as RenderEvidence;
 }
 
-function playable(evidence:RenderEvidence,expectedId:string,expectedComposition:string,expectedFrames?:number){
+function playable(
+  evidence:RenderEvidence,expectedId:string,expectedComposition:string,
+  expectedFrames?:number,expectedWidth=1920,expectedHeight=1080
+){
   if(evidence.renderId!==expectedId
     ||evidence.compositionId!==expectedComposition
     ||evidence.status!=='READY'
-    ||evidence.width!==1920||evidence.height!==1080
+    ||evidence.width!==expectedWidth||evidence.height!==expectedHeight
     ||evidence.fps!==30||!Number.isInteger(evidence.durationInFrames)
     ||(evidence.durationInFrames??0)<150
     ||(expectedFrames!==undefined&&evidence.durationInFrames!==expectedFrames)
     ||evidence.videoUrl!==RENDER+expectedId+'/video')
-    throw Error('Pinned 1080p/30fps approved MP4 evidence unavailable');
+    throw Error('Exact Director-LOCKED MP4 ID, format or frame count unavailable');
   return (evidence.durationInFrames as number)/30;
 }
 
@@ -114,7 +122,8 @@ export async function loadLockedCut():Promise<{
   const entries=await Promise.all(REFERENCES.map(async ref=>{
     try{
       const info=await getRender(ref.renderId);
-      const durationSeconds=playable(info,ref.renderId,ref.compositionId,ref.durationInFrames);
+      const durationSeconds=playable(info,ref.renderId,ref.compositionId,
+        ref.durationInFrames,ref.width??1920,ref.height??1080);
       return {ok:true as const,shot:{
         shotKey:ref.shotKey,title:ref.title,renderId:ref.renderId,
         videoUrl:RENDER+ref.renderId+'/video',durationSeconds,
@@ -126,19 +135,6 @@ export async function loadLockedCut():Promise<{
   }));
   const shots:LockedShot[]=[];
   const missing:string[]=[];
-  try{
-    const response=await fetch(CURRENT_SHOT01,{cache:'no-store'});
-    if(!response.ok)throw Error('SHOT01 preview HTTP '+response.status);
-    const preview=await response.json() as RenderEvidence;
-    if(!preview.renderId)throw Error('No current protected preview render ID');
-    const evidence=await getRender(preview.renderId);
-    const durationSeconds=playable(evidence,preview.renderId,'EP002-SHOT01-DRAFT');
-    shots.push({shotKey:'SHOT01',title:'What Happens When You Click Login?',
-      renderId:preview.renderId,videoUrl:RENDER+preview.renderId+'/video',
-      durationSeconds,source:'SHOT01_CURRENT_LOCKED_PREVIEW'});
-  }catch(e){
-    missing.push('SHOT01: '+String(e instanceof Error?e.message:e));
-  }
   for(const entry of entries){
     if(entry.ok)shots.push(entry.shot);
     else missing.push(entry.shotKey+': '+entry.reason);
@@ -248,9 +244,10 @@ export function Ep002LockedCutReviewRoom(){
     <div className="library-section-title">
       <Film size={20}/><h2>Director Review Room — SHOT01–11 continuity</h2>
     </div>
-    <p>Watch the Director-locked SHOT01–11 videos in their original order,
-      including the exact approved SHOT07 V3, SHOT08, SHOT09, SHOT10 and SHOT11
-      MP4s. SHOT11 is pinned to its Director-approved 1572-frame recording
+    <p>Watch the Director-locked SHOT01–11 videos in their original order.
+      SHOT01 is pinned to its original approved 1280×720, 980-frame v3 MP4;
+      SHOT02–11 retain their individually verified original Full HD files.
+      SHOT11 is pinned to its Director-approved 1572-frame recording
       with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
       All are pinned to their final Director-approved render IDs. This room starts
       no paid TTS, CPU render or export.</p>
@@ -353,8 +350,11 @@ export function Ep002LockedCutReviewRoom(){
         <strong>Not included: matching approved MP4 not confirmed</strong>
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
-      <p className="library-note">SHOT01–06 retain their protected MP4 references.
-        SHOT07 is pinned to its Director-approved V3 render
+      <p className="library-note">SHOT01 is pinned to its original Director-approved
+        v3 MP4 447f2846-3d1d-4d6c-924c-ea3918520625
+        (980 frames, 1280×720, 30 fps); its lower original resolution is never
+        changed or misrepresented as 1080p. SHOT02–06 retain their protected
+        original references. SHOT07 is pinned to its Director-approved V3 render
         b2a335dd-cb71-48f2-bf47-0f8bdcdd969d (2674 frames, 1920×1080, 30 fps).
         SHOT08 is pinned to its Director-approved final render
         3415073a-5906-489d-bb69-6af7446c2c9b (2314 frames, 1920×1080, 30 fps).
