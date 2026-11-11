@@ -47,7 +47,7 @@ export function Ep002DirectorVoiceCuePanel(){
   const current=plan?.shots.find(x=>x.shotKey===shot);
   const fallback=current?suggestEp002VoiceCueAnchors(shot,current.narration,
     current.approvedVisualStory.beats):[];
-  const anchors=review?.anchors.length===current?.beatCount?review.anchors:fallback;
+  const anchors=review!==null && review.anchors.length===current?.beatCount?review.anchors:fallback;
   const ready=review!==null && review.verified && review.frames.length===current?.beatCount
     && review.selectedTakeId===current?.preferredTakeId
     && review.inputFingerprint===plan?.inputFingerprint;
