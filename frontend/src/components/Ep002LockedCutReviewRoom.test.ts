@@ -177,8 +177,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       let result:Record<string,unknown>={status:'EMPTY'};
       if(url.includes('/latest-successful?profile=REVIEW')){
         result={renderId:ids.SHOT08,compositionId:'EP002-SHOT08-CANDIDATE',
-          status:'READY',width:shot==='SHOT01'?1280:1920,
-          height:shot==='SHOT01'?720:1080,fps:30,durationInFrames:2314,
+          status:'READY',width:1920,height:1080,fps:30,durationInFrames:2314,
           videoUrl:'/api/v1/remotion/renders/'+ids.SHOT08+'/video'};
       }else{
         const id=url.split('/').pop()!;
