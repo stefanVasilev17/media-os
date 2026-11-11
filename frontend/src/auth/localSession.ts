@@ -26,7 +26,7 @@ export function installLocalSessionFetch() {
     const headers = new Headers(request.headers);
     if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method.toUpperCase())) {
       const csrf = csrfCookie();
-      if (csrf) headers.set('X-XSRF-TOKEN', csrf);
+      if (csrf && !headers.has('X-XSRF-TOKEN')) headers.set('X-XSRF-TOKEN', csrf);
     }
     const secured = new Request(request, { headers, credentials: 'same-origin' });
     const response = await native(secured);
@@ -49,10 +49,16 @@ export async function loadLocalSession(): Promise<DirectorSession | null> {
   return response.json() as Promise<DirectorSession>;
 }
 
-export async function ensureLocalCsrf() {
-  const response = await fetch('/api/v1/auth/csrf', { cache: 'no-store' });
-  if (!response.ok) throw new Error('Could not initialize secure login.');
-  await response.json();
+export async function ensureLocalCsrf(): Promise<{ token: string; header: 'X-XSRF-TOKEN' }> {
+  const response = await fetch('/api/v1/auth/csrf', {
+    cache: 'no-store', credentials: 'same-origin'
+  });
+  if (!response.ok) throw new Error('Could not initialize secure Director CSRF (' + response.status + ').');
+  const data = await response.json() as { token?: unknown; header?: unknown };
+  if (data.header !== 'X-XSRF-TOKEN' || typeof data.token !== 'string' || !data.token) {
+    throw new Error('Secure Director CSRF token is missing or invalid.');
+  }
+  return { token: data.token, header: data.header };
 }
 
 export async function loginLocal(username: string, password: string, totpCode: string, rememberDevice: boolean) {

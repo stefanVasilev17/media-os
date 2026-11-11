@@ -2,6 +2,7 @@ import {useEffect,useState} from 'react';
 import {BookOpenCheck,Clapperboard,Film,Layers3,MessageSquareText,ShieldCheck} from 'lucide-react';
 import {Ep002EpisodeBatchPlanPanel} from './Ep002EpisodeBatchPlanPanel';
 import {Ep002DirectorVoiceCuePanel} from './Ep002DirectorVoiceCuePanel';
+import {Ep002RemotionSceneContractPanel} from './Ep002RemotionSceneContractPanel';
 import {Ep002FactoryReadinessBridgePanel} from './Ep002FactoryReadinessBridgePanel';
 import {Ep002SequentialVisualPreflightPanel} from './Ep002SequentialVisualPreflightPanel';
 import {Ep002CodexAutomationPanel} from './Ep002CodexAutomationPanel';
@@ -88,12 +89,21 @@ export function Ep002ProductionFactoryConsole(){
     </>}
     {stage==='CODEX'&&<><MediaOsVerificationAutopilotPanel/><MediaOsVerificationPanel/><Ep002CodexAutomationPanel/><Ep002SequentialVisualPreflightPanel/></>}
     {stage==='CORRECTIONS'&&<Ep002VisualDirectorFeedbackPanel/>}
-    {stage==='APPROVAL'&&<><Ep002Shot02RenderPanel/><Ep002Shot03RenderPanel/><Ep002Shot04RenderPanel/><Ep002Shot05RenderPanel/><Ep002Shot06RenderPanel/><Ep002Shot07RenderPanel/><Ep002Shot08RenderPanel/>
-      <Ep002Shot09RenderPanel/><Ep002Shot10RenderPanel/><Ep002Shot11RenderPanel/><Ep002DirectorVisualAcceptancePanel/></>}
+    {stage==='APPROVAL'&&<Ep002VerifiedPreviewRenderStage refreshToken={cycle}/>} 
     <p className="library-note">The complete product acceptance contract remains:
       verified voice + cues → one scoped Codex Remotion PR per SHOT →
       SHA-matching compiled Worker and Director-reviewed MP4 → next SHOT →
       Master and three separately reviewed Shorts. Blocked stages are not
       represented as completed work.</p>
   </section>;
+}
+
+export function Ep002VerifiedPreviewRenderStage({refreshToken}:{refreshToken:number}){
+  return <>
+    <Ep002RemotionSceneContractPanel refreshToken={refreshToken} expanded/>
+    <Ep002Shot02RenderPanel/><Ep002Shot03RenderPanel/><Ep002Shot04RenderPanel/>
+    <Ep002Shot05RenderPanel/><Ep002Shot06RenderPanel/><Ep002Shot07RenderPanel/>
+    <Ep002Shot08RenderPanel/><Ep002Shot09RenderPanel/><Ep002Shot10RenderPanel/>
+    <Ep002Shot11RenderPanel/><Ep002DirectorVisualAcceptancePanel/>
+  </>;
 }

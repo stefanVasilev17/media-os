@@ -36,7 +36,7 @@ public class Ep002RemotionSceneContractService {
                                 Inputs inputs,List<Asset> assets,List<Beat> beats,
                                 String cameraDirection,String continuityGuardrails,
                                 String endingTransition,String cueTimingAuthority,
-                                Readiness readiness) {}
+                                Readiness readiness,String cueTimingDiagnostic) {}
 
     private static final List<Asset> ASSETS=List.of(
         new Asset("PHONE_LOGIN",AssetUsage.REUSE_REFERENCE,AssetResolution.UNVERIFIED),
@@ -81,7 +81,15 @@ public class Ep002RemotionSceneContractService {
         if (!"SHOT01".equals(shotKey))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "Stage 2 typed scene contract is implemented only for EP002 SHOT01.");
-        return fromProductionData(production.contract(shotKey));
+        SceneContract scene=fromProductionData(production.contract(shotKey));
+        long alignedBeats=scene.beats().stream().filter(b->
+                b.cueStatus()==CueStatus.AUDIO_ALIGNED && b.startFrame()!=null && b.endFrame()!=null).count();
+        org.slf4j.LoggerFactory.getLogger(Ep002RemotionSceneContractService.class)
+                .info("EP002_SHOT01_SCENE_READINESS status={} selectedTake={} durationMeasured={} alignedBeats={} cueDiagnostic={} blockers={}",
+                        scene.readiness().status(),scene.inputs().preferredTakeId()!=null,
+                        scene.inputs().measuredDurationSeconds()!=null,alignedBeats,
+                        scene.cueTimingDiagnostic(),scene.readiness().blockers());
+        return scene;
     }
 
     @SuppressWarnings("unchecked")
@@ -145,7 +153,7 @@ public class Ep002RemotionSceneContractService {
         List<String> blockers=new ArrayList<>();
         if (takeId==null) blockers.add("PREFERRED_VOICE_REQUIRED");
         if (takeId!=null && measured==null) blockers.add("MEASURED_AUDIO_DURATION_REQUIRED");
-        if (!"SOURCE_TEXT_UNCHANGED".equals(visual.get("cueReviewStatus")))
+        if (!"SOURCE_TEXT_UNCHANGED".equals(visual.get("cueReviewStatus")) && !aligned)
             blockers.add("NARRATION_CUE_REVIEW_REQUIRED");
         if (takeId!=null && !Integer.valueOf(revision.intValue()).equals(voice.get("sourceScriptRevision")))
             throw new IllegalArgumentException("Preferred voice take belongs to a different script revision.");
@@ -185,6 +193,7 @@ public class Ep002RemotionSceneContractService {
                 "REVIEWED_SOURCE_CHANGES_ONLY_NO_AUTO_EXECUTION",video,inputs,
                 ASSETS,List.copyOf(beats),(String)visual.get("cameraDirection"),
                 (String)visual.get("truthContinuity"),(String)visual.get("transition"),
-                aligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",readiness);
+                aligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"EDITORIAL_CUES_ONLY_NO_FRAME_ALIGNMENT",
+                readiness,(String)voice.getOrDefault("cueTimingDiagnostic","NOT_INSPECTED"));
     }
 }

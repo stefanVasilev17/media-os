@@ -1,6 +1,6 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
-import {Shot01LoginWaiting} from './episodes/ep002/Shot01LoginWaiting';
+import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
 import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
 import {Shot03DirectorVisualV1} from './episodes/ep002/Shot03DirectorVisualV1';
 import {Shot04DirectorVisualV1} from './episodes/ep002/Shot04DirectorVisualV1';
@@ -262,12 +262,15 @@ export const Root: React.FC = () => {
       />
       <Composition
         id="EP002-SHOT01-DRAFT"
-        component={Shot01LoginWaiting}
+        component={Shot01UnifiedVisualV2}
         durationInFrames={dynamicDuration ?? 1200}
         fps={30}
         width={1920}
         height={1080}
-        defaultProps={{durationInFrames:1200,presentation:'STORYBOARD_PREVIEW_V1' as const}}
+        defaultProps={{durationInFrames:1200,presentation:'STORYBOARD_PREVIEW_V1' as const,
+          voiceTakeId:'',beatStartFrames:[],
+          timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS' as const,
+          visualStylePass:'SHOT01_SHOT02_UNIFIED_V2'}}
       />
       <Composition
         id="AT-EpisodeShot-QA"

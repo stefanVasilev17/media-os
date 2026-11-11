@@ -218,7 +218,7 @@ public class RemotionRenderController {
 
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
         return ensureVerifiedRender("EP002-SHOT01-DRAFT",
-                new RenderRequest("FAST_PREVIEW",verifiedProps));
+                new RenderRequest("REVIEW",verifiedProps));
     }
 
     public Map<String,Object> ensureVerifiedEp002Shot02Preview(Map<String,Object> verifiedProps) {

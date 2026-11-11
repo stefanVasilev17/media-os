@@ -279,6 +279,40 @@ public class Ep002FactoryReadinessBridgeService {
                     frames=null;
                 }
             }
+            boolean automaticallyVerified=false;
+            if(frames==null && shot.currentVoiceApproved()
+                    && shot.preferredTakeId()!=null && shot.measuredVoiceSeconds()!=null
+                    && shot.scriptRevision()>=1 && shot.durationFrames()!=null) {
+                try {
+                    var auto=jdbc.sql("""
+                            select revision,narration_sha256,duration_seconds,
+                                   elevenlabs_alignment::text as alignment
+                            from ep002_creative_voice_take
+                            where id=:take and shot_key=:shot and revision=:revision
+                            """)
+                            .param("take",java.util.UUID.fromString(shot.preferredTakeId()))
+                            .param("shot",shot.shotKey())
+                            .param("revision",shot.scriptRevision())
+                            .query((rs,n)->{
+                                BigDecimal duration=rs.getBigDecimal("duration_seconds");
+                                if(duration==null || duration.compareTo(shot.measuredVoiceSeconds())!=0
+                                        || !shot.narrationSha256().equals(rs.getString("narration_sha256")))
+                                    return null;
+                                return Ep002AutomaticVoiceCues.resolve(
+                                        shot.shotKey(),shot.narration(),shot.approvedVisualStory(),
+                                        rs.getString("alignment"),duration,mapperForCues);
+                            }).optional().orElse(null);
+                    if(auto!=null && auto.ready()) {
+                        JsonNode actual=mapperForCues.valueToTree(auto.frames());
+                        if(validCueFrames(actual,shot.beatCount(),shot.durationFrames())) {
+                            frames=actual;
+                            automaticallyVerified=true;
+                        }
+                    }
+                }catch(RuntimeException invalid) {
+                    // Fail closed. No guessed timestamps, no DB writes, no Director approval.
+                }
+            }
             boolean ready=frames!=null;
             if(ready)verified++;
             List<String> blockers=new ArrayList<>(shot.blockers());
@@ -295,7 +329,8 @@ public class Ep002FactoryReadinessBridgeService {
                     shot.scriptRevision(),shot.narration(),shot.voiceDirection(),
                     shot.narrationSha256(),shot.preferredTakeId(),shot.measuredVoiceSeconds(),
                     shot.durationFrames(),shot.currentVoiceApproved(),ready,
-                    ready?"DIRECTOR_REVIEWED_ELEVENLABS_CHARACTER_ALIGNMENT":shot.timingAuthority(),
+                    ready?(automaticallyVerified?"AUTO_VERIFIED_ELEVENLABS_CHARACTER_ALIGNMENT"
+                        :"DIRECTOR_REVIEWED_ELEVENLABS_CHARACTER_ALIGNMENT"):shot.timingAuthority(),
                     shot.renderStatus(),shot.approvedVisualStory(),List.copyOf(blockers),
                     frames));
         }
