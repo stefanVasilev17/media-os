@@ -167,7 +167,16 @@ test('SHOT11 real aligned five beat, nineteen term, original source gate rejects
     assert.throws(()=>preflightTierPlusPlusRender(bad,'a'.repeat(40)),
       /AT_TIER_PLUS_PLUS_PRECHECK_FAILED_/);
   }
+  const tooShort=structuredClone(job);
+  tooShort.inputProps.termCues[17].startFrame=2890;
+  tooShort.inputProps.termCues[17].endFrame=2910;
+  tooShort.inputProps.termCues[18].startFrame=2930;
+  tooShort.inputProps.termCues[18].endFrame=2950;
+  assert.throws(()=>preflightTierPlusPlusRender(tooShort,'a'.repeat(40)),
+    /SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
   assert.match(voice,/currentShot11AudioReadiness/);
+  assert.match(voice,/SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
+  assert.match(contract,/SHOT11_NEXT_EPISODE_CARD_REQUIRES_FOUR_REAL_VOICE_SECONDS/);
   assert.match(voice,/anchors,5/);
   assert.match(voice,/Ep002Shot11TermResolver.resolve/);
   assert.match(api,/ready\.verifiedCues\(\)\.size\(\)!=5/);
