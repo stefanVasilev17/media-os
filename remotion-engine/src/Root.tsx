@@ -9,6 +9,7 @@ import {Shot06DirectorVisualV1} from './episodes/ep002/Shot06DirectorVisualV1';
 import {Shot07DirectorVisualV1} from './episodes/ep002/Shot07DirectorVisualV1';
 import {Shot08DirectorVisualV1} from './episodes/ep002/Shot08DirectorVisualV1';
 import {Shot09DirectorVisualV1} from './episodes/ep002/Shot09DirectorVisualV1';
+import {Shot10DirectorVisualV1} from './episodes/ep002/Shot10DirectorVisualV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -72,6 +73,31 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP002-SHOT10-CANDIDATE"
+        component={Shot10DirectorVisualV1}
+        durationInFrames={dynamicDuration ?? 6}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          durationInFrames:6,
+          voiceTakeId:'',
+          timingMode:'ELEVENLABS_CHARACTER_TIMESTAMPS' as const,
+          verifiedCues:[],
+          termCues:[],
+          lockedShot09Handoff:{
+            renderId:'d4b6c8ff-10c5-4181-aa59-fcd16a4470ba',
+            sourceCommit:'b33f00ee81f89301115a4fd79874802c712f2724',
+            lastFrame:3062,
+            durationInFrames:3063,
+            shot08WorldLastFrame:4986,
+            worldLastFrame:8048,
+            criticalPulseStartFrame:0,
+            cascadeStartFrame:1,
+          },
+        }}
+      />
       <Composition
         id="EP002-SHOT09-CANDIDATE"
         component={Shot09DirectorVisualV1}
