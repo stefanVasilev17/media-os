@@ -10,10 +10,24 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const manifestPath=path.join(root,
   'docs/engineering/EP002_DIRECTOR_LOCKED_MASTER_INPUTS_20261111.json');
 const roomPath=path.join(root,'frontend/src/components/Ep002LockedCutReviewRoom.tsx');
+const workerManifestPath=path.join(root,'remotion-engine/ep002-approved-master-manifest.json');
+const javaSourcePath=path.join(root,
+  'backend/src/main/java/com/architecturalthinking/mediaos/remotion/Ep002DirectorMasterController.java');
 
 async function inputs(){
   return JSON.parse(await fs.readFile(manifestPath,'utf8'));
 }
+
+test('Worker image manifest and Java Director source pins match the exact doc IDs',async()=>{
+  const expected=await inputs();
+  const worker=JSON.parse(await fs.readFile(workerManifestPath,'utf8'));
+  assert.deepEqual(worker,expected);
+  const java=await fs.readFile(javaSourcePath,'utf8');
+  for(const source of expected.shots)
+    assert.ok(java.includes('"'+source.renderId+'"'),source.shotKey+' Java missing source lock');
+  assert.ok(java.includes('confirmPaidCpuRender'));
+  assert.ok(java.includes('DirectorIdentity.requireDirector()'));
+});
 
 test('Director master manifest pins exactly 11 unique ordered approved MP4s',async()=>{
   const approved=verifyManifest(await inputs());
