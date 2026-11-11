@@ -20,7 +20,8 @@ const panel=(accent:string)=>({
 const fadeAfter=(frame:number,cue:number,duration=26)=>
   shot10Ease(frame,cue,duration);
 
-const DirectorLockedShot09Closing:React.FC<{opacity:number}>=({opacity})=>{
+const DirectorLockedShot09Closing:React.FC<{opacity:number;frame:number}>=({opacity,frame})=>{
+  const smallCopyFade=1-shot10Ease(frame,0,12);
   const closingPanel=shot09PolicyPanelSize({
     heading:'CAPACITY DID NOT INCREASE',
     line:'SOME REJECTED · ACCEPTED WORK HAS A CHANCE',
@@ -46,7 +47,7 @@ const DirectorLockedShot09Closing:React.FC<{opacity:number}>=({opacity})=>{
         <div style={{color:SOFT,fontSize:14,fontWeight:810}}>DB LOOKUPS FINISHED</div>
       </div>
       <div style={{position:'absolute',right:12,bottom:9,
-        color:MINT,fontWeight:860,fontSize:12}}>
+        color:MINT,fontWeight:860,fontSize:12,opacity:smallCopyFade}}> 
         LIMIT: 450 TOTAL DB ATTEMPTS/S
       </div>
     </div>
@@ -243,7 +244,7 @@ export const Shot10DirectorVisualV1:React.FC<Shot10SceneProps>=(props)=>{
         admissionLevel={.5}
         breakerLevel={1-.82*measured} probeLevel={1}/>
     </AbsoluteFill>
-    <DirectorLockedShot09Closing opacity={1-takeover}/>
+    <DirectorLockedShot09Closing opacity={1-takeover} frame={frame}/>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:22,opacity:titleFade}}>
       <div style={{position:'absolute',left:560,top:78,
         fontFamily:AT_FONT,color:WHITE,zIndex:26}}>
