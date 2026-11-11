@@ -41,6 +41,7 @@ public class Ep002DirectorMasterChatOnceLauncher implements ApplicationRunner {
             log.error("EP002_MASTER_CHAT_ONE_TIME_NOT_QUEUED: {}",
                     failure.toString());
         }
+        }
         if(exactHttp403RepairAuthorized) {
             try {
                 Map<String,Object> repaired=master.queueScopedRouteRepairOnce(
