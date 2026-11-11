@@ -32,16 +32,16 @@ public class Ep002DirectorMasterChatOnceLauncher implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if(explicitChatAuthorization) {
-        try {
-            Map<String,Object> result=master.queueVerifiedChatMasterOnce(
-                    Ep002DirectorMasterController.CHAT_AUTHORIZATION);
-            log.info("EP002_MASTER_CHAT_ONE_TIME_RESULT status={} renderId={} reason={}",
-                    result.get("status"),result.get("renderId"),result.get("reason"));
-        } catch(Exception failure) {
-            log.error("EP002_MASTER_CHAT_ONE_TIME_NOT_QUEUED: {}",
-                    failure.toString());
+            try {
+                Map<String,Object> first=master.queueVerifiedChatMasterOnce(
+                        Ep002DirectorMasterController.CHAT_AUTHORIZATION);
+                log.info("EP002_MASTER_CHAT_ONE_TIME_RESULT status={} renderId={} reason={}",
+                        first.get("status"),first.get("renderId"),first.get("reason"));
+            } catch(Exception failure) {
+                log.error("EP002_MASTER_CHAT_ONE_TIME_NOT_QUEUED: {}",failure.toString());
+            }
         }
-        }
+
         if(exactHttp403RepairAuthorized) {
             try {
                 Map<String,Object> repaired=master.queueScopedRouteRepairOnce(
