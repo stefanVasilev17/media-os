@@ -60,6 +60,7 @@ export const LOCKED_CUT_SHOT_ORDER=Object.freeze([
   ...REFERENCES.map(x=>x.shotKey),...LIVE_REVIEW_SHOTS.map(x=>x.shotKey),
 ]);
 export const DIRECTOR_REVIEW_BOUNDARIES=Object.freeze([
+  {from:'SHOT01',to:'SHOT02',label:'Review 01 → 02'},
   {from:'SHOT05',to:'SHOT06',label:'Review 05 → 06'},
   {from:'SHOT06',to:'SHOT07',label:'Review 06 → 07'},
   {from:'SHOT07',to:'SHOT08',label:'Review 07 → 08'},
