@@ -5,6 +5,7 @@ RUN npm install --no-audit --no-fund --prefer-offline
 COPY remotion-engine/ ./
 COPY backend/src/main/java/com/architecturalthinking/mediaos/remotion/RemotionRenderController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/remotion/RemotionRenderController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/remotion/RemotionCpuWorkerController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/remotion/RemotionCpuWorkerController.java
+COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot01PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot01PreviewController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot03PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot03PreviewController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot04PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot04PreviewController.java
 COPY backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot05PreviewController.java /app/backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002Shot05PreviewController.java
