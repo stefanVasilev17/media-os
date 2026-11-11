@@ -18,6 +18,8 @@ import java.io.IOException;
  * All unrelated Director endpoints keep their previous denial behavior.
  */
 public final class DirectorVoiceCueAccessDeniedHandler implements AccessDeniedHandler {
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(DirectorVoiceCueAccessDeniedHandler.class);
     private final AccessDeniedHandler fallback = new AccessDeniedHandlerImpl();
 
     @Override
@@ -36,6 +38,7 @@ public final class DirectorVoiceCueAccessDeniedHandler implements AccessDeniedHa
                     : denied instanceof CsrfException
                         ? "CSRF_VALIDATION_REJECTED"
                         : "DIRECTOR_ACCESS_DENIED";
+        LOG.warn("EP002_DIRECTOR_VOICE_CUE_DENIED reason={} route={}", reason, request.getRequestURI());
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-MediaOS-Denial-Reason", reason);
