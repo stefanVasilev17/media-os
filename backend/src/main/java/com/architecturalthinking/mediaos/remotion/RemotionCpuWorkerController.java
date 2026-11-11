@@ -67,7 +67,8 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
         String scope=targetComposition==null?"":targetComposition.trim();
-        if (!scope.isEmpty() && !"EP002-SHOT02-CANDIDATE".equals(scope)
+        if (!scope.isEmpty() && !"EP002-SHOT01-DRAFT".equals(scope)
+                && !"EP002-SHOT02-CANDIDATE".equals(scope)
                 && !"EP002-SHOT03-CANDIDATE".equals(scope)
                 && !"EP002-SHOT04-CANDIDATE".equals(scope)
                 && !"EP002-SHOT05-CANDIDATE".equals(scope)
@@ -581,7 +582,14 @@ public class RemotionCpuWorkerController {
                         order by newest.selected_at desc,newest.id desc limit 1
                       )
                   )
-                  and (r.composition_id='EP002-SHOT01-DRAFT'
+                  and ((r.composition_id='EP002-SHOT01-DRAFT'
+                      and r.input_props->>'visualStylePass'='SHOT01_SHOT02_UNIFIED_V2'
+                      and r.input_props->>'expectedSourceCommit'=:sourceSha
+                      and length(:sourceSha)=40
+                      and :sourceSha !~ '[^a-f0-9]'
+                      and r.width=1920 and r.height=1080
+                      and r.profile='REVIEW'
+                      and r.input_props->>'timingMode'='ELEVENLABS_CHARACTER_TIMESTAMPS')
                     or (r.input_props->>'expectedSourceCommit'=:sourceSha
                       and length(:sourceSha)=40
                       and :sourceSha !~ '[^a-f0-9]'
