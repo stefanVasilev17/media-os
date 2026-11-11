@@ -20,10 +20,10 @@ type LockedReference={shotKey:string;title:string;renderId:string;compositionId:
 const RENDER='/api/v1/remotion/renders/';
 const LIVE_REVIEW_SHOTS:readonly {shotKey:string;title:string;compositionId:string}[]=[];
 const REFERENCES:readonly LockedReference[]=[
-  {shotKey:'SHOT01',title:'What Happens When You Click Login? — Director v3 LOCK',
-    renderId:'447f2846-3d1d-4d6c-924c-ea3918520625',
-    compositionId:'EP002-SHOT01-DRAFT',durationInFrames:980,
-    width:1280,height:720},
+  {shotKey:'SHOT01',title:'What Happens When You Click Login? — Director V2 LOCK',
+    renderId:'8f46fafd-9613-4375-bce2-ea98854e8b20',
+    compositionId:'EP002-SHOT01-DRAFT',durationInFrames:1172,
+    width:1920,height:1080},
   {shotKey:'SHOT02',title:'9:00 AM: The Ticket Sale Opens',
     renderId:'59567d1a-6a45-4e48-b390-8ae583f30171',
     compositionId:'EP002-SHOT02-CANDIDATE'},
@@ -245,7 +245,7 @@ export function Ep002LockedCutReviewRoom(){
       <Film size={20}/><h2>Director Review Room — SHOT01–11 continuity</h2>
     </div>
     <p>Watch the Director-locked SHOT01–11 videos in their original order.
-      SHOT01 is pinned to its original approved 1280×720, 980-frame v3 MP4;
+      SHOT01 is pinned to the newly Director-approved 1920×1080, 1172-frame V2 MP4;
       SHOT02–11 retain their individually verified original Full HD files.
       SHOT11 is pinned to its Director-approved 1572-frame recording
       with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
@@ -350,11 +350,13 @@ export function Ep002LockedCutReviewRoom(){
         <strong>Not included: matching approved MP4 not confirmed</strong>
         {missing.map(item=><p key={item}>{item}</p>)}
       </div>}
-      <p className="library-note">SHOT01 is pinned to its original Director-approved
-        v3 MP4 447f2846-3d1d-4d6c-924c-ea3918520625
-        (980 frames, 1280×720, 30 fps); its lower original resolution is never
-        changed or misrepresented as 1080p. SHOT02–06 retain their protected
-        original references. SHOT07 is pinned to its Director-approved V3 render
+      <p className="library-note">SHOT01 is pinned to the Director-approved
+        V2 MP4 8f46fafd-9613-4375-bce2-ea98854e8b20
+        (1172 frames, 1920×1080, 30 fps). The previous locked V3 MP4
+        447f2846-3d1d-4d6c-924c-ea3918520625
+        (980 frames, 1280×720, 30 fps) remains stored as an immutable
+        historical reference; it is never deleted or replaced in storage.
+        SHOT02–06 retain their protected original references. SHOT07 is pinned to its Director-approved V3 render
         b2a335dd-cb71-48f2-bf47-0f8bdcdd969d (2674 frames, 1920×1080, 30 fps).
         SHOT08 is pinned to its Director-approved final render
         3415073a-5906-489d-bb69-6af7446c2c9b (2314 frames, 1920×1080, 30 fps).
