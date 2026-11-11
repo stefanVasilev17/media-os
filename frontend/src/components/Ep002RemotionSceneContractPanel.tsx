@@ -5,7 +5,9 @@ import {Ep002DirectorVisualFeedbackPanel} from './Ep002DirectorVisualFeedbackPan
 
 const label=(value:string)=>value.replaceAll('_',' ').toLowerCase();
 
-export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:number}){
+export function Ep002RemotionSceneContractPanel(
+  {refreshToken,expanded=false}:{refreshToken:number;expanded?:boolean}
+){
   const [scene,setScene]=useState<Ep002SceneContract|null>(null);
   const [refresh,setRefresh]=useState(0);
   const [loading,setLoading]=useState(true);
@@ -77,9 +79,9 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
     finally{requestInFlight.current=false;setRendering(false);}
   }
 
-  return <details className="library-production-contract library-scene-contract">
+  return <details open={expanded} className="library-production-contract library-scene-contract">
     <summary>
-      <span className="library-production-title"><Code2 size={17}/> Remotion Scene Blueprint · SHOT01</span>
+      <span className="library-production-title"><Code2 size={17}/> Remotion Scene Blueprint · SHOT01 — Render video</span>
       <span className={'library-production-state'+(scene?.readiness.status==='READY_FOR_CODE_GENERATION'?' ready':'')}>
         {loading?'Checking…':scene?.readiness.status==='READY_FOR_CODE_GENERATION'
           ?'READY FOR PREVIEW':'INPUTS REQUIRED'}
@@ -123,13 +125,18 @@ export function Ep002RemotionSceneContractPanel({refreshToken}:{refreshToken:num
         <p><strong>Transition:</strong> {scene.endingTransition}</p>
         <div className="library-scene-preview">
           <strong>EP002 SHOT01 — Remotion preview</strong>
+          {!hasRealCues&&<p className="library-warning" role="status">
+            Render video is blocked until five genuine ElevenLabs character-aligned
+            beats are available for the current selected Take. No voice regeneration,
+            manual cue entry or manual Verify is required.
+          </p>}
           <p>{scene.cueTimingAuthority==='ELEVENLABS_CHARACTER_TIMESTAMPS'
             ? 'Uses real ElevenLabs voice timestamps for the five spoken cue anchors. Director visual review remains required.'
             : 'This take has no saved voice timestamps; the five beats use approximate editorial timing.'}</p>
           <button type="button" className="library-voice-button"
             disabled={!canPreview||rendering||previewActive}
             onClick={()=>void requestPreview()}>
-            {rendering?'Starting…':previewActive?'Render already running':hasRealCues?'Render video · 1920×1080':'Real audio timing required'}
+            {rendering?'Starting…':previewActive?'Render already running':'Render video · 1920×1080'}
           </button>
           {preview&&<p role="status">Render: {preview.status}
             {typeof preview.progress==='number'?' · '+preview.progress+'%':''}

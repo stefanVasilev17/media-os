@@ -178,7 +178,11 @@ public class Ep002ProductionContractService {
         Take chosen=chosenTake(shot,script.revision());
         BigDecimal measured=measuredDuration(chosen);
         var cues=chosen!=null && "SHOT01".equals(shot)
-                ? Ep002VoiceCueTiming.resolveShot01(chosen.alignmentJson(),measured,new ObjectMapper())
+                ? Ep002AutomaticVoiceCues.resolve(shot,script.narration(),visual,
+                        chosen.alignmentJson(),measured,new ObjectMapper())
+                    .frames().stream().map(c->new Ep002VoiceCueTiming.TimedBeat(
+                        c.beatNumber(),c.spokenAnchor(),c.spokenStartSeconds(),
+                        c.spokenEndSeconds(),c.startFrame(),c.endFrame())).toList()
                 : List.<Ep002VoiceCueTiming.TimedBeat>of();
         String signature=chosen==null?null:fingerprint(EPISODE,shot,script.revision(),
                 narrationHash,chosen.id(),VISUAL_SHA);
