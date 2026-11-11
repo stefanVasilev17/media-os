@@ -1,6 +1,5 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
-import {Shot01LoginWaiting} from './episodes/ep002/Shot01LoginWaiting';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
 import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
 import {Shot03DirectorVisualV1} from './episodes/ep002/Shot03DirectorVisualV1';
