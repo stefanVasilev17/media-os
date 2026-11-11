@@ -61,7 +61,7 @@ public final class Ep002Shot01AdaptiveAnchors {
                     if(normalizedText.indexOf(phrase)<0
                             ||normalizedText.indexOf(phrase,normalizedText.indexOf(phrase)+1)>=0)
                         continue;
-                    double score=priority*100.0+Math.abs(portion-IDEAL[beat])*140.0
+                    double score=priority*8.0+Math.abs(portion-IDEAL[beat])*200.0
                             +backward*1.5;
                     if(score<bestScore) {
                         bestScore=score;
