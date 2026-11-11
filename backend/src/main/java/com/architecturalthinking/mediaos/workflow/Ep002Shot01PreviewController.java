@@ -49,9 +49,13 @@ public class Ep002Shot01PreviewController {
         boolean voiceAligned=scene.beats().size()==5 && scene.beats().stream().allMatch(beat->
                 beat.cueStatus()==Ep002RemotionSceneContractService.CueStatus.AUDIO_ALIGNED
                 && beat.startFrame()!=null && beat.endFrame()!=null);
-        if(!voiceAligned && !request.acceptProvisionalCueTiming())
+        if(!voiceAligned)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Voice timestamps are unavailable; confirm provisional storyboard timing.");
+                    "SHOT01 1080p unified preview requires all five genuine ElevenLabs cue timestamps.");
+        String sourceSha=System.getenv("MEDIAOS_SHOT01_UNIFIED_RELEASE_SHA");
+        if(sourceSha==null || !sourceSha.matches("[a-f0-9]{40}"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT01 source-locked Worker release is not configured.");
         if(scene.video().durationInFrames()<30 || scene.video().durationInFrames()>108000)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unsupported preview duration.");
         List<String> blockers=scene.readiness().blockers();
@@ -66,9 +70,11 @@ public class Ep002Shot01PreviewController {
         props.put("contractId",scene.contractId());
         props.put("dependencySha256",inputs.productionDependencySha256());
         props.put("visualSourceSha",VISUAL_SHA);
+        props.put("visualStylePass","SHOT01_SHOT02_UNIFIED_V2");
+        props.put("expectedSourceCommit",sourceSha);
         addExplicitRenderRequestId(props,request.renderRequestId());
-        props.put("provisionalCueTiming",!voiceAligned);
-        props.put("timingMode",voiceAligned?"ELEVENLABS_CHARACTER_TIMESTAMPS":"PROVISIONAL_STORYBOARD");
+        props.put("provisionalCueTiming",false);
+        props.put("timingMode","ELEVENLABS_CHARACTER_TIMESTAMPS");
         if (voiceAligned) props.put("beatStartFrames",
                 scene.beats().stream().map(Ep002RemotionSceneContractService.Beat::startFrame).toList());
         Map<String,Object> render=renders.ensureVerifiedEp002Preview(props);
@@ -79,7 +85,7 @@ public class Ep002Shot01PreviewController {
                  visual_source_git_blob_sha,dependency_sha256,remotion_render_id,
                  remotion_commit_sha,render_status)
                 values (:id,'EP002','SHOT01',:revision,:scriptHash,:takeId,
-                        :visualSha,:dependency,:render,'WORKER_SOURCE_UNVERIFIED','QUEUED')
+                        :visualSha,:dependency,:render,:sourceCommit,'QUEUED')
                 on conflict (episode_key,shot_key,dependency_sha256,remotion_render_id)
                     do nothing
                 """)
@@ -89,7 +95,8 @@ public class Ep002Shot01PreviewController {
                 .param("takeId",UUID.fromString(inputs.preferredTakeId()))
                 .param("visualSha",VISUAL_SHA)
                 .param("dependency",inputs.productionDependencySha256())
-                .param("render",renderId).update();
+                .param("render",renderId)
+                .param("sourceCommit",sourceSha).update();
         return render;
     }
 
@@ -112,6 +119,8 @@ public class Ep002Shot01PreviewController {
                 where lineage.episode_key='EP002' and lineage.shot_key='SHOT01'
                   and lineage.dependency_sha256=:dependency
                   and r.input_props->>'contractId'=:contractId
+                  and r.input_props->>'visualStylePass'='SHOT01_SHOT02_UNIFIED_V2'
+                  and r.profile='REVIEW' and r.width=1920 and r.height=1080
                 order by lineage.created_at desc,lineage.id desc limit 1
                 """).param("dependency",dependency)
                 .param("contractId",scene.contractId())
