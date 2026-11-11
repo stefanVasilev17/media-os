@@ -1,4 +1,15 @@
 # MediaOS — CURRENT PROJECT STATE
+
+## 2026-11-11 STAGED / NOT LIVE — Director-Approved SHOT01 V2 + EP002 11-SHOT Master Integration
+
+**Explicit Director approvals:** SHOT01 V2 `8f46fafd-9613-4375-bce2-ea98854e8b20` approved; Director requests a *single exported MP4* of exact SHOT01–SHOT11. New SHOT01 V2 is 1920×1080, 1172 frames at 30 fps. The original pinned 720p V3 `447f2846-3d1d-4d6c-924c-ea3918520625` remains archived. SHOT02–11 individually locked render IDs unchanged. **This approval is NOT automatic paid CPU consent or final assembled master LOCK.**
+
+**Implementation staged** in [draft PR #265](https://github.com/stefanVasilev17/media-os/pull/265) stacked on [draft PR #264](https://github.com/stefanVasilev17/media-os/pull/264): Director Room updated SHOT01 pin; exact 11 MP4 manifest; Director-only authenticated/CSRF-protected preflight + separately confirmed paid POST; source-hash-locked private backend master composition; strictly scoped worker fetch of only exact approved files; CPU Worker FFmpeg stream-copy master plus 30fps H264/AAC/actual frames/audio QA; real one-player master preview panel; new Node and JUnit contract tests and Worker Docker build gates. Unknown SHOT02–06 frame counts are deliberately not invented and require real ffprobe evidence. Backend defaults `MEDIAOS_EP002_MASTER_RENDER_ENABLED=false` and no release SHA, so cannot silently queue paid work.
+
+**Evidence boundary:** Source cross-read and JavaScript parse checks performed, but **Java/Postgres Maven, frontend TypeScript/Vitest, Docker Worker tests, authenticated actual all-11 preflight, Railway master deployment, paid CPU assembly, one real stored full MP4, human seam QA and master LOCK are NOT VERIFIED / NOT DONE**. Existing live Backend/Worker stay healthy on source `0b1c62c4592f5cffcee9ae92ade9986e42f93530`; PR #265 code is not on production. Do not report Stage 7 complete or link a non-existent full MP4.
+
+**NEXT**: Run full test gates; review and deploy pinned source without changing protected source; enable separate master Worker target and release flag only after tested matching SHA; Director clicks explicit billable `Render full EP002`; verify actual stored single MP4, all 10 transitions and total audio/video; final Director acceptance; then log production completion evidence in `PROJECT_STATE.md` on main. Handoff: [EP002 master staging](docs/engineering/EP002_DIRECTOR_APPROVED_SHOT01_AND_MASTER_ASSEMBLY_HANDOFF_20261111.md).
+
 **Canonical cross-chat handoff for Architectural Thinking / MediaOS**
 
 > **Snapshot last checked:** 2026-11-07 (Europe/Sofia); verified SHOT02 render recovery and release sections below apply to the PR #192 branch, not to `main`.  
