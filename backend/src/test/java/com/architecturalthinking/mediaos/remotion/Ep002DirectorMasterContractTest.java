@@ -44,6 +44,16 @@ class Ep002DirectorMasterContractTest {
     }
 
     @Test
+    void oneTimeExplicitDirectorChatAuthorizationIsPinnedAndNotAWebRoute() throws Exception {
+        assertEquals("USER_EXPLICIT_CHAT_2026_11_12_EP002_11_SHOT_MASTER_ONE_PAID_CPU",
+                Ep002DirectorMasterController.CHAT_AUTHORIZATION);
+        Method once=Ep002DirectorMasterController.class.getMethod(
+                "queueVerifiedChatMasterOnce",String.class);
+        assertNull(once.getAnnotation(PostMapping.class));
+        assertNull(once.getAnnotation(GetMapping.class));
+    }
+
+    @Test
     void masterRequiresExplicitSeparateDirectorPaidConfirmation() throws Exception {
         RequestMapping scope=Ep002DirectorMasterController.class.getAnnotation(RequestMapping.class);
         assertArrayEquals(new String[]{"/api/v1/creative/episodes/EP002/master"},scope.value());
