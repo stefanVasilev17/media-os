@@ -1,0 +1,70 @@
+name: EP002 SHOT09 Render Preflight CI
+
+on:
+  pull_request:
+    paths:
+      - 'remotion-engine/**'
+      - 'backend/src/main/java/com/architecturalthinking/mediaos/workflow/Ep002VoiceBeatResolver.java'
+      - '.github/workflows/shot09-render-preflight-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-render-contract:
+    name: Node 22 full Worker tests and Remotion bundles
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: remotion-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact Remotion dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify worker code syntax
+        run: |
+          node --check cpu-worker.mjs
+          node --check tier-plus-plus-render-quality.mjs
+      - name: Full Node Worker and Remotion contract regression suite
+        run: node --test *.test.mjs
+      - name: Main Remotion bundle
+        run: npm run build
+      - name: Factory Remotion bundle
+        run: npm run build:factory
+
+  java-voice-contract:
+    name: Java 21 Backend tests on PostgreSQL 18
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: media_os
+          POSTGRES_USER: media_os
+          POSTGRES_PASSWORD: media_os
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U media_os -d media_os"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=15
+    env:
+      CI_POSTGRES_URL: jdbc:postgresql://localhost:5432/media_os
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - name: Full Java test suite
+        run: mvn -B -ntp test
