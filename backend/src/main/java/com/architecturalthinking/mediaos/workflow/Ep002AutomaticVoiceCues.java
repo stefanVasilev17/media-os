@@ -79,7 +79,9 @@ public final class Ep002AutomaticVoiceCues {
                 end=first+needle.length()-1;
                 break;
             }
-            if(chosen==null)return List.of();
+            if(chosen==null)return "SHOT01".equals(shot)
+                    ? Ep002Shot01AdaptiveAnchors.fromSavedNarration(narration)
+                    : List.of();
             out.add(chosen);
             previousEnd=end;
         }

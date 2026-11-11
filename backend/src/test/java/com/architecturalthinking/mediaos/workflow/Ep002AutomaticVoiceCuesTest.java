@@ -65,18 +65,81 @@ class Ep002AutomaticVoiceCuesTest {
     }
 
     @Test
-    void removedNarrationAnchorMustBlockAutomaticReadiness() throws Exception {
+    void editedShot01NarrationDerivesNewSemanticAnchorsFromActualSavedWords() throws Exception {
         JsonNode scripts=Ep002RecoverySource.load(JSON,Ep002RecoverySource.SCRIPT_PATH);
         JsonNode approved=Ep002RecoverySource.load(JSON,
                 "episode-production/ep002-approved-visual-source.json");
         JsonNode visual=approved.path("shots").path(0);
-        String broken=scripts.path("shots").path(0).path("englishNarration").asText()
-                .replace("A few seconds pass. Then ten","Time passes");
-        var invalid=Ep002AutomaticVoiceCues.resolve(
-                "SHOT01",broken,visual,syntheticAlignment(broken),
-                BigDecimal.valueOf(broken.length()*0.025+1),JSON);
-        assertFalse(invalid.ready());
-        assertEquals("AUTOMATIC_SOURCE_CUES_UNAVAILABLE",invalid.reason());
+        String edited=scripts.path("shots").path(0).path("englishNarration").asText()
+                .replace("You tap Login.","You press the login button.")
+                .replace("A few seconds pass. Then ten.","Time slips by. The spinner remains.")
+                .replace("the server responsible for signing you in is still running",
+                        "the authentication service responds to routine health checks")
+                .replace("your login is still waiting for an answer",
+                        "the request remains unanswered")
+                .replace("go back to nine o’clock","rewind to the morning");
+        List<String> anchors=Ep002AutomaticVoiceCues.anchors("SHOT01",edited,visual);
+        assertEquals(5,anchors.size(),anchors.toString());
+        assertTrue(anchors.get(0).toLowerCase().contains("press"));
+        assertTrue(anchors.get(1).toLowerCase().contains("time"));
+        assertTrue(anchors.get(2).toLowerCase().contains("authentication")
+                || anchors.get(2).toLowerCase().contains("health"));
+        assertTrue(anchors.get(3).toLowerCase().contains("request")
+                || anchors.get(3).toLowerCase().contains("unanswered"));
+        assertTrue(anchors.get(4).toLowerCase().contains("rewind"));
+        BigDecimal measured=BigDecimal.valueOf(edited.length()*0.025+1.0);
+        var resolved=Ep002AutomaticVoiceCues.resolve(
+                "SHOT01",edited,visual,syntheticAlignment(edited),measured,JSON);
+        assertTrue(resolved.ready(),"Source-verifiable changed script: "+resolved.reason());
+        assertEquals(5,resolved.frames().size());
+        for(int i=1;i<resolved.frames().size();i++){
+            assertEquals(resolved.frames().get(i-1).endFrame(),resolved.frames().get(i).startFrame());
+            assertTrue(resolved.frames().get(i).startFrame()>resolved.frames().get(i-1).startFrame());
+        }
+    }
+
+    @Test
+    void originalLockedShot01StillUsesDirectorSourceExactAnchors() {
+        JsonNode scripts=Ep002RecoverySource.load(JSON,Ep002RecoverySource.SCRIPT_PATH);
+        JsonNode approved=Ep002RecoverySource.load(JSON,
+                "episode-production/ep002-approved-visual-source.json");
+        List<String> source=Ep002AutomaticVoiceCues.anchors(
+                "SHOT01",scripts.path("shots").path(0).path("englishNarration").asText(),
+                approved.path("shots").path(0));
+        assertEquals(5,source.size());
+        assertEquals("tap Login",source.getFirst());
+        assertEquals("go back to nine o’clock",source.getLast());
+    }
+
+    @Test
+    void cannotInventMissingSemanticBeatsOrAudioTimestampsForUnrelatedText() throws Exception {
+        JsonNode approved=Ep002RecoverySource.load(JSON,
+                "episode-production/ep002-approved-visual-source.json");
+        JsonNode visual=approved.path("shots").path(0);
+        String unrelated="The mountain valley stretches into the distance. A river moves quietly "+
+                "across the fields. Birds circle the trees while sunlight warms the grass. "+
+                "The distant hills turn blue with mist. A gentle breeze rustles the leaves. "+
+                "The quiet landscape slowly fades into the evening.";
+        var anchors=Ep002AutomaticVoiceCues.anchors("SHOT01",unrelated,visual);
+        assertTrue(anchors.isEmpty(),"Unrelated narration must not be matched to login visuals.");
+        var result=Ep002AutomaticVoiceCues.resolve("SHOT01",unrelated,visual,
+                syntheticAlignment(unrelated),
+                BigDecimal.valueOf(unrelated.length()*0.025+1),JSON);
+        assertFalse(result.ready());
+        assertEquals("AUTOMATIC_SOURCE_CUES_UNAVAILABLE",result.reason());
+    }
+
+    @Test
+    void editedScriptWithoutRealAlignmentNeverUnlocksRender() throws Exception {
+        JsonNode approved=Ep002RecoverySource.load(JSON,
+                "episode-production/ep002-approved-visual-source.json");
+        String narration=Ep002RecoverySource.load(JSON,Ep002RecoverySource.SCRIPT_PATH)
+                .path("shots").path(0).path("englishNarration").asText()
+                .replace("You tap Login.","You press Login.");
+        var resolved=Ep002AutomaticVoiceCues.resolve("SHOT01",narration,
+                approved.path("shots").path(0),null,BigDecimal.valueOf(40),JSON);
+        assertFalse(resolved.ready());
+        assertEquals("SELECTED_TAKE_MISSING_REAL_CHARACTER_ALIGNMENT",resolved.reason());
     }
 
     private static String syntheticAlignment(String narration) throws Exception {
