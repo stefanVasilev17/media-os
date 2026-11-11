@@ -66,6 +66,21 @@ class WorkloadRouteFactoryTest {
     }
 
     @Test
+    void ep002DirectorMasterSourceRequiresExactGetAndTwoUuids() {
+        String target=PREFIX+RENDER+"/ep002-master-source/"+SOURCE;
+        assertEquals(CPU,WorkloadRoute.resolve("GET",target));
+        assertEquals(CPU,WorkloadRoute.resolve(target));
+        assertNull(WorkloadRoute.resolve("POST",target));
+        assertNull(WorkloadRoute.resolve("PUT",target));
+        assertNull(WorkloadRoute.resolve("DELETE",target));
+        assertNull(WorkloadRoute.resolve("GET",PREFIX+RENDER+"/ep002-master-source/not-uuid"));
+        assertNull(WorkloadRoute.resolve("GET",PREFIX+RENDER+"/ep002-master-source/"));
+        assertNull(WorkloadRoute.resolve("GET",target+"/extra"));
+        assertNull(WorkloadRoute.resolve("GET",PREFIX+"invalid/ep002-master-source/"+SOURCE));
+        assertNull(WorkloadRoute.resolve("GET",target+"%2Fextra"));
+    }
+
+    @Test
     void oldCpuWorkerOperationsKeepTheirExactMethods() {
         assertEquals(CPU, WorkloadRoute.resolve("POST", PREFIX + "claim"));
         assertEquals(CPU, WorkloadRoute.resolve("POST", PREFIX + RENDER + "/progress"));

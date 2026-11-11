@@ -71,7 +71,7 @@ describe('EP002 Director locked cut review',()=>{
 describe('EP002 real stored MP4 continuity discovery',()=>{
   it('pins exactly approved SHOT07 V3 and SHOT08 after SHOT06, both Director LOCKED',async()=>{
     const ids:Record<string,string>={
-      SHOT01:'447f2846-3d1d-4d6c-924c-ea3918520625',
+      SHOT01:'8f46fafd-9613-4375-bce2-ea98854e8b20',
       SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
       SHOT03:'6e8ea02e-1de1-440b-9e2a-dc23d07c466c',
       SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
@@ -97,9 +97,9 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         const shot=lookup[id];
         if(shot)result={renderId:id,compositionId:shot==='SHOT01'
           ?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
-          status:'READY',width:shot==='SHOT01'?1280:1920,
-          height:shot==='SHOT01'?720:1080,fps:30,
-          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?980:2000,
+          status:'READY',width:1920,
+          height:1080,fps:30,
+          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?1172:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -114,7 +114,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09','SHOT10','SHOT11']);
       expect(result.shots[0].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[0].renderId).toBe(ids.SHOT01);
-      expect(result.shots[0].durationSeconds).toBeCloseTo(980/30,5);
+      expect(result.shots[0].durationSeconds).toBeCloseTo(1172/30,5);
       expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].renderId).toBe(ids.SHOT06);
@@ -161,7 +161,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
 
   it('fails closed when pinned V3 MP4 is missing and never falls back to an old SHOT07',async()=>{
     const ids:Record<string,string>={
-      SHOT01:'447f2846-3d1d-4d6c-924c-ea3918520625',
+      SHOT01:'8f46fafd-9613-4375-bce2-ea98854e8b20',
       SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
       SHOT03:'6e8ea02e-1de1-440b-9e2a-dc23d07c466c',
       SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
@@ -184,9 +184,9 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         const shot=lookup[id];
         if(shot)result={renderId:id,compositionId:shot==='SHOT01'
           ?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
-          status:'READY',width:shot==='SHOT01'?1280:1920,
-          height:shot==='SHOT01'?720:1080,fps:30,
-          durationInFrames:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?980:2000,
+          status:'READY',width:1920,
+          height:1080,fps:30,
+          durationInFrames:shot==='SHOT08'?2314:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?1172:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -215,7 +215,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
 
   it('rejects an unapproved SHOT08 render or incorrect 2314-frame media without fallback',async()=>{
     const ids:Record<string,string>={
-      SHOT01:'447f2846-3d1d-4d6c-924c-ea3918520625',
+      SHOT01:'8f46fafd-9613-4375-bce2-ea98854e8b20',
       SHOT02:'59567d1a-6a45-4e48-b390-8ae583f30171',
       SHOT03:'6e8ea02e-1de1-440b-9e2a-dc23d07c466c',
       SHOT04:'b006202f-7587-4f82-931a-fadf5eacbfcb',
@@ -235,9 +235,9 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
         const shot=lookup[id];
         if(shot)result={renderId:id,
           compositionId:shot==='SHOT01'?'EP002-SHOT01-DRAFT':'EP002-'+shot+'-CANDIDATE',
-          status:'READY',width:shot==='SHOT01'?1280:1920,
-          height:shot==='SHOT01'?720:1080,fps:30,
-          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2313:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?980:2000,
+          status:'READY',width:1920,
+          height:1080,fps:30,
+          durationInFrames:shot==='SHOT07'?2674:shot==='SHOT08'?2313:shot==='SHOT09'?3063:shot==='SHOT10'?2360:shot==='SHOT11'?1572:shot==='SHOT01'?1172:2000,
           videoUrl:'/api/v1/remotion/renders/'+id+'/video'};
       }
       return new Response(JSON.stringify(result),{
@@ -260,12 +260,12 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
     }finally{vi.unstubAllGlobals();}
   });
 
-  it('fails closed if archived SHOT01 metadata is not original 1280 x 720',async()=>{
-    const id='447f2846-3d1d-4d6c-924c-ea3918520625';
+  it('rejects the archived 720p SHOT01 metadata after Director V2 Full HD LOCK',async()=>{
+    const id='8f46fafd-9613-4375-bce2-ea98854e8b20';
     const fetchMock=vi.fn(async(url:string)=>{
       const value=url.endsWith('/'+id)?{
         renderId:id,status:'READY',compositionId:'EP002-SHOT01-DRAFT',
-        durationInFrames:980,width:1920,height:1080,fps:30,
+        durationInFrames:980,width:1280,height:720,fps:30,
         videoUrl:'/api/v1/remotion/renders/'+id+'/video'
       }:{status:'EMPTY'};
       return new Response(JSON.stringify(value),{status:200});

@@ -67,7 +67,8 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
         String scope=targetComposition==null?"":targetComposition.trim();
-        if (!scope.isEmpty() && !"EP002-SHOT01-DRAFT".equals(scope)
+        if (!scope.isEmpty() && !"EP002-DIRECTOR-MASTER".equals(scope)
+                && !"EP002-SHOT01-DRAFT".equals(scope)
                 && !"EP002-SHOT02-CANDIDATE".equals(scope)
                 && !"EP002-SHOT03-CANDIDATE".equals(scope)
                 && !"EP002-SHOT04-CANDIDATE".equals(scope)
@@ -97,7 +98,7 @@ public class RemotionCpuWorkerController {
                     error='EP002 preview interrupted after worker heartbeat timeout. No automatic retry.',
                     finished_at=now(), updated_at=now()
                 where project_id=:projectId
-                  and composition_id in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE')
+                  and composition_id in ('EP002-DIRECTOR-MASTER','EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -110,7 +111,7 @@ public class RemotionCpuWorkerController {
                     error='Recovered stale CPU render after worker heartbeat timeout.',
                     claimed_at=null, started_at=null, updated_at=now()
                 where project_id=:projectId
-                  and composition_id not in ('EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE')
+                  and composition_id not in ('EP002-DIRECTOR-MASTER','EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE')
                   and status='RUNNING'
                   and updated_at < now() - interval '90 seconds'
                 """)
@@ -197,6 +198,13 @@ public class RemotionCpuWorkerController {
                     or :targetComposition='EP002-SHOT10-CANDIDATE')
                   and (composition_id<>'EP002-SHOT11-CANDIDATE'
                     or :targetComposition='EP002-SHOT11-CANDIDATE')
+                  and (composition_id<>'EP002-DIRECTOR-MASTER'
+                       or (:targetComposition='EP002-DIRECTOR-MASTER'
+                         and input_props->>'expectedSourceCommit'=:sourceSha
+                         and length(:sourceSha)=40
+                         and :sourceSha !~ '[^a-f0-9]'
+                         and input_props->>'directorPaidCpuConfirmed'='true'
+                         and input_props->>'masterMode'='EXACT_DIRECTOR_APPROVED_STREAM_COPY'))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap

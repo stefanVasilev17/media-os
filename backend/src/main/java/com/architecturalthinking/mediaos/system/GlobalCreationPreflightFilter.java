@@ -86,6 +86,12 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        if (isVerifiedEp002MasterWorkerContinuation(request)) {
+            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
+                    Map.of("continuation", "EP002_DIRECTOR_AUTHORIZED_FULL_MASTER"));
+            chain.doFilter(request, response);
+            return;
+        }
         if (isVerifiedFactoryWorkerContinuation(request)) {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
                     Map.of("continuation", "FACTORY_DIRECTOR_AUTHORIZED_RENDER"));
@@ -240,6 +246,37 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 .param("project", RENDER_PROJECT_ID)
                 .param("worker", worker.trim())
                 .query(Boolean.class).single();
+    }
+
+    private boolean isVerifiedEp002MasterWorkerContinuation(HttpServletRequest request) {
+        if (jdbc == null) return false;
+        java.util.regex.Matcher callback = FINAL_REMOTION_CALLBACK.matcher(apiPath(request));
+        if (!callback.matches()) return false;
+        String operation = callback.group(2);
+        if (!(("complete".equals(operation) && "PUT".equals(request.getMethod()))
+                || ("fail".equals(operation) && "POST".equals(request.getMethod())))) return false;
+        if (request.getHeader("X-MediaOS-Episode-Id") != null) return false;
+        String worker = request.getHeader("X-Media-OS-Worker");
+        String sourceSha = request.getHeader("X-Media-OS-Worker-Source-Sha");
+        if (worker == null || worker.isBlank() || sourceSha == null
+                || !sourceSha.matches("[a-f0-9]{40}")) return false;
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select exists(
+                    select 1 from remotion_render r
+                    where r.id=:render and r.project_id=:project
+                      and r.episode_id is null
+                      and r.status='RUNNING' and r.worker_id=:worker
+                      and r.composition_id='EP002-DIRECTOR-MASTER'
+                      and r.input_props->>'expectedSourceCommit'=:sha
+                      and r.input_props->>'directorPaidCpuConfirmed'='true'
+                      and r.input_props->>'masterMode'='EXACT_DIRECTOR_APPROVED_STREAM_COPY'
+                      and jsonb_typeof(r.input_props->'sourceRenderIds')='array'
+                      and jsonb_array_length(r.input_props->'sourceRenderIds')=11
+                )
+                """).param("render",UUID.fromString(callback.group(1)))
+                .param("project",RENDER_PROJECT_ID)
+                .param("worker",worker.trim()).param("sha",sourceSha)
+                .query(Boolean.class).single());
     }
 
     private boolean isVerifiedFactoryWorkerContinuation(HttpServletRequest request) {
@@ -409,6 +446,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT08/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT09/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT10/render-preview")
+                || path.equals("/api/v1/creative/episodes/EP002/master/render")
                 || path.equals("/api/v1/creative/episodes/EP002/shots/SHOT11/render-preview")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-feedback")
                 || path.equals("/api/v1/creative/episodes/EP002/visual-approvals")

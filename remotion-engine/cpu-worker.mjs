@@ -8,6 +8,7 @@ import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
+import {inspectLockedMaster,assembleLockedMaster,verifyManifest} from './ep002-locked-master-assembly.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 
@@ -37,6 +38,7 @@ const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITI
 if (TARGET_COMPOSITION
     && !['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
       'EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE',
+      'EP002-DIRECTOR-MASTER',
       'EP002-DIRECTOR-SHOT02-SHOT03',
       'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
       'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05',
@@ -675,6 +677,71 @@ async function muxFactorySelectedVoice(job,videoPath,inputProps) {
   }
 }
 
+async function renderEp002DirectorMaster(job,outputPath,inputProps,onProgress){
+  const manifestPath=path.join(ENGINE_ROOT,'ep002-approved-master-manifest.json');
+  const manifest=verifyManifest(JSON.parse(await fs.readFile(manifestPath,'utf8')));
+  const ids=manifest.shots.map(s=>s.renderId);
+  if(inputProps.directorPaidCpuConfirmed!==true
+      ||inputProps.masterMode!=='EXACT_DIRECTOR_APPROVED_STREAM_COPY'
+      ||!Array.isArray(inputProps.sourceRenderIds)
+      ||inputProps.sourceRenderIds.length!==11
+      ||inputProps.sourceRenderIds.some((id,i)=>id!==ids[i])
+      ||!/^[a-f0-9]{64}$/.test(String(inputProps.sourceDigest||''))
+      ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA
+      ||!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+      ||job.width!==1920||job.height!==1080||job.fps!==30
+      ||job.profile!=='REVIEW'){
+    throw Error('EP002_MASTER_DIRECTOR_APPROVAL_OR_EXACT_SOURCE_SHA_INVALID');
+  }
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'mediaos-ep002-master-'));
+  let cumulativeBytes=0;
+  try{
+    for(let index=0;index<ids.length;index++){
+      const id=ids[index];
+      const url=BACKEND_URL+'/api/v1/remotion/renders/worker/'+
+        job.renderId+'/ep002-master-source/'+id;
+      const response=await workloadTokens.request(url,{
+        method:'GET',headers:headers()});
+      if(!response.ok)
+        throw Error('EP002_MASTER_EXACT_SOURCE_UNAVAILABLE '+manifest.shots[index].shotKey+
+          ' HTTP '+response.status);
+      const declaredSize=Number(response.headers.get('content-length')||0);
+      if(declaredSize>256*1024*1024)
+        throw Error('EP002_MASTER_SOURCE_TOO_LARGE '+id);
+      const bytes=Buffer.from(await response.arrayBuffer());
+      if(bytes.length<1000||bytes.length>256*1024*1024)
+        throw Error('EP002_MASTER_SOURCE_BYTES_INVALID '+id);
+      cumulativeBytes+=bytes.length;
+      if(cumulativeBytes>2*1024*1024*1024)
+        throw Error('EP002_MASTER_STAGED_SOURCE_BYTES_LIMIT_EXCEEDED');
+      await fs.writeFile(path.join(dir,id+'.mp4'),bytes,{flag:'wx'});
+      await onProgress(Math.min(70,5+Math.floor((index+1)*60/ids.length)));
+    }
+    const preflight=await inspectLockedMaster({inputDir:dir,manifestPath});
+    if(preflight.frames!==Number(job.durationInFrames))
+      throw Error('EP002_MASTER_SOURCE_FRAMES_CHANGED_BEFORE_ASSEMBLY');
+    await onProgress(75);
+    const result=await assembleLockedMaster({inputDir:dir,
+      outputFile:outputPath,manifestPath,confirmDirectorPaidRender:true});
+    if(result.frames!==Number(job.durationInFrames))
+      throw Error('EP002_MASTER_OUTPUT_FRAMES_NOT_EQUAL_TO_PINNED_TOTAL');
+    const probe=await probeFactoryMedia(outputPath);
+    if(probe.width!==1920||probe.height!==1080||
+        Math.abs(probe.duration-preflight.seconds)>0.8)
+      throw Error('EP002_MASTER_FINAL_VIDEO_AUDIO_QA_FAILED');
+    await onProgress(95);
+    console.log('EP002_DIRECTOR_MASTER_REVIEW_READY '+JSON.stringify({
+      renderId:job.renderId,
+      sourceCount:11,
+      totalFrames:result.frames,
+      sourceDigest:inputProps.sourceDigest,
+      status:'CREATIVE_REVIEW_REQUIRED',
+    }));
+  }finally{
+    await fs.rm(dir,{recursive:true,force:true}).catch(()=>undefined);
+  }
+}
+
 async function render(job) {
   const outputPath = path.join(os.tmpdir(), `media-os-remotion-${job.renderId}.mp4`);
   const inputProps = job.inputProps && typeof job.inputProps === 'object' ? job.inputProps : {};
@@ -694,6 +761,19 @@ async function render(job) {
   }, 15_000);
 
   try {
+    if (job.compositionId === 'EP002-DIRECTOR-MASTER') {
+      await renderEp002DirectorMaster(job,outputPath,inputProps,async value=>{
+        heartbeatProgress=value;
+        await progress(job.renderId,value);
+      });
+      heartbeatProgress=97;
+      await progress(job.renderId,97);
+      const bytes=await complete(job.renderId,outputPath);
+      console.log('EP002 full eleven-SHOT Director review MP4 stored: '+
+        job.renderId+' bytes='+bytes);
+      return;
+    }
+
     if (['AT-FACTORY-MASTER','AT-FACTORY-SHORT'].includes(job.compositionId)) {
       if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
           ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA)

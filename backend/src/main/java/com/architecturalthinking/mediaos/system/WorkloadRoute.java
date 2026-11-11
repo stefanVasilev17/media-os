@@ -46,7 +46,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
                     || ("PUT".equals(method) && operation.equals("/complete"))
                     || ("GET".equals(method) && (operation.equals("/ep002-selected-voice")
                         || operation.equals("/factory-selected-voice")
-                        || factorySourceOperation(operation)));
+                        || factorySourceOperation(operation)
+                        || ep002MasterSourceOperation(operation)));
             return allowed ? new WorkloadRoute("REMOTION_CPU", null) : null;
         }
 
@@ -96,7 +97,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
         }
         String operation = remainder.substring(separator);
         if (!List.of("/progress", "/complete", "/fail", "/ep002-selected-voice",
-                "/factory-selected-voice").contains(operation) && !factorySourceOperation(operation))
+                "/factory-selected-voice").contains(operation) && !factorySourceOperation(operation)
+                && !ep002MasterSourceOperation(operation))
             return null;
         return new WorkloadRoute("REMOTION_CPU", null);
     }
@@ -104,6 +106,16 @@ public record WorkloadRoute(String scope, UUID jobId) {
     private static boolean factorySourceOperation(String operation) {
         if (!operation.startsWith("/factory-source/")) return false;
         String sourceId = operation.substring("/factory-source/".length());
+        try {
+            return UUID.fromString(sourceId).toString().equalsIgnoreCase(sourceId);
+        } catch (IllegalArgumentException invalid) {
+            return false;
+        }
+    }
+
+    private static boolean ep002MasterSourceOperation(String operation) {
+        if (!operation.startsWith("/ep002-master-source/")) return false;
+        String sourceId = operation.substring("/ep002-master-source/".length());
         try {
             return UUID.fromString(sourceId).toString().equalsIgnoreCase(sourceId);
         } catch (IllegalArgumentException invalid) {
