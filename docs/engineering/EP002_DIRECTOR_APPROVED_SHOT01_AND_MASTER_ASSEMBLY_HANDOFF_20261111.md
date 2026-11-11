@@ -1,5 +1,18 @@
 # EP002 — SHOT01 V2 Director LOCK and Full Eleven-SHOT Master
 
+## 2026-11-12 Production supersession: **MASTER MP4 RENDERED AND STORED**
+
+This section **supersedes the historical 2026-11-11 stage-not-live text below**. Live Backend and Render Worker now run the pinned, tested source commit `1e9dec4c4bd3dbdf77535a5f9f05045ad5f62565`. Railway deployments: Backend `4dce2c9c-bc2b-45fc-a0ca-df4b37798fdb` SUCCESS and Worker `bea2df3a-617d-49a4-921e-4811e14e5845` SUCCESS. Both healthy. PR #265 remains draft/unmerged; direct production source pin is live independently of merge status.
+
+**403 cause proven by GitHub SHA diff:** the old `WorkloadRoute.java` did not authorize GET `/{masterId}/ep002-master-source/{sourceId}`. Fixed by adding strict UUID-checked route handling in both `resolve(method,path)` and `remotionCpuRoute(path)` without widening any other Worker permissions. The first failed job `b9e3f213-d6bf-4981-ab7a-084dad69640c` is retained for provenance; exact one-time chat-authorized technical repair created the new successful job `8876235a-8037-4f19-8f5c-d2398f3ef22f`.
+
+**Real MP4 evidence:** 2026-11-11 23:07:20 UTC Render Worker logged `EP002_DIRECTOR_MASTER_REVIEW_READY`, exact 11 source files, 23,446 frames, source digest `996de37c5aa4e5e50d280b8cd4f1f454cfe8d7391ac9ed83d2bd48b8def7ee71`, 1920×1080/30fps, 13:01.53. 2026-11-11 23:07:21 UTC Worker logged `EP002 full eleven-SHOT Director review MP4 stored: 8876235a-8037-4f19-8f5c-d2398f3ef22f bytes=84647711`, after successful backend completion callback and QA. Originals unchanged; SHOT01 V2 is approved; SHOT02–11 are preserved. This is a **real single stored MP4**, not the front-end playlist.
+
+**Director playback:** authenticated [EP002 Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002), Full Episode Master panel, one MP4 playback and download. Direct session-protected MP4 path `/api/v1/remotion/renders/8876235a-8037-4f19-8f5c-d2398f3ef22f/video`. **Final creative approval of all ten seams and SHOT11 ending remains pending**. No direct authenticated browser playback probe has yet been recorded in this chat; distinguish successful Worker storage from personally observed Director playback.
+
+---
+
+
 **Date:** 2026-11-11 (Europe/Sofia)  
 **PR:** [#265](https://github.com/stefanVasilev17/media-os/pull/265) — **OPEN/DRAFT, unmerged**.  
 **Base:** stacked on [#264](https://github.com/stefanVasilev17/media-os/pull/264), exact initial source SHA `0b1c62c4592f5cffcee9ae92ade9986e42f93530`.  
