@@ -103,7 +103,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.missing).toHaveLength(0);
       expect(result.shots.map(s=>s.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08','SHOT09']);
       expect(result.shots[4].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].source).toBe('PINNED_DIRECTOR_LOCK');
       expect(result.shots[5].renderId).toBe(ids.SHOT06);
@@ -175,7 +175,7 @@ describe('EP002 real stored MP4 continuity discovery',()=>{
       const result=await loadLockedCut();
       expect(result.missing.some(s=>s.startsWith('SHOT07:'))).toBe(true);
       expect(result.shots.map(s=>s.shotKey)).toEqual(
-        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08']);
+        ['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT08','SHOT09']);
       expect(actualShotOrderIsContinuous(result.shots[5].shotKey,
         result.shots[6].shotKey)).toBe(false);
       expect(mock.mock.calls.some(([url])=>url.includes(
