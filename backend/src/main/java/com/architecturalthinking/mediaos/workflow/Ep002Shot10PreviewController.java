@@ -54,11 +54,11 @@ public class Ep002Shot10PreviewController {
 
     private Map<String,Object> lockedShot09Boundary() {
         ActualShot09Boundary boundary=jdbc.sql("""
-                select (r.input_props->'lockedShot09Handoff'->>'worldLastFrame')::integer
+                select (r.input_props->'lockedShot08Handoff'->>'worldLastFrame')::integer
                            as previous_world,
-                       (r.input_props->'lockedShot09Handoff'->>'criticalPulseStartFrame')::integer
+                       (r.input_props->'lockedShot08Handoff'->>'criticalPulseStartFrame')::integer
                            as critical_pulse,
-                       (r.input_props->'lockedShot09Handoff'->>'cascadeStartFrame')::integer
+                       (r.input_props->'lockedShot08Handoff'->>'cascadeStartFrame')::integer
                            as cascade_start,
                        jsonb_array_length(r.input_props->'verifiedCues') as beats,
                        jsonb_array_length(r.input_props->'termCues') as terms
@@ -68,12 +68,12 @@ public class Ep002Shot10PreviewController {
                    and r.fps=30 and r.duration_in_frames=:frames
                    and r.input_props->>'expectedSourceCommit'=:sha
                    and r.input_props->>'shotKey'='EP002_SHOT09'
-                   and r.input_props->'lockedShot09Handoff'->>'renderId'=
+                   and r.input_props->'lockedShot08Handoff'->>'renderId'=
                        '3415073a-5906-489d-bb69-6af7446c2c9b'
-                   and r.input_props->'lockedShot09Handoff'->>'sourceCommit'=
+                   and r.input_props->'lockedShot08Handoff'->>'sourceCommit'=
                        'a0dbdc8927cb2d47d5a1a3e691c6405bf0c28390'
-                   and r.input_props->'lockedShot09Handoff'->>'shot07LastFrame'='2673'
-                   and r.input_props->'lockedShot09Handoff'->>'lastFrame'='2313'
+                   and r.input_props->'lockedShot08Handoff'->>'shot07LastFrame'='2673'
+                   and r.input_props->'lockedShot08Handoff'->>'lastFrame'='2313'
                 """)
                 .param("id",LOCKED_SHOT09_RENDER)
                 .param("frames",SHOT09_LOCKED_FRAMES)
