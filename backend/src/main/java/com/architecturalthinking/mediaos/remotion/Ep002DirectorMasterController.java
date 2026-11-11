@@ -119,6 +119,51 @@ public class Ep002DirectorMasterController {
                 .orElseGet(()->Map.of("status","NOT_RENDERED"));
     }
 
+    static final String CHAT_AUTHORIZATION =
+            "USER_EXPLICIT_CHAT_2026_11_12_EP002_11_SHOT_MASTER_ONE_PAID_CPU";
+
+    @Transactional(isolation=Isolation.SERIALIZABLE)
+    public Map<String,Object> queueVerifiedChatMasterOnce(String authorization) {
+        if(!CHAT_AUTHORIZATION.equals(authorization))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "This one-time master queue requires an exact explicit Director chat authorization.");
+        if(!enabled||!pinnedSha.matches("[a-f0-9]{40}")
+                ||!pinnedSha.equals(System.getenv("RAILWAY_GIT_COMMIT_SHA")))
+            return Map.of("status","BLOCKED","reason","WORKER_RELEASE_NOT_PINNED_TO_THIS_DEPLOY");
+        Snapshot snap=snapshot();
+        if(!snap.blockers().isEmpty())
+            return Map.of("status","BLOCKED","reason",
+                    "ONE_OR_MORE_EXACT_DIRECTOR_APPROVED_SOURCE_MP4S_MISSING",
+                    "blockers",snap.blockers());
+
+        Map<String,Object> current=existingMaster(snap.digest());
+        if(!"NOT_RENDERED".equals(current.get("status")))
+            return current;
+
+        Long previous=jdbc.sql("""
+                select count(*) from remotion_render
+                 where project_id=:project and composition_id='EP002-DIRECTOR-MASTER'
+                   and input_props->>'authorizationSource'=:approval
+                """).param("project",PROJECT_ID)
+                .param("approval",CHAT_AUTHORIZATION)
+                .query(Long.class).single();
+        if(previous!=null&&previous>0)
+            return Map.of("status","BLOCKED","reason","ONE_TIME_CHAT_RENDER_ALREADY_ATTEMPTED");
+
+        UUID id=UUID.nameUUIDFromBytes((CHAT_AUTHORIZATION+"|"+snap.digest()
+                +"|"+pinnedSha).getBytes(StandardCharsets.UTF_8));
+        Map<String,Object> props=new LinkedHashMap<>();
+        props.put("durationInFrames",snap.totalFrames());
+        props.put("sourceRenderIds",SOURCE_IDS);
+        props.put("sourceDigest",snap.digest());
+        props.put("expectedSourceCommit",pinnedSha);
+        props.put("directorPaidCpuConfirmed",true);
+        props.put("renderRequestId",id.toString());
+        props.put("masterMode","EXACT_DIRECTOR_APPROVED_STREAM_COPY");
+        props.put("authorizationSource",CHAT_AUTHORIZATION);
+        return renders.ensureVerifiedEp002Master(props);
+    }
+
     @GetMapping("/preflight")
     @Transactional(readOnly=true)
     public Map<String,Object> preflight() {
