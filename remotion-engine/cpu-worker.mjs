@@ -8,6 +8,7 @@ import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
 import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
+import {inspectLockedMaster,assembleLockedMaster,verifyManifest} from './ep002-locked-master-assembly.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 
@@ -37,6 +38,7 @@ const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITI
 if (TARGET_COMPOSITION
     && !['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
       'EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE',
+      'EP002-DIRECTOR-MASTER',
       'EP002-DIRECTOR-SHOT02-SHOT03',
       'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
       'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05',
