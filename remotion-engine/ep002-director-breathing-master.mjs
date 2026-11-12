@@ -110,7 +110,7 @@ export async function renderEp002DirectorBreathMaster({
         vf='[0:v]split=2[frontsrc][tailsrc];'+
           '[frontsrc]trim=end_frame='+pivot+',setpts=PTS-STARTPTS[front];'+
           '[tailsrc]trim=start_frame='+pivot+
-          ',setpts=2*(PTS-STARTPTS),fps=30,'+
+          ',setpts=2*(PTS-STARTPTS),fps=30,tpad=stop_mode=clone:stop=1,'+
           'trim=end_frame=120,setpts=PTS-STARTPTS[tail];'+
           '[front][tail]concat=n=2:v=1:a=0[vout]';
       }
