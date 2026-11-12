@@ -32,6 +32,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     static final String SHOT10_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_SIMPLIFIED_SHOT10_ONE_CPU";
     private static final String MASTER_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_TEN_2S_BREATHING_MASTER_ONE_CPU";
     private static final String MASTER_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_OOM_TECHNICAL_REPAIR_ONCE";
+    private static final String MASTER_SHOT10_ROUTE_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_EXACT_SHOT10_AUTH_ROUTE_FIX_ONCE";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
     private final JdbcClient jdbc;
@@ -201,9 +202,20 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     &&"6f8b5b18-d9e5-4cb6-a60d-3f0b4160560c".equals(
                             String.valueOf(current.get("renderId")))
                     &&String.valueOf(current.get("error")).contains("ffmpeg exited null");
+            Map<String,Object> initialRepair=one(MASTER_REPAIR_AUTH);
+            boolean routeRepair=repair
+                    &&"FAILED".equals(initialRepair.get("status"))
+                    &&"5363de06-dc79-45a2-9f0a-159fdf00edc4".equals(
+                            String.valueOf(initialRepair.get("renderId")))
+                    &&String.valueOf(initialRepair.get("error"))
+                            .contains("EP002_V2_SOURCE_UNAVAILABLE_SHOT10_HTTP_403");
             if(!newRequest&&!repair)return;
-            if(repair&&!"NOT_RENDERED".equals(one(MASTER_REPAIR_AUTH).get("status")))return;
-            String authorization=repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
+            if(repair&&!routeRepair
+                    &&!"NOT_RENDERED".equals(initialRepair.get("status")))return;
+            if(routeRepair&&!"NOT_RENDERED".equals(
+                    one(MASTER_SHOT10_ROUTE_REPAIR_AUTH).get("status")))return;
+            String authorization=routeRepair?MASTER_SHOT10_ROUTE_REPAIR_AUTH:
+                    repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
             String id=String.valueOf(shot.get("renderId"));
@@ -257,8 +269,10 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         Map<String,Object> response=new LinkedHashMap<>();
         response.put("shot10",one(SHOT10_AUTH));
         Map<String,Object> repaired=one(MASTER_REPAIR_AUTH);
-        response.put("master","NOT_RENDERED".equals(repaired.get("status"))
-                ?one(MASTER_AUTH):repaired);
+        Map<String,Object> routeRepaired=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
+        response.put("master",!"NOT_RENDERED".equals(routeRepaired.get("status"))
+                ?routeRepaired
+                :!"NOT_RENDERED".equals(repaired.get("status"))?repaired:one(MASTER_AUTH));
         response.put("expectedFrames",24046);
         response.put("breathFramesPerBoundary",60);
         response.put("boundaryCount",10);
