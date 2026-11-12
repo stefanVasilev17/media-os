@@ -127,17 +127,36 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
             return Map.of("status","BLOCKED","reason","EXACT_ORIGINAL_SHOT10_METADATA_CHANGED");
         Map<String,Object> props=mapper.readValue((String)old.get("props"),
                 new TypeReference<Map<String,Object>>(){});
-        String fingerprint=(String)old.get("fingerprint");
-        String take=((UUID)old.get("take")).toString();
-        int revision=(int)old.get("revision");
-        if(!"EP002_SHOT10".equals(props.get("shotKey"))
-                ||!take.equals(props.get("voiceTakeId"))
-                ||!fingerprint.equals(props.get("inputFingerprint"))
-                ||((Number)props.get("scriptRevision")).intValue()!=revision
-                ||!cues.matchesCurrentShot10Render(fingerprint,take,revision,2360)
-                ||!(props.get("verifiedCues") instanceof List<?> beats&&beats.size()==6)
-                ||!(props.get("termCues") instanceof List<?> terms&&terms.size()==21))
-            return Map.of("status","BLOCKED","reason","CURRENT_APPROVED_SHOT10_VOICE_OR_CUES_CHANGED");
+        var ready=cues.shot10InternalReadiness();
+        if(!ready.ready()||ready.durationInFrames()!=2360
+                ||ready.verifiedCues()==null||ready.verifiedCues().size()!=6
+                ||ready.termCues()==null||ready.termCues().size()!=21
+                ||ready.voiceTakeId()==null||ready.inputFingerprint()==null
+                ||!"ELEVENLABS_CHARACTER_TIMESTAMPS".equals(ready.timingMode()))
+            return Map.of("status","BLOCKED","reason","CURRENT_SHOT10_REAL_VOICE_READINESS_NOT_VALID",
+                    "detail",ready.reason());
+        String fingerprint=ready.inputFingerprint();
+        String take=ready.voiceTakeId();
+        Integer revision=jdbc.sql("""
+                select t.revision from ep002_creative_voice_take t
+                where t.id=:take and t.shot_key='SHOT10'
+                  and t.approved_at is not null
+                """).param("take",UUID.fromString(take)).query(Integer.class)
+                .optional().orElse(null);
+        if(revision==null||revision<1||!cues.matchesCurrentShot10Render(
+                fingerprint,take,revision,2360)
+                ||!"EP002_SHOT10".equals(props.get("shotKey"))
+                ||!(props.get("lockedShot09Handoff") instanceof Map<?,?>)
+                ||!(props.get("verifiedCues") instanceof List<?> oldBeats&&oldBeats.size()==6)
+                ||!(props.get("termCues") instanceof List<?> oldTerms&&oldTerms.size()==21))
+            return Map.of("status","BLOCKED","reason","SHOT10_CURRENT_TAKE_OR_EXACT_LOCKED_HANDOFF_INVALID");
+        props.put("durationInFrames",2360);
+        props.put("inputFingerprint",fingerprint);
+        props.put("voiceTakeId",take);
+        props.put("scriptRevision",revision);
+        props.put("timingMode",ready.timingMode());
+        props.put("verifiedCues",ready.verifiedCues());
+        props.put("termCues",ready.termCues());
         props.put("expectedSourceCommit",workerSha);
         props.put("visualSourceSha",SHOT10_VISUAL_BLOB);
         props.put("authorizationSource",SHOT10_AUTH);
@@ -155,7 +174,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                 on conflict(episode_key,shot_key,dependency_sha256,remotion_render_id)
                   do nothing
                 """).param("id",UUID.randomUUID()).param("revision",revision)
-                .param("narration",old.get("narration")).param("take",old.get("take"))
+                .param("narration",jdbc.sql("select narration_sha256 from ep002_creative_voice_take where id=:take").param("take",UUID.fromString(take)).query(String.class).single()).param("take",UUID.fromString(take))
                 .param("visual",SHOT10_VISUAL_BLOB).param("fingerprint",fingerprint)
                 .param("render",renderId).param("worker",workerSha).update();
         return result;
