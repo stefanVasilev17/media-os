@@ -208,7 +208,7 @@ public class RemotionCpuWorkerController {
                          and :sourceSha !~ '[^a-f0-9]'
                          and input_props->>'directorPaidCpuConfirmed'='true'
                          and input_props->>'masterMode' in ('EXACT_DIRECTOR_APPROVED_STREAM_COPY',
-                                   'DIRECTOR_V2_60_FRAME_BREATHS')))
+                                   'DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
