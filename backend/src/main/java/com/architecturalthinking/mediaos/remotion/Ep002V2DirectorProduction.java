@@ -181,7 +181,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
             if(!"READY".equals(shot.get("status")))return;
             String id=String.valueOf(shot.get("renderId"));
             List<String> ids=sourceIds(id);
-            StringBuilder digest=new StringBuilder("EP002_DIRECTOR_V2_BREATH_MASTER_EXACT_2026_11_12\\n");
+            StringBuilder digest=new StringBuilder("EP002_DIRECTOR_V2_BREATH_MASTER_EXACT_2026_11_12\n");
             int sourceFrames=0;
             for(int i=0;i<11;i++){
                 Source s=source(ids.get(i));
@@ -196,7 +196,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     throw new IllegalStateException("EP002_V2_SOURCE_MISSING_OR_CHANGED_SHOT_"+(i+1));
                 sourceFrames+=s.frames();
                 digest.append(i).append(':').append(s.id()).append(':')
-                      .append(s.frames()).append(':').append(s.bytes()).append('\\n');
+                      .append(s.frames()).append(':').append(s.bytes()).append('\n');
             }
             if(sourceFrames!=23446)
                 throw new IllegalStateException("EP002_V2_UNEXPECTED_TOTAL_SOURCE_FRAMES_"+sourceFrames);
