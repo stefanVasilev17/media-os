@@ -204,16 +204,17 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     select exists(
                         select 1 from remotion_render r
                         where r.id=:id and r.project_id=:project
-                          and r.status='FAILED'
+                          and r.status in ('FAILED','RUNNING')
+                          and r.video_data is null
                           and r.composition_id='EP002-DIRECTOR-MASTER'
                           and r.duration_in_frames=24046
-                          and r.input_props->>'authorizationSource'=:authorization
                           and r.input_props->>'masterMode'=:mode
                           and r.input_props->>'shot10RenderId'=:shot10
+                          and r.input_props->>'breathingFramesPerSeam'='60'
+                          and r.input_props->>'breathingSeams'='10'
                     )
                     """).param("id",UUID.fromString("3819611b-74af-4345-a0d7-b589388fb590"))
                     .param("project",Ep002DirectorMasterController.PROJECT_ID)
-                    .param("authorization",MASTER_FINAL_DIRECTOR_AUTH)
                     .param("mode",MASTER_MODE)
                     .param("shot10","96e427d2-b518-47c0-a287-59ea42cfab52")
                     .query(Boolean.class).single();
@@ -221,7 +222,13 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
             boolean firstRun="NOT_RENDERED".equals(existing.get("status"));
             boolean exactQaRepair=previousMasterFailed
                     &&"NOT_RENDERED".equals(qaRepair.get("status"));
-            if(!firstRun&&!exactQaRepair)return;
+            if(!firstRun&&!exactQaRepair){
+                log.info("EP002_V2_MASTER_QA_GATE_BLOCKED originalStatus={} previousExactSourceMatched={} qaRepairStatus={}",
+                        existing.get("status"),previousMasterFailed,qaRepair.get("status"));
+                return;
+            }
+            log.info("EP002_V2_MASTER_QA_GATE_ACCEPTED originalStatus={} previousExactSourceMatched={} qaRepairStatus={}",
+                    existing.get("status"),previousMasterFailed,qaRepair.get("status"));
             String authorization=exactQaRepair?MASTER_FINAL_QA_FIX_AUTH:MASTER_FINAL_DIRECTOR_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
