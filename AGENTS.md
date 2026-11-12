@@ -1,5 +1,14 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## Director editorial revision requested 2026-11-12 — ten 2-second breathing transitions and SHOT10 visual focus
+
+**Current status: DIRECTOR REQUEST / V2 CODE CANDIDATE, NOT YET A NEW STORED OR LOCKED MP4.** For every EP002 seam between SHOT01→02 through SHOT10→11, provide a real **2-second narrator-only silence** after the previous complete thought, while the moving living-architecture visual continues. The preferred non-destructive master derivative stretches the outgoing SHOT's last 60 moving video frames to 120 frames by optical interpolation (30 fps), preserves the original selected narration and actual HEAR→SEE timing inside the source SHOT, and audio-pads 60 silent frames so the next SHOT begins after the perceptual rest. Exactly 10 seams add 600 frames/20s; SHOT11 receives no trailing gap. The original source MP4s and speech Takes remain byte-identical. Reject motion-free frozen last frames or audio clipping, any wrong frame count, and audio bleed into the 2s boundary. Make this a separately versioned **Director review** derivative, NOT replace a previous master.
+
+For SHOT10 “PROVE THE RECOVERY”, remove the quickly cycling **12 lower info card states and 8 subtitle/caption states**, including extra tiny database meter, while retaining the live underlying architecture map, source-approved English narration, the unchanged 6 beats/21 real timing terms, the exact SHOT09 world-frame handoff and one stable readable evidence footer. Do not create new cards to fill the resulting empty space; the narration and animated architecture carry the explanation. **A clean SHOT10 still needs a new review render and a changed master pin** before a new complete MP4 can be claimed.
+
+See `remotion-engine/ep002-director-breathing-master.mjs`, `remotion-engine/src/episodes/ep002/Shot10DirectorVisualV1.tsx`, and [EP002 V2 pacing revision plan](docs/engineering/EP002_DIRECTOR_V2_BREATHING_AND_SHOT10_FOCUS_20261112.md). Never advertise the existing 2026-11-11 master as including these later changes.
+
+
 
 ## PERMANENT DIRECTOR DESIGN RULE — 2026-11-11: ALL NEW VISUAL CONTAINERS CONTENT-FITTED, NO MICROCOPY
 
