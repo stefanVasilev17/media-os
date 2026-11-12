@@ -35,6 +35,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     private static final String MASTER_SHOT10_ROUTE_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_EXACT_SHOT10_AUTH_ROUTE_FIX_ONCE";
     private static final String MASTER_AUDIO_DTS_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_AUDIO_DTS_TIMESTAMP_FIX_ONCE";
     private static final String MASTER_FINAL_DIRECTOR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_FINAL_EXPLICIT_COMPLETE_MASTER_ONE_TIME";
+    private static final String MASTER_FINAL_QA_FIX_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_FINAL_EXACT_FRAME_QA_REPAIR_ONE_TIME";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
     private final JdbcClient jdbc;
@@ -199,8 +200,29 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         if(!releaseReady())return;
         try{
             Map<String,Object> existing=one(MASTER_FINAL_DIRECTOR_AUTH);
-            if(!"NOT_RENDERED".equals(existing.get("status")))return;
-            String authorization=MASTER_FINAL_DIRECTOR_AUTH;
+            boolean previousMasterFailed=jdbc.sql("""
+                    select exists(
+                        select 1 from remotion_render r
+                        where r.id=:id and r.project_id=:project
+                          and r.status='FAILED'
+                          and r.composition_id='EP002-DIRECTOR-MASTER'
+                          and r.duration_in_frames=24046
+                          and r.input_props->>'authorizationSource'=:authorization
+                          and r.input_props->>'masterMode'=:mode
+                          and r.input_props->>'shot10RenderId'=:shot10
+                    )
+                    """).param("id",UUID.fromString("3819611b-74af-4345-a0d7-b589388fb590"))
+                    .param("project",Ep002DirectorMasterController.PROJECT_ID)
+                    .param("authorization",MASTER_FINAL_DIRECTOR_AUTH)
+                    .param("mode",MASTER_MODE)
+                    .param("shot10","96e427d2-b518-47c0-a287-59ea42cfab52")
+                    .query(Boolean.class).single();
+            Map<String,Object> qaRepair=one(MASTER_FINAL_QA_FIX_AUTH);
+            boolean firstRun="NOT_RENDERED".equals(existing.get("status"));
+            boolean exactQaRepair=previousMasterFailed
+                    &&"NOT_RENDERED".equals(qaRepair.get("status"));
+            if(!firstRun&&!exactQaRepair)return;
+            String authorization=exactQaRepair?MASTER_FINAL_QA_FIX_AUTH:MASTER_FINAL_DIRECTOR_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
             String id=String.valueOf(shot.get("renderId"));
@@ -257,7 +279,10 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         Map<String,Object> routeRepaired=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
         Map<String,Object> audioRepaired=one(MASTER_AUDIO_DTS_REPAIR_AUTH);
         Map<String,Object> finalMaster=one(MASTER_FINAL_DIRECTOR_AUTH);
-        response.put("master",!"NOT_RENDERED".equals(finalMaster.get("status"))
+        Map<String,Object> qaRepairedMaster=one(MASTER_FINAL_QA_FIX_AUTH);
+        response.put("master",!"NOT_RENDERED".equals(qaRepairedMaster.get("status"))
+                ?qaRepairedMaster
+                :!"NOT_RENDERED".equals(finalMaster.get("status"))
                 ?finalMaster
                 :!"NOT_RENDERED".equals(audioRepaired.get("status"))
                 ?audioRepaired
