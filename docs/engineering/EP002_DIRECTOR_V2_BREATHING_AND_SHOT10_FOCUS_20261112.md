@@ -1,5 +1,14 @@
 # EP002 — Director V2 pacing and SHOT10 focus revision (2026-11-12)
 
+## 2026-11-12 11:06 UTC — VERIFIED PRODUCTION RESULT (SUPERSEDES STAGED STEPS BELOW)
+
+**DONE — REAL V2 MASTER IS STORED IN MEDIAOS DIRECTOR ROOM.** `6f5957be-26e4-45b8-b680-e250dcd134a0`, 74,492,108 bytes (71.0 MiB), 1920×1080 at 30fps, **24,046 verified video frames / 13:21.533 seconds by frame count**, MP4 container duration 801.664 seconds after AAC encoding (0.1307s difference). Actual Railway Worker event `EP002_DIRECTOR_V2_BREATH_MASTER_REVIEW_READY` confirms 11 exact approved source MP4s, corrected SHOT10 render `96e427d2-b518-47c0-a287-59ea42cfab52`, ten seams × sixty 30fps frames of speech rest. After rendering and FFprobe, the Worker completed the Backend storage callback successfully (`EP002 full eleven-SHOT Director review MP4 stored`). The original full master `8876235a-8037-4f19-8f5c-d2398f3ef22f` was not altered.
+
+[Open EP002 V2 player in Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002). Video path: `/api/v1/remotion/renders/6f5957be-26e4-45b8-b680-e250dcd134a0/video`. **Technical deliverable complete, final human creative visual/audio approval still pending; do not auto-LOCK.** Check all ten seamless moving-map pauses and confirm that the reduced SHOT10 labels work for a viewer.
+
+**Production details:** Master succeeded on pinned worker source `a283e67496191d15efbdaed9b363f5fed3e32c0b` in permanent `release/ep002-v2-master-worker-pinned-a283-20261112` branch. One exact `RUNNING` master recovered after a Railway Worker replica swap using `Ep002V2InterruptedMasterRecovery`, preserving the same render ID and adding an immutable one-time recovery marker; the flag was disabled again before final stable release. The terminal render QA measured AAC audio container drift +0.1307s, within 0.4s (verified frames exact). **Historical staged/failed references lower in this document describe earlier attempts and are not the current state.** Do not change the pinned Worker source or trigger a new paid render unless the Director explicitly requests another version.
+
+
 ## Director feedback — exact source intent
 
 Director reviewed original complete 11-SHOT review master `8876235a-8037-4f19-8f5c-d2398f3ef22f` and requested two changes:
