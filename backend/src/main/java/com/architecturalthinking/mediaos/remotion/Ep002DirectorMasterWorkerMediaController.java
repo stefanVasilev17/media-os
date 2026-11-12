@@ -59,7 +59,7 @@ public class Ep002DirectorMasterWorkerMediaController {
                   and target.input_props->>'expectedSourceCommit'=:sha
                   and target.input_props->>'directorPaidCpuConfirmed'='true'
                   and target.input_props->>'masterMode' in (
-                    'EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS')
+                    'EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS')
                 """)
                 .param("source",sourceId).param("target",targetId)
                 .param("project",Ep002DirectorMasterController.PROJECT_ID)
