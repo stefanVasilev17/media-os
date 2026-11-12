@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.UUID;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/remotion/renders/worker")
@@ -27,7 +28,7 @@ public class Ep002DirectorMasterWorkerMediaController {
 
     private record Source(String props,String sourceComposition,String status,
                           int width,int height,int fps,int frames,
-                          Long bytes,String type,byte[] mp4) {}
+                          Long bytes,String type,byte[] mp4,String sourceProps) {}
 
     @GetMapping("/{targetId}/ep002-master-source/{sourceId}")
     public ResponseEntity<byte[]> source(@PathVariable UUID targetId,
@@ -48,7 +49,7 @@ public class Ep002DirectorMasterWorkerMediaController {
                        approved.composition_id as composition,
                        approved.status,approved.width,approved.height,approved.fps,
                        approved.duration_in_frames,approved.size_bytes,
-                       approved.media_type,approved.video_data
+                       approved.media_type,approved.video_data,approved.input_props::text as approved_props
                 from remotion_render target
                 join remotion_render approved on approved.id=:source
                   and approved.project_id=target.project_id
@@ -57,7 +58,8 @@ public class Ep002DirectorMasterWorkerMediaController {
                   and target.composition_id='EP002-DIRECTOR-MASTER'
                   and target.input_props->>'expectedSourceCommit'=:sha
                   and target.input_props->>'directorPaidCpuConfirmed'='true'
-                  and target.input_props->>'masterMode'='EXACT_DIRECTOR_APPROVED_STREAM_COPY'
+                  and target.input_props->>'masterMode' in (
+                    'EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS')
                 """)
                 .param("source",sourceId).param("target",targetId)
                 .param("project",Ep002DirectorMasterController.PROJECT_ID)
@@ -66,25 +68,61 @@ public class Ep002DirectorMasterWorkerMediaController {
                         rs.getString("composition"),rs.getString("status"),
                         rs.getInt("width"),rs.getInt("height"),rs.getInt("fps"),
                         rs.getInt("duration_in_frames"),(Long)rs.getObject("size_bytes"),
-                        rs.getString("media_type"),rs.getBytes("video_data")))
+                        rs.getString("media_type"),rs.getBytes("video_data"),
+                        rs.getString("approved_props")))
                 .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.FORBIDDEN,"Source does not belong to an authorized master job."));
 
-        int index=Ep002DirectorMasterController.SOURCE_IDS.indexOf(sourceId.toString());
+        int index=-1;
         try {
             JsonNode props=mapper.readTree(source.props());
             JsonNode ids=props.path("sourceRenderIds");
-            if(index<0||!ids.isArray()||ids.size()!=11
+            boolean v2=Ep002V2DirectorProduction.MASTER_MODE.equals(
+                    props.path("masterMode").asText());
+            if(!ids.isArray()||ids.size()!=11
                     ||!props.path("sourceDigest").asText("").matches("[a-f0-9]{64}")
                     ||!props.path("durationInFrames").canConvertToInt()
-                    ||props.path("durationInFrames").asInt()<=0)
+                    ||props.path("durationInFrames").asInt()<=0
+                    ||!props.path("directorPaidCpuConfirmed").asBoolean(false))
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Master must contain exactly eleven approved pinned inputs.");
-            for(int i=0;i<11;i++)
-                if(!Ep002DirectorMasterController.SOURCE_IDS.get(i).equals(ids.get(i).asText()))
+                        "Master must contain exactly eleven Director-approved pinned inputs.");
+            for(int i=0;i<11;i++){
+                String pinned=Ep002DirectorMasterController.SOURCE_IDS.get(i);
+                String id=ids.path(i).asText("");
+                if(v2 && i==9) {
+                    if(!id.equals(props.path("shot10RenderId").asText(""))
+                            ||pinned.equals(id))
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                "V2 master must pin a new verified SHOT10 render.");
+                }else if(!pinned.equals(id))
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                            "Source ordering differs from immutable Director approval.");
-        } catch(ResponseStatusException e){throw e;}
+                            "Director-pinned source ordering is immutable.");
+                if(sourceId.toString().equals(id))index=i;
+            }
+            if(index<0)
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Source MP4 is not in the selected Director master.");
+            if(v2) {
+                if(props.path("breathingFramesPerSeam").asInt()!=60
+                        ||props.path("breathingSeams").asInt()!=10)
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "V2 pacing contract does not match 10 x 60 frames.");
+                if(index==9) {
+                    JsonNode approved=mapper.readTree(source.sourceProps());
+                    if(!Ep002V2DirectorProduction.SHOT10_AUTH.equals(
+                            approved.path("authorizationSource").asText(""))
+                            ||!Ep002V2DirectorProduction.SHOT10_VISUAL_BLOB.equals(
+                                    approved.path("visualSourceSha").asText(""))
+                            ||!workerSha.equals(approved.path("expectedSourceCommit").asText(""))
+                            ||!"EP002_SHOT10".equals(approved.path("shotKey").asText()))
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                                "SHOT10 source must be the approved cleaned V2 render.");
+                }
+            }else if(!"EXACT_DIRECTOR_APPROVED_STREAM_COPY".equals(
+                    props.path("masterMode").asText("")))
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Unrecognized final master source mode.");
+        }catch(ResponseStatusException e){throw e;}
         catch(Exception e){throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                 "Invalid immutable Director source manifest.");}
 
