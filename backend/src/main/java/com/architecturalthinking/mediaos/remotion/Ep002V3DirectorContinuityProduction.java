@@ -25,6 +25,18 @@ public final class Ep002V3DirectorContinuityProduction {
     static final String TRANSITION="TEN_ANCHORED_MOVING_CAMERA_BRIDGES";
     static final String AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V3_TEN_EXACT_FRAME_MATCHED_TRANSITIONS_ONE_RENDER";
     static final String SHOT10_ID="96e427d2-b518-47c0-a287-59ea42cfab52";
+    private static final List<String> SEAM_LABELS=List.of(
+        "PHONE_TO_PRESSURE_FOCUS",
+        "NETWORK_CAPACITY_HANDOFF",
+        "CAPACITY_HEALTH_HANDOFF",
+        "NETWORK_TO_QUEUE_DOLLY",
+        "QUEUE_TIMEOUT_HANDOFF",
+        "QUEUE_TO_RETRY_MAP_PULLBACK",
+        "SHARED_WORLD_MITIGATION",
+        "SHARED_WORLD_ADMISSION",
+        "SHARED_WORLD_RECOVERY",
+        "SHARED_WORLD_CONCLUSION");
+
     private final JdbcClient jdbc;
     private final RemotionRenderController renders;
     private final boolean directorApproved;
@@ -151,6 +163,27 @@ public final class Ep002V3DirectorContinuityProduction {
         response.put("cleanShot10RenderId",SHOT10_ID);
         response.put("previousV2MasterId","6f5957be-26e4-45b8-b680-e250dcd134a0");
         response.put("directorFinalLock",false);
+        java.util.ArrayList<Map<String,Object>> seams=new java.util.ArrayList<>();
+        try{
+            List<String> ids=Ep002V2DirectorProduction.sourceIds(SHOT10_ID);
+            int sourceElapsed=0;
+            for(int i=0;i<10;i++){
+                Source previous=source(ids.get(i));
+                if(previous==null||previous.frames()<150)break;
+                sourceElapsed+=previous.frames();
+                int startFrame=sourceElapsed+i*60;
+                seams.add(Map.of(
+                    "index",i+1,
+                    "from","SHOT"+String.format("%02d",i+1),
+                    "to","SHOT"+String.format("%02d",i+2),
+                    "startSeconds",startFrame/30.0,
+                    "endSeconds",(startFrame+60)/30.0,
+                    "profile",SEAM_LABELS.get(i)));
+            }
+        }catch(Exception ignored){
+            seams.clear();
+        }
+        response.put("seams",List.copyOf(seams));
         return response;
     }
 }
