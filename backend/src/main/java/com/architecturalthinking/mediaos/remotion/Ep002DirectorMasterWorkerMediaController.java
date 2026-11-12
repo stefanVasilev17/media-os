@@ -79,6 +79,8 @@ public class Ep002DirectorMasterWorkerMediaController {
             JsonNode ids=props.path("sourceRenderIds");
             boolean v2=Ep002V2DirectorProduction.MASTER_MODE.equals(
                     props.path("masterMode").asText());
+            boolean v3=Ep002V3DirectorContinuityProduction.MODE.equals(
+                    props.path("masterMode").asText());
             if(!ids.isArray()||ids.size()!=11
                     ||!props.path("sourceDigest").asText("").matches("[a-f0-9]{64}")
                     ||!props.path("durationInFrames").canConvertToInt()
@@ -89,7 +91,7 @@ public class Ep002DirectorMasterWorkerMediaController {
             for(int i=0;i<11;i++){
                 String pinned=Ep002DirectorMasterController.SOURCE_IDS.get(i);
                 String id=ids.path(i).asText("");
-                if(v2 && i==9) {
+                if((v2||v3) && i==9) {
                     if(!id.equals(props.path("shot10RenderId").asText(""))
                             ||pinned.equals(id))
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -102,11 +104,19 @@ public class Ep002DirectorMasterWorkerMediaController {
             if(index<0)
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Source MP4 is not in the selected Director master.");
-            if(v2) {
+            if(v2||v3) {
                 if(props.path("breathingFramesPerSeam").asInt()!=60
                         ||props.path("breathingSeams").asInt()!=10)
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                             "V2 pacing contract does not match 10 x 60 frames.");
+                if(v3&&(!Ep002V3DirectorContinuityProduction.TRANSITION.equals(
+                            props.path("transitionProfile").asText(""))
+                        ||props.path("retimeSourceFrames").asBoolean(true)
+                        ||props.path("durationInFrames").asInt()!=24046
+                        ||!Ep002V3DirectorContinuityProduction.SHOT10_ID.equals(
+                            props.path("shot10RenderId").asText(""))))
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "V3 master requires exactly ten anchored, non-retimed seams.");
                 if(index==9) {
                     JsonNode approved=mapper.readTree(source.sourceProps());
                     if(!Ep002V2DirectorProduction.SHOT10_AUTH.equals(
