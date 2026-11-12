@@ -29,7 +29,7 @@ import java.util.UUID;
 public class Ep002V2DirectorProduction implements ApplicationRunner {
     private static final Logger log=LoggerFactory.getLogger(Ep002V2DirectorProduction.class);
     private static final UUID OLD_SHOT10=UUID.fromString("2034d8c6-99b2-46a5-9469-bf3df325d6c0");
-    private static final String SHOT10_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_SIMPLIFIED_SHOT10_ONE_CPU";
+    static final String SHOT10_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_SIMPLIFIED_SHOT10_ONE_CPU";
     private static final String MASTER_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_TEN_2S_BREATHING_MASTER_ONE_CPU";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
