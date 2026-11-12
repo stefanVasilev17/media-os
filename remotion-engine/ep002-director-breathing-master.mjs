@@ -34,8 +34,9 @@ export function planEp002DirectorBreaths(frames) {
       parts.push('[v'+i+'front][v'+i+'slow]concat=n=2:v=1:a=0[v'+i+']');
     }
     const shotFrames=frames[i]+(last?0:EP002_BREATH_FRAMES);
-    parts.push('['+i+':a]aresample=48000,apad,atrim=end='+
-      (shotFrames/EP002_BREATH_FPS).toFixed(9)+
+    parts.push('['+i+':a]aresample=48000,atrim=end='+
+      (frames[i]/EP002_BREATH_FPS).toFixed(9)+
+      ',apad,atrim=end='+(shotFrames/EP002_BREATH_FPS).toFixed(9)+
       ',asetpts=PTS-STARTPTS[a'+i+']');
     video.push('[v'+i+']');
     audio.push('[a'+i+']');
