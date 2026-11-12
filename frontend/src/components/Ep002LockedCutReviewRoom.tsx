@@ -3,6 +3,7 @@ import {ChevronLeft,ChevronRight,Film,Pause,Play,RotateCcw,ShieldCheck} from 'lu
 import {Ep002FullMasterPanel} from './Ep002FullMasterPanel';
 import {Ep002V2DirectorMasterPanel} from './Ep002V2DirectorMasterPanel';
 import {Ep002V3ContinuityDirectorPanel} from './Ep002V3ContinuityDirectorPanel';
+import {Ep002V4CleanCutDirectorPanel} from './Ep002V4CleanCutDirectorPanel';
 
 type LockedShot={
   shotKey:string;
@@ -254,6 +255,7 @@ export function Ep002LockedCutReviewRoom(){
       with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
       All are pinned to their final Director-approved render IDs. Only the
       separately confirmed Full Episode Master action can start billable CPU.</p>
+    <Ep002V4CleanCutDirectorPanel/>
     <Ep002V3ContinuityDirectorPanel/>
     <Ep002V2DirectorMasterPanel/>
     <Ep002FullMasterPanel/>
