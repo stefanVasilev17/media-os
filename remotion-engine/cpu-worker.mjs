@@ -10,6 +10,7 @@ import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 import {inspectLockedMaster,assembleLockedMaster,verifyManifest} from './ep002-locked-master-assembly.mjs';
 import {renderEp002DirectorBreathMaster} from './ep002-director-breathing-master.mjs';
+import {renderEp002DirectorContinuityMaster,EP002_V3_MODE,EP002_V3_TRANSITION} from './ep002-director-continuity-master.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 
@@ -678,6 +679,87 @@ async function muxFactorySelectedVoice(job,videoPath,inputProps) {
   }
 }
 
+async function renderEp002DirectorV3Master(job,outputPath,inputProps,onProgress){
+  const manifest=verifyManifest(JSON.parse(await fs.readFile(
+    path.join(ENGINE_ROOT,'ep002-approved-master-manifest.json'),'utf8')));
+  const baselineIds=manifest.shots.map(s=>s.renderId);
+  const ids=inputProps.sourceRenderIds;
+  if(inputProps.directorPaidCpuConfirmed!==true
+      ||inputProps.masterMode!==EP002_V3_MODE
+      ||inputProps.transitionProfile!==EP002_V3_TRANSITION
+      ||inputProps.breathingFramesPerSeam!==60
+      ||inputProps.breathingSeams!==10
+      ||inputProps.retimeSourceFrames!==false
+      ||!Array.isArray(ids)||ids.length!==11
+      ||ids.some((id,i)=>i!==9&&id!==baselineIds[i])
+      ||ids[9]!==inputProps.shot10RenderId
+      ||ids[9]===baselineIds[9]
+      ||!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(ids[9])
+      ||!/^[a-f0-9]{64}$/.test(String(inputProps.sourceDigest||''))
+      ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA
+      ||!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+      ||job.width!==1920||job.height!==1080||job.fps!==30
+      ||job.profile!=='REVIEW'||Number(job.durationInFrames)!==24046)
+    throw Error('EP002_V3_EXACT_DIRECTOR_SOURCE_PINS_OR_QUALITY_GUARD_FAILED');
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'mediaos-ep002-v3-master-'));
+  try{
+    let staged=0;
+    for(let i=0;i<ids.length;i++){
+      const response=await workloadTokens.request(BACKEND_URL+
+        '/api/v1/remotion/renders/worker/'+job.renderId+
+        '/ep002-master-source/'+ids[i],{method:'GET',headers:headers()});
+      if(!response.ok)throw Error('EP002_V3_SOURCE_UNAVAILABLE_SHOT'+
+        String(i+1).padStart(2,'0')+'_HTTP_'+response.status);
+      const bytes=Buffer.from(await response.arrayBuffer());
+      if(bytes.length<1024||bytes.length>256*1024*1024)
+        throw Error('EP002_V3_EXACT_SOURCE_BYTES_INVALID_SHOT'+(i+1));
+      staged+=bytes.length;
+      if(staged>2*1024*1024*1024)
+        throw Error('EP002_V3_STAGED_SOURCE_BYTES_LIMIT_EXCEEDED');
+      await fs.writeFile(path.join(dir,ids[i]+'.mp4'),bytes,{flag:'wx'});
+      await onProgress(Math.min(26,5+Math.floor((i+1)*21/11)));
+    }
+    const pinned=structuredClone(manifest);
+    pinned.shots[9].renderId=ids[9];
+    pinned.shots[9].expectedFrames=2360;
+    const pathToManifest=path.join(dir,'v3-exact-pins.json');
+    await fs.writeFile(pathToManifest,JSON.stringify(pinned),{flag:'wx'});
+    const inspected=await inspectLockedMaster({inputDir:dir,
+      manifestPath:pathToManifest});
+    if(inspected.frames!==23446
+      ||inspected.inputRenderIds.some((id,i)=>id!==ids[i]))
+      throw Error('EP002_V3_SOURCE_MP4_LINEAGE_CHANGED');
+    await onProgress(29);
+    const result=await renderEp002DirectorContinuityMaster({
+      inputs:inspected.inputs,
+      outputFile:outputPath,
+      confirmDirectorPaidRender:true,
+      onProgress:async percent=>onProgress(Math.min(93,29+Math.floor(percent*.68))),
+    });
+    if(result.frames!==24046||result.seamCount!==10
+      ||result.sourceFramesRetimed!==0||result.sourceFramesDropped!==0
+      ||result.continuityAudit.length!==10)
+      throw Error('EP002_V3_SEAM_CONTINUITY_RECEIPT_INVALID');
+    const final=await probeFactoryMedia(outputPath);
+    if(final.width!==1920||final.height!==1080
+      ||Math.abs(final.duration-24046/30)>.4)
+      throw Error('EP002_V3_COMPLETE_REAL_MP4_AV_QA_FAILED');
+    console.log('EP002_V3_ALL_TEN_SEAMS_QA '+JSON.stringify({
+      renderId:job.renderId,seams:result.continuityAudit,
+      finalDurationSeconds:final.duration,finalFrames:result.frames,
+    }));
+    await onProgress(95);
+    console.log('EP002_V3_FRAME_MATCHED_MASTER_REVIEW_READY '+JSON.stringify({
+      renderId:job.renderId,sourceCount:11,
+      cleanShot10:ids[9],frames:24046,breathingFramesPerSeam:60,
+      transitionCount:10,retimedSourceFrames:0,
+      status:'CREATIVE_REVIEW_REQUIRED',
+    }));
+  }finally{
+    await fs.rm(dir,{recursive:true,force:true}).catch(()=>undefined);
+  }
+}
+
 async function renderEp002DirectorV2Master(job,outputPath,inputProps,onProgress){
   const manifest=verifyManifest(JSON.parse(await fs.readFile(
     path.join(ENGINE_ROOT,'ep002-approved-master-manifest.json'),'utf8')));
@@ -755,6 +837,8 @@ async function renderEp002DirectorV2Master(job,outputPath,inputProps,onProgress)
 }
 
 async function renderEp002DirectorMaster(job,outputPath,inputProps,onProgress){
+  if(inputProps.masterMode===EP002_V3_MODE)
+    return renderEp002DirectorV3Master(job,outputPath,inputProps,onProgress);
   if(inputProps.masterMode==='DIRECTOR_V2_60_FRAME_BREATHS')
     return renderEp002DirectorV2Master(job,outputPath,inputProps,onProgress);
 
