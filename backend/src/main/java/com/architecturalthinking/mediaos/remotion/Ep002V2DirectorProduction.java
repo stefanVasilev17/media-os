@@ -34,6 +34,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     private static final String MASTER_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_OOM_TECHNICAL_REPAIR_ONCE";
     private static final String MASTER_SHOT10_ROUTE_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_EXACT_SHOT10_AUTH_ROUTE_FIX_ONCE";
     private static final String MASTER_AUDIO_DTS_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_AUDIO_DTS_TIMESTAMP_FIX_ONCE";
+    private static final String MASTER_FINAL_DIRECTOR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_FINAL_EXPLICIT_COMPLETE_MASTER_ONE_TIME";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
     private final JdbcClient jdbc;
@@ -197,53 +198,9 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     public void queueMasterAfterShot10(){
         if(!releaseReady())return;
         try{
-            Map<String,Object> current=one(MASTER_AUTH);
-            boolean newRequest="NOT_RENDERED".equals(current.get("status"));
-            boolean repair="FAILED".equals(current.get("status"))
-                    &&"6f8b5b18-d9e5-4cb6-a60d-3f0b4160560c".equals(
-                            String.valueOf(current.get("renderId")))
-                    &&String.valueOf(current.get("error")).contains("ffmpeg exited null");
-            Map<String,Object> initialRepair=one(MASTER_REPAIR_AUTH);
-            boolean routeRepair=repair
-                    &&"FAILED".equals(initialRepair.get("status"))
-                    &&"5363de06-dc79-45a2-9f0a-159fdf00edc4".equals(
-                            String.valueOf(initialRepair.get("renderId")))
-                    &&String.valueOf(initialRepair.get("error"))
-                            .contains("EP002_V2_SOURCE_UNAVAILABLE_SHOT10_HTTP_403");
-            Map<String,Object> routed=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
-            boolean audioDtsRepair=jdbc.sql("""
-                    select exists(
-                        select 1 from remotion_render r
-                        where r.id=:failed and r.project_id=:project
-                          and r.status='FAILED'
-                          and r.composition_id='EP002-DIRECTOR-MASTER'
-                          and r.input_props->>'masterMode'=:mode
-                          and r.input_props->>'shot10RenderId'=:shot10
-                          and r.input_props->>'authorizationSource'=:auth
-                          and r.duration_in_frames=24046
-                    )
-                    """).param("failed",UUID.fromString("3108a66e-950e-4157-9bf4-43f030312ed2"))
-                    .param("project",Ep002DirectorMasterController.PROJECT_ID)
-                    .param("mode",MASTER_MODE)
-                    .param("shot10","96e427d2-b518-47c0-a287-59ea42cfab52")
-                    .param("auth",MASTER_SHOT10_ROUTE_REPAIR_AUTH)
-                    .query(Boolean.class).single();
-            Map<String,Object> audioPrevious=one(MASTER_AUDIO_DTS_REPAIR_AUTH);
-            if(audioDtsRepair&&"NOT_RENDERED".equals(audioPrevious.get("status")))
-                log.info("EP002_V2_DTS_EXACT_FAILED_SOURCE_VERIFIED originalId={} priorMaster={} originalRepair={} routeRepair={} masterStatus={} workerPinned={}",
-                    "3108a66e-950e-4157-9bf4-43f030312ed2",
-                    current.get("status"),initialRepair.get("status"),routed.get("status"),
-                    audioPrevious.get("status"),releaseReady());
-            if(!newRequest&&!repair&&!audioDtsRepair)return;
-            if(!audioDtsRepair&&repair&&!routeRepair
-                    &&!"NOT_RENDERED".equals(initialRepair.get("status")))return;
-            if(!audioDtsRepair&&routeRepair
-                    &&!"NOT_RENDERED".equals(routed.get("status")))return;
-            if(audioDtsRepair
-                    &&!"NOT_RENDERED".equals(audioPrevious.get("status")))return;
-            String authorization=audioDtsRepair?MASTER_AUDIO_DTS_REPAIR_AUTH:
-                    routeRepair?MASTER_SHOT10_ROUTE_REPAIR_AUTH:
-                    repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
+            Map<String,Object> existing=one(MASTER_FINAL_DIRECTOR_AUTH);
+            if(!"NOT_RENDERED".equals(existing.get("status")))return;
+            String authorization=MASTER_FINAL_DIRECTOR_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
             String id=String.valueOf(shot.get("renderId"));
@@ -299,7 +256,10 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         Map<String,Object> repaired=one(MASTER_REPAIR_AUTH);
         Map<String,Object> routeRepaired=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
         Map<String,Object> audioRepaired=one(MASTER_AUDIO_DTS_REPAIR_AUTH);
-        response.put("master",!"NOT_RENDERED".equals(audioRepaired.get("status"))
+        Map<String,Object> finalMaster=one(MASTER_FINAL_DIRECTOR_AUTH);
+        response.put("master",!"NOT_RENDERED".equals(finalMaster.get("status"))
+                ?finalMaster
+                :!"NOT_RENDERED".equals(audioRepaired.get("status"))
                 ?audioRepaired
                 :!"NOT_RENDERED".equals(routeRepaired.get("status"))
                 ?routeRepaired
