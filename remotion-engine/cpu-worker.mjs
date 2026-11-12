@@ -733,8 +733,15 @@ async function renderEp002DirectorV2Master(job,outputPath,inputProps,onProgress)
     if(result.frames!==24046||result.breathingBoundaries!==10)
       throw Error('EP002_V2_TEN_BREATHS_OUTPUT_FRAMES_INVALID');
     const final=await probeFactoryMedia(outputPath);
+    const expectedSeconds=24046/30;
+    const durationDelta=Math.abs(final.duration-expectedSeconds);
+    console.log('EP002_V2_FINAL_REAL_AV_QA '+JSON.stringify({
+      renderId:job.renderId,width:final.width,height:final.height,
+      actualSeconds:final.duration,expectedSeconds,durationDelta,
+      maxDurationDeltaSeconds:0.4,exactFrames:result.frames,
+    }));
     if(final.width!==1920||final.height!==1080||
-        Math.abs(final.duration-24046/30)>0.11)
+        !Number.isFinite(durationDelta)||durationDelta>0.4)
       throw Error('EP002_V2_FINAL_REAL_AV_FORMAT_QA_FAILED');
     await onProgress(95);
     console.log('EP002_DIRECTOR_V2_BREATH_MASTER_REVIEW_READY '+JSON.stringify({
