@@ -15,14 +15,14 @@ test('Eleven unchanged original MP4 tracks produce ten real 2-second breath boun
   assert.equal(plan.outputFrames,plan.sourceFrames+600);
   assert.equal(plan.outputSeconds,plan.outputFrames/30);
   assert.match(plan.audioPolicy,/ORIGINAL_APPROVED_VOICE/);
-  assert.match(plan.visualPolicy,/OPTICALLY_INTERPOLATED/);
+  assert.match(plan.visualPolicy,/LOW_MEMORY/);
 });
 
 test('Every seam visibly moves while narrator rests, but there is no added pause after SHOT11',()=>{
   const frames=Array(11).fill(150);
   const filter=planEp002DirectorBreaths(frames).filterComplex;
-  assert.equal((filter.match(/minterpolate=/g)||[]).length,10);
-  assert.equal((filter.match(/tpad=stop_mode=clone:stop=2/g)||[]).length,10);
+  assert.equal((filter.match(/minterpolate=/g)||[]).length,0);
+  assert.equal((filter.match(/,fps=30,/g)||[]).length,10);
   assert.equal((filter.match(/,apad,/g)||[]).length,11);
   assert.equal((filter.match(/trim=end_frame=120/g)||[]).length,10);
   assert.match(filter,/\[10:v\]trim=end_frame=150,setpts=PTS-STARTPTS\[v10\]/);
