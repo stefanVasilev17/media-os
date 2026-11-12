@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {planEp002DirectorBreaths,renderEp002DirectorBreathMaster,
   EP002_BREATH_FRAMES,EP002_BREATH_SHOTS} from './ep002-director-breathing-master.mjs';
@@ -43,4 +44,14 @@ test('Never render or charge CPU without fresh explicit Director confirmation',a
     inputs:[],outputFile:'/tmp/ep002-unauthorized.mp4',
     confirmDirectorPaidRender:false,
   }),/new explicitly approved CPU render/);
+});
+
+test('Final low-memory joining explicitly rebuilds AAC timestamps but stream-copies video',()=>{
+  const source=readFileSync(new URL('./ep002-director-breathing-master.mjs',import.meta.url),'utf8');
+  assert.match(source,/'-c:v','copy'/);
+  assert.match(source,/'-c:a','aac'/);
+  assert.match(source,/'-af','aresample=async=1:first_pts=0'/);
+  assert.match(source,/'-fflags','\\+genpts'/);
+  assert.doesNotMatch(source,/'-map','0:v:0','-map','0:a:0','-c','copy'/);
+  assert.match(source,/await fs\.link\(workFile,output\)/);
 });
