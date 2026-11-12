@@ -59,7 +59,8 @@ public class Ep002DirectorMasterWorkerMediaController {
                   and target.input_props->>'expectedSourceCommit'=:sha
                   and target.input_props->>'directorPaidCpuConfirmed'='true'
                   and target.input_props->>'masterMode' in (
-                    'EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS')
+                    'EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS',
+                    'DIRECTOR_V4_CLEAN_CUT_NO_BRIDGE')
                 """)
                 .param("source",sourceId).param("target",targetId)
                 .param("project",Ep002DirectorMasterController.PROJECT_ID)
@@ -81,6 +82,8 @@ public class Ep002DirectorMasterWorkerMediaController {
                     props.path("masterMode").asText());
             boolean v3=Ep002V3DirectorContinuityProduction.MODE.equals(
                     props.path("masterMode").asText());
+            boolean v4=Ep002V4DirectorCleanCutProduction.MODE.equals(
+                    props.path("masterMode").asText());
             if(!ids.isArray()||ids.size()!=11
                     ||!props.path("sourceDigest").asText("").matches("[a-f0-9]{64}")
                     ||!props.path("durationInFrames").canConvertToInt()
@@ -91,7 +94,7 @@ public class Ep002DirectorMasterWorkerMediaController {
             for(int i=0;i<11;i++){
                 String pinned=Ep002DirectorMasterController.SOURCE_IDS.get(i);
                 String id=ids.path(i).asText("");
-                if((v2||v3) && i==9) {
+                if((v2||v3||v4) && i==9) {
                     if(!id.equals(props.path("shot10RenderId").asText(""))
                             ||pinned.equals(id))
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
@@ -108,7 +111,7 @@ public class Ep002DirectorMasterWorkerMediaController {
                 if(props.path("breathingFramesPerSeam").asInt()!=60
                         ||props.path("breathingSeams").asInt()!=10)
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                            "V2 pacing contract does not match 10 x 60 frames.");
+                            "V2/V3 pacing contract requires 10 x 60 frames.");
                 if(v3&&(!Ep002V3DirectorContinuityProduction.TRANSITION.equals(
                             props.path("transitionProfile").asText(""))
                         ||props.path("retimeSourceFrames").asBoolean(true)
@@ -117,18 +120,34 @@ public class Ep002DirectorMasterWorkerMediaController {
                             props.path("shot10RenderId").asText(""))))
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                             "V3 master requires exactly ten anchored, non-retimed seams.");
-                if(index==9) {
-                    JsonNode approved=mapper.readTree(source.sourceProps());
-                    if(!Ep002V2DirectorProduction.SHOT10_AUTH.equals(
-                            approved.path("authorizationSource").asText(""))
-                            ||!Ep002V2DirectorProduction.SHOT10_VISUAL_BLOB.equals(
-                                    approved.path("visualSourceSha").asText(""))
-                            ||!"949156b88a49ab86a208050fd0f4fff3dd53ac68".equals(approved.path("expectedSourceCommit").asText(""))
-                            ||!"EP002_SHOT10".equals(approved.path("shotKey").asText()))
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                                "SHOT10 source must be the approved cleaned V2 render.");
-                }
-            }else if(!"EXACT_DIRECTOR_APPROVED_STREAM_COPY".equals(
+            }
+            if(v4) {
+                if(!Ep002V4DirectorCleanCutProduction.TRANSITION.equals(
+                            props.path("transitionProfile").asText(""))
+                        ||props.path("breathingFramesPerSeam").asInt(-1)!=0
+                        ||props.path("breathingSeams").asInt(-1)!=0
+                        ||props.path("retimeSourceFrames").asBoolean(true)
+                        ||props.path("durationInFrames").asInt()!=23446
+                        ||!Ep002V4DirectorCleanCutProduction.SHOT10_ID.equals(
+                            props.path("shot10RenderId").asText(""))
+                        ||!Ep002V4DirectorCleanCutProduction.AUTH.equals(
+                            props.path("authorizationSource").asText("")))
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "V4 source contract requires exactly 11 pinned SHOTs, clean SHOT10 and zero added frames.");
+            }
+            if((v2||v3||v4)&&index==9) {
+                JsonNode approved=mapper.readTree(source.sourceProps());
+                if(!Ep002V2DirectorProduction.SHOT10_AUTH.equals(
+                        approved.path("authorizationSource").asText(""))
+                        ||!Ep002V2DirectorProduction.SHOT10_VISUAL_BLOB.equals(
+                                approved.path("visualSourceSha").asText(""))
+                        ||!"949156b88a49ab86a208050fd0f4fff3dd53ac68".equals(
+                                approved.path("expectedSourceCommit").asText(""))
+                        ||!"EP002_SHOT10".equals(approved.path("shotKey").asText()))
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "SHOT10 source must be the approved cleaned V2 render.");
+            }
+            if(!v2&&!v3&&!v4&&!"EXACT_DIRECTOR_APPROVED_STREAM_COPY".equals(
                     props.path("masterMode").asText("")))
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Unrecognized final master source mode.");
