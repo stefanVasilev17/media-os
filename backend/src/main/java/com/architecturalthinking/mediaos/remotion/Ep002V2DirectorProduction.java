@@ -31,6 +31,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     private static final UUID OLD_SHOT10=UUID.fromString("2034d8c6-99b2-46a5-9469-bf3df325d6c0");
     static final String SHOT10_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_SIMPLIFIED_SHOT10_ONE_CPU";
     private static final String MASTER_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_TEN_2S_BREATHING_MASTER_ONE_CPU";
+    private static final String MASTER_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_OOM_TECHNICAL_REPAIR_ONCE";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
     private final JdbcClient jdbc;
@@ -195,7 +196,14 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         if(!releaseReady())return;
         try{
             Map<String,Object> current=one(MASTER_AUTH);
-            if(!"NOT_RENDERED".equals(current.get("status")))return;
+            boolean newRequest="NOT_RENDERED".equals(current.get("status"));
+            boolean repair="FAILED".equals(current.get("status"))
+                    &&"6f8b5b18-d9e5-4cb6-a60d-3f0b4160560c".equals(
+                            String.valueOf(current.get("renderId")))
+                    &&String.valueOf(current.get("error")).contains("ffmpeg exited null");
+            if(!newRequest&&!repair)return;
+            if(repair&&!"NOT_RENDERED".equals(one(MASTER_REPAIR_AUTH).get("status")))return;
+            String authorization=repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
             String id=String.valueOf(shot.get("renderId"));
@@ -231,9 +239,9 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
             props.put("masterMode",MASTER_MODE);
             props.put("breathingFramesPerSeam",60);
             props.put("breathingSeams",10);
-            props.put("authorizationSource",MASTER_AUTH);
+            props.put("authorizationSource",authorization);
             props.put("renderRequestId",UUID.nameUUIDFromBytes(
-                (MASTER_AUTH+"|"+sourceDigest+"|"+workerSha)
+                (authorization+"|"+sourceDigest+"|"+workerSha)
                     .getBytes(StandardCharsets.UTF_8)).toString());
             Map<String,Object> result=renders.ensureVerifiedEp002Master(props);
             log.info("EP002_V2_MASTER_REQUEST status={} renderId={} shot10={} frames={}",
@@ -248,7 +256,9 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         DirectorIdentity.requireDirector();
         Map<String,Object> response=new LinkedHashMap<>();
         response.put("shot10",one(SHOT10_AUTH));
-        response.put("master",one(MASTER_AUTH));
+        Map<String,Object> repaired=one(MASTER_REPAIR_AUTH);
+        response.put("master","NOT_RENDERED".equals(repaired.get("status"))
+                ?one(MASTER_AUTH):repaired);
         response.put("expectedFrames",24046);
         response.put("breathFramesPerBoundary",60);
         response.put("boundaryCount",10);
