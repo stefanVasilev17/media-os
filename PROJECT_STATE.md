@@ -1,5 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 EP002 EDITORIAL V2 REQUESTED — STAGED IN DRAFT PR #266 / NOT YET RENDERED
+
+**Director's post-review corrections:** exactly 2 seconds of voice rest between each of SHOT01–SHOT11 (ten boundaries), while architecture animations continue; dramatically simplify fast-changing small cards under the principal diagram in SHOT10 “PROVE THE RECOVERY”. This is a new V2 revision request, not new final approval and not a request to change old immutable source renders.
+
+**Source work prepared** in [draft PR #266](https://github.com/stefanVasilev17/media-os/pull/266) on branch `feat/ep002-director-revision-breathing-room-shot10-focus-20261112` (stacked on #265): `Shot10DirectorVisualV1.tsx` removed 12 rapid rotating lower content states, 8 rapid captions and redundant small DB meter, leaving the full animated living map, 6/21 real voice cue contract, exact previous SHOT09 world-frame handoff and one stable footer. `ep002-director-breathing-master.mjs` prepares a source-pinned derivative: last 60 animated frames of the outgoing SHOT are optically interpolated to 120 frames, with original narration left at its true cue positions, padded with 60 silent frames for the next SHOT. Ten seams yield 600 extra frames/20 seconds; output would be 24,046 frames and 13:21.53 if new SHOT10 retains 2360 frames. Separate Node contract, Worker Docker test gate, editorial Director rule and detailed handoff included.
+
+**Synthetic FFmpeg validation (NOT real EP002 render):** two 4s/30fps H264/AAC synthetic clips assembled to 10s/300 frames with one 60-frame narration break; measured -91dB silence in gap and four distinct frame hashes during silence (motion continues). This does NOT replace source-specific seam inspection.
+
+**LIVE PRODUCTION NOT CHANGED by PR #266:** the authentic previous review MP4 `8876235a-8037-4f19-8f5c-d2398f3ef22f` is still stored in MediaOS at 13:01.53. **No revised SHOT10 MP4 has yet been rendered, and no new V2 13:21.53 master exists.** Do not present a link to the original master as if it contains these corrections; do not flip final Director LOCK. New SHOT10 pinned visual/audio render, manifest update, full 11-clip QA and fresh separately authorized CPU master render still required. Handoff: [V2 editorial specification](docs/engineering/EP002_DIRECTOR_V2_BREATHING_AND_SHOT10_FOCUS_20261112.md).
+
+
 ## 2026-11-12 VERIFIED PRODUCTION — EP002 EXACT ELEVEN-SHOT REVIEW MASTER SAVED IN MEDIAOS
 
 **Current verified status: FULL EP002 REVIEW MASTER MP4 SUCCEEDED/STORED, NOT YET FINAL DIRECTOR VISUAL LOCK.** The source implementation lives in open/draft [PR #265](https://github.com/stefanVasilev17/media-os/pull/265) branch `feat/ep002-shot01-v2-lock-and-master-assembly-20261111`, but **the branch's exact commit `1e9dec4c4bd3dbdf77535a5f9f05045ad5f62565` has been deployed directly to Railway production**, and Backend+Worker deployed independently and healthily. **Do not confuse PR unmerged with code not live.**
