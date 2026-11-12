@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 11:06 UTC — EP002 V2 FULL 11-SHOT MASTER FINISHED, STORED, DIRECTOR CREATIVE REVIEW OPEN
+
+**THIS IS THE LATEST PRODUCTION TRUTH; it supersedes older "NOT READY" / staged entries below.** Railway Render Worker logged **`EP002 full eleven-SHOT Director review MP4 stored: 6f5957be-26e4-45b8-b680-e250dcd134a0 bytes=74492108`** on 2026-11-12 at 11:06:11 UTC, followed by `EP002_V2_FINAL_REAL_AV_QA` and `EP002_DIRECTOR_V2_BREATH_MASTER_REVIEW_READY`. One authentic H.264/AAC MP4 is now stored in the MediaOS `remotion_render` database and presented by the separate EP002 V2 Director Room player.
+
+**New real V2 master:** `6f5957be-26e4-45b8-b680-e250dcd134a0` — 24,046 exact video frames at 30fps, 1920×1080 Full HD, 11 SHOTs with 10 added narration breaks of 60 frames each, **13:21.533 video-frame duration**; measured MP4 container duration **801.664 seconds** (AAC padding +0.1307s, within synchronized 0.4s tolerance). Actual stored size **74,492,108 bytes ≈71.0 MiB**. Revised cleaned SHOT10 is **`96e427d2-b518-47c0-a287-59ea42cfab52`** (7,927,279 bytes), original selected human-approved narration/timing preserved. Original 11 source media rows and old original full master `8876235a-8037-4f19-8f5c-d2398f3ef22f` remain immutable. The new V2 MP4 is **READY for Director's human visual/audio review, not FINAL LOCKED**.
+
+**Open in MediaOS:** [EP002 Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002). Single authenticated video: `/api/v1/remotion/renders/6f5957be-26e4-45b8-b680-e250dcd134a0/video`. The React `Ep002V2DirectorMasterPanel` chooses the succeeded QA-repair render and exposes playback and MP4 download; the previous master remains in its original panel below. The Director should inspect each of the ten speech rests, any remaining moving visual elements at the joins, SHOT10 readability, and all audio transitions before a final creative approval.
+
+**Critical continuity / deployment protection:** Final Worker source is **`a283e67496191d15efbdaed9b363f5fed3e32c0b`**, pinned on a dedicated unmodified `release/ep002-v2-master-worker-pinned-a283-20261112` branch. The exact source-pinned master initially became stranded in `RUNNING` after an unrelated Railway replica deployment; Backend-only one-time recovery `Ep002V2InterruptedMasterRecovery` set exactly that render back to `QUEUED`, marked `interruptedWorkerRecoveryOnce=true`, and the pinned Worker resumed and successfully completed the **same render ID**. Its recovery flag was disabled again before the final production rollout. **Do not trigger fresh worker redeploys, new CPU renders, retries, or change voice.** Both Backend and Render Worker Railway deployments verified `SUCCESS` and services `online` at final check.
+
+**See technical evidence:** Worker runtime deployment `471a155b-4c09-4689-b8af-3e054ecb2090` logged saved MP4, QA dimensions, source count=11 and 10×60-frame seam metadata. Original V2 planning and source remain in [draft PR #266](https://github.com/stefanVasilev17/media-os/pull/266). This documentation update does not require deploying any service. **Do not confuse historical failed render IDs below with the now-successful V2 master.**
+
+
 ## 2026-11-12 10:12 UTC — EP002 V2 SHOT10 READY; COMPLETE MASTER STILL NOT READY
 
 **Most recent verified, user-visible truth: NOT FINISHED.** Clean new SHOT10 `96e427d2-b518-47c0-a287-59ea42cfab52` successfully persisted (Worker `Completed ...: 7927279 bytes`, 1920×1080, 30fps, 2360 frames). Original complete review master `8876235a-8037-4f19-8f5c-d2398f3ef22f` and original SHOTs unchanged. All desired code lives in draft [PR #266](https://github.com/stefanVasilev17/media-os/pull/266).
