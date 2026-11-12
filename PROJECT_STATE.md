@@ -1,5 +1,21 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 10:12 UTC — EP002 V2 SHOT10 READY; COMPLETE MASTER STILL NOT READY
+
+**Most recent verified, user-visible truth: NOT FINISHED.** Clean new SHOT10 `96e427d2-b518-47c0-a287-59ea42cfab52` successfully persisted (Worker `Completed ...: 7927279 bytes`, 1920×1080, 30fps, 2360 frames). Original complete review master `8876235a-8037-4f19-8f5c-d2398f3ef22f` and original SHOTs unchanged. All desired code lives in draft [PR #266](https://github.com/stefanVasilev17/media-os/pull/266).
+
+Three unsuccessful EP002 V2 masters, all preserved in DB (do NOT advertise any as a playable finished V2):
+1. `6f8b5b18-d9e5-4cb6-a60d-3f0b4160560c` — 11-input FFmpeg process exited null (probable resource SIGKILL).
+2. `5363de06-dc79-45a2-9f0a-159fdf00edc4` — new SHOT10 source GET HTTP 403; fixed by exact old visual-commit source allowlist.
+3. `3108a66e-950e-4157-9bf4-43f030312ed2` — low-memory one-SHOT-at-a-time render completed 11 per-SHOT encodes, then final FFmpeg `-c copy` mux failed `Non-monotonic DTS` for audio at 2026-11-12 09:51:50 UTC.
+
+**Current deployed correction:** Backend `da0553c1-ed27-43ff-851c-b3b4430007bc` SUCCESS; Worker `882bb259-c46b-47e8-a738-8061ae2f56e2` SUCCESS. Both pinned exact git SHA **`244929b73fa81b40953013055cf493ea7bf79773`**, and Worker logs source guard verified. `remotion-engine/ep002-director-breathing-master.mjs` now produces individual FullHD AVC/AAC with moving visual tails and silent voice gaps (ten × 60 frames), then **stream copies video but re-encodes audio** with `-fflags +genpts`, `-c:a aac` and `aresample=async=1:first_pts=0`. This verified locally on a synthetic concat where H264 frames were preserved and AAC was regenerated. Node/Remotion and Java/PostgreSQL builds passed.
+
+**Current blocker:** Backend booted 2026-11-12 10:11:40 UTC, confirms `EP002_V2_SHOT10_REQUEST status=READY`. By ~10:12 UTC, **no new `EP002_V2_MASTER_REQUEST` log and no new Worker claim**. The one-time repair gate `Ep002V2DirectorProduction.queueMasterAfterShot10()` is apparently refusing the retry. Its `one(authorization)` status/ID records for `MASTER_AUTH`, `MASTER_REPAIR_AUTH`, `MASTER_SHOT10_ROUTE_REPAIR_AUTH`, `MASTER_AUDIO_DTS_REPAIR_AUTH` must be **diagnosed read-only**, without weakening broad authorization. Last edit replaces loose error-text gating with `FAILED` plus exact `3108a66e-950e-4157-9bf4-43f030312ed2`, but queue not yet observed. Could add redacted structured logs of these four status/ID values before conditional return, run one pinned safe deployment, and then allow one exact retry on the verified failed last record only. Do not automatically retry in a loop, do not recreate SHOT10, do not replace original master.
+
+**Expected if retry succeeds:** New `EP002-DIRECTOR-MASTER` composition, 11 sources including SHOT10 `96e427d2-b518-47c0-a287-59ea42cfab52`; 24,046 frames, 1920×1080 @30fps, 13:21.53, 10 moving two-second no-narration breaks. Only mark V2 ready after Worker logs `EP002_DIRECTOR_V2_BREATH_MASTER_REVIEW_READY`, successful completion callback and real stored bytes. Director Room [MediaOS EP002](https://media-os-backend-production.up.railway.app/#/library/EP002) already contains separate V2 status/player component. Final Director visual LOCK has **not** been granted.
+
+
 ## 2026-11-12 09:26 UTC — EP002 V2 ACTIVE RENDER, NOT COMPLETE
 
 Director asked to view revised complete EP002 in MediaOS, then asked whether ready. **Answer: NOT READY YET; don't claim a stored V2 MP4.** Pinned production Backend and Worker both SUCCESS/online at commit `949156b88a49ab86a208050fd0f4fff3dd53ac68`, Worker deployment `30442f37-b12e-4f35-92f4-cfd0ef86ba6a`, Backend deployment `d0f32294-dde8-45f8-b8ba-4e91c04bc8be`.
