@@ -211,17 +211,36 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     &&String.valueOf(initialRepair.get("error"))
                             .contains("EP002_V2_SOURCE_UNAVAILABLE_SHOT10_HTTP_403");
             Map<String,Object> routed=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
-            boolean audioDtsRepair="FAILED".equals(routed.get("status"))
-                    &&"3108a66e-950e-4157-9bf4-43f030312ed2".equals(
-                            String.valueOf(routed.get("renderId")));
+            boolean audioDtsRepair=jdbc.sql("""
+                    select exists(
+                        select 1 from remotion_render r
+                        where r.id=:failed and r.project_id=:project
+                          and r.status='FAILED'
+                          and r.composition_id='EP002-DIRECTOR-MASTER'
+                          and r.input_props->>'masterMode'=:mode
+                          and r.input_props->>'shot10RenderId'=:shot10
+                          and r.input_props->>'authorizationSource'=:auth
+                          and r.duration_in_frames=24046
+                    )
+                    """).param("failed",UUID.fromString("3108a66e-950e-4157-9bf4-43f030312ed2"))
+                    .param("project",Ep002DirectorMasterController.PROJECT_ID)
+                    .param("mode",MASTER_MODE)
+                    .param("shot10","96e427d2-b518-47c0-a287-59ea42cfab52")
+                    .param("auth",MASTER_SHOT10_ROUTE_REPAIR_AUTH)
+                    .query(Boolean.class).single();
+            Map<String,Object> audioPrevious=one(MASTER_AUDIO_DTS_REPAIR_AUTH);
+            if(audioDtsRepair&&"NOT_RENDERED".equals(audioPrevious.get("status")))
+                log.info("EP002_V2_DTS_EXACT_FAILED_SOURCE_VERIFIED originalId={} priorMaster={} originalRepair={} routeRepair={} masterStatus={} workerPinned={}",
+                    "3108a66e-950e-4157-9bf4-43f030312ed2",
+                    current.get("status"),initialRepair.get("status"),routed.get("status"),
+                    audioPrevious.get("status"),releaseReady());
             if(!newRequest&&!repair&&!audioDtsRepair)return;
             if(!audioDtsRepair&&repair&&!routeRepair
                     &&!"NOT_RENDERED".equals(initialRepair.get("status")))return;
             if(!audioDtsRepair&&routeRepair
                     &&!"NOT_RENDERED".equals(routed.get("status")))return;
             if(audioDtsRepair
-                    &&!"NOT_RENDERED".equals(one(MASTER_AUDIO_DTS_REPAIR_AUTH).get("status")))
-                return;
+                    &&!"NOT_RENDERED".equals(audioPrevious.get("status")))return;
             String authorization=audioDtsRepair?MASTER_AUDIO_DTS_REPAIR_AUTH:
                     routeRepair?MASTER_SHOT10_ROUTE_REPAIR_AUTH:
                     repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
