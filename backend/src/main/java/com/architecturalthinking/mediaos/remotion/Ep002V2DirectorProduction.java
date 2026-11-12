@@ -211,16 +211,13 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     &&String.valueOf(initialRepair.get("error"))
                             .contains("EP002_V2_SOURCE_UNAVAILABLE_SHOT10_HTTP_403");
             Map<String,Object> routed=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
-            boolean audioDtsRepair=routeRepair
-                    &&"FAILED".equals(routed.get("status"))
+            boolean audioDtsRepair="FAILED".equals(routed.get("status"))
                     &&"3108a66e-950e-4157-9bf4-43f030312ed2".equals(
-                            String.valueOf(routed.get("renderId")))
-                    &&String.valueOf(routed.get("error"))
-                            .contains("Non-monotonic DTS");
-            if(!newRequest&&!repair)return;
-            if(repair&&!routeRepair
+                            String.valueOf(routed.get("renderId")));
+            if(!newRequest&&!repair&&!audioDtsRepair)return;
+            if(!audioDtsRepair&&repair&&!routeRepair
                     &&!"NOT_RENDERED".equals(initialRepair.get("status")))return;
-            if(routeRepair&&!audioDtsRepair
+            if(!audioDtsRepair&&routeRepair
                     &&!"NOT_RENDERED".equals(routed.get("status")))return;
             if(audioDtsRepair
                     &&!"NOT_RENDERED".equals(one(MASTER_AUDIO_DTS_REPAIR_AUTH).get("status")))
