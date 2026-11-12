@@ -33,6 +33,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
     private static final String MASTER_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_TEN_2S_BREATHING_MASTER_ONE_CPU";
     private static final String MASTER_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_OOM_TECHNICAL_REPAIR_ONCE";
     private static final String MASTER_SHOT10_ROUTE_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_EXACT_SHOT10_AUTH_ROUTE_FIX_ONCE";
+    private static final String MASTER_AUDIO_DTS_REPAIR_AUTH="DIRECTOR_CHAT_2026_11_12_EP002_V2_AUDIO_DTS_TIMESTAMP_FIX_ONCE";
     static final String MASTER_MODE="DIRECTOR_V2_60_FRAME_BREATHS";
     static final String SHOT10_VISUAL_BLOB="c61949419d0aa18b02434f8a050791bf1929016d";
     private final JdbcClient jdbc;
@@ -209,12 +210,23 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                             String.valueOf(initialRepair.get("renderId")))
                     &&String.valueOf(initialRepair.get("error"))
                             .contains("EP002_V2_SOURCE_UNAVAILABLE_SHOT10_HTTP_403");
+            Map<String,Object> routed=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
+            boolean audioDtsRepair=routeRepair
+                    &&"FAILED".equals(routed.get("status"))
+                    &&"3108a66e-950e-4157-9bf4-43f030312ed2".equals(
+                            String.valueOf(routed.get("renderId")))
+                    &&String.valueOf(routed.get("error"))
+                            .contains("Non-monotonic DTS");
             if(!newRequest&&!repair)return;
             if(repair&&!routeRepair
                     &&!"NOT_RENDERED".equals(initialRepair.get("status")))return;
-            if(routeRepair&&!"NOT_RENDERED".equals(
-                    one(MASTER_SHOT10_ROUTE_REPAIR_AUTH).get("status")))return;
-            String authorization=routeRepair?MASTER_SHOT10_ROUTE_REPAIR_AUTH:
+            if(routeRepair&&!audioDtsRepair
+                    &&!"NOT_RENDERED".equals(routed.get("status")))return;
+            if(audioDtsRepair
+                    &&!"NOT_RENDERED".equals(one(MASTER_AUDIO_DTS_REPAIR_AUTH).get("status")))
+                return;
+            String authorization=audioDtsRepair?MASTER_AUDIO_DTS_REPAIR_AUTH:
+                    routeRepair?MASTER_SHOT10_ROUTE_REPAIR_AUTH:
                     repair?MASTER_REPAIR_AUTH:MASTER_AUTH;
             Map<String,Object> shot=one(SHOT10_AUTH);
             if(!"READY".equals(shot.get("status")))return;
@@ -270,7 +282,10 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         response.put("shot10",one(SHOT10_AUTH));
         Map<String,Object> repaired=one(MASTER_REPAIR_AUTH);
         Map<String,Object> routeRepaired=one(MASTER_SHOT10_ROUTE_REPAIR_AUTH);
-        response.put("master",!"NOT_RENDERED".equals(routeRepaired.get("status"))
+        Map<String,Object> audioRepaired=one(MASTER_AUDIO_DTS_REPAIR_AUTH);
+        response.put("master",!"NOT_RENDERED".equals(audioRepaired.get("status"))
+                ?audioRepaired
+                :!"NOT_RENDERED".equals(routeRepaired.get("status"))
                 ?routeRepaired
                 :!"NOT_RENDERED".equals(repaired.get("status"))?repaired:one(MASTER_AUTH));
         response.put("expectedFrames",24046);
