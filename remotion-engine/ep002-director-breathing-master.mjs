@@ -139,9 +139,12 @@ export async function renderEp002DirectorBreathMaster({
     const quoted=file=>"'"+file.replaceAll("'","'\\''")+"'";
     await fs.writeFile(list,'ffconcat version 1.0\n'+
       rendered.map(f=>'file '+quoted(f)).join('\n')+'\n',{flag:'wx'});
-    await execute(ffmpeg,[...argsBase,'-f','concat','-safe','0',
-      '-i',list,'-map','0:v:0','-map','0:a:0','-c','copy',
-      '-movflags','+faststart',workFile]);
+    await execute(ffmpeg,['-hide_banner','-loglevel','error','-nostdin',
+      '-threads','2','-fflags','+genpts','-f','concat','-safe','0',
+      '-i',list,'-map','0:v:0','-map','0:a:0','-c:v','copy',
+      '-c:a','aac','-b:a','192k','-ar','48000',
+      '-af','aresample=async=1:first_pts=0',
+      '-avoid_negative_ts','make_zero','-movflags','+faststart',workFile]);
     const probe=JSON.parse((await execute(ffprobe,['-v','error','-count_frames',
       '-show_streams','-show_format','-of','json',workFile])).output);
     const vs=probe.streams.filter(s=>s.codec_type==='video');
