@@ -770,7 +770,7 @@ public class Ep002DirectorVoiceCueService {
         return currentShot10AudioReadiness();
     }
 
-    Shot10RenderReadiness shot10InternalReadiness() {
+    public Shot10RenderReadiness shot10InternalReadiness() {
         return currentShot10AudioReadiness();
     }
 

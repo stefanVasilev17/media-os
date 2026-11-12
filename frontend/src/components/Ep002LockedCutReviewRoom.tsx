@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ChevronLeft,ChevronRight,Film,Pause,Play,RotateCcw,ShieldCheck} from 'lucide-react';
 import {Ep002FullMasterPanel} from './Ep002FullMasterPanel';
+import {Ep002V2DirectorMasterPanel} from './Ep002V2DirectorMasterPanel';
 
 type LockedShot={
   shotKey:string;
@@ -252,6 +253,7 @@ export function Ep002LockedCutReviewRoom(){
       with the large amber finale “NEXT: MULTIPLE DATABASE INSTANCES.”
       All are pinned to their final Director-approved render IDs. Only the
       separately confirmed Full Episode Master action can start billable CPU.</p>
+    <Ep002V2DirectorMasterPanel/>
     <Ep002FullMasterPanel/>
     <div className="locked-cut-room">
       <div className="locked-cut-toolbar">

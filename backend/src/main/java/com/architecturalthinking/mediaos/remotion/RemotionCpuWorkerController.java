@@ -67,7 +67,8 @@ public class RemotionCpuWorkerController {
     ) {
         requireWorker(key, workerId);
         String scope=targetComposition==null?"":targetComposition.trim();
-        if (!scope.isEmpty() && !"EP002-DIRECTOR-MASTER".equals(scope)
+        if (!scope.isEmpty() && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
+                && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
                 && !"EP002-SHOT02-CANDIDATE".equals(scope)
                 && !"EP002-SHOT03-CANDIDATE".equals(scope)
@@ -126,6 +127,8 @@ public class RemotionCpuWorkerController {
                 from remotion_render
                 where project_id=:projectId and status='QUEUED'
                   and (:targetComposition='' or composition_id=:targetComposition
+                    or (:targetComposition='EP002-DIRECTOR-V2-PIPELINE'
+                      and composition_id in ('EP002-SHOT10-CANDIDATE','EP002-DIRECTOR-MASTER'))
                     or (:targetComposition='EP002-DIRECTOR-SHOT02-SHOT03'
                        and composition_id in ('EP002-SHOT02-CANDIDATE',
                                               'EP002-SHOT03-CANDIDATE'))
@@ -195,16 +198,17 @@ public class RemotionCpuWorkerController {
                   and (composition_id<>'EP002-SHOT09-CANDIDATE'
                     or :targetComposition='EP002-SHOT09-CANDIDATE')
                   and (composition_id<>'EP002-SHOT10-CANDIDATE'
-                    or :targetComposition='EP002-SHOT10-CANDIDATE')
+                    or :targetComposition in ('EP002-SHOT10-CANDIDATE','EP002-DIRECTOR-V2-PIPELINE'))
                   and (composition_id<>'EP002-SHOT11-CANDIDATE'
                     or :targetComposition='EP002-SHOT11-CANDIDATE')
                   and (composition_id<>'EP002-DIRECTOR-MASTER'
-                       or (:targetComposition='EP002-DIRECTOR-MASTER'
+                       or (:targetComposition in ('EP002-DIRECTOR-MASTER','EP002-DIRECTOR-V2-PIPELINE')
                          and input_props->>'expectedSourceCommit'=:sourceSha
                          and length(:sourceSha)=40
                          and :sourceSha !~ '[^a-f0-9]'
                          and input_props->>'directorPaidCpuConfirmed'='true'
-                         and input_props->>'masterMode'='EXACT_DIRECTOR_APPROVED_STREAM_COPY'))
+                         and input_props->>'masterMode' in ('EXACT_DIRECTOR_APPROVED_STREAM_COPY',
+                                   'DIRECTOR_V2_60_FRAME_BREATHS')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap

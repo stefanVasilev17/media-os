@@ -69,76 +69,35 @@ test('SHOT10 shares exact LOCKED SHOT09 last world frame and original living map
   assert.match(previous,/const worldFrame=handoff\.worldLastFrame\+frame/);
 });
 
-test('SHOT10 recovery is factual; OLD login never revives and DB capacity does not increase',()=>{
-  for(const text of ['COMPLETIONS > ADMISSIONS',
-    'EXAMPLE · SHARED DB BUDGET','450/s IN · ~500/s OUT',
-    'RED → AMBER · IF MEASURED',
-    'OLD LOGIN · A','TIMED OUT · ENDED',
-    'NEW LOGIN · B','NEW REQUEST · ACCEPTED','P95 / P99',
-    'SUCCESS ≠ SYSTEM ERROR',
-    'POOL WAIT → DB WORK','REJECTIONS ARE FAILURES',
-    'USER DATABASE'])
-      assert.ok(scene.includes(text),'Missing essential recovery story '+text);
+test('SHOT10 keeps the factual recovery story in the living architecture rather than short-lived overlays',()=>{
+  for(const text of ['PROVE THE RECOVERY','RECOVERY IS A USER OUTCOME',
+    'PROTECT THE SHARED DATABASE','CAPACITY DID NOT INCREASE',
+    'PROBE ONLY','SOME LOGINS FAIL FAST · ACCEPTED WORK MUST FIT THE SAME DATABASE LIMIT',
+    'PROVE RECOVERY: COMPLETED NEW LOGINS · ERRORS · REJECTIONS · P95 / P99'])
+    assert.ok(scene.includes(text),'Missing recovery meaning '+text);
   assert.match(scene,/\.82-\.49\*recovery\*measured/);
   assert.match(scene,/cue\.MEASUREMENT/);
-  assert.match(scene,/cue\.NEW_LOGIN/);
-  assert.match(scene,/cue\.TRACING/);
-  assert.match(scene,/cue\.REJECTIONS/);
-  assert.doesNotMatch(scene,/DATABASE QUEUE · DRAINING/);
-  assert.doesNotMatch(scene,/QUEUE SHRINKS ONLY IF COMPLETIONS WIN/);
-  assert.doesNotMatch(scene,/REQUEST-LEVEL EVIDENCE/);
-  assert.doesNotMatch(scene,/BACKLOG · DECREASING/);
+  assert.match(scene,/cue\.QUEUE_SHRINK/);
+  assert.match(scene,/const worldFrame=handoff\.worldLastFrame\+frame/);
+  assert.match(scene,/<Shot07CleanArchitectureWorld frame=\{worldFrame\}/);
+  assert.match(scene,/showPhone=\{1\} showPools=/);
+  assert.match(scene,/showRetryAttempts=\{0\}/);
+  assert.match(scene,/const chapter=shot10Ease\(frame,cue\.RECOVERY,30\)/);
 });
 
-test('SHOT10 live callouts fit real copy, animate size and remove all microscopic explanations',()=>{
-  const live=scene.slice(scene.indexOf('type CardCopy='),
-    scene.indexOf('export const Shot10DirectorVisualV1:'));
-  const cards=[...live.matchAll(/heading:'([^']+)',\s*primary:'([^']+)'/g)]
-    .map(([,heading,primary])=>({heading,primary}));
-  const captions=[...live.matchAll(/main:'([^']+)',\s*detail:'([^']+)'/g)]
-    .map(([,main,detail])=>({main,detail}));
-  assert.equal(cards.length,12);
-  assert.equal(captions.length,8);
-  const sizes=cards.map(value=>shot10ContentCardSize(value));
-  const captionSizes=captions.map(value=>shot10CaptionSize(value));
-  assert.ok(new Set(sizes.map(v=>v.width)).size>=8);
-  assert.ok(new Set(captionSizes.map(v=>v.width)).size>=6);
-  for(let i=0;i<cards.length;i++){
-    const {heading,primary}=cards[i],size=sizes[i];
-    assert.ok(size.width>=244&&size.width<=445,'Card too wide or narrow '+heading);
-    assert.equal(size.height,89);
-    assert.ok(shot10TextWidth(heading,18)+45<=size.width,'Heading clipped '+heading);
-    assert.ok(shot10TextWidth(primary,20)+45<=size.width,'Primary clipped '+primary);
-    assert.ok(1090+size.width<1573,'Card overlaps DB '+heading);
-  }
-  for(let i=0;i<captions.length;i++){
-    const {main,detail}=captions[i],size=captionSizes[i];
-    assert.ok(size.width<=1060&&size.height===56);
-    assert.ok(shot10TextWidth(main,22)+shot10TextWidth(detail,19)+65<=size.width);
-  }
-  const meter=shot10DbMeterSize();
-  assert.ok(meter.width<256&&meter.width>190);
-  assert.ok(meter.height<89);
-  assert.ok(1573+meter.width<1880);
-  assert.deepEqual(shot10TweenSize(sizes[0],sizes[2],0),sizes[0]);
-  assert.deepEqual(shot10TweenSize(sizes[0],sizes[2],1),sizes[2]);
-  const half=shot10TweenSize(sizes[0],sizes[2],.5);
-  assert.ok(half.width>sizes[0].width&&half.width<sizes[2].width);
-  assert.ok(shot10TweenSize(captionSizes[1],captionSizes[2],.5).width
-    >captionSizes[1].width);
-  assert.match(live,/shot10ContentCardSize\(current\)/);
-  assert.match(live,/shot10TweenSize\(previous,target,shot10Ease\(frame,current\.at,28\)\)/);
-  assert.match(live,/shot10TweenSize\(previous,target,shot10Ease\(frame,entry\.at,26\)\)/);
-  assert.match(live,/width:size\.width,height:size\.height/);
-  assert.match(live,/width:dbSize\.width,height:dbSize\.height/);
-  assert.doesNotMatch(live,/width:448,height:148|width:445,height:148|width:256,height:143/);
-  assert.doesNotMatch(live,/fontSize:(?:10|11|12|13|14|15|16)\b/);
-  assert.ok(live.includes("fontSize:18"));
-  assert.ok(live.includes("fontSize:20"));
-  assert.ok(live.includes("fontSize:19"));
+test('SHOT10 editorial revision removes distracting rapidly switching secondary and tertiary cards',()=>{
+  const live=scene.slice(scene.indexOf('export const Shot10DirectorVisualV1:'));
+  assert.doesNotMatch(scene,/type CardCopy=|const VoiceDrivenCard|const RecoveryReadouts|const VoiceMarkers/);
+  assert.doesNotMatch(live,/<RecoveryReadouts|<VoiceMarkers|<VoiceDrivenCard/);
+  assert.doesNotMatch(live,/shot10ContentCardSize|shot10TweenSize|shot10CaptionSize|shot10DbMeterSize/);
+  assert.doesNotMatch(live,/cue\.P95_P99|cue\.TRACING|cue\.REJECTIONS|cue\.OLD_TIMEOUT|cue\.NEW_LOGIN/);
+  assert.match(live,/PROVE RECOVERY: COMPLETED NEW LOGINS · ERRORS · REJECTIONS · P95 \/ P99/);
   assert.match(scene,/smallCopyFade=1-shot10Ease\(frame,0,12\)/);
   assert.match(scene,/<DirectorLockedShot09Closing opacity=\{1-takeover\} frame=\{frame\}\/>/);
-  assert.ok(!live.includes('QUEUE SHRINKS ONLY IF'));
+  assert.match(live,/zIndex:22,opacity:titleFade/);
+  assert.ok((live.match(/top:983/g)||[]).length===1,
+    'Only one persistent footer remains under the living map');
+  assert.doesNotMatch(live,/top:695|top:875|top:685/);
 });
 
 test('SHOT10 supports six measured voice beats and every one of 21 spoken term cues',()=>{

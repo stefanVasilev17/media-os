@@ -269,7 +269,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.composition_id='EP002-DIRECTOR-MASTER'
                       and r.input_props->>'expectedSourceCommit'=:sha
                       and r.input_props->>'directorPaidCpuConfirmed'='true'
-                      and r.input_props->>'masterMode'='EXACT_DIRECTOR_APPROVED_STREAM_COPY'
+                      and r.input_props->>'masterMode' in
+                          ('EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS')
                       and jsonb_typeof(r.input_props->'sourceRenderIds')='array'
                       and jsonb_array_length(r.input_props->'sourceRenderIds')=11
                 )
