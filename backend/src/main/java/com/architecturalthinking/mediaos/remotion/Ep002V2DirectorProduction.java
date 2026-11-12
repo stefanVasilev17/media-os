@@ -104,18 +104,21 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                   and l.episode_key='EP002' and l.shot_key='SHOT10'
                 where r.id=:id and r.project_id=:project
                 """).param("id",OLD_SHOT10).param("project",Ep002DirectorMasterController.PROJECT_ID)
-                .query((rs,i)->Map.<String,Object>of(
-                        "props",rs.getString("props"),
-                        "status",rs.getString("status"),
-                        "frames",rs.getInt("duration_in_frames"),
-                        "width",rs.getInt("width"),
-                        "height",rs.getInt("height"),
-                        "fps",rs.getInt("fps"),
-                        "profile",rs.getString("profile"),
-                        "revision",rs.getInt("script_revision"),
-                        "narration",rs.getString("script_sha256"),
-                        "take",rs.getObject("preferred_take_id",UUID.class),
-                        "fingerprint",rs.getString("dependency_sha256")))
+                .query((rs,i)->{
+                    Map<String,Object> row=new LinkedHashMap<>();
+                    row.put("props",rs.getString("props"));
+                    row.put("status",rs.getString("status"));
+                    row.put("frames",rs.getInt("duration_in_frames"));
+                    row.put("width",rs.getInt("width"));
+                    row.put("height",rs.getInt("height"));
+                    row.put("fps",rs.getInt("fps"));
+                    row.put("profile",rs.getString("profile"));
+                    row.put("revision",rs.getInt("script_revision"));
+                    row.put("narration",rs.getString("script_sha256"));
+                    row.put("take",rs.getObject("preferred_take_id",UUID.class));
+                    row.put("fingerprint",rs.getString("dependency_sha256"));
+                    return row;
+                }
                 .optional().orElse(null);
         if(old==null||!"SUCCEEDED".equals(old.get("status"))
                 ||!"REVIEW".equals(old.get("profile"))
