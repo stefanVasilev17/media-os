@@ -137,6 +137,37 @@ public final class Ep002V4DirectorCleanCutProduction {
         }
     }
 
+    @Scheduled(initialDelay=30000,fixedDelay=60000)
+    public void retryExactlyOnceAfterBlockedV4WorkerCallback(){
+        if(!sourcePinned())return;
+        try{
+            int updated=jdbc.sql("""
+                update remotion_render
+                   set status='QUEUED',progress=0,worker_id=null,
+                       claimed_at=null,started_at=null,error=null,updated_at=now(),
+                       input_props=input_props||jsonb_build_object('v4CallbackRepairRetry',true)
+                 where id='56c2a4b7-8bc0-465b-baea-80fa3707e709'::uuid
+                   and project_id=:project
+                   and composition_id='EP002-DIRECTOR-MASTER'
+                   and status='RUNNING'
+                   and started_at<now()-interval '6 minutes'
+                   and video_data is null
+                   and input_props->>'authorizationSource'=:auth
+                   and input_props->>'masterMode'=:mode
+                   and input_props->>'expectedSourceCommit'='5fa3f0b317bedaaefe2663bd2a622ce421bdda70'
+                   and input_props->>'shot10RenderId'=:shot10
+                   and input_props->>'v4CallbackRepairRetry' is null
+                """)
+                .param("project",Ep002DirectorMasterController.PROJECT_ID)
+                .param("auth",AUTH).param("mode",MODE).param("shot10",SHOT10_ID)
+                .update();
+            if(updated==1)log.warn(
+                "EP002_V4_BLOCKED_CALLBACK_SAME_RENDER_REQUEUED_ONCE renderId=56c2a4b7-8bc0-465b-baea-80fa3707e709");
+        }catch(Exception error){
+            log.error("EP002_V4_BLOCKED_CALLBACK_RETRY_CHECK_FAILED {}",error.toString());
+        }
+    }
+
     @GetMapping("/preflight")
     public Map<String,Object> preflight(){
         DirectorIdentity.requireDirector();
