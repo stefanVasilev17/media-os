@@ -118,7 +118,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
                     row.put("take",rs.getObject("preferred_take_id",UUID.class));
                     row.put("fingerprint",rs.getString("dependency_sha256"));
                     return row;
-                }
+                })
                 .optional().orElse(null);
         if(old==null||!"SUCCEEDED".equals(old.get("status"))
                 ||!"REVIEW".equals(old.get("profile"))
@@ -133,7 +133,7 @@ public class Ep002V2DirectorProduction implements ApplicationRunner {
         if(!"EP002_SHOT10".equals(props.get("shotKey"))
                 ||!take.equals(props.get("voiceTakeId"))
                 ||!fingerprint.equals(props.get("inputFingerprint"))
-                ||!((Number)props.get("scriptRevision")).equals(revision)
+                ||((Number)props.get("scriptRevision")).intValue()!=revision
                 ||!cues.matchesCurrentShot10Render(fingerprint,take,revision,2360)
                 ||!(props.get("verifiedCues") instanceof List<?> beats&&beats.size()==6)
                 ||!(props.get("termCues") instanceof List<?> terms&&terms.size()==21))
