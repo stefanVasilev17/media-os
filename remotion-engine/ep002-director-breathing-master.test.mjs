@@ -51,7 +51,7 @@ test('Final low-memory joining explicitly rebuilds AAC timestamps but stream-cop
   assert.match(source,/'-c:v','copy'/);
   assert.match(source,/'-c:a','aac'/);
   assert.match(source,/'-af','aresample=async=1:first_pts=0'/);
-  assert.match(source,/'-fflags','\\+genpts'/);
+  assert.ok(source.includes("'-fflags','+genpts'"));
   assert.doesNotMatch(source,/'-map','0:v:0','-map','0:a:0','-c','copy'/);
   assert.match(source,/await fs\.link\(workFile,output\)/);
 });
