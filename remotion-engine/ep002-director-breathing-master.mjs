@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
+import os from 'node:os';
 
 export const EP002_BREATH_FPS=30;
 export const EP002_BREATH_FRAMES=60;
@@ -28,8 +29,7 @@ export function planEp002DirectorBreaths(frames) {
       parts.push('[v'+i+'pre]trim=end_frame='+pivot+',setpts=PTS-STARTPTS[v'+i+'front]');
       parts.push('[v'+i+'tail]trim=start_frame='+pivot+
         ',setpts=2*(PTS-STARTPTS),'+
-        'minterpolate=fps=30:mi_mode=mci:mc_mode=obmc:me=epzs,'+
-        'tpad=stop_mode=clone:stop=2,'+
+        'fps=30,'+
         'trim=end_frame=120,setpts=PTS-STARTPTS[v'+i+'slow]');
       parts.push('[v'+i+'front][v'+i+'slow]concat=n=2:v=1:a=0[v'+i+']');
     }
@@ -53,7 +53,7 @@ export function planEp002DirectorBreaths(frames) {
     boundaryCount:frames.length-1,
     filterComplex:parts.join(';'),
     audioPolicy:'ORIGINAL_APPROVED_VOICE_THEN_60_FRAMES_OF_SILENCE',
-    visualPolicy:'LAST_60_MOVING_SOURCE_FRAMES_OPTICALLY_INTERPOLATED_TO_120',
+    visualPolicy:'LAST_60_MOVING_SOURCE_FRAMES_PACED_TO_120_LOW_MEMORY',
   });
 }
 
@@ -64,8 +64,8 @@ async function execute(bin,args){
     child.stdout.on('data',chunk=>{output+=chunk.toString();});
     child.stderr.on('data',chunk=>{errors+=chunk.toString();});
     child.on('error',reject);
-    child.on('close',code=>code===0?resolve({output,errors}):
-      reject(new Error(bin+' exited '+code+': '+errors.slice(-1800))));
+    child.on('close',(code,signal)=>code===0?resolve({output,errors}):
+      reject(new Error(bin+' exited '+code+' signal='+signal+': '+errors.slice(-1800))));
   });
 }
 
@@ -89,35 +89,74 @@ export async function renderEp002DirectorBreathMaster({
       block('Missing approved source MP4: '+path.basename(file));
   }
   const plan=planEp002DirectorBreaths(inputs.map(s=>s.frames));
-  await fs.mkdir(path.dirname(output),{recursive:true});
-  const temp=path.join(path.dirname(output),'.ep002-director-breath-'+
-    process.pid+'-'+Date.now()+'.mp4');
-  const args=['-hide_banner','-loglevel','error','-xerror','-nostdin'];
-  for(const file of files)args.push('-i',file);
-  args.push('-filter_complex',plan.filterComplex,
-    '-map','[vout]','-map','[aout]',
-    '-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
-    '-r','30','-fps_mode','cfr','-frames:v',String(plan.outputFrames),
-    '-c:a','aac','-b:a','192k','-ar','48000',
-    '-movflags','+faststart',temp);
+  const finalDir=path.dirname(output);
+  await fs.mkdir(finalDir,{recursive:true});
+  const work=await fs.mkdtemp(path.join(finalDir,'.ep002-v2-low-memory-'));
+  const argsBase=['-hide_banner','-loglevel','error','-xerror','-nostdin',
+    '-threads','2','-filter_threads','2','-filter_complex_threads','2'];
+  const rendered=[];
+  const workFile=path.join(work,'joined.mp4');
   try{
-    await execute(ffmpeg,args);
-    const probe=await execute(ffprobe,['-v','error','-count_frames','-show_streams',
-      '-show_format','-of','json',temp]);
-    const result=JSON.parse(probe.output);
-    const vs=result.streams.filter(s=>s.codec_type==='video');
-    const as=result.streams.filter(s=>s.codec_type==='audio');
+    for(let i=0;i<inputs.length;i++){
+      const frames=inputs[i].frames;
+      const last=i===10;
+      const totalFrames=frames+(last?0:60);
+      const file=path.join(work,'shot'+String(i).padStart(2,'0')+'.mp4');
+      let vf;
+      if(last){
+        vf='[0:v]trim=end_frame='+frames+',setpts=PTS-STARTPTS[vout]';
+      }else{
+        const pivot=frames-60;
+        vf='[0:v]split=2[frontsrc][tailsrc];'+
+          '[frontsrc]trim=end_frame='+pivot+',setpts=PTS-STARTPTS[front];'+
+          '[tailsrc]trim=start_frame='+pivot+
+          ',setpts=2*(PTS-STARTPTS),fps=30,'+
+          'trim=end_frame=120,setpts=PTS-STARTPTS[tail];'+
+          '[front][tail]concat=n=2:v=1:a=0[vout]';
+      }
+      const af='[0:a]aresample=48000,atrim=end='+(frames/30).toFixed(9)+
+        ',apad,atrim=end='+(totalFrames/30).toFixed(9)+
+        ',asetpts=PTS-STARTPTS[aout]';
+      await execute(ffmpeg,[...argsBase,'-i',files[i],'-filter_complex',vf+';'+af,
+        '-map','[vout]','-map','[aout]',
+        '-c:v','libx264','-preset','veryfast','-crf','19',
+        '-threads:v','2','-pix_fmt','yuv420p','-r','30',
+        '-fps_mode','cfr','-frames:v',String(totalFrames),
+        '-c:a','aac','-b:a','192k','-ar','48000',
+        '-movflags','+faststart',file]);
+      const probe=JSON.parse((await execute(ffprobe,['-v','error','-count_frames',
+        '-show_streams','-show_format','-of','json',file])).output);
+      const video=probe.streams.find(s=>s.codec_type==='video');
+      const audio=probe.streams.find(s=>s.codec_type==='audio');
+      if(video?.width!==1920||video?.height!==1080||video?.codec_name!=='h264'
+          ||video?.r_frame_rate!=='30/1'||Number(video?.nb_read_frames)!==totalFrames
+          ||audio?.codec_name!=='aac'
+          ||Math.abs(Number(probe.format?.duration)-totalFrames/30)>0.1)
+        block('SHOT'+(i+1)+' low-memory render failed MP4 duration/frame/audio QA');
+      rendered.push(file);
+    }
+    const list=path.join(work,'clips.ffconcat');
+    const quoted=file=>"'"+file.replaceAll("'","'\\''")+"'";
+    await fs.writeFile(list,'ffconcat version 1.0\n'+
+      rendered.map(f=>'file '+quoted(f)).join('\n')+'\n',{flag:'wx'});
+    await execute(ffmpeg,[...argsBase,'-f','concat','-safe','0',
+      '-i',list,'-map','0:v:0','-map','0:a:0','-c','copy',
+      '-movflags','+faststart',workFile]);
+    const probe=JSON.parse((await execute(ffprobe,['-v','error','-count_frames',
+      '-show_streams','-show_format','-of','json',workFile])).output);
+    const vs=probe.streams.filter(s=>s.codec_type==='video');
+    const as=probe.streams.filter(s=>s.codec_type==='audio');
     if(vs.length!==1||as.length!==1||vs[0].codec_name!=='h264'
       ||as[0].codec_name!=='aac'||vs[0].width!==1920||vs[0].height!==1080
       ||vs[0].r_frame_rate!=='30/1'
       ||Number(vs[0].nb_read_frames)!==plan.outputFrames
-      ||Math.abs(Number(result.format.duration)-plan.outputSeconds)>0.10)
-      block('The real edited master failed exact output frame, stream or runtime QA.');
-    await fs.link(temp,output);
+      ||Math.abs(Number(probe.format.duration)-plan.outputSeconds)>0.4)
+      block('The separately rendered low-memory master failed exact Full HD, frame, or duration QA.');
+    await fs.link(workFile,output);
     return {status:'DIRECTOR_REVIEW_REQUIRED',outputFile:output,
       frames:plan.outputFrames,durationSeconds:plan.outputSeconds,
       breathingBoundaries:plan.boundaryCount,silentFramesPerBoundary:60};
-  }finally{
-    await fs.unlink(temp).catch(()=>{});
+  } finally {
+    await fs.rm(work,{recursive:true,force:true}).catch(()=>{});
   }
 }
