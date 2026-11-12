@@ -136,10 +136,10 @@ function continuityFilter(zoom){
     ";[a][b]blend=all_expr='A*(1-"+fade+")+B*"+fade+
     "',format=yuv420p[v];[2:a]atrim=duration=2,asetpts=PTS-STARTPTS[aout]";
 }
-async function createBridge(previous,last,target,profile,file,ffmpeg){
+async function createBridge(previous,next,profile,file,ffmpeg){
   await exec(ffmpeg,[...ffBase,
     '-loop','1','-framerate','30','-i',previous,
-    '-loop','1','-framerate','30','-i',last,
+    '-loop','1','-framerate','30','-i',next,
     '-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000',
     '-filter_complex',continuityFilter(profile.zoom),
     '-map','[v]','-map','[aout]',
