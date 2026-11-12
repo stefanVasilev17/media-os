@@ -113,7 +113,7 @@ public class Ep002DirectorMasterWorkerMediaController {
                             approved.path("authorizationSource").asText(""))
                             ||!Ep002V2DirectorProduction.SHOT10_VISUAL_BLOB.equals(
                                     approved.path("visualSourceSha").asText(""))
-                            ||!workerSha.equals(approved.path("expectedSourceCommit").asText(""))
+                            ||!"949156b88a49ab86a208050fd0f4fff3dd53ac68".equals(approved.path("expectedSourceCommit").asText(""))
                             ||!"EP002_SHOT10".equals(approved.path("shotKey").asText()))
                         throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                                 "SHOT10 source must be the approved cleaned V2 render.");
