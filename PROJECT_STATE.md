@@ -1,5 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 09:26 UTC — EP002 V2 ACTIVE RENDER, NOT COMPLETE
+
+Director asked to view revised complete EP002 in MediaOS, then asked whether ready. **Answer: NOT READY YET; don't claim a stored V2 MP4.** Pinned production Backend and Worker both SUCCESS/online at commit `949156b88a49ab86a208050fd0f4fff3dd53ac68`, Worker deployment `30442f37-b12e-4f35-92f4-cfd0ef86ba6a`, Backend deployment `d0f32294-dde8-45f8-b8ba-4e91c04bc8be`.
+
+First V2 release failed on reused stale SHOT10 voice/lineage metadata. Correction uses current selected **approved** take via `Ep002DirectorVoiceCueService.shot10InternalReadiness()` (public-internal) plus real 6/21 cues, exact historical SHOT09 handoff and source SHA; returns safety blocker rather than fabricating cues. New source code in draft [PR #266](https://github.com/stefanVasilev17/media-os/pull/266) remains separate from production since production pinned explicit source SHA.
+
+**Verified production:** 2026-11-12 09:25:20 UTC Backend logged `EP002_V2_SHOT10_REQUEST status=QUEUED renderId=96e427d2-b518-47c0-a287-59ea42cfab52`. At 09:25:29 UTC Worker claimed `EP002-SHOT10-CANDIDATE` `96e427d2-b518-47c0-a287-59ea42cfab52`, passing `AT_TIER_PLUS_PLUS_RENDER_START` and all source/cue/HQ checks; 1920×1080@30fps 2360 frames. At 09:26:10 UTC Worker logged **10% progress**. **No SUCCEEDED / stored bytes yet at observation**, so downstream automated 11-clip master (10×2s voice silence, clean SHOT10) **has NOT been queued or delivered**. New V2 master expected 24,046 frames (13:21.53) but must not claim completed.
+
+Monitor logs for SHOT10 completion (avoid rerender/duplicated CPU), then `EP002_V2_MASTER_REQUEST` in Backend and `EP002_DIRECTOR_V2_BREATH_MASTER_REVIEW_READY` plus `EP002 full eleven-SHOT Director review MP4 stored:` in Worker. Watch [MediaOS EP002 Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002), new V2 panel sits above old master. **Preserve old master `8876235a-8037-4f19-8f5c-d2398f3ef22f` and old SHOT10.** Do not set final LOCK until Director watches actual new MP4.
+
+
 ## 2026-11-12 EP002 EDITORIAL V2 REQUESTED — STAGED IN DRAFT PR #266 / NOT YET RENDERED
 
 **Director's post-review corrections:** exactly 2 seconds of voice rest between each of SHOT01–SHOT11 (ten boundaries), while architecture animations continue; dramatically simplify fast-changing small cards under the principal diagram in SHOT10 “PROVE THE RECOVERY”. This is a new V2 revision request, not new final approval and not a request to change old immutable source renders.
