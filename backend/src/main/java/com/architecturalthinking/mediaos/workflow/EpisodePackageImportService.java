@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +73,27 @@ public class EpisodePackageImportService {
     public ImportedEpisode get(UUID id) {
         DirectorIdentity.Actor director=DirectorIdentity.requireDirector();
         return load(id,director);
+    }
+
+    @Transactional
+    public ImportedEpisode prepareEp003(UUID preflightAuditId) {
+        DirectorIdentity.Actor director=DirectorIdentity.requireDirector();
+        if(preflightAuditId==null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Audited Director preflight is required for EP003 source preparation.");
+        String resource="/ep003-director-locked-voice-package-v1.json";
+        String sourceText;
+        try(InputStream input=EpisodePackageImportService.class.getResourceAsStream(resource)) {
+            if(input==null)throw new IllegalStateException("EP003 locked source is missing from the production build.");
+            sourceText=new String(input.readAllBytes(),StandardCharsets.UTF_8);
+        } catch(IOException ex) {
+            throw new IllegalStateException("EP003 source cannot be read.",ex);
+        }
+        UUID deterministic=UUID.nameUUIDFromBytes(("EP003:v0.4:voice-only:"+director.issuer()
+                +":"+director.subject()).getBytes(StandardCharsets.UTF_8));
+        return importFile(new ImportRequest(deterministic,
+                "EP003_Director_Locked_Voice_v04.json",sourceText,
+                EpisodePackageValidator.sha256(sourceText),true),preflightAuditId);
     }
 
     @Transactional
