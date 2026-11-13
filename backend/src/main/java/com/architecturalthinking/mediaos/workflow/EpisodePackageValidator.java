@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -67,9 +69,18 @@ public class EpisodePackageValidator {
 
         JsonNode approval=object(doc,"sourceApproval",
                 Set.of("script","visualStoryline","approvalNotes"));
-        if (!"DIRECTOR_APPROVED".equals(text(approval,"script",1,40))
-                || !"DIRECTOR_APPROVED".equals(text(approval,"visualStoryline",1,40)))
-            bad("Both script and visual storyline must be Director-approved.");
+        String scriptApproval=text(approval,"script",1,40);
+        String visualApproval=text(approval,"visualStoryline",1,40);
+        boolean approved="DIRECTOR_APPROVED".equals(scriptApproval)
+                && "DIRECTOR_APPROVED".equals(visualApproval);
+        boolean ep003VoiceOnly="EP003".equals(episodeKey)
+                && "DIRECTOR_APPROVED".equals(scriptApproval)
+                && "VOICE_ONLY_DRAFT".equals(visualApproval);
+        if (!approved && !ep003VoiceOnly)
+            bad("Script and visual storyline must be Director-approved, except EP003 voice-only intake with draft visuals.");
+        if(ep003VoiceOnly && (!"What Happens When One Database Is No Longer Enough?".equals(title)
+                || !identicalToBundledLockedEp003(sourceText)))
+            bad("EP003 voice-only intake must exactly match the bundled Director-locked v0.4 source.");
         optionalText(approval,"approvalNotes",0,1000);
 
         JsonNode identity=object(doc,"visualIdentity",
@@ -133,6 +144,16 @@ public class EpisodePackageValidator {
             }
         }
         return new Validated(doc,episodeKey,title,sha,shots.size(),beats);
+    }
+
+    private static boolean identicalToBundledLockedEp003(String submitted) {
+        try(InputStream input=EpisodePackageValidator.class.getResourceAsStream(
+                "/ep003-director-locked-voice-package-v1.json")) {
+            if(input==null)return false;
+            return submitted.equals(new String(input.readAllBytes(),StandardCharsets.UTF_8));
+        } catch(IOException ex) {
+            return false;
+        }
     }
 
     public static String sha256(String content) {

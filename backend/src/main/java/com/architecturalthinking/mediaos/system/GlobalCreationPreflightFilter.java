@@ -269,8 +269,21 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.composition_id='EP002-DIRECTOR-MASTER'
                       and r.input_props->>'expectedSourceCommit'=:sha
                       and r.input_props->>'directorPaidCpuConfirmed'='true'
-                      and r.input_props->>'masterMode' in
+                      and (
+                        r.input_props->>'masterMode' in
                           ('EXACT_DIRECTOR_APPROVED_STREAM_COPY','DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS')
+                        or (
+                          r.input_props->>'masterMode'='DIRECTOR_V4_CLEAN_CUT_NO_BRIDGE'
+                          and r.input_props->>'authorizationSource'='DIRECTOR_CHAT_2026_11_12_EP002_V4_CLEAN_CUT_UPDATED_SHOT10_ONE_RENDER'
+                          and r.input_props->>'transitionProfile'='ZERO_ADDED_FRAMES_DIRECT_CUT'
+                          and r.input_props->>'shot10RenderId'='96e427d2-b518-47c0-a287-59ea42cfab52'
+                          and r.input_props->'sourceRenderIds'->>9='96e427d2-b518-47c0-a287-59ea42cfab52'
+                          and r.input_props->>'breathingFramesPerSeam'='0'
+                          and r.input_props->>'breathingSeams'='0'
+                          and r.input_props->>'retimeSourceFrames'='false'
+                          and r.duration_in_frames=23446
+                        )
+                      )
                       and jsonb_typeof(r.input_props->'sourceRenderIds')='array'
                       and jsonb_array_length(r.input_props->'sourceRenderIds')=11
                 )

@@ -23,9 +23,10 @@ async function checked<T>(response:Response):Promise<T>{
   return response.json() as Promise<T>;
 }
 
-export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChanged}:{
-  packageId:string;shotKey:string;onStatusChanged?:()=>void;
+export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onStatusChanged}:{
+  packageId:string;shotKey:string;episodeKey?:string;onStatusChanged?:()=>void;
 }){
+  const ep003SlowOnly=episodeKey==='EP003';
   const base='/api/v1/episode-packages/'+encodeURIComponent(packageId)
     +'/shots/'+encodeURIComponent(shotKey)+'/voice';
   const [data,setData]=useState<State|null>(null);
@@ -59,7 +60,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
   },[base]);
 
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
-  const canSave=!!data&&dirty&&!busy&&narration.trim().length>=20
+  const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
     &&narration.length<=12000&&direction.trim().length>=8&&direction.length<=1200;
 
   async function save(){
@@ -79,7 +80,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
     finally{inFlight.current=false;setBusy(false);}
   }
 
-  async function generate(mode:'STANDARD'|'SLOW_NATURAL'='STANDARD'){
+  async function generate(mode:'STANDARD'|'SLOW_NATURAL'='SLOW_NATURAL'){
+    if(ep003SlowOnly&&mode!=='SLOW_NATURAL')return;
     if(!data||!data.canGenerate||dirty||!consent||busy||inFlight.current
       ||(mode==='SLOW_NATURAL'&&!data.canGenerateSlow))return;
     if(!window.confirm('This is a '+(mode==='SLOW_NATURAL'?'Slow Natural':'Standard')
@@ -136,6 +138,11 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
         <RefreshCw size={14}/> Refresh</button>
     </div>
     {loading?<p>Loading current voice revision…</p>:data&&<>
+      {ep003SlowOnly&&<p className="episode-package-voice-note" role="status">
+        EP003 · SCRIPT v0.4 DIRECTOR LOCKED · SLOW NATURAL FIRST TAKE ONLY.
+        The approved 11-SHOT narration cannot be edited here. No Standard Take,
+        automatic regeneration, or paid request without your confirmation.
+      </p>}
       <p>Script revision <strong>{data.revision}</strong> ·
         {' '}<strong>{label(data.voiceStatus)}</strong> ·
         {' '}Timing: <strong>{label(data.timingStatus)}</strong></p>
@@ -143,17 +150,17 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
         Edit and Save creates a new working revision without deleting older audio.</p>
       <label htmlFor={'narration-'+shotKey}>Current working narration</label>
       <textarea id={'narration-'+shotKey} rows={5} maxLength={12000}
-        value={narration} disabled={busy} onChange={e=>setNarration(e.target.value)}/>
+        value={narration} disabled={busy||ep003SlowOnly} onChange={e=>setNarration(e.target.value)}/>
       <label htmlFor={'direction-'+shotKey}>Editorial voice direction</label>
       <textarea id={'direction-'+shotKey} rows={3} maxLength={1200}
-        value={direction} disabled={busy} onChange={e=>setDirection(e.target.value)}/>
+        value={direction} disabled={busy||ep003SlowOnly} onChange={e=>setDirection(e.target.value)}/>
       <p className="episode-package-voice-note">Voice direction is retained for editorial review.
         The current ElevenLabs v4 generation uses the approved EP001 delivery profile; it does not
         interpret arbitrary directions as ElevenLabs API settings.</p>
-      <button type="button" className="episode-package-voice-primary"
+      {!ep003SlowOnly&&<button type="button" className="episode-package-voice-primary"
         disabled={!canSave} onClick={()=>void save()}>
         <Save size={16}/> {busy?'Saving…':'Save working revision (no API cost)'}
-      </button>
+      </button>}
 
       <div className="episode-package-voice-takes">
         <h4>Generated takes · Playback and Director selection</h4>
@@ -189,16 +196,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,onStatusChange
         <label className="episode-package-voice-option">
           <input type="checkbox" checked={consent} disabled={!data.canGenerate||busy||dirty}
             onChange={e=>setConsent(e.target.checked)}/>
-          <span>I authorize one paid ElevenLabs generation for this exact narration version.
+          <span>I authorize one paid {ep003SlowOnly?'Slow Natural first-Take':'ElevenLabs'} generation for this exact narration version.
             No automatic retry or OpenAI visual execution.</span>
         </label>
-        <button type="button" className="episode-package-voice-primary"
+        {!ep003SlowOnly&&<button type="button" className="episode-package-voice-primary"
           disabled={!data.canGenerate||!consent||busy||dirty}
-          onClick={()=>void generate('STANDARD')}><Mic2 size={16}/> Generate one Take (paid)</button>
+          onClick={()=>void generate('STANDARD')}><Mic2 size={16}/> Generate one Take (paid)</button>}
         <button type="button" className="episode-package-voice-primary"
           disabled={!data.canGenerateSlow||!consent||busy||dirty}
           onClick={()=>void generate('SLOW_NATURAL')}><Mic2 size={16}/>
-          Generate Slow Natural Take (paid)</button>
+          {ep003SlowOnly?'Generate (slow intake) · First Take (paid)':'Generate Slow Natural Take (paid)'}</button>
         <p className="episode-package-voice-note">
           Slow Natural adds {data.slowVoicePauseCount} sentence and concept pauses,
           including {data.slowVoiceLongPauseCount} longer pauses, without changing the saved words.

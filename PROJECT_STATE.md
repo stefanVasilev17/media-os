@@ -1,5 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-12 16:02 UTC — EP002 V4 FINAL MASTER: DIRECTOR APPROVED AND LOCKED
+
+**MOST RECENT CANONICAL DIRECTOR DECISION: FINAL DIRECTOR LOCK GRANTED.** In conversation on 2026-11-12 at 18:02 Europe/Sofia, the Director explicitly confirmed: **“Харесва ми! Цялото видео е LOCKED!”** This approves the entire EP002 V4 clean-cut master **as viewed**, not merely an individual SHOT. The Director has not authorized additional rendering or editorial changes. The final version is V4, not older V1/V2/V3 review masters.
+
+**Verified in Railway production Worker logs:** EP002_V4_CLEAN_CUT_MASTER_REVIEW_READY followed by **EP002 full eleven-SHOT Director review MP4 stored: 56c2a4b7-8bc0-465b-baea-80fa3707e709 bytes=83569046** at 2026-11-12 15:54:33 UTC after a successful MP4 completion callback. Render ID: **56c2a4b7-8bc0-465b-baea-80fa3707e709**, 1920×1080, 30fps, **23,446 frames / 13:01.53**, 11 shots, 10 direct hard cuts, zero additional bridge frames, zero source retiming, existing original narration, approved clean SHOT10 **96e427d2-b518-47c0-a287-59ea42cfab52**, size **83,569,046 bytes**.
+
+**LOCKED artifact:** [EP002 V4 final MP4](https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/56c2a4b7-8bc0-465b-baea-80fa3707e709/video) (authenticated); [EP002 Director Room](https://media-os-backend-production.up.railway.app/#/library/EP002). Source: [PR #267](https://github.com/stefanVasilev17/media-os/pull/267), branch release/ep002-v4-clean-cut-shot10-20261112, Backend release SHA 27d39775f7edad89adf6de12e381185e4f536a93; Worker SHA 5fa3f0b317bedaaefe2663bd2a622ce421bdda70. The initial V4 upload HTTP 409 was corrected and the same render ID retried exactly once. Previous master and SHOT versions remain preserved.
+
+**IMMUTABLE DIRECTOR LOCK RULE:** This exact V4 master is the approved creative reference. Never replace its video, rerender it, revert SHOT10, insert pauses/bridges, regenerate voice, or edit any visual/audio seams without a new explicit Director decision and separately versioned artifact. Reference, archive, and prepare publication from this approved master only; final editorial approval alone is not permission to publish or spend on additional renders. This GitHub source-of-truth records human Director approval; a separate MediaOS database/UI final-lock flag has not been independently verified, so do not claim it is set. Historical state entries below are superseded by this record.
+
+
 ## 2026-11-12 10:12 UTC — EP002 V2 SHOT10 READY; COMPLETE MASTER STILL NOT READY
 
 **Most recent verified, user-visible truth: NOT FINISHED.** Clean new SHOT10 `96e427d2-b518-47c0-a287-59ea42cfab52` successfully persisted (Worker `Completed ...: 7927279 bytes`, 1920×1080, 30fps, 2360 frames). Original complete review master `8876235a-8037-4f19-8f5c-d2398f3ef22f` and original SHOTs unchanged. All desired code lives in draft [PR #266](https://github.com/stefanVasilev17/media-os/pull/266).
