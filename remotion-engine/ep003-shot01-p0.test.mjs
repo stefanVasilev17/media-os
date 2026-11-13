@@ -84,6 +84,8 @@ test('render refuses unapproved CPU spend, speculative timing, mismatched source
   assert.match(launcher,/ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1/);
   assert.match(launcher,/PINNED_EP002_MEDIA_STREAM_NOT_1920x1080/);
   assert.match(launcher,/EP003_SHOT01_EXISTING_RENDER/);
+  assert.match(launcher,/EP003_SHOT01_P0_ACTUAL_PIXEL_QA/);
+  assert.match(launcher,/EP003_SHOT01_FIRST_RENDERED_FRAME_NOT_CONTINUOUS_WITH_REAL_EP002_LAST_FRAME/);
   assert.match(launcher,/EP003_SHOT01_REAL_MP4_SAVED/);
   assert.doesNotMatch(launcher,/elevenlabs\.generate|textToSpeech|triggerActions/);
 });
