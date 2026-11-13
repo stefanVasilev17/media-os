@@ -105,7 +105,8 @@ async function main(){
     const locked=file.shots.find(s=>s.shotKey===SHOT)?.narration;
     assert(locked&&source.original_narration===locked&&source.narration===locked,
       'DIRECTOR_LOCKED_EP003_SCRIPT_MISMATCH');
-    assert(source.delivery_mode==='SLOW_NATURAL','SELECTED_AUDIO_NOT_SLOW_NATURAL');
+    assert(source.delivery_mode==='ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1',
+      'SELECTED_AUDIO_NOT_VERIFIED_SLOW_NATURAL__NO_AUDIO_REGEN');
     assert(source.spoken_sha===hash(locked),'SELECTED_TAKE_SCRIPT_HASH_MISMATCH');
     assert(Number(source.duration_seconds)>20&&Number(source.duration_seconds)<400,
       'REAL_SELECTED_AUDIO_DURATION_INVALID');
