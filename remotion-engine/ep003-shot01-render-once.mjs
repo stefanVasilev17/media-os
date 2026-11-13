@@ -1,5 +1,5 @@
 import {Client} from 'pg';
-import {bundle} from '@remotion/bundler';
+
 import {selectComposition,renderMedia} from '@remotion/renderer';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -182,11 +182,11 @@ async function main(){
       JSON.stringify({...props,previousLastFrameDataUri:'DATA_URI_SAVED_ONLY_IN_RENDER_RECEIPT'}),
       idempotency,frames
     ]);
-    const bundlePath=path.join(tmp,'bundle');
-    const serveUrl=await bundle({entryPoint:'/app/remotion-engine/src/index.ts',
-      outDir:bundlePath,onProgress:p=>{
-        if(p%25===0)console.log('EP003_REMOTION_BUNDLE_PROGRESS '+p);
-      }});
+    const serveUrl='/app/remotion-engine/build';
+    const compiled=await fs.stat(path.join(serveUrl,'index.html'))
+      .catch(()=>null);
+    assert(compiled&&compiled.size>100,
+      'EP003_IMMUTABLE_REMOTION_BUNDLE_NOT_PRESENT');
     const composition=await selectComposition({serveUrl,id:COMPOSITION,inputProps:props,
       browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
       timeoutInMilliseconds:120000});
