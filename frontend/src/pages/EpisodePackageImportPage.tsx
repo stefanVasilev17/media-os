@@ -35,7 +35,19 @@ export function EpisodePackageImportPage(){
   const inFlight=useRef(false);
 
   async function refresh(){setSaved(await json<Entry[]>(await fetch(BASE,{cache:'no-store'})));}
-  useEffect(()=>{void refresh().catch(e=>setError(String(e)));},[]);
+  useEffect(()=>{
+    if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
+      setBusy(true);
+      void json<Imported>(fetch(BASE+'/prepare-ep003',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
+      }).then(response=>response)).then(episode=>{
+        setDetails(episode);
+        setActiveVoiceShot('SHOT01');
+        setNotice('EP003 prepared: 11 Director-locked voice SHOTs. Generate Slow Intake one SHOT at a time; paid calls require your approval.');
+        return refresh();
+      }).catch(e=>setError(String(e))).finally(()=>setBusy(false));
+    }else{void refresh().catch(e=>setError(String(e)));}
+  },[]);
 
   async function choose(next:File|null){
     setFile(next);setPreview(null);setConfirmed(false);setError('');setNotice('');requestId.current=null;
@@ -157,7 +169,7 @@ export function EpisodePackageImportPage(){
         </button>
         {activeVoiceShot===shot.shotKey&&
           <EpisodePackageVoiceStudioPanel packageId={details.packageId}
-            shotKey={shot.shotKey}
+            episodeKey={details.episodeKey} shotKey={shot.shotKey}
             onStatusChanged={()=>{void show(details.packageId,true);
               setReadinessRefresh(v=>v+1);}}/>}
         <details className="episode-package-visual-source"><summary>Original visual storyline</summary>
