@@ -1,0 +1,24 @@
+FROM node:22-alpine AS build
+WORKDIR /app/remotion-engine
+COPY remotion-engine/package*.json ./
+RUN npm install --no-audit --no-fund --prefer-offline
+RUN npm install pg@8.16.3 --no-save --no-audit --no-fund
+COPY remotion-engine/ ./
+COPY backend/src/main/resources/ep003-director-locked-voice-package-v1.json /app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json
+RUN node --check ep003-shot01-render-once.mjs
+RUN node --test ep003-shot01-p0.test.mjs
+RUN npm run typecheck
+RUN npm run build
+
+FROM node:22-alpine
+WORKDIR /app
+RUN apk add --no-cache chromium ffmpeg xvfb nss freetype harfbuzz ttf-freefont ca-certificates mesa mesa-egl mesa-gl mesa-gles mesa-dri-gallium setpriv
+COPY --from=build /app/remotion-engine /app/remotion-engine
+COPY --from=build /app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json /app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json
+COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
+RUN chmod +x /app/chromium-software-webgl.sh
+ENV CHROMIUM_PATH=/app/chromium-software-webgl.sh
+ENV LIBGL_ALWAYS_SOFTWARE=1
+ENV GALLIUM_DRIVER=llvmpipe
+ENV MESA_LOADER_DRIVER_OVERRIDE=llvmpipe
+CMD ["node","/app/remotion-engine/ep003-shot01-render-once.mjs"]
