@@ -80,7 +80,8 @@ test('render refuses unapproved CPU spend, speculative timing, mismatched source
   assert.match(launcher,/REAL_ELEVENLABS_ALIGNMENT_MISSING__DO_NOT_USE_GUESSED_CUES_OR_REGENERATE/);
   assert.match(launcher,/EP003_SHOT01_NO_DIRECTOR_APPROVED_TAKE__BLOCK_RENDER/);
   assert.match(launcher,/DIRECTOR_LOCKED_EP003_SCRIPT_MISMATCH/);
-  assert.match(launcher,/SELECTED_AUDIO_NOT_SLOW_NATURAL/);
+  assert.match(launcher,/SELECTED_AUDIO_NOT_VERIFIED_SLOW_NATURAL__NO_AUDIO_REGEN/);
+  assert.match(launcher,/ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1/);
   assert.match(launcher,/PINNED_EP002_MEDIA_STREAM_NOT_1920x1080/);
   assert.match(launcher,/EP003_SHOT01_EXISTING_RENDER/);
   assert.match(launcher,/EP003_SHOT01_REAL_MP4_SAVED/);
