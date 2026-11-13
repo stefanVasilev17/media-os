@@ -96,3 +96,13 @@ test('canonical EP002 source and EP003 render check same 1572 frame source pin',
   assert.ok(launcher.includes("'-frames:v','1'"));
   assert.ok(launcher.includes("'select=eq(n\\\\,1571)'"));
 });
+
+
+test('EP003 panels never overlap the established EP002 Phone reserved lane',()=>{
+  const phone={left:55,top:160,width:445,height:800};
+  for(const [eyebrow,line] of cards){
+    const width=Math.ceil(Math.max(shot10TextWidth(eyebrow,23),
+      shot10TextWidth(line,29))+34*2+12);
+    assert.equal(intersects({left:560,top:742,width,height:131},phone,24),false);
+  }
+});
