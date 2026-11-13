@@ -12,6 +12,14 @@
 
 
 
+## 2026-11-13 DIRECTOR SCRIPT LOCK — EP003 v0.4 (FINAL LOGIN ARCHITECTURE EPISODE)
+
+**Director expressly locked on 2026-11-13:** EP003 **“What Happens When One Database Is No Longer Enough?”** Script Pass **v0.4**, **ELEVEN SHOTs SHOT01–SHOT11**, narration and shot headings. Canonical **IMMUTABLE SCRIPT SOURCE**: [2026-11-13 EP003 Script v0.4 Director LOCKED](docs/episode-memory/plans/2026-11-13-ep003-script-v0-4-director-locked.md). Always read this original document for EP003 intake, HEAR→SEE planning, Voice Direction, SceneSpecs, script/voice hashing, and agents; never use v0.1–v0.3 drafts or generate paraphrased narration. Director LOCK applies ONLY to the script. **Do NOT automatically generate paid voice, run alignment, render media, modify locked EP002 outputs or deploy as a consequence of this lock.**
+
+**Narrative constraints LOCKED:** 01 stable overload/load shedding; 02 measured throughput bottleneck (example 900 Login/s, ~500 account lookups/s, shared ~450 lookups/s admission); 03 one Primary + two read replicas with async replication; 04 read/write splitting and freshness-critical Primary lookup; 05 replication lag/stale reads; 06 correctness/consistency and fail closed; 07 critical path proves read replicas may not improve completed Login rate; 08 sharding distributes ownership with key/hot-shard risks (not guaranteed linear capacity); 09 failover, split-brain/fencing and async loss; 10 user-outcome SLI/SLO and p95 including failures, RTO/RPO; 11 final architecture/human-journey conclusion. Title, terminology and outro locked. Script working timelines are **provisional, NOT voice-verified**.
+
+**Strict NEXT, NOT automatically approved:** measured spoken script duration and non-paid Voice Direction planning, then Director-reviewed HEAR→SEE and P0 continuity SceneSpecs starting SHOT02 from the exact rendered end state of SHOT01 (and all following joins). Around two seconds of living-motion breath per join remains only the proposed default until Director confirms. Paid ElevenLabs / Railway render / deploy require explicit separate Director approval. If a script change is needed, propose a new version for Director approval instead of editing v0.4.
+
 ## 2026-11-11 LATEST — SHOT01 CURRENT EDITED SCRIPT SEMANTIC BEAT CUES SHIPPED; LIVE VOICE NOT YET VERIFIED
 
 **Root cause proven in production logs at 2026-11-11 18:00 UTC:** `EP002_SHOT01_SCENE_READINESS status=BLOCKED selectedTake=true durationMeasured=true alignedBeats=0 cueDiagnostic=AUTOMATIC_SOURCE_CUES_UNAVAILABLE`. SHOT01 current saved narration differs from five old Director source exact phrases, and `Ep002AutomaticVoiceCues` previously failed before checking real alignment; previous metadata-only alignment bug fix does not fix this separate source matching fault.
