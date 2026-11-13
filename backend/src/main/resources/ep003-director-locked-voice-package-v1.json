@@ -1,0 +1,375 @@
+{
+  "schemaVersion": "mediaos.episode-package.v1",
+  "episode": {
+    "episodeKey": "EP003",
+    "title": "What Happens When One Database Is No Longer Enough?",
+    "language": "en",
+    "audience": "Senior Software Engineers, Architects, Tech Leads and technical viewers",
+    "targetDurationSeconds": 1322,
+    "subjectCluster": "Login Architecture — Final Episode"
+  },
+  "sourceApproval": {
+    "script": "DIRECTOR_APPROVED",
+    "visualStoryline": "VOICE_ONLY_DRAFT",
+    "approvalNotes": "Exact Script v0.4 approved and locked 2026-11-13. Visual/storyboard and Voice Direction have NOT been Director-locked. Voice-only intake; no automatic AI video or paid TTS."
+  },
+  "visualIdentity": {
+    "styleReference": "Architectural Thinking Remotion Living Architecture World",
+    "continuityRules": "P0 exact cross-SHOT real frame/state continuity, authentic EP002 closing architecture into EP003 opening, consistent Modern Remotion Living World. No collision, no clipping, particles on real paths, gentle camera/voice and visual pacing.",
+    "reuseAssetKeys": [
+      "Phone",
+      "ApiGateway",
+      "LoadBalancer",
+      "Auth01",
+      "Auth02",
+      "Auth03",
+      "UserDatabase",
+      "RequestParticle",
+      "CameraRig"
+    ]
+  },
+  "shots": [
+    {
+      "shotKey": "SHOT01",
+      "title": "The System Is Stable. But People Still Cannot Log In.",
+      "editorialDurationSeconds": 94,
+      "narration": "The ticket sale is still running.\n\nThousands of people are trying to log in. And after everything that happened, our system is finally under control.\n\nThe retry storm has stopped. Database connections are no longer growing without limits. And the Auth servers are not wasting their capacity on requests that have already timed out.\n\nBut something important has not changed.\n\nSome people are still being rejected before they can complete Login.\n\nIn the previous episode, we introduced admission control. This means deciding how much work a system can safely accept before sending it to a limited resource.\n\nWhen traffic becomes too high, we can reject some requests early. Engineers call this load shedding.\n\nInstead of letting thousands of requests wait until the entire system becomes unstable, we protect the database by refusing work we cannot finish.\n\nThat is a good reliability decision.\n\nBut think about the person holding a phone, trying to buy a ticket.\n\nA fast rejection is still a failed Login.\n\nWe have learned how to survive overload.\n\nNow we need to solve a different problem.\n\nWhat if the business needs more capacity than our database can provide?\n\nAnd what happens when adding more machines makes the architecture more complicated than we expected?",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Controlled urgency; human consequence and curiosity. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Stable system still rejects users. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "Begin from authentic final EP002 living architecture/world and animate smoothly into the new story.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT01_B1",
+          "cueAnchor": "The ticket sale is still running.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT01_B2",
+          "cueAnchor": "But something important has not changed.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT01_B3",
+          "cueAnchor": "A fast rejection is still a failed Login.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT02",
+      "title": "Find the Real Bottleneck",
+      "editorialDurationSeconds": 115,
+      "narration": "Let's look at our architecture again.\n\nA Login request leaves the Phone, passes through the API Gateway, and reaches the Load Balancer.\n\nThe Load Balancer selects one of three Auth servers.\n\nBut all three Auth servers still depend on one User Database.\n\nDuring our ticket sale, imagine nine hundred new Login requests arriving every second.\n\nUnder this particular workload, the database can complete approximately five hundred account lookups per second.\n\nThis is its measured throughput — the amount of work it can finish in a given period.\n\nWe cannot safely keep sending nine hundred lookups into a database that finishes only five hundred.\n\nThe extra work creates queues. Queues increase waiting time. And eventually, requests begin to time out.\n\nThat waiting time is part of latency — how long an operation takes to complete.\n\nNotice the difference.\n\nThroughput tells us how much work gets finished. Latency tells us how long individual operations take.\n\nOur User Database is now the bottleneck: the component limiting the capacity of the complete Login journey.\n\nWe can add a fourth Auth server. Or a fifth.\n\nBut if every new server sends more queries to the same database, the bottleneck remains.\n\nIn the previous episode, we protected that database with a shared admission budget of about four hundred and fifty lookups per second, including any permitted retry work.\n\nThat gave us safety headroom.\n\nIt did not make the database faster.\n\nSo our next task is not to add machines everywhere.\n\nIt is to understand exactly which database work needs more capacity.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Patient diagnosis; numeric 900 versus 500 clear. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Diagnose one database bottleneck. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT02_B1",
+          "cueAnchor": "Let's look at our architecture again.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT02_B2",
+          "cueAnchor": "During our ticket sale, imagine nine hundred new Login requests arriving every second.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT02_B3",
+          "cueAnchor": "It did not make the database faster.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT03",
+      "title": "One Primary. Two Replicas.",
+      "editorialDurationSeconds": 100,
+      "narration": "Until now, our architecture has used one User Database.\n\nLet's explore our first scaling option.\n\nThe existing database becomes the Primary. It remains the main authority for accepting changes to account information.\n\nNow we introduce two additional database instances.\n\nReplica A. And Replica B.\n\nThis design is called primary-replica replication.\n\nThe replicas do not contain different groups of users. They maintain copies of the same underlying account data.\n\nWhen the Primary records a change, that change is transferred to the replicas.\n\nIn our example, we use asynchronous replication.\n\nThe Primary does not wait for every replica to apply a change before confirming its own commit.\n\nThat can avoid some extra write latency.\n\nBut it also means the replicas may temporarily be behind.\n\nWhy accept that trade-off?\n\nBecause many database operations are reads. They ask for information without changing it.\n\nIf suitable reads can run on the replicas, those queries no longer need to consume the Primary's processing capacity.\n\nWe have added more machines to share part of the workload. That is one form of horizontal scaling.\n\nBut remember what we have actually built.\n\nThree database instances do not mean three independent owners of every account.\n\nThere is still one Primary responsible for writes.\n\nAnd that leads to a more interesting question.\n\nWho decides which database should answer a particular query?",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Measured discovery; cautious asynchronous replication warning. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Primary and two read replicas. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT03_B1",
+          "cueAnchor": "Until now, our architecture has used one User Database.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT03_B2",
+          "cueAnchor": "Replica A. And Replica B.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT03_B3",
+          "cueAnchor": "But it also means the replicas may temporarily be behind.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT04",
+      "title": "Who Decides Which Database Gets the Query?",
+      "editorialDurationSeconds": 129,
+      "narration": "Watch another Login request reach Auth 01.\n\nWe now have three database instances.\n\nIt might seem reasonable to send one query to the Primary, the next to Replica A, and the next to Replica B.\n\nBut that could be a dangerous mistake.\n\nThe Load Balancer decides which Auth server receives the Login request.\n\nInside Auth 01, a different decision must happen.\n\nWhich database should answer each query?\n\nEngineers often call this read/write splitting.\n\nWrites are sent to the Primary. Suitable reads may be sent to a replica.\n\nBut not every read has the same requirements.\n\nImagine Auth 01 needs to check whether an account is allowed to authenticate.\n\nWhat if someone disabled that account a moment ago?\n\nAn outdated answer could cause the system to make the wrong security decision.\n\nIn our design, that critical check stays on the authoritative Primary.\n\nNow imagine authentication succeeds, and the application wants to load the user's preferred display language.\n\nThat is also a database read.\n\nBut if the language preference is a few seconds old, the consequence is usually much smaller.\n\nWe can allow that query to go to Replica A.\n\nAnother suitable read may go to Replica B.\n\nThis is read scaling.\n\nWe distribute suitable read work across multiple database instances instead of asking one server to answer everything.\n\nThe Primary may now have more available capacity.\n\nBut look carefully.\n\nOur critical authentication check never moved.\n\nIf that check consumes most of the Primary's capacity, adding replicas might barely improve the number of successful Logins.\n\nMore read capacity does not automatically mean more Login capacity.\n\nAnd there is another problem waiting inside those replicas.\n\nHow do we know their information is recent enough to trust?",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Hands-on design reasoning; two read types contrasted slowly. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Critical Primary reads versus optional replica reads. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT04_B1",
+          "cueAnchor": "Watch another Login request reach Auth 01.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT04_B2",
+          "cueAnchor": "Which database should answer each query?",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT04_B3",
+          "cueAnchor": "Our critical authentication check never moved.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT05",
+      "title": "The Replica That Gives the Wrong Answer",
+      "editorialDurationSeconds": 112,
+      "narration": "Let's follow one account change.\n\nA user's account has just been locked after suspicious activity.\n\nThe Primary records the new status.\n\nThe account is now locked.\n\nBut Replica A has not applied that change yet.\n\nFor a short time, the two database instances contain different visible versions of the same information.\n\nThis delay is called replication lag.\n\nIt is the delay between a change becoming available on the Primary and that change becoming visible on a replica.\n\nNow another Login request arrives.\n\nOur safe design should use the authoritative path for this security check.\n\nBut imagine we had routed it to Replica A without checking whether the data was fresh enough.\n\nReplica A might still report that the account is active.\n\nThis is called a stale read.\n\nThe query completes successfully.\n\nThe database responds quickly.\n\nEvery machine may appear healthy.\n\nBut the answer is no longer suitable for the decision.\n\nThis is a consequence of eventual consistency.\n\nWhen replication is working and changes stop, the replicas are expected to catch up. Until then, different instances may expose different versions of the data.\n\nThat behavior may be acceptable when loading a display preference.\n\nIt may be unacceptable when deciding whether a disabled account should be allowed to authenticate.\n\nAnd this gives us one of the most important lessons in database architecture.\n\nA healthy database can return a fast answer that is still unsafe to use.\n\nThe next problem is deciding how much freshness each operation actually needs.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Quiet technical tension; never melodrama. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Replication lag and stale security state. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT05_B1",
+          "cueAnchor": "Let's follow one account change.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT05_B2",
+          "cueAnchor": "The account is now locked.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT05_B3",
+          "cueAnchor": "But Replica A has not applied that change yet.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT06",
+      "title": "Correctness Before Speed",
+      "editorialDurationSeconds": 123,
+      "narration": "We now face a choice.\n\nShould we always use the fastest available database?\n\nOr should some operations require stronger guarantees about the information they receive?\n\nThis is a question of data consistency.\n\nA consistency guarantee describes which version of information an operation is allowed to observe.\n\nFor example, our Login system must not accept a disabled account based on an older account status.\n\nIn this design, we route that critical check to the current authoritative Primary, using the database guarantees required by our security policy.\n\nThat is a different requirement from loading a user's display language.\n\nAnother system could use version information to verify that a replica has applied a particular change before trusting its answer.\n\nIf the required version is missing, the application must make a decision.\n\nIt might wait for replication.\n\nIt might use the authoritative database.\n\nOr, if it cannot safely verify the account state, it might reject the authentication attempt.\n\nThat last approach is called fail closed.\n\nWhen the system cannot prove that an action is safe, it refuses the action instead of making an optimistic security decision.\n\nBut there is a cost.\n\nWaiting increases latency. Returning to the Primary increases pressure on the bottleneck. Rejecting requests reduces availability.\n\nSo the architecture must balance performance with the consistency required by each operation.\n\nAnd using the Primary is not a magical guarantee by itself. The system still needs correct transactions, database isolation, and safe handling of leadership changes.\n\nThe real question is simple.\n\nHow do we serve more users without making authentication decisions from information we cannot trust?\n\nNow we are ready to measure what our replicas actually achieved.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Serious but conversational trade-offs. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Correctness and fail-closed consistency. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT06_B1",
+          "cueAnchor": "We now face a choice.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT06_B2",
+          "cueAnchor": "Should we always use the fastest available database?",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT06_B3",
+          "cueAnchor": "But there is a cost.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT07",
+      "title": "Did We Really Fix the Bottleneck?",
+      "editorialDurationSeconds": 114,
+      "narration": "Look at the architecture now.\n\nThree Auth servers.\n\nOne Primary.\n\nTwo read replicas.\n\nThere are more machines, more connections, and more places where queries can run.\n\nSo let's return to our original problem.\n\nNine hundred new Login requests per second.\n\nAbout five hundred account lookups per second on the original database.\n\nWhat happened after adding the replicas?\n\nSuppose we measure the workload and discover something important.\n\nThe replicas are busy serving optional reads.\n\nBut the security-critical account lookup still goes to the Primary for almost every Login.\n\nAnd that operation was the main reason we reached our original capacity limit.\n\nThe replicas helped some queries.\n\nBut they did not remove the operation that limits Login completion.\n\nThis is where the critical path becomes important.\n\nThe critical path is the sequence of operations that must finish before the user can complete an action.\n\nFor Login, the required account checks are part of that path.\n\nMaking an optional preference lookup faster may improve the experience.\n\nBut it does not remove the Primary dependency from the critical path.\n\nThis explains why a system can become more complex without becoming significantly more capable.\n\nThe diagram has more database instances.\n\nThe monitoring dashboard shows more available read capacity.\n\nAnd still, some users cannot log in.\n\nWe scaled the reads that could move. But the work limiting Login stayed in one place.\n\nNow we have a better question.\n\nInstead of copying the same account data onto more servers, what if we divided account ownership between independent database groups?",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Measured disappointment; central critical-path aha. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Prove read scaling did not solve critical path. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT07_B1",
+          "cueAnchor": "Look at the architecture now.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT07_B2",
+          "cueAnchor": "Nine hundred new Login requests per second.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT07_B3",
+          "cueAnchor": "We scaled the reads that could move. But the work limiting Login stayed in one place.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT08",
+      "title": "When Copies Are Not Enough",
+      "editorialDurationSeconds": 186,
+      "narration": "Let's consider a different architecture.\n\nUntil now, every account has belonged to one Primary Database.\n\nInstead of keeping all accounts under that single owner, imagine dividing them into separate groups.\n\nOne database group owns one set of accounts.\n\nAnother database group owns a different set.\n\nThis is called sharding.\n\nA shard is a partition of the data with a defined owner.\n\nAnd unlike read replicas, separate shards can have separate Primary instances responsible for their own accounts.\n\nThink about our original Login bottleneck.\n\nIf account lookups can be distributed across independent owners, the critical authentication work no longer has to reach the same Primary every time.\n\nA request for one account reaches Shard A.\n\nA request for another account reaches Shard B.\n\nEach shard performs its own authoritative account check.\n\nNow we have a real opportunity to distribute the work that was previously limiting Login throughput.\n\nBut how does Auth 01 know which shard owns an account?\n\nWe need a shard key.\n\nA shard key is information used to determine where a record belongs.\n\nFor our example, imagine that account routing uses a normalized Login identifier through a consistent mapping rule.\n\nThe database routing layer uses that identifier to find the correct shard.\n\nBut this creates an important responsibility.\n\nIf the user changes that identifier, the system must still find the correct account. The routing and any required data migration must remain consistent.\n\nAnd if the query does not contain enough information to identify the owner, we may need an additional lookup or a query across multiple shards.\n\nThat can create a new bottleneck.\n\nThere is another risk.\n\nWhat if one shard receives most of the traffic while the others are almost idle?\n\nThat is a hot shard.\n\nSharding only helps when the data and workload are distributed in a useful way.\n\nIt also makes account migration, cross-shard operations, and recovery more complicated.\n\nAnd each shard can still have its own replicas for availability and suitable reads.\n\nSo replication and sharding are not competing names for the same solution.\n\nReplication creates copies of data. Sharding divides responsibility for data.\n\nFor our Login example, sharding may let us distribute critical account lookups between multiple Primary owners.\n\nThat is the capacity improvement we were looking for.\n\nBut it is still a hypothesis until testing proves the complete Login journey can handle the additional demand.\n\nAnd now, with more than one database owner, another question becomes unavoidable.\n\nWhat happens when one of those owners fails?",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Long-form culmination; enough time for shard routing and hot shard. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Sharding distributes account ownership. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT08_B1",
+          "cueAnchor": "Let's consider a different architecture.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT08_B2",
+          "cueAnchor": "A shard is a partition of the data with a defined owner.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT08_B3",
+          "cueAnchor": "Replication creates copies of data. Sharding divides responsibility for data.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT09",
+      "title": "When the Primary Disappears",
+      "editorialDurationSeconds": 114,
+      "narration": "Let's zoom into one of our account shards.\n\nIt has a Primary and a replica.\n\nThe Primary owns changes to that shard's accounts.\n\nNow imagine it suddenly becomes unavailable.\n\nRequests for accounts on this shard begin to fail or wait. Accounts belonging to another healthy shard may still be served.\n\nThe replica gives us a possible recovery path.\n\nWe can promote an eligible replica to become the new Primary.\n\nThat process is called failover.\n\nBut before the new Primary starts accepting writes, the system must establish that it is the legitimate owner.\n\nWhy?\n\nBecause the old Primary might return.\n\nImagine the old Primary accepting one account change while the newly promoted Primary accepts another.\n\nNow two machines believe they own the same data.\n\nThis is a split-brain problem.\n\nA safe design needs coordination and fencing: a way to prevent the former Primary from continuing to act as the writer after ownership has changed.\n\nBut there is one more risk.\n\nOur replication is asynchronous.\n\nThe replica might not have received every recent committed change before the original Primary failed.\n\nSo promoting it could mean losing some recent data.\n\nThis is why failover cannot be treated as simply changing a green arrow on a diagram.\n\nIt is a decision about ownership, recovery and correctness.\n\nMore database instances can help the system survive a failure.\n\nBut availability is not enough if the system recovers into the wrong account state.\n\nThe only way to trust this architecture is to test those failures before users experience them.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Restrained failure investigation; failover and fencing clarity. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Single shard failover and split brain. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT09_B1",
+          "cueAnchor": "Let's zoom into one of our account shards.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT09_B2",
+          "cueAnchor": "Now imagine it suddenly becomes unavailable.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT09_B3",
+          "cueAnchor": "But availability is not enough if the system recovers into the wrong account state.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT10",
+      "title": "Prove the Architecture Works",
+      "editorialDurationSeconds": 133,
+      "narration": "Let's return to the ticket sale.\n\nWe started with one database that could not finish all the incoming account lookups.\n\nNow we have explored replication, read routing, consistency rules, sharding and failover.\n\nThe architecture is more capable in theory.\n\nBut how do we prove it works?\n\nWe start with the outcome that matters.\n\nHow many legitimate Login attempts finish correctly and within an acceptable time?\n\nThis is a Service Level Indicator, or SLI.\n\nAn SLI is a measurement that tells us how a service is performing.\n\nA Service Level Objective, or SLO, is the target we want that measurement to meet.\n\nFor example, we might set a target for the percentage of legitimate Login attempts completed correctly within two seconds.\n\nAnd we must count requests rejected by overload protection, not hide them from the result.\n\nWe also measure latency.\n\nOne common metric is p95 latency — the time within which ninety-five percent of the measured requests completed.\n\nBut measuring only successful requests can be misleading.\n\nA system that rejects half its users might still show excellent latency for the remaining half.\n\nInside the database layer, we watch throughput, queue depth, Primary load, replication lag and workload distribution across shards.\n\nWe test what happens when one shard becomes overloaded.\n\nWe test failover.\n\nAnd we measure how long recovery takes, and whether any recent committed data is lost.\n\nEngineers describe those recovery goals using RTO and RPO: acceptable recovery time and acceptable data loss.\n\nNow we can finally compare the architecture with the original problem.\n\nCan it complete more legitimate Logins correctly?\n\nCan it keep doing that under pressure?\n\nAnd does the improvement justify the additional complexity?\n\nThe purpose of scaling is not to make a diagram bigger. It is to make the user's journey work.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Analytical metrics with patient acronyms. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Measure SLI/SLO and real end-user success. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT10_B1",
+          "cueAnchor": "Let's return to the ticket sale.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT10_B2",
+          "cueAnchor": "How many legitimate Login attempts finish correctly and within an acceptable time?",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT10_B3",
+          "cueAnchor": "But measuring only successful requests can be misleading.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT11",
+      "title": "What One Login Teaches Us About Architecture",
+      "editorialDurationSeconds": 102,
+      "narration": "Think about where our story began.\n\nOne person entered a password and pressed Login.\n\nWe followed that request through the Phone, Gateway, Load Balancer, Auth Service and User Database.\n\nWe discovered how a successful authentication becomes trusted state.\n\nThen we introduced pressure.\n\nThe servers were healthy. But the system could not complete every Login because one shared database had reached its limit.\n\nWe learned how to protect that database.\n\nBut protecting a bottleneck did not give us more capacity.\n\nSo we explored new architectural choices.\n\nReplication gave us more places to serve suitable reads.\n\nConsistency rules helped us understand when those reads were safe.\n\nSharding showed us how separate database owners could distribute the work that replicas could not remove.\n\nAnd failover reminded us that capacity is only one part of reliability.\n\nEvery improvement came with another responsibility.\n\nMore capacity required better routing.\n\nMore copies required clearer consistency rules.\n\nMore owners required stronger coordination and recovery.\n\nThat is the real work of System Design.\n\nNot choosing the architecture with the most components.\n\nBut understanding which responsibility belongs where, which trade-offs we accept, and what happens when part of the system stops behaving as expected.\n\nAnd behind all those decisions is still the same person.\n\nSomeone pressing Login and expecting the system to work.\n\nThe architecture succeeds when the human journey succeeds — and the result can still be trusted.",
+      "voiceDirection": "Director-approved Script v0.4. FIRST TAKE MUST USE SLOW_NATURAL, never STANDARD. Calm creator-clone, professional Senior Architect, natural paced English. Warm, slow earned human-first final conclusion. Meaningful pauses, clear technical terms; no rushed speech, extra words or auto-regeneration.",
+      "visualGoal": "VOICE-ONLY VISUAL DRAFT, NOT DIRECTOR-LOCKED: Complete human journey across Login Architecture. Modern Living Architecture continuous world, accurate moving request paths, no text or object collisions.",
+      "startingFrame": "P0 exact preceding approved SHOT last rendered frame/world/camera/packet-phase; no reset at SHOT boundary.",
+      "cameraDirection": "Shared persistent CameraRig; quiet cinematic easing and explanatory focus; preserve source world geometry and continuous motion, no teleport.",
+      "visualBeats": [
+        {
+          "beatId": "EP003_SHOT11_B1",
+          "cueAnchor": "Think about where our story began.",
+          "direction": "VOICE-ONLY DRAFT beat 1: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT11_B2",
+          "cueAnchor": "Every improvement came with another responsibility.",
+          "direction": "VOICE-ONLY DRAFT beat 2: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        },
+        {
+          "beatId": "EP003_SHOT11_B3",
+          "cueAnchor": "That is the real work of System Design.",
+          "direction": "VOICE-ONLY DRAFT beat 3: show source-aligned cause/decision/consequence using the existing world. Real HEAR→SEE timestamps required from a saved Director-approved audio Take; no guessed frame."
+        }
+      ],
+      "transition": "Preserve exact previous last-frame→next first-frame world state, inherit in-flight packet motion. Propose ~2 seconds living-motion narrator-free breathing, pending Director timing review.",
+      "shortsCandidate": false
+    }
+  ],
+  "shortsCandidates": [
+    {
+      "title": "More Read Capacity Is Not More Login Capacity",
+      "shotKeys": [
+        "SHOT04"
+      ],
+      "hook": "Why adding two replicas does not necessarily help the main Login bottleneck."
+    },
+    {
+      "title": "A Healthy Database Can Give an Unsafe Answer",
+      "shotKeys": [
+        "SHOT05"
+      ],
+      "hook": "One fast replica response can expose stale account status."
+    },
+    {
+      "title": "Replication Copies, Sharding Divides Ownership",
+      "shotKeys": [
+        "SHOT08"
+      ],
+      "hook": "These two scaling strategies solve different critical-path problems."
+    }
+  ]
+}

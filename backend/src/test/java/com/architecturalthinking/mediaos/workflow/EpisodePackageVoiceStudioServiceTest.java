@@ -74,6 +74,20 @@ class EpisodePackageVoiceStudioServiceTest {
     }
 
     @Test
+    void ep003ForbidsStandardAndAnySecondPaidTakeBeforeProvider() {
+        for(String mode:new String[]{"STANDARD","UNSAFE_FAST"}) {
+            var failure=assertThrows(ResponseStatusException.class,()->
+                    EpisodePackageVoiceStudioService.requireEp003SlowFirst("EP003",mode,false));
+            assertEquals(HttpStatus.CONFLICT,failure.getStatusCode());
+        }
+        EpisodePackageVoiceStudioService.requireEp003SlowFirst("EP003","SLOW_NATURAL",false);
+        assertEquals(HttpStatus.CONFLICT,assertThrows(ResponseStatusException.class,()->
+                EpisodePackageVoiceStudioService.requireEp003SlowFirst("EP003","SLOW_NATURAL",true))
+                .getStatusCode());
+        EpisodePackageVoiceStudioService.requireEp003SlowFirst("EP004","STANDARD",true);
+    }
+
+    @Test
     void requiresRealElevenLabsCharacterTimingArraysBeforeMarkingAlignmentPresent() {
         assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment(null));
         assertFalse(EpisodePackageVoiceStudioService.hasRealProviderAlignment("{}"));
