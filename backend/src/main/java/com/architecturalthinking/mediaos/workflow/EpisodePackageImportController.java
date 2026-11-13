@@ -28,6 +28,16 @@ public class EpisodePackageImportController {
         return packages.get(packageId);
     }
 
+    @PostMapping("/prepare-ep003")
+    public EpisodePackageImportService.ImportedEpisode prepareEp003(HttpServletRequest request) {
+        Object attr=request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
+        if (!(attr instanceof Map<?,?> values)
+                || !(values.get("auditId") instanceof UUID auditId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP003 voice source setup requires audited Director preflight.");
+        return packages.prepareEp003(auditId);
+    }
+
     @PostMapping("/import")
     public EpisodePackageImportService.ImportedEpisode importFile(
             @RequestBody EpisodePackageImportService.ImportRequest input,
