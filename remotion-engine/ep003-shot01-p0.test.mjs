@@ -52,7 +52,7 @@ test('EP003 reuse EP002 actual living world, shared visible connection geometry 
   assert.match(scene,/shot02CubicPoint\(1-clamp\(t\),entry,c1,c2,end\)/);
   assert.match(scene,/previousLastFrameDataUri/);
   assert.match(scene,/EP003_SHOT01_REQUIRES_REAL_EP002_FINAL_FRAME_AND_SELECTED_TAKE/);
-  assert.match(scene,/worldStartFrame:11978/); // Root composition defaults, not a claim of a verified frame.
+  assert.match(scene,/props\.worldStartFrame\+frame/);
   assert.equal(SHOT11_LARGE_AMBER_STORY.at(-1).headline,'NEXT: MULTIPLE DATABASE INSTANCES.');
 });
 
