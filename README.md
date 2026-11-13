@@ -4,6 +4,8 @@
 
 ## Start here — live project handoff
 
+**DIRECTOR P0 — INVISIBLE CROSS-SHOT CONTINUITY (2026-11-13):** For every SHOT after SHOT01, the opening rendered visual state must exactly continue the preceding approved SHOT's final visual state, with a smooth moving same-world handoff and gentle narrator-free breathing gap. No visible reset, layout/camera jump, mismatched packets/states or frozen pause. Every actual MP4 seam needs evidence and Director review before LOCK; no unauthorized paid render or changes to approved footage. **Read the absolute [P0 Cross-SHOT Continuity Rule](docs/engineering/AT_DIRECTOR_P0_INVISIBLE_CROSS_SHOT_CONTINUITY_20261113.md) BEFORE ANY EP003+ Script/HEAR→SEE/Remotion work.** This is highest creative/visual priority, subject to protection of locked materials, security and approved spending.
+
 **[PROJECT_STATE.md](PROJECT_STATE.md)** — one central, versioned overview of what is implemented, what was deployed, current blockers and the exact next milestone. **[AGENTS.md](AGENTS.md)** — mandatory first-read instructions and freshness checks for GitHub-connected AI coding agents.
 
 Read both at the start of every new chat. These documents are Git-managed snapshots; check recent merged PRs and Railway deployment before treating them as live truth.

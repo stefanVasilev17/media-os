@@ -1,5 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-13 — DIRECTOR P0 INVISIBLE CROSS-SHOT HANDOFF RULE DOCUMENTED
+
+**Director new HIGHEST visual priority — CANONICAL DOCUMENTATION DONE, runtime QA gate NOT IMPLEMENTED by this PR.** For EVERY future SHOT N>1, the first rendered visual frame/world-state MUST be continuous with the genuine last approved rendered frame/world-state of SHOT N−1. Preserve one persistent camera, node geography, semantic states, paths, packets, Phone and motion phase; no reset, jump, style/position mismatch or hard cut. For inserted breathing bridges verify BOTH boundary pairs. Let narration rest briefly after a full thought while architecture movement continues; EP002 V2 has exactly 2s/60 frames of additional voice silence between each of ten SHOT boundaries, while EP003+ plans roughly 2s as default unless Director changes. No frame freeze/voice retime. **All actual MP4 boundaries must pass source-pinned pixel/geometry/motion and audio-gap inspection plus Director review before creative LOCK.** An agent must fail closed if even one join is not verified. Previous locked media remains immutable. The complete formal P0 source is [AT Director Invisible Cross-SHOT Continuity 2026-11-13](docs/engineering/AT_DIRECTOR_P0_INVISIBLE_CROSS_SHOT_CONTINUITY_20261113.md), referenced first in [AGENTS.md](AGENTS.md) and [README.md](README.md).
+
+**Documentation evidence:** New P0 canonical file + AGENTS startup override + project state + README link on a documentation-only Git branch/PR. No Remotion or Backend code modified, no tests/runtime seam validation or paid TTS/CPU triggered, no scene or previous approved material rewritten. **Status split:** `DIRECTOR_RULE_LOCKED_AND_DOCUMENTED` ≠ `RUNTIME_ENFORCEMENT_IMPLEMENTED` ≠ `ALL_SEAMS_DIRECTOR_ACCEPTED`.
+
+**Fresh EP002 production context, read-only verified 2026-11-13:** Railway production Backend and Worker source commit `4ccc79162e0ede6cdb5e291264b3b37674c2a59d` on `release/ep002-v3-continuity-seam-pinned-20261112`, deployments SUCCESS. Worker log on 2026-11-12 12:12:54 UTC reports `EP002_V3_ALL_TEN_SEAMS_QA` and `EP002_V3_FRAME_MATCHED_MASTER_REVIEW_READY`; stored 11-SHOT MP4 render `5288d34f-6203-42e7-aa8a-cca321054091`, 24,046 frames, 30fps, 1920x1080, 90,468,262 bytes. **Creative status remains `CREATIVE_REVIEW_REQUIRED` — do not claim final Director LOCK or retroactive P0 pixel-perfect acceptance from this older QA.** Current stage PRs #265/#266 are stacked draft/unmerged, so production branch is not main and its code is not proof of merged feature completion.
+
+**NEXT:** Director views the exact stored EP002 V3 master and inspects every boundary for visible mismatch, motion continuity and natural narrator breathing; then separately accepts or requests revisions. For EP003, enforce new P0 handoff **starting from SHOT02** at Script/HEAR→SEE time and implement independent source-pinned automated P0 seam checks before any new scene is approved; no automatic agent/tool deployment or billed render without explicit consent. After that verified implementation milestone, record the tests, exact candidate render and Director result in PROJECT_STATE, not just this rule.
+
+
 
 ## 2026-11-11 LATEST — SHOT01 EDITED NARRATION AUTOMATIC SEMANTIC CUES VERIFIED DEPLOYED
 

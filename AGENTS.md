@@ -1,5 +1,16 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-13 P0 DIRECTOR LOCK — INVISIBLE CROSS-SHOT CONTINUITY (HIGHEST VISUAL PRIORITY)
+
+**NON-NEGOTIABLE FOR EVERY NEW OR REVISED SHOT N>1:** The **FIRST visible frame and starting state** of SHOT N must faithfully match the **actual approved LAST rendered frame + full-world end state** of SHOT N-1. This is ONE living film, never disconnected slides. Reuse the verified original source/render pin; keep identical geometry, CameraRig pose and movement, active paths/packet IDs/phases, node arrangement, labels, Phone state, lighting and visual style. No relayout, snap, camera jump, hidden state reset, object teleport, animation phase restart or hard cut. The new story may evolve only *after* the exact match through smooth causal motion. If a separate seam is inserted, validate both SHOT→SEAM and SEAM→SHOT joins, not just the start/end SHOT images.
+
+**Breathing:** A calm narrator-free pause after the completed thought while architecture animation continues; never freeze last frame or stretch/speed approved narration. EP002 V2 Director rule is exactly 2 seconds/60 additional frames at 30fps between adjacent SHOTs; EP003+ starts from a proposed roughly 2-second default unless the Director approves different timing. Protect all selected Takes and genuine HEAR→SEE timing; seams are separately versioned.
+
+**FAIL-CLOSED QA:** Extract ACTUAL frames from exact pinned source/candidate MP4, check state and pixels/geometry/motion at all N−1 boundaries, inspect measured silence and every playback join; do not mark seamless because code builds or Railway deploys. A mismatch blocks preview acceptance; only an explicit Director review can LOCK a version. Do not silently repair by editing a previous approved/LOCKED source. No unauthorized paid render, AI, TTS or GitHub Actions.
+
+**Full canonical cross-SHOT contract / required all-seam QA:** [AT_DIRECTOR_P0_INVISIBLE_CROSS_SHOT_CONTINUITY_20261113.md](docs/engineering/AT_DIRECTOR_P0_INVISIBLE_CROSS_SHOT_CONTINUITY_20261113.md). Apply to EP003 Script, HEAR→SEE, SceneSpec, Remotion and all future episodes. This P0 visual-production rule supersedes less-strict prior handoff guidance but never supersedes factual correctness, artifact locks, security or paid-operation consent.
+
+
 
 ## 2026-11-11 LATEST — SHOT01 CURRENT EDITED SCRIPT SEMANTIC BEAT CUES SHIPPED; LIVE VOICE NOT YET VERIFIED
 
