@@ -208,6 +208,21 @@ async function main(){
       '-i',silent,'-i',originalAudio,'-map','0:v:0','-map','1:a:0',
       '-c:v','copy','-c:a','aac','-b:a','160k','-ar','48000',
       '-t',String(frames/30),'-movflags','+faststart','-y',finished]);
+    const renderedFirst=path.join(tmp,'ep003-shot01-rendered-first-frame.png');
+    await run('ffmpeg',['-hide_banner','-nostdin','-loglevel','error',
+      '-i',finished,'-frames:v','1','-y',renderedFirst]);
+    const pixelQa=await run('ffmpeg',['-hide_banner','-nostdin',
+      '-i',prevPng,'-i',renderedFirst,'-lavfi','psnr',
+      '-f','null','-']);
+    const score=pixelQa.stderr.match(/average:([0-9.]+)/);
+    const psnr=score?Number(score[1]):NaN;
+    assert(Number.isFinite(psnr)&&psnr>=27,
+      'EP003_SHOT01_FIRST_RENDERED_FRAME_NOT_CONTINUOUS_WITH_REAL_EP002_LAST_FRAME');
+    console.log('EP003_SHOT01_P0_ACTUAL_PIXEL_QA '+JSON.stringify({
+      ep002RenderId:PIN,psnrDb:psnr,
+      previousLastFrameSha256:props.previousLastFrameSha256,
+      acceptedThresholdDb:27,firstFrameVerified:true
+    }));
     const final=await ffprobe(finished);
     const streams=final.streams;
     assert(streams.some(s=>s.codec_type==='video'&&s.codec_name==='h264'
