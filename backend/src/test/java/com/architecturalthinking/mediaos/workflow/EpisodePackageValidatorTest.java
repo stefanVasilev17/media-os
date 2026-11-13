@@ -61,6 +61,42 @@ class EpisodePackageValidatorTest {
     }
 
     @Test
+    void bundledEp003IntakeHasElevenLockedShotNarrationsAndDraftVisuals() throws Exception {
+        String raw;
+        try(var input=EpisodePackageValidatorTest.class.getResourceAsStream(
+                "/ep003-director-locked-voice-package-v1.json")) {
+            assertNotNull(input,"EP003 production voice package resource must exist.");
+            raw=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
+        }
+        var source=validator.validate("EP003_Director_Locked_Voice_v04.json",raw,
+                EpisodePackageValidator.sha256(raw));
+        assertEquals("EP003",source.episodeKey());
+        assertEquals("What Happens When One Database Is No Longer Enough?",source.title());
+        assertEquals(11,source.shotCount());
+        assertEquals(33,source.beatCount());
+        assertEquals("VOICE_ONLY_DRAFT",
+                source.document().path("sourceApproval").path("visualStoryline").asText());
+        assertEquals("DIRECTOR_APPROVED",
+                source.document().path("sourceApproval").path("script").asText());
+        for(int i=0;i<11;i++){
+            var shot=source.document().path("shots").get(i);
+            assertEquals("SHOT"+String.format("%02d",i+1),shot.path("shotKey").asText());
+            assertTrue(shot.path("voiceDirection").asText().contains("SLOW_NATURAL"));
+            assertTrue(shot.path("narration").asText().length()>300);
+        }
+    }
+
+    @Test
+    void voiceOnlyDraftMustNotBeAcceptedForUnrelatedEpisodesOrDifferentEp003Title() {
+        String voiceOnly=valid().replace("\"DIRECTOR_APPROVED\"}",
+                "\"VOICE_ONLY_DRAFT\"}");
+        assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,
+                ()->parse(voiceOnly)).getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST,assertThrows(ResponseStatusException.class,
+                ()->parse(voiceOnly.replace("EP003","EP004"))).getStatusCode());
+    }
+
+    @Test
     void rejectsExistingProtectedEpisodes() {
         for(String key:new String[]{"EP001","EP002"}) {
             String text=valid().replace("EP003",key);
