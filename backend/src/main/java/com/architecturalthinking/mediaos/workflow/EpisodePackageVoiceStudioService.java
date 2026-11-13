@@ -152,7 +152,10 @@ public class EpisodePackageVoiceStudioService {
                 """).param("shot",shot.id()).query(Boolean.class).single();
         boolean ep003SlowOnly="EP003".equals(shot.episodeKey());
         boolean allTakesUsed=takes.size()>=MAX_TAKES_PER_SHOT;
-        boolean firstTakeAlreadyCreated=ep003SlowOnly&&!takes.isEmpty();
+        boolean priorEp003Attempt=ep003SlowOnly&&jdbc.sql("""
+                select exists(select 1 from episode_package_voice_request where shot_id=:shot)
+                """).param("shot",shot.id()).query(Boolean.class).single();
+        boolean firstTakeAlreadyCreated=ep003SlowOnly&&(!takes.isEmpty()||priorEp003Attempt);
         boolean tooLong=revision.narration().length()>MAX_CHARS;
         Ep002VoiceIdentityGuard.Check profile=voiceIdentity.inspect("EP002");
         String blocker=!paidGateEnabled?"New episode ElevenLabs generation is disabled by the server spend gate."
@@ -251,6 +254,17 @@ public class EpisodePackageVoiceStudioService {
         return elevenLabs.modelId()!=null&&elevenLabs.modelId().startsWith("eleven_v4");
     }
 
+    static void requireEp003SlowFirst(String episodeKey,String deliveryMode,
+                                     boolean priorPaidRequestOrTake) {
+        if(!"EP003".equals(episodeKey))return;
+        if(!"SLOW_NATURAL".equals(deliveryMode))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP003 requires Slow Natural first Take. STANDARD paid generation is forbidden.");
+        if(priorPaidRequestOrTake)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP003 already used its first paid request. Do not regenerate or retry without new Director authorization.");
+    }
+
     public VoiceState generate(UUID packageId,String key,int expectedRevision,
                                String expectedHash,UUID requestId,Boolean confirmPaid) {
         return generate(packageId,key,expectedRevision,expectedHash,requestId,confirmPaid,"STANDARD");
@@ -273,9 +287,7 @@ public class EpisodePackageVoiceStudioService {
                     "ElevenLabs TTS is not configured.");
         voiceIdentity.requireVerified("EP002");
         Shot shot=shot(packageId,key,actor);
-        if("EP003".equals(shot.episodeKey())&&!slow)
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "EP003 requires SLOW_NATURAL for the first and only planned voice Take; STANDARD is forbidden.");
+        requireEp003SlowFirst(shot.episodeKey(),selectedMode,false);
         Request reserved=transaction.execute(status->{
             lockShot(shot.id());
             Revision active=current(shot.id());
@@ -295,9 +307,7 @@ public class EpisodePackageVoiceStudioService {
                         .param("shot",shot.id()).query(Boolean.class).single();
                 boolean hasTake=jdbc.sql("select exists(select 1 from episode_package_voice_take where shot_id=:shot)")
                         .param("shot",shot.id()).query(Boolean.class).single();
-                if(attempted||hasTake)
-                    throw new ResponseStatusException(HttpStatus.CONFLICT,
-                            "EP003 already used its first Slow Intake paid request; no regeneration without separate Director policy.");
+                requireEp003SlowFirst(shot.episodeKey(),selectedMode,attempted||hasTake);
             }
             if(slow)SlowNaturalVoicePrompt.plan(active.narration(),elevenLabs.modelId());
             Long count=jdbc.sql("""
