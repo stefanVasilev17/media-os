@@ -38,9 +38,9 @@ export function EpisodePackageImportPage(){
   useEffect(()=>{
     if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
       setBusy(true);
-      void json<Imported>(fetch(BASE+'/prepare-ep003',{
+      void fetch(BASE+'/prepare-ep003',{
         method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
-      }).then(response=>response)).then(episode=>{
+      }).then(json<Imported>).then(episode=>{
         setDetails(episode);
         setActiveVoiceShot('SHOT01');
         setNotice('EP003 prepared: 11 Director-locked voice SHOTs. Generate Slow Intake one SHOT at a time; paid calls require your approval.');
