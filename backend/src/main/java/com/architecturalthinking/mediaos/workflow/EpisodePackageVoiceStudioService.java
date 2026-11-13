@@ -26,7 +26,7 @@ public class EpisodePackageVoiceStudioService {
     private static final int MAX_WORKING_NARRATION=12000;
     private static final int MAX_TAKES_PER_SHOT=4;
 
-    record Shot(UUID id,String shotKey) {}
+    record Shot(UUID id,String shotKey,String episodeKey) {}
     record Revision(int revision,String narration,String voiceDirection) {}
     record Request(UUID shotId,int revision,String narration) {}
     public record VoiceTake(UUID id,int revision,int takeNumber,String contentType,
@@ -89,7 +89,7 @@ public class EpisodePackageVoiceStudioService {
         if(key==null || !key.matches("SHOT(0[1-9]|[1-3][0-9]|40)"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Unknown SHOT key.");
         return jdbc.sql("""
-                select s.id,s.shot_key from episode_package_shot s
+                select s.id,s.shot_key,p.episode_key from episode_package_shot s
                 join episode_package_import p on p.id=s.package_id
                 where s.package_id=:package and s.shot_key=:shot
                   and p.director_issuer=:issuer and p.director_subject=:subject
@@ -97,7 +97,7 @@ public class EpisodePackageVoiceStudioService {
                 .param("package",packageId).param("shot",key)
                 .param("issuer",actor.issuer()).param("subject",actor.subject())
                 .query((rs,n)->new Shot(rs.getObject("id",UUID.class),
-                        rs.getString("shot_key")))
+                        rs.getString("shot_key"),rs.getString("episode_key")))
                 .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "SHOT voice workspace not found for this Director."));
     }
@@ -150,13 +150,17 @@ public class EpisodePackageVoiceStudioService {
                 select exists(select 1 from episode_package_voice_request
                   where shot_id=:shot and status in ('IN_FLIGHT','UNCERTAIN'))
                 """).param("shot",shot.id()).query(Boolean.class).single();
+        boolean ep003SlowOnly="EP003".equals(shot.episodeKey());
         boolean allTakesUsed=takes.size()>=MAX_TAKES_PER_SHOT;
+        boolean firstTakeAlreadyCreated=ep003SlowOnly&&!takes.isEmpty();
         boolean tooLong=revision.narration().length()>MAX_CHARS;
         Ep002VoiceIdentityGuard.Check profile=voiceIdentity.inspect("EP002");
         String blocker=!paidGateEnabled?"New episode ElevenLabs generation is disabled by the server spend gate."
                 :!elevenLabs.configured()?"ElevenLabs is not configured."
                 :!profile.verified()?profile.blockedReason()
                 :unresolved?"A prior paid request is IN_FLIGHT or UNCERTAIN. Reconcile it before another attempt."
+                :ep003SlowOnly&&!elevenV4()?"EP003 requires a verified Eleven v4 Slow Natural model; STANDARD is blocked."
+                :firstTakeAlreadyCreated?"EP003 first Slow Intake Take already exists; listen and approve it. No automatic regeneration."
                 :allTakesUsed?"Safety limit: maximum four generated takes per SHOT."
                 :tooLong?"Narration exceeds the 5000-character TTS safety limit.":"";
         boolean canGenerate=blocker.isEmpty();
@@ -214,6 +218,9 @@ public class EpisodePackageVoiceStudioService {
                            String narration,String direction) {
         DirectorIdentity.Actor actor=DirectorIdentity.requireDirector();
         Shot shot=shot(packageId,key,actor);
+        if("EP003".equals(shot.episodeKey()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP003 Script Pass v0.4 is Director-LOCKED. Voice Studio cannot edit it.");
         String checked=validatedNarration(narration);
         String instructions=validatedVoiceDirection(direction);
         lockShot(shot.id());
@@ -266,6 +273,9 @@ public class EpisodePackageVoiceStudioService {
                     "ElevenLabs TTS is not configured.");
         voiceIdentity.requireVerified("EP002");
         Shot shot=shot(packageId,key,actor);
+        if("EP003".equals(shot.episodeKey())&&!slow)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP003 requires SLOW_NATURAL for the first and only planned voice Take; STANDARD is forbidden.");
         Request reserved=transaction.execute(status->{
             lockShot(shot.id());
             Revision active=current(shot.id());
@@ -275,6 +285,20 @@ public class EpisodePackageVoiceStudioService {
                         "Narration or active revision changed. Refresh before any paid request.");
             if(active.narration().length()>MAX_CHARS)
                 throw new ResponseStatusException(HttpStatus.CONFLICT,"Narration exceeds TTS limit.");
+            if("EP003".equals(shot.episodeKey())) {
+                String original=jdbc.sql("select original_narration from episode_package_shot where id=:shot")
+                        .param("shot",shot.id()).query(String.class).single();
+                if(active.revision()!=1||!original.equals(active.narration()))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "EP003 immutable Director-LOCKED script revision mismatch. No paid voice request.");
+                boolean attempted=jdbc.sql("select exists(select 1 from episode_package_voice_request where shot_id=:shot)")
+                        .param("shot",shot.id()).query(Boolean.class).single();
+                boolean hasTake=jdbc.sql("select exists(select 1 from episode_package_voice_take where shot_id=:shot)")
+                        .param("shot",shot.id()).query(Boolean.class).single();
+                if(attempted||hasTake)
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,
+                            "EP003 already used its first Slow Intake paid request; no regeneration without separate Director policy.");
+            }
             if(slow)SlowNaturalVoicePrompt.plan(active.narration(),elevenLabs.modelId());
             Long count=jdbc.sql("""
                     select count(*) from episode_package_voice_take where shot_id=:shot
