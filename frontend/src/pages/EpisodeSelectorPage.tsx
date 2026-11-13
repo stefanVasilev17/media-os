@@ -51,7 +51,16 @@ export function EpisodeSelectorPage() {
           <span className="episode-selector-name"><strong>{ep002.title}</strong><small>{episodes.some(row=>row.episodeNumber==='EP002')?'Production workspace +':'Source library · not yet registered in production'} · 11 locked script SHOTs / 59 approved visual beats</small></span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
-        {[...episodes].filter(episode => !['EP001','EP002'].includes(episode.episodeNumber))
+        <button type="button" className="episode-selector-row"
+          onClick={() => {window.location.hash='#/episode-packages/import?ep003=1';}}>
+          <span className="episode-selector-id">EP003</span>
+          <span className="episode-selector-name">
+            <strong>What Happens When One Database Is No Longer Enough?</strong>
+            <small>Script v0.4 DIRECTOR LOCKED · 11 SHOTs · Slow Intake Voice Factory</small>
+          </span>
+          <ArrowRight size={22} aria-hidden="true"/>
+        </button>
+        {[...episodes].filter(episode => !['EP001','EP002','EP003'].includes(episode.episodeNumber))
           .sort((a, b) => b.episodeNumber.localeCompare(a.episodeNumber, undefined, { numeric: true }))
           .map(episode => (
           <button type="button"
