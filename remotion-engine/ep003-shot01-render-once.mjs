@@ -82,7 +82,7 @@ async function main(){
   let renderId=null;
   let tmp=null;
   try {
-    const source=(await db.query(\`
+    const source=(await db.query(`
       select p.id as package_id,p.source_sha256,
              s.id as shot_id,s.original_narration,r.narration,
              c.take_id,t.audio,t.content_type,t.duration_seconds,
@@ -99,7 +99,7 @@ async function main(){
       ) c on true
       join episode_package_voice_take t on t.id=c.take_id
         and t.shot_id=s.id and t.revision=1
-      where p.episode_key='EP003'\`,[SHOT])).rows[0];
+      where p.episode_key='EP003'`,[SHOT])).rows[0];
     assert(source,'EP003_SHOT01_NO_DIRECTOR_APPROVED_TAKE__BLOCK_RENDER');
     const file=JSON.parse(await fs.readFile('/app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json','utf8'));
     const locked=file.shots.find(s=>s.shotKey===SHOT)?.narration;
@@ -110,9 +110,9 @@ async function main(){
     assert(Number(source.duration_seconds)>20&&Number(source.duration_seconds)<400,
       'REAL_SELECTED_AUDIO_DURATION_INVALID');
     const cueFrames=cueFramesFromRealVoice(source.timing);
-    const previous=(await db.query(\`
+    const previous=(await db.query(`
       select id,status,width,height,fps,duration_in_frames,video_data,render_hash
-      from remotion_render where id=$1::uuid\`,[PIN])).rows[0];
+      from remotion_render where id=$1::uuid`,[PIN])).rows[0];
     assert(previous?.status==='SUCCEEDED'&&previous.video_data,
       'EP002_APPROVED_FINAL_RENDER_NOT_IN_DATABASE__P0_BLOCK');
     assert(Number(previous.width)===1920&&Number(previous.height)===1080
@@ -122,8 +122,8 @@ async function main(){
       'EP003_SHOT01_DIRECTOR_V1|'+SHA+'|'+source.take_id+'|'+source.spoken_sha+
       '|'+PIN+'|'+previous.render_hash
     );
-    const already=(await db.query(\`select id,status from remotion_render
-      where project_id=$1::uuid and render_hash=$2\`,[PROJECT,idempotency])).rows[0];
+    const already=(await db.query(`select id,status from remotion_render
+      where project_id=$1::uuid and render_hash=$2`,[PROJECT,idempotency])).rows[0];
     if(already){
       console.log('EP003_SHOT01_EXISTING_RENDER '+JSON.stringify(already));
       return;
@@ -171,11 +171,11 @@ async function main(){
     };
     console.log('EP003_SHOT01_REAL_INPUT_VERIFIED '+JSON.stringify(receipt));
     renderId=randomUUID();
-    await db.query(\`insert into remotion_render(
+    await db.query(`insert into remotion_render(
        id,project_id,episode_id,composition_id,render_key,engine_version,
        input_props,render_hash,profile,status,width,height,fps,duration_in_frames,progress
        ) values ($1::uuid,$2::uuid,null,$3,$4,$5,$6::jsonb,$7,'REVIEW','RUNNING',
-       1920,1080,30,$8,0)\`,[
+       1920,1080,30,$8,0)`,[
       renderId,PROJECT,COMPOSITION,'EP003_SHOT01_V1',
       'EP003_PIN_'+SHA.slice(0,12),
       JSON.stringify({...props,previousLastFrameDataUri:'DATA_URI_SAVED_ONLY_IN_RENDER_RECEIPT'}),
@@ -220,10 +220,10 @@ async function main(){
     assert(bytes.length>=1500000&&bytes.length<256*1024*1024,
       'EP003_FINAL_MP4_SIZE_NOT_SAFE_FOR_MEDIAOS_STORAGE');
     const videoSha=hash(bytes);
-    await db.query(\`update remotion_render
+    await db.query(`update remotion_render
       set video_data=$1,media_type='video/mp4',size_bytes=$2,status='SUCCEEDED',
       progress=100,finished_at=now(),updated_at=now()
-      where id=$3::uuid and status='RUNNING'\`,
+      where id=$3::uuid and status='RUNNING'`,
       [bytes,bytes.length,renderId]);
     console.log('EP003_SHOT01_REAL_MP4_SAVED '+JSON.stringify({
       renderId,uri:'/api/v1/remotion/renders/'+renderId+'/video',
@@ -235,9 +235,9 @@ async function main(){
     }));
   }catch(e){
     console.error('EP003_SHOT01_RENDER_BLOCKED '+String(e.stack||e));
-    if(renderId)await db.query(\`update remotion_render
+    if(renderId)await db.query(`update remotion_render
         set status='FAILED',error=$1,finished_at=now(),updated_at=now()
-        where id=$2::uuid and status='RUNNING'\`,
+        where id=$2::uuid and status='RUNNING'`,
       [String(e.message||e).slice(0,1200),renderId]).catch(()=>{});
     process.exitCode=1;
   }finally{
