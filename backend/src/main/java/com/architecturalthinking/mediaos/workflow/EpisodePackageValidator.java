@@ -67,9 +67,17 @@ public class EpisodePackageValidator {
 
         JsonNode approval=object(doc,"sourceApproval",
                 Set.of("script","visualStoryline","approvalNotes"));
-        if (!"DIRECTOR_APPROVED".equals(text(approval,"script",1,40))
-                || !"DIRECTOR_APPROVED".equals(text(approval,"visualStoryline",1,40)))
-            bad("Both script and visual storyline must be Director-approved.");
+        String scriptApproval=text(approval,"script",1,40);
+        String visualApproval=text(approval,"visualStoryline",1,40);
+        boolean approved="DIRECTOR_APPROVED".equals(scriptApproval)
+                && "DIRECTOR_APPROVED".equals(visualApproval);
+        boolean ep003VoiceOnly="EP003".equals(episodeKey)
+                && "DIRECTOR_APPROVED".equals(scriptApproval)
+                && "VOICE_ONLY_DRAFT".equals(visualApproval);
+        if (!approved && !ep003VoiceOnly)
+            bad("Script and visual storyline must be Director-approved, except EP003 voice-only intake with draft visuals.");
+        if(ep003VoiceOnly && !"What Happens When One Database Is No Longer Enough?".equals(title))
+            bad("EP003 voice-only intake requires the exact Director-locked episode title.");
         optionalText(approval,"approvalNotes",0,1000);
 
         JsonNode identity=object(doc,"visualIdentity",
