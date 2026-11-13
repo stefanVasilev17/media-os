@@ -74,6 +74,13 @@ class EpisodePackageValidatorTest {
         assertEquals("What Happens When One Database Is No Longer Enough?",source.title());
         assertEquals(11,source.shotCount());
         assertEquals(33,source.beatCount());
+        long spokenWords=0;
+        var wordPattern=java.util.regex.Pattern.compile("[\\p{L}\\p{N}]+(?:['’-][\\p{L}\\p{N}]+)*");
+        for(var shot:source.document().path("shots")) {
+            var words=wordPattern.matcher(shot.path("narration").asText());
+            while(words.find())spokenWords++;
+        }
+        assertEquals(2917,spokenWords,"EP003 Director-locked narration has exactly 2917 spoken words");
         assertEquals("VOICE_ONLY_DRAFT",
                 source.document().path("sourceApproval").path("visualStoryline").asText());
         assertEquals("DIRECTOR_APPROVED",
