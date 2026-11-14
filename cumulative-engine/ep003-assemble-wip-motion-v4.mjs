@@ -261,6 +261,6 @@ async function main(){
     if(tmp)await fs.rm(tmp,{recursive:true,force:true}).catch(()=>{});
   }
 }
-if(process.argv[1]&&process.argv[1].endsWith('ep003-assemble-master.mjs')){
+if(process.argv[1]&&process.argv[1].endsWith('ep003-assemble-wip-motion-v4.mjs')){
   main().catch(e=>{console.error('EP003_CUMULATIVE_FATAL '+String(e.stack||e));process.exitCode=1;});
 }
