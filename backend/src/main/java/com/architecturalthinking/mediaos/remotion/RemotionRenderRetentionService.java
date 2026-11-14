@@ -18,6 +18,8 @@ public class RemotionRenderRetentionService {
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID = UUID.fromString("7e55c59a-3102-4d4c-b23e-96c68ad1f286");
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID = UUID.fromString("3a09dbd5-7ef8-4c0e-9621-12ca8a4b99a0");
     private static final UUID DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID = UUID.fromString("5d8c7db2-b34e-4781-af1a-2aa236691ea5");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT01_V2_ID = UUID.fromString("b6fd7f30-7c78-414b-a88c-387c0ee8c43a");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT02_V3_ID = UUID.fromString("8598d156-438f-4614-a9dd-ce6172233d9b");
     private static final UUID EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID = UUID.fromString("e03c87c6-3f68-40cb-adba-24020bca28af");
     private static final UUID EP001_AUDIO_HEADROOM_QA_REVIEW_ID = UUID.fromString("96699a27-7615-4ce1-a092-53cdf1e9d1af");
     private static final UUID EP001_SOUND_DESIGN_V1_REVIEW_ID = UUID.fromString("904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8");
@@ -76,6 +78,9 @@ public class RemotionRenderRetentionService {
                           and r.id <> :directorLockedShot10MasterId
                           and r.id <> :directorLockedShot11MasterId
                           and r.id <> :directorLockedShot12MasterId
+                          and r.id <> :directorLockedEp003Shot01V2
+                          and r.id <> :directorLockedEp003Shot02V3
+                          and r.composition_id <> 'EP003-CUMULATIVE-DIRECTOR-MASTER'
                           and r.id <> :provisionalEpisodeAudioReviewId
                           and r.id <> :audioHeadroomReviewId
                           and r.id <> :soundDesignV1ReviewId
@@ -125,6 +130,8 @@ public class RemotionRenderRetentionService {
                         .param("directorLockedShot10MasterId", DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID)
                         .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                         .param("directorLockedShot12MasterId", DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID)
+                        .param("directorLockedEp003Shot01V2", DIRECTOR_LOCKED_EP003_SHOT01_V2_ID)
+                        .param("directorLockedEp003Shot02V3", DIRECTOR_LOCKED_EP003_SHOT02_V3_ID)
                         .param("provisionalEpisodeAudioReviewId", EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID)
                         .param("audioHeadroomReviewId", EP001_AUDIO_HEADROOM_QA_REVIEW_ID)
                         .param("soundDesignV1ReviewId", EP001_SOUND_DESIGN_V1_REVIEW_ID)
@@ -147,6 +154,9 @@ public class RemotionRenderRetentionService {
                               and r.id <> :directorLockedShot10MasterId
                           and r.id <> :directorLockedShot11MasterId
                           and r.id <> :directorLockedShot12MasterId
+                          and r.id <> :directorLockedEp003Shot01V2
+                          and r.id <> :directorLockedEp003Shot02V3
+                          and r.composition_id <> 'EP003-CUMULATIVE-DIRECTOR-MASTER'
                           and r.id <> :provisionalEpisodeAudioReviewId
                           and r.id <> :audioHeadroomReviewId
                           and r.id <> :soundDesignV1ReviewId
@@ -195,6 +205,8 @@ public class RemotionRenderRetentionService {
                         .param("directorLockedShot10MasterId", DIRECTOR_LOCKED_EP001_SHOT10_PRESENTATION_V8_ID)
                         .param("directorLockedShot11MasterId", DIRECTOR_LOCKED_EP001_SHOT11_PRESENTATION_V5_ID)
                         .param("directorLockedShot12MasterId", DIRECTOR_LOCKED_EP001_SHOT12_RECAP_V5_ID)
+                        .param("directorLockedEp003Shot01V2", DIRECTOR_LOCKED_EP003_SHOT01_V2_ID)
+                        .param("directorLockedEp003Shot02V3", DIRECTOR_LOCKED_EP003_SHOT02_V3_ID)
                         .param("provisionalEpisodeAudioReviewId", EP001_PROVISIONAL_AUDIO_MASTER_REVIEW_ID)
                         .param("audioHeadroomReviewId", EP001_AUDIO_HEADROOM_QA_REVIEW_ID)
                         .param("soundDesignV1ReviewId", EP001_SOUND_DESIGN_V1_REVIEW_ID)
