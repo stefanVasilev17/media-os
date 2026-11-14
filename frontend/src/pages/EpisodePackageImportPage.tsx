@@ -10,6 +10,7 @@ import {EpisodeCodexCloudPanel} from '../components/EpisodeCodexCloudPanel';
 import {EpisodeFactoryProductionPanel} from '../components/EpisodeFactoryProductionPanel';
 import {Ep003Shot01DirectorReview} from '../components/Ep003Shot01DirectorReview';
 import {Ep003Shot02DirectorReview} from '../components/Ep003Shot02DirectorReview';
+import {Ep003Shot03DirectorReview} from '../components/Ep003Shot03DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 import {Ep003WipShot02V4FullFilm} from '../components/Ep003WipShot02V4FullFilm';
 
@@ -152,9 +153,10 @@ export function EpisodePackageImportPage(){
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
       {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
-      {details.episodeKey==='EP003'&&<Ep003WipShot02V4FullFilm/>}
+      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical WIP · SHOT02 V4 transition review (archived)</summary><Ep003WipShot02V4FullFilm/></details>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot03DirectorReview/>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeCodexCloudPanel packageId={details.packageId}
