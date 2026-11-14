@@ -161,7 +161,8 @@ test('P0 removes STATIC 55-frame predecessor image and keeps source still at EXA
   assert.match(render,/EP003_SHOT02_V4_ACTUAL_FIRST_SECOND_MOTION_COMPARISON/);
   assert.match(render,/firstFramesMotion\(oldV3\)/);
   assert.match(render,/firstFramesMotion\(finished\)/);
-  assert.match(render,/newMotion\.earlyTenMean>oldMotion\.earlyTenMean\*1\.2/);
-  assert.match(render,/newMotion\.firstStep<12/);
+  assert.match(render,/newMotion\.firstStep>oldMotion\.firstStep\*5/);
+  assert.match(render,/newMotion\.firstTenSteps\[1\]<oldMotion\.firstTenSteps\[1\]\*0\.5/);
+  assert.match(render,/newMotion\.firstStep<3/);
   assert.match(render,/LOCKED_V3_REFERENCE_SHA/);
 });
