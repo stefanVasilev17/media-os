@@ -32,6 +32,8 @@ public class RemotionRenderController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT01_V2 = UUID.fromString("b6fd7f30-7c78-414b-a88c-387c0ee8c43a");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT02_V3 = UUID.fromString("8598d156-438f-4614-a9dd-ce6172233d9b");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
@@ -677,6 +679,9 @@ public class RemotionRenderController {
     private Map<String, Object> response(RenderRow row) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("renderId", row.id());
+        result.put("directorLocked",
+                row.id().equals(DIRECTOR_LOCKED_EP003_SHOT01_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT02_V3));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());
