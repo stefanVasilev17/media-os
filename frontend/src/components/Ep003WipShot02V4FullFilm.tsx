@@ -45,15 +45,14 @@ export function Ep003WipShot02V4FullFilm(){
     <header className="ep003-director-review-heading">
       <div>
         <h3><Film size={21} aria-hidden="true"/> EP003 · Full Video WIP — Seam Fix V4</h3>
-        <p>SHOT01 V2 (LOCKED) → SHOT02 V4 (candidate) · no frozen handoff image</p>
+        <p>Archived WIP comparison of SHOT01 V2 → SHOT02 V4 · V4 is now officially LOCKED</p>
       </div>
-      <span className="ep003-director-review-status">WIP · NOT LOCKED · DIRECTOR REVIEW</span>
+      <span className="ep003-director-review-status">HISTORICAL WIP · SUPERSEDED BY LOCKED V4 MASTER</span>
     </header>
     <p className="ep003-director-review-detail">
-      Compare this with the permanent locked film above. The original SHOT01 V2 and
-      SHOT02 V3 files and voices stay untouched. V4 removes the 55-frame static PNG
-      cover and continues real request particles from the next frame. SHOT02 still
-      includes exactly 2 seconds of moving world before its unchanged Slow Natural voice.
+      This is an older WIP assembly retained for reference. SHOT02 V4 was later approved
+      and promoted into the official Director-LOCKED master above. The original V3
+      remains an archive. This WIP copy is not a second active master.
     </p>
     {state.kind==='LOADING'&&<p role="status">Checking real WIP MP4…</p>}
     {state.kind==='EMPTY'&&<p role="status"><AlertCircle size={16} aria-hidden="true"/> {state.message}</p>}
