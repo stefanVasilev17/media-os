@@ -5,6 +5,7 @@ const ENDPOINT='/api/v1/remotion/renders/ep003/shot06/v1/latest-successful';
 const PREFIX='/api/v1/remotion/renders/';
 const COMPOSITION='EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE';
 const RENDER_KEY='EP003_SHOT06_CORRECTNESS_V1';
+const LOCKED_RENDER_ID='0007bd16-edbf-4ecc-927a-4a5781d0b921';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 type RecordV1={
@@ -28,16 +29,16 @@ export function Ep003Shot06V1DirectorReview(){
       .then(record=>{
         if(ctrl.signal.aborted)return;
         if(record.status==='EMPTY'){
-          setState({kind:'EMPTY',message:'SHOT06 V1 candidate is not saved yet. The official 5-SHOT Director-LOCKED master is unchanged.'});
+          setState({kind:'EMPTY',message:'The exact Director-LOCKED SHOT06 V1 MP4 could not be found.'});
           return;
         }
         if(record.status!=='READY'||!record.renderId||!UUID.test(record.renderId)||
-          record.renderKey!==RENDER_KEY||record.compositionId!==COMPOSITION||
+          record.renderKey!==RENDER_KEY||record.renderId!==LOCKED_RENDER_ID||record.compositionId!==COMPOSITION||
           record.profile!=='REVIEW'||record.width!==1920||record.height!==1080||
           record.fps!==30||typeof record.durationInFrames!=='number'||!Number.isInteger(record.durationInFrames)||record.durationInFrames<1500||record.durationInFrames>7200||
           record.videoUrl!==PREFIX+record.renderId+'/video'||
-          !record.sizeBytes||record.sizeBytes<1000000||record.directorLocked===true){
-          setState({kind:'EMPTY',message:'SHOT06 V1 does not pass the saved 1080p MP4 review contract. The official master remains unchanged.'});
+          !record.sizeBytes||record.sizeBytes<1000000){
+          setState({kind:'EMPTY',message:'The saved SHOT06 V1 MP4 does not match its pinned Director-LOCKED render. No fallback.'});
           return;
         }
         setState({kind:'READY',record});
@@ -52,10 +53,10 @@ export function Ep003Shot06V1DirectorReview(){
   return <section className="ep003-director-review" aria-label="EP003 SHOT06 V1 Director review video">
     <header className="ep003-director-review-heading">
       <div>
-        <h3><PlayCircle size={21} aria-hidden="true"/> SHOT06 V1 · Director Video Review</h3>
+        <h3><PlayCircle size={21} aria-hidden="true"/> SHOT06 V1 · Director-LOCKED Source</h3>
         <p>Consistency Guarantees · Version Checks · Fail Closed</p>
       </div>
-      <span className="ep003-director-review-status">V1 · RENDERED CANDIDATE · NOT LOCKED</span>
+      <span className="ep003-director-review-status">V1 · DIRECTOR-LOCKED · OFFICIAL MASTER</span>
     </header>
     <p className="ep003-director-review-detail">
       “Correctness Before Speed” — an uninterrupted continuation of the same Living
@@ -65,6 +66,8 @@ export function Ep003Shot06V1DirectorReview(){
       version checks, authoritative fallback and fail-closed authentication.
       All text remains content-fit; there are no nested containers or stray request dots.
       Original Director-selected Slow Natural narration, no TTS regeneration.
+      Director approved this SHOT after viewing all six SHOTs together;
+      all five actual encoded cuts passed frame-accurate QA.
     </p>
     {state.kind==='CHECKING'&&<p role="status">Checking stored SHOT06 V1 MP4…</p>}
     {state.kind==='EMPTY'&&<p role="status">{state.message}</p>}
@@ -82,9 +85,9 @@ export function Ep003Shot06V1DirectorReview(){
       </button>
     </nav>
     <p className="ep003-director-review-caution">
-      SHOT06 V1 is NOT LOCKED. The Director alone may approve the actual MP4.
+      SHOT06 V1 is now Director-LOCKED as the sixth immutable source.
       SHOT01 V2, SHOT02 V4, SHOT03 V4, SHOT04 V1 and SHOT05 V1 remain
-      immutable in the official five-shot full-video master.
+      immutable in the official six-shot full-video master.
     </p>
   </section>;
 }
