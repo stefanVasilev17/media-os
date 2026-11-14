@@ -10,6 +10,7 @@ type RenderInfo={
   status?:string;
   renderId?:string;
   renderKey?:string;
+  directorLocked?:boolean;
   width?:number;
   height?:number;
   fps?:number;
@@ -23,12 +24,14 @@ export function Ep003Shot02DirectorReview(){
   const [revision,setRevision]=useState(0);
   const [videoUrl,setVideoUrl]=useState<string|null>(null);
   const [version,setVersion]=useState<'V1'|'V2'|'V3'|null>(null);
+  const [directorLocked,setDirectorLocked]=useState(false);
 
   useEffect(()=>{
     const controller=new AbortController();
     setStatus('CHECKING');
     setVideoUrl(null);
     setVersion(null);
+    setDirectorLocked(false);
     setMessage('');
     void fetch(LATEST_ENDPOINT,{cache:'no-store',signal:controller.signal})
       .then(async response=>{
@@ -53,6 +56,7 @@ export function Ep003Shot02DirectorReview(){
         setVideoUrl(expected);
         setVersion(render.renderKey==='EP003_SHOT02_TERMS_V3'?'V3':
           render.renderKey==='EP003_SHOT02_TERMS_V2'?'V2':'V1');
+        setDirectorLocked(render.directorLocked===true);
         setStatus('READY');
       })
       .catch(error=>{
@@ -70,7 +74,9 @@ export function Ep003Shot02DirectorReview(){
         <p>Find the Real Bottleneck.</p>
       </div>
       <span className="ep003-director-review-status">
-        {version==='V3'?'V3 · LATENCY / THROUGHPUT · 2s LEAD · NOT LOCKED':
+        {version==='V3'?(directorLocked
+            ?'V3 · LATENCY / THROUGHPUT · 2s LEAD · DIRECTOR LOCKED'
+            :'V3 · VERIFY DIRECTOR LOCK'):
           version==='V2'?'V2 · TECHNICAL TERMS ONLY · PRIOR REVIEW':
           version==='V1'?'V1 · PRIOR REVIEW · NOT LOCKED':
           'DIRECTOR REVIEW · NOT LOCKED'}
@@ -101,8 +107,10 @@ export function Ep003Shot02DirectorReview(){
       </button>
     </nav>
     <p className="ep003-director-review-caution">
-      Director approval is required after watching the actual video. This panel performs no
-      paid generation, re-render or automatic visual LOCK.
+      {version==='V3'&&directorLocked
+        ?'The Director explicitly LOCKED this exact saved V3 MP4. SHOT03 must inherit its real final encoded frame 3442.'
+        :'This earlier visual candidate is not Director-LOCKED.'}
+      {' '}This player never creates a voice, edits media, or triggers rendering.
     </p>
   </section>;
 }

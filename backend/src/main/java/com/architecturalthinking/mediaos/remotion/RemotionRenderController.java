@@ -32,6 +32,8 @@ public class RemotionRenderController {
 
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT01_V2 = UUID.fromString("b6fd7f30-7c78-414b-a88c-387c0ee8c43a");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT02_V3 = UUID.fromString("8598d156-438f-4614-a9dd-ce6172233d9b");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
@@ -412,6 +414,34 @@ public class RemotionRenderController {
                         "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
     }
 
+    @GetMapping("/ep003/cumulative/latest-successful")
+    public Map<String,Object> latestEp003CumulativeFullVideo() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-CUMULATIVE-DIRECTOR-MASTER'
+                  and render_key like 'EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_%'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and (input_props->>'directorLocked')='true'
+                  and (input_props->>'verified')='true'
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>0
+                order by (input_props->>'shotCount')::integer desc,
+                         finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_LOCKED_CONTIGUOUS_MASTER_YET"));
+    }
+
     @GetMapping("/{renderId}")
     public Map<String, Object> render(@PathVariable UUID renderId) {
         return findById(renderId)
@@ -649,6 +679,9 @@ public class RemotionRenderController {
     private Map<String, Object> response(RenderRow row) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("renderId", row.id());
+        result.put("directorLocked",
+                row.id().equals(DIRECTOR_LOCKED_EP003_SHOT01_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT02_V3));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());
