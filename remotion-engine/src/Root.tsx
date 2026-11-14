@@ -13,6 +13,7 @@ import {Shot10DirectorVisualV1} from './episodes/ep002/Shot10DirectorVisualV1';
 import {Shot11DirectorVisualV1} from './episodes/ep002/Shot11DirectorVisualV1';
 import {Ep003Shot03WordingV4} from './episodes/ep003/Shot03WordingV4';
 import {Ep003Shot04ReadWriteSplittingV1} from './episodes/ep003/Shot04ReadWriteSplittingV1';
+import {Ep003Shot05StaleReadV1} from './episodes/ep003/Shot05StaleReadV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -76,6 +77,28 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT05-STALE-READ-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot05StaleReadV1}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'00000000-0000-0000-0000-000000000001',
+          previousRenderId:'4079729b-c1b3-405c-9a83-1ace0ef25641',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:24852,
+          cueFrames:{
+            INTRO:60,ACCOUNT_LOCKED:95,PRIMARY_WRITE:130,LOCK_COMMITTED:165,
+            REPLICA_LAG:200,VERSION_SPLIT:235,LAG_DEFINITION:270,
+            ANOTHER_LOGIN:305,SAFE_PRIMARY:340,HYPOTHETICAL:375,
+            STALE_ACTIVE:410,STALE_READ:445,UNSAFE:480,EVENTUAL:515,
+            CATCH_UP:550,DISPLAY_PREFERENCE:575,SECURITY:600,
+            FAST_UNSAFE:620,CONCLUSION:640
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT04-READ-WRITE-SPLITTING-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot04ReadWriteSplittingV1}
