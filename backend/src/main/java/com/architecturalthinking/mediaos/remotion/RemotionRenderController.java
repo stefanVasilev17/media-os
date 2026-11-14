@@ -391,8 +391,10 @@ public class RemotionRenderController {
                        created_at, finished_at
                 from remotion_render
                 where project_id=:projectId
-                  and composition_id='EP003-SHOT02-DIRECTOR-CANDIDATE'
-                  and render_key='EP003_SHOT02_V1'
+                  and ((composition_id='EP003-SHOT02-DIRECTOR-CANDIDATE'
+                        and render_key='EP003_SHOT02_V1')
+                    or (composition_id='EP003-SHOT02-TERMS-V2-DIRECTOR-CANDIDATE'
+                        and render_key='EP003_SHOT02_TERMS_V2'))
                   and profile='REVIEW'
                   and status='SUCCEEDED'
                   and video_data is not null
