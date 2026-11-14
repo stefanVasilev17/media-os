@@ -78,7 +78,22 @@
       "height": 1080,
       "voiceTakeId": "da70458f-6728-4437-953c-58113c8aae8d",
       "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT06",
+      "version": "V1",
+      "directorLocked": true,
+      "renderId": "0007bd16-edbf-4ecc-927a-4a5781d0b921",
+      "compositionId": "EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT06_CORRECTNESS_V1",
+      "sha256": "4d38c8a5777b2eeab1952bd8960a925feae0672d142b70b12b2a2df2392d4a3f",
+      "frames": 3601,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "ff8ed53c-f405-43d5-82d9-33cac97cd811",
+      "voiceLeadInFrames": 60
     }
   ],
-  "directorApprovalContext": "Director reviewed complete five-shot WIP render 2f6f65c1-124c-40c4-9f6c-1d4a3efd8906 with 4/4 decoded seam QA PASS and explicitly LOCKED SHOT05 V1. Prior 4 locks remain byte-for-byte immutable. SHOT06 is new separate candidate and must NEVER be automatically locked. MediaOS shows exactly one latest official full-video master."
+  "directorApprovalContext": "Director explicitly approved SHOT06 V1 after reviewing complete 6-SHOT WIP b32ba126-948b-4a6f-9119-802a592629d1 (all five actual encoded seam QAs PASS, latest PSNR 42.833128). SHOT01–SHOT05 immutable and SHOT06 now Director-LOCKED as exact SHA-pinned source. SHOT07 must be a separate unapproved candidate until explicit Director LOCK. MediaOS must have ONE newest official 6-SHOT full video."
 }
