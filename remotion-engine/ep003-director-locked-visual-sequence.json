@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "at.episode-locked-sequence.v1",
+  "episodeKey": "EP003",
+  "projectId": "11111111-1111-1111-1111-111111111111",
+  "directorApprovalDate": "2026-11-14",
+  "productionRule": "append every next consecutive Director-LOCKED SHOT; never include an unlocked candidate",
+  "shots": [
+    {
+      "shotKey": "SHOT01",
+      "version": "V2",
+      "directorLocked": true,
+      "renderId": "b6fd7f30-7c78-414b-a88c-387c0ee8c43a",
+      "compositionId": "EP003-SHOT01-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT01_V2",
+      "sha256": "da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08",
+      "frames": 2514,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "1bde96be-d530-4ccc-ae0f-3bea138879d7"
+    },
+    {
+      "shotKey": "SHOT02",
+      "version": "V4",
+      "directorLocked": true,
+      "renderId": "78db6f85-ba05-4714-ba4f-fc70d64def88",
+      "compositionId": "EP003-SHOT02-MOTION-V4-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT02_MOTION_V4",
+      "sha256": "5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e",
+      "frames": 3443,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "c4131401-2b42-4bac-873f-05de50040c99",
+      "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT03",
+      "version": "V4",
+      "directorLocked": true,
+      "renderId": "fc26ca7b-60f2-4c35-b248-6b373736ce99",
+      "compositionId": "EP003-SHOT03-WORDING-V4-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT03_WORDING_V4",
+      "sha256": "1c4fbe3133775b514e82a2e2aec583859615d8fa86b349732dd7ba1bf2391709",
+      "frames": 3080,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "63a94494-f134-411a-8e7d-2389ce83a6b4",
+      "voiceLeadInFrames": 60
+    }
+  ],
+  "directorApprovalContext": "Director watched complete three-shot WIP render 2a5042a2-1d0f-41d3-9af6-e223fa43485a with QA PASS on both joins and explicitly LOCKED SHOT03 V4, approved final on-screen wording 'Accepts writes. Replica copy changes'. Official full video must show latest 3-SHOT Director-LOCKED master only, preserving history without duplicate full-video players."
+}
