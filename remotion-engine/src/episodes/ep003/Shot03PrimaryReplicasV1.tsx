@@ -39,9 +39,9 @@ const REPLICAS=[
     start:{x:1697,y:649},c1:{x:1712,y:775},c2:{x:1513,y:821},end:{x:1560,y:898}},
 ] as const;
 const glossary=[
-  {cue:'PRIMARY',title:'PRIMARY',meaning:'Authoritative database for account changes',color:CYAN},
+  {cue:'PRIMARY',title:'PRIMARY',meaning:'Authority for account writes',color:CYAN},
   {cue:'COPY',title:'REPLICA',meaning:'A copy of the same account data',color:MINT},
-  {cue:'ASYNC',title:'ASYNCHRONOUS REPLICATION',meaning:'Primary commits without waiting for replicas',color:AMBER},
+  {cue:'ASYNC',title:'ASYNCHRONOUS REPLICATION',meaning:'Primary commits before replica updates',color:AMBER},
   {cue:'SCALE',title:'HORIZONTAL SCALING',meaning:'More machines share suitable read work',color:MINT},
 ] as const;
 const CARD_LEFT=560,CARD_TOP=742,CARD_HEIGHT=131;
