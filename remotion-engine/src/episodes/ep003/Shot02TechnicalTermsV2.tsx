@@ -26,7 +26,7 @@ export const EP003_SHOT02_TERM_CARDS=[
   {cue:'THROUGHPUT_TERM',eyebrow:'THROUGHPUT',line:'Work completed in a given period',color:CYAN},
   {cue:'LATENCY_TERM',eyebrow:'LATENCY',line:'Time one operation takes to complete',color:CYAN},
   {cue:'BOTTLENECK_TERM',eyebrow:'BOTTLENECK',line:'The component limiting total Login capacity',color:AMBER},
-  {cue:'ADMISSION_BUDGET_TERM',eyebrow:'ADMISSION BUDGET',line:'A limit on DB work, including permitted retries',color:MINT},
+  {cue:'ADMISSION_BUDGET_TERM',eyebrow:'ADMISSION BUDGET',line:'Caps DB lookups, including retry work',color:MINT},
 ] as const;
 
 export type Ep003Shot02TermCue=typeof EP003_SHOT02_TERM_CARDS[number]['cue'];
