@@ -120,7 +120,7 @@ async function main(){
         &&Number(previous.fps)===30&&Number(previous.duration_in_frames)===EXPECTED_FRAMES,
       'EP002_FINAL_RENDER_PIN_METADATA_INVALID');
     const idempotency=hash(
-      'EP003_SHOT01_DIRECTOR_V1|'+SHA+'|'+source.take_id+'|'+source.spoken_sha+
+      'EP003_SHOT01_DIRECTOR_V2_READABILITY|'+SHA+'|'+source.take_id+'|'+source.spoken_sha+
       '|'+PIN+'|'+previous.render_hash
     );
     const already=(await db.query(`select id,status from remotion_render
@@ -177,7 +177,7 @@ async function main(){
        input_props,render_hash,profile,status,width,height,fps,duration_in_frames,progress
        ) values ($1::uuid,$2::uuid,null,$3,$4,$5,$6::jsonb,$7,'REVIEW','RUNNING',
        1920,1080,30,$8,0)`,[
-      renderId,PROJECT,COMPOSITION,'EP003_SHOT01_V1',
+      renderId,PROJECT,COMPOSITION,'EP003_SHOT01_V2',
       'EP003_PIN_'+SHA.slice(0,12),
       JSON.stringify({...props,previousLastFrameDataUri:'DATA_URI_SAVED_ONLY_IN_RENDER_RECEIPT'}),
       idempotency,frames
