@@ -412,6 +412,34 @@ public class RemotionRenderController {
                         "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
     }
 
+    @GetMapping("/ep003/cumulative/latest-successful")
+    public Map<String,Object> latestEp003CumulativeFullVideo() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-CUMULATIVE-DIRECTOR-MASTER'
+                  and render_key like 'EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_%'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and (input_props->>'directorLocked')='true'
+                  and (input_props->>'verified')='true'
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>0
+                order by (input_props->>'shotCount')::integer desc,
+                         finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_LOCKED_CONTIGUOUS_MASTER_YET"));
+    }
+
     @GetMapping("/{renderId}")
     public Map<String, Object> render(@PathVariable UUID renderId) {
         return findById(renderId)
