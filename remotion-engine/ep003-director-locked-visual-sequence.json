@@ -48,7 +48,22 @@
       "height": 1080,
       "voiceTakeId": "63a94494-f134-411a-8e7d-2389ce83a6b4",
       "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT04",
+      "version": "V1",
+      "directorLocked": true,
+      "renderId": "4079729b-c1b3-405c-9a83-1ace0ef25641",
+      "compositionId": "EP003-SHOT04-READ-WRITE-SPLITTING-V1-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT04_READ_WRITE_SPLITTING_V1",
+      "sha256": "61fd35dc6662b259818b6d29379b39948a7239fa6588f7c23a010b97a7a5a5f3",
+      "frames": 3841,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "59daccf6-009e-4bed-baa8-951a4bae3aa1",
+      "voiceLeadInFrames": 60
     }
   ],
-  "directorApprovalContext": "Director watched complete three-shot WIP render 2a5042a2-1d0f-41d3-9af6-e223fa43485a with QA PASS on both joins and explicitly LOCKED SHOT03 V4, approved final on-screen wording 'Accepts writes. Replica copy changes'. Official full video must show latest 3-SHOT Director-LOCKED master only, preserving history without duplicate full-video players."
+  "directorApprovalContext": "Director explicitly reviewed 4-SHOT WIP render 0d8b0b40-3bcf-498a-827f-798f159fd2d6 (12878 frames, 3/3 real seam QA PASS) and said 'МНОГО ДОБРЕ! ХАРЕСВА МИ ! ЛОКВАМЕ!' SHOT04 V1 becomes Director-LOCKED. SHOT05 is independent candidate and is not locked. Show exactly one latest official full video master."
 }
