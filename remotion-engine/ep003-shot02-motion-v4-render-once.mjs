@@ -333,9 +333,12 @@ async function main(){
     }));
     assert(newMotion.uniqueMovingSteps>=18,
       'EP003_SHOT02_V4_FIRST_SECOND_HAS_TOO_MANY_FROZEN_FRAMES');
-    assert(newMotion.earlyTenMean>oldMotion.earlyTenMean*1.2,
-      'EP003_SHOT02_V4_MOVEMENT_NOT_IMPROVED_VS_DIRECTOR_LOCKED_V3');
-    assert(newMotion.firstStep<12,
+    assert(newMotion.firstStep>0.2
+      &&newMotion.firstStep>oldMotion.firstStep*5,
+      'EP003_SHOT02_V4_FRAME_ZERO_TO_ONE_MUST_ACTUALLY_ADVANCE_LIVE_WORLD');
+    assert(newMotion.firstTenSteps[1]<oldMotion.firstTenSteps[1]*0.5,
+      'EP003_SHOT02_V4_FRAME_ONE_TO_TWO_POP_NOT_REMOVED');
+    assert(newMotion.firstStep<3,
       'EP003_SHOT02_V4_FIRST_STEP_JUMPS_TOO_FAR_FROM_LOCKED_SHOT01_END');
     const bytes=await fs.readFile(finished);
     assert(bytes.length>=1500000&&bytes.length<256*1024*1024,
