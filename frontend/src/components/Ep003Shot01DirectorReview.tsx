@@ -68,7 +68,9 @@ export function Ep003Shot01DirectorReview(){
         <h3><PlayCircle size={21} aria-hidden="true"/> SHOT01 · Director Video Review</h3>
         <p>The System Is Stable. But People Still Cannot Log In.</p>
       </div>
-      <span className="ep003-director-review-status">RENDERED · NOT LOCKED</span>
+      <span className="ep003-director-review-status">
+        {renderKey==='EP003_SHOT01_V2'?'DIRECTOR LOCKED · V2':'RENDERED · NOT LOCKED'}
+      </span>
     </header>
     <p className="ep003-director-review-detail">
       Original Director-approved Slow Natural narration · 1920×1080 · 30 fps · 1:23.80.
@@ -94,8 +96,10 @@ export function Ep003Shot01DirectorReview(){
       </button>
     </nav>
     <p className="ep003-director-review-caution">
-      Director approval is required after watching the actual video. This panel performs no
-      paid generation, re-render or automatic visual LOCK.
+      {renderKey==='EP003_SHOT01_V2'
+        ?'The Director LOCKED this exact SHOT01 V2 MP4. SHOT02 inherits its actual final frame 2513.'
+        :'The older SHOT01 candidate is not Director-LOCKED.'}
+      {' '}No paid voice, render, or automatic visual LOCK occurs here.
     </p>
   </section>;
 }
