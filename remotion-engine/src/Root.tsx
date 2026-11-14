@@ -14,6 +14,7 @@ import {Shot11DirectorVisualV1} from './episodes/ep002/Shot11DirectorVisualV1';
 import {Ep003Shot03WordingV4} from './episodes/ep003/Shot03WordingV4';
 import {Ep003Shot04ReadWriteSplittingV1} from './episodes/ep003/Shot04ReadWriteSplittingV1';
 import {Ep003Shot05StaleReadV1} from './episodes/ep003/Shot05StaleReadV1';
+import {Ep003Shot06CorrectnessBeforeSpeedV1} from './episodes/ep003/Shot06CorrectnessBeforeSpeedV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -77,6 +78,28 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot06CorrectnessBeforeSpeedV1}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'00000000-0000-0000-0000-000000000001',
+          previousRenderId:'04b9f55a-7705-4f23-b9f7-a0103e8c955b',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:27852,
+          cueFrames:{
+            INTRO:60,FASTEST:100,GUARANTEES:140,CONSISTENCY:180,VERSION:210,
+            ACCOUNT_SECURITY:240,PRIMARY_AUTH:270,PREFERENCE:310,
+            VERSION_CHECK:340,MISSING_VERSION:370,WAIT:400,PRIMARY_FALLBACK:425,
+            REJECT:445,FAIL_CLOSED:465,WHEN_UNSAFE:485,COST:510,
+            TRADEOFFS:530,BALANCE:550,NOT_MAGIC:575,REAL_QUESTION:600,
+            MORE_USERS:625,MEASURE:650
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT05-STALE-READ-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot05StaleReadV1}
