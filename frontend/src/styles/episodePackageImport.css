@@ -171,3 +171,17 @@
 .episode-factory-blockers summary{display:flex;align-items:center;gap:10px;cursor:pointer}
 .episode-factory-blockers li{padding:5px 0;overflow-wrap:anywhere;font-size:13px}
 @media(max-width:680px){.episode-factory-production{padding:12px}.episode-factory-production-head{flex-direction:column}.episode-factory-production-form{grid-template-columns:1fr}.episode-factory-production-form .episode-factory-form-wide{grid-column:auto}}
+
+
+.ep003-director-review{box-sizing:border-box;max-width:100%;min-width:0;margin:20px 0 26px;padding:20px;border:1px solid #4f8293;border-radius:12px;background:#0a202f;color:#dceff9;overflow-wrap:anywhere}
+.ep003-director-review-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.ep003-director-review-heading h3{display:flex;align-items:center;gap:10px;color:#effaff;font-size:19px;line-height:1.35;margin:0 0 8px}
+.ep003-director-review-heading p{font-size:15px;line-height:1.5;margin:0;color:#c0d8e7}
+.ep003-director-review-status{display:inline-flex;align-items:center;flex-shrink:0;border:1px solid #aa865a;color:#f5d4a5;background:#342c28;border-radius:7px;font-size:12px;font-weight:700;padding:7px 11px}
+.ep003-director-review-detail{font-size:14px;line-height:1.65;color:#afcfde;margin:17px 0}
+.ep003-director-review-video{box-sizing:border-box;display:block;width:100%;max-width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;border:1px solid #385c75;border-radius:9px;background:#020811}
+.ep003-director-review-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:17px}
+.ep003-director-review-actions a,.ep003-director-review-actions button{box-sizing:border-box;display:inline-flex;align-items:center;gap:9px;min-height:41px;padding:10px 13px;border:1px solid #6089a3;border-radius:8px;background:#153950;color:#f0fbff;font-size:14px;text-decoration:none;cursor:pointer;overflow-wrap:anywhere}
+.ep003-director-review-actions a:hover,.ep003-director-review-actions button:hover{background:#1c4b67}
+.ep003-director-review-caution{font-size:13px;line-height:1.65;color:#a8c4d7;margin:18px 0 0}
+@media(max-width:650px){.ep003-director-review{padding:14px}.ep003-director-review-heading{flex-direction:column}.ep003-director-review-actions{flex-direction:column;align-items:stretch}.ep003-director-review-actions a,.ep003-director-review-actions button{justify-content:center}}
