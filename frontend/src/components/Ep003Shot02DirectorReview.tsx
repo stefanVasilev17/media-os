@@ -22,11 +22,13 @@ export function Ep003Shot02DirectorReview(){
   const [message,setMessage]=useState('');
   const [revision,setRevision]=useState(0);
   const [videoUrl,setVideoUrl]=useState<string|null>(null);
+  const [version,setVersion]=useState<'V1'|'V2'|null>(null);
 
   useEffect(()=>{
     const controller=new AbortController();
     setStatus('CHECKING');
     setVideoUrl(null);
+    setVersion(null);
     setMessage('');
     void fetch(LATEST_ENDPOINT,{cache:'no-store',signal:controller.signal})
       .then(async response=>{
@@ -36,7 +38,7 @@ export function Ep003Shot02DirectorReview(){
       .then(render=>{
         if(controller.signal.aborted)return;
         if(render.status!=='READY'||!render.renderId||!UUID.test(render.renderId)
-          ||render.renderKey!=='EP003_SHOT02_V1'){
+          ||!['EP003_SHOT02_V1','EP003_SHOT02_TERMS_V2'].includes(render.renderKey??'')){
           setStatus('UNAVAILABLE');
           setMessage('The EP003 SHOT02 render is not yet ready. No completed Director MP4 was found.');
           return;
@@ -49,6 +51,7 @@ export function Ep003Shot02DirectorReview(){
           return;
         }
         setVideoUrl(expected);
+        setVersion(render.renderKey==='EP003_SHOT02_TERMS_V2'?'V2':'V1');
         setStatus('READY');
       })
       .catch(error=>{
@@ -65,11 +68,18 @@ export function Ep003Shot02DirectorReview(){
         <h3><PlayCircle size={21} aria-hidden="true"/> SHOT02 · Director Video Review</h3>
         <p>Find the Real Bottleneck.</p>
       </div>
-      <span className="ep003-director-review-status">RENDERED · NOT LOCKED</span>
+      <span className="ep003-director-review-status">
+        {version==='V2'?'V2 · TECHNICAL TERMS ONLY · NOT LOCKED':
+          version==='V1'?'V1 · PRIOR REVIEW · NOT LOCKED':
+          'DIRECTOR REVIEW · NOT LOCKED'}
+      </span>
     </header>
     <p className="ep003-director-review-detail">
       Original Director-LOCKED Slow Natural SHOT02 narration · 1920×1080 · 30 fps.
-      Full P0 continuity from SHOT01 V2 last encoded frame. No generation is triggered by this panel.
+      Full P0 continuity from SHOT01 V2 last encoded frame.
+      {version==='V2'?' Only spoken technical terms and short definitions are shown.':
+        version==='V1'?' This is the previous version with general information cards.':''}
+      No generation is triggered by this panel.
     </p>
     {status==='CHECKING'&&<p role="status">Checking the latest saved SHOT02 MP4…</p>}
     {status==='UNAVAILABLE'&&<p role="alert">{message}</p>}
