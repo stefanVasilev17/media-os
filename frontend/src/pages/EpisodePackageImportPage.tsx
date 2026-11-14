@@ -13,6 +13,8 @@ import {Ep003Shot02DirectorReview} from '../components/Ep003Shot02DirectorReview
 import {Ep003Shot03DirectorReview} from '../components/Ep003Shot03DirectorReview';
 import {Ep003Shot03V2DirectorReview} from '../components/Ep003Shot03V2DirectorReview';
 import {Ep003Shot03V3DirectorReview} from '../components/Ep003Shot03V3DirectorReview';
+import {Ep003Shot03V4DirectorReview} from '../components/Ep003Shot03V4DirectorReview';
+import {Ep003Shot03V4ThreeShotWipFilm} from '../components/Ep003Shot03V4ThreeShotWipFilm';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 import {Ep003WipShot02V4FullFilm} from '../components/Ep003WipShot02V4FullFilm';
 
@@ -155,10 +157,12 @@ export function EpisodePackageImportPage(){
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
       {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot03V4ThreeShotWipFilm/>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical WIP · SHOT02 V4 transition review (archived)</summary><Ep003WipShot02V4FullFilm/></details>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot03V3DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
+      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
