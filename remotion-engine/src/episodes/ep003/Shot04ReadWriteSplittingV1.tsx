@@ -183,8 +183,6 @@ const QueryRouting:React.FC<{frame:number;cues:Shot04Props['cueFrames']}>=
  const crit=frame>=cues.AUTH_CHECK&&frame<cues.PREFERENCE;
  const repeat=frame>=cues.CRITICAL_STILL&&frame<cues.MORE_READS;
  const caution=crit||repeat;
- const highlight=ease(frame,cues.AUTH_CHECK,24)*(1-ease(frame,cues.PREFERENCE,20))+
-   ease(frame,cues.CRITICAL_STILL,22)*(1-ease(frame,cues.MORE_READS,24));
  const alphas=[primary,replicaA,replicaB];
  return <>
    <svg width="1920" height="1080" viewBox="0 0 1920 1080"
@@ -216,11 +214,7 @@ const QueryRouting:React.FC<{frame:number;cues:Shot04Props['cueFrames']}>=
       fontWeight:860,letterSpacing:'.025em',whiteSpace:'nowrap',
       textShadow:'0 2px 10px #04131E,0 0 12px rgba(104,229,255,.25)',
       pointerEvents:'none'}}>PRIMARY DATABASE</div>
-   <div style={{position:'absolute',left:SHOT02_NODES.database.x-131,
-      top:SHOT02_NODES.database.y-11,width:262,height:290,zIndex:18,
-      opacity:.55*clamp(highlight),border:'3px solid '+AMBER,
-      borderRadius:23,boxSizing:'border-box',pointerEvents:'none',
-      boxShadow:'0 0 22px rgba(245,165,90,.27)'}}/>
+
  </>;
 };
 
