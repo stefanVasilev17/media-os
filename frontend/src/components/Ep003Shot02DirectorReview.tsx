@@ -23,7 +23,7 @@ export function Ep003Shot02DirectorReview(){
   const [message,setMessage]=useState('');
   const [revision,setRevision]=useState(0);
   const [videoUrl,setVideoUrl]=useState<string|null>(null);
-  const [version,setVersion]=useState<'V1'|'V2'|'V3'|null>(null);
+  const [version,setVersion]=useState<'V1'|'V2'|'V3'|'V4'|null>(null);
   const [directorLocked,setDirectorLocked]=useState(false);
 
   useEffect(()=>{
@@ -41,7 +41,7 @@ export function Ep003Shot02DirectorReview(){
       .then(render=>{
         if(controller.signal.aborted)return;
         if(render.status!=='READY'||!render.renderId||!UUID.test(render.renderId)
-          ||!['EP003_SHOT02_V1','EP003_SHOT02_TERMS_V2','EP003_SHOT02_TERMS_V3'].includes(render.renderKey??'')){
+          ||!['EP003_SHOT02_V1','EP003_SHOT02_TERMS_V2','EP003_SHOT02_TERMS_V3','EP003_SHOT02_MOTION_V4'].includes(render.renderKey??'')){
           setStatus('UNAVAILABLE');
           setMessage('The EP003 SHOT02 render is not yet ready. No completed Director MP4 was found.');
           return;
@@ -54,7 +54,8 @@ export function Ep003Shot02DirectorReview(){
           return;
         }
         setVideoUrl(expected);
-        setVersion(render.renderKey==='EP003_SHOT02_TERMS_V3'?'V3':
+        setVersion(render.renderKey==='EP003_SHOT02_MOTION_V4'?'V4':
+          render.renderKey==='EP003_SHOT02_TERMS_V3'?'V3':
           render.renderKey==='EP003_SHOT02_TERMS_V2'?'V2':'V1');
         setDirectorLocked(render.directorLocked===true);
         setStatus('READY');
@@ -74,7 +75,8 @@ export function Ep003Shot02DirectorReview(){
         <p>Find the Real Bottleneck.</p>
       </div>
       <span className="ep003-director-review-status">
-        {version==='V3'?(directorLocked
+        {version==='V4'?(directorLocked?'V4 · SMOOTH CUT · DIRECTOR LOCKED':'V4 · DIRECTOR REVIEW'):
+          version==='V3'?(directorLocked
             ?'V3 · LATENCY / THROUGHPUT · 2s LEAD · DIRECTOR LOCKED'
             :'V3 · VERIFY DIRECTOR LOCK'):
           version==='V2'?'V2 · TECHNICAL TERMS ONLY · PRIOR REVIEW':
@@ -85,7 +87,8 @@ export function Ep003Shot02DirectorReview(){
     <p className="ep003-director-review-detail">
       Original Director-LOCKED Slow Natural SHOT02 narration · 1920×1080 · 30 fps.
       Full P0 continuity from SHOT01 V2 last encoded frame.
-      {version==='V3'?' The visual world moves 2 seconds before the narration. Latency remains above Throughput throughout their comparison.':
+      {version==='V4'?' No static predecessor overlay after frame zero. The live architecture moves from the first frames; the two-second voice lead is preserved.':
+        version==='V3'?' The visual world moves 2 seconds before the narration. Latency remains above Throughput throughout their comparison.':
         version==='V2'?' Earlier glossary-only cut; this is not the latest Director revision.':
         version==='V1'?' This is the previous version with general information cards.':''}
       No generation is triggered by this panel.
@@ -107,9 +110,9 @@ export function Ep003Shot02DirectorReview(){
       </button>
     </nav>
     <p className="ep003-director-review-caution">
-      {version==='V3'&&directorLocked
-        ?'The Director explicitly LOCKED this exact saved V3 MP4. SHOT03 must inherit its real final encoded frame 3442.'
-        :'This earlier visual candidate is not Director-LOCKED.'}
+      {version==='V4'&&directorLocked
+        ?'The Director explicitly LOCKED this exact SHOT02 V4 MP4. SHOT03 V1 inherits its real final encoded frame 3442.'
+        :'Earlier revisions are preserved for historical comparison; only V4 is the current Director-LOCKED SHOT02.'}
       {' '}This player never creates a voice, edits media, or triggers rendering.
     </p>
   </section>;
