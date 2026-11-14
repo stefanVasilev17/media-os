@@ -1,0 +1,25 @@
+# Architectural Thinking / MediaOS — Director P0 — Always-Current Continuous Episode Master
+
+**Director instruction 2026-11-14:** Explicitly **LOCK EP003 SHOT02 V3** and, whenever the Director locks a new sequential SHOT, **append it to a new cumulative, playable, full-episode MP4 in MediaOS**. The Director must be able to watch ALL currently approved episode shots as one continuous film at any time. This is a global rule for future episodes, not merely EP003.
+
+## Canonical locks in EP003 as of this decision
+
+- **SHOT01 V2 — Director LOCKED:** MediaOS render ID `b6fd7f30-7c78-414b-a88c-387c0ee8c43a`; SHA256 `da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08`; H264/AAC 1920×1080 @30fps **2514 frames**; actual final encoded frame **2513**. Prior SHOT01 V1 NOT approved.
+- **SHOT02 V3 — NOW Director LOCKED 2026-11-14:** MediaOS render ID `8598d156-438f-4614-a9dd-ce6172233d9b`; SHA256 `eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471`; H264/AAC 1920×1080 @30fps **3443 frames**, including exactly **2.00s / 60frames living animation before original SHOT02 narrator**. Audio Take `c4131401-2b42-4bac-873f-05de50040c99` original, no regeneration. Separate glossary: LATENCY above THROUGHPUT during comparison. Earlier SHOT02 V1 `c77410f6-3e9a-4848-aa87-7674d598ad3a` and V2 `3222a875-a8c3-4993-bfd1-8d6535ad38ba` are NON-LOCKED history and must not enter cumulative master.
+- **SHOT03 NOT visual LOCKED.** It must NOT appear until Director has watched and explicitly accepted its actual rendered candidate. Once authorized, it starts from exact actual **SHOT02 V3 decoded final frame 3442**, continuing source Living Architecture world frame **14491+3442=17933**, with seamless motion and existing default ~2-second narrator-free breathing.
+
+## Master contract
+
+1. Treat episode film as an **ordered contiguous prefix of Director-LOCKED SHOTs**, not an arbitrary list of successful renders. There can be no gaps, skipped SHOTs, duplicate SHOTs, rejected variants, synthetic filler or unapproved narration. Lock evidence includes exact render ID, MP4 SHA256, FPS/size/frame count, source/voice and explicit Director approval.
+2. **Every newly Director-LOCKED SHOT triggers cumulative master rebuild**, from SHOT01 through that SHOT. The Executor/MediaOS workflow is responsible for building the updated playable MP4 during the same approval turn, not just recording a plan. Do not force the Director to manually download, concatenate or switch files. The latest completed master stays visible while a new assembly runs or fails.
+3. Use **lossless stream-copy concatenation of already encoded approved MP4 segments where technically possible**; do not re-render locked shots, alter their voices, rebuild scenes or change their colors, request paths or pacing. Check both selected source MP4 hashes before assembly and refuse if changed/missing.
+4. Preserve the real SHOT seam. Verify *actual decoded* previous last frame and next first frame, and cumulative splice at each boundary; no teleport, frozen pause, fade-to-black, UI reset or audible clipping. The SHOT02 2-second voice gap is **already inside SHOT02 V3** and MUST NOT be added a second time by master assembly. Source media is never mutated.
+5. Guard against mixed codec/size/FPS/timebase and bad audio; ffprobe H264/AAC, 1920×1080 30fps, exact sum frame count and video duration. If stream-copy would produce non-compliant media, block rather than silently changing a LOCKED shot. Real playback and Director review remain the final perceptual QA. Master render is not itself an approval to change SHOT locks.
+6. Save each complete master as its **own immutable, idempotently keyed MediaOS MP4** with a versioned list of locked render IDs + SHA hashes, list of shot indices, frame offsets and cumulative duration. Never overwrite prior masters or locked SHOT MP4s. Expose **EP003 · Full Video (latest)** in the episode page, including played SHOT sequence and status. If latest cannot be built, keep prior master and surface the error; do not show a false-ready player.
+7. This policy continues for **all future episodes** and agents: when Director says LOCK SHOT N, update immutable lock manifest, perform cumulative render check, save verified master, update latest video; THEN begin SHOT N+1 inheriting the real last frame of SHOT N. Production and finance gates for paid voice still require authorization, and auto-retrying paid actions is prohibited.
+
+## First EP003 master after this LOCK
+
+Sequence **SHOT01 V2 + SHOT02 V3**, 2514 + 3443 = **5957 video frames**, 30fps **198.5667 s = 03:18.57**, 1920×1080 H264/AAC, original immutable Take files. The two-second narrator-free breathing is accounted for **once** in SHOT02 V3. A successful real MP4 and UI must be separately verified before claiming the full episode is available.
+
+**Distinctions:** Director LOCK of source shots is a fact now; master `SAVED` and `AVAILABLE IN MEDIAOS` require actual completed production and runtime tests. This document alone is not the rendered master.
