@@ -19,7 +19,7 @@ describe('EP003 future proof: only newest Director-LOCKED full film is visible',
     expect(full).toContain("LOCKED_PREFIX=/^EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_");
     expect(full).toContain('shotCount<3||shotCount>30');
     expect(full).toContain('(shotCount===3&&data.durationInFrames!==9037)');
-    expect(full).toContain('older 2-SHOT masters are hidden');
+    expect(full).toContain('Older 2-SHOT masters are hidden');
     expect(full).toContain('One full-video player · newest consecutive Director-LOCKED master only');
     expect(full).not.toContain('/ep003/cumulative/wip-latest');
     expect(full).not.toContain('wip-3shot-v4');
