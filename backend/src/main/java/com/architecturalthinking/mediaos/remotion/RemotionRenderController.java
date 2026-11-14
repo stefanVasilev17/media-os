@@ -418,6 +418,33 @@ public class RemotionRenderController {
                         "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
     }
 
+    @GetMapping("/ep003/shot03/v4/latest-successful")
+    public Map<String,Object> latestEp003Shot03V4DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT03-WORDING-V4-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT03_WORDING_V4'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3080
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_RENDERED_EP003_SHOT03_V4_CANDIDATE_YET"));
+    }
+
     @GetMapping("/ep003/shot03/v3/latest-successful")
     public Map<String,Object> latestEp003Shot03V3DirectorReview() {
         return jdbc.sql("""
@@ -498,6 +525,41 @@ public class RemotionRenderController {
                 .map(this::response)
                 .orElseGet(()->Map.of("status","EMPTY",
                         "reason","NO_VERIFIED_EP003_LOCKED_CONTIGUOUS_MASTER_YET"));
+    }
+
+    @GetMapping("/ep003/cumulative/wip-3shot-v4/latest-successful")
+    public Map<String,Object> latestEp003ThreeShotV4WipVideo() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-CUMULATIVE-WIP-REVIEW'
+                  and render_key='EP003_WIP_LOCKED_01_02_PLUS_SHOT03_WORDING_V4_03'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and width=1920 and height=1080 and fps=30
+                  and duration_in_frames=9037
+                  and (input_props->>'wip')='true'
+                  and (input_props->>'directorLocked')='false'
+                  and (input_props->>'verified')='true'
+                  and (input_props->>'shotCount')='3'
+                  and (input_props->>'lockedPrefixShotCount')='2'
+                  and (input_props->'sequence'->2->>'shotKey')='SHOT03'
+                  and (input_props->'sequence'->2->>'directorLocked')='false'
+                  and (input_props->'sequence'->2->>'renderKey')='EP003_SHOT03_WORDING_V4'
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>2000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_THREE_SHOT_WIP_FOR_SHOT03_V4_YET"));
     }
 
     @GetMapping("/ep003/cumulative/wip-latest")
