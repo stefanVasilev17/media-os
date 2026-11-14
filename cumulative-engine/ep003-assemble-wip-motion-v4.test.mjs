@@ -74,3 +74,8 @@ test('WIP production key and approval separate from approved FULL VIDEO; previou
   assert.match(worker,/EP003_CUMULATIVE_IDENTICAL_MASTER_ALREADY_PRESENT/);
   assert.doesNotMatch(worker,/update episode_package_voice_take/i);
 });
+
+test('Docker entry point calls the WIP assembler, not its old main-master filename',()=>{
+  assert.match(worker,/endsWith\('ep003-assemble-wip-motion-v4\.mjs'\)/);
+  assert.doesNotMatch(worker,/endsWith\('ep003-assemble-master\.mjs'\)/);
+});
