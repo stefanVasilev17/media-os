@@ -12,6 +12,8 @@ const DB=String(process.env.DATABASE_URL||'').trim();
 const DIRECTOR_AUTHORIZED=process.env.EP003_DIRECTOR_SHOT02_V4_RENDER_APPROVED==='true';
 const PIN='b6fd7f30-7c78-414b-a88c-387c0ee8c43a';
 const LOCKED_PREVIOUS_SHA='da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08';
+const LOCKED_V3_REFERENCE_ID='8598d156-438f-4614-a9dd-ce6172233d9b';
+const LOCKED_V3_REFERENCE_SHA='eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471';
 const PROJECT='11111111-1111-1111-1111-111111111111';
 const COMPOSITION='EP003-SHOT02-MOTION-V4-DIRECTOR-CANDIDATE';
 const SHOT='SHOT02';
@@ -52,6 +54,42 @@ function run(executable,args,{cwd}={}){
       reject(Error('PROCESS_FAILED '+executable+' '+code+' '+errors.slice(-1600))));
   });
 }
+async function firstFramesMotion(file){
+  const width=320,height=180,count=24,frameSize=width*height;
+  const chunks=[];
+  await new Promise((resolve,reject)=>{
+    const child=spawn('ffmpeg',['-hide_banner','-loglevel','error','-nostdin',
+      '-i',file,'-vf','scale='+width+':'+height+',format=gray',
+      '-frames:v',String(count),'-f','rawvideo','pipe:1'],
+      {stdio:['ignore','pipe','pipe']});
+    let stderr='';
+    child.stdout.on('data',part=>chunks.push(part));
+    child.stderr.on('data',part=>{stderr+=part.toString().slice(-900);});
+    child.on('error',reject);
+    child.on('close',code=>code===0?resolve():reject(Error(
+      'EP003_V4_DECODE_EARLY_MOTION_FAILED '+code+' '+stderr.slice(-300))));
+  });
+  const bytes=Buffer.concat(chunks);
+  assert(bytes.length===frameSize*count,
+    'EP003_V4_EARLY_FRAMES_BINARY_LENGTH_MISMATCH');
+  const differences=[];
+  for(let frame=1;frame<count;frame++){
+    let total=0;
+    const a=(frame-1)*frameSize,c=frame*frameSize;
+    for(let pixel=0;pixel<frameSize;pixel+=4){
+      total+=Math.abs(bytes[c+pixel]-bytes[a+pixel]);
+    }
+    differences.push(total/(frameSize/4));
+  }
+  const avg=a=>a.reduce((sum,value)=>sum+value,0)/a.length;
+  return {
+    firstStep:differences[0],earlyTenMean:avg(differences.slice(0,10)),
+    firstTwentyMean:avg(differences.slice(0,20)),
+    uniqueMovingSteps:differences.filter(value=>value>0.001).length,
+    firstTenSteps:differences.slice(0,10).map(x=>Number(x.toFixed(5)))
+  };
+}
+
 async function ffprobe(file){
   const r=await run('ffprobe',['-v','error','-show_entries',
     'format=duration,size:stream=codec_type,codec_name,avg_frame_rate,width,height,nb_frames,nb_read_frames',
@@ -277,6 +315,28 @@ async function main(){
       'EP003_FINAL_MP4_AUDIO_QA_FAILED');
     assert(Math.abs(Number(final.format.duration)-frames/30)<.45,
       'EP003_MP4_DURATION_QA_FAILED');
+    const historical=(await db.query(`select status,video_data from remotion_render
+      where id=$1::uuid and project_id=$2::uuid`,
+      [LOCKED_V3_REFERENCE_ID,PROJECT])).rows[0];
+    assert(historical?.status==='SUCCEEDED'&&historical.video_data
+      &&hash(historical.video_data)===LOCKED_V3_REFERENCE_SHA,
+      'EP003_V4_MOTION_BASELINE_LOCKED_V3_SOURCE_MISSING_OR_MUTATED');
+    const oldV3=path.join(tmp,'original-locked-v3-motion-baseline.mp4');
+    await fs.writeFile(oldV3,historical.video_data);
+    const oldMotion=await firstFramesMotion(oldV3);
+    const newMotion=await firstFramesMotion(finished);
+    console.log('EP003_SHOT02_V4_ACTUAL_FIRST_SECOND_MOTION_COMPARISON '+JSON.stringify({
+      lockedV3:oldMotion,motionV4:newMotion,
+      relativeEarlyMotionIncrease:newMotion.earlyTenMean/Math.max(oldMotion.earlyTenMean,0.001),
+      firstDecodedFramePsnrDb:psnr,
+      technique:'REMOVE_55_FRAME_STATIC_PNG_OVERLAY__SHOW_EXACT_SOURCE_ONLY_AT_FRAME_ZERO'
+    }));
+    assert(newMotion.uniqueMovingSteps>=18,
+      'EP003_SHOT02_V4_FIRST_SECOND_HAS_TOO_MANY_FROZEN_FRAMES');
+    assert(newMotion.earlyTenMean>oldMotion.earlyTenMean*1.2,
+      'EP003_SHOT02_V4_MOVEMENT_NOT_IMPROVED_VS_DIRECTOR_LOCKED_V3');
+    assert(newMotion.firstStep<12,
+      'EP003_SHOT02_V4_FIRST_STEP_JUMPS_TOO_FAR_FROM_LOCKED_SHOT01_END');
     const bytes=await fs.readFile(finished);
     assert(bytes.length>=1500000&&bytes.length<256*1024*1024,
       'EP003_FINAL_MP4_SIZE_NOT_SAFE_FOR_MEDIAOS_STORAGE');
