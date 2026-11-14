@@ -8,16 +8,16 @@ const manifest=JSON.parse(read('../remotion-engine/ep003-director-locked-visual-
 const worker=read('./ep003-assemble-master.mjs');
 const clone=v=>JSON.parse(JSON.stringify(v));
 
-test('Director explicitly LOCKED exactly the first FIVE real EP003 shots in order',()=>{
- assert.equal(validateLockedSequence(manifest),15879);
- assert.deepEqual(manifest.shots.map(s=>s.shotKey),['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05']);
+test('Director explicitly LOCKED exactly the first SIX real EP003 shots in order',()=>{
+ assert.equal(validateLockedSequence(manifest),19480);
+ assert.deepEqual(manifest.shots.map(s=>s.shotKey),['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06']);
  assert.ok(manifest.shots.every(s=>s.directorLocked===true));
- assert.deepEqual(manifest.shots.map(s=>s.version),['V2','V4','V4','V1','V1']);
- assert.deepEqual(manifest.shots.map(s=>s.frames),[2514,3443,3080,3841,3001]);
- assert.equal(15879/30,529.3);
+ assert.deepEqual(manifest.shots.map(s=>s.version),['V2','V4','V4','V1','V1','V1']);
+ assert.deepEqual(manifest.shots.map(s=>s.frames),[2514,3443,3080,3841,3001,3601]);
+ assert.equal(19480/30,649.3333333333334);
 });
 test('SHA-pinned exact approved source bytes and original voice takes never mutate',()=>{
- const [one,two,three,four,five]=manifest.shots;
+ const [one,two,three,four,five,six]=manifest.shots;
  assert.equal(one.renderId,'b6fd7f30-7c78-414b-a88c-387c0ee8c43a');
  assert.equal(one.sha256,'da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08');
  assert.equal(two.renderId,'78db6f85-ba05-4714-ba4f-fc70d64def88');
@@ -43,13 +43,20 @@ test('SHA-pinned exact approved source bytes and original voice takes never muta
  assert.equal(five.frames,3001);
  assert.equal(five.voiceTakeId,'da70458f-6728-4437-953c-58113c8aae8d');
  assert.equal(five.voiceLeadInFrames,60);
+ assert.equal(six.renderId,'0007bd16-edbf-4ecc-927a-4a5781d0b921');
+ assert.equal(six.sha256,'4d38c8a5777b2eeab1952bd8960a925feae0672d142b70b12b2a2df2392d4a3f');
+ assert.equal(six.renderKey,'EP003_SHOT06_CORRECTNESS_V1');
+ assert.equal(six.compositionId,'EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE');
+ assert.equal(six.frames,3601);
+ assert.equal(six.voiceTakeId,'ff8ed53c-f405-43d5-82d9-33cac97cd811');
+ assert.equal(six.voiceLeadInFrames,60);
  assert.equal(two.voiceLeadInFrames,60);
  assert.match(worker,/sha256\(row\.video_data\)===s\.sha256/);
 });
-test('Source sequence is frame contiguous with four actual seam positions',()=>{
+test('Source sequence is frame contiguous with five actual seam positions',()=>{
  const s=episodeSegments(manifest.shots);
  assert.deepEqual(s.map(x=>[x.startFrame,x.endFrame,x.directorLocked]),[
-  [0,2513,true],[2514,5956,true],[5957,9036,true],[9037,12877,true],[12878,15878,true]]);
+  [0,2513,true],[2514,5956,true],[5957,9036,true],[9037,12877,true],[12878,15878,true],[15879,19479,true]]);
  assert.equal(s[1].startFrame/30,83.8);
  assert.equal(s[2].startFrame/30,198.56666666666666);
  assert.equal(s[1].voiceLeadInFrames,60);
@@ -58,6 +65,8 @@ test('Source sequence is frame contiguous with four actual seam positions',()=>{
  assert.equal(s[3].voiceLeadInFrames,60);
  assert.equal(s[4].startFrame/30,429.26666666666665);
  assert.equal(s[4].voiceLeadInFrames,60);
+ assert.equal(s[5].startFrame/30,529.3);
+ assert.equal(s[5].voiceLeadInFrames,60);
  assert.match(worker,/'-c','copy'/);
  assert.doesNotMatch(worker,/adelay=|apad=|afade=|textToSpeech|elevenlabs|generateSpeech/);
 });
@@ -68,6 +77,8 @@ test('Fail closed on any accidental unlocking, changed hash, wrong version, miss
   m=>{m.shots[2].directorLocked=false;},
   m=>{m.shots[3].directorLocked=false;},
   m=>{m.shots[4].directorLocked=false;},
+  m=>{m.shots[5].directorLocked=false;},
+  m=>{m.shots[5].renderId=m.shots[4].renderId;},
   m=>{m.shots[4].renderId=m.shots[3].renderId;},
   m=>{m.shots[3].renderId=m.shots[2].renderId;},
   m=>{m.shots[2].shotKey='SHOT04';},
@@ -79,19 +90,19 @@ test('Fail closed on any accidental unlocking, changed hash, wrong version, miss
   const m=clone(manifest);patch(m);assert.throws(()=>validateLockedSequence(m));
  }
 });
-test('Next SHOT06 requires a new real unique Director-LOCKED entry, never silent promotion',()=>{
+test('Next SHOT07 requires a new real unique Director-LOCKED entry, never silent promotion',()=>{
  const m=clone(manifest);
- m.shots.push({shotKey:'SHOT06',version:'V1',directorLocked:true,
+ m.shots.push({shotKey:'SHOT07',version:'V1',directorLocked:true,
    renderId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-   compositionId:'EP003-SHOT06-DIRECTOR-CANDIDATE',renderKey:'EP003_SHOT06_V1',
+   compositionId:'EP003-SHOT07-DIRECTOR-CANDIDATE',renderKey:'EP003_SHOT07_V1',
    sha256:'a'.repeat(64),frames:2400,fps:30,width:1920,height:1080,
    voiceTakeId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'});
- assert.equal(validateLockedSequence(m),18279);
- assert.equal(episodeSegments(m.shots)[5].startFrame,15879);
- m.shots[5].directorLocked=false;
+ assert.equal(validateLockedSequence(m),21880);
+ assert.equal(episodeSegments(m.shots)[6].startFrame,19480);
+ m.shots[6].directorLocked=false;
  assert.throws(()=>validateLockedSequence(m));
 });
-test('FFmpeg H264/AAC stream-copy verifies all four actual decoded seams and unchanged pixels',()=>{
+test('FFmpeg H264/AAC stream-copy verifies all five actual decoded seams and unchanged pixels',()=>{
  for(const required of [
   "video?.codec_name==='h264'",
   "audio?.codec_name==='aac'",
@@ -107,7 +118,7 @@ test('FFmpeg H264/AAC stream-copy verifies all four actual decoded seams and unc
  ])assert.ok(worker.includes(required),required);
  assert.match(worker,/select=eq\(n/);
 });
-test('New cumulative master has a new locked 05 render key, old masters remain stored',()=>{
+test('New cumulative master has a new locked 06 render key, old masters remain stored',()=>{
  for(const required of [
   'EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED',
   'EP003_CUMULATIVE_DIRECTOR_RENDER_AUTHORIZATION_REQUIRED',
