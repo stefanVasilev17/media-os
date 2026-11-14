@@ -13,17 +13,17 @@ test('Director has locked exactly the first TWO real EP003 shots consecutively, 
  assert.deepEqual(manifest.shots.map(s=>s.shotKey),['SHOT01','SHOT02']);
  assert.ok(manifest.shots.every(s=>s.directorLocked));
  assert.equal(manifest.shots[0].version,'V2');
- assert.equal(manifest.shots[1].version,'V3');
+ assert.equal(manifest.shots[1].version,'V4');
  assert.equal(manifest.shots[1].voiceLeadInFrames,60);
  assert.equal(5957/30,198.56666666666666);
 });
-test('P0 exact immutable render hashes, chosen versions and actual SHOT02 V3 audio untouched',()=>{
+test('P0 exact immutable render hashes, chosen versions and actual SHOT02 V4 audio untouched',()=>{
  const [a,b]=manifest.shots;
  assert.equal(a.renderId,'b6fd7f30-7c78-414b-a88c-387c0ee8c43a');
  assert.equal(a.sha256,'da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08');
  assert.equal(a.frames,2514);
- assert.equal(b.renderId,'8598d156-438f-4614-a9dd-ce6172233d9b');
- assert.equal(b.sha256,'eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471');
+ assert.equal(b.renderId,'78db6f85-ba05-4714-ba4f-fc70d64def88');
+ assert.equal(b.sha256,'5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e');
  assert.equal(b.frames,3443);
  assert.equal(b.voiceTakeId,'c4131401-2b42-4bac-873f-05de50040c99');
  assert.match(worker,/hash\(row\.video_data\)===s\.sha256|sha256\(row\.video_data\)===s\.sha256/);
