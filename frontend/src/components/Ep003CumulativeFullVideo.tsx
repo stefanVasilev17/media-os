@@ -25,18 +25,19 @@ export function Ep003CumulativeFullVideo(){
       .then(data=>{
         if(controller.signal.aborted)return;
         if(data.status==='EMPTY'){
-          setFilm({type:'EMPTY',message:'No verified sequential full episode is saved yet. Individual locked SHOT videos remain available.'});
+          setFilm({type:'EMPTY',message:'No verified latest Director-LOCKED 3+ SHOT full video is saved yet. Older 2-SHOT masters are hidden from this view.'});
           return;
         }
         const match=LOCKED_PREFIX.exec(data.renderKey??'');
         const shotCount=match?Number(match[1]):0;
         if(data.status!=='READY'||!data.renderId||!UUID.test(data.renderId)
-          ||!match||shotCount<2||shotCount>30||data.fps!==30
+          ||!match||shotCount<3||shotCount>30||data.fps!==30
           ||data.width!==1920||data.height!==1080
           ||!Number.isInteger(data.durationInFrames)||!data.durationInFrames
-          ||data.durationInFrames<3000
+          ||data.durationInFrames<9037
+          ||(shotCount===3&&data.durationInFrames!==9037)
           ||data.videoUrl!==URL_PREFIX+data.renderId+'/video'){
-          setFilm({type:'EMPTY',message:'The stored episode does not pass verified contiguous Director-LOCKED video checks.'});
+          setFilm({type:'EMPTY',message:'Latest official full video must include at least SHOT01, SHOT02 and SHOT03, with verified frame count and contiguous Director-LOCKED sources.'});
           return;
         }
         setFilm({type:'READY',master:data,shotCount});
@@ -58,8 +59,8 @@ export function Ep003CumulativeFullVideo(){
   return <section className="ep003-director-review" aria-label="EP003 latest continuous full episode">
     <header className="ep003-director-review-heading">
       <div>
-        <h3><Film size={22} aria-hidden="true"/> EP003 · Full Video (latest)</h3>
-        <p>One living architecture film · every sequential Director-LOCKED SHOT</p>
+        <h3><Film size={22} aria-hidden="true"/> EP003 · Latest Full Video</h3>
+        <p>One full-video player · newest consecutive Director-LOCKED master only</p>
       </div>
       <span className="ep003-director-review-status">
         {master?'SAVED · '+count+' OF 11 SHOTS · DIRECTOR-LOCKED SOURCES':'EPISODE MASTER'}
@@ -69,8 +70,7 @@ export function Ep003CumulativeFullVideo(){
       <p><CheckCircle2 size={16} aria-hidden="true"/> {sequence}</p>
       <p>{minutes}:{seconds.toFixed(2).padStart(5,'0')} · 1920×1080 · 30 fps · H.264/AAC.
         Original Director-approved voices and animation preserved without re-rendering the source SHOTs.</p>
-      <p>When a new consecutive SHOT is Director-LOCKED, a fresh immutable cumulative MP4
-        replaces this latest view; previous film versions are retained.</p>
+      <p>When a new consecutive SHOT is Director-LOCKED, this ONE player will show the newest verified full-video master. Older versions are archived and not shown as extra full-video players.</p>
     </div>}
     {film.type==='CHECKING'&&<p role="status">Checking the latest complete EP003 video…</p>}
     {film.type==='EMPTY'&&<p role="status">{film.message}</p>}
