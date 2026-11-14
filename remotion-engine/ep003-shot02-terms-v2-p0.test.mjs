@@ -14,7 +14,7 @@ const terms=[
   ['THROUGHPUT','Work completed in a given period'],
   ['LATENCY','Time one operation takes to complete'],
   ['BOTTLENECK','The component limiting total Login capacity'],
-  ['ADMISSION BUDGET','A limit on DB work, including permitted retries'],
+  ['ADMISSION BUDGET','Caps DB lookups, including retry work'],
 ];
 
 test('only four meaningful technical term + definition overlays, no generic or repetitive cards',()=>{
@@ -55,7 +55,7 @@ test('V2 keeps exact V1 diagrams, animation, moving particles, world camera and 
     'translate3d(-7px,0,0) scale(1.007)',
     'THE SYSTEM IS STABLE. BUT LOGIN CAN STILL FAIL.',
     'FIND THE REAL BOTTLENECK.',
-    'worldStartFrame:11978+2513'
+    'worldLastFrame:11978+2513'
   ]){
     assert.ok(v1.includes(fragment),fragment+' missing in V1');
     assert.ok(v2.includes(fragment),fragment+' changed in V2');
