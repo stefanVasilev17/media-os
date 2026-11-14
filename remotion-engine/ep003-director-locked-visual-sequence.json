@@ -21,12 +21,12 @@
     },
     {
       "shotKey": "SHOT02",
-      "version": "V3",
+      "version": "V4",
       "directorLocked": true,
-      "renderId": "8598d156-438f-4614-a9dd-ce6172233d9b",
-      "compositionId": "EP003-SHOT02-TERMS-V3-DIRECTOR-CANDIDATE",
-      "renderKey": "EP003_SHOT02_TERMS_V3",
-      "sha256": "eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471",
+      "renderId": "78db6f85-ba05-4714-ba4f-fc70d64def88",
+      "compositionId": "EP003-SHOT02-MOTION-V4-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT02_MOTION_V4",
+      "sha256": "5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e",
       "frames": 3443,
       "fps": 30,
       "width": 1920,
@@ -34,5 +34,6 @@
       "voiceTakeId": "c4131401-2b42-4bac-873f-05de50040c99",
       "voiceLeadInFrames": 60
     }
-  ]
+  ],
+  "directorApprovalContext": "Director viewed SHOT01 V2 + SHOT02 V4 WIP full film c20978dc-f4fd-4867-b8dd-d3b84bf4f8a6 and LOCKED the seamless transition."
 }
