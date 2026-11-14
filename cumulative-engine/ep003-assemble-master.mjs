@@ -42,11 +42,11 @@ export function validateLockedSequence(m){
     &&one.sha256==='da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08'
     &&one.frames===2514&&one.renderKey==='EP003_SHOT01_V2',
     'EP003_CUMULATIVE_MUST_BEGIN_WITH_DIRECTOR_LOCKED_SHOT01_V2');
-  check(two.renderId==='8598d156-438f-4614-a9dd-ce6172233d9b'
-    &&two.sha256==='eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471'
-    &&two.frames===3443&&two.renderKey==='EP003_SHOT02_TERMS_V3'
+  check(two.renderId==='78db6f85-ba05-4714-ba4f-fc70d64def88'
+    &&two.sha256==='5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e'
+    &&two.frames===3443&&two.renderKey==='EP003_SHOT02_MOTION_V4'
     &&two.voiceLeadInFrames===60,
-    'EP003_CUMULATIVE_SHOT02_V3_TWO_SECOND_BREATH_NOT_LOCKED');
+    'EP003_CUMULATIVE_SHOT02_V4_TWO_SECOND_BREATH_NOT_LOCKED');
   return m.shots.reduce((n,s)=>n+s.frames,0);
 }
 
