@@ -1,0 +1,95 @@
+import {useEffect,useState} from 'react';
+import {ExternalLink,PlayCircle,RefreshCcw} from 'lucide-react';
+
+const LATEST_ENDPOINT='/api/v1/remotion/renders/ep003/shot02/latest-successful';
+const URL_PREFIX='/api/v1/remotion/renders/';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type ReviewStatus='CHECKING'|'READY'|'UNAVAILABLE';
+type RenderInfo={
+  status?:string;
+  renderId?:string;
+  renderKey?:string;
+  width?:number;
+  height?:number;
+  fps?:number;
+  durationInFrames?:number;
+  videoUrl?:string;
+};
+
+export function Ep003Shot02DirectorReview(){
+  const [status,setStatus]=useState<ReviewStatus>('CHECKING');
+  const [message,setMessage]=useState('');
+  const [revision,setRevision]=useState(0);
+  const [videoUrl,setVideoUrl]=useState<string|null>(null);
+
+  useEffect(()=>{
+    const controller=new AbortController();
+    setStatus('CHECKING');
+    setVideoUrl(null);
+    setMessage('');
+    void fetch(LATEST_ENDPOINT,{cache:'no-store',signal:controller.signal})
+      .then(async response=>{
+        if(!response.ok)throw Error('Render lookup returned HTTP '+response.status);
+        return response.json() as Promise<RenderInfo>;
+      })
+      .then(render=>{
+        if(controller.signal.aborted)return;
+        if(render.status!=='READY'||!render.renderId||!UUID.test(render.renderId)
+          ||render.renderKey!=='EP003_SHOT02_V1'){
+          setStatus('UNAVAILABLE');
+          setMessage('The EP003 SHOT02 render is not yet ready. No completed Director MP4 was found.');
+          return;
+        }
+        const expected=URL_PREFIX+render.renderId+'/video';
+        if(render.videoUrl!==expected||render.width!==1920||render.height!==1080
+          ||render.fps!==30||!render.durationInFrames||render.durationInFrames<200){
+          setStatus('UNAVAILABLE');
+          setMessage('The stored SHOT02 media does not match the verified review profile.');
+          return;
+        }
+        setVideoUrl(expected);
+        setStatus('READY');
+      })
+      .catch(error=>{
+        if(controller.signal.aborted)return;
+        setStatus('UNAVAILABLE');
+        setMessage(error instanceof Error?error.message:'Unable to verify the saved video.');
+      });
+    return ()=>controller.abort();
+  },[revision]);
+
+  return <section className="ep003-director-review" aria-label="EP003 SHOT02 Director review video">
+    <header className="ep003-director-review-heading">
+      <div>
+        <h3><PlayCircle size={21} aria-hidden="true"/> SHOT02 · Director Video Review</h3>
+        <p>Find the Real Bottleneck.</p>
+      </div>
+      <span className="ep003-director-review-status">RENDERED · NOT LOCKED</span>
+    </header>
+    <p className="ep003-director-review-detail">
+      Original Director-LOCKED Slow Natural SHOT02 narration · 1920×1080 · 30 fps.
+      Full P0 continuity from SHOT01 V2 last encoded frame. No generation is triggered by this panel.
+    </p>
+    {status==='CHECKING'&&<p role="status">Checking the latest saved SHOT02 MP4…</p>}
+    {status==='UNAVAILABLE'&&<p role="alert">{message}</p>}
+    {status==='READY'&&videoUrl&&<video key={videoUrl}
+      className="ep003-director-review-video" controls playsInline preload="metadata"
+      src={videoUrl} aria-label="EP003 SHOT02 latest Director review MP4">
+      Your browser cannot play this MP4. Use the Open MP4 link below.
+    </video>}
+    <nav className="ep003-director-review-actions" aria-label="SHOT02 review actions">
+      {status==='READY'&&videoUrl&&
+        <a href={videoUrl} target="_blank" rel="noopener noreferrer">
+          <ExternalLink size={16} aria-hidden="true"/> Open MP4 in new tab
+        </a>}
+      <button type="button" onClick={()=>setRevision(value=>value+1)}>
+        <RefreshCcw size={15} aria-hidden="true"/> Refresh render status
+      </button>
+    </nav>
+    <p className="ep003-director-review-caution">
+      Director approval is required after watching the actual video. This panel performs no
+      paid generation, re-render or automatic visual LOCK.
+    </p>
+  </section>;
+}
