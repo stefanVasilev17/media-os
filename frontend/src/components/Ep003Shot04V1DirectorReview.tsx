@@ -34,7 +34,7 @@ export function Ep003Shot04V1DirectorReview(){
         if(record.status!=='READY'||!record.renderId||!UUID.test(record.renderId)||
           record.renderKey!==RENDER_KEY||record.compositionId!==COMPOSITION||
           record.profile!=='REVIEW'||record.width!==1920||record.height!==1080||
-          record.fps!==30||!Number.isInteger(record.durationInFrames)||record.durationInFrames<1500||record.durationInFrames>7200||
+          record.fps!==30||typeof record.durationInFrames!=='number'||!Number.isInteger(record.durationInFrames)||record.durationInFrames<1500||record.durationInFrames>7200||
           record.videoUrl!==PREFIX+record.renderId+'/video'||
           !record.sizeBytes||record.sizeBytes<1000000||record.directorLocked===true){
           setState({kind:'EMPTY',message:'The SHOT04 V1 candidate fails exact saved MP4 quality checks. The existing locked master remains unchanged.'});
