@@ -24,7 +24,7 @@ describe('EP003 SHOT05 V1 Director preview, after SHOT04 LOCK',()=>{
     expect(approved).toContain('V1 · DIRECTOR-LOCKED · OFFICIAL MASTER');
   });
   it('keeps exactly one official full-video player and only SHOT05 candidate review',()=>{
-    expect((page.match(/<Ep003CumulativeFullVideo\/>/g)||[]).toHaveLength(1);
+    expect((page.match(/<Ep003CumulativeFullVideo\/>/g)||[])).toHaveLength(1);
     expect(page.indexOf('<Ep003Shot05V1DirectorReview/>'))
       .toBeGreaterThan(page.indexOf('<Ep003Shot04V1DirectorReview/>'));
     expect(page).not.toContain('<Ep003Shot03V4ThreeShotWipFilm/>');
