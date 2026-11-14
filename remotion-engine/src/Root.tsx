@@ -15,6 +15,7 @@ import {Ep003Shot03WordingV4} from './episodes/ep003/Shot03WordingV4';
 import {Ep003Shot04ReadWriteSplittingV1} from './episodes/ep003/Shot04ReadWriteSplittingV1';
 import {Ep003Shot05StaleReadV1} from './episodes/ep003/Shot05StaleReadV1';
 import {Ep003Shot06CorrectnessBeforeSpeedV1} from './episodes/ep003/Shot06CorrectnessBeforeSpeedV1';
+import {Ep003Shot07BottleneckMeasurementV1} from './episodes/ep003/Shot07BottleneckMeasurementV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -78,6 +79,31 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT07-BOTTLENECK-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot07BottleneckMeasurementV1}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'00000000-0000-0000-0000-000000000001',
+          previousRenderId:'0007bd16-edbf-4ecc-927a-4a5781d0b921',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:31452,
+          cueFrames:{
+            INTRO:60,THREE_AUTH:100,PRIMARY_ONE:120,TWO_REPLICAS:140,
+            MORE_MACHINES:160,ORIGINAL_PROBLEM:190,LOGIN_RATE:220,
+            LOOKUP_RATE:245,AFTER_REPLICAS:270,MEASURE_WORKLOAD:290,
+            OPTIONAL_BUSY:315,PRIMARY_CHECK:335,LIMIT_REACHED:360,
+            REPLICAS_HELPED:385,NOT_REMOVED:400,CRITICAL_PATH:420,
+            PATH_DEFINITION:445,LOGIN_REQUIRED:465,PREFERENCE_FAST:490,
+            PRIMARY_DEP:515,COMPLEXITY:540,MORE_DB:565,DASHBOARD:590,
+            STILL_FAIL:615,WORK_STAYED:640,BETTER_QUESTION:665,
+            PARTITION_OWNERSHIP:695
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot06CorrectnessBeforeSpeedV1}
