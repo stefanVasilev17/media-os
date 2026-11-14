@@ -1,4 +1,8 @@
 # MediaOS — Agent Startup and Handoff Rules
+## 2026-11-14 P0 CORRECTION — NEVER FREEZE THE LIVING WORLD AT SHOT JOINS
+
+**Verified EP003 V3 defect:** static `previousLastFrameDataUri` photo covers first 55 frames via `1-ease(frame,0,55)`. It hides moving request dots, causing a visible freeze despite 44.65 dB match of the first encoded frame. For ALL subsequent SHOTs, a real pinned source image can cover **FRAME ZERO ONLY**. From frame1, the actual architecture, camera, network packets, node pulses and paths must animate continuously with matching world state. Check first 20–30 decoded frames for actual motion plus source last frame/first frame pixel QA; a single PSNR reading is insufficient. Keep 2s narrator-free breathing animated, do not retime/regenerate a locked Take. Preserve locked EP003 SHOT02 V3 + 3:18.57 master while corrective V4 and whole-film WIP preview await Director approval. [Canonical P0 no-freeze rule](docs/engineering/AT_P0_CONTINUOUS_MOTION_NO_STATIC_PREDECESSOR_COVER_20261114.md).
+
 ## 2026-11-14 DIRECTOR LOCK — EP003 SHOT02 V3 + AUTOMATIC CUMULATIVE FULL VIDEO AFTER EVERY NEW SHOT
 
 **EXPLICIT DIRECTOR LOCK:** EP003 SHOT02 V3 stored render `8598d156-438f-4614-a9dd-ce6172233d9b` SHA256 `eee2308b3f8150ac9ac49db6b0a257374e40fbbf8ddf6b1245ae58d5400ff471`, **3443 frames /30fps**, 60 moving narrator-free opening frames, original approved voice, LATENCY above THROUGHPUT during comparison. The source and voice are IMMUTABLE, prior V1/V2 NOT LOCKED. Future SHOT03 begins at the ACTUAL decoded V3 last encoded frame **3442**, world frame **17933**.
