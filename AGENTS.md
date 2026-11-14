@@ -1,4 +1,8 @@
 # MediaOS — Agent Startup and Handoff Rules
+## 2026-11-14 DIRECTOR LOCK — EP003 SHOT01 V2 — REQUIRED EXACT SHOT02 START
+
+**CANONICAL EP003 SHOT01 V2 is DIRECTOR VISUAL-LOCKED:** MediaOS render `b6fd7f30-7c78-414b-a88c-387c0ee8c43a`, MP4 SHA256 `da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08`, 2514 frames 30fps, *real* last decoded frame index `2513`; continuous Living Architecture world frame 14491. **EP003 SHOT02 MUST BEGIN WITH THAT ACTUAL FINAL ENCODED FRAME**, match same camera, nodes, visible paths, in-flight request positions and style. Never use earlier SHOT01 V1 MP4, do not reset the world, do not show a cut. Read [Director locked source and seam](docs/visual/EP003_SHOT01_V2_DIRECTOR_LOCKED_20261114.md). Director FIX: no unreadable flashing text—caption has actual time to read or must be omitted; global P0 policy already merged. Never edit approved SHOT01 original MP4 or voice; SHOT02 requires its own new Director approval.
+
 
 ## 2026-11-14 DIRECTOR P0 — TEXT MUST STAY READABLE OR BE OMITTED (ALL FUTURE VIDEOS)
 

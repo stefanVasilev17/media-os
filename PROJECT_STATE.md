@@ -1,4 +1,8 @@
 # MediaOS — CURRENT PROJECT STATE
+## 2026-11-14 — EP003 SHOT01 V2 DIRECTOR VISUAL LOCK — SHOT02 START PIN
+
+**Explicit Director APPROVED/LOCKED EP003 SHOT01 V2**, fixed readable captions (original V1 invisible-card fade regression rejected). Canonical real saved `renderId=b6fd7f30-7c78-414b-a88c-387c0ee8c43a`, SHA256 `da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08`, H264/AAC 1920×1080 30fps `2514` frames; **last decoded encoded V2 frame index 2513**, visual world state at frame `14491`. Source commit `01279808c702edc006efa728d287749108f6d5de`; existing Slow Natural Take `1bde96be-d530-4ccc-ae0f-3bea138879d7` unchanged. The V1 MP4 `078e3f41-5da0-45c2-8b6b-007e004fc491` is not locked and must never be used as SHOT02 handoff. Canonical [Director visual LOCK and exact seam contract](docs/visual/EP003_SHOT01_V2_DIRECTOR_LOCKED_20261114.md). SHOT02 must begin with actual V2 frame 2513, same map/camera/packet paths without visible SHOT boundary; no text overflow, overlaps or unreadably fast captions. Render SHOT02 only from its exact selected Director-locked Slow Natural SHOT02 Take, verify actual HEAR→SEE, test, and present actual new MP4 to Director before declaring LOCK.
+
 
 ## 2026-11-14 — DIRECTOR P0 GLOBAL TEXT DWELL OR OMIT — CORRECT EP003 SHOT01
 
