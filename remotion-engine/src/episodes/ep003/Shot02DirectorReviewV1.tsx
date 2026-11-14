@@ -22,19 +22,14 @@ export const EP003_SHOT02_LOCKED_PREDECESSOR={
   width:1920,height:1080,fps:30,
 } as const;
 
-export const EP003_SHOT02_CARDS=[
-  {cue:'INTRO',eyebrow:'ONE ARCHITECTURE',line:'THREE AUTH SERVERS. ONE USER DATABASE.',color:CYAN},
-  {cue:'DEMAND',eyebrow:'INCOMING DEMAND',line:'900 NEW LOGIN REQUESTS / SECOND',color:CYAN},
-  {cue:'CAPACITY',eyebrow:'MEASURED DATABASE CAPACITY',line:'ABOUT 500 ACCOUNT LOOKUPS / SECOND',color:AMBER},
-  {cue:'QUEUES',eyebrow:'WHEN DEMAND EXCEEDS CAPACITY',line:'MORE WAITING. LONGER QUEUES.',color:AMBER},
-  {cue:'THROUGHPUT',eyebrow:'TWO DIFFERENT MEASUREMENTS',line:'HOW MUCH FINISHES VS HOW LONG IT TAKES',color:CYAN},
-  {cue:'BOTTLENECK',eyebrow:'THE REAL BOTTLENECK',line:'ALL THREE AUTH SERVERS SHARE THE LIMIT',color:AMBER},
-  {cue:'MORE_AUTH',eyebrow:'MORE AUTH SERVERS?',line:'MORE SERVERS. SAME DATABASE.',color:AMBER},
-  {cue:'BUDGET',eyebrow:'ADMISSION CONTROL',line:'450 LOOKUPS / SECOND PROTECTS THE DATABASE',color:MINT},
-  {cue:'NEXT',eyebrow:'THE ARCHITECTURAL QUESTION',line:'WHICH DATABASE WORK NEEDS MORE CAPACITY?',color:CYAN},
+export const EP003_SHOT02_TERM_CARDS=[
+  {cue:'THROUGHPUT_TERM',eyebrow:'THROUGHPUT',line:'Work completed in a given period',color:CYAN},
+  {cue:'LATENCY_TERM',eyebrow:'LATENCY',line:'Time one operation takes to complete',color:CYAN},
+  {cue:'BOTTLENECK_TERM',eyebrow:'BOTTLENECK',line:'The component limiting total Login capacity',color:AMBER},
+  {cue:'ADMISSION_BUDGET_TERM',eyebrow:'ADMISSION BUDGET',line:'A limit on DB work, including permitted retries',color:MINT},
 ] as const;
 
-export type Ep003Shot02Cue=typeof EP003_SHOT02_CARDS[number]['cue'];
+export type Ep003Shot02TermCue=typeof EP003_SHOT02_TERM_CARDS[number]['cue'];
 export type Ep003Shot02Props={
   durationInFrames:number;
   voiceTakeId:string;
@@ -42,8 +37,12 @@ export type Ep003Shot02Props={
   previousLastFrameSha256:string;
   previousLastFrameDataUri:string;
   worldStartFrame:number;
-  cueFrames:Record<Ep003Shot02Cue,number>;
+  cueFrames:Record<'INTRO'|'DEMAND'|'CAPACITY'|'QUEUES'|
+    'THROUGHPUT'|'BOTTLENECK'|'MORE_AUTH'|'BUDGET'|'NEXT',number>;
+  termCueFrames:Record<Ep003Shot02TermCue,number>;
 };
+export const EP003_TERM_CARD_MAX_HOLD_FRAMES=270;
+
 
 const CARD_LEFT=560,CARD_TOP=742,CARD_PAD=34;
 export function ep003Shot02CardSize(eyebrow:string,line:string){
@@ -63,34 +62,39 @@ export function validateEp003Shot02Props(p:Ep003Shot02Props){
       ||p.durationInFrames<200||p.durationInFrames>18000)
     throw Error('EP003_SHOT02_REQUIRES_REAL_LOCKED_V2_FRAME_AND_SELECTED_VOICE');
   let previous=-1;
-  for(const item of EP003_SHOT02_CARDS){
-    const cue=p.cueFrames?.[item.cue];
+  for(const item of EP003_SHOT02_TERM_CARDS){
+    const cue=p.termCueFrames?.[item.cue];
     if(!Number.isInteger(cue)||cue<=previous||cue>=p.durationInFrames)
-      throw Error('EP003_SHOT02_REQUIRES_UNIQUE_REAL_VOICE_CUE_'+item.cue);
+      throw Error('EP003_SHOT02_REQUIRES_UNIQUE_REAL_TERM_AUDIO_CUE_'+item.cue);
     previous=cue;
     const size=ep003Shot02CardSize(item.eyebrow,item.line);
     const rect={left:CARD_LEFT,top:CARD_TOP,...size};
     if(CARD_TOP+size.height>1020||CARD_LEFT+size.width>1870)
-      throw Error('EP003_SHOT02_PANEL_OUTSIDE_1080P_SAFE_AREA');
+      throw Error('EP003_SHOT02_TERM_PANEL_OUTSIDE_1080P_SAFE_AREA');
     for(const node of Object.values(SHOT02_NODES)){
       if(shot02Intersects(rect,{left:node.x-node.width/2,
         top:node.y,width:node.width,height:node.height},20))
-        throw Error('EP003_SHOT02_PANEL_OVERLAPS_LIVING_ARCHITECTURE');
+        throw Error('EP003_SHOT02_TERM_PANEL_OVERLAPS_LIVING_ARCHITECTURE');
     }
   }
+  const existingAudioCues=Object.values(p.cueFrames??{});
+  if(existingAudioCues.length!==9||existingAudioCues.some(v=>!Number.isInteger(v)))
+    throw Error('EP003_SHOT02_MISSING_REAL_VOICE_ARCHITECTURE_CUES');
+
   return true;
 }
 
 const ActiveCard:React.FC<{
-  frame:number;cueFrames:Ep003Shot02Props['cueFrames'];durationInFrames:number
-}>=({frame,cueFrames,durationInFrames})=>{
-  const i=EP003_SHOT02_CARDS.reduce((index,card,n)=>
-    frame>=cueFrames[card.cue]?n:index,-1);
+  frame:number;termCueFrames:Ep003Shot02Props['termCueFrames'];durationInFrames:number
+}>=({frame,termCueFrames,durationInFrames})=>{
+  const i=EP003_SHOT02_TERM_CARDS.reduce((index,card,n)=>
+    frame>=termCueFrames[card.cue]?n:index,-1);
   if(i<0)return null;
-  const card=EP003_SHOT02_CARDS[i],next=EP003_SHOT02_CARDS[i+1];
-  const from=cueFrames[card.cue];
-  const to=next?cueFrames[next.cue]:durationInFrames;
-  if(!ep003CardIsReadable(card.eyebrow,card.line,from,to,30))return null;
+  const card=EP003_SHOT02_TERM_CARDS[i],next=EP003_SHOT02_TERM_CARDS[i+1];
+  const from=termCueFrames[card.cue];
+  const to=Math.min(durationInFrames,from+EP003_TERM_CARD_MAX_HOLD_FRAMES,
+    next?termCueFrames[next.cue]:durationInFrames);
+  if(frame>=to||!ep003CardIsReadable(card.eyebrow,card.line,from,to,30))return null;
   const alpha=ep003CardOpacity(frame,from,to);
   const size=ep003Shot02CardSize(card.eyebrow,card.line);
   return <div style={{position:'absolute',left:CARD_LEFT,top:CARD_TOP,
@@ -154,7 +158,8 @@ export const Ep003Shot02DirectorReviewV1:React.FC<Ep003Shot02Props>=(props)=>{
         <div style={{marginTop:15,width:690,height:2,
           background:'linear-gradient(90deg,#68E5FF,transparent)'}}/>
       </div>
-      <ActiveCard frame={frame} cueFrames={cues} durationInFrames={props.durationInFrames}/>
+      <ActiveCard frame={frame} termCueFrames={props.termCueFrames}
+        durationInFrames={props.durationInFrames}/>
     </AbsoluteFill>
     <AbsoluteFill style={{zIndex:30,opacity:priorVisual,pointerEvents:'none'}}>
       <Img src={props.previousLastFrameDataUri}
