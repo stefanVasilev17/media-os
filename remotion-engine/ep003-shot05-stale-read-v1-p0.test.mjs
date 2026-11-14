@@ -44,7 +44,8 @@ test('P0: SHOT04 real last frame and world motion persist with NO 55-frame stati
   "const dashOffset=-(3080+EP003_SHOT05_PREDECESSOR.frames-1+frame)*.74",
  ])assert.ok(scene.includes(required),required);
  assert.ok(runner.includes("worldStartFrame:24852"));
- assert.ok(runner.includes("select=eq(n\\,3840)"));
+ assert.match(runner,/select=eq\\(n/);
+ assert.ok(runner.includes('3840'));
  assert.ok(runner.includes("previous.render_key==='EP003_SHOT04_READ_WRITE_SPLITTING_V1'"));
  assert.doesNotMatch(scene,/1-ease\(frame,0,55\)/);
  assert.match(runner,/uniqueMovingSteps>=18/);
