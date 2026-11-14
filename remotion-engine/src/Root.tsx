@@ -12,6 +12,7 @@ import {Shot09DirectorVisualV1} from './episodes/ep002/Shot09DirectorVisualV1';
 import {Shot10DirectorVisualV1} from './episodes/ep002/Shot10DirectorVisualV1';
 import {Shot11DirectorVisualV1} from './episodes/ep002/Shot11DirectorVisualV1';
 import {Ep003Shot01DirectorReviewV1} from './episodes/ep003/Shot01DirectorReviewV1';
+import {Ep003Shot02DirectorReviewV1} from './episodes/ep003/Shot02DirectorReviewV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -75,6 +76,22 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT02-DIRECTOR-CANDIDATE"
+        component={Ep003Shot02DirectorReviewV1}
+        durationInFrames={dynamicDuration ?? 600}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:600,
+          voiceTakeId:'00000000-0000-0000-0000-000000000001',
+          previousRenderId:'b6fd7f30-7c78-414b-a88c-387c0ee8c43a',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:14491,
+          cueFrames:{INTRO:15,DEMAND:95,CAPACITY:165,QUEUES:240,
+            THROUGHPUT:300,BOTTLENECK:350,MORE_AUTH:410,BUDGET:475,NEXT:560},
+        }}
+      />
       <Composition
         id="EP003-SHOT01-DIRECTOR-CANDIDATE"
         component={Ep003Shot01DirectorReviewV1}
