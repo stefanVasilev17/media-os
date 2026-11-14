@@ -1,0 +1,13 @@
+{
+  "name": "at-episode-cumulative-assembler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pg": "8.16.3"
+  },
+  "scripts": {
+    "test": "node --test ./ep003-assemble-master.test.mjs",
+    "start": "node ./ep003-assemble-master.mjs"
+  }
+}
