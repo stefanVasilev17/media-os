@@ -19,7 +19,7 @@
 - **THROUGHPUT** — Work completed in a given period.
 - **LATENCY** — Time one operation takes to complete.
 - **BOTTLENECK** — The component limiting total Login capacity.
-- **ADMISSION BUDGET** — A limit on DB work, including permitted retries.
+- **ADMISSION BUDGET** — Caps DB lookups, including retry work.
 
 The nine former generic cards (e.g. “ONE ARCHITECTURE”, “INCOMING DEMAND”, “MORE AUTH SERVERS?”, “THE ARCHITECTURAL QUESTION”) are disallowed in V2. Keep meaning in the living diagram and narration. If any approved voice cue cannot provide adequate dwell, OMIT that term card as well. This policy supplements [P0 readable text or omit](AT_DIRECTOR_P0_TEXT_DWELL_OR_OMIT_20261114.md) and [P0 world/motion constitution](AT_DIRECTOR_P0_GLOBAL_VISUAL_MOTION_AND_QA_20261113.md).
 
