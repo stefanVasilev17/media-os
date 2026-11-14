@@ -383,6 +383,31 @@ public class RemotionRenderController {
                         "reason","NO_EP003_SHOT01_DIRECTOR_MP4"));
     }
 
+    @GetMapping("/ep003/shot02/latest-successful")
+    public Map<String,Object> latestEp003Shot02DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT02-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT02_V1'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>0
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
+    }
+
     @GetMapping("/{renderId}")
     public Map<String, Object> render(@PathVariable UUID renderId) {
         return findById(renderId)
