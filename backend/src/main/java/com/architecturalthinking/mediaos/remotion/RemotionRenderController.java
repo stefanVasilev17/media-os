@@ -33,7 +33,7 @@ public class RemotionRenderController {
     private static final UUID PROJECT_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final UUID EP001_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT01_V2 = UUID.fromString("b6fd7f30-7c78-414b-a88c-387c0ee8c43a");
-    private static final UUID DIRECTOR_LOCKED_EP003_SHOT02_V3 = UUID.fromString("8598d156-438f-4614-a9dd-ce6172233d9b");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT02_V4 = UUID.fromString("78db6f85-ba05-4714-ba4f-fc70d64def88");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
@@ -398,12 +398,16 @@ public class RemotionRenderController {
                     or (composition_id='EP003-SHOT02-TERMS-V2-DIRECTOR-CANDIDATE'
                         and render_key='EP003_SHOT02_TERMS_V2')
                     or (composition_id='EP003-SHOT02-TERMS-V3-DIRECTOR-CANDIDATE'
-                        and render_key='EP003_SHOT02_TERMS_V3'))
+                        and render_key='EP003_SHOT02_TERMS_V3')
+                    or (id='78db6f85-ba05-4714-ba4f-fc70d64def88'::uuid
+                        and composition_id='EP003-SHOT02-MOTION-V4-DIRECTOR-CANDIDATE'
+                        and render_key='EP003_SHOT02_MOTION_V4'))
                   and profile='REVIEW'
                   and status='SUCCEEDED'
                   and video_data is not null
                   and coalesce(size_bytes,0)>0
-                order by finished_at desc,created_at desc,id desc
+                order by case when id='78db6f85-ba05-4714-ba4f-fc70d64def88'::uuid then 0 else 1 end,
+                         finished_at desc,created_at desc,id desc
                 limit 1
                 """)
                 .param("projectId",PROJECT_ID)
@@ -710,7 +714,7 @@ public class RemotionRenderController {
         result.put("renderId", row.id());
         result.put("directorLocked",
                 row.id().equals(DIRECTOR_LOCKED_EP003_SHOT01_V2)
-                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT02_V3));
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT02_V4));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());
