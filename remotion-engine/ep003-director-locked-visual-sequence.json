@@ -63,7 +63,22 @@
       "height": 1080,
       "voiceTakeId": "59daccf6-009e-4bed-baa8-951a4bae3aa1",
       "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT05",
+      "version": "V1",
+      "directorLocked": true,
+      "renderId": "04b9f55a-7705-4f23-b9f7-a0103e8c955b",
+      "compositionId": "EP003-SHOT05-STALE-READ-V1-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT05_STALE_READ_V1",
+      "sha256": "9520b347778413b3a4e9cbeed8eda513102c9f03eecf423638a4406d88841d62",
+      "frames": 3001,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "da70458f-6728-4437-953c-58113c8aae8d",
+      "voiceLeadInFrames": 60
     }
   ],
-  "directorApprovalContext": "Director explicitly reviewed 4-SHOT WIP render 0d8b0b40-3bcf-498a-827f-798f159fd2d6 (12878 frames, 3/3 real seam QA PASS) and said 'МНОГО ДОБРЕ! ХАРЕСВА МИ ! ЛОКВАМЕ!' SHOT04 V1 becomes Director-LOCKED. SHOT05 is independent candidate and is not locked. Show exactly one latest official full video master."
+  "directorApprovalContext": "Director reviewed complete five-shot WIP render 2f6f65c1-124c-40c4-9f6c-1d4a3efd8906 with 4/4 decoded seam QA PASS and explicitly LOCKED SHOT05 V1. Prior 4 locks remain byte-for-byte immutable. SHOT06 is new separate candidate and must NEVER be automatically locked. MediaOS shows exactly one latest official full-video master."
 }
