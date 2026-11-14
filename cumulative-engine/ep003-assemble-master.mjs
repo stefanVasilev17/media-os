@@ -187,7 +187,7 @@ async function main(){
     }));
     const list=path.join(tmp,'approved-locked-sources.ffconcat');
     await fs.writeFile(list,'ffconcat version 1.0\n'+sources.map(p=>
-      'file '+JSON.stringify(p)).join('\n')+'\n');
+      'file '+path.basename(p)).join('\n')+'\n');
     renderId=randomUUID();
     const props={episodeKey:'EP003',directorLocked:true,sequence:segments,shotCount:segments.length,
       totalFrames:total,fps:FPS,assembly:'FFMPEG_CONCAT_DEMUXER_STREAM_COPY',
