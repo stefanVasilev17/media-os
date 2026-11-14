@@ -14,6 +14,7 @@ import {Shot11DirectorVisualV1} from './episodes/ep002/Shot11DirectorVisualV1';
 import {Ep003Shot01DirectorReviewV1} from './episodes/ep003/Shot01DirectorReviewV1';
 import {Ep003Shot02DirectorReviewV1} from './episodes/ep003/Shot02DirectorReviewV1';
 import {Ep003Shot02TechnicalTermsV2} from './episodes/ep003/Shot02TechnicalTermsV2';
+import {Ep003Shot02TechnicalTermsV3} from './episodes/ep003/Shot02TechnicalTermsV3';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -77,6 +78,24 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT02-TERMS-V3-DIRECTOR-CANDIDATE"
+        component={Ep003Shot02TechnicalTermsV3}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'00000000-0000-0000-0000-000000000001',
+          previousRenderId:'b6fd7f30-7c78-414b-a88c-387c0ee8c43a',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:14491,
+          cueFrames:{INTRO:75,DEMAND:155,CAPACITY:225,QUEUES:300,
+            THROUGHPUT:360,BOTTLENECK:410,MORE_AUTH:470,BUDGET:535,NEXT:620},
+          termCueFrames:{THROUGHPUT_TERM:120,LATENCY_TERM:220,
+            BOTTLENECK_TERM:410,ADMISSION_BUDGET_TERM:520},
+        }}
+      />
       <Composition
         id="EP003-SHOT02-TERMS-V2-DIRECTOR-CANDIDATE"
         component={Ep003Shot02TechnicalTermsV2}
