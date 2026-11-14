@@ -11,6 +11,7 @@ import {EpisodeFactoryProductionPanel} from '../components/EpisodeFactoryProduct
 import {Ep003Shot01DirectorReview} from '../components/Ep003Shot01DirectorReview';
 import {Ep003Shot02DirectorReview} from '../components/Ep003Shot02DirectorReview';
 import {Ep003Shot03DirectorReview} from '../components/Ep003Shot03DirectorReview';
+import {Ep003Shot03V2DirectorReview} from '../components/Ep003Shot03V2DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 import {Ep003WipShot02V4FullFilm} from '../components/Ep003WipShot02V4FullFilm';
 
@@ -156,7 +157,8 @@ export function EpisodePackageImportPage(){
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical WIP · SHOT02 V4 transition review (archived)</summary><Ep003WipShot02V4FullFilm/></details>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot03DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot03V2DirectorReview/>}
+      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeCodexCloudPanel packageId={details.packageId}
