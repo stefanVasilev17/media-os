@@ -36,7 +36,7 @@ export function Ep003Shot04V1DirectorReview(){
           record.profile!=='REVIEW'||record.width!==1920||record.height!==1080||
           record.fps!==30||!Number.isInteger(record.durationInFrames)||record.durationInFrames<1500||record.durationInFrames>7200||
           record.videoUrl!==PREFIX+record.renderId+'/video'||
-          !record.sizeBytes||record.sizeBytes<1000000){
+          !record.sizeBytes||record.sizeBytes<1000000||record.directorLocked===true){
           setState({kind:'EMPTY',message:'The SHOT04 V1 candidate fails exact saved MP4 quality checks. The existing locked master remains unchanged.'});
           return;
         }
@@ -65,7 +65,7 @@ export function Ep003Shot04V1DirectorReview(){
       No free-floating Login request packets, no nested boxes, no clipped card copy.
       Original Director-selected Slow Natural voice and exact SHOT03 V4 last-frame
       handoff are preserved. Review the actual MP4 before deciding whether to LOCK.
-
+    </p>
     {state.kind==='CHECKING'&&<p role="status">Checking stored SHOT04 V1 MP4…</p>}
     {state.kind==='EMPTY'&&<p role="status">{state.message}</p>}
     {video&&<video key={video} className="ep003-director-review-video"
