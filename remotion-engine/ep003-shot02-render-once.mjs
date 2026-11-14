@@ -149,7 +149,7 @@ async function main(){
     assert(v?.width===1920&&v?.height===1080,
       'PINNED_EP003_SHOT01_V2_MEDIA_STREAM_NOT_1920x1080');
     const seconds=Number(info.format.duration);
-    assert(seconds>=83.25&&seconds<=84.25,'PINNED_LOCKED_EP003_SHOT02_V2_DURATION_UNEXPECTED');
+    assert(seconds>=83.25&&seconds<=84.25,'PINNED_LOCKED_EP003_SHOT01_V2_DURATION_UNEXPECTED');
     await run('ffmpeg',['-hide_banner','-nostdin','-loglevel','error',
       '-i',prevFile,'-vf','select=eq(n\\,2513)','-vsync','0',
       '-frames:v','1','-y',prevPng]);
