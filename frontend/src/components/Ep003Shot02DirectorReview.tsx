@@ -70,7 +70,7 @@ export function Ep003Shot02DirectorReview(){
         <p>Find the Real Bottleneck.</p>
       </div>
       <span className="ep003-director-review-status">
-        {version==='V3'?'V3 · LATENCY / THROUGHPUT · 2s LEAD · NOT LOCKED':
+        {version==='V3'?'V3 · LATENCY / THROUGHPUT · 2s LEAD · DIRECTOR LOCKED':
           version==='V2'?'V2 · TECHNICAL TERMS ONLY · PRIOR REVIEW':
           version==='V1'?'V1 · PRIOR REVIEW · NOT LOCKED':
           'DIRECTOR REVIEW · NOT LOCKED'}
@@ -101,8 +101,10 @@ export function Ep003Shot02DirectorReview(){
       </button>
     </nav>
     <p className="ep003-director-review-caution">
-      Director approval is required after watching the actual video. This panel performs no
-      paid generation, re-render or automatic visual LOCK.
+      {version==='V3'
+        ?'The Director explicitly LOCKED this exact saved V3 MP4. SHOT03 must inherit its real final encoded frame 3442.'
+        :'This earlier visual candidate is not Director-LOCKED.'}
+      {' '}This player never creates a voice, edits media, or triggers rendering.
     </p>
   </section>;
 }
