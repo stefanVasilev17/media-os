@@ -6,6 +6,7 @@ import {SHOT02_NODES,shot02Intersects} from '../ep002/Shot02PremiumLayout';
 import {SHOT02_BALANCER_EXIT,SHOT02_AUTH_CARD_LEFT,SHOT02_AUTH_REPLICA_PORTS,
   shot02CubicPoint} from '../ep002/Shot02PressureVisuals';
 import {shot10TextWidth} from '../../../shot10-content-fit-layout.mjs';
+import {ep003CardIsReadable,ep003CardOpacity} from '../../../ep003-readable-card-policy.mjs';
 
 const WHITE='#F5FCFF',SOFT='#B5D2E6',AMBER='#F5A55A',MINT='#6FECD4',CYAN='#68E5FF';
 const clamp=(x:number)=>Math.max(0,Math.min(1,x));
@@ -103,15 +104,16 @@ const RejectionParticle:React.FC<{frame:number;start:number}>=({frame,start})=>{
   </svg>;
 };
 
-const ContentCard:React.FC<{frame:number;cues:Ep003Shot01Props['cueFrames']}>=
-({frame,cues})=>{
+const ContentCard:React.FC<{frame:number;cues:Ep003Shot01Props['cueFrames'];durationInFrames:number}>=
+({frame,cues,durationInFrames})=>{
   const i=cueIndex(frame,cues);
   if(i<0)return null;
   const entry=EP003_SHOT01_CARDS[i];
-  const since=frame-cues[entry.cue];
   const next=EP003_SHOT01_CARDS[i+1];
-  const until=next?cues[next.cue]-frame:9999;
-  const op=ease(since,0,22)*(next?1-ease(until,0,21):1);
+  const endFrame=next?cues[next.cue]:durationInFrames;
+  if(!ep003CardIsReadable(entry.eyebrow,entry.line,cues[entry.cue],endFrame))
+    return null;
+  const op=ep003CardOpacity(frame,cues[entry.cue],endFrame);
   const size=ep003Shot01CardSize(entry.eyebrow,entry.line);
   return <div style={{position:'absolute',left:CARD_LEFT,top:CARD_TOP,
     width:size.width,height:size.height,borderRadius:17,
@@ -173,7 +175,7 @@ export const Ep003Shot01DirectorReviewV1:React.FC<Ep003Shot01Props>=(props)=>{
         <div style={{marginTop:15,width:690,height:2,
           background:'linear-gradient(90deg,#6FECD4,transparent)'}}/>
       </div>
-      <ContentCard frame={frame} cues={p}/>
+      <ContentCard frame={frame} cues={p} durationInFrames={props.durationInFrames}/>
     </AbsoluteFill>
   </ATBackground>;
 };

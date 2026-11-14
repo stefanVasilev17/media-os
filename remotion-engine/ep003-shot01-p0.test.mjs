@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import {shot10TextWidth} from './shot10-content-fit-layout.mjs';
 import {SHOT11_LARGE_AMBER_STORY} from './shot11-large-amber-story.mjs';
+import {ep003CardIsReadable,ep003CardOpacity,ep003MinReadableCardFrames,
+  EP003_CARD_FADE_IN_FRAMES,EP003_CARD_FADE_OUT_FRAMES}
+  from './ep003-readable-card-policy.mjs';
 
 const scene=fs.readFileSync(new URL('./src/episodes/ep003/Shot01DirectorReviewV1.tsx',import.meta.url),'utf8');
 const script=fs.readFileSync(new URL('../backend/src/main/resources/ep003-director-locked-voice-package-v1.json',import.meta.url),'utf8');
@@ -108,4 +111,39 @@ test('EP003 panels never overlap the established EP002 Phone reserved lane',()=>
       shot10TextWidth(line,29))+34*2+12);
     assert.equal(intersects({left:560,top:742,width,height:131},phone,24),false);
   }
+});
+
+
+test('P0 unreadable container regression: no subsecond flash and human-readable visibility for all five actual EP003 spoken cue intervals',()=>{
+  const cues=[323,688,1231,1937,2217,2514];
+  const labels=cards;
+  for(let i=0;i<labels.length;i++){
+    const [eyebrow,line]=labels[i],from=cues[i],to=cues[i+1];
+    const min=ep003MinReadableCardFrames(eyebrow,line,30);
+    assert.ok(to-from>=min,eyebrow+' requires '+min+' frames but has '+(to-from));
+    assert.equal(ep003CardIsReadable(eyebrow,line,from,to),true);
+    const firstStable=from+EP003_CARD_FADE_IN_FRAMES;
+    const lastStable=to-EP003_CARD_FADE_OUT_FRAMES;
+    assert.equal(ep003CardOpacity(firstStable,from,to),1,
+      eyebrow+' must be fully visible after fade in');
+    assert.equal(ep003CardOpacity(Math.floor((from+to)/2),from,to),1,
+      eyebrow+' must NOT stay hidden between cues');
+    assert.equal(ep003CardOpacity(lastStable,from,to),1,
+      eyebrow+' must remain visible until the final fade out');
+    assert.equal(ep003CardOpacity(from,from,to),0);
+    assert.equal(ep003CardOpacity(to,from,to),0);
+  }
+  assert.match(scene,/ep003CardOpacity\(frame,cues\[entry\.cue\],endFrame\)/);
+  assert.match(scene,/ep003CardIsReadable\(entry\.eyebrow,entry\.line,cues\[entry\.cue\],endFrame\)/);
+  assert.doesNotMatch(scene,/1-ease\(until,0,21\)/);
+});
+test('P0 short-lived text must be OMITTED rather than flashing briefly',()=>{
+  assert.ok(ep003MinReadableCardFrames('ONE MORE ITEM','A SHORT MESSAGE')>=165);
+  assert.equal(ep003CardIsReadable('ONE MORE ITEM','A SHORT MESSAGE',200,270),false);
+  assert.equal(ep003CardIsReadable('ONE MORE ITEM','A SHORT MESSAGE',200,400),true);
+  assert.equal(ep003CardOpacity(201,200,400)>0,true);
+  assert.ok(ep003CardOpacity(203,200,400)<0.1);
+  assert.equal(ep003CardOpacity(250,200,400),1);
+  assert.ok(ep003CardOpacity(395,200,400)<0.25);
+  assert.equal(ep003CardOpacity(400,200,400),0);
 });
