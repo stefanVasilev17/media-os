@@ -18,7 +18,7 @@ const terms=[
  ['ADMISSION BUDGET','Caps DB lookups, including retry work']
 ];
 
-test('V3 displays only spoken engineering terms and precise educational definitions',()=>{
+test('V4 displays only spoken engineering terms and precise educational definitions',()=>{
   assert.equal((v3.match(/eyebrow:'/g)||[]).length,4,'only four unique glossary definitions');
   for(const [term,definition] of terms){
     assert.ok(v3.includes("eyebrow:'"+term+"'"),term+' term absent');
@@ -99,7 +99,7 @@ test('exact two-second silent prelude without rewriting locked original Slow Nat
   assert.match(render,/frame\+LEAD_IN_FRAMES/);
   assert.match(render,/'-af','adelay=2000:all=1'/);
   assert.match(render,/narrationStartsAtSeconds:LEAD_IN_SECONDS/);
-  assert.match(render,/EP003_SHOT02_V3_NARRATION_CUES_MUST_BEGIN_AFTER_TWO_SECONDS/);
+  assert.match(render,/EP003_SHOT02_V4_NARRATION_CUES_MUST_BEGIN_AFTER_TWO_SECONDS/);
   assert.doesNotMatch(render,/elevenlabs\.generate|textToSpeech|generateSpeech/);
   assert.match(render,/SELECTED_AUDIO_NOT_VERIFIED_SLOW_NATURAL__NO_AUDIO_REGEN/);
   assert.match(render,/originalAudio/);
@@ -127,7 +127,7 @@ test('locked predecessor real last frame stays identical and world camera still 
   }
 });
 
-test('new V3 composition/revision independent of V1, V2, no inherited old renderer and no auto lock',()=>{
+test('new V4 composition/revision independent of V1, V2, no inherited old renderer and no auto lock',()=>{
   assert.match(root,/EP003-SHOT02-MOTION-V4-DIRECTOR-CANDIDATE/);
   assert.match(root,/Ep003Shot02MotionContinuousV4/);
   assert.match(root,/EP003-SHOT02-TERMS-V2-DIRECTOR-CANDIDATE/);
