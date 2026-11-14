@@ -188,7 +188,7 @@ const QueryRouting:React.FC<{frame:number;cues:Shot06Props['cueFrames']}>=
  const dashOffset=-(3080+3841-1+EP003_SHOT06_PREDECESSOR.frames-1+frame)*.74;
  const phaseLabel=frame<cues.ACCOUNT_SECURITY?'PRIMARY STATUS: LOCKED':
    frame>=cues.REJECT&&frame<cues.COST?'SECURITY: FAIL CLOSED':
-   fallback?'AUTHORITATIVE FALLBACK':'SECURITY READ → PRIMARY';
+   fallback?'FALLBACK → PRIMARY':'READ → PRIMARY';
  const replicaLabel=frame<cues.VERSION_CHECK?'REPLICA A: MAY CATCH UP':
    frame<cues.MISSING_VERSION?'REPLICA A: CHECK VERSION':
    frame<cues.PRIMARY_FALLBACK?'REPLICA A: VERSION MISSING':
@@ -259,7 +259,7 @@ export const Ep003Shot06CorrectnessBeforeSpeedV1:React.FC<Shot06Props>=(props)=>
    throw Error('EP003_SHOT06_EXPECTS_1920x1080_30FPS_SELECTED_SLOW_NATURAL');
  validateShot06(props);
  const worldFrame=props.worldStartFrame+frame;
- const heading=ease(frame,65,75);
+ const heading=ease(frame,props.cueFrames.FASTEST,75);
  return <ATBackground>
    <AbsoluteFill style={{transform:'translate3d(-7px,0,0) scale(1.007)',
       transformOrigin:'50% 50%',pointerEvents:'none'}}>
