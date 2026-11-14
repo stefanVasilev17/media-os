@@ -109,7 +109,6 @@ const ContentCard:React.FC<{frame:number;cues:Ep003Shot01Props['cueFrames'];dura
   const i=cueIndex(frame,cues);
   if(i<0)return null;
   const entry=EP003_SHOT01_CARDS[i];
-  const since=frame-cues[entry.cue];
   const next=EP003_SHOT01_CARDS[i+1];
   const endFrame=next?cues[next.cue]:durationInFrames;
   if(!ep003CardIsReadable(entry.eyebrow,entry.line,cues[entry.cue],endFrame))
