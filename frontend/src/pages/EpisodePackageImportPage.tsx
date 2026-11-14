@@ -10,6 +10,7 @@ import {EpisodeCodexCloudPanel} from '../components/EpisodeCodexCloudPanel';
 import {EpisodeFactoryProductionPanel} from '../components/EpisodeFactoryProductionPanel';
 import {Ep003Shot01DirectorReview} from '../components/Ep003Shot01DirectorReview';
 import {Ep003Shot02DirectorReview} from '../components/Ep003Shot02DirectorReview';
+import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -149,6 +150,7 @@ export function EpisodePackageImportPage(){
         {' '}SHOTs have a Director-selected current-revision Take.
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
+      {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
