@@ -40,9 +40,9 @@ const voiceCues={
  MORE_DB:'The diagram has more database instances.',
  DASHBOARD:'The monitoring dashboard shows more available read capacity.',
  STILL_FAIL:'And still, some users cannot log in.',
- WORK_STAYED:'We scaled the reads that could move. But the work limiting Login stayed in one place.',
+ WORK_STAYED:'We scaled the reads that could move.',
  BETTER_QUESTION:'Now we have a better question.',
- PARTITION_OWNERSHIP:'Instead of copying the same account data onto more servers, what if we divided account ownership between independent database groups?',
+ PARTITION_OWNERSHIP:'Instead of copying the same account data onto more servers',
 }
 function assert(condition,code){if(!condition)throw Error(code);}
 function run(executable,args,{cwd}={}){
