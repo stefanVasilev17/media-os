@@ -20,7 +20,7 @@ test('exact predecessor V4 SHA, frame 3442 and world frame 17933, no V3 fallback
     '78db6f85-ba05-4714-ba4f-fc70d64def88',
     '5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e',
     '14491+3443-1',
-    'worldStartFrame:17933','select=eq(n\\,3442)',
+    'worldStartFrame:17933','select=eq(n', '3442',
     "previous.render_key==='EP003_SHOT02_MOTION_V4'"]){
     assert.ok((component+runner).includes(val),val);
   }
@@ -38,7 +38,7 @@ test('no improvised login particle and no container-in-container; data nodes liv
   assert.match(component,/Shot07CleanArchitectureWorld/);
   assert.match(component,/Shot02_NODES|SHOT02_NODES/);
   assert.doesNotMatch(component,/RejectionParticle|new RequestParticle/);
-  assert.match(component,/shot02Intersects\(rect,r,20\)/);
+  assert.match(component,/shot02Intersects\(card,r,20\)/);
   assert.match(component,/EP003_SHOT03_GLOSSARY_OVERLAPS_ARCHITECTURE/);
   assert.match(component,/EP003_SHOT03_REPLICA_NESTING_OR_OVERLAP/);
   assert.match(component,/const bezier=/);
