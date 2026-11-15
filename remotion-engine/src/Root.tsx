@@ -20,6 +20,7 @@ import {Ep003Shot07BottleneckMeasurementV2} from './episodes/ep003/Shot07Bottlen
 import {Ep003Shot07BottleneckMeasurementV3} from './episodes/ep003/Shot07BottleneckMeasurementV3';
 import {Ep003Shot08WhenCopiesAreNotEnoughV1} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV1';
 import {Ep003Shot08WhenCopiesAreNotEnoughV2} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV2';
+import {Ep003Shot09WhenPrimaryDisappearsV1} from './episodes/ep003/Shot09WhenPrimaryDisappearsV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -83,6 +84,46 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT09-FAILOVER-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot09WhenPrimaryDisappearsV1}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'7510815a-d096-415f-b4f0-52ae8398ce45',
+          previousRenderId:'22059373-cc17-44fd-ad03-56d092cc57dc',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:40299,
+          cueFrames:{
+            INTRO:60,
+            PRIMARY_AND_REPLICA:74,
+            PRIMARY_OWNS:88,
+            PRIMARY_FAIL:102,
+            REQUEST_FAILURE:116,
+            OTHER_SHARD:130,
+            RECOVERY_PATH:144,
+            PROMOTE:158,
+            FAILOVER:172,
+            LEGITIMATE_OWNER:186,
+            OLD_RETURN:200,
+            TWO_WRITERS:214,
+            SPLIT_BRAIN:228,
+            FENCING:242,
+            FENCE_MEANING:256,
+            DATA_RISK:270,
+            ASYNC:284,
+            LAG:298,
+            DATA_LOSS:312,
+            GREEN_ARROW:326,
+            CORRECTNESS:340,
+            INSTANCES:354,
+            WRONG_STATE:368,
+            TEST_FAILURES:382,
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT08-SHARDING-V2-DIRECTOR-CANDIDATE"
         component={Ep003Shot08WhenCopiesAreNotEnoughV2}
