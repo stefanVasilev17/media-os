@@ -97,7 +97,7 @@ test('Fail closed on any accidental unlocking, changed hash, wrong version, miss
   m=>{m.shots[4].directorLocked=false;},
   m=>{m.shots[5].directorLocked=false;},
   m=>{m.shots[6].directorLocked=false;},
-  m=>{m.shots[8].directorLocked=false;},
+  m=>{m.shots[7].directorLocked=false;},
   m=>{m.shots[5].renderId=m.shots[4].renderId;},
   m=>{m.shots[4].renderId=m.shots[3].renderId;},
   m=>{m.shots[3].renderId=m.shots[2].renderId;},
@@ -119,7 +119,7 @@ test('Next SHOT09 requires a new unique Director-LOCKED entry, never silent prom
    voiceTakeId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'});
  assert.equal(validateLockedSequence(m),30728);
  assert.equal(episodeSegments(m.shots)[8].startFrame,28328);
- m.shots[7].directorLocked=false;
+ m.shots[8].directorLocked=false;
  assert.throws(()=>validateLockedSequence(m));
 });
 test('FFmpeg H264/AAC stream-copy verifies all seven actual decoded seams and unchanged pixels',()=>{
