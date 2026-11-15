@@ -52,9 +52,9 @@ const QUERY_PATHS=[
     start:{x:1444,y:660},c1:{x:1546,y:708},c2:{x:1510,y:915},end:{x:1650,y:906}},
 ] as const;
 const CALLOUTS=[
- {cue:'OPTIONAL_BUSY',endCue:'LIMIT_REACHED',title:'READ REPLICA',meaning:'A copy serving reads that can tolerate stale data',color:MINT},
- {cue:'PATH_DEFINITION',endCue:'PRIMARY_DEP',title:'CRITICAL PATH',meaning:'Required steps that must finish before Login succeeds',color:CYAN},
- {cue:'WORK_STAYED',endCue:'PARTITION_OWNERSHIP',title:'THE REAL BOTTLENECK',meaning:'Required account checks still hit one Primary',color:AMBER},
+ {cue:'OPTIONAL_BUSY',endCue:'LIMIT_REACHED',title:'READ REPLICA',meaning:'Read-only copy; may return stale data',color:MINT},
+ {cue:'PATH_DEFINITION',endCue:'PRIMARY_DEP',title:'CRITICAL PATH',meaning:'Steps required to complete Login',color:CYAN},
+ {cue:'WORK_STAYED',endCue:'PARTITION_OWNERSHIP',title:'THE REAL BOTTLENECK',meaning:'Critical account lookups stay on Primary',color:AMBER},
 ] as const;
 const CARD_LEFT=560,CARD_TOP=771,CARD_HEIGHT=133;
 const bounds=(n:{x:number;y:number;width:number;height:number}):Rect=>({
