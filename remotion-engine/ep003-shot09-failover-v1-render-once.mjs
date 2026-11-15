@@ -188,11 +188,16 @@ async function main(){
     assert(Number(previous.width)===1920&&Number(previous.height)===1080&&
       Number(previous.fps)===FPS&&Number(previous.duration_in_frames)===PREVIOUS_FRAMES,
       'EP003_SHOT09_SHOT08_V2_SOURCE_METADATA_INVALID');
-    const signature=hash('EP003_SHOT09_FAILOVER_V1|'+SHA+'|'+source.take_id+
+    const signature=hash('EP003_SHOT09_FAILOVER_V1_RETRY_AFTER_INTERRUPTED_WORKER|'+SHA+'|'+source.take_id+
       '|'+source.spoken_sha+'|'+PIN+'|'+previous.render_hash);
     const existing=(await db.query(`select id,status from remotion_render
       where project_id=$1::uuid and render_hash=$2`,[PROJECT,signature])).rows[0];
-    if(existing){console.log('EP003_SHOT09_IDEMPOTENT_EXISTING_RENDER '+JSON.stringify(existing));return;}
+    if(existing){
+      assert(existing.status==='SUCCEEDED',
+        'EP003_SHOT09_EXISTING_UNFINISHED_RENDER__NEVER_MISTAKE_FOR_SAVED_MP4');
+      console.log('EP003_SHOT09_IDEMPOTENT_EXISTING_SAVED_RENDER '+JSON.stringify(existing));
+      return;
+    }
     tmp=await fs.mkdtemp(path.join(os.tmpdir(),'ep003-shot08-sharding-'));
     const oldFile=path.join(tmp,'shot08-v2-director-locked.mp4');
     const oldEnd=path.join(tmp,'actual-shot08-v2-last-frame.png');
@@ -255,7 +260,7 @@ async function main(){
     const rawStillPsnr=stillPsnrResult.stderr.match(/average:(inf|[0-9.]+)/i)?.[1];
     const stillPsnr=rawStillPsnr?.toLowerCase()==='inf'?100:Number(rawStillPsnr);
     console.log('EP003_SHOT09_PRE_RENDER_P0_STILL_QA '+JSON.stringify({
-      exactShot07V3LastFrameSha256:props.previousLastFrameSha256,
+      exactShot08V2LastFrameSha256:props.previousLastFrameSha256,
       stillPsnrDb:stillPsnr,thresholdDb:27,
       sourceCommit:SHA,
     }));
