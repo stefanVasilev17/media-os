@@ -245,7 +245,7 @@ async function main(){
     assert(composition.durationInFrames===frames&&composition.fps===FPS&&
       composition.width===1920&&composition.height===1080,
       'EP003_SHOT09_COMPOSITION_NOT_LOCKED_VOICE_DURATION');
-    const still=path.join(tmp,'shot08-still-frame-zero.png');
+    const still=path.join(tmp,'shot09-still-frame-zero.png');
     await renderStill({composition,serveUrl,output:still,imageFormat:'png',
       frame:0,inputProps:props,
       browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
@@ -255,13 +255,13 @@ async function main(){
     const rawStillPsnr=stillPsnrResult.stderr.match(/average:(inf|[0-9.]+)/i)?.[1];
     const stillPsnr=rawStillPsnr?.toLowerCase()==='inf'?100:Number(rawStillPsnr);
     console.log('EP003_SHOT09_PRE_RENDER_P0_STILL_QA '+JSON.stringify({
-      exactShot07V3LastFrameSha256:props.previousLastFrameSha256,
+      exactShot08V2LastFrameSha256:props.previousLastFrameSha256,
       stillPsnrDb:stillPsnr,thresholdDb:27,
       sourceCommit:SHA,
     }));
     assert(Number.isFinite(stillPsnr)&&stillPsnr>=27,
       'EP003_SHOT09_P0_STILL_VISUAL_MISMATCH__STOP_BEFORE_FULL_RENDER');
-    const silent=path.join(tmp,'ep003-shot08-sharding-visual.mp4');
+    const silent=path.join(tmp,'ep003-shot09-failover-visual.mp4');
     await renderMedia({composition,serveUrl,codec:'h264',outputLocation:silent,
       inputProps:props,browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
       concurrency:2,crf:19,
@@ -269,7 +269,7 @@ async function main(){
         const pct=Math.floor(progress*100);
         if(pct>0&&pct%10===0)console.log('EP003_SHOT09_RENDER_PROGRESS '+pct);
       }});
-    const final=path.join(tmp,'ep003-shot08-sharding-review.mp4');
+    const final=path.join(tmp,'ep003-shot09-failover-review.mp4');
     await run('ffmpeg',['-hide_banner','-nostdin','-loglevel','error',
       '-i',silent,'-i',audioFile,
       '-map','0:v:0','-map','1:a:0','-c:v','copy',
