@@ -7,7 +7,7 @@ const page=read('../pages/EpisodePackageImportPage.tsx');
 describe('SHOT08 V1 protected Director review',()=>{
  it('only displays exact saved selected-vocal sharding source',()=>{
   for(const s of ['ep003/shot08/v1/latest-successful',
-   "ENGINE='EP003_SHOT08_PIN_acdcde6aa9d9'",
+   "ENGINE='EP003_SHOT08_PIN_8f0b2a80734a'",
    "RENDER_KEY='EP003_SHOT08_SHARDING_V1'",
    'data.durationInFrames!==5372',
    'data.engineVersion!==ENGINE',

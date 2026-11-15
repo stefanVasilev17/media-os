@@ -433,7 +433,7 @@ public class RemotionRenderController {
                 where project_id=:projectId
                   and composition_id='EP003-SHOT08-SHARDING-V1-DIRECTOR-CANDIDATE'
                   and render_key='EP003_SHOT08_SHARDING_V1'
-                  and engine_version='EP003_SHOT08_PIN_acdcde6aa9d9'
+                  and engine_version='EP003_SHOT08_PIN_8f0b2a80734a'
                   and profile='REVIEW'
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
