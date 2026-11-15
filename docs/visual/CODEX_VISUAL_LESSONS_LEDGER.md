@@ -77,3 +77,20 @@ After Director gives feedback and an approved code/preview exists, capture the a
 Director feedback → scoped code correction → QA and screenshot/preview comparison → Director confirmation → append evidence-backed ledger entry → targeted code recipe/component extraction if useful → commit/PR review → next SHOT preflight reads latest ledger.
 
 **Version control is the persistent memory.** No dependence on hidden model memory, previous Codex chat, generic embedding retrieval or an unreviewed text generation.
+
+
+## Director-observed correction AT-VIS-0002 — EP003 SHOT08 V1 shard and replica readability (2026-11-15)
+
+- **ID:** AT-VIS-0002.
+- **Date / Director decision:** 2026-11-15. Director requested three changes after viewing real V1 MP4. V2 correction is **PROPOSED / UNDER REVIEW**. **Not Director-accepted or LOCKED**.
+- **Scope:** SERIES preventive design preflight. EP003 SHOT08. Shared visual principles for all next Architectural Thinking SHOTs.
+- **Context:** Real saved SHOT08 V1 MP4 render `02dbdec4-167f-4d44-9780-74dc1f0aa0a5`. Same original selected Slow Natural voice take `368c239c-a93b-437e-a833-2f955fa51803`. 5372 frames. Screenshot of shard owners and read replicas supplied directly by Director.
+- **Problem observed:** Two duplicate `ACCOUNT OWNER` labels overlapped each other beneath adjacent Shard A and B. Replica A/B icon and title were not completely contained within each replica card boundary, especially near the lower edge. `REPLICATION VS SHARDING` explained the difference with an ambiguous fragment `Copies of data. Different data owners.`, rather than naming both mechanisms.
+- **Proposed correction:** Increase shard x-spacing to 165px. Relabel `OWNER A` and `OWNER B`, preserving established visual world and actual Login packet paths. Put each replica icon and text fully inside its existing card by moving title baseline from top+111 to top+98 and scaling icon to .92, eased smoothly during the early V2 frames. Display the clearer two-line definition `Replication copies the same data.` and `Sharding splits data between owners.`. Each line independently measured at 26px and card height adjusted to165px. All on-screen sentences use periods, not semicolons.
+- **Preventive rule:** Before a render, check adjacent-node label widths against *neighbor label widths* with actual spacing margin, and check each icon and label bounding box against its **own container border** at all animated scales. For comparison cards, explicitly name both concepts in separate readable sentences with independent text-fit measurement. Keep requests on their physical paths and preserve exact previous decoded last frame in the new SHOT.
+- **Affected assets / dependencies:** `remotion-engine/src/episodes/ep003/Shot08WhenCopiesAreNotEnoughV2.tsx`, `remotion-engine/ep003-shot08-sharding-v2-p0.test.mjs`, `remotion-engine/ep003-shot08-sharding-v2-render-once.mjs`, and V2 review frontend. Existing V1 and all Director-LOCKED SHOT01–07 unchanged.
+- **Evidence:** Screenshot and three explicit corrections in this conversation; V2 code commit `61b7aa1827ab15920f56031fcff9118375cfcedd`; [draft PR #302](https://github.com/stefanVasilev17/media-os/pull/302). Pre-render first-frame still matched original last frame at 100 dB.
+- **Verification:** V2 Remotion scene tests **4/4 pass**, bundle built, selected original voice, 29 real anchors and exact P0 still verified. Final encoded MP4 and Director visual review **NOT_VERIFIED** at time of entry. Do not claim corrected appearance is accepted until Director watches V2.
+- **Promotion:** Proposed series-wide layout guard. Preserve as observed incident but do not declare implementation LOCKED until explicit Director approval.
+- **Supersedes:** None.
+
