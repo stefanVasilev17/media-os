@@ -1,8 +1,8 @@
 import {useEffect,useState} from 'react';
 import {CheckCircle2,PlayCircle,RefreshCcw} from 'lucide-react';
 
-const ENDPOINT='/api/v2/remotion/renders/ep003/shot08/v2/latest-successful';
-const PREFIX='/api/v2/remotion/renders/';
+const ENDPOINT='/api/v1/remotion/renders/ep003/shot08/v2/latest-successful';
+const PREFIX='/api/v1/remotion/renders/';
 const COMPOSITION='EP003-SHOT08-SHARDING-V2-DIRECTOR-CANDIDATE';
 const RENDER_KEY='EP003_SHOT08_SHARDING_V2';
 const ENGINE='EP003_SHOT08_PIN_61b7aa1827ab';
