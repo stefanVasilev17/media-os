@@ -8,7 +8,7 @@ describe('EP003 SHOT08 V2 protected review preserves historical V1',()=>{
  it('only accepts exact pinned successful V2 MP4 with no fallback',()=>{
   for(const s of [
    "ENDPOINT='/api/v1/remotion/renders/ep003/shot08/v2/latest-successful'",
-   "ENGINE='EP003_SHOT08_PIN_cc34ceaf7f8b'",
+   "ENGINE='EP003_SHOT08_PIN_d64dd22fa8cd'",
    "RENDER_KEY='EP003_SHOT08_SHARDING_V2'",
    'data.durationInFrames!==5372',
    'data.engineVersion!==ENGINE',
