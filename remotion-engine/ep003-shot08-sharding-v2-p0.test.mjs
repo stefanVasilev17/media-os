@@ -56,7 +56,7 @@ test('Encoded first-frame mismatch is repaired without lowering the Director sea
  const exact=read('./ep003-shot08-sharding-v2-render-once.mjs');
  assert.ok(exact.includes('EP003_SHOT08_V2_FIRST_FRAME_DETERMINISTIC_ENCODE_REQUIRED'));
  assert.ok(exact.includes("overlay=0:0:enable='eq(n,0)'"));
- assert.ok(exact.includes("'crf','18'"));
+ assert.ok(exact.includes("'-crf','18'"));
  assert.ok(exact.includes('({psnr,rawPsnr}=await decodedFirstFramePsnr(final))'));
  assert.ok(exact.includes('EP003_SHOT08_V2_DETERMINISTIC_FRAME_ZERO_REENCODE_QA'));
  assert.ok(exact.includes("assert(Number.isFinite(psnr)&&psnr>=27"));
