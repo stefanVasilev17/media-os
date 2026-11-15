@@ -95,7 +95,7 @@ export const Root: React.FC = () => {
           previousRenderId:'22059373-cc17-44fd-ad03-56d092cc57dc',
           previousLastFrameSha256:'0'.repeat(64),
           previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
-          worldStartFrame:40299,
+          worldStartFrame:40298,
           cueFrames:{
             INTRO:60,
             PRIMARY_AND_REPLICA:74,
