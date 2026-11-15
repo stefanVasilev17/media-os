@@ -5,6 +5,8 @@ import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import {EpisodePackageImportPage} from './pages/EpisodePackageImportPage';
 import {Ep003Shot07V2DirectorReview} from './components/Ep003Shot07V2DirectorReview';
 import {Ep003Shot07V3DirectorReview} from './components/Ep003Shot07V3DirectorReview';
+import {Ep003Shot08V1DirectorReview} from './components/Ep003Shot08V1DirectorReview';
+import {Ep003CumulativeFullVideo} from './components/Ep003CumulativeFullVideo';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
 import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
@@ -67,6 +69,14 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  if (hash === '#/ep003/shot08/v1') {
+    return <div className="media-os-product-shell"><Ep003Shot08V1DirectorReview/></div>;
+  }
+
+  if (hash === '#/ep003/full') {
+    return <div className="media-os-product-shell"><Ep003CumulativeFullVideo/></div>;
+  }
 
   if (hash === '#/ep003/shot07/v3') {
     return <div className="media-os-product-shell"><Ep003Shot07V3DirectorReview/></div>;
