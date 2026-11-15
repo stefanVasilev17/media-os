@@ -1,5 +1,5 @@
 import {Client} from 'pg';
-import {selectComposition,renderMedia} from '@remotion/renderer';
+import {selectComposition,renderMedia,renderStill} from '@remotion/renderer';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -245,6 +245,22 @@ async function main(){
     assert(composition.durationInFrames===frames&&composition.fps===FPS&&
       composition.width===1920&&composition.height===1080,
       'EP003_SHOT08_COMPOSITION_NOT_LOCKED_VOICE_DURATION');
+    const still=path.join(tmp,'shot08-still-frame-zero.png');
+    await renderStill({composition,serveUrl,output:still,imageFormat:'png',
+      frame:0,inputProps:props,
+      browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
+      timeoutInMilliseconds:120000});
+    const stillPsnrResult=await run('ffmpeg',['-hide_banner','-nostdin',
+      '-i',oldEnd,'-i',still,'-lavfi','psnr','-f','null','-']);
+    const rawStillPsnr=stillPsnrResult.stderr.match(/average:(inf|[0-9.]+)/i)?.[1];
+    const stillPsnr=rawStillPsnr?.toLowerCase()==='inf'?100:Number(rawStillPsnr);
+    console.log('EP003_SHOT08_PRE_RENDER_P0_STILL_QA '+JSON.stringify({
+      exactShot07V3LastFrameSha256:props.previousLastFrameSha256,
+      stillPsnrDb:stillPsnr,thresholdDb:27,
+      sourceCommit:SHA,
+    }));
+    assert(Number.isFinite(stillPsnr)&&stillPsnr>=27,
+      'EP003_SHOT08_P0_STILL_VISUAL_MISMATCH__STOP_BEFORE_FULL_RENDER');
     const silent=path.join(tmp,'ep003-shot08-sharding-visual.mp4');
     await renderMedia({composition,serveUrl,codec:'h264',outputLocation:silent,
       inputProps:props,browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
@@ -264,7 +280,12 @@ async function main(){
       '-i',final,'-frames:v','1','-y',first]);
     const psnrResult=await run('ffmpeg',['-hide_banner','-nostdin',
       '-i',oldEnd,'-i',first,'-lavfi','psnr','-f','null','-']);
-    const psnr=Number(psnrResult.stderr.match(/average:([0-9.]+)/)?.[1]);
+    const rawPsnr=psnrResult.stderr.match(/average:(inf|[0-9.]+)/i)?.[1];
+    const psnr=rawPsnr?.toLowerCase()==='inf'?100:Number(rawPsnr);
+    console.log('EP003_SHOT08_ENCODED_P0_FRAME_QA '+JSON.stringify({
+      firstFramePsnrDb:psnr,thresholdDb:27,sourceCommit:SHA,
+      rawPsnr:rawPsnr??'NO_AVERAGE_METRIC'
+    }));
     assert(Number.isFinite(psnr)&&psnr>=27,
       'EP003_SHOT08_ACTUAL_DECODED_FIRST_FRAME_SEAM_QA_FAILED');
     const motion=await firstFramesMotion(final);
