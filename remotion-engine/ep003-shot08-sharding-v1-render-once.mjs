@@ -84,21 +84,51 @@ function getCharacters(doc){
   throw Error('REAL_ELEVENLABS_ALIGNMENT_MISSING__DO_NOT_USE_GUESSED_CUES_OR_REGENERATE');
 }
 function cueFramesFromRealVoice(raw,anchors=voiceCues){
-  let doc=typeof raw==='string'?JSON.parse(raw):raw;
-  const real=getCharacters(doc);
-  const spoken=real.characters.join('');
-  const frames={};
-  let last=-1;
-  for(const [key,phrase] of Object.entries(anchors)){
-    const pos=spoken.indexOf(phrase);
-    assert(pos>=0,'REAL_AUDIO_ANCHOR_NOT_FOUND_'+key);
-    assert(spoken.indexOf(phrase,pos+1)<0,'REAL_AUDIO_ANCHOR_NOT_UNIQUE_'+key);
-    const seconds=real.character_start_times_seconds[pos];
-    const f=Math.round(seconds*FPS);
-    assert(f>=last,'REAL_AUDIO_CUES_OUT_OF_ORDER_'+key);
-    frames[key]=f;last=f;
+ const doc=typeof raw==='string'?JSON.parse(raw):raw;
+ const real=getCharacters(doc);
+ const spoken=real.characters.join('');
+ const chars=[],originalIndices=[];
+ for(let i=0;i<spoken.length;i++){
+  const c=spoken[i].toLowerCase();
+  if(c>='a'&&c<='z'||c>='0'&&c<='9'){
+   chars.push(c);originalIndices.push(i);
   }
-  return frames;
+ }
+ const compact=chars.join('');
+ const frames={};
+ let lastFrame=-1,lastPosition=-1;
+ for(const [key,phrase] of Object.entries(anchors)){
+  let pos=spoken.indexOf(phrase);
+  let mode='EXACT';
+  if(pos<0){
+   const words=phrase.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+   const sizes=[words.length,Math.min(14,words.length),
+     Math.min(10,words.length),Math.min(7,words.length),
+     Math.min(5,words.length),Math.min(4,words.length)];
+   pos=-1;
+   for(const count of [...new Set(sizes)]){
+    const term=words.slice(0,count).join('');
+    const offset=compact.indexOf(term);
+    if(offset<0||compact.indexOf(term,offset+1)>=0)continue;
+    pos=originalIndices[offset];
+    mode='REAL_NORMALIZED_'+count+'_WORDS';
+    break;
+   }
+  }else{
+   assert(spoken.indexOf(phrase,pos+1)<0,'REAL_AUDIO_ANCHOR_NOT_UNIQUE_'+key);
+  }
+  assert(pos>=0,'REAL_AUDIO_ANCHOR_NOT_FOUND_'+key);
+  assert(pos>lastPosition,'REAL_AUDIO_ANCHOR_OUT_OF_ORDER_'+key);
+  const seconds=real.character_start_times_seconds[pos];
+  const frame=Math.round(seconds*FPS);
+  assert(Number.isInteger(frame)&&frame>=lastFrame,'REAL_AUDIO_CUES_OUT_OF_ORDER_'+key);
+  frames[key]=frame;
+  if(mode!=='EXACT')console.log('EP003_SHOT08_REAL_ALIGNMENT_NORMALIZED_MATCH '+JSON.stringify({
+    cue:key,mode,frame,source:'REAL_ELEVENLABS_CHARACTER_START'
+  }));
+  lastFrame=frame;lastPosition=pos;
+ }
+ return frames;
 }
 
 async function main(){
