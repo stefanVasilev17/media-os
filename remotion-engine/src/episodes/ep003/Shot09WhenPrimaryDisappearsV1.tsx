@@ -87,9 +87,13 @@ const ROUTES=[
  {key:'B',start:{x:1460,y:584},c1:{x:1530,y:686},c2:{x:1680,y:707},
   end:{x:1733,y:518},color:MINT}
 ] as const;
-const routePath=(r:typeof ROUTES[number])=>
+type RouteLike={
+ start:{x:number;y:number};c1:{x:number;y:number};
+ c2:{x:number;y:number};end:{x:number;y:number};
+};
+const routePath=(r:RouteLike)=>
  'M'+r.start.x+' '+r.start.y+' C'+r.c1.x+' '+r.c1.y+' '+r.c2.x+' '+r.c2.y+' '+r.end.x+' '+r.end.y;
-const routePoint=(t:number,r:typeof ROUTES[number])=>{
+const routePoint=(t:number,r:RouteLike)=>{
  const q=1-t;return {
   x:q*q*q*r.start.x+3*q*q*t*r.c1.x+3*q*t*t*r.c2.x+t*t*t*r.end.x,
   y:q*q*q*r.start.y+3*q*q*t*r.c1.y+3*q*t*t*r.c2.y+t*t*t*r.end.y
