@@ -188,7 +188,7 @@ async function main(){
     assert(Number(previous.width)===1920&&Number(previous.height)===1080&&
       Number(previous.fps)===FPS&&Number(previous.duration_in_frames)===PREVIOUS_FRAMES,
       'EP003_SHOT09_SHOT08_V2_SOURCE_METADATA_INVALID');
-    const signature=hash('EP003_SHOT09_FAILOVER_V1_RETRY_AFTER_INTERRUPTED_WORKER|'+SHA+'|'+source.take_id+
+    const signature=hash('EP003_SHOT09_FAILOVER_V1_SINGLE_CHROMIUM_SAFE_RENDER|'+SHA+'|'+source.take_id+
       '|'+source.spoken_sha+'|'+PIN+'|'+previous.render_hash);
     const existing=(await db.query(`select id,status from remotion_render
       where project_id=$1::uuid and render_hash=$2`,[PROJECT,signature])).rows[0];
@@ -269,7 +269,7 @@ async function main(){
     const silent=path.join(tmp,'ep003-shot08-sharding-visual.mp4');
     await renderMedia({composition,serveUrl,codec:'h264',outputLocation:silent,
       inputProps:props,browserExecutable:process.env.CHROMIUM_PATH||'/usr/bin/chromium',
-      concurrency:2,crf:19,
+      concurrency:1,crf:19,
       onProgress:({progress})=>{
         const pct=Math.floor(progress*100);
         if(pct>0&&pct%10===0)console.log('EP003_SHOT09_RENDER_PROGRESS '+pct);
