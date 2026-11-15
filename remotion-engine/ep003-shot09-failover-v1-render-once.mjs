@@ -214,14 +214,14 @@ async function main(){
       durationInFrames:frames,voiceTakeId:source.take_id,previousRenderId:PIN,
       previousLastFrameSha256:hash(lastPng),
       previousLastFrameDataUri:'data:image/png;base64,'+lastPng.toString('base64'),
-      worldStartFrame:40299,cueFrames,
+      worldStartFrame:40298,cueFrames,
     };
     console.log('EP003_SHOT09_DIRECTOR_SOURCE_AND_VOICE_VERIFIED '+JSON.stringify({
       previousRenderId:PIN,previousVideoSha256:PIN_SHA,
       decodedLastFrameSha256:props.previousLastFrameSha256,
       selectedOriginalSlowNaturalTake:source.take_id,realVoiceSeconds:audioSeconds,
       frames,voiceLeadInFrames:LEAD_IN_FRAMES,
-      worldStartFrame:40299,realAudioCues:cueFrames,
+      worldStartFrame:40298,realAudioCues:cueFrames,
       scriptSha256:source.spoken_sha,sourceCommit:SHA,
       narrationRegenerated:false,previousVideoModified:false,
     }));
