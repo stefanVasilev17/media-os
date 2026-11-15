@@ -18,7 +18,7 @@ COPY --from=build /app/remotion-engine/package*.json ./
 COPY --from=build /app/remotion-engine/node_modules ./node_modules
 COPY --from=build /app/remotion-engine/build ./build
 COPY --from=build /app/remotion-engine/ep003-shot09-failover-v1-render-once.mjs ./ep003-shot09-failover-v1-render-once.mjs
-COPY --from=build /app/remotion-engine/ep003-shot08-real-cue-anchors.json ./ep003-shot08-real-cue-anchors.json
+COPY --from=build /app/remotion-engine/ep003-shot09-real-cue-anchors.json ./ep003-shot09-real-cue-anchors.json
 COPY --from=build /app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json /app/backend/src/main/resources/ep003-director-locked-voice-package-v1.json
 COPY chromium-software-webgl.sh /app/chromium-software-webgl.sh
 RUN chmod +x /app/chromium-software-webgl.sh
