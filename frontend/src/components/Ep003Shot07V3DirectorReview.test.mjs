@@ -14,7 +14,7 @@ describe('SHOT07 V3 protected real Director review',()=>{
     "credentials:'same-origin'",
     'response.status===401||response.status===403',
     'controls playsInline preload="metadata"',
-    'SHOT07 V3 is NOT LOCKED'])expect(review).toContain(s);
+    'SHOT07 V3 is DIRECTOR-LOCKED'])expect(review).toContain(s);
   expect(review).not.toContain("method:'POST'");
   expect(review).not.toContain('target="_blank"');
  });

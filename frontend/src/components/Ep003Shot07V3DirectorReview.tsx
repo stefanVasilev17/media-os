@@ -43,7 +43,7 @@ export function Ep003Shot07V3DirectorReview(){
           record.width!==1920||record.height!==1080||
           record.fps!==30||record.durationInFrames!==3476||
           !record.sizeBytes||record.sizeBytes<1000000||
-          record.videoUrl!==PREFIX+record.renderId+'/video'||record.directorLocked===true){
+          record.videoUrl!==PREFIX+record.renderId+'/video'||record.directorLocked!==true){
           setReview({kind:'EMPTY',message:'SHOT07 V3 verification failed. No unverified candidate or fallback is shown.'});
           return;
         }
@@ -63,14 +63,14 @@ export function Ep003Shot07V3DirectorReview(){
         <h3><PlayCircle size={21} aria-hidden="true"/> SHOT07 V3 · Director Video Review</h3>
         <p>Subtle Auth focus. Voice-cued Primary and two Replicas. Readable glossary.</p>
       </div>
-      <span className="ep003-director-review-status">V3 · CANDIDATE · NOT LOCKED</span>
+      <span className="ep003-director-review-status">V3 · DIRECTOR-LOCKED · OFFICIAL MASTER</span>
     </header>
     <p className="ep003-director-review-detail">
       Three Auth servers receive a smaller scale effect, keeping the Auth Service
       heading visible. Primary Database and both read replicas receive their own
       voice-synchronized focus. The Read Replica definition uses periods, not semicolons.
-      Original Slow Natural selected voice is preserved. The locked six-shot
-      master is not changed.
+      Original selected Slow Natural voice is preserved. The new official seven-shot
+      master includes this exact Director-approved source.
     </p>
     {review.kind==='CHECKING'&&<p role="status">Checking the saved SHOT07 V3 MP4…</p>}
     {review.kind==='EMPTY'&&<p role="status">{review.message}</p>}
@@ -97,9 +97,7 @@ export function Ep003Shot07V3DirectorReview(){
       <a href="#/ep003/shot07/v2">Compare previous V2</a>
     </nav>
     <p className="ep003-director-review-caution">
-      SHOT07 V3 is NOT LOCKED. The six original Director-LOCKED shots,
-      official master, original narration and all old render artifacts
-      remain immutable. Director visual approval is required before LOCK.
+      SHOT07 V3 is DIRECTOR-LOCKED. It is an immutable source in the official seven-shot master. The original narration and all older render artifacts remain preserved.
     </p>
   </section>;
 }

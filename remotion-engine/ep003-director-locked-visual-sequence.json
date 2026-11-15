@@ -2,7 +2,7 @@
   "schemaVersion": "at.episode-locked-sequence.v1",
   "episodeKey": "EP003",
   "projectId": "11111111-1111-1111-1111-111111111111",
-  "directorApprovalDate": "2026-11-14",
+  "directorApprovalDate": "2026-11-15",
   "productionRule": "append every next consecutive Director-LOCKED SHOT; never include an unlocked candidate",
   "shots": [
     {
@@ -93,7 +93,22 @@
       "height": 1080,
       "voiceTakeId": "ff8ed53c-f405-43d5-82d9-33cac97cd811",
       "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT07",
+      "version": "V3",
+      "directorLocked": true,
+      "renderId": "09457c3c-32d9-432c-aa92-67f0e7b13f60",
+      "compositionId": "EP003-SHOT07-BOTTLENECK-V3-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT07_BOTTLENECK_V3",
+      "sha256": "7f7429a6a4117c49b4338dec256eae72fbe5e269728729dfdb23ab63e6ba27f8",
+      "frames": 3476,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "63164f77-e4cb-4f34-952e-817b671f0a59",
+      "voiceLeadInFrames": 60
     }
   ],
-  "directorApprovalContext": "Director explicitly approved SHOT06 V1 after reviewing complete 6-SHOT WIP b32ba126-948b-4a6f-9119-802a592629d1 (all five actual encoded seam QAs PASS, latest PSNR 42.833128). SHOT01–SHOT05 immutable and SHOT06 now Director-LOCKED as exact SHA-pinned source. SHOT07 must be a separate unapproved candidate until explicit Director LOCK. MediaOS must have ONE newest official 6-SHOT full video."
+  "directorApprovalContext": "2026-11-15 Director explicitly LOCKED SHOT07 V3 after watching full saved MP4 09457c3c-32d9-432c-aa92-67f0e7b13f60. SHA256 7f7429a6a4117c49b4338dec256eae72fbe5e269728729dfdb23ab63e6ba27f8. Original selected Slow Natural Take 63164f77-e4cb-4f34-952e-817b671f0a59. 3476 frames. Real predecessor seam PSNR 43.199819 dB and moving frame steps 23/23. All prior 6 shots immutable. SHOT08 requires exact final decoded SHOT07 V3 frame before live motion, real selected narration cues, no inferred audio. SHOT08 must NOT be Director LOCKED until explicit review."
 }
