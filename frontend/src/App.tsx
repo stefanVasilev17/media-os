@@ -4,6 +4,7 @@ import { EpisodeProductionLibraryPage } from './pages/EpisodeProductionLibraryPa
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import {EpisodePackageImportPage} from './pages/EpisodePackageImportPage';
 import {Ep003Shot07V2DirectorReview} from './components/Ep003Shot07V2DirectorReview';
+import {Ep003Shot07V3DirectorReview} from './components/Ep003Shot07V3DirectorReview';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
 import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
@@ -66,6 +67,10 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  if (hash === '#/ep003/shot07/v3') {
+    return <div className="media-os-product-shell"><Ep003Shot07V3DirectorReview/></div>;
+  }
 
   if (hash === '#/ep003/shot07/v2') {
     return <div className="media-os-product-shell"><Ep003Shot07V2DirectorReview/></div>;

@@ -418,6 +418,34 @@ public class RemotionRenderController {
                         "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
     }
 
+    @GetMapping("/ep003/shot07/v3/latest-successful")
+    public Map<String,Object> latestEp003Shot07V3DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT07-BOTTLENECK-V3-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT07_BOTTLENECK_V3'
+                  and engine_version='EP003_SHOT07_PIN_316d8573072a'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3476
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT07_V3_CANDIDATE_YET"));
+    }
+
     @GetMapping("/ep003/shot07/v1/latest-successful")
     public Map<String,Object> latestEp003Shot07V1DirectorReview() {
         return jdbc.sql("""
