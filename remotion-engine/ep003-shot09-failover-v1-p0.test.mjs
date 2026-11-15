@@ -14,7 +14,7 @@ test('SHOT09 starts exactly from Director locked SHOT08 V2 decoded final frame',
  'frame===0','frame+3475+5372','worldFrame=props.worldStartFrame+frame'])
  assert.ok(scene.includes(a),a);
  for(const a of ["const PIN='22059373-cc17-44fd-ad03-56d092cc57dc'",
- 'PREVIOUS_FRAMES=5372','worldStartFrame:40299',
+ 'PREVIOUS_FRAMES=5372','worldStartFrame:40298',
  'select=eq(n\\\\,5371)',
  "previous.render_key==='EP003_SHOT08_SHARDING_V2'",
  'LEAD_IN_FRAMES=60'])assert.ok(worker.includes(a),a);
