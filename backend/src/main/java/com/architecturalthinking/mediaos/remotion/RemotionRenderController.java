@@ -434,7 +434,7 @@ public class RemotionRenderController {
                 where project_id=:projectId
                   and composition_id='EP003-SHOT09-FAILOVER-V1-DIRECTOR-CANDIDATE'
                   and render_key='EP003_SHOT09_FAILOVER_V1'
-                  and engine_version='EP003_SHOT09_PIN_2c8c71abe8bf'
+                  and engine_version='EP003_SHOT09_PIN_0e7fd08412f0'
                   and profile='REVIEW'
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
