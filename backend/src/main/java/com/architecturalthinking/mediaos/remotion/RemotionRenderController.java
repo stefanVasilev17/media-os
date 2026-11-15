@@ -39,6 +39,7 @@ public class RemotionRenderController {
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT05_V1 = UUID.fromString("04b9f55a-7705-4f23-b9f7-a0103e8c955b");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT06_V1 = UUID.fromString("0007bd16-edbf-4ecc-927a-4a5781d0b921");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT07_V3 = UUID.fromString("09457c3c-32d9-432c-aa92-67f0e7b13f60");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V2 = UUID.fromString("22059373-cc17-44fd-ad03-56d092cc57dc");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
@@ -421,6 +422,34 @@ public class RemotionRenderController {
                 .map(this::response)
                 .orElseGet(()->Map.of("status","EMPTY",
                         "reason","NO_EP003_SHOT02_DIRECTOR_MP4"));
+    }
+
+    @GetMapping("/ep003/shot09/v1/latest-successful")
+    public Map<String,Object> latestEp003Shot09V1DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT09-FAILOVER-V1-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT09_FAILOVER_V1'
+                  and engine_version='EP003_SHOT09_PIN_2c8c71abe8bf'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3145
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT09_V1_MP4_YET"));
     }
 
     @GetMapping("/ep003/shot08/v2/latest-successful")
@@ -1032,7 +1061,8 @@ public class RemotionRenderController {
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT04_V1)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT05_V1)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT06_V1)
-                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT07_V3));
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT07_V3)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V2));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());

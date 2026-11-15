@@ -12,10 +12,10 @@ describe('EP003 SHOT08 V2 protected review preserves historical V1',()=>{
    "RENDER_KEY='EP003_SHOT08_SHARDING_V2'",
    'data.durationInFrames!==5372',
    'data.engineVersion!==ENGINE',
-   'data.directorLocked!==false',
+   'data.directorLocked!==true',
    "credentials:'same-origin'",
    'controls playsInline preload="metadata"',
-   'SHOT08 V2 is NOT LOCKED'
+   'SHOT08 V2 is DIRECTOR-LOCKED'
   ])expect(review).toContain(s);
   expect(review).not.toContain("method:'POST'");
   expect(review).not.toContain('target="_blank"');
