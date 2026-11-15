@@ -41,6 +41,7 @@ export type CleanArchitectureProps={
   admissionLevel?:number;
   breakerLevel?:number;
   probeLevel?:number;
+  authFocusLevels?:readonly [number,number,number];
 };
 
 export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
@@ -48,7 +49,7 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
   recoveryLevel=0,showPhone,showPools,showLoginBadge=0,
   showRetryAttempts=0,initialPressure=false,
   flowRetryLevel=1,flowJitterLevel=0,
-  admissionLevel=1,breakerLevel=0,probeLevel=0,
+  admissionLevel=1,breakerLevel=0,probeLevel=0,authFocusLevels,
 })=>{
   const growth=clamp(replicaGrowth);
   const recovery=clamp(recoveryLevel);
@@ -103,6 +104,7 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
         const entering=i>=3;
         const appear=entering?shot07Ease(growth*100,(i-3)*17,40):1;
         const row=i%3;
+        const focus=i<3?clamp(authFocusLevels?.[row]??0):0;
         const y=SHOT02_AUTH_REPLICA_PORTS[row].y-SHOT02_NODES.auth.y-35;
         const oldLeft=40,smallLeft=11;
         const left=entering?179:oldLeft+(smallLeft-oldLeft)*growth;
@@ -115,13 +117,15 @@ export const Shot07CleanArchitectureWorld:React.FC<CleanArchitectureProps>=({
           position:'absolute',left,top:y,width,height:71,
           boxSizing:'border-box',display:'flex',flexDirection:'column',
           justifyContent:'center',padding:'8px 11px',
-          border:'2px solid '+(wave>.35?AMBER:'#498CB7'),
+          border:'2px solid '+(focus>.1?CYAN:wave>.35?AMBER:'#498CB7'),
           borderRadius:11,
           background:'linear-gradient(140deg,rgba(10,47,71,.99),rgba(5,26,48,.99))',
-          boxShadow:wave>.2?'0 0 '+(12+16*wave)+'px rgba(243,152,92,'+(.21+.28*wave)+')'
+          boxShadow:focus>.1?'0 0 '+(13+20*focus)+'px rgba(104,229,255,'+(.22+.30*focus)+')'
+              :wave>.2?'0 0 '+(12+16*wave)+'px rgba(243,152,92,'+(.21+.28*wave)+')'
               :'0 0 9px rgba(55,202,252,.16)',
           opacity:appear,
-          transform:'scale('+(0.96+.04*appear)+')',
+          transform:focus>0?'translate3d(0,-'+(18*focus).toFixed(2)+'px,0) scale('+(0.96+.04*appear+.035*focus)+')'
+            :'scale('+(0.96+.04*appear)+')',
           transformOrigin:'50% 50%',
         }}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>

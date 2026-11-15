@@ -18,6 +18,7 @@ import {Ep003Shot04V1DirectorReview} from '../components/Ep003Shot04V1DirectorRe
 import {Ep003Shot05V1DirectorReview} from '../components/Ep003Shot05V1DirectorReview';
 import {Ep003Shot06V1DirectorReview} from '../components/Ep003Shot06V1DirectorReview';
 import {Ep003Shot07V1DirectorReview} from '../components/Ep003Shot07V1DirectorReview';
+import {Ep003Shot07V2DirectorReview} from '../components/Ep003Shot07V2DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
@@ -165,7 +166,8 @@ export function EpisodePackageImportPage(){
       {details.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot07V1DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot07V2DirectorReview/>}
+      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V1 · NOT LOCKED</summary><Ep003Shot07V1DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
