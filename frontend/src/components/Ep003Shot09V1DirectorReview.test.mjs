@@ -8,7 +8,7 @@ const locked=read('./Ep003Shot08V2DirectorReview.tsx');
 describe('SHOT09 protected candidate and Director-LOCKED SHOT08 V2',()=>{
  it('strict SHOT09 authenticated and pinned saved MP4, no fallback or auto LOCK',()=>{
   for(const s of ["ENDPOINT='/api/v1/remotion/renders/ep003/shot09/v1/latest-successful'",
-   "RENDER_KEY='EP003_SHOT09_FAILOVER_V1'","ENGINE='EP003_SHOT09_PIN_0e7fd08412f0'",
+   "RENDER_KEY='EP003_SHOT09_FAILOVER_V1'","ENGINE='EP003_SHOT09_PIN_9edbb97368ce'",
    "credentials:'same-origin'",'data.durationInFrames!==3145',
    'data.directorLocked!==false','controls playsInline preload="metadata"',
    'SHOT09 V1 is NOT LOCKED'])expect(review).toContain(s);
