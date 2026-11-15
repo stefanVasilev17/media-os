@@ -108,7 +108,22 @@
       "height": 1080,
       "voiceTakeId": "63164f77-e4cb-4f34-952e-817b671f0a59",
       "voiceLeadInFrames": 60
+    },
+    {
+      "shotKey": "SHOT08",
+      "version": "V2",
+      "directorLocked": true,
+      "renderId": "22059373-cc17-44fd-ad03-56d092cc57dc",
+      "compositionId": "EP003-SHOT08-SHARDING-V2-DIRECTOR-CANDIDATE",
+      "renderKey": "EP003_SHOT08_SHARDING_V2",
+      "sha256": "3ad48fefdc2c887380ca44f2c04e6d6ac342557dc78422a3a7272ccb26291118",
+      "frames": 5372,
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "voiceTakeId": "368c239c-a93b-437e-a833-2f955fa51803",
+      "voiceLeadInFrames": 60
     }
   ],
-  "directorApprovalContext": "2026-11-15 Director explicitly LOCKED SHOT07 V3 after watching full saved MP4 09457c3c-32d9-432c-aa92-67f0e7b13f60. SHA256 7f7429a6a4117c49b4338dec256eae72fbe5e269728729dfdb23ab63e6ba27f8. Original selected Slow Natural Take 63164f77-e4cb-4f34-952e-817b671f0a59. 3476 frames. Real predecessor seam PSNR 43.199819 dB and moving frame steps 23/23. All prior 6 shots immutable. SHOT08 requires exact final decoded SHOT07 V3 frame before live motion, real selected narration cues, no inferred audio. SHOT08 must NOT be Director LOCKED until explicit review."
+  "directorApprovalContext": "2026-11-15 Director explicitly LOCKED SHOT07 V3 after watching full saved MP4 09457c3c-32d9-432c-aa92-67f0e7b13f60. SHA256 7f7429a6a4117c49b4338dec256eae72fbe5e269728729dfdb23ab63e6ba27f8. Original selected Slow Natural Take 63164f77-e4cb-4f34-952e-817b671f0a59. 3476 frames. Real predecessor seam PSNR 43.199819 dB and moving frame steps 23/23. All prior 6 shots immutable. SHOT08 requires exact final decoded SHOT07 V3 frame before live motion, real selected narration cues, no inferred audio. SHOT08 must NOT be Director LOCKED until explicit review. 2026-11-15 Director explicitly watched and LOCKED SHOT08 V2. Render 22059373-cc17-44fd-ad03-56d092cc57dc, MP4 SHA 3ad48fefdc2c887380ca44f2c04e6d6ac342557dc78422a3a7272ccb26291118, 5372 frames, selected original Slow Natural Take 368c239c-a93b-437e-a833-2f955fa51803, SHOT07->SHOT08 actual seam PSNR 43.743258 dB and 23/23 early motion steps PASS. No changes to SHOT01–08. SHOT09 pending Director review."
 }
