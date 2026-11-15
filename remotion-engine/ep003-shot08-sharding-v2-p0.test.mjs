@@ -51,3 +51,15 @@ test('All request dots follow the rendered route. Exact predecessor and selected
  assert.ok(root.includes('EP003-SHOT08-SHARDING-V1-DIRECTOR-CANDIDATE'));
  assert.doesNotMatch(worker,/generateSpeech|textToSpeech|elevenlabs\.generate/);
 });
+
+test('Encoded first-frame mismatch is repaired without lowering the Director seam acceptance gate',()=>{
+ const exact=read('./ep003-shot08-sharding-v2-render-once.mjs');
+ assert.ok(exact.includes('EP003_SHOT08_V2_FIRST_FRAME_DETERMINISTIC_ENCODE_REQUIRED'));
+ assert.ok(exact.includes("overlay=0:0:enable='eq(n,0)'"));
+ assert.ok(exact.includes("'crf','18'"));
+ assert.ok(exact.includes('({psnr,rawPsnr}=await decodedFirstFramePsnr(final))'));
+ assert.ok(exact.includes('EP003_SHOT08_V2_DETERMINISTIC_FRAME_ZERO_REENCODE_QA'));
+ assert.ok(exact.includes("assert(Number.isFinite(psnr)&&psnr>=27"));
+ assert.ok(exact.includes('motion.firstStep>0.12&&motion.firstStep<4.5'));
+ assert.ok(!exact.includes('psnr>=16'));
+});
