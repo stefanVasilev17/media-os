@@ -105,15 +105,15 @@ const SHARD_NODES=[
 ] as const;
 const CALLOUTS=[
  {cue:'FAILOVER',endCue:'OLD_RETURN',title:'FAILOVER',
-  meaning:'An eligible replica becomes the new Primary.',color:MINT},
- {cue:'SPLIT_BRAIN',endCue:'DATA_RISK',title:'SPLIT-BRAIN',
-  meaning:'Two writers believe they own the same shard.',color:AMBER},
+  meaning:'An eligible replica becomes\nthe new Primary.',color:MINT},
+ {cue:'TWO_WRITERS',endCue:'FENCING',title:'SPLIT-BRAIN RISK',
+  meaning:'Two machines may write\nto the same shard.',color:AMBER},
  {cue:'FENCING',endCue:'DATA_RISK',title:'FENCING',
-  meaning:'Block the former Primary from writing again.',color:CYAN},
+  meaning:'Stop the former Primary\nfrom accepting writes.',color:CYAN},
  {cue:'ASYNC',endCue:'DATA_LOSS',title:'ASYNCHRONOUS REPLICATION',
   meaning:'A replica may lag behind recent writes.',color:CYAN},
  {cue:'DATA_LOSS',endCue:'TEST_FAILURES',title:'RECOVERY TRADE-OFF',
-  meaning:'Failover may lose recent committed changes.',color:AMBER}
+  meaning:'Failover may lose recent\ncommitted changes.',color:AMBER}
 ] as const;
 const CARD_LEFT=560,CARD_TOP=771,CARD_HEIGHT=133;
 export function shot09CardSize(title:string,meaning:string){
