@@ -35,7 +35,7 @@ test('All named glossary cards fit and preserve existing replica geometry',()=>{
  const cards=scene.split('const CALLOUTS=[')[1].split('] as const;')[0];
  assert.equal((cards.match(/title:'/g)||[]).length,5);
  assert.ok(!cards.includes(';'));
- for(const key of ['FAILOVER','SPLIT-BRAIN','FENCING','ASYNCHRONOUS REPLICATION','RECOVERY TRADE-OFF'])
+ for(const key of ['FAILOVER','SPLIT-BRAIN RISK','FENCING','ASYNCHRONOUS REPLICATION','RECOVERY TRADE-OFF'])
  assert.ok(cards.includes("title:'"+key+"'"),key);
  assert.ok(scene.includes('shot10TextWidth'));
  assert.ok(scene.includes('EP003_SHOT09_CARD_OVERLAPS_ARCHITECTURE'));
