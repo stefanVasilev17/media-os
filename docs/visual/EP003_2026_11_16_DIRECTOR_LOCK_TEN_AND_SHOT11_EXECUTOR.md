@@ -27,7 +27,7 @@ Exact corrected locked predecessors:
 - SHOT09 V3 render `53ac60b4-346e-400b-8dec-7932ef2de94d` SHA `be4b6cd623ab01ef199e4fba312ced36d26cc6edf21aab62c17f2ebadb3a00cf`.
 - SHOT10 V2 render `174c8a8b-3202-4067-95ef-7dab1de11aa3` SHA `7c1a2a783a8c4a157d82c16b29628301e734bc9b125fad827765a95d4a5e1c43` (4,016 frames; decoded last frame SHA `90bdedae663d796e11264af15f0f9b05949390bca83587a7f7de0db50d52fdad`).
 
-## SHOT11 V1 — currently an UNLOCKED candidate
+## SHOT11 V1 — Director LOCKED and appended to official 11-SHOT master
 
 Editorial: "What One Login Teaches Us About Architecture" (original Director-approved script v0.4), a quiet human-first retrospective. Continue the actual SHOT10 ending, do not construct a new architecture view.
 
@@ -39,10 +39,26 @@ New scene: `remotion-engine/src/episodes/ep003/Shot11HumanFirstFinaleV1.tsx`. Re
 
 Isolated worker `remotion-engine/ep003-shot11-human-finale-v1-render-once.mjs`; Dockerfile `Dockerfile.ep003-shot11-human-finale-v1-once`; tests `remotion-engine/ep003-shot11-human-finale-v1-p0.test.mjs`. **Immutable current worker source** `140398af1c5b153132448e025359a26a26bb0897`; expected engine `EP003_SHOT11_PIN_140398af1c5b`, render key `EP003_SHOT11_FINALE_V1`, composition `EP003-SHOT11-FINALE-V1-DIRECTOR-CANDIDATE`. Railway existing preflight worker service `579c5605-d976-46a7-b8bf-90fd9faf7b92`, deployment `023fe144-fa21-42c1-93d4-5302d894f789`.
 
-Pre-render preflight from live logs: SHOT10 V2 exact MP4/SHA verified, saved original voice/cues verified, still first frame PSNR=100 dB. **COMPLETED**. Production event `EP003_SHOT11_V1_REAL_MP4_SAVED` confirmed at 14:34:42Z on 2026-11-16. Saved render ID `80dcf256-5cf3-4b38-8517-19dcff7a6ac9`, SHA256 `cdbde7240e05705e39e553cf5a63ee336fb40e0bacdd535c298d90ccc635aa67`, 9,912,043 bytes, **3,104 frames / 103.466667s**, 1920x1080@30 H264/AAC. Exact decoded SHOT10 V2 final frame→SHOT11 V1 first encoded frame: **44.642372 dB PSNR**, required >=27 dB. Early motion **23/23** meaningful moving steps (required >=18), first-step 0.72722 (valid interval 0.12–4.5), early ten mean 0.45958. All P0 gates PASS. Original Slow Natural audio and 24 real cues preserved; no paid calls or voice regeneration. Status **READY FOR DIRECTOR REVIEW** but **NOT LOCKED**. Exact MediaOS protected playback: `https://media-os-backend-production.up.railway.app/#/ep003/shot11/v1`.
+Pre-render preflight from live logs: SHOT10 V2 exact MP4/SHA verified, saved original voice/cues verified, still first frame PSNR=100 dB. **COMPLETED**. Production event `EP003_SHOT11_V1_REAL_MP4_SAVED` confirmed at 14:34:42Z on 2026-11-16. Saved render ID `80dcf256-5cf3-4b38-8517-19dcff7a6ac9`, SHA256 `cdbde7240e05705e39e553cf5a63ee336fb40e0bacdd535c298d90ccc635aa67`, 9,912,043 bytes, **3,104 frames / 103.466667s**, 1920x1080@30 H264/AAC. Exact decoded SHOT10 V2 final frame→SHOT11 V1 first encoded frame: **44.642372 dB PSNR**, required >=27 dB. Early motion **23/23** meaningful moving steps (required >=18), first-step 0.72722 (valid interval 0.12–4.5), early ten mean 0.45958. All P0 gates PASS. Original Slow Natural audio and 24 real cues preserved; no paid calls or voice regeneration. Status **DIRECTOR LOCKED** after explicit positive visual review on 2026-11-16. Exact MediaOS protected playback: `https://media-os-backend-production.up.railway.app/#/ep003/shot11/v1`.
 
-Protected MediaOS endpoint `/api/v1/remotion/renders/ep003/shot11/v1/latest-successful` and frontend `Ep003Shot11V1DirectorReview.tsx`; direct review route `https://media-os-backend-production.up.railway.app/#/ep003/shot11/v1`. Requires exact source engine, selected take, SHOT10 predecessor, frame count, saved video; no stale fallback. Embedded in EP003 workspace above other review. Director approval/LOCK for SHOT11 is **pending**.
+Protected MediaOS endpoint `/api/v1/remotion/renders/ep003/shot11/v1/latest-successful` and frontend `Ep003Shot11V1DirectorReview.tsx`; direct review route `https://media-os-backend-production.up.railway.app/#/ep003/shot11/v1`. Requires exact source engine, selected take, SHOT10 predecessor, frame count, saved video; no stale fallback. Embedded in EP003 workspace above other review. Director approval/LOCK for SHOT11 is **GRANTED**. Approved SHOT11 MP4 and all previously locked SHOT01–10 sources are immutable.
 
 ## Distinct backlog
 
 Historical SHOT03–07 still have old cubic replica rails. Do not silently retouch locked videos. Their versioned correction plan is in `docs/visual/EP003_LOCKED_SHOTS_ROUTING_CONSISTENCY_AUDIT_2026_11_16.md`, and requires separate render/review/Director LOCK.
+
+
+## Final official 11-SHOT film — COMPLETED and stored in production
+
+Director explicitly watched SHOT11 V1 and said: **"Това търсим! ЛОКВАМЕ!"** followed by the instruction to append it to the full film. The Executor created a separate immutable append-only manifest, assembled with FFmpeg stream copy, verified the actual decoded seams for every boundary and saved the full video to the real production DB.
+
+- Manifest: `remotion-engine/ep003-director-locked-visual-sequence-11.json`; first 10 entries byte-for-byte equal to previously Director LOCKED `...-10.json`. Original historical 9-shot and 10-shot MP4s are preserved; no source videos changed.
+- Worker: `cumulative-engine/ep003-assemble-master-11-locked.mjs`, tests `...test.mjs`, Dockerfile `Dockerfile.ep003-cumulative-master-11-locked-once`; source pinned at `c1f38f9029e2c18a99aa5fa67ddacead5f5e66dc`; Railway worker deployment `d4683c84-0f86-4084-b402-e8f8c0b21fcc`.
+- **Official stored 11-SHOT master render ID:** `63827ce6-2ea8-4853-a61b-8549fe8db967`; SHA-256 `1560d46f8067c735a2578d769bfcda465f651e46babdf4bd7dfa1090f6ce8ff6`; `render_key=EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_11`; composition `EP003-CUMULATIVE-DIRECTOR-MASTER`; verified true, Director locked true.
+- **Exact duration:** 38,593 frames at 30 fps, 1,286.433333 seconds = **21:26.4333**; 1920 × 1080 H264/AAC, 152,025,545 bytes. All original selected Slow Natural voice is preserved. No fresh voice generation, no video re-encode during concatenation.
+- **All 10/10 actual decoded video seams PASS** (minimum PSNR=27dB), measured in order: 44.319888, 44.244846, 44.155357, 43.760053, 42.833128, 43.199819, 43.647755, 44.365580, 44.643326, **44.642372** dB. All individual rendered source frames vs master positions matched at **100dB**.
+- New SHOT10→SHOT11 boundary exactly at left frame **35488** and right frame **35489**, actual SHOT10 V2 decoded final pixel SHA256 `90bdedae663d796e11264af15f0f9b05949390bca83587a7f7de0db50d52fdad`.
+- **Official playback (one full-film MediaOS player):** `https://media-os-backend-production.up.railway.app/#/ep003/full`. The backend `GET /api/v1/remotion/renders/ep003/cumulative/latest-successful` selects the latest `EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_11` by highest shot count and verified true. The old 10-SHOT WIP still has an archival direct route, but it is removed from the main workspace to avoid two competing full-video players.
+- `EP003` has completed its **video-render / visual-editing stage as Director-LOCKED 11-SHOT master**. Publishing, title/thumbnail, caption/QC and promotion are separate tasks if requested; do not imply those are automatically complete.
+
+Persistent rule: New video/shots must preserve every approved locked source and exact previous last-frame → new first-frame identity; no container over container, no clipped texts, and every request particle uses the exact visible route.
