@@ -39,7 +39,7 @@ export function Ep003Shot09V2DirectorReview(){
        data.engineVersion!==ENGINE||data.profile!=='REVIEW'||
        data.width!==1920||data.height!==1080||data.fps!==30||
        data.durationInFrames!==3145||!data.sizeBytes||data.sizeBytes<1000000||
-       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==false){
+       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==true){
      setState({type:'EMPTY',message:'Saved SHOT09 V2 fails strict selected-source validation. No fallback is displayed.'});
      return;
     }
@@ -58,11 +58,11 @@ export function Ep003Shot09V2DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT09 V2 · Director Video Review</h3>
     <p>When the Primary Disappears. Failover, fencing and correctness.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT09 V2 · CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT09 V2 · DIRECTOR-LOCKED · OFFICIAL MASTER</span>
   </header>
   <p className="ep003-director-review-detail">
-   Director review candidate for When the Primary Disappears.
-   The first frame is the actual decoded final frame of the verified SHOT08 V3 routing candidate. Both new versions require your Director approval before becoming official.
+   Director-LOCKED premium routing edition of When the Primary Disappears.
+   The first frame continues from the exact decoded final frame of the Director-LOCKED SHOT08 V3. Both are part of the official nine-shot master.
    Original Phone, Gateway, Load Balancer, three Auth instances, Shard A, Shard B
    and database replicas share one continuous Living Architecture World.
    The Primary in Shard A becomes unavailable while Shard B remains healthy.
@@ -90,11 +90,10 @@ export function Ep003Shot09V2DirectorReview(){
    </button>
    <a href="#/ep003/shot08/v3">View corrected previous SHOT08 V3</a>
    <a href="#/ep003/shot09/v1">Compare historical SHOT09 V1</a>
-   <a href="#/ep003/full">View locked 8-SHOT master</a>
+   <a href="#/ep003/full">View official 9-SHOT master</a>
   </nav>
   <p className="ep003-director-review-caution">
-   SHOT09 V2 is NOT LOCKED. Only the Director can approve it.
-   Previously accepted SHOT01–08 and the eight-shot official master are immutable.
+   SHOT09 V2 is DIRECTOR-LOCKED in the official nine-shot master. Previous sources and narration remain saved unchanged.
   </p>
  </section>;
 }

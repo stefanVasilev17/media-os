@@ -10,7 +10,7 @@ describe('EP003 premium routing Director review candidates',()=>{
   for(const s of ["ENDPOINT='/api/v1/remotion/renders/ep003/shot08/v3/latest-successful'",
    "ENGINE='EP003_SHOT08_PIN_52c99cdf2b4b'",
    "RENDER_KEY='EP003_SHOT08_SHARDING_V3'","credentials:'same-origin'",
-   'data.durationInFrames!==5372','data.directorLocked!==false',
+   'data.durationInFrames!==5372','data.directorLocked!==true',
    'controls playsInline preload="metadata"'])expect(a).toContain(s);
   expect(a).not.toContain("method:'POST'");
  });
@@ -18,8 +18,8 @@ describe('EP003 premium routing Director review candidates',()=>{
   for(const s of ["ENDPOINT='/api/v1/remotion/renders/ep003/shot09/v2/latest-successful'",
    "ENGINE='EP003_SHOT09_PIN_c1e9a9bd1860'",
    "RENDER_KEY='EP003_SHOT09_FAILOVER_V2'","credentials:'same-origin'",
-   'data.durationInFrames!==3145','data.directorLocked!==false',
-   'SHOT09 V2 is NOT LOCKED'])expect(b).toContain(s);
+   'data.durationInFrames!==3145','data.directorLocked!==true',
+   'SHOT09 V2 is DIRECTOR-LOCKED'])expect(b).toContain(s);
   expect(b).not.toContain('target="_blank"');
  });
  it('preserves all historical and locked screens with candidates shown first',()=>{
