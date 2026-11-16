@@ -56,10 +56,10 @@ export function Ep003CorrectedTenShotFullWip(){
  return <section className="ep003-director-review" aria-label="EP003 corrected ten-shot full WIP director review">
   <header className="ep003-director-review-heading">
    <div>
-    <h3><Film size={22} aria-hidden="true"/> EP003 · Corrected Full Film · 10 SHOTs</h3>
+    <h3><Film size={22} aria-hidden="true"/> EP003 · Archived Director Review · 10 SHOTs</h3>
     <p>SHOT01–07 original Director LOCKs + corrected SHOT08 V4, SHOT09 V3, SHOT10 V2.</p>
    </div>
-   <span className="ep003-director-review-status">WIP · DIRECTOR REVIEW · NOT LOCKED</span>
+   <span className="ep003-director-review-status">ARCHIVED 10-SHOT REVIEW · SUPERSEDED BY OFFICIAL 11-SHOT MASTER</span>
   </header>
   <p className="ep003-director-review-detail">
    One continuous 19:42.97 film using original Slow Natural audio, actual saved SHOT videos and no video or audio regeneration during assembly.
@@ -80,9 +80,9 @@ export function Ep003CorrectedTenShotFullWip(){
   </>}
   <nav className="ep003-director-review-actions" aria-label="Corrected full film actions">
    <button type="button" onClick={()=>setRevision(x=>x+1)}><RefreshCcw size={15} aria-hidden="true"/> Refresh corrected full film</button>
-   <a href="#/ep003/full">Open official 9-SHOT locked master</a>
+   <a href="#/ep003/full">Open latest official 11-SHOT master</a>
    {movie&&<a href={movie} target="_blank" rel="noopener noreferrer">Open complete MP4</a>}
   </nav>
-  <p className="ep003-director-review-caution">This is a new review version, not a Director LOCK. Original approved sources remain immutable.</p>
+  <p className="ep003-director-review-caution">Historical ten-shot WIP review is preserved for comparison. The Director approved its shots, and the latest official 11-SHOT full master is available under EP003 / Full. Original saved videos remain immutable.</p>
  </section>;
 }
