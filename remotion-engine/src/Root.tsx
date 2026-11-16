@@ -22,6 +22,7 @@ import {Ep003Shot08WhenCopiesAreNotEnoughV1} from './episodes/ep003/Shot08WhenCo
 import {Ep003Shot08WhenCopiesAreNotEnoughV2} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV2';
 import {Ep003Shot08WhenCopiesAreNotEnoughV3} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV3';
 import {Ep003Shot09WhenPrimaryDisappearsV1} from './episodes/ep003/Shot09WhenPrimaryDisappearsV1';
+import {Ep003Shot09WhenPrimaryDisappearsV2} from './episodes/ep003/Shot09WhenPrimaryDisappearsV2';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -85,6 +86,46 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT09-FAILOVER-V2-DIRECTOR-CANDIDATE"
+        component={Ep003Shot09WhenPrimaryDisappearsV2}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'7510815a-d096-415f-b4f0-52ae8398ce45',
+          previousRenderId:'00000000-0000-4000-8000-000000000000',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:40298,
+          cueFrames:{
+            INTRO:60,
+            PRIMARY_AND_REPLICA:74,
+            PRIMARY_OWNS:88,
+            PRIMARY_FAIL:102,
+            REQUEST_FAILURE:116,
+            OTHER_SHARD:130,
+            RECOVERY_PATH:144,
+            PROMOTE:158,
+            FAILOVER:172,
+            LEGITIMATE_OWNER:186,
+            OLD_RETURN:200,
+            TWO_WRITERS:214,
+            SPLIT_BRAIN:228,
+            FENCING:242,
+            FENCE_MEANING:256,
+            DATA_RISK:270,
+            ASYNC:284,
+            LAG:298,
+            DATA_LOSS:312,
+            GREEN_ARROW:326,
+            CORRECTNESS:340,
+            INSTANCES:354,
+            WRONG_STATE:368,
+            TEST_FAILURES:382,
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT09-FAILOVER-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot09WhenPrimaryDisappearsV1}
