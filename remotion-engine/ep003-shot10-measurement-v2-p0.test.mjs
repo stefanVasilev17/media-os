@@ -16,6 +16,10 @@ test('V2 continues only actual SHOT09 V3 centered predecessor by render ID + SHA
  assert.ok(root.includes('EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'));
  assert.ok(scene.includes('Shot09FinalWorldForShot10V2'));
  assert.ok(scene.includes('frame===0'));
+ assert.ok(scene.includes('RENDER_ID.test(p.previousRenderId)'));
+ assert.ok(!scene.includes("const PREDECESSOR='b3a3912f-79ee-4c72-b313-cbe09f950a5e'"));
+ assert.ok(!scene.includes('LAST_SHOT08_FRAME_SHA'));
+ assert.ok(scene.includes('previousLastFrameSha256={props.previousLastFrameSha256}'));
 });
 test('Corrected Owner B stays centered through exact inherited SHOT09 scene and SHOT10 premium paths',()=>{
  for(const x of ['PREMIUM_OWNER_HEADER','PREMIUM_ROUTES.REPLICA_B',
