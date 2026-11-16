@@ -1,5 +1,25 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-16 — EP003 PREMIUM ROUTING CORRECTION. SHOT08 V3 AND SHOT09 V2 CANDIDATES
+
+**Director request:** The 2026-11-16 screenshot from SHOT09 V1 showed uncontrolled Bezier spaghetti routes around failed Shard A, newly promoted Primary A and Replica B. Director explicitly requested tier ++ engineered routing for SHOT08, SHOT09 and SHOT10. Executor must implement code in GitHub, build and render candidates via Railway, no Director code work.
+
+**Code delivered:** [draft PR #303](https://github.com/stefanVasilev17/media-os/pull/303), isolated branch `feat/ep003-premium-routing-shot08v3-shot09v2-shot10-20261116`. New `remotion-engine/ep003-premium-routing.mjs`, `.d.mts` and test provide five shared source-of-truth routes (`AUTH_A`, `AUTH_B`, `REPLICA_A`, `REPLICA_B`, `RECOVERY_A`), measured rounded-corner corridors, unified path and request packet arc-length geometry, muted glows, exact packet centerline, no wild cubic arcs. New SHOT08 V3 scene, SHOT09 V2 scene and `Shot10PremiumRoutingContractV1.ts` use the same standard. The last file is the future EP003 SHOT10 primitive contract, NOT a claim that EP003 SHOT10 is already rendered.
+
+**Immutable originals:** Official Director-LOCKED SHOT08 V2 render `22059373-cc17-44fd-ad03-56d092cc57dc`, SHA `3ad48fefdc2c887380ca44f2c04e6d6ac342557dc78422a3a7272ccb26291118`, and official 8-SHOT master `624da8ff-78e7-404e-8202-a4aa6e02e4f5` are unchanged. Historical SHOT09 V1 remains available. Never silently replace locked sources or official master before new explicit Director approval.
+
+**Render chain:** SHOT08 V3 uses exact SHOT07 V3 final decoded frame and original selected Slow Natural Take `368c239c-a93b-437e-a833-2f955fa51803`, 5372 frames. Worker source commit `52c99cdf2b4b0569d23273aab7aa831b0ec17c2b` and isolated Railway service `f1f068e4-2c84-4dfa-bb6b-787577e25b16`, deployment `699b19a5-1966-4891-9869-3f7161f8aece`, seven isolated tests passing, bundle succeeded. Real pre-render first-frame PSNR **100 dB PASS**. At this state-writing moment rendering is **IN PROGRESS 40%**, no actual saved V3 MP4 marker yet.
+
+**Next shot source lock:** SHOT09 V2 uses selected original Slow Natural Take `7510815a-d096-415f-b4f0-52ae8398ce45`, 24 genuine voice cues, 3145 frames. It MUST be rendered from the actual successful SHOT08 V3 video ID + SHA, not from official SHOT08 V2, to avoid the visible SHOT split. New SHOT09 V2 worker (source commit `c1e9a9bd1860945ebd90b8cd5e353ec8c5e116ba`) validates SHOT08 V3 render_key, composition, engine_version and SHA, then extracts frame 5371 for the seamless frame-zero overlay and checks encoded PSNR≥27 dB, 23 motion steps and audio. Reuse retired SHOT09 V1 one-off Railway service `d65628fc-6d2a-46d0-9998-3090fbca05fc` due Railway 50-service plan limit. Do not start 09 V2 without verified 08 V3 ID/SHA.
+
+**Protected review:** Backend/React MediaOS deployed from app source `0c9a48271a7ca91483e1e684409259b9e0273c1d`, Railway deployment `a2e302bd-349c-4087-a5d0-3febfb093420`, health check SUCCESS. 532 Java tests zero failures and errors. New verified-only review routes `/#/ep003/shot08/v3` and `/#/ep003/shot09/v2`, pinned to exact worker engine versions. Historical V2/V1 reviews remain. Both candidates NOT LOCKED pending Director review.
+
+**Preventive lessons:** See `docs/visual/CODEX_VISUAL_LESSONS_LEDGER.md` new `AT-VIS-0003`. Premium path motion must use same deterministic source for SVG path and packet coordinates. Check route/label spacing at full 1920x1080. Avoid container-on-container, text leaving containers, and request dots outside Login paths. All explanatory screen sentences use periods rather than semicolons.
+
+**NEXT:** Confirm `EP003_SHOT08_V3_REAL_MP4_SAVED` and `EP003_SHOT08_P0_REAL_SEAM_AND_MOTION_QA`. Use exact saved ID and SHA to configure 09 V2 service and render. Confirm `EP003_SHOT09_V2_REAL_MP4_SAVED` and decoded seam≥27 dB. Director visually reviews both before any LOCK and master extension.
+
+
+
 ## 2026-11-12 16:02 UTC — EP002 V4 FINAL MASTER: DIRECTOR APPROVED AND LOCKED
 
 **MOST RECENT CANONICAL DIRECTOR DECISION: FINAL DIRECTOR LOCK GRANTED.** In conversation on 2026-11-12 at 18:02 Europe/Sofia, the Director explicitly confirmed: **“Харесва ми! Цялото видео е LOCKED!”** This approves the entire EP002 V4 clean-cut master **as viewed**, not merely an individual SHOT. The Director has not authorized additional rendering or editorial changes. The final version is V4, not older V1/V2/V3 review masters.

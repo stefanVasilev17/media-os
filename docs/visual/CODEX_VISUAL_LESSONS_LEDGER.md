@@ -94,3 +94,18 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - **Promotion:** Proposed series-wide layout guard. Preserve as observed incident but do not declare implementation LOCKED until explicit Director approval.
 - **Supersedes:** None.
 
+
+
+## Director-observed correction AT-VIS-0003 — EP003 premium engineered data routes (2026-11-16)
+
+- **ID:** AT-VIS-0003.
+- **Date and Director decision:** 2026-11-16. Director rejected the loose, oversized curving arrows in the rendered SHOT09 V1 screenshot and explicitly requested a stronger tier ++ routing visual language for EP003 SHOT08, SHOT09 and SHOT10. **Correction requested and code implementation proposed. Not Director-LOCKED until reviewed.**
+- **Scope:** SERIES routing grammar. EP003 SHOT08 V3 and SHOT09 V2 review candidates, and future SHOT10. Previously Director-LOCKED SHOT08 V2 and the official eight-shot master remain preserved unchanged.
+- **Problem observed:** Ad hoc cubic arrows curve around nodes and replica cards, approach owner labels, and produce a hand-drawn/sci-fi-wire look instead of engineered architecture.
+- **Implementation:** New versioned deterministic shared primitive `remotion-engine/ep003-premium-routing.mjs` with five named pathways `AUTH_A`, `AUTH_B`, `REPLICA_A`, `REPLICA_B` and `RECOVERY_A`. Consistent 12–24px curved corner transitions, long precisely horizontal or vertical rail segments, stroke 2.6px, restrained 5px packet glow, smaller 3.7px packets, quiet outer rail. The moving packet's coordinates are sampled directly from the exact route's line/quadratic segments, using arc-length sampling. No separate independently animated decorative dot coordinates. Replica B travels down the *outside* right vertical lane before entering its own card, never looping across Replica A or labels.
+- **Reusable future standard:** `src/episodes/ep003/Shot10PremiumRoutingContractV1.ts` consumes exactly the same route geometry, marker sampler and validation. SHOT10 cannot invent new loose freeform curves without separate Director approval. This is infrastructure, **not** a claim that EP003 SHOT10 has been rendered or visually accepted.
+- **Exact continuity:** SHOT08 V3 is a candidate derived from the previously Director-approved V2 design, retaining original Slow Natural voice, existing SHOT07 V3 frame-zero handoff and all text-fit guards. SHOT09 V2 is separately rendered only against the actual previously saved SHOT08 V3 candidate frame/MP4, with source-key, engine-version, real SHA and decoded join checks. The established official eight-shot master does not silently change.
+- **Preventive QA:** `remotion-engine/ep003-premium-routing.test.mjs` validates route endpoints, boundaries, card clearances, packet centerline contract and cross-shot shared usage. Additional V3/V2 tests enforce genuine selected narration, unchanged older versions, real first-frame seam and early motion after encoding. Code/test green alone does not prove Director visual acceptance.
+- **Director visual acceptance needed:** Verify SHOT08 V3 and SHOT09 V2 video at full-resolution in MediaOS. If approved, preserve as explicit Director LOCK sources and only then update the official episode master and future SHOT10 routing standard status. No paid voice regeneration.
+- **Supersedes:** None. Builds on AT-VIS-0002, which covers labels and replica-container containment.
+

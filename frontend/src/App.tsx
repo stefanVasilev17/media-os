@@ -8,6 +8,8 @@ import {Ep003Shot07V3DirectorReview} from './components/Ep003Shot07V3DirectorRev
 import {Ep003Shot08V1DirectorReview} from './components/Ep003Shot08V1DirectorReview';
 import {Ep003Shot08V2DirectorReview} from './components/Ep003Shot08V2DirectorReview';
 import {Ep003Shot09V1DirectorReview} from './components/Ep003Shot09V1DirectorReview';
+import {Ep003Shot09V2DirectorReview} from './components/Ep003Shot09V2DirectorReview';
+import {Ep003Shot08V3DirectorReview} from './components/Ep003Shot08V3DirectorReview';
 import {Ep003CumulativeFullVideo} from './components/Ep003CumulativeFullVideo';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
@@ -72,6 +74,12 @@ export function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  if (hash === '#/ep003/shot09/v2') {
+    return <div className="media-os-product-shell"><Ep003Shot09V2DirectorReview/></div>;
+  }
+  if (hash === '#/ep003/shot08/v3') {
+    return <div className="media-os-product-shell"><Ep003Shot08V3DirectorReview/></div>;
+  }
   if (hash === '#/ep003/shot09/v1') {
     return <div className="media-os-product-shell"><Ep003Shot09V1DirectorReview/></div>;
   }
