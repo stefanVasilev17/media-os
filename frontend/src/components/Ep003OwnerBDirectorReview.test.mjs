@@ -42,7 +42,7 @@ describe('EP003 Owner B center correction strict video review',()=>{
   expect(film).toContain('setTimeout(()=>setRevision(n=>n+1),30000)');
   expect(film).toContain('window.clearTimeout(timer)');
   expect(app).toContain("hash === '#/ep003/corrected/full'");
-  expect(page).toContain('<Ep003CorrectedTenShotFullWip/>');
+  expect(page).not.toContain('<Ep003CorrectedTenShotFullWip/>');
   expect(page).toContain('<Ep003CumulativeFullVideo/>');
  });
  it('Original approved versions remain present and locked, candidate routes first',()=>{
