@@ -15,7 +15,10 @@ test('V2 continues only actual SHOT09 V3 centered predecessor by render ID + SHA
   "select=eq(n", '3144)'])assert.ok(worker.includes(x),x);
  assert.ok(root.includes('EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'));
  assert.ok(scene.includes('Shot09FinalWorldForShot10V2'));
- assert.ok(scene.includes('frame===0'));
+ assert.ok(scene.includes('frame<8'));
+ assert.ok(scene.includes('opacity:1-frame/8'));
+ assert.ok(!scene.includes('frame===0&&<AbsoluteFill style={{zIndex:50'));
+ assert.ok(worker.includes('EP003_SHOT10_V2_INITIAL_MOTION_DIAGNOSTIC'));
  assert.ok(scene.includes('RENDER_ID.test(p.previousRenderId)'));
  assert.ok(!scene.includes("const PREDECESSOR='b3a3912f-79ee-4c72-b313-cbe09f950a5e'"));
  assert.ok(!scene.includes('LAST_SHOT08_FRAME_SHA'));
