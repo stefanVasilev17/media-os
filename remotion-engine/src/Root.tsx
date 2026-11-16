@@ -23,6 +23,7 @@ import {Ep003Shot08WhenCopiesAreNotEnoughV2} from './episodes/ep003/Shot08WhenCo
 import {Ep003Shot08WhenCopiesAreNotEnoughV3} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV3';
 import {Ep003Shot09WhenPrimaryDisappearsV1} from './episodes/ep003/Shot09WhenPrimaryDisappearsV1';
 import {Ep003Shot09WhenPrimaryDisappearsV2} from './episodes/ep003/Shot09WhenPrimaryDisappearsV2';
+import {Ep003Shot10ProveArchitectureV1} from './episodes/ep003/Shot10ProveArchitectureV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -86,6 +87,47 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT10-MEASUREMENT-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot10ProveArchitectureV1}
+        durationInFrames={dynamicDuration ?? 4016}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:4016,
+          voiceTakeId:'0168eb87-538f-49d8-9c79-132d822bdb60',
+          previousRenderId:'b3a3912f-79ee-4c72-b313-cbe09f950a5e',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:43442,
+          cueFrames:{
+            RETURN:60,
+            ORIGINAL_DB:190,
+            EXPLORED:320,
+            PROVE:450,
+            OUTCOME:580,
+            SUCCESS:710,
+            SLI:840,
+            SLI_DEFINITION:970,
+            SLO:1100,
+            TWO_SECONDS:1230,
+            REJECTED:1360,
+            LATENCY:1490,
+            P95:1620,
+            SUCCESS_BIAS:1750,
+            HALF_USERS:1880,
+            DATABASE_METRICS:2010,
+            SHARD_OVERLOAD:2140,
+            TEST_FAILOVER:2270,
+            RECOVERY:2400,
+            RTO_RPO:2530,
+            COMPARE:2660,
+            MORE_LOGINS:2790,
+            PRESSURE:2920,
+            COMPLEXITY:3050,
+            PURPOSE:3180,
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT09-FAILOVER-V2-DIRECTOR-CANDIDATE"
         component={Ep003Shot09WhenPrimaryDisappearsV2}
