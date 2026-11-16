@@ -39,6 +39,8 @@ describe('EP003 Owner B center correction strict video review',()=>{
    'Original approved sources remain immutable.'
   ])expect(film).toContain(s);
   expect(film).not.toContain("method:'POST'");
+  expect(film).toContain('setTimeout(()=>setRevision(n=>n+1),30000)');
+  expect(film).toContain('window.clearTimeout(timer)');
   expect(app).toContain("hash === '#/ep003/corrected/full'");
   expect(page).toContain('<Ep003CorrectedTenShotFullWip/>');
   expect(page).toContain('<Ep003CumulativeFullVideo/>');
