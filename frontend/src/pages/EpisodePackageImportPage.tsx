@@ -171,27 +171,27 @@ export function EpisodePackageImportPage(){
         separate validation before any future OpenAI batch authorization.</p>
       {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
       {details&&false&&<>
-      {details.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot09V3DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot08V4DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot10V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot09V2DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot08V3DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT09 V1 · NOT LOCKED</summary><Ep003Shot09V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<Ep003Shot08V2DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT08 V1 · NOT LOCKED</summary><Ep003Shot08V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<Ep003Shot07V3DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V2 · NOT LOCKED</summary><Ep003Shot07V2DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V1 · NOT LOCKED</summary><Ep003Shot07V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot09V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V4DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot10V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot09V2DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT09 V1 · NOT LOCKED</summary><Ep003Shot09V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V2DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT08 V1 · NOT LOCKED</summary><Ep003Shot08V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot07V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V2 · NOT LOCKED</summary><Ep003Shot07V2DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V1 · NOT LOCKED</summary><Ep003Shot07V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
       </>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
