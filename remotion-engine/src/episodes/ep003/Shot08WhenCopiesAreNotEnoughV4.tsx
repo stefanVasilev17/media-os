@@ -7,7 +7,7 @@ import {shot10TextWidth} from '../../../shot10-content-fit-layout.mjs';
 import {PREMIUM_ROUTES,PREMIUM_ROUTE_STYLE,PREMIUM_OWNER_HEADER,premiumRouteD,
  premiumRouteEnd,premiumRoutePoint,validatePremiumRoutes}
  from '../../../ep003-premium-routing-v2.mjs';
-import type {PremiumRoute} from '../../../ep003-premium-routing.mjs';
+import type {PremiumRoute} from '../../../ep003-premium-routing-v2.mjs';
 import {ep003CardIsReadable,ep003CardOpacity} from '../../../ep003-readable-card-policy.mjs';
 
 const WHITE='#F5FCFF',SOFT='#B5D2E6',MINT='#6FECD4',CYAN='#68E5FF',AMBER='#F5A55A';
