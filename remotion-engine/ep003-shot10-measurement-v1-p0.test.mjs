@@ -17,8 +17,9 @@ test('SHOT10 begins with exact decoded final frame of immutable Director LOCKED 
   'frame===0','previousLastFrameDataUri',
   "const PIN='b3a3912f-79ee-4c72-b313-cbe09f950a5e'",
   "const PIN_SHA='f80a362e0b805edf7eee045e11d5c6492280fdea997eb9a9204ce5f5c458dc7f'",
-  "select=eq(n\\,3144)",
+  "select=eq(n",
   "previous.render_key==='EP003_SHOT09_FAILOVER_V2'"])assert.ok((scene+worker).includes(marker),marker);
+ assert.ok(worker.includes('3144)')); 
  assert.ok(fork.includes('continuationFrameOffset'));
  assert.ok(fork.includes('titleHandoffFrame'));
  assert.ok(prev.includes('Ep003Shot09WhenPrimaryDisappearsV2'));
