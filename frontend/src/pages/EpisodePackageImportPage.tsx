@@ -170,7 +170,7 @@ export function EpisodePackageImportPage(){
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
       {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
-      {false&&<>
+      {details&&false&&<>
       {details.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
