@@ -520,7 +520,7 @@ public class RemotionRenderController {
                 where project_id=:projectId
                   and composition_id='EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'
                   and render_key='EP003_SHOT10_MEASUREMENT_V2'
-                  and engine_version='EP003_SHOT10_PIN_b73e566f4482'
+                  and engine_version='EP003_SHOT10_PIN_51403eaa9dde'
                   and profile='REVIEW'
                   and status='SUCCEEDED'
                   and duration_in_frames=4016
