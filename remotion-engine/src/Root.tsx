@@ -20,6 +20,7 @@ import {Ep003Shot07BottleneckMeasurementV2} from './episodes/ep003/Shot07Bottlen
 import {Ep003Shot07BottleneckMeasurementV3} from './episodes/ep003/Shot07BottleneckMeasurementV3';
 import {Ep003Shot08WhenCopiesAreNotEnoughV1} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV1';
 import {Ep003Shot08WhenCopiesAreNotEnoughV2} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV2';
+import {Ep003Shot08WhenCopiesAreNotEnoughV3} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV3';
 import {Ep003Shot09WhenPrimaryDisappearsV1} from './episodes/ep003/Shot09WhenPrimaryDisappearsV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
@@ -121,6 +122,51 @@ export const Root: React.FC = () => {
             INSTANCES:354,
             WRONG_STATE:368,
             TEST_FAILURES:382,
+          },
+        }}
+      />
+      <Composition
+        id="EP003-SHOT08-SHARDING-V3-DIRECTOR-CANDIDATE"
+        component={Ep003Shot08WhenCopiesAreNotEnoughV3}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'368c239c-a93b-437e-a833-2f955fa51803',
+          previousRenderId:'09457c3c-32d9-432c-aa92-67f0e7b13f60',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:34927,
+          cueFrames:{
+            INTRO:60,
+            ONE_PRIMARY:76,
+            DIVIDE:92,
+            OWNER_A:108,
+            OWNER_B:124,
+            SHARDING:140,
+            SHARD_DEF:156,
+            INDEPENDENT_PRIMARY:172,
+            CRITICAL_LOOKUPS:188,
+            SHARD_A:204,
+            SHARD_B:220,
+            AUTHORITATIVE:236,
+            SHARD_KEY_QUESTION:252,
+            SHARD_KEY:268,
+            SHARD_KEY_DEF:284,
+            MAPPING:300,
+            ROUTING:316,
+            IDENTIFIER_CHANGE:332,
+            MISSING_KEY:348,
+            HOT_SHARD_QUESTION:364,
+            HOT_SHARD:380,
+            HOT_WARNING:396,
+            CROSS_SHARD:412,
+            EACH_REPLICAS:428,
+            COMPARE:444,
+            COMPARE_DEF:460,
+            CAPACITY:476,
+            HYPOTHESIS:492,
+            FAILURE:508
           },
         }}
       />
