@@ -39,7 +39,7 @@ export function Ep003Shot10V2DirectorReview(){
        data.engineVersion!==ENGINE||data.profile!=='REVIEW'||
        data.width!==1920||data.height!==1080||data.fps!==30||
        data.durationInFrames!==4016||!data.sizeBytes||data.sizeBytes<1000000||
-       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==false){
+       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==true){
      setState({type:'EMPTY',message:'Saved SHOT10 V2 fails strict selected-source validation. No fallback is displayed.'});
      return;
     }
@@ -58,7 +58,7 @@ export function Ep003Shot10V2DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT10 V2 · Director Video Review</h3>
     <p>Prove the Architecture Works. SLI, SLO, p95, RTO and RPO.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT10 V2 · REVIEW CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT10 V2 · DIRECTOR LOCKED · APPROVED SOURCE</span>
   </header>
   <p className="ep003-director-review-detail">
    Exact decoded final SHOT09 V3 frame at the beginning. Continuous Living
@@ -89,10 +89,10 @@ export function Ep003Shot10V2DirectorReview(){
     <RefreshCcw size={15} aria-hidden="true"/> Refresh SHOT10 V2
    </button>
    <a href="#/ep003/shot09/v3">View corrected SHOT09 V3 candidate</a>
-   <a href="#/ep003/full">View official 9-SHOT master</a>
+   <a href="#/ep003/full">View official 11-SHOT master</a>
   </nav>
   <p className="ep003-director-review-caution">
-   SHOT10 V2 is NOT LOCKED. The official nine-shot master remains immutable until your explicit visual approval.
+   SHOT10 V2 was explicitly approved by the Director and is LOCKED in the official 11-SHOT master. The original nine- and ten-shot masters remain archived unchanged.
   </p>
  </section>;
 }
