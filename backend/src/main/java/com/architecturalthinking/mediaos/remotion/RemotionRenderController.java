@@ -42,6 +42,10 @@ public class RemotionRenderController {
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V2 = UUID.fromString("22059373-cc17-44fd-ad03-56d092cc57dc");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V3 = UUID.fromString("d67eec72-66bb-427b-bdb9-0d4043ed5dd2");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT09_V2 = UUID.fromString("b3a3912f-79ee-4c72-b313-cbe09f950a5e");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V4 = UUID.fromString("07207345-1350-4e82-aea2-3c369160f653");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT09_V3 = UUID.fromString("53ac60b4-346e-400b-8dec-7932ef2de94d");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT10_V2 = UUID.fromString("174c8a8b-3202-4067-95ef-7dab1de11aa3");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT11_V1 = UUID.fromString("80dcf256-5cf3-4b38-8517-19dcff7a6ac9");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
@@ -1302,7 +1306,11 @@ public class RemotionRenderController {
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT07_V3)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V2)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V3)
-                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V2));
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V4)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V3)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT10_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT11_V1));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());
