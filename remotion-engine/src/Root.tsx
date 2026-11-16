@@ -27,6 +27,7 @@ import {Ep003Shot10ProveArchitectureV1} from './episodes/ep003/Shot10ProveArchit
 import {Ep003Shot08WhenCopiesAreNotEnoughV4} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV4';
 import {Ep003Shot09WhenPrimaryDisappearsV3} from './episodes/ep003/Shot09WhenPrimaryDisappearsV3';
 import {Ep003Shot10ProveArchitectureV2} from './episodes/ep003/Shot10ProveArchitectureV2';
+import {Ep003Shot11HumanFirstFinaleV1} from './episodes/ep003/Shot11HumanFirstFinaleV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -90,6 +91,29 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP003-SHOT11-FINALE-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot11HumanFirstFinaleV1}
+        durationInFrames={dynamicDuration ?? 3104}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:3104,
+          voiceTakeId:'5c3435f6-ae66-4ec3-a6b0-bf1cc8207486',
+          previousRenderId:'174c8a8b-3202-4067-95ef-7dab1de11aa3',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:47457,
+          cueFrames:{
+            BEGIN:60,ONE_PERSON:165,FOLLOWED:270,AUTH_STATE:375,
+            PRESSURE:480,HEALTHY:585,BOTTLENECK:690,PROTECTED:795,
+            CAPACITY:900,CHOICES:1005,REPLICATION:1110,CONSISTENCY:1215,
+            SHARDING:1320,FAILOVER:1425,RESPONSIBILITY:1530,
+            MORE_CAPACITY:1635,MORE_COPIES:1740,MORE_OWNERS:1845,
+            SYSTEM_DESIGN:1950,NOT_COMPONENTS:2055,TRADEOFF:2160,
+            HUMAN:2460,LOGIN:2565,SUCCESS:2670
+          },
+        }}
+      />
       <Composition
         id="EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE"
         component={Ep003Shot10ProveArchitectureV2}
