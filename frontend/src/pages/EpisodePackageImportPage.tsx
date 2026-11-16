@@ -163,13 +163,14 @@ export function EpisodePackageImportPage(){
         </button>)}
     </section>
     {details&&<section className="episode-package-panel">
+       {details.episodeKey==='EP003'?<Ep003CumulativeFullVideo/>:<>
       <h2>{details.episodeKey} · All voice tasks</h2>
       <p>{details.status} · {details.shots.filter(shot=>
         shot.voiceTaskStatus==='VOICE_APPROVED_TIMING_REVIEW_REQUIRED').length}/{details.shotCount}
         {' '}SHOTs have a Director-selected current-revision Take.
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
-      {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
+
       {details&&false&&<>
       {details?.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
       {details?.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
@@ -222,6 +223,7 @@ export function EpisodePackageImportPage(){
           <pre>{JSON.stringify(shot.visualStory,null,2)}</pre>
         </details>
       </details>)}
+       </>}
     </section>}
   </main>;
 }
