@@ -53,7 +53,7 @@ export function validateLockedSequence(m){
 const CANDIDATES=[
  {shotKey:'SHOT08',version:'V4',renderKey:'EP003_SHOT08_SHARDING_V4',compositionId:'EP003-SHOT08-SHARDING-V4-DIRECTOR-CANDIDATE',engineVersion:'EP003_SHOT08_PIN_143975e3d6c0',frames:5372,voiceTakeId:'368c239c-a93b-437e-a833-2f955fa51803',idVar:'EP003_SHOT08_V4_RENDER_ID',shaVar:'EP003_SHOT08_V4_SHA256'},
  {shotKey:'SHOT09',version:'V3',renderKey:'EP003_SHOT09_FAILOVER_V3',compositionId:'EP003-SHOT09-FAILOVER-V3-DIRECTOR-CANDIDATE',engineVersion:'EP003_SHOT09_PIN_599d23563c9c',frames:3145,voiceTakeId:'7510815a-d096-415f-b4f0-52ae8398ce45',idVar:'EP003_SHOT09_V3_RENDER_ID',shaVar:'EP003_SHOT09_V3_SHA256'},
- {shotKey:'SHOT10',version:'V2',renderKey:'EP003_SHOT10_MEASUREMENT_V2',compositionId:'EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE',engineVersion:'EP003_SHOT10_PIN_b73e566f4482',frames:4016,voiceTakeId:'0168eb87-538f-49d8-9c79-132d822bdb60',idVar:'EP003_SHOT10_V2_RENDER_ID',shaVar:'EP003_SHOT10_V2_SHA256'}
+ {shotKey:'SHOT10',version:'V2',renderKey:'EP003_SHOT10_MEASUREMENT_V2',compositionId:'EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE',engineVersion:'EP003_SHOT10_PIN_51403eaa9dde',frames:4016,voiceTakeId:'0168eb87-538f-49d8-9c79-132d822bdb60',idVar:'EP003_SHOT10_V2_RENDER_ID',shaVar:'EP003_SHOT10_V2_SHA256'}
 ];
 export function correctedWipSequence(m){
  check(validateLockedSequence(m)===31473&&m.shots.length===9
