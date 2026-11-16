@@ -13,10 +13,9 @@ const CYAN='#68E5FF',MINT='#6FECD4',AMBER='#F5A55A',
  WHITE='#F5FCFF',SOFT='#B5D2E6';
 const LAST_SHOT09_FRAME=3144;
 const SHOT09_LAST_WORLD_FRAME=40298+LAST_SHOT09_FRAME;
-const PREDECESSOR='b3a3912f-79ee-4c72-b313-cbe09f950a5e';
+const RENDER_ID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TAKE='0168eb87-538f-49d8-9c79-132d822bdb60';
 const OLD_SHOT09_TAKE='7510815a-d096-415f-b4f0-52ae8398ce45';
-const LAST_SHOT08_FRAME_SHA='16f48079ed4e22794279b17e541fa28d27bb6111ec4127ee7d67b3cb7a8e2a85';
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const ease=(f:number,start:number,duration:number)=>{
  const t=clamp((f-start)/Math.max(1,duration));return t*t*(3-2*t);
@@ -110,14 +109,14 @@ export function shot10CardDimensions(card:Card){
 }
 export function validateShot10(p:Shot10Props){
  validatePremiumRoutes();
- if(!p||p.previousRenderId!==PREDECESSOR||
+ if(!p||!RENDER_ID.test(p.previousRenderId)||
    p.voiceTakeId!==TAKE||
    !/^[0-9a-f]{64}$/.test(p.previousLastFrameSha256)||
    !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.previousLastFrameDataUri)||
    p.worldStartFrame!==SHOT09_LAST_WORLD_FRAME||
    !Number.isInteger(p.durationInFrames)||p.durationInFrames<3600||
    p.durationInFrames>7000)
-  throw Error('EP003_SHOT10_REQUIRES_REAL_LOCKED_SHOT09_V2_SEAM_AND_SELECTED_TAKE');
+  throw Error('EP003_SHOT10_REQUIRES_VERIFIED_SHOT09_V3_SEAM_AND_SELECTED_TAKE');
  let previous=-1;
  for(const key of EP003_SHOT10_CUES){
   const f=p.cueFrames?.[key];
@@ -187,7 +186,7 @@ export const Ep003Shot10ProveArchitectureV2:React.FC<Shot10Props>=props=>{
    durationInFrames={props.durationInFrames}
    voiceTakeId={OLD_SHOT09_TAKE}
    previousRenderId={props.previousRenderId}
-   previousLastFrameSha256={LAST_SHOT08_FRAME_SHA}
+   previousLastFrameSha256={props.previousLastFrameSha256}
    previousLastFrameDataUri={props.previousLastFrameDataUri}
    worldStartFrame={40298}
    continuationFrameOffset={LAST_SHOT09_FRAME}
