@@ -454,6 +454,62 @@ public class RemotionRenderController {
                         "reason","NO_VERIFIED_EP003_SHOT08_V3_MP4_YET"));
     }
 
+    @GetMapping("/ep003/shot08/v4/latest-successful")
+    public Map<String,Object> latestEp003Shot08V4DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT08-SHARDING-V4-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT08_SHARDING_V4'
+                  and engine_version='EP003_SHOT08_PIN_143975e3d6c0'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=5372
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT08_V4_MP4_YET"));
+    }
+
+    @GetMapping("/ep003/shot09/v3/latest-successful")
+    public Map<String,Object> latestEp003Shot09V3DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT09-FAILOVER-V3-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT09_FAILOVER_V3'
+                  and engine_version='EP003_SHOT09_PIN_599d23563c9c'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3145
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT09_V3_MP4_YET"));
+    }
+
     @GetMapping("/ep003/shot10/v1/latest-successful")
     public Map<String,Object> latestEp003Shot10V1DirectorReview() {
         return jdbc.sql("""

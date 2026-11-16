@@ -26,6 +26,8 @@ import {Ep003Shot09V1DirectorReview} from '../components/Ep003Shot09V1DirectorRe
 import {Ep003Shot08V3DirectorReview} from '../components/Ep003Shot08V3DirectorReview';
 import {Ep003Shot09V2DirectorReview} from '../components/Ep003Shot09V2DirectorReview';
 import {Ep003Shot10V1DirectorReview} from '../components/Ep003Shot10V1DirectorReview';
+import {Ep003Shot08V4DirectorReview} from '../components/Ep003Shot08V4DirectorReview';
+import {Ep003Shot09V3DirectorReview} from '../components/Ep003Shot09V3DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
@@ -173,6 +175,8 @@ export function EpisodePackageImportPage(){
       {details.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot09V3DirectorReview/>}
+      {details.episodeKey==='EP003'&&<Ep003Shot08V4DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot10V1DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot09V2DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot08V3DirectorReview/>}
