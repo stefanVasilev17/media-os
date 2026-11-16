@@ -4,6 +4,7 @@ COPY cumulative-engine/package.json ./
 RUN npm install --no-audit --no-fund --prefer-offline
 COPY cumulative-engine/ ./
 COPY remotion-engine/ep003-director-locked-visual-sequence-10.json /app/remotion-engine/ep003-director-locked-visual-sequence-10.json
+COPY remotion-engine/ep003-director-locked-visual-sequence.json /app/remotion-engine/ep003-director-locked-visual-sequence.json
 RUN node --check ep003-assemble-master-10-locked.mjs
 RUN node --test ep003-assemble-master-10-locked.test.mjs
 RUN apk add --no-cache ffmpeg ca-certificates
