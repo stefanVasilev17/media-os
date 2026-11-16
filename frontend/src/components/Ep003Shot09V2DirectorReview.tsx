@@ -56,7 +56,7 @@ export function Ep003Shot09V2DirectorReview(){
   <header className="ep003-director-review-heading">
    <div>
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT09 V2 · Director Video Review</h3>
-    <p>When Copies Are Not Enough. Independent Primary owners. Sharding and routing.</p>
+    <p>When the Primary Disappears. Failover, fencing and correctness.</p>
    </div>
    <span className="ep003-director-review-status">SHOT09 V2 · CANDIDATE · NOT LOCKED</span>
   </header>
