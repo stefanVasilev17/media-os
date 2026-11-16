@@ -12,18 +12,18 @@ describe('EP003 SHOT11 V1 Director review protected real saved MP4',()=>{
    "RENDER_KEY='EP003_SHOT11_FINALE_V1'",
    "ENGINE='EP003_SHOT11_PIN_140398af1c5b'",
    'data.durationInFrames!==3104',
-   'data.directorLocked!==false',
+   'data.directorLocked!==true',
    "credentials:'same-origin'",
    'controls','playsInline','preload="metadata"',
-   'SHOT11 is not LOCKED until your explicit approval.'
+   'Director approved SHOT11 V1 and LOCKED its exact original MP4'
   ])expect(player).toContain(phrase);
   expect(player).not.toContain("method:'POST'");
  });
- it('one versioned nonofficial preview route plus episode workspace, historical official 10 LOCK preserved',()=>{
+ it('one exact approved standalone shot 11 and one official 11-SHOT master preserved',()=>{
   expect(app).toContain("hash === '#/ep003/shot11/v1'");
   expect(workspace).toContain('<Ep003Shot11V1DirectorReview/>');
   expect(workspace).toContain('<Ep003CumulativeFullVideo/>');
-  expect(player).toContain('View official 10-SHOT Director LOCK');
+  expect(player).toContain('View official 11-SHOT Director LOCK');
   expect(player).toContain('window.clearTimeout(id)');
  });
 });
