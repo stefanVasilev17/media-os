@@ -26,8 +26,14 @@ try{
   where table_schema='public' and data_type='bytea'
   order by table_name,column_name`)).rows;
  console.log('STORAGE_BYTEA_COLUMNS '+JSON.stringify(byteCols));
- const episodes=(await db.query(`select id::text,episode_key from episode order by episode_key`)).rows;
+ const episodes=(await db.query(`select id::text,episode_number from episode order by episode_number`)).rows;
  console.log('STORAGE_EPISODE_IDS '+JSON.stringify(episodes));
+ const slots=(await db.query(`select slot_name,slot_type,active,restart_lsn,wal_status,
+ coalesce(safe_wal_size,0)::bigint as safe_wal_size from pg_replication_slots`)).rows;
+ console.log('STORAGE_REPLICATION_SLOTS '+JSON.stringify(slots));
+ const activity=(await db.query(`select state,count(*)::int as connections
+   from pg_stat_activity where datname=current_database() group by 1`)).rows;
+ console.log('STORAGE_DB_CONNECTIONS '+JSON.stringify(activity));
  const full=(await db.query(`select id::text,composition_id,render_key,engine_version,status,
  profile,coalesce(size_bytes,octet_length(video_data),0)::bigint as bytes,
  video_data is not null as has_video, duration_in_frames,width,height,fps,
@@ -56,9 +62,9 @@ try{
   const hasEpisode=cols.some(x=>x.column_name==='episode_id');
   if(hasEpisode&&audio.length){
     const expr=audio.map(x=>`coalesce(pg_column_size("${x}"),0)`).join('+');
-    const q=`select e.episode_key,count(*)::integer as rows,sum(${expr})::bigint as stored_bytes
+    const q=`select e.episode_number,count(*)::integer as rows,sum(${expr})::bigint as stored_bytes
       from "${t}" v join episode e on e.id=v.episode_id
-      where e.episode_key in ('EP001','EP002','EP003') group by 1 order by 1`;
+      where e.episode_number in ('EP001','EP002','EP003') group by 1 order by 1`;
     try{const rows=(await db.query(q)).rows;console.log('STORAGE_VOICE_BYTES '+JSON.stringify({table:t,rows:rows.map(x=>({...x,MiB:MB(x.stored_bytes)}))}))}
     catch(e){console.log('STORAGE_VOICE_BYTES_UNAVAILABLE '+JSON.stringify({table:t,error:e.message}))}
   }
