@@ -38,7 +38,7 @@ export function Ep003Shot11V1DirectorReview(){
       ||data.engineVersion!==ENGINE||data.profile!=='REVIEW'
       ||data.width!==1920||data.height!==1080||data.fps!==30
       ||data.durationInFrames!==3104||!data.sizeBytes||data.sizeBytes<1000000
-      ||data.directorLocked!==false
+      ||data.directorLocked!==true
       ||data.videoUrl!==PREFIX+data.renderId+'/video'){
      setResult({status:'EMPTY',message:'Saved SHOT11 failed exact Director source/version verification. No old MP4 fallback is shown.'});
      return;
@@ -61,7 +61,7 @@ export function Ep003Shot11V1DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT11 V1 · Director Review</h3>
     <p>What One Login Teaches Us About Architecture · Human-first finale.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT11 V1 · DIRECTOR CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT11 V1 · DIRECTOR LOCKED · APPROVED FINALE</span>
   </header>
   <p className="ep003-director-review-detail">
    The exact final SHOT10 V2 decoded frame is the opening frame of SHOT11.
@@ -89,12 +89,12 @@ export function Ep003Shot11V1DirectorReview(){
     <button type="button" onClick={()=>setRevision(n=>n+1)}>
      <RefreshCcw size={15} aria-hidden="true"/> Refresh SHOT11 V1
     </button>
-    <a href="#/ep003/full">View official 10-SHOT Director LOCK</a>
+    <a href="#/ep003/full">View official 11-SHOT Director LOCK</a>
     {video&&<a href={video} target="_blank" rel="noopener noreferrer">Open SHOT11 MP4</a>}
   </nav>
   <p className="ep003-director-review-caution">
-   Director review only. SHOT11 is not LOCKED until your explicit approval.
-   The original SHOT01–10 official master is never changed by this player.
+   Director approved SHOT11 V1 and LOCKED its exact original MP4 in the official 11-SHOT master.
+   The earlier SHOT01–10 official master is preserved without modification.
   </p>
  </section>;
 }
