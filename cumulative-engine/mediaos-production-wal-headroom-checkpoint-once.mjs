@@ -17,13 +17,18 @@ const before=await wal();
 console.log('MEDIAOS_WAL_CHECKPOINT_PREFLIGHT '+JSON.stringify({before,dbMiB:mib(pre.database_bytes),...pre}));
 check(pre.superuser===true&&!pre.replica&&pre.replication_slot_count===0,'PRIMARY_SUPERUSER_NO_SLOTS_REQUIRED');
 check(before.MiB>=650&&before.MiB<=2500,'UNEXPECTED_WAL_FOOTPRINT');
-check(pre.max_wal==='1GB'&&pre.min_wal==='80MB','UNKNOWN_EXISTING_WAL_TUNING');
+check(['1GB','256MB'].includes(pre.max_wal)&&pre.min_wal==='80MB','UNKNOWN_EXISTING_WAL_TUNING');
 check(process.env.MEDIAOS_RECLAIM_WAL_CONFIRMED==='true','EXPLICIT_GUARD_DISABLED');
-await db.query("ALTER SYSTEM SET max_wal_size='256MB'");
+if(pre.max_wal!=='256MB')await db.query("ALTER SYSTEM SET max_wal_size='256MB'");
 const reload=(await db.query('select pg_reload_conf() as success')).rows[0];
 check(reload.success===true,'RELOAD_FAILED');
-const current=(await db.query("select current_setting('max_wal_size') as max_wal")).rows[0];
-check(current.max_wal==='256MB','NEW_WAL_LIMIT_NOT_APPLIED');
+let current=null;
+for(let attempt=0;attempt<20;attempt++){
+ current=(await db.query("select current_setting('max_wal_size') as max_wal")).rows[0];
+ if(current.max_wal==='256MB')break;
+ await new Promise(resolve=>setTimeout(resolve,500));
+}
+check(current?.max_wal==='256MB','NEW_WAL_LIMIT_NOT_APPLIED');
 console.log('MEDIAOS_WAL_CHECKPOINT_START '+JSON.stringify({before,target:'256MB',time:new Date().toISOString()}));
 await db.query('CHECKPOINT');
 const after=await wal();
