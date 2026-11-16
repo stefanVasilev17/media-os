@@ -1,0 +1,7 @@
+FROM node:22-alpine
+WORKDIR /app/cumulative-engine
+COPY cumulative-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY cumulative-engine/mediaos-standalone-voice-blobs-fk-inventory-once.mjs ./
+RUN node --check mediaos-standalone-voice-blobs-fk-inventory-once.mjs
+CMD ["node","/app/cumulative-engine/mediaos-standalone-voice-blobs-fk-inventory-once.mjs"]
