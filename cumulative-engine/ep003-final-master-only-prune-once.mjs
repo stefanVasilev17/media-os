@@ -110,8 +110,20 @@ async function main(){
    reassemblingPriorMastersFromPurgedSourceMp4RequiresRerender:true
   }));
   if(!DELETE)return;
+  const MAX_PASS_BYTES=220*1048576;
+  const batch=[];
+  let plannedBytes=0;
+  for(const row of [...candidate].sort((a,b)=>Number(a.bytes)-Number(b.bytes))){
+    if(plannedBytes+Number(row.bytes)>MAX_PASS_BYTES)continue;
+    batch.push(row);plannedBytes+=Number(row.bytes);
+  }
+  check(batch.length>0||candidate.length===0,'SINGLE_OBSOLETE_MP4_LARGER_THAN_SAFE_BATCH');
+  console.log('EP003_STORAGE_PRUNE_BATCH_PLAN '+JSON.stringify({
+    batchCount:batch.length,batchLogicalMb:mb(plannedBytes),
+    totalCandidates:candidate.length,totalLogicalMb:mb(total),maxBatchMb:220
+  }));
   let removed=0,released=0;
-  for(const row of candidate){
+  for(const row of batch){
    const affected=await db.query(`update remotion_render r
     set video_data=null,size_bytes=null,updated_at=now()
     where id=$1::uuid and project_id=$2::uuid
@@ -129,17 +141,20 @@ async function main(){
    if(removed%10===0)console.log('EP003_STORAGE_PRUNE_PROGRESS '+JSON.stringify({removed,total:candidate.length,logicalMb:mb(released)}));
   }
   const remaining=(await db.query(q,[PROJECT,MASTER_ID,master.finished_at])).rows;
-  check(remaining.length===0,'EP003_OBSOLETE_MP4_PAYLOADS_REMAIN');
+  check(remaining.length===candidate.length-removed,'EP003_OBSOLETE_COUNT_UNEXPECTED_AFTER_BATCH');
   const protectedRow=(await db.query(`select status,octet_length(video_data)::bigint as bytes,
     input_props->>'masterSha256' as sha from remotion_render
     where id=$1::uuid and project_id=$2::uuid`,[MASTER_ID,PROJECT])).rows[0];
   check(protectedRow?.status==='SUCCEEDED'&&Number(protectedRow.bytes)===MASTER_BYTES
     &&protectedRow.sha===MASTER_SHA,'FINAL_MASTER_WAS_MODIFIED_DURING_PRUNE');
   const after=await diskStats(db);
-  console.log('EP003_FINAL_MASTER_ONLY_STORAGE_PRUNE_SAVED '+JSON.stringify({
+  console.log((remaining.length===0?'EP003_FINAL_MASTER_ONLY_STORAGE_PRUNE_SAVED':
+    'EP003_FINAL_MASTER_ONLY_STORAGE_PRUNE_BATCH_SAVED')+' '+JSON.stringify({
     protectedMasterId:MASTER_ID,removedVideoPayloads:removed,
     releasedSourceBytes:released,releasedSourceMb:mb(released),
-    remainingObsoleteMp4Count:0,remainingFullEpisodeMasterMb:mb(MASTER_BYTES),
+    remainingObsoleteMp4Count:remaining.length,
+    remainingObsoleteLogicalMb:mb(remaining.reduce((n,x)=>n+Number(x.bytes),0)),
+    remainingFullEpisodeMasterMb:mb(MASTER_BYTES),
     databaseBefore:before,databaseAfter:after,
     note:'Removed bytes are logical MP4 payload size. PostgreSQL allocated file size may require VACUUM/reuse; it is not the same as free physical volume.',
     metadataRetained:true,voiceRetained:true,otherEpisodesUntouched:true
