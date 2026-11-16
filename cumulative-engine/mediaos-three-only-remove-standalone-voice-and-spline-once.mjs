@@ -59,7 +59,7 @@ async function checkMasters(){
 async function totalAudio(){
  const rows=[];
  for(const [name,q] of queryBytes){
-  const r=(await tx.query(q,[epNumbers,PROJECT])).rows[0];
+  const r=(await tx.query(q,q.includes('$2')?[epNumbers,PROJECT]:[epNumbers])).rows[0];
   rows.push({table:name,rows:r.rows,MiB:MB(r.bytes)});
  }
  return rows;
