@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
-import { EpisodeProductionLibraryPage } from './pages/EpisodeProductionLibraryPage';
+import {ThreeFinishedEpisodes} from './pages/ThreeFinishedEpisodes';
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import {EpisodePackageImportPage} from './pages/EpisodePackageImportPage';
 import {Ep003Shot07V2DirectorReview} from './components/Ep003Shot07V2DirectorReview';
@@ -150,8 +150,8 @@ export function App() {
   let page: ReactNode;
 
   const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
-  if (hash === '#/library/EP001' || hash === '#/library/EP002') {
-    page = <EpisodeProductionLibraryPage episodeKey={hash.endsWith('EP001') ? 'EP001' : 'EP002'} />;
+  if (hash === '#/library/EP001' || hash === '#/library/EP002' || hash === '#/library/EP003') {
+    page = <ThreeFinishedEpisodes episode={hash.endsWith('EP001') ? 'EP001' : hash.endsWith('EP002') ? 'EP002' : 'EP003'} />;
   } else if (hash === '#/episode-packages/import' || hash.startsWith('#/episode-packages/import?')) {
     page = <EpisodePackageImportPage />;
   } else if (hash === '#/episodes/new' || hash.startsWith('#/episodes/new?')) {
