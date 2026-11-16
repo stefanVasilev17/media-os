@@ -203,7 +203,8 @@ export const Ep003Shot10ProveArchitectureV2:React.FC<Shot10Props>=props=>{
    <RouteEmphasis frame={frame} cues={props.cueFrames}/>
    <CardLayer frame={frame} cues={props.cueFrames}/>
   </AbsoluteFill>
-  {frame===0&&<AbsoluteFill style={{zIndex:50,pointerEvents:'none'}}>
+  {frame<8&&<AbsoluteFill style={{zIndex:50,pointerEvents:'none',
+   opacity:1-frame/8}}>
     <Img src={props.previousLastFrameDataUri}
      style={{width:1920,height:1080,objectFit:'cover'}}/>
   </AbsoluteFill>}
