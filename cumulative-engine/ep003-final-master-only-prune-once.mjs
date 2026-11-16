@@ -68,10 +68,15 @@ async function main(){
    from remotion_render where id=$1::uuid and project_id=$2::uuid`,
    [MASTER_ID,PROJECT])).rows[0];
   validateApprovedMaster(master,manifest);
-  const inFlight=await db.query(`select count(*)::integer as count from remotion_render
-    where project_id=$1::uuid and composition_id like 'EP003-%'
-    and status in ('QUEUED','RUNNING')`,[PROJECT]);
-  check(inFlight.rows[0].count===0,'EP003_RENDER_IN_FLIGHT__PRUNE_NOT_ALLOWED');
+  const inFlight=await db.query(`select id::text,composition_id,render_key,status,
+    created_at,updated_at,progress
+    from remotion_render where project_id=$1::uuid
+      and composition_id like 'EP003-%' and status in ('QUEUED','RUNNING')
+    order by created_at desc limit 25`,[PROJECT]);
+  if(inFlight.rows.length>0)console.log('EP003_STORAGE_INFLIGHT_PREFLIGHT '+JSON.stringify({
+    count:inFlight.rows.length,rows:inFlight.rows
+  }));
+  check(inFlight.rows.length===0,'EP003_RENDER_IN_FLIGHT__PRUNE_NOT_ALLOWED');
   const q=`select id::text as id,composition_id,render_key,status,
      coalesce(size_bytes,octet_length(video_data),0)::bigint as bytes,
      object_url,created_at
