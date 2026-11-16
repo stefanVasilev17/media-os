@@ -1,0 +1,7 @@
+FROM node:22-alpine
+WORKDIR /app/cumulative-engine
+COPY cumulative-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY cumulative-engine/mediaos-prune-obsolete-ep001-ep002-ep003-mp4-once.mjs ./
+RUN node --check mediaos-prune-obsolete-ep001-ep002-ep003-mp4-once.mjs
+CMD ["node","/app/cumulative-engine/mediaos-prune-obsolete-ep001-ep002-ep003-mp4-once.mjs"]
