@@ -39,7 +39,7 @@ export function Ep003Shot08V4DirectorReview(){
        data.engineVersion!==ENGINE||data.profile!=='REVIEW'||
        data.width!==1920||data.height!==1080||data.fps!==30||
        data.durationInFrames!==5372||!data.sizeBytes||data.sizeBytes<1000000||
-       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==false){
+       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==true){
      setState({type:'EMPTY',message:'Saved SHOT08 V4 fails strict selected-source validation. No fallback is displayed.'});
      return;
     }
@@ -58,7 +58,7 @@ export function Ep003Shot08V4DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT08 V4 · Director Video Review</h3>
     <p>When Copies Are Not Enough. Independent Primary owners. Sharding and routing.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT08 V4 · REVIEW CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT08 V4 · DIRECTOR LOCKED · APPROVED SOURCE</span>
   </header>
   <p className="ep003-director-review-detail">
    Premium routing V4. Owner B rail exits exactly below its centered label and enters the top-center of Replica B. Independent Primary Owners is shifted right and wrapped into two fitted lines.
@@ -91,10 +91,10 @@ export function Ep003Shot08V4DirectorReview(){
     <RefreshCcw size={15} aria-hidden="true"/> Refresh SHOT08 V4
    </button>
    <a href="#/ep003/shot08/v3">Compare locked SHOT08 V3</a>
-   <a href="#/ep003/full">View official 9-SHOT master</a>
+   <a href="#/ep003/full">View official 11-SHOT master</a>
   </nav>
   <p className="ep003-director-review-caution">
-   SHOT08 V4 is NOT LOCKED. This replaces only the Owner B visual alignment for review, and preserves the Director-LOCKED SHOT08 V3 and official nine-shot master.
+   SHOT08 V4 was explicitly approved by the Director and is LOCKED in the official 11-SHOT master. Older SHOT08 V3 remains archived and unchanged.
   </p>
  </section>;
 }
