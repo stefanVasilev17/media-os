@@ -169,8 +169,9 @@ export function EpisodePackageImportPage(){
         {' '}SHOTs have a Director-selected current-revision Take.
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
+      {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
+      {false&&<>
       {details.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
-        {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
@@ -191,6 +192,7 @@ export function EpisodePackageImportPage(){
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
       {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
+      </>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeCodexCloudPanel packageId={details.packageId}
