@@ -7,7 +7,7 @@ import {shot10TextWidth} from '../../../shot10-content-fit-layout.mjs';
 import {PREMIUM_ROUTES,PREMIUM_ROUTE_STYLE,PREMIUM_OWNER_HEADER,premiumRouteD,
  premiumRouteEnd,premiumRoutePoint,validatePremiumRoutes}
  from '../../../ep003-premium-routing-v2.mjs';
-import type {PremiumRoute} from '../../../ep003-premium-routing.mjs';
+import type {PremiumRoute} from '../../../ep003-premium-routing-v2.mjs';
 import {ep003CardIsReadable,ep003CardOpacity} from '../../../ep003-readable-card-policy.mjs';
 
 const WHITE='#F5FCFF',SOFT='#B5D2E6',MINT='#6FECD4',CYAN='#68E5FF',AMBER='#F5A55A';
@@ -17,9 +17,9 @@ const ease=(frame:number,start:number,duration:number)=>{
 };
 const focusHold=(f:number,cue:number,duration=116)=>
   ease(f,cue,16)*(1-ease(f,cue+duration-19,19));
-export const EP003_SHOT09_V2_PREDECESSOR={
- sourceRenderKey:'EP003_SHOT08_SHARDING_V3',
- sourceComposition:'EP003-SHOT08-SHARDING-V3-DIRECTOR-CANDIDATE',
+export const EP003_SHOT09_V3_PREDECESSOR={
+ sourceRenderKey:'EP003_SHOT08_SHARDING_V4',
+ sourceComposition:'EP003-SHOT08-SHARDING-V4-DIRECTOR-CANDIDATE',
  frames:5372,lastWorldFrame:34927+5372-1,fps:30,width:1920,height:1080
 } as const;
 const SELECTED_SLOW_NATURAL_TAKE='7510815a-d096-415f-b4f0-52ae8398ce45';
@@ -114,7 +114,7 @@ export function shot09CardSize(title:string,meaning:string){
 export function validateShot09(p:Shot09Props){
  validatePremiumRoutes();
  if(!p||!/^[0-9a-f-]{36}$/.test(p.previousRenderId)||
-    p.worldStartFrame!==EP003_SHOT09_V2_PREDECESSOR.lastWorldFrame||
+    p.worldStartFrame!==EP003_SHOT09_V3_PREDECESSOR.lastWorldFrame||
     p.voiceTakeId!==SELECTED_SLOW_NATURAL_TAKE||
     !/^[0-9a-f]{64}$/.test(p.previousLastFrameSha256)||
     !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.previousLastFrameDataUri)||
