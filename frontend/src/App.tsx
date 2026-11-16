@@ -10,6 +10,7 @@ import {Ep003Shot08V2DirectorReview} from './components/Ep003Shot08V2DirectorRev
 import {Ep003Shot09V1DirectorReview} from './components/Ep003Shot09V1DirectorReview';
 import {Ep003Shot09V2DirectorReview} from './components/Ep003Shot09V2DirectorReview';
 import {Ep003Shot10V1DirectorReview} from './components/Ep003Shot10V1DirectorReview';
+import {Ep003Shot10V2DirectorReview} from './components/Ep003Shot10V2DirectorReview';
 import {Ep003Shot08V3DirectorReview} from './components/Ep003Shot08V3DirectorReview';
 import {Ep003Shot08V4DirectorReview} from './components/Ep003Shot08V4DirectorReview';
 import {Ep003Shot09V3DirectorReview} from './components/Ep003Shot09V3DirectorReview';
@@ -82,6 +83,10 @@ export function App() {
   }
   if (hash === '#/ep003/shot09/v3') {
     return <div className="media-os-product-shell"><Ep003Shot09V3DirectorReview/></div>;
+  }
+
+  if (hash === '#/ep003/shot10/v2') {
+    return <div className="media-os-product-shell"><Ep003Shot10V2DirectorReview/></div>;
   }
 
   if (hash === '#/ep003/shot10/v1') {
