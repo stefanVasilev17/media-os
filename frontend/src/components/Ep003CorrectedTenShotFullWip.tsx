@@ -13,7 +13,7 @@ type Render={
  width?:number;height?:number;fps?:number;durationInFrames?:number;
  sizeBytes?:number;directorLocked?:boolean;
 };
-type State={type:'LOADING'|'READY'|'EMPTY';message?:string;render?:Render};
+type State={type:'LOADING'|'READY'|'EMPTY';message?:string;render?:Render;pending?:boolean};
 export function Ep003CorrectedTenShotFullWip(){
  const [revision,setRevision]=useState(0);
  const [state,setState]=useState<State>({type:'LOADING'});
@@ -30,7 +30,7 @@ export function Ep003CorrectedTenShotFullWip(){
    .then(render=>{
     if(controller.signal.aborted)return;
     if(render.status==='EMPTY'){
-     setState({type:'EMPTY',message:'The corrected 10-SHOT WIP master has not passed all render and seam checks yet. The official nine-shot master remains available separately.'});
+     setState({type:'EMPTY',pending:true,message:'The corrected 10-SHOT WIP master has not passed all render and seam checks yet. This page automatically rechecks for the verified saved MP4. The official nine-shot master remains available separately.'});
      return;
     }
     if(render.status!=='READY'||!render.renderId||!UUID.test(render.renderId)
@@ -47,6 +47,11 @@ export function Ep003CorrectedTenShotFullWip(){
    .catch(e=>{if(!controller.signal.aborted)setState({type:'EMPTY',message:e instanceof Error?e.message:String(e)});});
   return ()=>controller.abort();
  },[revision]);
+ useEffect(()=>{
+  if(state.type!=='EMPTY'||!state.pending)return;
+  const timer=window.setTimeout(()=>setRevision(n=>n+1),30000);
+  return ()=>window.clearTimeout(timer);
+ },[state.type,state.pending,revision]);
  const movie=state.type==='READY'?state.render?.videoUrl:undefined;
  return <section className="ep003-director-review" aria-label="EP003 corrected ten-shot full WIP director review">
   <header className="ep003-director-review-heading">
