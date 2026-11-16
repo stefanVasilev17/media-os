@@ -36,7 +36,7 @@ describe('EP003 Owner B center correction strict video review',()=>{
    "ENGINE='EP003_WIP_OWNER_B_V2'",
    'render.durationInFrames!==35489','render.directorLocked!==false',
    "credentials:'same-origin'",'controls playsInline preload="metadata"',
-   'Original approved sources remain immutable.'
+   'Original saved videos remain immutable.'
   ])expect(film).toContain(s);
   expect(film).not.toContain("method:'POST'");
   expect(film).toContain('setTimeout(()=>setRevision(n=>n+1),30000)');
