@@ -895,6 +895,43 @@ public class RemotionRenderController {
                         "reason","NO_RENDERED_EP003_SHOT03_V2_CANDIDATE_YET"));
     }
 
+    @GetMapping("/ep003/cumulative/wip-corrected-ten/latest-successful")
+    public Map<String,Object> latestEp003CorrectedTenShotWipFilm() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-CUMULATIVE-WIP-CORRECTED-TEN-SHOT'
+                  and render_key='EP003_CUMULATIVE_WIP_CORRECTED_SHOTS_01_TO_10'
+                  and engine_version='EP003_WIP_OWNER_B_V2'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and width=1920 and height=1080 and fps=30
+                  and duration_in_frames=35489
+                  and (input_props->>'wip')='true'
+                  and (input_props->>'directorLocked')='false'
+                  and (input_props->>'verified')='true'
+                  and (input_props->>'shotCount')='10'
+                  and (input_props->>'lockedPrefixShotCount')='7'
+                  and (input_props->'sequence'->7->>'renderKey')='EP003_SHOT08_SHARDING_V4'
+                  and (input_props->'sequence'->8->>'renderKey')='EP003_SHOT09_FAILOVER_V3'
+                  and (input_props->'sequence'->9->>'renderKey')='EP003_SHOT10_MEASUREMENT_V2'
+                  and jsonb_array_length(input_props->'qa')=9
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>2000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_CORRECTED_TEN_SHOT_WIP_FILM_YET"));
+    }
+
     @GetMapping("/ep003/cumulative/latest-successful")
     public Map<String,Object> latestEp003CumulativeFullVideo() {
         return jdbc.sql("""
