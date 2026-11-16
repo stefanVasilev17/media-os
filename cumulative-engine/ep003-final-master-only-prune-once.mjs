@@ -49,7 +49,7 @@ export function validateApprovedMaster(master,manifest){
 async function diskStats(db){
  const x=(await db.query(`select pg_database_size(current_database())::bigint as allocated,
     pg_total_relation_size('remotion_render')::bigint as table_allocated,
-    pg_total_relation_size('pg_toast.'||c.reltoastrelid::regclass::text)::bigint as toast_allocated
+    pg_total_relation_size(c.reltoastrelid::regclass)::bigint as toast_allocated
     from pg_class c where c.oid='remotion_render'::regclass`)).rows[0];
  return {databaseAllocatedMb:mb(x.allocated),renderRelationAllocatedMb:mb(x.table_allocated),
   toastAllocatedMb:mb(x.toast_allocated)};
