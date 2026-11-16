@@ -47,6 +47,7 @@ const ShotRenderPage = lazy(async () => {
 });
 
 function normalizeLegacyRoute(hash: string) {
+  if (/^#\/ep003\/shot\d{2}(?:\/|$)/.test(hash) || hash.startsWith('#/ep003/corrected/full')) return '#/ep003/full';
   if (hash.startsWith('#/spline-agent')) return '#/agents/spline';
   if (hash.startsWith('#/diagnostics')) return '#/agents/spline';
   if (hash.startsWith('#/browser-clone-proof')) return '#/agents/spline';
