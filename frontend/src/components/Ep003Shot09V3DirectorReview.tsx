@@ -39,7 +39,7 @@ export function Ep003Shot09V3DirectorReview(){
        data.engineVersion!==ENGINE||data.profile!=='REVIEW'||
        data.width!==1920||data.height!==1080||data.fps!==30||
        data.durationInFrames!==3145||!data.sizeBytes||data.sizeBytes<1000000||
-       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==false){
+       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==true){
      setState({type:'EMPTY',message:'Saved SHOT09 V3 fails strict selected-source validation. No fallback is displayed.'});
      return;
     }
@@ -58,7 +58,7 @@ export function Ep003Shot09V3DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT09 V3 · Director Video Review</h3>
     <p>When the Primary Disappears. Failover, fencing and correctness.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT09 V3 · REVIEW CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT09 V3 · DIRECTOR LOCKED · APPROVED SOURCE</span>
   </header>
   <p className="ep003-director-review-detail">
    Corrected premium failover edition. Owner B to Replica B route and the Independent Primary Owners heading use the same aligned geometry as SHOT08 V4.
@@ -90,10 +90,10 @@ export function Ep003Shot09V3DirectorReview(){
    </button>
    <a href="#/ep003/shot08/v4">View corrected previous SHOT08 V4</a>
    <a href="#/ep003/shot09/v1">Compare historical SHOT09 V1</a>
-   <a href="#/ep003/full">View official 9-SHOT master</a>
+   <a href="#/ep003/full">View official 11-SHOT master</a>
   </nav>
   <p className="ep003-director-review-caution">
-   SHOT09 V3 is NOT LOCKED. Only the Director can approve the replacement after watching. Official nine-shot source MP4s and original narration remain unchanged.
+   SHOT09 V3 was explicitly approved by the Director and is LOCKED in the official 11-SHOT master. Historical nine-shot sources and original narration remain archived and unchanged.
   </p>
  </section>;
 }
