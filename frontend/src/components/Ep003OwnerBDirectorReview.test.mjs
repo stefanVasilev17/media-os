@@ -2,6 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const shot8=read('./Ep003Shot08V4DirectorReview.tsx');
+const film=read('./Ep003CorrectedTenShotFullWip.tsx');
 const shot9=read('./Ep003Shot09V3DirectorReview.tsx');
 const locked8=read('./Ep003Shot08V3DirectorReview.tsx');
 const locked9=read('./Ep003Shot09V2DirectorReview.tsx');
@@ -27,6 +28,20 @@ describe('EP003 Owner B center correction strict video review',()=>{
    "credentials:'same-origin'",'controls playsInline preload="metadata"'
   ])expect(shot9).toContain(s);
   expect(shot9).not.toContain("method:'POST'");
+ });
+ it('Entire corrected ten-shot film is separate from official master and never falls back to an old MP4',()=>{
+  for(const s of [
+   "ENDPOINT='/api/v1/remotion/renders/ep003/cumulative/wip-corrected-ten/latest-successful'",
+   "RENDER_KEY='EP003_CUMULATIVE_WIP_CORRECTED_SHOTS_01_TO_10'",
+   "ENGINE='EP003_WIP_OWNER_B_V2'",
+   'render.durationInFrames!==35489','render.directorLocked!==false',
+   "credentials:'same-origin'",'controls playsInline preload="metadata"',
+   'Original approved sources remain immutable.'
+  ])expect(film).toContain(s);
+  expect(film).not.toContain("method:'POST'");
+  expect(app).toContain("hash === '#/ep003/corrected/full'");
+  expect(page).toContain('<Ep003CorrectedTenShotFullWip/>');
+  expect(page).toContain('<Ep003CumulativeFullVideo/>');
  });
  it('Original approved versions remain present and locked, candidate routes first',()=>{
   expect(locked8).toContain('data.directorLocked!==true');
