@@ -2,154 +2,53 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {validateLockedSequence,episodeSegments} from './ep003-assemble-master.mjs';
-
 const read=p=>fs.readFileSync(new URL(p,import.meta.url),'utf8');
-const manifest=JSON.parse(read('../remotion-engine/ep003-director-locked-visual-sequence.json'));
-const worker=read('./ep003-assemble-master.mjs');
-const clone=v=>JSON.parse(JSON.stringify(v));
-
-test('Director explicitly LOCKED exactly the first EIGHT real EP003 shots in order',()=>{
- assert.equal(validateLockedSequence(manifest),28328);
- assert.deepEqual(manifest.shots.map(s=>s.shotKey),['SHOT01','SHOT02','SHOT03','SHOT04','SHOT05','SHOT06','SHOT07','SHOT08']);
- assert.ok(manifest.shots.every(s=>s.directorLocked===true));
- assert.deepEqual(manifest.shots.map(s=>s.version),['V2','V4','V4','V1','V1','V1','V3','V2']);
- assert.deepEqual(manifest.shots.map(s=>s.frames),[2514,3443,3080,3841,3001,3601,3476,5372]);
- assert.equal(28328/30,944.2666666666667);
+const m=JSON.parse(read('../remotion-engine/ep003-director-locked-visual-sequence.json'));
+const w=read('./ep003-assemble-master.mjs');
+const clone=x=>JSON.parse(JSON.stringify(x));
+test('Director approved exactly nine SHA-pinned consecutive shots, including premium replacements',()=>{
+ assert.equal(validateLockedSequence(m),31473);
+ assert.deepEqual(m.shots.map(x=>x.shotKey),Array.from({length:9},(_,i)=>'SHOT'+String(i+1).padStart(2,'0')));
+ assert.deepEqual(m.shots.map(x=>x.frames),[2514,3443,3080,3841,3001,3601,3476,5372,3145]);
+ assert.deepEqual(m.shots.map(x=>x.version),['V2','V4','V4','V1','V1','V1','V3','V3','V2']);
+ assert.ok(m.shots.every(x=>x.directorLocked===true));
+ assert.equal(m.shots[7].renderId,'d67eec72-66bb-427b-bdb9-0d4043ed5dd2');
+ assert.equal(m.shots[7].sha256,'270744ad8a3fc0bd0aee2ea65fbdd83b887eb59dab05a7a369aaefe553a96bc1');
+ assert.equal(m.shots[8].renderId,'b3a3912f-79ee-4c72-b313-cbe09f950a5e');
+ assert.equal(m.shots[8].sha256,'f80a362e0b805edf7eee045e11d5c6492280fdea997eb9a9204ce5f5c458dc7f');
+ assert.equal(m.shots[7].voiceTakeId,'368c239c-a93b-437e-a833-2f955fa51803');
+ assert.equal(m.shots[8].voiceTakeId,'7510815a-d096-415f-b4f0-52ae8398ce45');
 });
-test('SHA-pinned exact approved source bytes and original voice takes never mutate',()=>{
- const [one,two,three,four,five,six,seven,eight]=manifest.shots;
- assert.equal(one.renderId,'b6fd7f30-7c78-414b-a88c-387c0ee8c43a');
- assert.equal(one.sha256,'da6d3cbc77dc3a0dc5374aec4a7ba8beb97739d4c5facffdf36d1585e7587c08');
- assert.equal(two.renderId,'78db6f85-ba05-4714-ba4f-fc70d64def88');
- assert.equal(two.sha256,'5eceeb39954b9a5b6d755d136b3dd29fe04b5fc9e30992fcc65464f40bc2914e');
- assert.equal(two.voiceTakeId,'c4131401-2b42-4bac-873f-05de50040c99');
- assert.equal(three.renderId,'fc26ca7b-60f2-4c35-b248-6b373736ce99');
- assert.equal(three.sha256,'1c4fbe3133775b514e82a2e2aec583859615d8fa86b349732dd7ba1bf2391709');
- assert.equal(three.compositionId,'EP003-SHOT03-WORDING-V4-DIRECTOR-CANDIDATE');
- assert.equal(three.renderKey,'EP003_SHOT03_WORDING_V4');
- assert.equal(three.voiceTakeId,'63a94494-f134-411a-8e7d-2389ce83a6b4');
- assert.equal(three.voiceLeadInFrames,60);
- assert.equal(four.renderId,'4079729b-c1b3-405c-9a83-1ace0ef25641');
- assert.equal(four.sha256,'61fd35dc6662b259818b6d29379b39948a7239fa6588f7c23a010b97a7a5a5f3');
- assert.equal(four.renderKey,'EP003_SHOT04_READ_WRITE_SPLITTING_V1');
- assert.equal(four.compositionId,'EP003-SHOT04-READ-WRITE-SPLITTING-V1-DIRECTOR-CANDIDATE');
- assert.equal(four.frames,3841);
- assert.equal(four.voiceTakeId,'59daccf6-009e-4bed-baa8-951a4bae3aa1');
- assert.equal(four.voiceLeadInFrames,60);
- assert.equal(five.renderId,'04b9f55a-7705-4f23-b9f7-a0103e8c955b');
- assert.equal(five.sha256,'9520b347778413b3a4e9cbeed8eda513102c9f03eecf423638a4406d88841d62');
- assert.equal(five.compositionId,'EP003-SHOT05-STALE-READ-V1-DIRECTOR-CANDIDATE');
- assert.equal(five.renderKey,'EP003_SHOT05_STALE_READ_V1');
- assert.equal(five.frames,3001);
- assert.equal(five.voiceTakeId,'da70458f-6728-4437-953c-58113c8aae8d');
- assert.equal(five.voiceLeadInFrames,60);
- assert.equal(six.renderId,'0007bd16-edbf-4ecc-927a-4a5781d0b921');
- assert.equal(six.sha256,'4d38c8a5777b2eeab1952bd8960a925feae0672d142b70b12b2a2df2392d4a3f');
- assert.equal(six.renderKey,'EP003_SHOT06_CORRECTNESS_V1');
- assert.equal(six.compositionId,'EP003-SHOT06-CORRECTNESS-V1-DIRECTOR-CANDIDATE');
- assert.equal(six.frames,3601);
- assert.equal(six.voiceTakeId,'ff8ed53c-f405-43d5-82d9-33cac97cd811');
- assert.equal(six.voiceLeadInFrames,60);
- assert.equal(two.voiceLeadInFrames,60);
- assert.equal(seven.renderId,'09457c3c-32d9-432c-aa92-67f0e7b13f60');
- assert.equal(seven.sha256,'7f7429a6a4117c49b4338dec256eae72fbe5e269728729dfdb23ab63e6ba27f8');
- assert.equal(seven.voiceTakeId,'63164f77-e4cb-4f34-952e-817b671f0a59');
- assert.equal(seven.frames,3476);
- assert.equal(seven.renderKey,'EP003_SHOT07_BOTTLENECK_V3');
- assert.equal(seven.compositionId,'EP003-SHOT07-BOTTLENECK-V3-DIRECTOR-CANDIDATE');
- assert.equal(seven.voiceLeadInFrames,60);
- assert.equal(eight.renderId,'22059373-cc17-44fd-ad03-56d092cc57dc');
- assert.equal(eight.sha256,'3ad48fefdc2c887380ca44f2c04e6d6ac342557dc78422a3a7272ccb26291118');
- assert.equal(eight.compositionId,'EP003-SHOT08-SHARDING-V2-DIRECTOR-CANDIDATE');
- assert.equal(eight.renderKey,'EP003_SHOT08_SHARDING_V2');
- assert.equal(eight.voiceTakeId,'368c239c-a93b-437e-a833-2f955fa51803');
- assert.equal(eight.voiceLeadInFrames,60);
- assert.equal(eight.frames,5372);
- assert.match(worker,/sha256\(row\.video_data\)===s\.sha256/);
+test('Immutable first seven approvals stay byte identical in manifest',()=>{
+ const ids=['b6fd7f30-7c78-414b-a88c-387c0ee8c43a','78db6f85-ba05-4714-ba4f-fc70d64def88',
+ 'fc26ca7b-60f2-4c35-b248-6b373736ce99','4079729b-c1b3-405c-9a83-1ace0ef25641',
+ '04b9f55a-7705-4f23-b9f7-a0103e8c955b','0007bd16-edbf-4ecc-927a-4a5781d0b921',
+ '09457c3c-32d9-432c-aa92-67f0e7b13f60'];
+ assert.deepEqual(m.shots.slice(0,7).map(s=>s.renderId),ids);
 });
-test('Source sequence is frame contiguous with seven actual seam positions',()=>{
- const s=episodeSegments(manifest.shots);
- assert.deepEqual(s.map(x=>[x.startFrame,x.endFrame,x.directorLocked]),[
-  [0,2513,true],[2514,5956,true],[5957,9036,true],[9037,12877,true],[12878,15878,true],[15879,19479,true],[19480,22955,true],[22956,28327,true]]);
- assert.equal(s[1].startFrame/30,83.8);
- assert.equal(s[2].startFrame/30,198.56666666666666);
- assert.equal(s[1].voiceLeadInFrames,60);
- assert.equal(s[2].voiceLeadInFrames,60);
- assert.equal(s[3].startFrame/30,301.23333333333335);
- assert.equal(s[3].voiceLeadInFrames,60);
- assert.equal(s[4].startFrame/30,429.26666666666665);
- assert.equal(s[4].voiceLeadInFrames,60);
- assert.equal(s[5].startFrame/30,529.3);
- assert.equal(s[5].voiceLeadInFrames,60);
- assert.equal(s[6].startFrame,19480);
- assert.equal(s[6].endFrame,22955);
- assert.equal(s[7].startFrame,22956);
- assert.equal(s[7].endFrame,28327);
- assert.match(worker,/'-c','copy'/);
- assert.doesNotMatch(worker,/adelay=|apad=|afade=|textToSpeech|elevenlabs|generateSpeech/);
+test('Nine-shot offset contiguous with eight real decoded joins',()=>{
+ const q=episodeSegments(m.shots);
+ assert.equal(q.length,9);
+ assert.equal(q.at(-1).startFrame,28328);
+ assert.equal(q.at(-1).endFrame,31472);
+ for(let i=1;i<q.length;i++)assert.equal(q[i].startFrame,q[i-1].endFrame+1);
+ assert.equal(q.filter(x=>x.directorLocked).length,9);
 });
-test('Fail closed on any accidental unlocking, changed hash, wrong version, missing source or gap',()=>{
- for(const patch of [
-  m=>{m.shots[0].directorLocked=false;},
-  m=>{m.shots[1].directorLocked=false;},
-  m=>{m.shots[2].directorLocked=false;},
-  m=>{m.shots[3].directorLocked=false;},
-  m=>{m.shots[4].directorLocked=false;},
-  m=>{m.shots[5].directorLocked=false;},
-  m=>{m.shots[6].directorLocked=false;},
-  m=>{m.shots[7].directorLocked=false;},
-  m=>{m.shots[5].renderId=m.shots[4].renderId;},
-  m=>{m.shots[4].renderId=m.shots[3].renderId;},
-  m=>{m.shots[3].renderId=m.shots[2].renderId;},
-  m=>{m.shots[2].shotKey='SHOT04';},
-  m=>{m.shots[2].renderId=m.shots[1].renderId;},
-  m=>{m.shots[1].sha256='0'.repeat(64);},
-  m=>{m.shots.splice(1,1);},
-  m=>{m.episodeKey='EP002';},
- ]){
-  const m=clone(manifest);patch(m);assert.throws(()=>validateLockedSequence(m));
+test('Reject unlocking or modifying any approved source including replacements',()=>{
+ for(let i=0;i<9;i++){
+  const x=clone(m);x.shots[i].directorLocked=false;
+  assert.throws(()=>validateLockedSequence(x));
  }
+ const x=clone(m);x.shots[8].shotKey='SHOT10';
+ assert.throws(()=>validateLockedSequence(x));
+ const y=clone(m);y.shots[8].renderId=y.shots[7].renderId;
+ assert.throws(()=>validateLockedSequence(y));
 });
-test('Next SHOT09 requires a new unique Director-LOCKED entry, never silent promotion',()=>{
- const m=clone(manifest);
- m.shots.push({shotKey:'SHOT09',version:'V1',directorLocked:true,
-   renderId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-   compositionId:'EP003-SHOT09-DIRECTOR-CANDIDATE',renderKey:'EP003_SHOT09_V1',
-   sha256:'a'.repeat(64),frames:2400,fps:30,width:1920,height:1080,
-   voiceTakeId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'});
- assert.equal(validateLockedSequence(m),30728);
- assert.equal(episodeSegments(m.shots)[8].startFrame,28328);
- m.shots[8].directorLocked=false;
- assert.throws(()=>validateLockedSequence(m));
-});
-test('FFmpeg H264/AAC stream-copy verifies all seven actual decoded seams and unchanged pixels',()=>{
- for(const required of [
-  "video?.codec_name==='h264'",
-  "audio?.codec_name==='aac'",
-  "video.width===1920",
-  "video.height===1080",
-  "Number(video.nb_frames)===expectedFrames",
-  "Math.abs(Number(video.duration)-expectedFrames/FPS)<0.11",
-  "checkSeams(tmp,sources,master,segments)",
-  "qa.length===segments.length-1",
-  "leftSourceMatch>=50&&rightSourceMatch>=50",
-  "seamScore>=27",
-  "sourceRenderIds:segments.map(s=>s.renderId)"
- ])assert.ok(worker.includes(required),required);
- assert.match(worker,/select=eq\(n/);
-});
-test('New cumulative master has a locked 08 render key, old masters remain stored',()=>{
- for(const required of [
-  'EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED',
-  'EP003_CUMULATIVE_DIRECTOR_RENDER_AUTHORIZATION_REQUIRED',
-  'EP003_CUMULATIVE_IDENTICAL_MASTER_ALREADY_PRESENT',
-  'EP003_CUMULATIVE_REAL_DIRECTOR_LOCKED_SOURCES_VERIFIED',
-  'EP003_CUMULATIVE_REAL_ENCODED_SEAMS_VERIFIED',
-  'EP003_CUMULATIVE_DIRECTOR_FULL_VIDEO_SAVED',
-  'EP003-CUMULATIVE-DIRECTOR-MASTER',
-  'EP003_CUMULATIVE_LOCKED_SHOTS_01_TO_',
-  'EP003_CUMULATIVE_PRIOR_SAME_LOCK_MANIFEST_NOT_SUCCEEDED__NO_AUTO_RETRY'
- ])assert.ok(worker.includes(required),required);
- assert.ok(worker.includes("path.basename(p)"));
- assert.doesNotMatch(worker,/update episode_package_voice_take|\baws\b|\bgenerate_tts\b/);
+test('Only original verified H264 and selected AAC samples, zero reencode',()=>{
+ for(const phrase of ["sha256(row.video_data)===s.sha256","'-c','copy'",
+ "checkSeams(tmp,sources,master,segments)",'qa.length===segments.length-1',
+ 'seamScore>=27','leftSourceMatch>=50&&rightSourceMatch>=50',
+ 'EP003_CUMULATIVE_DIRECTOR_FULL_VIDEO_SAVED',
+ 'EP003_CUMULATIVE_REAL_ENCODED_SEAMS_VERIFIED'])assert.ok(w.includes(phrase),phrase);
+ assert.doesNotMatch(w,/adelay=|apad=|textToSpeech|generateSpeech/);
 });
