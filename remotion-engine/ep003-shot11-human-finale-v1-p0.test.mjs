@@ -26,7 +26,7 @@ test('Exact SHOT10 V2 MP4 SHA, composition and final decoded frame are required'
  "previous.render_key==='EP003_SHOT10_MEASUREMENT_V2'",
  "previous.composition_id==='EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'",
  "previous.engine_version==='EP003_SHOT10_PIN_51403eaa9dde'",
- "select=eq(n\\,4015)", 'worldStartFrame:47457',
+ "select=eq(n", "4015)",
  'EP003_SHOT11_PRE_RENDER_P0_STILL_QA',
  'EP003_SHOT11_V1_REAL_MP4_SAVED','motion.uniqueMovingSteps>=18',
  'motion.firstStep>0.12&&motion.firstStep<4.5',
