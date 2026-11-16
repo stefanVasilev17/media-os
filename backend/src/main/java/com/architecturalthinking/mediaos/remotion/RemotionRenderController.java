@@ -510,6 +510,34 @@ public class RemotionRenderController {
                         "reason","NO_VERIFIED_EP003_SHOT09_V3_MP4_YET"));
     }
 
+    @GetMapping("/ep003/shot10/v2/latest-successful")
+    public Map<String,Object> latestEp003Shot10V2DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT10_MEASUREMENT_V2'
+                  and engine_version='EP003_SHOT10_PIN_b73e566f4482'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=4016
+                  and width=1920 and height=1080 and fps=30
+                  and video_data is not null
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT10_V2_MP4_YET"));
+    }
+
     @GetMapping("/ep003/shot10/v1/latest-successful")
     public Map<String,Object> latestEp003Shot10V1DirectorReview() {
         return jdbc.sql("""
