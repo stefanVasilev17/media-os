@@ -133,7 +133,7 @@ function cueFramesFromRealVoice(raw,anchors=voiceCues){
 
 async function main(){
   assert(DIRECTOR_AUTHORIZED,'EP003_SHOT10_REQUIRES_EXPLICIT_DIRECTOR_RENDER_APPROVAL');
-  assert(/^[a-f0-9-]{36}$/.test(PIN)&&/^[a-f0-9]{64}$/.test(PIN_SHA),'EP003_SHOT10_V1_REQUIRES_SAVED_VERIFIED_SHOT08_V3_SOURCE');
+  assert(/^[a-f0-9-]{36}$/.test(PIN)&&/^[a-f0-9]{64}$/.test(PIN_SHA),'EP003_SHOT10_V1_REQUIRES_LOCKED_SHOT09_V2_SOURCE');
   assert(/^[a-f0-9]{40}$/.test(SHA),'EP003_SHOT10_UNPINNED_SOURCE_COMMIT');
   assert(DB.startsWith('postgres'),'EP003_SHOT10_PRODUCTION_DATABASE_NOT_CONNECTED');
   const db=new Client({connectionString:DB,connectionTimeoutMillis:12000,
@@ -176,7 +176,7 @@ async function main(){
     const realCues=cueFramesFromRealVoice(source.timing);
     const cueFrames=Object.fromEntries(Object.entries(realCues)
       .map(([name,frame])=>[name,frame+LEAD_IN_FRAMES]));
-    assert(cueFrames.INTRO>=LEAD_IN_FRAMES,'EP003_SHOT10_TWO_SECOND_PRELUDE_MISSING');
+    assert(cueFrames.RETURN>=LEAD_IN_FRAMES,'EP003_SHOT10_TWO_SECOND_PRELUDE_MISSING');
     const previous=(await db.query(`
       select id,status,render_key,engine_version,composition_id,profile,width,height,fps,duration_in_frames,video_data,render_hash
       from remotion_render where id=$1::uuid`,[PIN])).rows[0];
