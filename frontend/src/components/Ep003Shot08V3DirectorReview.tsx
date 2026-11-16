@@ -39,7 +39,7 @@ export function Ep003Shot08V3DirectorReview(){
        data.engineVersion!==ENGINE||data.profile!=='REVIEW'||
        data.width!==1920||data.height!==1080||data.fps!==30||
        data.durationInFrames!==5372||!data.sizeBytes||data.sizeBytes<1000000||
-       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==false){
+       data.videoUrl!==PREFIX+data.renderId+'/video'||data.directorLocked!==true){
      setState({type:'EMPTY',message:'Saved SHOT08 V3 fails strict selected-source validation. No fallback is displayed.'});
      return;
     }
@@ -58,7 +58,7 @@ export function Ep003Shot08V3DirectorReview(){
     <h3><PlayCircle size={21} aria-hidden="true"/> SHOT08 V3 · Director Video Review</h3>
     <p>When Copies Are Not Enough. Independent Primary owners. Sharding and routing.</p>
    </div>
-   <span className="ep003-director-review-status">SHOT08 V3 · CANDIDATE · NOT LOCKED</span>
+   <span className="ep003-director-review-status">SHOT08 V3 · DIRECTOR-LOCKED · OFFICIAL MASTER</span>
   </header>
   <p className="ep003-director-review-detail">
    Premium routing V3. Distinct OWNER A and OWNER B labels do not collide.
@@ -91,10 +91,10 @@ export function Ep003Shot08V3DirectorReview(){
     <RefreshCcw size={15} aria-hidden="true"/> Refresh SHOT08 V3
    </button>
    <a href="#/ep003/shot08/v2">Compare Director-LOCKED V2</a>
-   <a href="#/ep003/full">View locked 8-SHOT master</a>
+   <a href="#/ep003/full">View official 9-SHOT master</a>
   </nav>
   <p className="ep003-director-review-caution">
-   SHOT08 V3 is NOT LOCKED. This corrected routing candidate preserves the Director-LOCKED SHOT08 V2 and the official eight-shot master. Only the Director may approve the replacement.
+   SHOT08 V3 is DIRECTOR-LOCKED and is the official SHOT08 in the new nine-shot master. Historical SHOT08 V2 is preserved.
   </p>
  </section>;
 }
