@@ -29,7 +29,6 @@ import {Ep003Shot10V1DirectorReview} from '../components/Ep003Shot10V1DirectorRe
 import {Ep003Shot08V4DirectorReview} from '../components/Ep003Shot08V4DirectorReview';
 import {Ep003Shot09V3DirectorReview} from '../components/Ep003Shot09V3DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
-import {Ep003CorrectedTenShotFullWip} from '../components/Ep003CorrectedTenShotFullWip';
 import {Ep003Shot11V1DirectorReview} from '../components/Ep003Shot11V1DirectorReview';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
@@ -171,8 +170,7 @@ export function EpisodePackageImportPage(){
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
       {details.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
-       {details.episodeKey==='EP003'&&<Ep003CorrectedTenShotFullWip/>}
-       {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
+        {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
       {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
       {details.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
