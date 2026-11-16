@@ -7,9 +7,9 @@ const film=read('./Ep003CumulativeFullVideo.tsx');
 describe('Director policy: EP003 completed episode shows only one full-film player',()=>{
  it('EP003 page displays one current 11-SHOT master; no individual SHOT components are mounted',()=>{
   expect((page.match(/<Ep003CumulativeFullVideo\/>/g)||[])).toHaveLength(1);
-  expect(page).toContain("{false&&<>");
+  expect(page).toContain("{details&&false&&<>");
   expect(page).not.toContain("details.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}\n      {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>");
-  const gate=page.indexOf('{false&&<>');
+  const gate=page.indexOf('{details&&false&&<>');
   const end=page.indexOf('</>}',gate);
   expect(gate).toBeGreaterThan(-1);
   expect(end).toBeGreaterThan(gate);
