@@ -15,6 +15,7 @@ import {Ep003Shot08V3DirectorReview} from './components/Ep003Shot08V3DirectorRev
 import {Ep003Shot08V4DirectorReview} from './components/Ep003Shot08V4DirectorReview';
 import {Ep003Shot09V3DirectorReview} from './components/Ep003Shot09V3DirectorReview';
 import {Ep003CumulativeFullVideo} from './components/Ep003CumulativeFullVideo';
+import {Ep003CorrectedTenShotFullWip} from './components/Ep003CorrectedTenShotFullWip';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
 import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
@@ -83,6 +84,10 @@ export function App() {
   }
   if (hash === '#/ep003/shot09/v3') {
     return <div className="media-os-product-shell"><Ep003Shot09V3DirectorReview/></div>;
+  }
+
+  if (hash === '#/ep003/corrected/full') {
+    return <div className="media-os-product-shell"><Ep003CorrectedTenShotFullWip/></div>;
   }
 
   if (hash === '#/ep003/shot10/v2') {
