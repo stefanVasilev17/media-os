@@ -33,7 +33,7 @@ async function verify(){
 const scope=`project_id=$1::uuid
  and (composition_id like 'EP001-%' or composition_id like 'EP002-%' or composition_id like 'EP003-%')
  and id<>all($2::uuid[]) and video_data is not null`;
-try{
+async function main(){try{
  check(process.env.DATABASE_URL?.startsWith('postgres'),'DATABASE_NOT_AUTHORIZED');
  check(Number.isInteger(cap)&&cap>=16&&cap<=160,'UNSAFE_PASS_CAP');
  await db.connect();await verify();
@@ -98,3 +98,6 @@ try{
  }));
 }catch(e){console.error('MEDIAOS_FINAL_THREE_ONLY_PRUNE_BLOCKED '+String(e.stack||e));process.exitCode=1;}
 finally{await db.end().catch(()=>{})}
+
+}
+await main();
