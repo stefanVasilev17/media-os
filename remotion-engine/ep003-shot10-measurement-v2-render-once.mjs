@@ -328,6 +328,9 @@ async function main(){
     assert(Number.isFinite(psnr)&&psnr>=27,
       'EP003_SHOT10_ACTUAL_DECODED_FIRST_FRAME_SEAM_QA_FAILED');
     const motion=await firstFramesMotion(final);
+    console.log('EP003_SHOT10_V2_INITIAL_MOTION_DIAGNOSTIC '+JSON.stringify({
+      firstFramePsnrDb:psnr,motion,blendedFrameCount:8,
+      actualEncodedVideo:true,thresholdFirstStepMin:.12,thresholdFirstStepMax:4.5}));
     assert(motion.uniqueMovingSteps>=18,
       'EP003_SHOT10_FIRST_SECOND_MUST_NOT_BE_STATIC');
     assert(motion.firstStep>0.12&&motion.firstStep<4.5,
