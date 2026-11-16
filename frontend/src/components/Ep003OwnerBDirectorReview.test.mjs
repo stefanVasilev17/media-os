@@ -14,7 +14,7 @@ describe('EP003 Owner B center correction strict video review',()=>{
    "ENDPOINT='/api/v1/remotion/renders/ep003/shot08/v4/latest-successful'",
    "RENDER_KEY='EP003_SHOT08_SHARDING_V4'",
    "ENGINE='EP003_SHOT08_PIN_143975e3d6c0'",
-   'data.durationInFrames!==5372','data.directorLocked!==false',
+   'data.durationInFrames!==5372','data.directorLocked!==true',
    "credentials:'same-origin'",'controls playsInline preload="metadata"'
   ])expect(shot8).toContain(s);
   expect(shot8).not.toContain("method:'POST'");
@@ -24,7 +24,7 @@ describe('EP003 Owner B center correction strict video review',()=>{
    "ENDPOINT='/api/v1/remotion/renders/ep003/shot09/v3/latest-successful'",
    "RENDER_KEY='EP003_SHOT09_FAILOVER_V3'",
    "ENGINE='EP003_SHOT09_PIN_599d23563c9c'",
-   'data.durationInFrames!==3145','data.directorLocked!==false',
+   'data.durationInFrames!==3145','data.directorLocked!==true',
    "credentials:'same-origin'",'controls playsInline preload="metadata"'
   ])expect(shot9).toContain(s);
   expect(shot9).not.toContain("method:'POST'");
