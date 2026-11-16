@@ -73,10 +73,15 @@ async function main(){
     from remotion_render where project_id=$1::uuid
       and composition_id like 'EP003-%' and status in ('QUEUED','RUNNING')
     order by created_at desc limit 25`,[PROJECT]);
+  const orphaned=inFlight.rows.filter(x=>x.status==='RUNNING'&&Number(x.progress)===0
+    &&new Date(x.updated_at).getTime()<Date.now()-12*3600*1000
+    &&new Date(x.created_at).getTime()<new Date(master.finished_at).getTime());
+  const active=inFlight.rows.filter(x=>!orphaned.includes(x));
   if(inFlight.rows.length>0)console.log('EP003_STORAGE_INFLIGHT_PREFLIGHT '+JSON.stringify({
-    count:inFlight.rows.length,rows:inFlight.rows
+    count:inFlight.rows.length,orphanedCount:orphaned.length,activeCount:active.length,
+    rows:inFlight.rows.map(x=>({...x,staleBeforeVerifiedFinalMaster:orphaned.includes(x)}))
   }));
-  check(inFlight.rows.length===0,'EP003_RENDER_IN_FLIGHT__PRUNE_NOT_ALLOWED');
+  check(active.length===0,'EP003_RENDER_GENUINELY_IN_FLIGHT__PRUNE_NOT_ALLOWED');
   const q=`select id::text as id,composition_id,render_key,status,
      coalesce(size_bytes,octet_length(video_data),0)::bigint as bytes,
      object_url,created_at
@@ -114,7 +119,10 @@ async function main(){
       and created_at <= $4::timestamptz and video_data is not null and profile<>'REEL'
       and not exists(select 1 from remotion_render live
         where live.project_id=r.project_id
-          and live.composition_id like 'EP003-%' and live.status in ('QUEUED','RUNNING'))`,
+          and live.composition_id like 'EP003-%' and live.status in ('QUEUED','RUNNING')
+          and (live.status='QUEUED' or coalesce(live.progress,0)>0
+            or live.created_at >= $4::timestamptz
+            or live.updated_at >= now()-interval '12 hours'))`,
     [row.id,PROJECT,MASTER_ID,master.finished_at]);
    check(affected.rowCount===1,'RACE_OR_UNEXPECTED_PRUNE_TARGET_'+row.id);
    removed++;released+=Number(row.bytes);
