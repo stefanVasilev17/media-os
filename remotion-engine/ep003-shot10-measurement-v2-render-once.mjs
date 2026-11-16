@@ -186,12 +186,12 @@ async function main(){
       previous.composition_id==='EP003-SHOT09-FAILOVER-V3-DIRECTOR-CANDIDATE'&&
       previous.engine_version==='EP003_SHOT09_PIN_599d23563c9c'&&
       previous.profile==='REVIEW',
-      'EP003_SHOT10_REQUIRES_DIRECTOR_LOCKED_SHOT09_V2');
+      'EP003_SHOT10_REQUIRES_VERIFIED_SHOT09_V3');
     assert(hash(previous.video_data)===PIN_SHA,
-      'EP003_SHOT10_LOCKED_SHOT09_V2_SHA256_CHANGED');
+      'EP003_SHOT10_SHOT09_V3_SHA256_CHANGED');
     assert(Number(previous.width)===1920&&Number(previous.height)===1080&&
       Number(previous.fps)===FPS&&Number(previous.duration_in_frames)===PREVIOUS_FRAMES,
-      'EP003_SHOT10_SHOT09_V2_SOURCE_METADATA_INVALID');
+      'EP003_SHOT10_SHOT09_V3_SOURCE_METADATA_INVALID');
     const signature=hash('EP003_SHOT10_MEASUREMENT_V2_RETRY_AFTER_INTERRUPTED_WORKER|'+SHA+'|'+source.take_id+
       '|'+source.spoken_sha+'|'+PIN+'|'+previous.render_hash);
     const existing=(await db.query(`select id,status from remotion_render
@@ -359,7 +359,7 @@ async function main(){
       codec:'H264/AAC',resolution:'1920x1080',fps:FPS,
       predecessor:'SHOT09 V3 CENTERED REVIEW SOURCE',previousRenderId:PIN,
       voiceSource:'ORIGINAL_SELECTED_SLOW_NATURAL_TAKE__NO_REGEN',
-      directorStatus:'SHOT10_V1_CANDIDATE__VISUAL_APPROVAL_REQUIRED'
+      directorStatus:'SHOT10_V2_CANDIDATE__VISUAL_APPROVAL_REQUIRED'
     }));
   }catch(error){
     console.error('EP003_SHOT10_RENDER_BLOCKED '+String(error?.stack||error));
