@@ -43,20 +43,20 @@ export function EpisodeSelectorPage() {
       <section className="episode-selector-list" aria-label="Choose an episode">
         <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP001';}}>
           <span className="episode-selector-id">EP001</span>
-          <span className="episode-selector-name"><strong>{ep001.title}</strong><small>Current 12-SHOT production · LOCKED sources, voice and videos</small></span>
+          <span className="episode-selector-name"><strong>{ep001.title}</strong><small>Full MP4 20:56.77 · H.264/AAC · standalone SHOTs and voice takes removed</small></span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
         <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP002';}}>
           <span className="episode-selector-id">EP002</span>
-          <span className="episode-selector-name"><strong>{ep002.title}</strong><small>{episodes.some(row=>row.episodeNumber==='EP002')?'Production workspace +':'Source library · not yet registered in production'} · 11 locked script SHOTs / 59 approved visual beats</small></span>
+          <span className="episode-selector-name"><strong>{ep002.title}</strong><small>Full MP4 13:01.53 · H.264/AAC · standalone SHOTs and voice takes removed</small></span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
         <button type="button" className="episode-selector-row"
-          onClick={() => {window.location.hash='#/episode-packages/import?ep003=1';}}>
+          onClick={() => {window.location.hash='#/library/EP003';}}>
           <span className="episode-selector-id">EP003</span>
           <span className="episode-selector-name">
             <strong>What Happens When One Database Is No Longer Enough?</strong>
-            <small>Script v0.4 DIRECTOR LOCKED · 11 SHOTs · Slow Intake Voice Factory</small>
+            <small>Full MP4 21:26.43 · 11 SHOTs Director LOCKED · H.264/AAC</small>
           </span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
