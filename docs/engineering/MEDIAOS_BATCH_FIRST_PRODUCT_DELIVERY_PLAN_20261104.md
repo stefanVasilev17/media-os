@@ -58,3 +58,11 @@ The **unit of creative authorization** becomes an episode/wave; the **unit of co
 - Final selected narrator accent parity with EP001 is still an audio A/B issue; not part of this batch planning release.
 - Approved EP002 HEAR → SEE v1.0 is a separately reconstructed visual pass and editorial timing, not proof of true speech timestamps for SHOT02–SHOT11.
 - Working Render Worker is SHOT01-oriented. Additional scene composition registration, voice alignment and bounded orchestration **remain to be built**. Do not claim episode-wide generation or master assembly is ready in this PR.
+
+
+## Permanent P0 shared-worker and storage constraint — Director LOCK 2026-11-17
+
+The batch-first model MUST execute every SHOT/episode/QA/check/preview through the **existing shared Railway render worker and bounded production queue**, not by constructing one Railway service or canary per SHOT. Render concurrency defaults to 1 until explicit evidence/approval changes it. See [MediaOS permanent Lean Infrastructure and Storage Policy](MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md). Keep PostgreSQL metadata-only for **new** media, retain protected current EP001–EP003 complete films, and fail closed before any new MP4/voice/frames are written to PostgreSQL: a verified external object-storage pipeline, authenticated player and lifecycle/TTL logic are required. Add strict per-batch estimates of CPU/RAM/bytes/dollars, explicit authorized spend, disk warnings (50%), media admission block (65%) and incident halt (75%) before automated production dispatch.
+
+These requirements are new implementation gates, not proof that old batch planning/worker code already enforces them. No automatic storage expansion, worker creation or cleanup of any pending-Director-review media is authorized. This operational addendum preserves the original Director-LOCKED stage sequence and creative approvals.
+
