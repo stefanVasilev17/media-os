@@ -1,5 +1,17 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-17 — COMPLETE RAILWAY 50/50 SERVICE COST TRIAGE: FIVE LIVE RAM CONSUMERS
+
+**Production service inventory DONE, no destructive changes:** Every one of 50 registered services was read for its most recent **1-hour** Railway CPU and RAM metrics. **45 services have 0 currently reported RAM and CPU**, despite old SUCCESS/online UI deployments. The five services with continuously observed RAM are primary `Postgres` **3.954 GB**, `media-os-backend` **0.432 GB**, `media-os-render-worker` **0.062 GB**, secondary `Postgres-urOW` **0.064 GB**, and previously overlooked **`mediaos-ep002-voice-isolated-canary` 0.392 GB**. Total currently 4.904 GB RAM: approximate **$49/month if sustained for 30 days** at Railway $10/GB-month; **NOT a current invoice, not a precise Nov13-Nov17 cost breakdown**. Primary Postgres past 24h average RAM ~3.42 GB, CPU almost idle. Temporary EP003 workers had multi-GB RAM workloads in prior days and now 0 CPU/RAM.
+
+**Canary is P0 cleanup candidate, NOT yet deleted:** isolated EP002 voice Java backend on service `0607088a-bc75-4ebb-92e7-1fd30cae70c4`, ~0.391 GB average RAM over 24h, 0 recorded public HTTP requests for 96h, but runtime `RemotionRenderRetentionService` logs recur each minute. Backend env contains `RAILWAY_SERVICE_MEDIAOS_EP002_VOICE_ISOLATED_CANARY_URL` and canary contains separate DB target configuration. Check all private-network and second-Postgres dependencies before removal. Secondary Postgres disk used 0.160 GB; primary 4.113 GB. Railway volume billing is for **used** bytes, not full 5GB provisioned size: combined ~4.273GB => ~$0.64/month at $0.15/GB-month. No secrets copied.
+
+**Railway $5 context:** Hobby subscription is $5 and includes $5 of resource usage, but actual user's plan and Workspace Usage/Agent/overage line items have NOT been read. Do not double count subscription or claim historical source cost allocation without that UI. Zero cloud-agent task history found for this production environment; this does not exclude other-account Agent or different-environment charges. Railway Automations tool not enabled.
+
+**NEXT:** [cost work queue issue #307](https://github.com/stefanVasilev17/media-os/issues/307) captures billing breakdown, canary and secondary-DB dependency investigation, primary Postgres RAM/cache tuning, legacy service removal, physical PostgreSQL storage compaction after verified backups/headroom, single queued worker, warning-only cost alerts. Do not change production before verification and Director approval.
+
+
+
 ## 2026-11-17 — RAILWAY BILLING P0 AUDIT AND PERSISTED PRODUCTION COST WORK QUEUE
 
 **Director concern:** railway usage counter is already ~$5 between billing period start 2026-11-13 and 2026-11-17. No exact Railway Workspace Usage/invoice itemization is exposed to the connected Railway tools. Treat $5 Hobby subscription/included credits separately from actual project resource usage; do not claim a precise cause/cost split without itemized billing evidence. The Director's work queue is persisted as [GitHub Issue #307](https://github.com/stefanVasilev17/media-os/issues/307), which tracks billing, PostgreSQL RAM, 46 one-off service retirement, secondary PostgreSQL dependency audit, safe disk reclaim, shared render worker, and cost alerts.
