@@ -1,0 +1,288 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 5,
+  "services": [
+    {
+      "id": "137d2e1c-5739-4944-9a41-1fc177c036f2",
+      "name": "ep003-shot07-v2-seven-shot-wip-once",
+      "source": null,
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot07-v2-seven-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot07-v2-seven-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT07_V2_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": null,
+      "state": "live"
+    },
+    {
+      "id": "3211359b-8e96-42bf-9d18-2c7d543db58e",
+      "name": "ep003-shot07-v3-focus-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot07-v3-subtle-focus-all-databases-20261115",
+        "commitSha": "316d8573072a3dd81af91105dbefc5b3dbd715ff"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot07-bottleneck-v3-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT07_V3_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "caabe271-e5d1-4584-8ed9-c38bce4dab36",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-15T13:15:25.640Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "980ad1ca-720e-4611-a1d0-32e685fc4c23",
+      "name": "ep003-shot08-sharding-v1-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-lock-premium-08-09-shot10-sli-slo-20261116",
+        "commitSha": "0fc02175a4ea411a27528df6a35065709a35d6c6"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot10-measurement-v2-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT08_V1_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT10_V1_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT10_V2_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "3dbeb562-4ab5-4c92-ad5e-0456b45d9350",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-16T10:00:07.082Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "ff82640c-3a0b-4290-91ea-f4c55d1c9694",
+      "name": "ep003-shot08-v2-director-corrections-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot08-v2-director-readable-owners-replicas-20261115",
+        "commitSha": "d64dd22fa8cd3ad1bd18bfa2e8ad8d267480f644"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot08-sharding-v2-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT08_V2_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "db3e1878-dda0-430a-abac-387aa30d2630",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-15T19:00:36.333Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "f1f068e4-2c84-4dfa-bb6b-787577e25b16",
+      "name": "ep003-shot08-v3-premium-routing-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-owner-b-centered-and-header-safe-20261116",
+        "commitSha": "143975e3d6c0edf7308f2f8727c65596f5275834"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot08-sharding-v4-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT08_V3_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT08_V4_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "f90767e5-3ecb-400d-8cfa-fee854b049c8",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-16T12:25:29.589Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "ecd10dd8-a55b-4e63-acaf-262cfb642427",
+      "name": "ep003-shot08-voice-readiness-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot07-v3-lock-shot08-sharding-20261115",
+        "commitSha": "9ad40a74765e22dfcc571ebc4c3dc4a78c28b764"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot08-voice-preflight-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "11f62a24-c58f-42d1-84f1-8761f6218914",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-15T16:53:30.436Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "d65628fc-6d2a-46d0-9998-3090fbca05fc",
+      "name": "ep003-shot09-failover-v1-director-render-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-premium-routing-shot08v3-shot09v2-shot10-20261116",
+        "commitSha": "c1e9a9bd1860945ebd90b8cd5e353ec8c5e116ba"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot09-failover-v3-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT08_V3_RENDER_ID",
+        "EP003_SHOT08_V3_SHA256",
+        "EP003_SHOT09_V1_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT09_V2_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT09_V3_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "795cf3e1-39d6-43ca-9a74-e5f9a16133bd",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-16T09:04:21.591Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}
