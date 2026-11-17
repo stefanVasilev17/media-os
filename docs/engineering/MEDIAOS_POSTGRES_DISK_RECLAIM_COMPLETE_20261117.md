@@ -40,8 +40,8 @@ One-off maintenance service `mediaos-pg18-safe-reclaim-20261117`, ID `11e60aaa-5
 ## Safety/next steps
 1. **No repeat VACUUM FULL** unless a new audit shows genuine physical bloat and a newly verified, independent backup exists. The 2026-11-17 issue is now fixed and the main database is under ~22% disk use.
 2. The existing private logical backup is a useful off-volume copy, but its S3 cost will continue until a future approved retention decision. A full `pg_restore` drill has **not** been run; it is an explicit future resilience task. Preserve backup until restore has been tested and retention agreed.
-3. Stop/release the temporary maintenance service, preserving branch source and evidence; avoid keeping idle temporary services. The core target inventory remains **3 persistent Railway services**: backend, Postgres, and shared render worker.
+3. **COMPLETED:** Permanently removed the temporary maintenance service `mediaos-pg18-safe-reclaim-20261117` after verified final SHA/SQL/log results; it had no attached volume, public endpoint or persistent data. Railway final production inventory verified exactly **3 services**: backend, Postgres and shared render worker, all online with 1 running replica, 0 crashes/warnings/critical alerts; pendingWork=0, staged=null. Both database volumes and recovery bucket remain, with verified off-volume archive.
 4. Continue watching RAM cap 1.5GB, backend request errors, and full-film playback. No owner-approved automatic rerender/voice/coding charges.
 5. Longer-term move final MP4 content to object storage with Postgres holding metadata and content hashes; only after separate Director-approved storage migration and playback contract, not as an undeclared modification to the three locked films.
 
-**Status: STORAGE PROBLEM SOLVED.** Neither metadata nor films were deleted; off-volume full logical dump verified. Draft branch requires selective review before merging into main.
+**Status: STORAGE PROBLEM SOLVED, TEMPORARY WORKER REMOVED, THREE CORE SERVICES HEALTHY.** Neither metadata nor films were deleted; off-volume full logical dump verified. Draft branch requires selective review before merging into main.
