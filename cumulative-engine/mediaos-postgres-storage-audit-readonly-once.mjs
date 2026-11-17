@@ -111,6 +111,20 @@ try{
   mediaRows:mediaRows.map(castRow),settings:currentSettings,extensions
  }));
 
+
+ const exactCounts=(await db.query(
+  "select 'production_preflight_audit' as table_name,count(*)::bigint as rows from production_preflight_audit "+
+  "union all select 'ep002_creative_voice_take',count(*)::bigint from ep002_creative_voice_take "+
+  "union all select 'episode_package_voice_take',count(*)::bigint from episode_package_voice_take "+
+  "union all select 'voice_clip_workflow',count(*)::bigint from voice_clip_workflow "+
+  "union all select 'studio_clip',count(*)::bigint from studio_clip "+
+  "union all select 'episode_shot05_voice_revision_archive',count(*)::bigint from episode_shot05_voice_revision_archive"
+ )).rows;
+ const preflightStats=(await db.query(
+  "select relname,reltuples,relpages,pg_relation_size(oid)::bigint as heap_bytes from pg_class where oid='production_preflight_audit'::regclass"
+ )).rows[0];
+ console.log('MEDIAOS_PG_AUDIT_EXACT_COUNTS '+JSON.stringify({counts:exactCounts,preflightStats}));
+
  await db.query('COMMIT');
  console.log('MEDIAOS_ONLY_THREE_COMPLETE_MP4S_FINAL_STORAGE_QA_PASS '+JSON.stringify({
   savedFullVideos:keep.map(x=>({episode:x.episode,id:x.id,frames:x.frames,bytes:x.bytes})),
