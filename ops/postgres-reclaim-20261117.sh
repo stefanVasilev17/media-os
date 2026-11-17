@@ -17,7 +17,7 @@ for var in DATABASE_URL S3_ENDPOINT S3_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCES
  eval 'test -n "${'"$var"':-}"' || { echo "MEDIAOS_DB_MAINT_BLOCKED missing_required_$var"; exit 41; }
 done
 case "${RUN_MODE:-NOT_CONFIGURED}" in
-BACKUP|COMPACT) ;;
+BACKUP|RECLAIM_SMALL|COMPACT_MAIN|VERIFY_ONLY) ;;
 *) echo "MEDIAOS_DB_MAINT_BLOCKED no_valid_run_mode"; exit 42;;
 esac
 psql_preflight(){
@@ -69,8 +69,27 @@ if [ "$RUN_MODE" = "BACKUP" ]; then
  rm -f "$BACKUP_FILE" /tmp/mediaos-backup-toc
  exit 0
 fi
+if [ "$RUN_MODE" = "VERIFY_ONLY" ]; then
+ verify_bucket
+ verify_masters
+ report_db
+ echo "MEDIAOS_DB_MAINT_VERIFY_ONLY_PASS"
+ exit 0
+fi
 if [ "${ALLOW_PHYSICAL_REWRITE:-}" != "DIRECTOR_DISK_RECLAIM_20261117" ]; then echo "MEDIAOS_DB_MAINT_BLOCKED no_explicit_write_gate"; exit 52; fi
 verify_bucket
+if [ "$RUN_MODE" = "RECLAIM_SMALL" ]; then
+ echo "MEDIAOS_DB_MAINT_SMALL_TOAST_RECLAIM_BEGIN"
+ for tbl in ep002_creative_voice_take episode_package_voice_take voice_clip_workflow studio_clip episode_shot05_voice_revision_archive; do
+  echo "MEDIAOS_DB_MAINT_SMALL_TABLE_START table=$tbl"
+  PGOPTIONS="-c lock_timeout=5000 -c statement_timeout=900000" psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" -q -c "VACUUM (FULL, ANALYZE) public.$tbl;"
+  echo "MEDIAOS_DB_MAINT_SMALL_TABLE_SUCCESS table=$tbl"
+ done
+ verify_masters
+ report_db
+ echo "MEDIAOS_DB_MAINT_SMALL_TOAST_RECLAIM_COMPLETE"
+ exit 0
+fi
 STATS="$(psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" -qAt -c "select pg_total_relation_size('public.remotion_render'::regclass)::text||'|'||count(*) filter (where video_data is not null)::text from public.remotion_render")"
 SIZE="${STATS%%|*}"
 N="${STATS##*|}"
