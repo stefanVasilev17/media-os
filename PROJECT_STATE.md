@@ -1,5 +1,15 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-17 — P0 PERMANENT LEAN INFRASTRUCTURE AND STORAGE DIRECTOR LOCK (POLICY)
+
+**Director command is permanent; ALL agents MUST follow it starting now.** See `AGENTS.md`, `README.md` and `docs/engineering/MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md`. Production baseline is **only** `media-os-backend`, `media-os-render-worker` and `Postgres`; **never spin up a service, sidecar, DB, volume or special worker for a SHOT/QA/render/preview/voice/episode**. Use the shared worker as a bounded job queue (one costly render at a time by default). Do not auto-buy CPU, memory, volume or provider credits; require explicit Director budget/approval and cost evidence.
+
+**STOP any future EP004+ media write if it would persist MP4/audio/images/frames to PostgreSQL BYTEA/TOAST (including `remotion_render.video_data`).** Instead first implement, test and deploy object-storage media writer, authenticated playback reader, hashes, retention and clean-up; PostgreSQL stores metadata. The three existing Director-approved EP001–EP003 final MP4s are immutable grandfathered legacy exceptions. Temporary outputs require deterministic TTL and safe deletion **without losing approved or pending-review content**. Primary Postgres volume warning at 50%, media freeze at 65%, protective freeze at 75%; no blind `VACUUM FULL` or spending.
+
+**STATUS: POLICY ADDED TO DEFAULT BRANCH; AUTOMATED CODE GUARDS NOT YET IMPLEMENTED.** Do not claim future renders are safe until integration tests demonstrate: 0 new Railway services, 0 new PostgreSQL media blobs, verified external media objects, bounded retention/bytes/cost, protected three masters, and threshold enforcement. The default `main` state below is historically behind the 2026-11-17 production ops branch; never overwrite later production evidence with the older 2026-11-15 entries. Future engineering work must reconcile state separately after review.
+
+
+
 ## 2026-11-15 — EP003 SHOT08 V2. DIRECTOR VISUAL CORRECTIONS. RENDER IN PROGRESS
 
 **Director screenshot and new revision request:** V1 confirmed rendered, real saved MP4 `02dbdec4-167f-4d44-9780-74dc1f0aa0a5`, but Director observed three concrete composition errors in screenshot `IMG_5118.jpeg`. (1) `ACCOUNT OWNER` under Shard A and B overprinted each other. (2) Replica A and B titles/icons extended beyond their containers. (3) The original `REPLICATION VS SHARDING` teaching card was confusing. Director requests correction, not V1 LOCK. Original V1 source remains NOT LOCKED. Director retains final visual approval authority.
