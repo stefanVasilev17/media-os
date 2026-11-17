@@ -55,3 +55,7 @@ This yields a reduction of **~3.306 GB ongoing RAM use, ~67% of original total**
 6. Consolidate future Remotion/QA tasks onto the existing shared render worker rather than creating new services; avoid unauthorised paid AI/voice/render calls.
 
 GitHub issue #307 tracks the ongoing cost/cleanup work. This work is a **production Railway configuration change verified in runtime**, with code and report on a separate feature branch; it is **not merged to main**.
+
+## Forward-looking Director P0 prevention contract — 2026-11-17
+
+**This document is a historical verified incident record, not a workflow to repeat.** The Director now permanently forbids new per-SHOT / QA / preview / canary Railway services, unlimited render CPU or PostgreSQL storage of *new* media binaries. Only existing `media-os-backend`, `media-os-render-worker`, and `Postgres` are the normal production services. Future media must use a tested authenticated object-store read/write path with SHA-256, retention and bounded cleanup; database metadata only, with the three existing protected final film MP4s unchanged. **Fail closed before new MP4 writes until the object-storage contract and source-level enforcement have been verified**. Full binding policy: [MediaOS Permanent Lean Infrastructure & Storage Policy](MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md) (policy ID `MEDIAOS-OPS-P0-20261117`). This does not alter or revoke the historical successful cleanup or existing Director-selected masters, and does not assert the new automatic cost/storage guards are already deployed.
