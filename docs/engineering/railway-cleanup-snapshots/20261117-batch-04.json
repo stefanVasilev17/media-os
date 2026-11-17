@@ -1,0 +1,327 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 4,
+  "services": [
+    {
+      "id": "5f5c56dc-1e63-4af9-9b16-2fe445c9ac44",
+      "name": "ep003-shot05-five-shot-wip-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-director-lock-shot05-director-review-20261114",
+        "commitSha": "b439431bdece8d84f384f202adbe013eb3058e28"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot05-v1-five-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot05-v1-five-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT05_V1_RENDER_ID",
+        "EP003_SHOT05_V1_SHA256",
+        "EP003_SHOT05_V1_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "fc10b85a-1120-4449-9697-2969518ad0a9",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T18:54:38.036Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "3bd2cef5-d673-476b-b306-bce944323aab",
+      "name": "ep003-shot05-v1-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-director-lock-shot05-director-review-20261114",
+        "commitSha": "8cdd6fa682363e6bfe16dcc3aed05ce5726590ed"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot05-stale-read-v1-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot05-stale-read-v1-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT05_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "3b513025-d69a-4c79-9da4-29e31e449197",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T18:41:35.643Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "a0d9749a-33f2-423f-8a22-efae0d0e1c0e",
+      "name": "ep003-shot06-correctness-v1-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot05-director-lock-shot06-visual-v1-20261114",
+        "commitSha": "8894f59f4539a95cacf17efe5b5ab59b5658ce22"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot06-correctness-v1-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot06-correctness-v1-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT06_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "b55b9ff0-07da-46c1-8859-38dddaee7eb9",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T19:40:20.716Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "feb48077-4c1e-4afc-9629-94dfab89fdb7",
+      "name": "ep003-shot06-six-shot-wip-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot05-director-lock-shot06-visual-v1-20261114",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot06-v1-six-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot06-v1-six-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT06_V1_RENDER_ID",
+        "EP003_SHOT06_V1_SHA256",
+        "EP003_SHOT06_V1_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "3f143ea9-e43e-41b1-b0c9-117fd7489cc0",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T20:08:27.953Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "76697aff-b8ae-4c03-a879-b7134158ec0a",
+      "name": "ep003-shot07-bottleneck-v1-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot06-director-lock-shot07-visual-v1-20261114",
+        "commitSha": "5be03767467aeeea2ea6c831a4b3f7d4672820ac"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot07-bottleneck-v1-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot07-bottleneck-v1-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT07_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "4a420ab4-e48b-404a-b185-1e00f2b94c2c",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T22:15:23.142Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "4d8ff511-3b1d-4b2e-a8cb-1fd105117964",
+      "name": "ep003-shot07-seven-shot-wip-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot06-director-lock-shot07-visual-v1-20261114",
+        "commitSha": "dffeae47898fd8a18de3ab63fe60fe717f8d312e"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot07-v1-seven-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot07-v1-seven-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT07_V1_RENDER_ID",
+        "EP003_SHOT07_V1_SHA256",
+        "EP003_SHOT07_V1_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "af803269-b617-4131-866e-592251c7ccb9",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T22:28:57.973Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "b6e72aac-cf32-4584-be90-2126aa919dcb",
+      "name": "ep003-shot07-v2-glossary-focus-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot07-v2-interview-glossary-auth-focus-20261115",
+        "commitSha": "7bf83713a7657c07d5206868ee79e670122f97fc"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot07-bottleneck-v2-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot07-bottleneck-v2-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT07_V2_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "cd750bc5-e75d-46a6-a2b9-093dcab216c7",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-15T12:29:41.980Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}

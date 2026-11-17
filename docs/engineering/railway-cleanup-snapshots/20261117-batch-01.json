@@ -1,0 +1,283 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 1,
+  "services": [
+    {
+      "id": "5b61ebe6-7074-4f81-b938-6fb4a878c3e7",
+      "name": "ep001-shot09-v4-final-worker-ready-render",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "38b4e903-9647-4d09-8841-89a819f1c470",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T14:59:29.292Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "e20e9d38-ea1d-404a-9998-5e84e8dbe026",
+      "name": "ep001-shot10-v4-cinematic-director-render",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "46b3fab5-1d76-4fc9-a36d-bfd1ac270a6a",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T20:06:00.105Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "90006b73-901e-4064-8e78-e40623b893ff",
+      "name": "ep001-shot10-v4-media-frame-qa",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "a17143bc-0225-4b88-bf1c-0ee3b2517723",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T20:21:03.284Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "5588e318-9830-46f9-a833-ded4990b20da",
+      "name": "ep003-8shot-official-master-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-lock-premium-08-09-shot10-sli-slo-20261116",
+        "commitSha": "24829a286c18d961761d9d0ead8bffefdff1b50c"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-cumulative-master-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "68bd542d-5b95-4931-8178-b8d38a0e4999",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-16T09:43:44.380Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "8fe9381a-8f3a-404d-8b68-6913b7465605",
+      "name": "ep003-cumulative-director-master-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-director-lock-shot02-v4-promote-master-20261114",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "remotion-engine/ep003-director-locked-visual-sequence.json",
+          "Dockerfile.ep003-cumulative-master-once"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-cumulative-master-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "a7b7a07c-4221-4454-8a15-bd870e1420a9",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T13:48:32.177Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "5e27eb09-c835-486e-b08c-b35e31280dd9",
+      "name": "ep003-locked04-master-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-director-lock-shot05-director-review-20261114",
+        "commitSha": "9b68a924e2e06fd8d7ed7e21e72268520fec0b90"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-cumulative-master-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-cumulative-master-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "5c40aeec-c198-4fa4-b3f9-ccbe4c4c9c1a",
+        "status": "FAILED",
+        "createdAt": "2026-11-14T18:29:21.667Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "234b57e8-8695-4e9b-80d3-93c20f071e77",
+      "name": "ep003-master-04-verified-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-director-lock-shot05-director-review-20261114",
+        "commitSha": "ca796d2f735ce93f30e5cddf96f3833e2130f057"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-cumulative-master-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-cumulative-master-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "5030a7ae-31ea-4cd0-bbb9-7d299a1eec35",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T18:42:21.385Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}
