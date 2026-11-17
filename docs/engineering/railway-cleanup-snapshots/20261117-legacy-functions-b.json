@@ -1,0 +1,45 @@
+{
+  "description": "Production Railway Function source snapshot for one-off cleanup. Null code means sensitive pattern and must not delete service.",
+  "functions": [
+    {
+      "name": "shot09-v2-premium-start-render-once",
+      "id": "1d5cd785-f36b-4bf1-9a85-e3502b500291",
+      "sourceLength": 4106,
+      "runtime": "bun",
+      "code": null,
+      "sensitiveFlag": true
+    },
+    {
+      "name": "shot09-v3-reuse-existing-living-map-submit",
+      "id": "66f7f3c8-5819-4773-a0f5-7c455f4047c4",
+      "sourceLength": 3818,
+      "runtime": "bun",
+      "code": null,
+      "sensitiveFlag": true
+    },
+    {
+      "name": "shot09-v4-clean-director-render-once",
+      "id": "ee798304-f22b-4ebc-9a4d-b6e9cba62377",
+      "sourceLength": 3590,
+      "runtime": "bun",
+      "code": null,
+      "sensitiveFlag": true
+    },
+    {
+      "name": "shot09-v4-mp4-status-and-header-verify-once",
+      "id": "5dc1fcbf-3f00-4efb-897a-1705e8666a3c",
+      "sourceLength": 1640,
+      "runtime": "bun",
+      "code": "\nconst base=\"https://media-os-backend-production.up.railway.app\",id=\"154574a7-5dc5-45e8-9ff3-2f6669cc1127\";\nconst nap=ms=>new Promise(r=>setTimeout(r,ms));\ntry {\n for(let i=0;i<95;i++){\n  const r=await fetch(base+\"/api/v1/remotion/renders/\"+id,{signal:AbortSignal.timeout(40000)});\n  if(!r.ok)throw Error(\"status api \"+r.status);\n  const j=await r.json();\n  if(i%5===0||j.status===\"READY\"||j.status===\"FAILED\")console.log(\"SHOT09_V4_MONITOR\",JSON.stringify({status:j.status,progress:j.progress,bytes:j.sizeBytes,engine:j.engineVersion}));\n  if(j.status===\"READY\"){\n   if(j.compositionId!==\"EP001-Shot09-DirectorVoiceV4\"||j.durationInFrames!==4090||j.width!==1280||j.height!==720||j.fps!==30)throw Error(\"render metadata invalid\");\n   const video=await fetch(base+\"/api/v1/remotion/renders/\"+id+\"/video\",{headers:{\"Range\":\"bytes=0-127\"},signal:AbortSignal.timeout(45000)});\n   const part=new Uint8Array(await video.arrayBuffer());\n   const signature=new TextDecoder().decode(part.slice(4,8));\n   if(video.status!==206||video.headers.get(\"content-type\")!==\"video/mp4\"||signature!==\"ftyp\")throw Error(\"MP4 header invalid\");\n   console.log(\"SHOT09_V4_MP4_VERIFIED\",JSON.stringify({url:base+\"/api/v1/remotion/renders/\"+id+\"/video\",bytes:j.sizeBytes,frames:j.durationInFrames,profile:j.profile,range:video.headers.get(\"content-range\")}));\n   break;\n  }\n  if(j.status===\"FAILED\"||j.status===\"ERROR\")throw Error(\"Render failed \"+String(j.error));\n  if(i===94)throw Error(\"Verification window elapsed; check status via original ID\");\n  await nap(18000);\n }\n}catch(e){console.error(\"SHOT09_V4_MONITOR_FAILED\",String(e?.stack||e));process.exitCode=1}\n",
+      "sensitiveFlag": false
+    },
+    {
+      "name": "shot12-director-voice-once",
+      "id": "e70e0f23-2827-4e1d-b5d3-7f41b49c10d0",
+      "sourceLength": 606,
+      "runtime": "bun",
+      "code": "const B=\"https://media-os-backend-production.up.railway.app/api/v1/remotion/renders/\",id=\"904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8\";try{const m=await(await fetch(B+id,{signal:AbortSignal.timeout(45000)})).json();const h=await fetch(B+id+\"/video\",{method:\"HEAD\",signal:AbortSignal.timeout(45000)});console.log(\"EP001_SOUND_V1_HANDOFF_VERIFIED\",JSON.stringify({id,status:m.status,frames:m.durationInFrames,width:m.width,height:m.height,fps:m.fps,bytes:m.sizeBytes,http:h.status,bodyBytes:h.headers.get(\"content-length\"),videoUrl:B+id+\"/video\"}));}catch(e){console.error(\"EP001_SOUND_V1_VERIFY_ERROR\",String(e));}",
+      "sensitiveFlag": false
+    }
+  ]
+}
