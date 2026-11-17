@@ -1,0 +1,287 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 6,
+  "services": [
+    {
+      "id": "0c87b115-390d-49f2-b048-73e28917f8b0",
+      "name": "ep003-shot09-nine-shot-director-wip-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "ops/railway-cost-reduction-20261117",
+        "commitSha": "b5169492661a1d46f02d93df408dc3a30f30be6e"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.mediaos-pg-cgroup-memory-audit-readonly-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CORRECTED_TEN_SHOT_WIP_ASSEMBLY_APPROVED",
+        "EP003_ELEVEN_SHOT_DIRECTOR_LOCK_ASSEMBLY_APPROVED",
+        "EP003_FINISHED_MASTER_PRUNE_CONFIRMED",
+        "EP003_SHOT08_V4_RENDER_ID",
+        "EP003_SHOT08_V4_SHA256",
+        "EP003_SHOT09_NINE_SHOT_WIP_ASSEMBLY_APPROVED",
+        "EP003_SHOT09_V3_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT09_V3_RENDER_ID",
+        "EP003_SHOT09_V3_SHA256",
+        "EP003_SHOT10_V2_DIRECTOR_RENDER_APPROVED",
+        "EP003_SHOT10_V2_RENDER_ID",
+        "EP003_SHOT10_V2_SHA256",
+        "EP003_TEN_SHOT_DIRECTOR_LOCK_ASSEMBLY_APPROVED",
+        "MEDIAOS_FINAL_FILMS_PRUNE_EXPLICIT",
+        "MEDIAOS_FINAL_FILMS_PRUNE_PASS_MIB",
+        "MEDIAOS_FINAL_FILMS_SPLINE_DELETE_EXPLICIT",
+        "MEDIAOS_FINAL_THREE_ONLY_VOICE_DELETE",
+        "MEDIAOS_RECLAIM_WAL_CONFIRMED",
+        "MEDIAOS_VOICE_DELETE_EXPLICIT"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "2ec900aa-bb05-4c1a-977c-dc9935b22ef8",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-17T10:09:07.689Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "579c5605-d976-46a7-b8bf-90fd9faf7b92",
+      "name": "ep003-shot09-voice-preflight-no-spend-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-owner-b-centered-and-header-safe-20261116",
+        "commitSha": "140398af1c5b153132448e025359a26a26bb0897"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot11-human-finale-v1-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT10_V2_RENDER_ID",
+        "EP003_SHOT10_V2_SHA256",
+        "EP003_SHOT11_V1_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "023fe144-fa21-42c1-93d4-5302d894f789",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-16T14:22:07.961Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "e4c29004-6c6c-4d5a-8405-4dc3b107c0b3",
+      "name": "ep003-three-locked-shots-director-master-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-director-lock-shot03-v4-three-shot-master-20261114",
+        "commitSha": "f95649b5fa5ce37ab2603dabf7d26cc582f670f6"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-cumulative-master-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-cumulative-master-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_CUMULATIVE_MASTER_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "7b9f5b3d-81eb-401a-8e61-7a4ef46820e1",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T17:20:50.050Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "1740a8a3-de51-4a83-b704-0fa38279654f",
+      "name": "shot08-v10-av-qa",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "070b11ec-4f4d-4c17-93bd-8d9f68c48079",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T07:56:44.060Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "c6bea2f4-c1fb-4a59-a8f9-6c2a895d0e1e",
+      "name": "shot08-v2-static-check-once",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "6d3c9299-b422-42b4-ad9b-519275259615",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-24T18:57:06.919Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "1d5cd785-f36b-4bf1-9a85-e3502b500291",
+      "name": "shot09-v2-premium-start-render-once",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "3384990d-cf70-4dbb-a017-d3926349eb70",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T13:15:07.573Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "66f7f3c8-5819-4773-a0f5-7c455f4047c4",
+      "name": "shot09-v3-reuse-existing-living-map-submit",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "2899f7ad-d14b-4ccf-aa1c-1d7abbcf2182",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T14:02:44.515Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}
