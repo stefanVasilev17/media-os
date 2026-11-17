@@ -1,0 +1,26 @@
+# MediaOS — production PostgreSQL physical-space audit (2026-11-17)
+
+## Scope and safety
+
+Director requested to start safe storage cleanup assessment. This operation **only measured** production. It did not delete data, perform VACUUM / VACUUM FULL / REINDEX / CLUSTER, modify PostgreSQL settings, change the media source of truth, or buy volume. Original selected EP001/EP002/EP003 final films remain byte-preserved.
+
+**Railway production** project `a2b47ba1-385e-4410-93ee-b2198492b724`, Postgres service `5573c99f-dce7-4798-93f1-1b44ce594282`; audit reused existing one-off QA worker `0c87b115-390d-49f2-b048-73e28917f8b0`, no new service. Verified read-only audit source `75fa10fb5c69488f54ae8a28003e93b311f52a5d`, deployment `67b5fe02-4a4c-4f6b-9dc2-6c51a515e558` SUCCESS. Runtime events `MEDIAOS_POSTGRES_STORAGE_AUDIT_READONLY`, `MEDIAOS_PG_AUDIT_EXACT_COUNTS`, and `MEDIAOS_ONLY_THREE_COMPLETE_MP4S_FINAL_STORAGE_QA_PASS` were all observed directly. Source: `cumulative-engine/mediaos-postgres-storage-audit-readonly-once.mjs`, Dockerfile `Dockerfile.mediaos-postgres-storage-audit-readonly-once`, draft PR #306.
+
+## Measurements
+
+* Railway provisioned Postgres volume **5,000 MB**, actually used **4.112965632 GB**, available **0.887034368 GB** at measurement.
+* `pg_database_size(current_database())` **3,480,655,551 bytes / 3,319.41 MiB**; WAL directory **268,435,456 bytes / 256 MiB**, `max_wal_size=256MB`, `min_wal_size=80MB`. No replication slots and no transactions older than 2 minutes in read-only audit.
+* 123 user tables; `remotion_render` allocated **3,287,916,544 bytes / 3,135.60 MiB**, of which TOAST incl. index is **3,287,261,184 bytes / 3,134.98 MiB**; ordinary table heap only 0.41 MiB. 242 metadata rows and **exactly three physical MP4 rows**, one per EP001 / EP002 / EP003. Selected stored MP4 byte sizes **94,164,846 / 83,569,046 / 152,025,545**, total **329,759,437 bytes / 314.48 MiB**. The difference between allocated TOAST and stored selected MP4 bytes is approx **2,820.5 MiB**, but this is only a *reclaim-potential upper-bound proxy*, not a measured exact amount of removable/physically reclaimable bytes. Metadata and TOAST overhead remain.
+* `remotion_render` TOAST already **autovacuumed 2026-11-16 16:27:49 UTC**, estimated dead TOAST chunks 0, but TOAST relation allocation remains 3,134.98 MiB. This strongly indicates internal free pages / physical bloat after deleting old MP4s rather than live unapproved MP4 data. Repeating plain VACUUM is unlikely to release ~2.8 GiB at the filesystem level.
+* `production_preflight_audit` **90.64 MiB** includes 85.59 MiB heap and 5 MiB indexes; **exact COUNT(*) = 44,213 rows**. Do not delete these live audit rows. `pg_stat_user_tables.n_live_tup=23` was a severely stale estimate, **not** the real row count; it must never justify deletion or physical compaction.
+* Cleared-audio tables still have allocated TOAST storage: `ep002_creative_voice_take` 25.59 MiB, `episode_package_voice_take` 20.44 MiB, `voice_clip_workflow` 17.12 MiB, `studio_clip` 4.88 MiB, `episode_shot05_voice_revision_archive` 1.98 MiB; combined about **70.01 MiB** TOAST allocation, potentially recoverable *only through safe physical rewrite* after review. Their associated metadata rows must stay. TOAST autovacuum was performed on 2026-11-16, estimated dead chunks 0.
+* `pgstattuple` and `pg_freespacemap` are available but **not installed**; no extensions were installed and no full-table bloat measurement was attempted.
+* Last read-only QA verified: only EP001 render `904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8`, EP002 `56c2a4b7-8bc0-465b-baea-80fa3707e709`, EP003 `63827ce6-2ea8-4853-a61b-8549fe8db967` have MP4 payloads for the canonical project, all frame counts, dimensions, durations, statuses and sizes intact. 0 obsolete video blobs and 0 standalone audio blobs in the eleven audited categories.
+
+## Recommendation and next allowed action
+
+**No deletion is justified by this audit. No physical bytes were reclaimed in this read-only task.** The biggest opportunity is carefully planned physical rewriting/compaction of `remotion_render`, but at only ~887 MB free and with 256 MiB WAL, `VACUUM FULL`, `CLUSTER`, `REINDEX` and similar are **NOT AUTHORIZED / NOT SAFE to start automatically**; they may require locks, WAL headroom, temporary copies and a verified restoration path. Even a 70 MiB smaller-table rewrite requires separate Director consent, a confirmed backup and an explicit service-impact window. Do not manually delete PostgreSQL WAL or assume 2,820.5 MiB will be recovered.
+
+First choose a verified backup/rollback + capacity strategy with Director authorization (may include storage expansion only if separately approved, or a tested logical migration to a verified suitable target), then perform one bounded operation and compare `DISK_USAGE_GB`, database/TOAST sizes and protected master checksums before and after. Avoid auto-generating voice or Remotion films to recreate already-erased source payloads. Never remove production metadata, source code, scripts, approved locks or three selected masters.
+
+**Next exact step:** approve and prepare a low-risk physical maintenance plan including backup validation and sufficient guaranteed headroom. Audit-only PR #306 remains draft; it must not be treated as evidence that compaction ran.

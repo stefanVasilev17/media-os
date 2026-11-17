@@ -1,5 +1,39 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-17 — COMPLETE RAILWAY 50/50 SERVICE COST TRIAGE: FIVE LIVE RAM CONSUMERS
+
+**Production service inventory DONE, no destructive changes:** Every one of 50 registered services was read for its most recent **1-hour** Railway CPU and RAM metrics. **45 services have 0 currently reported RAM and CPU**, despite old SUCCESS/online UI deployments. The five services with continuously observed RAM are primary `Postgres` **3.954 GB**, `media-os-backend` **0.432 GB**, `media-os-render-worker` **0.062 GB**, secondary `Postgres-urOW` **0.064 GB**, and previously overlooked **`mediaos-ep002-voice-isolated-canary` 0.392 GB**. Total currently 4.904 GB RAM: approximate **$49/month if sustained for 30 days** at Railway $10/GB-month; **NOT a current invoice, not a precise Nov13-Nov17 cost breakdown**. Primary Postgres past 24h average RAM ~3.42 GB, CPU almost idle. Temporary EP003 workers had multi-GB RAM workloads in prior days and now 0 CPU/RAM.
+
+**Canary is P0 cleanup candidate, NOT yet deleted:** isolated EP002 voice Java backend on service `0607088a-bc75-4ebb-92e7-1fd30cae70c4`, ~0.391 GB average RAM over 24h, 0 recorded public HTTP requests for 96h, but runtime `RemotionRenderRetentionService` logs recur each minute. Backend env contains `RAILWAY_SERVICE_MEDIAOS_EP002_VOICE_ISOLATED_CANARY_URL` and canary contains separate DB target configuration. Check all private-network and second-Postgres dependencies before removal. Secondary Postgres disk used 0.160 GB; primary 4.113 GB. Railway volume billing is for **used** bytes, not full 5GB provisioned size: combined ~4.273GB => ~$0.64/month at $0.15/GB-month. No secrets copied.
+
+**Railway $5 context:** Hobby subscription is $5 and includes $5 of resource usage, but actual user's plan and Workspace Usage/Agent/overage line items have NOT been read. Do not double count subscription or claim historical source cost allocation without that UI. Zero cloud-agent task history found for this production environment; this does not exclude other-account Agent or different-environment charges. Railway Automations tool not enabled.
+
+**NEXT:** [cost work queue issue #307](https://github.com/stefanVasilev17/media-os/issues/307) captures billing breakdown, canary and secondary-DB dependency investigation, primary Postgres RAM/cache tuning, legacy service removal, physical PostgreSQL storage compaction after verified backups/headroom, single queued worker, warning-only cost alerts. Do not change production before verification and Director approval.
+
+
+
+## 2026-11-17 — RAILWAY BILLING P0 AUDIT AND PERSISTED PRODUCTION COST WORK QUEUE
+
+**Director concern:** railway usage counter is already ~$5 between billing period start 2026-11-13 and 2026-11-17. No exact Railway Workspace Usage/invoice itemization is exposed to the connected Railway tools. Treat $5 Hobby subscription/included credits separately from actual project resource usage; do not claim a precise cause/cost split without itemized billing evidence. The Director's work queue is persisted as [GitHub Issue #307](https://github.com/stefanVasilev17/media-os/issues/307), which tracks billing, PostgreSQL RAM, 46 one-off service retirement, secondary PostgreSQL dependency audit, safe disk reclaim, shared render worker, and cost alerts.
+
+**Verified production now:** 50 registered Railway services, 46 of them historical one-off workers; 4 base services = primary Postgres, secondary Postgres-urOW, backend, shared render worker. Many one-off jobs show SUCCESS deployment but no active CPU/RAM in last hour; historical EP003 render workers used multiple GB RAM during Nov14-16. Main Postgres RAM in most recent hour ~3.95 GB average, CPU nearly idle; 24h RAM average ~3.42GB (max ~4.24GB); backend ~0.432GB current and ~0.74GB 24h average; render worker ~0.062GB, secondary DB ~0.064GB; primary disk ~4.113GB and secondary ~0.160GB used. At Railway listed $10/GB-month RAM, a flat 30-day extrapolation of ~4.5GB currently used RAM would be ~$45 RAM/month plus other resources; this is not an actual invoice or the historic $5 breakdown. Railway volume is billed on actual USED disk rather than 5GB provisioned per volume. Production environment has no recorded cloud-agent tasks; Railway Automations tool access is not enabled.
+
+**NEXT:** inspect the actual Railway Workspace Usage service/resource breakdown and $5 plan included-credit vs resource charges; identify primary Postgres RAM process vs filesystem cache; use backup/QA evidence before any edits, resizing or removal. Only after explicit Director approval retire obsolete one-off services and unused secondary DB. Do not remove three verified final MP4s, Git source/creative approvals or metadata. No production config modifications or destructive cleanup done during billing audit.
+
+
+
+## 2026-11-17 — VERIFIED PRODUCTION POSTGRES SPACE AUDIT (NO COMPACTION YET)
+
+**Scope complete — read-only audit DONE, storage reclaim NOT STARTED.** Production volume 5 GB; Railway measured **4.112965632 GB used / 0.887034368 GB free**. `pg_database_size` **3,319.41 MiB**, WAL **256 MiB**. Audit GitHub draft [PR #306](https://github.com/stefanVasilev17/media-os/pull/306), read-only script `cumulative-engine/mediaos-postgres-storage-audit-readonly-once.mjs`, source `75fa10fb5c69488f54ae8a28003e93b311f52a5d`, isolated existing Railway QA service `0c87b115-390d-49f2-b048-73e28917f8b0`, SUCCESS deployment `67b5fe02-4a4c-4f6b-9dc2-6c51a515e558`. Direct runtime events `MEDIAOS_POSTGRES_STORAGE_AUDIT_READONLY`, `MEDIAOS_PG_AUDIT_EXACT_COUNTS`, `MEDIAOS_ONLY_THREE_COMPLETE_MP4S_FINAL_STORAGE_QA_PASS` all verified. No PostgreSQL data or settings changed.
+
+**Key finding:** `remotion_render` is physically **3,135.60 MiB** with **3,134.98 MiB TOAST**, but only exactly three Director-selected final MP4 payloads (**314.48 MiB total**) remain. TOAST autovacuum already ran 2026-11-16; estimated dead TOAST chunks 0. Difference ~**2,820.5 MiB** represents possible bloated allocation, **not a proven safely reclaimable amount**. Remaining old MP4 blobs=0 and standalone audio blobs=0. Live `production_preflight_audit` actually contains **44,213 records**, NOT the stale n_live_tup estimate 23; do NOT delete this ~90.64 MiB live table. Cleared-audio tables hold ~70 MiB allocated TOAST while their metadata must remain. `pgstattuple` is not installed, no exact free-page calculation yet. Zero long transactions and replication slots in audit.
+
+**Protected master validation PASS:** EP001 `904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8`, EP002 `56c2a4b7-8bc0-465b-baea-80fa3707e709`, EP003 `63827ce6-2ea8-4853-a61b-8549fe8db967`, each exact size/frames/status. No output media or voice synthesis generated; no production SQL writes, VACUUM, VACUUM FULL, REINDEX or storage expansion. **Actual disk bytes reclaimed in this task: 0**.
+
+**NEXT:** Assess and explicitly approve a backup-verified maintenance and disk-headroom plan **before** any physical table rewrite (`VACUUM FULL`, CLUSTER, etc.). At the current ~887 MB free, **do not start compaction** of the ~3.1 GiB relation; do not manually delete WAL or remove approved full films/source metadata. Full analysis: `docs/engineering/MEDIAOS_POSTGRES_PHYSICAL_STORAGE_AUDIT_20261117.md`. This audit is on a draft feature branch and does not mean the default `main` has caught up.
+
+
+
 ## 2026-11-16 — EP003 PREMIUM ROUTING CORRECTION. SHOT08 V3 AND SHOT09 V2 CANDIDATES
 
 **Director request:** The 2026-11-16 screenshot from SHOT09 V1 showed uncontrolled Bezier spaghetti routes around failed Shard A, newly promoted Primary A and Replica B. Director explicitly requested tier ++ engineered routing for SHOT08, SHOT09 and SHOT10. Executor must implement code in GitHub, build and render candidates via Railway, no Director code work.
