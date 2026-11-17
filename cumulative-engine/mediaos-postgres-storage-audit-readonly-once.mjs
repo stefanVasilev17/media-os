@@ -1,3 +1,4 @@
+console.log('MEDIAOS_PG_AUDIT_BOOT_V2');
 import {Client} from 'pg';
 const P='11111111-1111-1111-1111-111111111111';
 const keep=[
@@ -21,7 +22,7 @@ const checks=[
 const db=new Client({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:13000,application_name:'verify_final_three_film_only_post_cleanup_readonly'});
 const mb=n=>Math.round(Number(n)/1048576*100)/100;
 try{
- await db.connect();await db.query('BEGIN READ ONLY');
+ await db.connect();console.log('MEDIAOS_PG_AUDIT_CONNECTED');await db.query('BEGIN READ ONLY');
  const rows=(await db.query(`select id::text,status,composition_id,render_key,
   octet_length(video_data)::bigint as bytes,duration_in_frames,width,height,fps,
   input_props->>'directorLocked' as director_locked
@@ -42,12 +43,14 @@ try{
   const x=(await db.query(sql)).rows[0].n;
   remaining.push({name,count:x});
  }
+ console.log('MEDIAOS_PG_AUDIT_MASTERS_VERIFIED '+JSON.stringify({masters:rows.length,audioChecks:remaining.length}));
  if(remaining.some(x=>x.count!==0))throw Error('STANDALONE_AUDIO_OR_SPLINE_VIDEO_BYTES_REMAIN_'+JSON.stringify(remaining));
  const stats=(await db.query(`select pg_database_size(current_database())::bigint as database_bytes,
   (select coalesce(sum(size),0)::bigint from pg_ls_waldir()) as wal_bytes,
   current_setting('max_wal_size') as max_wal`)).rows[0];
 
  await db.query("SET LOCAL statement_timeout = '30000ms'");
+ console.log('MEDIAOS_PG_AUDIT_PRE_TABLE_SCAN');
  const tableRows=(await db.query(
   'select n.nspname as schema_name,c.relname as table_name,c.oid::regclass::text as relation_name,'+
   'pg_total_relation_size(c.oid)::bigint as total_bytes,'+
@@ -64,6 +67,7 @@ try{
   "and n.nspname not like 'pg_toast%' "+
   'order by pg_total_relation_size(c.oid) desc limit 35'
  )).rows;
+ console.log('MEDIAOS_PG_AUDIT_TABLES_DONE '+JSON.stringify({count:tableRows.length,top:tableRows.slice(0,5).map(t=>({name:t.relation_name,bytes:t.total_bytes,toast:t.toast_bytes,index:t.index_bytes,dead:t.estimated_dead_tuples}))}));
  const toastRows=(await db.query(
   'select owner.oid::regclass::text as owner_table,toast.oid::regclass::text as toast_relation,'+
   'pg_total_relation_size(toast.oid)::bigint as total_bytes,'+
@@ -77,6 +81,7 @@ try{
   'where owner.relkind in ('+"'r','p'"+') '+
   'order by pg_total_relation_size(toast.oid) desc limit 20'
  )).rows;
+ console.log('MEDIAOS_PG_AUDIT_TOAST_DONE '+JSON.stringify({count:toastRows.length,top:toastRows.slice(0,5).map(t=>({name:t.owner_table,bytes:t.total_bytes,deadChunks:t.estimated_dead_chunks}))}));
  const databaseStats=(await db.query(
   "select current_database() as database_name,pg_database_size(current_database())::bigint as database_bytes,"+
   "(select coalesce(sum(size),0)::bigint from pg_ls_waldir()) as wal_bytes,"+
@@ -97,6 +102,7 @@ try{
   "from remotion_render where project_id=$1::uuid group by 1 order by 1",[P]
  )).rows;
  const castRow=r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,typeof v==='string'&&/bytes|tuples|chunks/.test(k)?Number(v):v]));
+ console.log('MEDIAOS_PG_AUDIT_FINAL_REPORT_START');
  console.log('MEDIAOS_POSTGRES_STORAGE_AUDIT_READONLY '+JSON.stringify({
   mode:'READ_ONLY_NO_VACUUM_NO_DELETE_NO_ALTER',sourceCommit:process.env.RAILWAY_GIT_COMMIT_SHA,
   database:castRow(databaseStats),protectedMastersVerified:3,
