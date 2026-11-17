@@ -1,0 +1,108 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 7,
+  "services": [
+    {
+      "id": "ee798304-f22b-4ebc-9a4d-b6e9cba62377",
+      "name": "shot09-v4-clean-director-render-once",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "7b65572f-6e22-438a-a1c4-748b7b94f6ed",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T14:46:20.296Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "5dc1fcbf-3f00-4efb-897a-1705e8666a3c",
+      "name": "shot09-v4-mp4-status-and-header-verify-once",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "e139ef38-bf02-42b2-8706-b1a1ac4652ae",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-25T15:03:28.248Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "e70e0f23-2827-4e1d-b5d3-7f41b49c10d0",
+      "name": "shot12-director-voice-once",
+      "source": {
+        "image": "ghcr.io/railwayapp/function-bun:1.4.4"
+      },
+      "build": {
+        "builder": "RAILPACK",
+        "buildEnvironment": "V3"
+      },
+      "deploy": {
+        "restartPolicyType": null,
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "9139e529-d7ae-4ab3-ba10-1dcdededa50b",
+        "status": "SUCCESS",
+        "createdAt": "2026-10-27T22:01:28.083Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}
