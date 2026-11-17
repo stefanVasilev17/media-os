@@ -1,0 +1,5 @@
+FROM postgres:18-alpine
+RUN apk add --no-cache aws-cli coreutils
+COPY ops/postgres-reclaim-20261117.sh /usr/local/bin/mediaos-postgres-reclaim-once
+RUN chmod 700 /usr/local/bin/mediaos-postgres-reclaim-once
+CMD ["/usr/local/bin/mediaos-postgres-reclaim-once"]
