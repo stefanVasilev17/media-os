@@ -1,4 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
+## 2026-11-17 — PERMANENT DIRECTOR P0: THREE SERVICES ONLY; NO NEW DATABASE MEDIA BLOBS
+
+**DIRECTOR POLICY LOCKED, not yet a claim of automatic code enforcement.** No repeat of 50 Railway services and 4.113GB / 5GB PostgreSQL. Read `docs/engineering/MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md`. All future EP004+ production/SHOT/QA/render/voice work MUST use the existing `media-os-backend`, `media-os-render-worker`, and `Postgres` only; **never a service per SHOT/test/QA/episode/canary**. One shared bounded job queue, CPU approval, one active expensive render by default and owner-approved cost budgets. No new MP4/audio/frames/screenshots in PostgreSQL `bytea`, TOAST, `remotion_render.video_data` or temporary database cache; future media goes to SHA-verified authenticated object storage with TTL/retention metadata, or **STOP** if writer/reader not yet implemented. Current 3 completed, locked whole-film MP4s remain untouched. Director holds approval for any new persistent paid infrastructure. Never claim Markdown alone enforces caps.
+
+**High-priority NOT YET IMPLEMENTED:** (1) runtime / deployment hard service-count and budget gate, (2) external object-store media writer, reader, signed/auth playback and 3-master legacy fallback, (3) fail-closed DB binary-write guard, (4) auto expiry and bounded scratch cleanup within existing services, (5) disk thresholds 50% warn / 65% block media / 75% protection plus actual billing/forecast observability, (6) tests proving future full episode cannot add any new Railway services or DB media blobs. Current actual state verified separately: PostgreSQL **1.082474496 / 5 GB used** and exactly **3** healthy core services after 2026-11-17 cleanup. **NEXT:** implement policy gates before EP004 production rendering, with protected EP001–EP003 checksums maintained. Full instructions in `AGENTS.md` and policy document. The active branch is NOT yet merged into `main`.
+
+
 
 ## 2026-11-17 — P0 POSTGRESQL DISK CAPACITY RESOLVED: 3.031 GB ACTUALLY FREED
 
