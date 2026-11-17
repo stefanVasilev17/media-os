@@ -1,5 +1,15 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-17 — RAILWAY BILLING P0 AUDIT AND PERSISTED PRODUCTION COST WORK QUEUE
+
+**Director concern:** railway usage counter is already ~$5 between billing period start 2026-11-13 and 2026-11-17. No exact Railway Workspace Usage/invoice itemization is exposed to the connected Railway tools. Treat $5 Hobby subscription/included credits separately from actual project resource usage; do not claim a precise cause/cost split without itemized billing evidence. The Director's work queue is persisted as [GitHub Issue #307](https://github.com/stefanVasilev17/media-os/issues/307), which tracks billing, PostgreSQL RAM, 46 one-off service retirement, secondary PostgreSQL dependency audit, safe disk reclaim, shared render worker, and cost alerts.
+
+**Verified production now:** 50 registered Railway services, 46 of them historical one-off workers; 4 base services = primary Postgres, secondary Postgres-urOW, backend, shared render worker. Many one-off jobs show SUCCESS deployment but no active CPU/RAM in last hour; historical EP003 render workers used multiple GB RAM during Nov14-16. Main Postgres RAM in most recent hour ~3.95 GB average, CPU nearly idle; 24h RAM average ~3.42GB (max ~4.24GB); backend ~0.432GB current and ~0.74GB 24h average; render worker ~0.062GB, secondary DB ~0.064GB; primary disk ~4.113GB and secondary ~0.160GB used. At Railway listed $10/GB-month RAM, a flat 30-day extrapolation of ~4.5GB currently used RAM would be ~$45 RAM/month plus other resources; this is not an actual invoice or the historic $5 breakdown. Railway volume is billed on actual USED disk rather than 5GB provisioned per volume. Production environment has no recorded cloud-agent tasks; Railway Automations tool access is not enabled.
+
+**NEXT:** inspect the actual Railway Workspace Usage service/resource breakdown and $5 plan included-credit vs resource charges; identify primary Postgres RAM process vs filesystem cache; use backup/QA evidence before any edits, resizing or removal. Only after explicit Director approval retire obsolete one-off services and unused secondary DB. Do not remove three verified final MP4s, Git source/creative approvals or metadata. No production config modifications or destructive cleanup done during billing audit.
+
+
+
 ## 2026-11-17 — VERIFIED PRODUCTION POSTGRES SPACE AUDIT (NO COMPACTION YET)
 
 **Scope complete — read-only audit DONE, storage reclaim NOT STARTED.** Production volume 5 GB; Railway measured **4.112965632 GB used / 0.887034368 GB free**. `pg_database_size` **3,319.41 MiB**, WAL **256 MiB**. Audit GitHub draft [PR #306](https://github.com/stefanVasilev17/media-os/pull/306), read-only script `cumulative-engine/mediaos-postgres-storage-audit-readonly-once.mjs`, source `75fa10fb5c69488f54ae8a28003e93b311f52a5d`, isolated existing Railway QA service `0c87b115-390d-49f2-b048-73e28917f8b0`, SUCCESS deployment `67b5fe02-4a4c-4f6b-9dc2-6c51a515e558`. Direct runtime events `MEDIAOS_POSTGRES_STORAGE_AUDIT_READONLY`, `MEDIAOS_PG_AUDIT_EXACT_COUNTS`, `MEDIAOS_ONLY_THREE_COMPLETE_MP4S_FINAL_STORAGE_QA_PASS` all verified. No PostgreSQL data or settings changed.
