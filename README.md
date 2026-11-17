@@ -1,5 +1,15 @@
 # MediaOS — Architectural Thinking
 
+## P0 permanent production cost/storage guard (Director LOCK — 2026-11-17)
+
+**New non-negotiable rule:** [Lean Infrastructure and Media Storage Policy](docs/engineering/MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md). MediaOS uses **exactly three core Railway services** (backend, shared render worker, PostgreSQL); no new per-SHOT, per-QA, per-episode or temporary canary services. New EP004+ binary media **must not be written to PostgreSQL**; an object-storage writer/reader with protected checksums, auth, TTL and shared-worker queue must be tested before production media writes, otherwise fail closed. Preserve three existing completed MP4s; never auto-delete approved or pending-review masters. Resource budget and 50/65/75% disk gates apply. **Policy is locked; runtime enforcement work is tracked as not yet fully implemented.** Source of truth: `AGENTS.md` and `PROJECT_STATE.md`. Existing earlier creation of dozens of Railway one-off workers is **prohibited going forward**.
+
+
+
+**Director-first, agent-executed AI video production operating system.**
+
+
+
 **Director-first, agent-executed AI video production operating system.**
 
 ## Start here — live project handoff
