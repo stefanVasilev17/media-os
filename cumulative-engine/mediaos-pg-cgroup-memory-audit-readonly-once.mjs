@@ -1,5 +1,6 @@
 import {Client} from 'pg';
 
+console.log('MEDIAOS_PG_CGROUP_BOOT_V2');
 const required=[
   ['EP001','904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8',94164846,37703],
   ['EP002','56c2a4b7-8bc0-465b-baea-80fa3707e709',83569046,23446],
@@ -18,10 +19,12 @@ try{
  if(!String(process.env.DATABASE_URL||'').startsWith('postgres'))throw Error('DATABASE_URL_REQUIRED');
  await db.connect();
  console.log('MEDIAOS_PG_CGROUP_MEMORY_AUDIT_CONNECTED');
+ console.log('MEDIAOS_PG_CGROUP_QUERY_STARTED');
  const stat=await optionalRead('/sys/fs/cgroup/memory.stat');
  const current=await optionalRead('/sys/fs/cgroup/memory.current');
  const max=await optionalRead('/sys/fs/cgroup/memory.max');
  const processStatus=await optionalRead('/proc/self/status');
+ console.log('MEDIAOS_PG_CGROUP_READ_DONE '+JSON.stringify({statOk:typeof stat==='string',currentOk:typeof current==='string',maxOk:typeof max==='string',processStatusOk:typeof processStatus==='string'}));
  await db.query("BEGIN READ ONLY");
  await db.query("SET LOCAL statement_timeout='20000ms'");
  const settings=(await db.query("select name,setting,unit from pg_settings where name in ('shared_buffers','work_mem','maintenance_work_mem','autovacuum_work_mem','max_connections','effective_cache_size','huge_pages','max_wal_size','min_wal_size','autovacuum','autovacuum_max_workers','temp_buffers') order by name")).rows;
@@ -31,6 +34,7 @@ try{
  if(films.length!==3)throw Error('PROTECTED_FILM_METADATA_MISSING');
  for(const [ep,id,size,frames] of required){const v=films.find(x=>x.id===id);if(v?.status!=='SUCCEEDED'||!v.has_video||v.duration_in_frames!==frames)throw Error('PROTECTED_FILM_CHANGED_'+ep);}
  await db.query('COMMIT');
+ console.log('MEDIAOS_PG_CGROUP_DB_READ_DONE');
  const ps=typeof processStatus==='string'?Object.fromEntries(processStatus.split('\n').filter(s=>/^(VmRSS|VmSize|RssAnon|RssFile|VmSwap):/.test(s)).map(s=>s.trim().split(':').map(v=>v.trim()))):processStatus;
  console.log('MEDIAOS_PG_CGROUP_MEMORY_AUDIT_SUCCESS '+JSON.stringify({
  mode:'READ_ONLY',memoryCurrentMiB:typeof current==='string'?mib(current.trim()):current,
