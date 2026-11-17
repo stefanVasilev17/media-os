@@ -1,5 +1,17 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-17 — VERIFIED PRODUCTION POSTGRES SPACE AUDIT (NO COMPACTION YET)
+
+**Scope complete — read-only audit DONE, storage reclaim NOT STARTED.** Production volume 5 GB; Railway measured **4.112965632 GB used / 0.887034368 GB free**. `pg_database_size` **3,319.41 MiB**, WAL **256 MiB**. Audit GitHub draft [PR #306](https://github.com/stefanVasilev17/media-os/pull/306), read-only script `cumulative-engine/mediaos-postgres-storage-audit-readonly-once.mjs`, source `75fa10fb5c69488f54ae8a28003e93b311f52a5d`, isolated existing Railway QA service `0c87b115-390d-49f2-b048-73e28917f8b0`, SUCCESS deployment `67b5fe02-4a4c-4f6b-9dc2-6c51a515e558`. Direct runtime events `MEDIAOS_POSTGRES_STORAGE_AUDIT_READONLY`, `MEDIAOS_PG_AUDIT_EXACT_COUNTS`, `MEDIAOS_ONLY_THREE_COMPLETE_MP4S_FINAL_STORAGE_QA_PASS` all verified. No PostgreSQL data or settings changed.
+
+**Key finding:** `remotion_render` is physically **3,135.60 MiB** with **3,134.98 MiB TOAST**, but only exactly three Director-selected final MP4 payloads (**314.48 MiB total**) remain. TOAST autovacuum already ran 2026-11-16; estimated dead TOAST chunks 0. Difference ~**2,820.5 MiB** represents possible bloated allocation, **not a proven safely reclaimable amount**. Remaining old MP4 blobs=0 and standalone audio blobs=0. Live `production_preflight_audit` actually contains **44,213 records**, NOT the stale n_live_tup estimate 23; do NOT delete this ~90.64 MiB live table. Cleared-audio tables hold ~70 MiB allocated TOAST while their metadata must remain. `pgstattuple` is not installed, no exact free-page calculation yet. Zero long transactions and replication slots in audit.
+
+**Protected master validation PASS:** EP001 `904b3075-c5ee-49a3-9d3b-7d4a36f8fbf8`, EP002 `56c2a4b7-8bc0-465b-baea-80fa3707e709`, EP003 `63827ce6-2ea8-4853-a61b-8549fe8db967`, each exact size/frames/status. No output media or voice synthesis generated; no production SQL writes, VACUUM, VACUUM FULL, REINDEX or storage expansion. **Actual disk bytes reclaimed in this task: 0**.
+
+**NEXT:** Assess and explicitly approve a backup-verified maintenance and disk-headroom plan **before** any physical table rewrite (`VACUUM FULL`, CLUSTER, etc.). At the current ~887 MB free, **do not start compaction** of the ~3.1 GiB relation; do not manually delete WAL or remove approved full films/source metadata. Full analysis: `docs/engineering/MEDIAOS_POSTGRES_PHYSICAL_STORAGE_AUDIT_20261117.md`. This audit is on a draft feature branch and does not mean the default `main` has caught up.
+
+
+
 ## 2026-11-16 — EP003 PREMIUM ROUTING CORRECTION. SHOT08 V3 AND SHOT09 V2 CANDIDATES
 
 **Director request:** The 2026-11-16 screenshot from SHOT09 V1 showed uncontrolled Bezier spaghetti routes around failed Shard A, newly promoted Primary A and Replica B. Director explicitly requested tier ++ engineered routing for SHOT08, SHOT09 and SHOT10. Executor must implement code in GitHub, build and render candidates via Railway, no Director code work.
