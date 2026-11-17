@@ -65,3 +65,12 @@ These are **remaining** stages, not a claim of 0% progress for the overall proje
 ## Source-of-truth precedence
 
 For future agent planning, this Roadmap v1 supersedes outdated product tooling statements in the original README and historical planning documents. Historical files are retained for audit but must not dictate the current technical stack. Original episode sources govern their own editorial content; this roadmap governs **future product architecture**.
+
+## P0 implementation governance addendum — 2026-11-17 (does not change the ten Director-LOCKED stages)
+
+The Director has imposed a permanent financial/operational restriction on how all stages, including Stage 4, Stage 6 and Stage 10, may be built. Read [Permanent Lean Infrastructure and Storage Policy](MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md) before any work. **Exactly three normal Railway production services** (`media-os-backend`, `media-os-render-worker`, `Postgres`); no per-SHOT, per-episode, per-QA, preview or voice/test/canary Railway service or volume. Queue bounded work in the existing shared render worker, with explicit Director budget/cost limits and one active costly render by default.
+
+**New EP004+ MP4/audio/frames belong in verified object storage, never in PostgreSQL `bytea`/TOAST.** Database holds state, hashes, object references, lineage, and Director approvals, except immutable legacy EP001/EP002/EP003 film payloads. If external writer, authenticated reader, lifecycle and resource limits are missing, production media writes must fail closed rather than silently use the database or new infrastructure. Temporary artifacts require safe TTL, cleanup, approved content protection and object-size budgets; warn at 50% PG volume use, block new media-producing operations at 65%, protect at 75%. Never auto-buy capacity or regenerate paid voices.
+
+**Release-gate status:** Policy and acceptance criteria are LOCKED; automatic enforcement, object-store streaming/media playback and alerting are **not yet verified deployed**. These are prerequisites to future general-purpose episode rendering, not an excuse to rewrite the ten approved roadmap stages or falsely claim completion.
+
