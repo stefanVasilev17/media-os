@@ -1,0 +1,325 @@
+{
+  "auditedAt": "2026-11-17",
+  "batch": 3,
+  "services": [
+    {
+      "id": "987f9acd-f813-452b-b476-07062f47b2d9",
+      "name": "ep003-shot03-primary-replicas-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot03-primary-replicas-director-v1-20261114",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot03-primary-replicas-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot03-primary-replicas-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT03_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "755edd99-b8ff-4b35-885b-5b2fabbf3263",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T13:49:55.905Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "4093fe18-37b8-44e7-ba3e-06c071b0a5cf",
+      "name": "ep003-shot03-v2-database-glyph-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot03-v2-database-replica-visuals-20261114",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot03-database-replicas-v2-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot03-database-replicas-v2-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT03_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "46a84516-91ef-4dcd-8067-5c44a66d9ef1",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T15:12:35.093Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "fed33017-b03d-48eb-b188-42bbaccfd8f1",
+      "name": "ep003-shot03-v3-primary-clarity-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot03-v3-primary-clarity-20261114",
+        "checkSuites": false
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot03-primary-clarity-v3-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot03-primary-clarity-v3-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT03_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "292d2c18-68c1-4711-905e-6b5b6d1f99ee",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T16:37:12.922Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "2807d145-e9a5-4751-9bea-da5977cd2bde",
+      "name": "ep003-shot03-v4-three-shot-wip-assemble-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot03-v4-three-shot-wip-film-20261114",
+        "commitSha": "bb826c7b139844213615b5fa85bb08df4cee6f81"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot03-v4-three-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot03-v4-three-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT03_V4_RENDER_ID",
+        "EP003_SHOT03_V4_SHA256",
+        "EP003_SHOT03_V4_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "36a49a97-6fb8-4a70-873c-f17e51fea428",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T17:10:24.525Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "7d0c574a-5c00-487c-bd1b-73fea68dbe4d",
+      "name": "ep003-shot03-v4-wording-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot03-v4-wording-wip-20261114",
+        "commitSha": "3a448569f455887cf1547699f4a0fe399dbe2ad2"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot03-wording-v4-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot03-wording-v4-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT03_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "73bbaab0-0645-4939-bc97-53e93051dbf7",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T16:58:51.248Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "f3714fdc-cc1b-4aef-94d5-a679184db6d4",
+      "name": "ep003-shot04-four-shot-wip-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-four-shot-wip-seam-review-20261114",
+        "commitSha": "f70a7214a9f1f2f0a58861383bb5517dd9990453"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "cumulative-engine/**",
+          "Dockerfile.ep003-shot04-four-shot-wip-once",
+          "remotion-engine/ep003-director-locked-visual-sequence.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot04-four-shot-wip-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT04_V1_RENDER_ID",
+        "EP003_SHOT04_V1_SHA256",
+        "EP003_SHOT04_V1_WIP_ASSEMBLY_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "f85ea5b3-3e14-4808-8a79-b070b08a4c33",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T18:08:28.869Z",
+        "url": null
+      },
+      "state": "live"
+    },
+    {
+      "id": "1bfe9829-7015-42c2-ae8b-b8f701f7ca55",
+      "name": "ep003-shot04-v1-review-once",
+      "source": {
+        "repo": "stefanVasilev17/media-os",
+        "branch": "feat/ep003-shot04-read-write-splitting-director-v1-20261114",
+        "commitSha": "4f8472925984c1666726fe1744d4b1169134b556"
+      },
+      "build": {
+        "builder": "DOCKERFILE",
+        "watchPatterns": [
+          "remotion-engine/**",
+          "Dockerfile.ep003-shot04-read-write-splitting-v1-once",
+          "backend/src/main/resources/ep003-director-locked-voice-package-v1.json"
+        ],
+        "buildEnvironment": "V3",
+        "dockerfilePath": "Dockerfile.ep003-shot04-read-write-splitting-v1-once"
+      },
+      "deploy": {
+        "restartPolicyType": "NEVER",
+        "multiRegionConfig": {
+          "sfo": {
+            "numReplicas": 1
+          }
+        },
+        "cronSchedule": null
+      },
+      "variableNames": [
+        "DATABASE_URL",
+        "EP003_SHOT04_DIRECTOR_RENDER_APPROVED"
+      ],
+      "domain": {
+        "serviceDomains": [],
+        "customDomains": []
+      },
+      "proxy": [],
+      "volumes": [],
+      "latestDeployment": {
+        "id": "5e618d7f-369d-45fa-9ef2-86fce166e0d8",
+        "status": "SUCCESS",
+        "createdAt": "2026-11-14T17:54:30.894Z",
+        "url": null
+      },
+      "state": "live"
+    }
+  ]
+}
