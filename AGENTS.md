@@ -1,4 +1,18 @@
 # MediaOS — Agent Startup and Handoff Rules
+
+## 2026-11-17 P0 DIRECTOR LOCK — ZERO SHOT-SPECIFIC SERVERS, ZERO NEW POSTGRESQL MEDIA BLOBS
+
+**PERMANENT HARD RULE for ALL agents and EP004 onward.** Read and enforce [MediaOS Lean Infrastructure & Storage Policy](docs/engineering/MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md) **before any new SHOT, voice, render, QA, deployment or episode work**. The Director explicitly forbids recurring Railway server proliferation and a repeat of PostgreSQL disk filling. **Only 3 normal production services:** `media-os-backend`, `media-os-render-worker`, `Postgres`. **NEVER create a Railway service, database, volume, one-off worker, canary or cron instance for a SHOT/preview/render/test/QA step.** Use the existing shared worker with a bounded, approved job queue, render concurrency 1 and episode/SHOT-scoped source manifests. Additional persistent infrastructure requires *separate explicit Director approval* backed by cost, limits and rollback; normal SHOT production receives no exception.
+
+**POSTGRESQL IS NOT A MEDIA CACHE.** For all **new** EP004+ and newly produced media, DO NOT write MP4, audio, frames, images, binary/base64 blobs or temporary renders into `remotion_render.video_data`, other `bytea`/TOAST fields or new blob tables. Use only approved, SHA-verified object storage with metadata, lifecycle and controlled playback in PostgreSQL. **FAIL CLOSED** if the object-storage writer, reader, auth and TTL are not yet implemented; do not quietly fall back to DB blobs or create more services. The 3 existing approved EP001/EP002/EP003 final MP4s are grandfathered and must NOT be automatically moved/deleted.
+
+**NO MANUAL CLEANUP AS A BUSINESS PROCESS:** temporary artifacts must have bounded size and expiry; safe automatic cleanup runs within existing services, preserving anything pending Director review and all approved master/lock assets. Monitor real PG disk, TOAST and Railway usage; require warning at 50%, block new media production at 65%, protect at 75%. Never auto-expand paid resources or perform `VACUUM FULL` without a verified independent backup, headroom, Director approval and hash QA. Enforce explicit spend and CPU caps; leave producer jobs pending when gates fail. Report actual measured costs, not guesses. **These are now binding Director policies, not claims that all automatic code guards already exist.** Open tasks are listed in the policy and `PROJECT_STATE.md`.
+
+This LOCK **supersedes all older examples of creating one Railway service per SHOT or persisting every render in PostgreSQL**. Do not repeat the 50-service / 4.11GB-of-5GB incident. Preserve all existing creative Director LOCK, authorized voice requirements and source-version provenance.
+
+
+
+
 ## 2026-11-14 P0 CORRECTION — NEVER FREEZE THE LIVING WORLD AT SHOT JOINS
 
 **Verified EP003 V3 defect:** static `previousLastFrameDataUri` photo covers first 55 frames via `1-ease(frame,0,55)`. It hides moving request dots, causing a visible freeze despite 44.65 dB match of the first encoded frame. For ALL subsequent SHOTs, a real pinned source image can cover **FRAME ZERO ONLY**. From frame1, the actual architecture, camera, network packets, node pulses and paths must animate continuously with matching world state. Check first 20–30 decoded frames for actual motion plus source last frame/first frame pixel QA; a single PSNR reading is insufficient. Keep 2s narrator-free breathing animated, do not retime/regenerate a locked Take. Preserve locked EP003 SHOT02 V3 + 3:18.57 master while corrective V4 and whole-film WIP preview await Director approval. [Canonical P0 no-freeze rule](docs/engineering/AT_P0_CONTINUOUS_MOTION_NO_STATIC_PREDECESSOR_COVER_20261114.md).
