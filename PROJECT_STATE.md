@@ -1,5 +1,14 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-18 — P0 VOICE STORAGE: ACTUAL PRODUCTION BACKEND LINEAGE IMPLEMENTATION CANDIDATE, NOT DEPLOYED
+
+**Verified source changes, not live QA:** `feat/p0-voice-object-store-production-integration-20261118` branches from the actual Railway production backend `feat/ep003-owner-b-centered-and-header-safe-20261116`, not default `main` (main and production diverged by 1350/114 commits at inspection). Production Flyway baseline already had V126, so additive `V127__episode_voice_external_object_storage_p0.sql` adds private object metadata, keeps legacy saved Takes and rejects all new BYTEA voice insertion at DB level. `MediaObjectStore` uses pinned AWS Java S3 2.36.0, strict voice namespace, unique Take UUID/key, max 24 MiB per audio, SHA-256 HEAD/readback and cleanup of synthetic pre-paid probe. `EpisodePackageVoiceStudioService` is wired to S3 and a 512 MiB/episode quota, staging request object hashes before the metadata-only Take insertion, protecting unresolved paid retries and preserving existing EP003 SLOW_NATURAL behavior. Director approval verifies actual audio bytes. Existing playback path retains legacy approved DB Take access. New focused JUnit source tests are authored.
+
+**Actually checked:** exact source files fetched back from GitHub, structural assertions that TTS probe runs before paid dispatch, no new BYTEA insert, hard SQL trigger, proper EP003 Slow Natural markers and correct V127 production sequence. **NOT DONE:** complete Java21 Maven tests, actual Flyway deployment, Railway referenced S3 credentials, bucket read/write/no-backup-mutation proof, paid TTS, live browser smoke test, automated final-video-LOCK lifecycle cleanup, object-store MP4 path. All these remain required gates. Do NOT claim production ready. Technical handoff is `docs/engineering/MEDIAOS_VOICE_OBJECT_STORAGE_PRODUCTION_HANDOFF_20261118.md`.
+
+**Operator next:** Review/merge production-lineage source PR after tests; configure existing private bucket variable references (do not reveal keys), keep paid Generate disabled, deploy only existing backend, confirm successful migration and free synthetic object roundtrip plus legacy playback; later enable Director-only paid TTS separately. EP004 source-only import remains independent and no API provider calls were made.
+
+
 ## 2026-11-16 — EP003 PREMIUM ROUTING CORRECTION. SHOT08 V3 AND SHOT09 V2 CANDIDATES
 
 **Director request:** The 2026-11-16 screenshot from SHOT09 V1 showed uncontrolled Bezier spaghetti routes around failed Shard A, newly promoted Primary A and Replica B. Director explicitly requested tier ++ engineered routing for SHOT08, SHOT09 and SHOT10. Executor must implement code in GitHub, build and render candidates via Railway, no Director code work.

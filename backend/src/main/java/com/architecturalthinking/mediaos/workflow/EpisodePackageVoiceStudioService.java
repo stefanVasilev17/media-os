@@ -25,10 +25,12 @@ public class EpisodePackageVoiceStudioService {
     private static final int MAX_CHARS=5000;
     private static final int MAX_WORKING_NARRATION=12000;
     private static final int MAX_TAKES_PER_SHOT=4;
+    private static final long MAX_EPISODE_VOICE_BYTES=512L*1024*1024;
 
     record Shot(UUID id,String shotKey,String episodeKey) {}
     record Revision(int revision,String narration,String voiceDirection) {}
     record Request(UUID shotId,int revision,String narration) {}
+    record AudioRecord(byte[] legacyAudio,String objectKey,String sha256,Long bytes,String status) {}
     public record VoiceTake(UUID id,int revision,int takeNumber,String contentType,
                             String modelId,String voiceId,BigDecimal durationSeconds,
                             boolean hasAlignment,String generatedAt,String deliveryMode) {}
@@ -45,6 +47,7 @@ public class EpisodePackageVoiceStudioService {
     private final ElevenLabsTextToSpeechService elevenLabs;
     private final Ep002VoiceIdentityGuard voiceIdentity;
     private final EpisodePackageAudioDurationProbe durationProbe;
+    private final MediaObjectStore mediaObjects;
     private final ObjectMapper mapper;
     private final TransactionTemplate transaction;
     private final boolean paidGateEnabled;
@@ -52,12 +55,13 @@ public class EpisodePackageVoiceStudioService {
     public EpisodePackageVoiceStudioService(
             JdbcClient jdbc,ElevenLabsTextToSpeechService elevenLabs,
             Ep002VoiceIdentityGuard voiceIdentity,EpisodePackageAudioDurationProbe durationProbe,
-            ObjectMapper mapper,PlatformTransactionManager transactionManager,
+            MediaObjectStore mediaObjects,ObjectMapper mapper,PlatformTransactionManager transactionManager,
             @Value("${mediaos.episode-packages.voice.writes-enabled:false}") boolean paidGateEnabled) {
         this.jdbc=jdbc;
         this.elevenLabs=elevenLabs;
         this.voiceIdentity=voiceIdentity;
         this.durationProbe=durationProbe;
+        this.mediaObjects=mediaObjects;
         this.mapper=mapper;
         this.transaction=new TransactionTemplate(transactionManager);
         this.paidGateEnabled=paidGateEnabled;
@@ -159,6 +163,7 @@ public class EpisodePackageVoiceStudioService {
         boolean tooLong=revision.narration().length()>MAX_CHARS;
         Ep002VoiceIdentityGuard.Check profile=voiceIdentity.inspect("EP002");
         String blocker=!paidGateEnabled?"New episode ElevenLabs generation is disabled by the server spend gate."
+                :!mediaObjects.writable()?"Private verified voice object storage is not ready; paid generation blocked."
                 :!elevenLabs.configured()?"ElevenLabs is not configured."
                 :!profile.verified()?profile.blockedReason()
                 :unresolved?"A prior paid request is IN_FLIGHT or UNCERTAIN. Reconcile it before another attempt."
@@ -282,6 +287,7 @@ public class EpisodePackageVoiceStudioService {
         if(!paidGateEnabled)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "New episode ElevenLabs paid generation is disabled by the server gate.");
+        mediaObjects.verifyPreflightBeforePaid();
         if(!elevenLabs.configured())
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "ElevenLabs TTS is not configured.");
@@ -310,6 +316,16 @@ public class EpisodePackageVoiceStudioService {
                 requireEp003SlowFirst(shot.episodeKey(),selectedMode,attempted||hasTake);
             }
             if(slow)SlowNaturalVoicePrompt.plan(active.narration(),elevenLabs.modelId());
+            Long storedEpisodeBytes=jdbc.sql("""
+                    select coalesce(sum(t.audio_size_bytes),0)
+                    from episode_package_voice_take t
+                    join episode_package_shot s on s.id=t.shot_id
+                    where s.package_id=:package
+                    """).param("package",packageId).query(Long.class).single();
+            if (storedEpisodeBytes + MediaObjectStore.MAX_VOICE_BYTES > MAX_EPISODE_VOICE_BYTES) {
+                throw new ResponseStatusException(HttpStatus.INSUFFICIENT_STORAGE,
+                        "Voice storage safety limit: this episode cannot exceed 512 MiB.");
+            }
             Long count=jdbc.sql("""
                     select count(*) from episode_package_voice_take where shot_id=:shot
                     """).param("shot",shot.id()).query(Long.class).single();
@@ -351,8 +367,27 @@ public class EpisodePackageVoiceStudioService {
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
             BigDecimal duration=durationProbe.measure(audio.audio(),audio.contentType());
             String persistedMode=slow?SlowNaturalVoicePrompt.DELIVERY_MODE:"STANDARD";
+            UUID takeId=UUID.randomUUID();
+            String objectKey=MediaObjectStore.voiceKey(shot.episodeKey(),key,requestId,
+                    takeId,audio.contentType());
+            MediaObjectStore.Stored stored=mediaObjects.uploadVerified(
+                    objectKey,audio.audio(),audio.contentType());
+            transaction.executeWithoutResult(status->{
+                int changed=jdbc.sql("""
+                        update episode_package_voice_request
+                        set uploaded_object_key=:key,uploaded_object_sha256=:sha,
+                            uploaded_object_bytes=:bytes
+                        where request_id=:request and shot_id=:shot
+                          and revision=:revision and status='IN_FLIGHT'
+                        """).param("key",stored.key()).param("sha",stored.sha256())
+                        .param("bytes",stored.byteCount()).param("request",requestId)
+                        .param("shot",reserved.shotId()).param("revision",reserved.revision())
+                        .update();
+                if(changed!=1)throw new IllegalStateException(
+                        "Paid request lost ownership before media object manifest update.");
+            });
             transaction.executeWithoutResult(status->saveTake(
-                    reserved,requestId,audio,duration,persistedMode));
+                    reserved,requestId,takeId,stored,audio,duration,persistedMode));
         } catch(RuntimeException failure) {
             transaction.executeWithoutResult(status->jdbc.sql("""
                     update episode_package_voice_request set status='UNCERTAIN'
@@ -363,16 +398,19 @@ public class EpisodePackageVoiceStudioService {
         return state(packageId,key);
     }
 
-    private void saveTake(Request request,UUID id,
+    private void saveTake(Request request,UUID id,UUID takeId,MediaObjectStore.Stored stored,
                           ElevenLabsTextToSpeechService.GenerationResult audio,
                           BigDecimal duration,String deliveryMode) {
         lockShot(request.shotId());
         String status=jdbc.sql("""
                 select status from episode_package_voice_request
                 where request_id=:request and shot_id=:shot and revision=:revision
+                  and uploaded_object_key=:objectKey and uploaded_object_sha256=:sha
+                  and uploaded_object_bytes=:bytes
                 for update
                 """).param("request",id).param("shot",request.shotId())
-                .param("revision",request.revision())
+                .param("revision",request.revision()).param("objectKey",stored.key())
+                .param("sha",stored.sha256()).param("bytes",stored.byteCount())
                 .query(String.class).single();
         if(!"IN_FLIGHT".equals(status))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -398,17 +436,21 @@ public class EpisodePackageVoiceStudioService {
         }
         jdbc.sql("""
                 insert into episode_package_voice_take(
-                    id,shot_id,revision,take_number,audio,content_type,file_name,
+                    id,shot_id,revision,take_number,content_type,file_name,
                     model_id,voice_id,output_format,provider_request_id,
-                    generated_alignment,duration_seconds
+                    generated_alignment,duration_seconds,
+                    audio_object_key,audio_sha256,audio_size_bytes,storage_status
                 ) values(
-                    :id,:shot,:revision,:number,:audio,:content,:filename,
-                    :model,:voice,:format,:provider,cast(:alignment as jsonb),:duration
+                    :id,:shot,:revision,:number,:content,:filename,
+                    :model,:voice,:format,:provider,cast(:alignment as jsonb),:duration,
+                    :objectKey,:sha,:bytes,'OBJECT_VERIFIED'
                 )
                 """)
-                .param("id",UUID.randomUUID()).param("shot",request.shotId())
+                .param("id",takeId).param("shot",request.shotId())
                 .param("revision",request.revision()).param("number",number)
-                .param("audio",audio.audio()).param("content",audio.contentType())
+                .param("content",audio.contentType())
+                .param("objectKey",stored.key()).param("sha",stored.sha256())
+                .param("bytes",stored.byteCount())
                 .param("filename",name).param("model",audio.modelId())
                 .param("voice",audio.voiceId()).param("format",audio.outputFormat())
                 .param("provider",audio.requestId()).param("alignment",alignment)
@@ -440,6 +482,8 @@ public class EpisodePackageVoiceStudioService {
                 .param("revision",expectedRevision).query(Boolean.class).single();
         if(!valid)throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "The selected audio does not belong to the current narration revision.");
+        // Verify actual bytes before locking a Take as selected; corrupted objects block approval.
+        audio(packageId,key,takeId);
         UUID selected=jdbc.sql("""
                 select take_id from episode_package_voice_choice
                 where shot_id=:shot and revision=:revision
@@ -460,11 +504,26 @@ public class EpisodePackageVoiceStudioService {
 
     public byte[] audio(UUID packageId,String key,UUID takeId) {
         Shot shot=shot(packageId,key,DirectorIdentity.requireDirector());
-        return jdbc.sql("""
-                select audio from episode_package_voice_take where shot_id=:shot and id=:id
+        AudioRecord record=jdbc.sql("""
+                select audio,audio_object_key,audio_sha256,audio_size_bytes,storage_status
+                from episode_package_voice_take where shot_id=:shot and id=:id
                 """).param("shot",shot.id()).param("id",takeId)
-                .query(byte[].class).optional().orElseThrow(()->new ResponseStatusException(
+                .query((rs,row)->new AudioRecord(
+                        rs.getBytes("audio"),rs.getString("audio_object_key"),
+                        rs.getString("audio_sha256"),
+                        rs.getObject("audio_size_bytes",Long.class),
+                        rs.getString("storage_status")))
+                .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"Voice take not found for this Director."));
+        if("OBJECT_VERIFIED".equals(record.status())) {
+            return mediaObjects.downloadVerified(record.objectKey(),
+                    record.sha256(),record.bytes());
+        }
+        if("LEGACY_DB".equals(record.status()) && record.legacyAudio()!=null) {
+            return record.legacyAudio();
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Voice audio has no verified object or recognized protected legacy record.");
     }
 
     public String audioContentType(UUID packageId,String key,UUID takeId) {
