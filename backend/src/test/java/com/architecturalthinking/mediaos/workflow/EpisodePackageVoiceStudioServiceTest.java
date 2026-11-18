@@ -31,6 +31,15 @@ class EpisodePackageVoiceStudioServiceTest {
     }
 
     @Test
+    void ep004NewProductionVoiceDoesNotRequireDeletedLegacyEp001TakeBytes() {
+        assertTrue(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP002"));
+        assertTrue(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP003"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP004"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP005"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity(null));
+    }
+
+    @Test
     void workingNarrationAllowsValidImportedSchemaLengths() {
         assertEquals("Hello world this is a narration!",
                 EpisodePackageVoiceStudioService.validatedNarration(
