@@ -1,6 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
 
+## 2026-11-18 — HOME EP004 IMPORT VISIBILITY BUG FIXED IN PRODUCTION (PR #314)
+
+**Root cause:** The root `#/episodes` page `EpisodeSelectorPage.tsx` queried only `GET /api/v1/episodes` (native workspaces). Director-imported Episode Packages are stored separately and returned by `GET /api/v1/episode-packages`; a successful EP004 source-only import therefore never appeared in the root episode list. This was an application navigation defect, not a reason to re-import, mutate locked source, write direct SQL or generate TTS.
+
+**Fix verified and deployed:** [PR #314](https://github.com/stefanVasilev17/media-os/pull/314) merged SHA `31f72e806e905534ce888024f70cab5b89d9cc85`, and existing backend production deployment `eca1a39c-f0d1-4529-ad53-564b6758fc80` **SUCCESS** with `/actuator/health` PASS. Root homepage now reads native workspaces and Director-owned imported packages independently, deduplicates by episode key, maintains fixed completed EP001–EP003 cards, shows imported EP004 as *source/voice production* (not as completed MP4), and clicking it deep-links to the existing authenticated package page with `SHOT01` Voice Studio expanded. No new service, bucket, volume, SQL migration, paid AI operation or render. 
+**Tests:** 24 frontend test files, 82 tests PASS including 4 new imported-home cases; TypeScript + Vite production build PASS; Java 21 Maven 535 total, 0 failures, 0 errors, 47 skipped in the Railway CI PostgreSQL environment. First attempted build had a TS error in the package detail fetch promise; it was fixed and second build/deployment confirmed SUCCESS.
+**Remaining evidence boundary:** Director stated that the EP004 file was imported. The ChatGPT GitHub/Railway connector cannot read the Director-authenticated `GET /api/v1/episode-packages`, so the actual EP004 `packageId`, persisted shot count, and SHOT01 `canGenerateSlow` must still be confirmed by the Director in the refreshed browser. Do not fabricate package identity or claim live database rows from source-only evidence. If EP004 is still missing after hard refresh, inspect the Director-specific imported list and browser API auth. The independently required EP004 MP4 object-store writer remains unfinished.
+
+
+
 ## 2026-11-18 — P0 VOICE OBJECT STORE PRODUCTION RELEASE PASS; EP004 IMPORT NOT DIRECTOR-VERIFIED
 
 **ENGINEERING AND PRODUCTION VERIFIED:** Voice object-store implementation merged into the *actual* backend production lineage via [PR #313](https://github.com/stefanVasilev17/media-os/pull/313), merge SHA `74c7410721a4ece896d0d7c7470fb99911dcdd4f`. Railway production backend pinned to that SHA, deployment `dc8c981f-dc2b-4243-b811-6d061dfcfa05` **SUCCESS**, `/actuator/health` PASS. Existing services remain ONLY `media-os-backend`, `media-os-render-worker`, `Postgres`. No additional service, bucket or volume created; protected EP001–EP003 masters not modified.
