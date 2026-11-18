@@ -222,7 +222,7 @@ const Routes:React.FC<{
       <circle cx={state.request.x} cy={state.request.y} r={8}
         fill={routeColor} stroke="#C7FBFF" strokeWidth={1.2}
         style={{filter:'drop-shadow(0 0 10px '+routeColor+')'}}/>
-      {state.blocked>.01&&<circle cx={L.gateway.x} cy={EP004_MAIL_ROUTE.at(-1)!.y} r={33}
+      {state.blocked>.01&&<circle cx={L.gateway.x} cy={EP004_MAIL_ROUTE[EP004_MAIL_ROUTE.length-1].y} r={33}
         stroke={C.amber} strokeWidth={2.2} fill="none"
         opacity={state.blocked*(.16+.22*beat)}/>}
     </svg>
