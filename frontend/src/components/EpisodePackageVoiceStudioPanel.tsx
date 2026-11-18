@@ -62,6 +62,13 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
   const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
     &&narration.length<=12000&&direction.trim().length>=8&&direction.length<=1200;
+  const paidConsentDisabled=!data||!data.canGenerate||busy||dirty;
+  const paidConsentReason=!data?'Voice state is still loading.'
+    :!data.canGenerate?(data.blockedReason||'Voice generation is blocked by the server.')
+    :busy?'A voice operation is running. Finish it before confirming another request.'
+    :dirty?'Working narration or voice direction has unsaved changes. Save the revision first.'
+    :!data.canGenerateSlow?'Slow Natural is unavailable for this voice model or narration. Do not generate a paid Standard Take by mistake.'
+    :'';
 
   async function save(){
     if(!canSave||inFlight.current||!data)return;
@@ -192,9 +199,14 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         <h4>Generate new Take · Paid ElevenLabs call</h4>
         <p>Server paid gate: {data.paidGateEnabled?'enabled':'disabled'} ·
           {' '}Latest paid attempt: {label(data.generationStatus)}</p>
-        {data.blockedReason&&<p role="status">{data.blockedReason}</p>}
-        <label className="episode-package-voice-option">
-          <input type="checkbox" checked={consent} disabled={!data.canGenerate||busy||dirty}
+        {paidConsentReason&&<p id={'paid-consent-reason-'+shotKey}
+          className="episode-package-voice-blocker" role="status">
+          {paidConsentDisabled?'Paid consent is disabled: ':'Slow Natural unavailable: '}
+          {paidConsentReason}
+        </p>}
+        <label className={'episode-package-voice-option'+(paidConsentDisabled?' episode-package-voice-option-disabled':'')}>
+          <input type="checkbox" checked={consent} disabled={paidConsentDisabled}
+            aria-describedby={paidConsentReason?'paid-consent-reason-'+shotKey:undefined}
             onChange={e=>setConsent(e.target.checked)}/>
           <span>I authorize one paid {ep003SlowOnly?'Slow Natural first-Take':'ElevenLabs'} generation for this exact narration version.
             No automatic retry or OpenAI visual execution.</span>
