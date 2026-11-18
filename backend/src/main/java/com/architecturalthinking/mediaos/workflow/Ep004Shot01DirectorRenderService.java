@@ -92,6 +92,15 @@ public final class Ep004Shot01DirectorRenderService {
     }
 
     public Readiness readiness(UUID packageId,String sourceCommit) {
+        if(sourceCommit==null||sourceCommit.isBlank()) {
+            sourceCommit=jdbc.sql("""
+                    select source_commit from episode_factory_worker_capability
+                     where build_checked=true
+                       and last_heartbeat_at>now()-interval '120 seconds'
+                       and bundled_scenes::text like '%EP004-SHOT01%'
+                     order by last_heartbeat_at desc limit 1
+                    """).query(String.class).optional().orElse("");
+        }
         Selected value=selected(packageId);
         List<String> blockers=new ArrayList<>();
         if(value==null) {
