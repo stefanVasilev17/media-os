@@ -491,11 +491,26 @@ public class EpisodePackageVoiceStudioService {
 
     public byte[] audio(UUID packageId,String key,UUID takeId) {
         Shot shot=shot(packageId,key,DirectorIdentity.requireDirector());
-        return jdbc.sql("""
-                select audio from episode_package_voice_take where shot_id=:shot and id=:id
+        AudioRecord record=jdbc.sql("""
+                select audio,audio_object_key,audio_sha256,audio_size_bytes,storage_status
+                from episode_package_voice_take where shot_id=:shot and id=:id
                 """).param("shot",shot.id()).param("id",takeId)
-                .query(byte[].class).optional().orElseThrow(()->new ResponseStatusException(
+                .query((rs,row)->new AudioRecord(
+                        rs.getBytes("audio"),rs.getString("audio_object_key"),
+                        rs.getString("audio_sha256"),
+                        rs.getObject("audio_size_bytes",Long.class),
+                        rs.getString("storage_status")))
+                .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"Voice take not found for this Director."));
+        if("OBJECT_VERIFIED".equals(record.status())) {
+            return mediaObjects.downloadVerified(record.objectKey(),
+                    record.sha256(),record.bytes());
+        }
+        if("LEGACY_DB".equals(record.status()) && record.legacyAudio()!=null) {
+            return record.legacyAudio();
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Voice audio has no verified object or recognized protected legacy record.");
     }
 
     public String audioContentType(UUID packageId,String key,UUID takeId) {
