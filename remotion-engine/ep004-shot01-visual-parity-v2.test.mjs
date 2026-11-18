@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {shot10TextWidth} from './shot10-content-fit-layout.mjs';
 import {
   EP004_SHOT01_LAYOUT,EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,
   ep004Shot01LayoutValidate,ep004RoutePosition,ep004Shot01Phase,
@@ -69,4 +70,31 @@ test('moving prelude and final world state must remain frame-deterministic',()=>
   assert.ok(source.includes('pulse(worldFrame'));
   assert.ok(source.includes('frame={state.worldFrame}'));
   assert.ok(source.includes('scale={state.cameraScale}'));
+});
+
+test('all visible panel headings and states fit within premium node text lanes',()=>{
+  const L=EP004_SHOT01_LAYOUT;
+  const gatewayTextWidth=L.gateway.width-40;
+  const gatewayStateWidth=gatewayTextWidth-80-18;
+  const clientWidth=L.client.width-52;
+  const serverWidth=L.server.width-40;
+  const otherWidth=L.otherServices.width-40;
+  const labels=[
+    ['Outlook',29,clientWidth],
+    ['PERSONAL INBOX',15,clientWidth],
+    ['Gateway',27,gatewayTextWidth],
+    ['Shared entry layer',16,gatewayTextWidth],
+    ['ROUTING',17,gatewayStateWidth],
+    ['REQUEST HELD',17,gatewayStateWidth],
+    ['WAITING AT THE BOUNDARY',14,gatewayTextWidth],
+    ['THE PATH CONTINUES',14,gatewayTextWidth],
+    ['Server fleet',22,serverWidth],
+    ['Remaining capacity',13,serverWidth],
+    ['Other services',20,otherWidth],
+    ['Not all unavailable',15,otherWidth]
+  ];
+  for(const [value,size,limit] of labels){
+    assert.ok(shot10TextWidth(value,size)<=limit,
+      'EP004_TEXT_MUST_NOT_ESCAPE_PANEL: '+value);
+  }
 });
