@@ -68,7 +68,7 @@ export function EpisodePackageImportPage(){
       }
       setBusy(true);
       void Promise.all([
-        json<Imported>(fetch(BASE+'/'+encodeURIComponent(packageId),{cache:'no-store'})),
+        fetch(BASE+'/'+encodeURIComponent(packageId),{cache:'no-store'}).then(json<Imported>),
         refresh()
       ]).then(([episode])=>{
         setDetails(episode);
