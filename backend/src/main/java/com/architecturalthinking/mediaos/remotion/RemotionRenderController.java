@@ -1370,7 +1370,7 @@ public class RemotionRenderController {
         };
     }
 
-    private long[] parseRange(String range, int length) {
+    private long[] parseRange(String range, long length) {
         try {
             String value = range.substring("bytes=".length()).split(",", 2)[0].trim();
             String[] parts = value.split("-", 2);
