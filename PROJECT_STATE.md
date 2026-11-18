@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-18 — EP004 SHOT01 V2 LOCAL MP4 VISUAL REVIEW ARTIFACT (NOT NATIVE REMOTION / NOT DIRECTOR LOCKED)
+
+**Current deliverable:** A real local **H.264 MP4** was rendered in the current chat session from a standalone Chromium HTML/CSS/JS **visual-model reconstruction of PR #322** after the native Remotion installation/repo clone were unavailable in the isolated container. Filename `EP004_SHOT01_V2_1080p_Visual_Review.mp4`, exact SHA-256 `d6a0a009f662606e5b82da017e95e9e085a3c4ca8389c978b6636a8ccb43f25b`; approximately **12 MiB**, **1920x1080**, **H.264**, **30 fps**, **2001 frames**, **66.700 s**, verified using local `ffprobe`. Exactly **1001 separately captured native-resolution visual frames** at 15 fps were duplicated to 30 fps by FFmpeg; **30 fps output does NOT mean 30 unique visual samples/s**. Verified decoded-frame sample grid at frames 0, 1, 20, 59, 399, 400, 799, 800, 1200, 1600, 2000; frame 0 vs 20, 20 vs 59 differed and no evident hard cut in sampled concat seams.
+
+**Honest classification:** This is a real *silent visual-review clip* and a locally encoded derivative of the V2 world model. **IT IS NOT** a native Remotion build/render, S3-stored MediaOS render, real approved Take narration or genuine 8/8 alignment-backed final production shot. No ElevenLabs request was made. The standalone Chromium renderer/reconstruction is not a substitute for native Remotion pixel QA or the EP001–EP003 Director-approved MP4 visual parity gate. User's earlier Python/Pillow candidate remains rejected. Only Director may decide whether to accept or reject the V2 visual direction; **no visual LOCK has been recorded**.
+
+**GitHub source:** [Draft PR #322](https://github.com/stefanVasilev17/media-os/pull/322) remains the actual Remotion source-candidate branch, not deployed. Original EP004 narration, approved Take, real provider alignment, and earlier locked episode videos remain unchanged. Only existing three Railway services; no new services, CPU jobs, DB blobs, paid provider calls or S3 writes were created.
+
+**NEXT REQUIRED PRODUCTION GATE:** Validate PR #322 with native Node/React/Remotion/Java21 CI; render actual Remotion stills and compare against protected EP001–EP003 MP4s; obtain authenticated `8/8` true provider cue readiness and verified worker pin; explicit audited one-job Director CPU authorization; render the **native Remotion H264/AAC with protected original approved voice** to private S3, verify its hash, audiovisual sync and seamless next shot, then present to Director for visual approval. Do not mark the local silent derivative as deployed or production-ready.
+
+---
+
+
 ## 2026-11-18 — EP004 SHOT01 V2 PREMIUM VISUAL CORRECTION: SOURCE QA PASS, RENDER STILL GATED
 
 **Director decision:** The separate Python/Pillow EP004 SHOT01 MP4 was visually rejected; it is **NOT a reference, NOT LOCKED, NOT the basis for SHOT02**. The Director explicitly ordered EP001/EP002/EP003 visual parity and render preparation.
