@@ -649,6 +649,51 @@ async function muxEp002SelectedVoice(job, videoPath, inputProps) {
   }
 }
 
+async function muxEp004Shot01ApprovedVoice(job,videoPath,inputProps){
+  if(job.compositionId!=='EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL')return;
+  if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+      ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA
+      ||inputProps.previewOnly!==false
+      ||inputProps.directorCpuApproved!==true
+      ||Number(job.fps)!==30
+      ||Number(job.width)!==1920||Number(job.height)!==1080
+      ||Object.keys(inputProps.cueFrames??{}).length!==8)
+    throw Error('EP004_APPROVED_CUE_SOURCE_OR_WORKER_MISMATCH');
+  const response=await workloadTokens.request(
+    `${BACKEND_URL}/api/v1/remotion/renders/worker/${job.renderId}/ep004-shot01-selected-voice`,
+    {method:'GET',headers:headers({'X-Media-OS-Worker-Source-Sha':FACTORY_SOURCE_SHA})});
+  if(!response.ok){
+    const failure=await response.text();
+    throw Error('EP004_SELECTED_TAKE_NOT_AVAILABLE '+response.status+' '+failure.slice(0,280));
+  }
+  const bytes=Buffer.from(await response.arrayBuffer());
+  if(bytes.length<512||bytes.length>24*1024*1024)
+    throw Error('EP004_SELECTED_TAKE_SIZE_INVALID');
+  const audioFile=path.join(os.tmpdir(),`ep004-shot01-${job.renderId}-take`);
+  const output=path.join(os.tmpdir(),`ep004-shot01-${job.renderId}-mux.mp4`);
+  try{
+    await fs.writeFile(audioFile,bytes);
+    const duration=Number(job.durationInFrames)/30;
+    await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror',
+      '-nostdin','-i',videoPath,'-i',audioFile,
+      '-filter_complex',
+      '[1:a]aresample=48000,adelay=2000:all=1,apad=whole_dur='+duration+'[approved]',
+      '-map','0:v:0','-map','[approved]',
+      '-c:v','copy','-c:a','aac','-b:a','192k','-ar','48000',
+      '-t',String(duration),'-movflags','+faststart','-y',output]);
+    const qa=await probeFactoryMedia(output);
+    if(qa.width!==1920||qa.height!==1080
+        ||Math.abs(qa.duration-duration)>0.55)
+      throw Error('EP004_SHOT01_FINAL_MP4_DIMENSION_OR_DURATION_QA_FAILED');
+    await fs.rename(output,videoPath);
+    console.log('EP004_SHOT01_REAL_APPROVED_TAKE_MUX_QA_PASS renderId='+job.renderId+
+      ' duration='+duration+' source='+FACTORY_SOURCE_SHA);
+  }finally{
+    await fs.rm(audioFile,{force:true}).catch(()=>undefined);
+    await fs.rm(output,{force:true}).catch(()=>undefined);
+  }
+}
+
 async function muxFactorySelectedVoice(job,videoPath,inputProps) {
   if(job.compositionId!=='AT-FACTORY-SHOT')return;
   if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
@@ -1122,6 +1167,9 @@ async function render(job) {
     }
     if (job.compositionId === 'AT-FACTORY-SHOT') {
       await muxFactorySelectedVoice(job,outputPath,inputProps);
+    }
+    if (job.compositionId === 'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL') {
+      await muxEp004Shot01ApprovedVoice(job,outputPath,inputProps);
     }
     if(tierPlusPlusPreflight){
       // ffprobe independently checks H.264/AAC, 30 fps and a real output file.
