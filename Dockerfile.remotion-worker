@@ -40,6 +40,7 @@ COPY backend/src/main/java/com/architecturalthinking/mediaos/system/GlobalCreati
 COPY frontend/src/components/Ep002Shot03RenderPanel.tsx /app/frontend/src/components/Ep002Shot03RenderPanel.tsx
 COPY frontend/src/components/Ep002ProductionFactoryConsole.tsx /app/frontend/src/components/Ep002ProductionFactoryConsole.tsx
 RUN node --check cpu-worker.mjs
+RUN node --test ep004-shot01-world.test.mjs
 RUN node --check ep002-locked-master-assembly.mjs
 RUN node --test ep002-locked-master-assembly.test.mjs
 RUN node --test ep002-director-breathing-master.test.mjs
