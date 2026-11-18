@@ -4,7 +4,7 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const localDir = dirname(fileURLToPath(import.meta.url));
-const rootDir = resolve(localDir, '..', '..');
+const rootDir = resolve(localDir, '..');
 const expected = {
   script: '14c61a7d26f2be23ca30fef2280a4b13ad7ab110fadf32018b2ece6d59cb40a6',
   visual: '4f5f6a3c4b03e45f169222bf26fbc00b76dbdb88f6931fc0048153f4b19e3620',
