@@ -112,7 +112,11 @@ export function ep004Shot01Phase(frame,props) {
   const failover=go('SHOT01_P02_B02',180);
   const question=go('SHOT01_P03_B01',150);
   const towardNext=go('SHOT01_P03_B02',150);
-  const requestProgress=.04+.91*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
+  const preludeStart=Math.max(0,c.SHOT01_P01_B01-50);
+  const preludeArrival=.10*ease((frame-preludeStart)/45);
+  const narrativeTravel=.81*ease((frame-c.SHOT01_P01_B01)/
+    Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
+  const requestProgress=.04+preludeArrival+narrativeTravel;
   const routeProgress=Math.min(.955,requestProgress);
   const secondPacketProgress=failover>0?Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84)):0;
   return Object.freeze({
