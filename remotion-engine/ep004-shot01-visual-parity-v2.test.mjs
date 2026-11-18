@@ -67,6 +67,10 @@ test('moving prelude and final world state must remain frame-deterministic',()=>
   assert.equal(ep004Shot01Phase(20,props).worldFrame,20);
   assert.equal(ep004Shot01Phase(59,props).worldFrame,59);
   assert.equal(ep004Shot01Phase(2000,props).worldFrame,2000);
+  assert.ok(ep004Shot01Phase(20,props).routeProgress>ep004Shot01Phase(0,props).routeProgress,
+    'Opening camera world must include moving request before narration begins');
+  assert.ok(ep004Shot01Phase(59,props).routeProgress>ep004Shot01Phase(20,props).routeProgress,
+    'The 60-frame breathing prelude must not freeze the request marker');
   assert.ok(source.includes('pulse(worldFrame'));
   assert.ok(source.includes('frame={state.worldFrame}'));
   assert.ok(source.includes('scale={state.cameraScale}'));
