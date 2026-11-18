@@ -6,6 +6,14 @@ type Take={
   modelId:string;voiceId:string;durationSeconds:number|null;
   hasAlignment:boolean;generatedAt:string;deliveryMode?:string;
 };
+type Ep004Readiness={
+  ready:boolean;episodeKey:string;shotKey:string;
+  selectedTakeId:string|null;narrationSha256:string|null;
+  sourceSha256:string;durationInFrames:number;
+  cueFrames:Record<string,number>;expectedSourceCommit:string;
+  blockers:string[];nextAction:string;
+};
+type RenderResult={renderId:string;status:string;videoUrl?:string};
 type State={
   packageId:string;shotKey:string;revision:number;narration:string;
   voiceDirection:string;narrationSha256:string;takes:Take[];
@@ -27,6 +35,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   packageId:string;shotKey:string;episodeKey?:string;onStatusChanged?:()=>void;
 }){
   const ep003SlowOnly=episodeKey==='EP003';
+  const ep004Shot01=episodeKey==='EP004'&&shotKey==='SHOT01';
   const base='/api/v1/episode-packages/'+encodeURIComponent(packageId)
     +'/shots/'+encodeURIComponent(shotKey)+'/voice';
   const [data,setData]=useState<State|null>(null);
@@ -38,8 +47,13 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true);
   const [consent,setConsent]=useState(false);
+  const [cpuConsent,setCpuConsent]=useState(false);
+  const [cpuBusy,setCpuBusy]=useState(false);
+  const [cpuReady,setCpuReady]=useState<Ep004Readiness|null>(null);
+  const [renderJob,setRenderJob]=useState<RenderResult|null>(null);
   const inFlight=useRef(false);
   const pendingPaidId=useRef<string|null>(null);
+  const cpuRequestId=useRef<string|null>(null);
 
   const apply=(result:State)=>{
     setData(result);setNarration(result.narration);setDirection(result.voiceDirection);
@@ -58,6 +72,50 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[base]);
+
+  const cpuBase='/api/v1/episode-packages/'+encodeURIComponent(packageId)+
+    '/shots/SHOT01';
+  const reloadCpu=useCallback(async()=>{
+    if(!ep004Shot01)return;
+    const response=await checked<Ep004Readiness>(
+      await fetch(cpuBase+'/render-readiness',{cache:'no-store'}));
+    setCpuReady(response);setCpuConsent(false);
+    const latest=await checked<RenderResult>(await fetch(
+      '/api/v1/remotion/renders/compositions/EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL/latest?profile=REVIEW',
+      {cache:'no-store'}));
+    setRenderJob(latest.status==='EMPTY'?null:latest);
+  },[cpuBase,ep004Shot01]);
+
+  useEffect(()=>{
+    if(ep004Shot01 && data?.approvedCurrentRevision){
+      void reloadCpu().catch(reason=>setError(String(reason)));
+    }else{
+      setCpuReady(null);setCpuConsent(false);
+    }
+  },[ep004Shot01,data?.approvedCurrentRevision,data?.selectedTakeId,reloadCpu]);
+
+  async function renderApprovedShot01(){
+    if(!ep004Shot01||!data?.approvedCurrentRevision||!cpuReady?.ready||
+        !cpuConsent||cpuBusy||busy||dirty)return;
+    if(!window.confirm('Render EP004 SHOT01 as a real 1920x1080 Remotion review MP4 using ONLY the selected approved Slow Natural Take. This consumes bounded shared CPU time and S3 storage, but makes NO ElevenLabs call. Continue with this one approved CPU job?'))return;
+    setCpuBusy(true);setError('');setMessage('');
+    const id=cpuRequestId.current??window.crypto.randomUUID();
+    cpuRequestId.current=id;
+    try{
+      const output=await checked<RenderResult>(await fetch(cpuBase+'/render',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({requestId:id,
+          expectedNarrationSha256:cpuReady.narrationSha256,
+          expectedVoiceTakeId:cpuReady.selectedTakeId,
+          expectedSourceCommit:cpuReady.expectedSourceCommit,
+          maximumFrames:cpuReady.durationInFrames,confirmCpuRender:true})
+      }));
+      cpuRequestId.current=null;
+      setRenderJob(output);setCpuConsent(false);
+      setMessage('One approved SHOT01 Remotion job queued. No voice was regenerated. Refresh render status to see the completed MP4.');
+    }catch(reason){setError(String(reason)+' Do not send another render request while the previous job might exist.');}
+    finally{setCpuBusy(false);}
+  }
 
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
   const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
@@ -225,6 +283,42 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           Actual voice speed is reviewed by the Director after generation.
         </p>
       </div>
+      {ep004Shot01&&data.approvedCurrentRevision&&<section className="episode-package-voice-paid">
+        <h4>SHOT01 · 1080p Remotion Director Review</h4>
+        <p>Only the current approved Take is used. The backend derives every HEAR → SEE cue
+          from saved ElevenLabs provider alignment, not from editorial estimates.
+          The existing shared worker stores the MP4 in private S3.</p>
+        <button type="button" disabled={cpuBusy||busy}
+          onClick={()=>{void reloadCpu().catch(e=>setError(String(e)));}}>
+          <RefreshCw size={14}/> Refresh real voice + worker readiness
+        </button>
+        {cpuReady&&<>
+          <p role="status">Source: EP004 Director-LOCKED ·
+            {' '}Real cues: {Object.keys(cpuReady.cueFrames).length}/8 ·
+            {' '}Frames: {cpuReady.durationInFrames} ·
+            {' '}Worker: {cpuReady.ready?'MATCHED':'NOT READY'}</p>
+          {cpuReady.blockers.length>0&&<p className="episode-package-voice-blocker" role="status">
+            {cpuReady.blockers.join(' · ')}. {cpuReady.nextAction}
+          </p>}
+          <label className="episode-package-voice-option">
+            <input type="checkbox" checked={cpuConsent}
+              disabled={!cpuReady.ready||cpuBusy||busy||dirty}
+              onChange={event=>setCpuConsent(event.target.checked)}/>
+            I approve one bounded shared-CPU render of this current SHOT01 Take.
+            No ElevenLabs generation and no automatic rerun.
+          </label>
+          <button type="button" className="episode-package-voice-primary"
+            disabled={!cpuReady.ready||!cpuConsent||cpuBusy||busy||dirty}
+            onClick={()=>{void renderApprovedShot01();}}>
+            {cpuBusy?'Queuing approved render…':'Render SHOT01 · 1080p Director Candidate'}
+          </button>
+        </>}
+        {renderJob&&<>
+          <p>Render: {renderJob.status} · {renderJob.renderId}</p>
+          {renderJob.videoUrl&&<video controls preload="metadata"
+            src={renderJob.videoUrl} style={{width:'100%',maxWidth:800,aspectRatio:'16 / 9'}}/>}
+        </>}
+      </section>}
     </>}
     {error&&<p className="episode-hub-error" role="alert">{error}</p>}
     {message&&<p className="episode-package-notice" role="status">{message}</p>}
