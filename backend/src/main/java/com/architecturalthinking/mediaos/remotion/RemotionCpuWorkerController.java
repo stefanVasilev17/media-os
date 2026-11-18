@@ -1,5 +1,6 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
 import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
 import com.architecturalthinking.mediaos.workflow.Ep002Shot02EditorialPausePlan;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -33,6 +34,7 @@ public class RemotionCpuWorkerController {
     private final StorageHealthService storage;
     private final String workerKey;
     private final Ep002DirectorVoiceCueService ep002Cues;
+    private final MediaObjectStore mediaObjects;
 
     @Autowired
     public RemotionCpuWorkerController(
@@ -40,18 +42,26 @@ public class RemotionCpuWorkerController {
             ObjectMapper objectMapper,
             StorageHealthService storage,
             @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey,
-            Ep002DirectorVoiceCueService ep002Cues
+            Ep002DirectorVoiceCueService ep002Cues,
+            MediaObjectStore mediaObjects
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.storage = storage;
         this.workerKey = workerKey == null ? "" : workerKey.trim();
         this.ep002Cues = ep002Cues;
+        this.mediaObjects = mediaObjects;
+    }
+
+    public RemotionCpuWorkerController(JdbcClient jdbc, ObjectMapper mapper,
+            StorageHealthService storage, String workerKey,
+            Ep002DirectorVoiceCueService ep002Cues) {
+        this(jdbc, mapper, storage, workerKey, ep002Cues, null);
     }
 
     public RemotionCpuWorkerController(JdbcClient jdbc, ObjectMapper mapper,
                                        StorageHealthService storage, String workerKey) {
-        this(jdbc, mapper, storage, workerKey, null);
+        this(jdbc, mapper, storage, workerKey, null, null);
     }
 
     public record ProgressRequest(int progress) {}
@@ -66,6 +76,7 @@ public class RemotionCpuWorkerController {
             @RequestHeader(value = "X-Media-OS-Target-Composition", required = false) String targetComposition
     ) {
         requireWorker(key, workerId);
+        if(mediaObjects!=null)mediaObjects.requireWritable();
         String scope=targetComposition==null?"":targetComposition.trim();
         if (!scope.isEmpty() && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
@@ -780,24 +791,56 @@ public class RemotionCpuWorkerController {
             throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Rendered Remotion video is larger than 256 MB.");
         }
 
+        if(mediaObjects==null)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "P0_VIDEO_STORAGE_NOT_READY: no external MP4 storage adapter.");
+        mediaObjects.requireWritable();
         storage.requireUploadHeadroom(video.length);
-        int updated = jdbc.sql("""
-                update remotion_render
-                set status='SUCCEEDED', progress=100, media_type='video/mp4', video_data=:video,
-                    size_bytes=:sizeBytes, error=null, finished_at=now(), updated_at=now()
-                where id=:id and project_id=:projectId and status='RUNNING' and worker_id=:workerId
-                """)
-                .param("video", video)
-                .param("sizeBytes", video.length)
-                .param("id", renderId)
-                .param("projectId", PROJECT_ID)
-                .param("workerId", workerId.trim())
-                .update();
-        if (updated == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Render is not owned by this CPU worker.");
-
-        recordFactoryRenderOutput(renderId);
-        linkVoiceWorkflowRender(renderId);
-        return Map.of("renderId", renderId, "status", "READY", "sizeBytes", video.length);
+        UUID owned=jdbc.sql("""
+                select id from remotion_render
+                 where id=:id and project_id=:projectId
+                   and status='RUNNING' and worker_id=:workerId
+                 for update
+                """).param("id",renderId).param("projectId",PROJECT_ID)
+                .param("workerId",workerId.trim())
+                .query(UUID.class).optional().orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.CONFLICT,"Render is no longer owned by the active CPU worker."));
+        MediaObjectStore.Stored uploaded=null;
+        try {
+            uploaded=mediaObjects.uploadVideoVerified(owned,video);
+            int updated=jdbc.sql("""
+                    update remotion_render
+                       set status='SUCCEEDED',progress=100,media_type='video/mp4',
+                           video_data=null,video_object_key=:objectKey,
+                           video_sha256=:sha256,video_object_bytes=:sizeBytes,
+                           video_storage_verified_at=now(),
+                           video_retention_class='DIRECTOR_REVIEW_PROTECTED',
+                           video_expires_at=null,
+                           size_bytes=:sizeBytes,error=null,
+                           finished_at=now(),updated_at=now()
+                     where id=:id and project_id=:projectId
+                       and status='RUNNING' and worker_id=:workerId
+                    """).param("objectKey",uploaded.key())
+                    .param("sha256",uploaded.sha256()).param("sizeBytes",uploaded.byteCount())
+                    .param("id",renderId).param("projectId",PROJECT_ID)
+                    .param("workerId",workerId.trim()).update();
+            if(updated!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "S3-verified MP4 could not be committed to render metadata.");
+            recordFactoryRenderOutput(renderId);
+            linkVoiceWorkflowRender(renderId);
+            return Map.of("renderId",renderId,"status","READY","sizeBytes",uploaded.byteCount(),
+                    "sha256",uploaded.sha256(),"storage","PRIVATE_OBJECT_VERIFIED");
+        }catch(RuntimeException failure){
+            if(uploaded!=null){
+                try{mediaObjects.discardUncommittedVideo(uploaded.key(),
+                        uploaded.sha256(),uploaded.byteCount());}
+                catch(RuntimeException cleanup){
+                    failure.addSuppressed(cleanup);
+                    throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "MP4 metadata transaction failed and S3 cleanup needs operator audit.",failure);
+                }
+            }
+            throw failure;
+        }
     }
 
     @PostMapping("/{renderId}/fail")

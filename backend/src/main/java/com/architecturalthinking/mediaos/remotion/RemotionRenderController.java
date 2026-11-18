@@ -1,9 +1,11 @@
 package com.architecturalthinking.mediaos.remotion;
 
 import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
+import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -178,18 +181,27 @@ public class RemotionRenderController {
     private final ProductionMemoryService productionMemory;
     private final StorageHealthService storage;
     private final String engineVersion;
+    private final MediaObjectStore mediaObjects;
 
+    @Autowired
     public RemotionRenderController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             ProductionMemoryService productionMemory,
-            StorageHealthService storage
+            StorageHealthService storage,
+            MediaObjectStore mediaObjects
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.productionMemory = productionMemory;
         this.storage = storage;
+        this.mediaObjects = mediaObjects;
         this.engineVersion = resolveEngineVersion();
+    }
+
+    public RemotionRenderController(JdbcClient jdbc, ObjectMapper objectMapper,
+            ProductionMemoryService productionMemory, StorageHealthService storage) {
+        this(jdbc,objectMapper,productionMemory,storage,null);
     }
 
     private String resolveEngineVersion() {
@@ -384,7 +396,7 @@ public class RemotionRenderController {
                   and render_key in ('EP003_SHOT01_V1','EP003_SHOT01_V2')
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -416,7 +428,7 @@ public class RemotionRenderController {
                         and render_key='EP003_SHOT02_MOTION_V4'))
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by case when id='78db6f85-ba05-4714-ba4f-fc70d64def88'::uuid then 0 else 1 end,
                          finished_at desc,created_at desc,id desc
@@ -445,7 +457,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -473,7 +485,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -501,7 +513,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -532,7 +544,7 @@ public class RemotionRenderController {
                   and (input_props->>'directorLocked')='false'
                   and (input_props->>'voiceTakeId')='5c3435f6-ae66-4ec3-a6b0-bf1cc8207486'
                   and (input_props->>'previousRenderId')='174c8a8b-3202-4067-95ef-7dab1de11aa3'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -560,7 +572,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=4016
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -588,7 +600,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=4016
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -616,7 +628,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -644,7 +656,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -672,7 +684,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -700,7 +712,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -728,7 +740,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3476
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -755,7 +767,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -782,7 +794,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -809,7 +821,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -836,7 +848,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -863,7 +875,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -890,7 +902,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -917,7 +929,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -954,7 +966,7 @@ public class RemotionRenderController {
                   and (input_props->'sequence'->8->>'renderKey')='EP003_SHOT09_FAILOVER_V3'
                   and (input_props->'sequence'->9->>'renderKey')='EP003_SHOT10_MEASUREMENT_V2'
                   and jsonb_array_length(input_props->'qa')=9
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>2000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -981,7 +993,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and (input_props->>'directorLocked')='true'
                   and (input_props->>'verified')='true'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by (input_props->>'shotCount')::integer desc,
                          finished_at desc,created_at desc,id desc
@@ -1017,7 +1029,7 @@ public class RemotionRenderController {
                   and (input_props->'sequence'->2->>'shotKey')='SHOT03'
                   and (input_props->'sequence'->2->>'directorLocked')='false'
                   and (input_props->'sequence'->2->>'renderKey')='EP003_SHOT03_WORDING_V4'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>2000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -1046,7 +1058,7 @@ public class RemotionRenderController {
                   and (input_props->>'directorLocked')='false'
                   and (input_props->>'verified')='true'
                   and (input_props->>'lockedPrefixShotCount')='1'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -1119,7 +1131,7 @@ public class RemotionRenderController {
                   and composition_id=:compositionId
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -1147,43 +1159,61 @@ public class RemotionRenderController {
     }
 
     @GetMapping("/{renderId}/video")
-    public ResponseEntity<byte[]> video(
+    public ResponseEntity<?> video(
             @PathVariable UUID renderId,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String range
     ) {
-        VideoArtifact artifact = jdbc.sql("""
-                select video_data, coalesce(media_type, 'video/mp4') as media_type
-                from remotion_render
-                where id=:id and project_id=:projectId and status='SUCCEEDED'
-                """)
-                .param("id", renderId)
-                .param("projectId", PROJECT_ID)
-                .query((rs, rowNum) -> new VideoArtifact(rs.getBytes("video_data"), rs.getString("media_type")))
-                .optional()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rendered Remotion preview is not available."));
+        VideoArtifact artifact=jdbc.sql("""
+                select video_data,coalesce(media_type,'video/mp4') as media_type,
+                       video_object_key,video_sha256,video_object_bytes
+                  from remotion_render
+                 where id=:id and project_id=:projectId and status='SUCCEEDED'
+                """).param("id",renderId).param("projectId",PROJECT_ID)
+                .query((rs,n)->new VideoArtifact(
+                        rs.getBytes("video_data"),rs.getString("media_type"),
+                        rs.getString("video_object_key"),rs.getString("video_sha256"),
+                        rs.getObject("video_object_bytes",Long.class)))
+                .optional().orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,"Rendered Remotion preview is not available."));
 
-        byte[] bytes = artifact.bytes();
-        if (bytes == null || bytes.length == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rendered Remotion preview is empty.");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers=new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(artifact.mediaType()));
-        headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
-        headers.setCacheControl("private, max-age=31536000, immutable");
+        headers.set(HttpHeaders.ACCEPT_RANGES,"bytes");
+        headers.setCacheControl("private, no-store");
 
-        if (range == null || !range.startsWith("bytes=")) {
-            headers.setContentLength(bytes.length);
-            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        if(artifact.objectKey()!=null) {
+            if(mediaObjects==null || artifact.objectBytes()==null)
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Private video reader is not configured.");
+            mediaObjects.verifyVideoManifest(artifact.objectKey(),
+                    artifact.sha256(),artifact.objectBytes());
+            long size=artifact.objectBytes();
+            long[] selection=range==null?new long[]{0,size-1}:parseRange(range,size);
+            long from=selection[0],to=selection[1];
+            headers.setContentLength(to-from+1);
+            if(range!=null)headers.set(HttpHeaders.CONTENT_RANGE,
+                    "bytes "+from+"-"+to+"/"+size);
+            StreamingResponseBody body=output->mediaObjects.streamVideoRange(
+                    artifact.objectKey(),artifact.sha256(),size,from,to,output);
+            return new ResponseEntity<>(body,headers,
+                    range==null?HttpStatus.OK:HttpStatus.PARTIAL_CONTENT);
         }
 
-        long[] parsed = parseRange(range, bytes.length);
-        int start = (int) parsed[0];
-        int end = (int) parsed[1];
-        byte[] slice = Arrays.copyOfRange(bytes, start, end + 1);
+        byte[] bytes=artifact.bytes();
+        if(bytes==null||bytes.length==0)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Rendered MP4 has neither a verified S3 object nor legacy bytes.");
+        if(range==null){
+            headers.setContentLength(bytes.length);
+            return new ResponseEntity<>(bytes,headers,HttpStatus.OK);
+        }
+        long[] parsed=parseRange(range,bytes.length);
+        int first=(int)parsed[0],last=(int)parsed[1];
+        byte[] slice=Arrays.copyOfRange(bytes,first,last+1);
         headers.setContentLength(slice.length);
-        headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + bytes.length);
-        return new ResponseEntity<>(slice, headers, HttpStatus.PARTIAL_CONTENT);
+        headers.set(HttpHeaders.CONTENT_RANGE,
+                "bytes "+first+"-"+last+"/"+bytes.length);
+        return new ResponseEntity<>(slice,headers,HttpStatus.PARTIAL_CONTENT);
     }
 
     private CompositionProfile requireComposition(String compositionId) {
@@ -1340,7 +1370,7 @@ public class RemotionRenderController {
         };
     }
 
-    private long[] parseRange(String range, int length) {
+    private long[] parseRange(String range, long length) {
         try {
             String value = range.substring("bytes=".length()).split(",", 2)[0].trim();
             String[] parts = value.split("-", 2);
@@ -1373,7 +1403,7 @@ public class RemotionRenderController {
     ) {}
 
     private record OutputProfile(int width, int height) {}
-    private record VideoArtifact(byte[] bytes, String mediaType) {}
+    private record VideoArtifact(byte[] bytes, String mediaType, String objectKey, String sha256, Long objectBytes) {}
 
     private record RenderRow(
             UUID id,

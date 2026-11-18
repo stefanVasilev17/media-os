@@ -30,5 +30,23 @@ public class MediaObjectStorageStartupSmoke implements ApplicationRunner {
         log.info("MEDIAOS_P0_VOICE_OBJECT_SMOKE_START");
         mediaObjects.verifyPreflightBeforePaid();
         log.info("MEDIAOS_P0_VOICE_OBJECT_SMOKE_PASS put/get/sha/delete, no ElevenLabs call");
+        byte[] sample=new byte[2048];
+        sample[4]='f';sample[5]='t';sample[6]='y';sample[7]='p';
+        for(int i=8;i<sample.length;i++)sample[i]=(byte)(i%251);
+        java.util.UUID probeId=java.util.UUID.randomUUID();
+        MediaObjectStore.Stored video=mediaObjects.uploadVideoVerified(probeId,sample);
+        try {
+            java.io.ByteArrayOutputStream range=new java.io.ByteArrayOutputStream();
+            mediaObjects.streamVideoRange(video.key(),video.sha256(),
+                    video.byteCount(),200,639,range);
+            if(!java.util.Arrays.equals(java.util.Arrays.copyOfRange(sample,200,640),
+                    range.toByteArray()))
+                throw new IllegalStateException("S3 video Range smoke content mismatch.");
+        }catch(java.io.IOException failure){
+            throw new IllegalStateException("S3 video Range smoke failed.",failure);
+        }finally{
+            mediaObjects.discardUncommittedVideo(video.key(),video.sha256(),video.byteCount());
+        }
+        log.info("MEDIAOS_P0_VIDEO_OBJECT_SMOKE_PASS put/sha-full-readback/range/delete, no paid render");
     }
 }
