@@ -408,6 +408,8 @@ public class EpisodePackageVoiceStudioService {
                 .param("revision",expectedRevision).query(Boolean.class).single();
         if(!valid)throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "The selected audio does not belong to the current narration revision.");
+        // Verify actual bytes before locking a Take as selected; corrupted objects block approval.
+        audio(packageId,key,takeId);
         UUID selected=jdbc.sql("""
                 select take_id from episode_package_voice_choice
                 where shot_id=:shot and revision=:revision
