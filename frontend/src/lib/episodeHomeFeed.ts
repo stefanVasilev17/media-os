@@ -23,7 +23,7 @@ export function episodeHomeFeed(
   const native: HomeEpisode[] = workspaces
     .filter(episode => !finished.has(episode.episodeNumber) &&
       !importedKeys.has(episode.episodeNumber))
-    .map(episode => ({kind: 'workspace', number: episode.episodeNumber, episode}));
+    .map(episode => ({kind: 'workspace' as const, number: episode.episodeNumber, episode}));
 
   return [...imported, ...native].sort((a, b) =>
     b.number.localeCompare(a.number, undefined, {numeric: true}));
