@@ -61,6 +61,33 @@ public final class MediaObjectStore implements AutoCloseable {
                 .build();
     }
 
+    /**
+     * Make a free synthetic object roundtrip BEFORE any paid provider dispatch.
+     * The only delete allowed by this adapter is this ephemeral probe key.
+     */
+    public void verifyPreflightBeforePaid() {
+        requireWritable();
+        UUID requestId=UUID.randomUUID();
+        UUID probeId=UUID.randomUUID();
+        String key=voiceKey("EP999","SHOT01",requestId,probeId,"audio/mpeg");
+        byte[] tiny="mediaos-private-voice-probe".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        try {
+            Stored verified=uploadVerified(key,tiny,"audio/mpeg");
+            if(verified.byteCount()!=tiny.length) {
+                throw new IllegalStateException("Voice storage probe byte count mismatch.");
+            }
+        } finally {
+            try {
+                client.deleteObject(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
+                        .bucket(bucket).key(key).build());
+            } catch(RuntimeException cleanupFailure) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Voice storage probe cleanup could not be verified. Paid TTS blocked.",
+                        cleanupFailure);
+            }
+        }
+    }
+
     public boolean readable() {
         return client != null;
     }
