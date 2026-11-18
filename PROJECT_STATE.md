@@ -1,5 +1,22 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-18 — EP004 SHOT01 V2 PREMIUM VISUAL CORRECTION: SOURCE QA PASS, RENDER STILL GATED
+
+**Director decision:** The separate Python/Pillow EP004 SHOT01 MP4 was visually rejected; it is **NOT a reference, NOT LOCKED, NOT the basis for SHOT02**. The Director explicitly ordered EP001/EP002/EP003 visual parity and render preparation.
+
+**Actual implemented branch:** [Draft PR #322](https://github.com/stefanVasilev17/media-os/pull/322), `feat/ep004-shot01-v2-premium-living-world-20261118` against the actual production branch `feat/ep003-owner-b-centered-and-header-safe-20261116`. Remotion `Shot01OrdinaryWorkday.tsx` now reuses real `ATBackground`, `ATCameraRig`, `ATControlledRealismLayer`, `AT_FONT`; the premium node surfaces use the established EP002/EP003 navy, cyan, mint and amber glow/border treatment. One Outlook client, one gateway, server fleet and muted other services share frozen `EP004_SHOT01_LAYOUT` and exact line geometry. One real request marker follows `EP004_MAIL_ROUTE`; no invented secondary moving packet and no static predecessor-frame overlay. Original EP004 source SHA and all eight source cue IDs unchanged; approved narration, selected Take and all earlier episodes untouched.
+
+**Integrated release repairs:** This PR includes [PR #321](https://github.com/stefanVasilev17/media-os/pull/321) canonical persisted Slow Natural mode `ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1` and exact original ElevenLabs alignment index preservation through pause tags; it also includes [PR #319](https://github.com/stefanVasilev17/media-os/pull/319) exact EP004 scoped worker target allowlist (without enabling CPU claims). No paid provider operations or deployment.
+
+**Verified *source-level* QA:** Actual fetched JavaScript modules were evaluated in an isolated V8 runtime: **27 checks PASS, 0 FAIL**, including geometry non-overlap and safe bounds, original locked source hash, eight beat IDs, all **2001 frame states** with zero packet/path mismatches and monotonic request progress, deterministic exit world frame `2000`, restricted worker allowlist and disabled-by-default claims, unchanged provider time-index calculation and conservative text-width checks (12 panel text elements). New `remotion-engine/ep004-shot01-visual-parity-v2.test.mjs` and updated geometry and worker test code committed. This evidence is **not a Remotion bundle/typecheck or real visual pixel QA**.
+
+**Still NOT READY for genuine production MP4:** GitHub Actions / CI had no check runs visible for this PR's source SHA at the audit; full `npm ci`/Node suite, TS typecheck, main + factory Remotion bundles, Java21 Maven verify, browser still/frame inspection and real approved Take + 8/8 provider alignment readiness remain **UNVERIFIED**. Existing Railway worker remains online but claims OFF; private S3 and audited authenticated Director CPU consent are still required before one job. **No new MP4, no SHA, no Director visual LOCK claimed.** Neither `main` nor production have PR #322 implementation.
+
+**NEXT EXACT GATE:** Run Node/TS/main+factory Remotion/Java tests and render actual Remotion candidate still frames (0/1/20/59, real cue times, final) for visual comparison against verified EP001–EP003 locked MP4s. Resolve real alignment blockers on approved Take, source-pin scoped worker in existing three-service Railway footprint, obtain separate one-job Director CPU authorization, render once to private S3, verify 1080p H264/AAC/SHA/path/text/audio/frame seam and show full MP4 for Director review. After real success update this file with job/render ID and MP4 integrity; only Director may LOCK.
+
+---
+
+
 ## 2026-11-18 — EP004 SHOT01 LIVE GATE AUDIT (READ-ONLY VERIFIED; MP4 NOT YET PROVEN)
 
 **What was verified (18 November, 16:50–16:54 UTC):** This audit checked `AGENTS.md` and `PROJECT_STATE.md` on `main`, the Director-LOCKED [Roadmap v1](docs/engineering/MEDIAOS_ROADMAP_V1_DIRECTOR_LOCK_20261102.md), the production-lineage [Voice Object Storage Handoff](docs/engineering/MEDIAOS_VOICE_OBJECT_STORAGE_PRODUCTION_HANDOFF_20261118.md), GitHub merged PRs and actual Railway production inventory/deploy/runtime logs. **At the start of this audit, default `main` was `0447abf26f068488beb18eaebd9de0b55d077638`. This audit was later incorporated as docs-only PR #320; the resulting `main` still DOES NOT contain the current EP004 implementation. Do not promote default-branch code over the diverged live production branch.**
