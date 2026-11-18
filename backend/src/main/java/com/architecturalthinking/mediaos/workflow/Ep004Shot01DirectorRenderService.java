@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public final class Ep004Shot01DirectorRenderService {
@@ -24,6 +26,7 @@ public final class Ep004Shot01DirectorRenderService {
     public static final String SOURCE_SHA="a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365";
     public static final int FPS=30;
     public static final int BREATH_FRAMES=60;
+    private static final Pattern SPOKEN_PAUSE_TAG=Pattern.compile("\\[(?:long\\s+)?pause\\]",Pattern.CASE_INSENSITIVE);
     public static final List<String> BEAT_IDS=List.of(
             "SHOT01_P01_B01","SHOT01_P01_B02","SHOT01_P01_B03",
             "SHOT01_P02_B01","SHOT01_P02_B02","SHOT01_P02_B03",
@@ -48,6 +51,10 @@ public final class Ep004Shot01DirectorRenderService {
             String sourceSha256,int durationInFrames,
             Map<String,Integer> cueFrames,String expectedSourceCommit,
             List<String> blockers,String nextAction) {}
+
+    static boolean isVerifiedSlowNaturalDelivery(String delivery) {
+        return SlowNaturalVoicePrompt.DELIVERY_MODE.equals(delivery);
+    }
 
     record Selected(String sourceSha,String storyJson,int revision,String narration,
                     UUID takeId,String delivery,String alignmentJson,
@@ -109,7 +116,7 @@ public final class Ep004Shot01DirectorRenderService {
                     "Approve a current-revision SHOT01 Take in Voice Studio first.");
         }
         if(!SOURCE_SHA.equals(value.sourceSha()))blockers.add("EP004_ORIGINAL_SOURCE_SHA_MISMATCH");
-        if(!"SLOW_NATURAL".equals(value.delivery()))
+        if(!isVerifiedSlowNaturalDelivery(value.delivery()))
             blockers.add("SELECTED_TAKE_IS_NOT_SLOW_NATURAL");
         if(value.duration()==null || value.duration().signum()<=0)
             blockers.add("MEASURED_TAKE_DURATION_MISSING");
@@ -202,13 +209,16 @@ public final class Ep004Shot01DirectorRenderService {
         JsonNode beats=story.path("visualBeats");
         if(!beats.isArray()||beats.size()!=8)
             throw new IllegalArgumentException("Locked SHOT01 must contain exactly eight beats.");
+        IllegalArgumentException lastFailure=null;
         for(String field:List.of("alignment","normalized_alignment")){
             JsonNode blob=alignment.path(field);
             if(!blob.isObject())continue;
             try{return locateAll(beats,blob,durationFrames);}
-            catch(IllegalArgumentException ignored){ }
+            catch(IllegalArgumentException invalid){lastFailure=invalid;}
         }
-        throw new IllegalArgumentException("The eight approved cue phrases do not all occur in real provider alignment.");
+        throw new IllegalArgumentException(lastFailure==null
+                ?"Real ElevenLabs character/timing alignment is absent."
+                :"Real provider cue verification failed: "+lastFailure.getMessage());
     }
 
     private static Map<String,Integer> locateAll(JsonNode beats,JsonNode aligned,int durationFrames){
@@ -217,26 +227,48 @@ public final class Ep004Shot01DirectorRenderService {
         if(!chars.isArray()||!starts.isArray()||!ends.isArray()||chars.size()<50
                 ||chars.size()!=starts.size()||chars.size()!=ends.size())
             throw new IllegalArgumentException("Provider character/time vector is incomplete.");
-        StringBuilder normalized=new StringBuilder();
-        List<Integer> originalIndices=new ArrayList<>();
+        StringBuilder raw=new StringBuilder();
+        List<Integer> rawOwners=new ArrayList<>();
         double previous=-1;
         for(int i=0;i<chars.size();i++){
             if(!starts.get(i).isNumber()||!ends.get(i).isNumber())
                 throw new IllegalArgumentException("Non-numeric provider time.");
             double first=starts.get(i).asDouble(),last=ends.get(i).asDouble();
-            if(first<0||first<previous||last<first)
+            if(!Double.isFinite(first)||!Double.isFinite(last)
+                    ||first<0||first<previous||last<first)
                 throw new IllegalArgumentException("Provider time vector is unordered.");
             previous=first;
             String value=chars.get(i).asText();
-            String lower=Normalizer.normalize(value,Normalizer.Form.NFKC)
-                    .toLowerCase(java.util.Locale.ROOT);
-            for(int at=0;at<lower.length();at++){
-                char c=lower.charAt(at);
-                if(Character.isLetterOrDigit(c)){
-                    normalized.append(c);
-                    originalIndices.add(i);
+            for(int j=0;j<value.length();j++){
+                raw.append(value.charAt(j));
+                rawOwners.add(i);
+            }
+        }
+        boolean[] pauseTagIndex=new boolean[raw.length()];
+        Matcher pauses=SPOKEN_PAUSE_TAG.matcher(raw);
+        while(pauses.find())
+            for(int at=pauses.start();at<pauses.end();at++)pauseTagIndex[at]=true;
+        StringBuilder normalized=new StringBuilder();
+        List<Integer> originalIndices=new ArrayList<>();
+        for(int at=0;at<raw.length();){
+            int codePoint=Character.codePointAt(raw,at);
+            int width=Character.charCount(codePoint);
+            boolean insidePauseTag=false;
+            for(int offset=0;offset<width;offset++)
+                insidePauseTag|=pauseTagIndex[at+offset];
+            if(!insidePauseTag){
+                String lower=Normalizer.normalize(
+                        new String(Character.toChars(codePoint)),Normalizer.Form.NFKC)
+                        .toLowerCase(java.util.Locale.ROOT);
+                for(int j=0;j<lower.length();j++){
+                    char c=lower.charAt(j);
+                    if(Character.isLetterOrDigit(c)){
+                        normalized.append(c);
+                        originalIndices.add(rawOwners.get(at));
+                    }
                 }
             }
+            at+=width;
         }
         Map<String,Integer> frames=new LinkedHashMap<>();
         int prior=BREATH_FRAMES-1,searchFrom=0;
