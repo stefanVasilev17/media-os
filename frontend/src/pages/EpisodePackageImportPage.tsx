@@ -58,7 +58,24 @@ export function EpisodePackageImportPage(){
 
   async function refresh(){setSaved(await json<Entry[]>(await fetch(BASE,{cache:'no-store'})));}
   useEffect(()=>{
-    if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
+    const params=new URLSearchParams(window.location.hash.split('?',2)[1]||'');
+    const packageId=params.get('packageId');
+    const requestedShot=params.get('shot');
+    if(packageId){
+      if(!/^[0-9a-fA-F-]{36}$/.test(packageId)){
+        setError('Invalid imported episode package ID.');
+        return;
+      }
+      setBusy(true);
+      void Promise.all([
+        fetch(BASE+'/'+encodeURIComponent(packageId),{cache:'no-store'}).then(json<Imported>),
+        refresh()
+      ]).then(([episode])=>{
+        setDetails(episode);
+        setActiveVoiceShot(requestedShot&&episode.shots.some(s=>s.shotKey===requestedShot)
+          ?requestedShot:null);
+      }).catch(e=>setError(String(e))).finally(()=>setBusy(false));
+    }else if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
       setBusy(true);
       void fetch(BASE+'/prepare-ep003',{
         method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
@@ -205,7 +222,8 @@ export function EpisodePackageImportPage(){
       <EpisodeMultiShotExecutionPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}
         onStatusChanged={()=>setReadinessRefresh(v=>v+1)}/>
-      {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
+      {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}
+        open={activeVoiceShot===shot.shotKey ? true : undefined}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
         <p><strong>Original approved narration:</strong> {shot.narration}</p>
         <p><strong>Original voice direction:</strong> {shot.voiceDirection}</p>
