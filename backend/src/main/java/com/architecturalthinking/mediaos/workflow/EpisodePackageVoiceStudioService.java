@@ -81,6 +81,10 @@ public class EpisodePackageVoiceStudioService {
         return direction.trim();
     }
 
+    static boolean requiresLegacyEp001VoiceIdentity(String episodeKey) {
+        return "EP002".equals(episodeKey) || "EP003".equals(episodeKey);
+    }
+
     static void requireDirectorPaidConfirmation(Boolean confirmed,UUID requestId,
                                                  String expectedHash) {
         if(!Boolean.TRUE.equals(confirmed) || requestId==null
@@ -161,7 +165,9 @@ public class EpisodePackageVoiceStudioService {
                 """).param("shot",shot.id()).query(Boolean.class).single();
         boolean firstTakeAlreadyCreated=ep003SlowOnly&&(!takes.isEmpty()||priorEp003Attempt);
         boolean tooLong=revision.narration().length()>MAX_CHARS;
-        Ep002VoiceIdentityGuard.Check profile=voiceIdentity.inspect("EP002");
+        Ep002VoiceIdentityGuard.Check profile=requiresLegacyEp001VoiceIdentity(shot.episodeKey())
+                ?voiceIdentity.inspect("EP002")
+                :new Ep002VoiceIdentityGuard.Check(true,null);
         String blocker=!paidGateEnabled?"New episode ElevenLabs generation is disabled by the server spend gate."
                 :!mediaObjects.writable()?"Private verified voice object storage is not ready; paid generation blocked."
                 :!elevenLabs.configured()?"ElevenLabs is not configured."
@@ -291,8 +297,9 @@ public class EpisodePackageVoiceStudioService {
         if(!elevenLabs.configured())
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "ElevenLabs TTS is not configured.");
-        voiceIdentity.requireVerified("EP002");
         Shot shot=shot(packageId,key,actor);
+        if(requiresLegacyEp001VoiceIdentity(shot.episodeKey()))
+            voiceIdentity.requireVerified("EP002");
         requireEp003SlowFirst(shot.episodeKey(),selectedMode,false);
         Request reserved=transaction.execute(status->{
             lockShot(shot.id());
