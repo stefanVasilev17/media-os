@@ -20,6 +20,37 @@ export const EP004_STANDBY_ROUTE = Object.freeze([
   Object.freeze({x:1520,y:495})
 ]);
 
+export const EP004_SHOT01_LAYOUT = Object.freeze({
+  client:Object.freeze({x:170,y:283,width:424,height:476}),
+  gateway:Object.freeze({x:1076,y:396,width:290,height:275}),
+  server:Object.freeze({x:1520,y:397,width:250,height:204}),
+  otherServices:Object.freeze({x:1520,y:686,width:250,height:121})
+});
+
+export function ep004Shot01LayoutValidate() {
+  const nodes=Object.values(EP004_SHOT01_LAYOUT);
+  for(const rect of nodes){
+    if(rect.x<60||rect.y<130||rect.x+rect.width>1860
+       ||rect.y+rect.height>1010)
+      throw Error('EP004_SHOT01_NODE_OUTSIDE_APPROVED_SAFE_AREA');
+  }
+  for(let i=0;i<nodes.length;i++)
+    for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      if(a.x<b.x+b.width+14 && a.x+a.width+14>b.x
+        && a.y<b.y+b.height+14 && a.y+a.height+14>b.y)
+        throw Error('EP004_SHOT01_PREMIUM_NODE_OVERLAP');
+    }
+  const first=EP004_MAIL_ROUTE[0],last=EP004_MAIL_ROUTE.at(-1);
+  const standbyFirst=EP004_STANDBY_ROUTE[0],standbyLast=EP004_STANDBY_ROUTE.at(-1);
+  if(first.x!==EP004_SHOT01_LAYOUT.client.x+EP004_SHOT01_LAYOUT.client.width
+    ||last.x!==EP004_SHOT01_LAYOUT.gateway.x
+    ||standbyFirst.x!==EP004_SHOT01_LAYOUT.gateway.x+EP004_SHOT01_LAYOUT.gateway.width
+    ||standbyLast.x!==EP004_SHOT01_LAYOUT.server.x)
+    throw Error('EP004_SHOT01_REQUEST_PATH_NOT_CONNECTED_TO_NODES');
+  return true;
+}
+
 const clamp=(n)=>Math.min(1,Math.max(0,n));
 const ease=(n)=>{const t=clamp(n);return t*t*(3-2*t);};
 
