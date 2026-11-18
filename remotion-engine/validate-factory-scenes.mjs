@@ -71,7 +71,7 @@ export async function validateFactoryTree(root=episodeRoot){
     const entries=await fs.readdir(episode,{withFileTypes:true});
     // Older EP003 authored Remotion files are not Factory entrypoints.
     // Validate every source in a directory only after a GeneratedScene exists.
-    if(!entries.some(file=>file.isFile()&&/^Shot[0-9]{2}GeneratedScene\\.tsx$/.test(file.name)))
+    if(!entries.some(file=>file.isFile()&&/^Shot[0-9]{2}GeneratedScene\.tsx$/.test(file.name)))
       continue;
     for(const entity of entries){
       if(!entity.isFile())throw Error('Factory episode-local dependencies must be files only: '+entity.name);
