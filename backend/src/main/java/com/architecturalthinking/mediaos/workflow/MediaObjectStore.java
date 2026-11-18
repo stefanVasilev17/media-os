@@ -80,6 +80,12 @@ public final class MediaObjectStore implements AutoCloseable {
             try {
                 client.deleteObject(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
                         .bucket(bucket).key(key).build());
+                try {
+                    client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+                    throw new IllegalStateException("Probe voice object remains readable after DELETE.");
+                } catch (S3Exception e) {
+                    if(e.statusCode()!=404)throw e;
+                }
             } catch(RuntimeException cleanupFailure) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                         "Voice storage probe cleanup could not be verified. Paid TTS blocked.",
