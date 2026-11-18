@@ -1,5 +1,10 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+## 2026-11-18 P0 VOICE STORAGE PRODUCTION-LINEAGE PATCH (UNDEPLOYED CANDIDATE)
+
+Before any new media/voice source or production action, read `docs/engineering/MEDIAOS_PERMANENT_LEAN_INFRA_AND_STORAGE_POLICY_20261117.md` and `docs/engineering/MEDIAOS_VOICE_OBJECT_STORAGE_PRODUCTION_HANDOFF_20261118.md`. Production backend currently tracks `feat/ep003-owner-b-centered-and-header-safe-20261116`, not `main`. Its Flyway sequence currently ends at V126; the voice object-store candidate is V127. Preserve protected EP003 Slow Natural selection and all locked 3 final masters. No new Railway service/volume/bucket or paid API call. Never write new voice or MP4 BYTEA; the candidate must be built and real-bucket tested before declaring operational. The typed 24 MiB/Take, 512 MiB/episode voice limits, pre-paid S3 probe, remote SHA roundtrip, strict voice-only key validation and DB insertion trigger are source-implemented, **not runtime verified**. Existing bucket credentials are redacted and environment references have not yet been applied. Never permit a live Generate until the private S3 writer and data migration are verified and separate Director paid consent is present. Existing `remotion_render.video_data` pipeline is still a separate P0 blocker for EP004 MP4. The branch must not be used to overwrite any Director-LOCKED creative source. 
+
+
 ## EP003 Director correction — OWNER B vertical start and safe primary heading (2026-11-16)
 
 **Status: NEW SOURCE VERSIONS UNDER REVIEW, NOT LOCKED.** The Director saw that the OWNER B → REPLICA B line appeared offset and that the "INDEPENDENT PRIMARY OWNERS" label touched Auth Service. Fix both **in SHOT08, SHOT09 and SHOT10**, never only in the current shot. New `remotion-engine/ep003-premium-routing-v2.mjs` fixes the vertical start exactly at OWNER B x1771 y667; first segment to x1771 y681; bends externally right without overlapping Replica A; finishes at the top-center of Replica B (1690,852). Two-line 22px heading centered x1744 at baselines 316 and 343; measured text width must remain inside 1585..1885.
