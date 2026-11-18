@@ -34,9 +34,9 @@ test('client, gateway, server fleet and supporting service are non-overlapping, 
 });
 
 test('the only animated mailbox request uses the exact shared polyline, not an off-route detached dot',()=>{
-  assert.match(source,/cx=\\{state\\.request\\.x\\} cy=\\{state\\.request\\.y\\}/);
-  assert.match(source,/points=\\{pathString\\(EP004_MAIL_ROUTE\\)\\}/);
-  assert.doesNotMatch(source,/state\\.secondary\\.x|state\\.secondary\\.y/);
+  assert.ok(source.includes('cx={state.request.x} cy={state.request.y}'));
+  assert.ok(source.includes('points={pathString(EP004_MAIL_ROUTE)}'));
+  assert.ok(!source.includes('state.secondary.x')&&!source.includes('state.secondary.y'));
   const props={
     sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
     durationInFrames:2001,worldStartFrame:0,previewOnly:true
@@ -51,10 +51,10 @@ test('the only animated mailbox request uses the exact shared polyline, not an o
 
 test('the original eight locked narration anchors are never replaced with invented timings',()=>{
   assert.equal(EP004_SHOT01_BEATS.length,8);
-  assert.match(source,/ep004Shot01Validate\\(props\\)/);
-  assert.match(source,/ep004Shot01Phase\\(frame,props\\)/);
-  assert.match(source,/props\\.previewOnly&&/);
-  assert.doesNotMatch(source,/Math\\.random|Date\\.now|setTimeout|staticPredecessor/);
+  assert.ok(source.includes('ep004Shot01Validate(props)'));
+  assert.ok(source.includes('ep004Shot01Phase(frame,props)'));
+  assert.ok(source.includes('props.previewOnly&&'));
+  for(const bad of ['Math.random','Date.now','setTimeout','staticPredecessor'])assert.ok(!source.includes(bad));
 });
 
 test('moving prelude and final world state must remain frame-deterministic',()=>{
@@ -66,7 +66,7 @@ test('moving prelude and final world state must remain frame-deterministic',()=>
   assert.equal(ep004Shot01Phase(20,props).worldFrame,20);
   assert.equal(ep004Shot01Phase(59,props).worldFrame,59);
   assert.equal(ep004Shot01Phase(2000,props).worldFrame,2000);
-  assert.match(source,/pulse\\(worldFrame/);
-  assert.match(source,/frame=\\{state\\.worldFrame\\}/);
-  assert.match(source,/scale=\\{state\\.cameraScale\\}/);
+  assert.ok(source.includes('pulse(worldFrame'));
+  assert.ok(source.includes('frame={state.worldFrame}'));
+  assert.ok(source.includes('scale={state.cameraScale}'));
 });
