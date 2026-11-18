@@ -52,6 +52,8 @@ public class RemotionRenderController {
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
+            Map.entry("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT01_APPROVED_VOICE_REVIEW",null,1920,1080,30,1950,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
                 new CompositionProfile("EP002_DIRECTOR_MASTER", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT01-DRAFT",
@@ -227,7 +229,8 @@ public class RemotionRenderController {
             @PathVariable String compositionId,
             @RequestBody(required = false) RenderRequest request
     ) {
-        if ("EP002-DIRECTOR-MASTER".equals(compositionId)
+        if ("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
+                || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
                 || "EP002-SHOT03-CANDIDATE".equals(compositionId)
@@ -243,6 +246,17 @@ public class RemotionRenderController {
                     "EP002 render inputs must come from the verified selected-voice Director endpoint.");
         }
         return ensureVerifiedRender(compositionId,request);
+    }
+
+    public Map<String,Object> ensureVerifiedEp004Shot01Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("cueFrames"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 Director-selected real Take, exact cues and CPU approval required.");
+        return ensureVerifiedRender("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
     }
 
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
@@ -320,6 +334,8 @@ public class RemotionRenderController {
         int durationInFrames = resolveDurationInFrames(composition, inputProps);
         inputProps.put("durationInFrames", durationInFrames);
         Map<String,Object> semanticRenderProps=new LinkedHashMap<>(inputProps);
+        if("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId))
+            semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
                  ||"EP002-SHOT04-CANDIDATE".equals(compositionId)
