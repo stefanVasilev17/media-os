@@ -5,7 +5,7 @@ import {
   EP004_SHOT01_LOCKED_SOURCE_SHA256,ep004RoutePolyline,
   ep004RoutePosition,ep004Shot01Phase,ep004Shot01Exit,
   ep004Shot01Validate
-} from './ep004-shot01-world.mjs';
+} from './src/components/architectural-thinking/EP004Shot01World.mjs';
 
 const props={
   sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
