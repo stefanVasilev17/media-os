@@ -78,7 +78,8 @@ public class RemotionCpuWorkerController {
         requireWorker(key, workerId);
         if(mediaObjects!=null)mediaObjects.requireWritable();
         String scope=targetComposition==null?"":targetComposition.trim();
-        if (!scope.isEmpty() && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
+        if (!scope.isEmpty() && !"EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(scope)
+                && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
                 && !"EP002-SHOT02-CANDIDATE".equals(scope)
@@ -221,6 +222,17 @@ public class RemotionCpuWorkerController {
                          and input_props->>'masterMode' in ('EXACT_DIRECTOR_APPROVED_STREAM_COPY',
                                    'DIRECTOR_V2_60_FRAME_BREATHS','DIRECTOR_V3_EXACT_FRAME_MATCHED_SEAMS',
                                    'DIRECTOR_V4_CLEAN_CUT_NO_BRIDGE')))
+                  and (composition_id<>'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL'
+                    or (input_props->>'expectedSourceCommit'=:sourceSha
+                      and input_props->>'directorCpuApproved'='true'
+                      and input_props->>'previewOnly'='false'
+                      and input_props->>'sourceSha256'=
+                          'a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365'
+                      and exists(select 1 from episode_factory_worker_capability cap
+                        where cap.worker_id=:workerId and cap.source_commit=:sourceSha
+                          and cap.build_checked=true
+                          and cap.bundled_scenes::text like '%EP004-SHOT01%'
+                          and cap.last_heartbeat_at>now()-interval '120 seconds')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
                       and exists(select 1 from episode_factory_worker_capability cap
