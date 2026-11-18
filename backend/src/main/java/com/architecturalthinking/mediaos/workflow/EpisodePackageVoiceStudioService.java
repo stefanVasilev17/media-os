@@ -235,7 +235,7 @@ public class EpisodePackageVoiceStudioService {
         if(!paidGateEnabled)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "New episode ElevenLabs paid generation is disabled by the server gate.");
-        mediaObjects.requireWritable();
+        mediaObjects.verifyPreflightBeforePaid();
         if(!elevenLabs.configured())
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "ElevenLabs TTS is not configured.");
