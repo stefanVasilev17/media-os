@@ -4,7 +4,7 @@ import {
   ATBackground,ATCameraRig,ATControlledRealismLayer,AT_FONT
 } from '../../components/architectural-thinking';
 import {
-  EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,ep004RoutePolyline,
+  EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_SHOT01_LAYOUT,ep004RoutePolyline,
   ep004Shot01Phase,ep004Shot01Validate
 } from '../../components/architectural-thinking/EP004Shot01World.mjs';
 import type {Ep004Shot01Props} from '../../components/architectural-thinking/EP004Shot01World.mjs';
@@ -22,6 +22,7 @@ const border=(color:string,glow:string)=>({
   overflow:'hidden' as const
 });
 const pathString=(route:typeof EP004_MAIL_ROUTE)=>ep004RoutePolyline(route);
+const L=EP004_SHOT01_LAYOUT;
 
 type MailProps={worldFrame:number;press:number;blocked:number};
 const MailGlyph:React.FC=()=> <svg width={44} height={44} viewBox="0 0 44 44"
@@ -38,7 +39,8 @@ const OutlookClient:React.FC<MailProps>=({worldFrame,press,blocked})=>{
   const active=pulse(worldFrame,.032);
   const busy=.24+.76*press;
   return <div style={{
-    position:'absolute',left:170,top:283,width:424,height:476,
+    position:'absolute',left:L.client.x,top:L.client.y,
+    width:L.client.width,height:L.client.height,
     ...border(blocked>.28?C.amber:'#5DCEE8',
       blocked>.28?'rgba(245,165,90,.20)':'rgba(42,176,223,.21)'),
     padding:'24px 26px',fontFamily:AT_FONT,zIndex:8,
@@ -86,7 +88,7 @@ const OutlookClient:React.FC<MailProps>=({worldFrame,press,blocked})=>{
         color:C.white}}>OPEN INBOX</div>
       <div style={{fontSize:13,color:blocked>.28?C.amber:C.soft,
         fontWeight:780,letterSpacing:'.07em'}}>
-        {blocked>.28?'WAITING':'CONNECTED'}
+        {blocked>.28?'WAITING':'OPENING'}
       </div>
     </div>
     <svg width={29} height={32} viewBox="0 0 29 32" style={{
@@ -106,7 +108,8 @@ const Gateway:React.FC<{reveal:number;blocked:number;worldFrame:number}>=
 ({reveal,blocked,worldFrame})=>{
   const beat=pulse(worldFrame,.027);
   return <div style={{
-    position:'absolute',left:1076,top:396,width:290,height:275,zIndex:8,
+    position:'absolute',left:L.gateway.x,top:L.gateway.y,
+    width:L.gateway.width,height:L.gateway.height,zIndex:8,
     ...border(blocked>.2?C.amber:'#5DCEE8',
       blocked>.2?'rgba(245,165,90,.25)':'rgba(42,176,223,.21)'),
     opacity:.18+.82*reveal,fontFamily:AT_FONT,padding:'25px 20px'
@@ -147,7 +150,8 @@ const ServerFleet:React.FC<{show:number;failover:number;worldFrame:number}>=
   const lit=clamp(failover)*(.6+.4*pulse(worldFrame,.018));
   return <>
     <div style={{
-      position:'absolute',left:1520,top:397,width:250,height:204,
+      position:'absolute',left:L.server.x,top:L.server.y,
+      width:L.server.width,height:L.server.height,
       ...border('#5DCEE8','rgba(42,176,223,.15)'),
       zIndex:8,opacity:show,fontFamily:AT_FONT,padding:'20px 20px'
     }}>
@@ -170,7 +174,8 @@ const ServerFleet:React.FC<{show:number;failover:number;worldFrame:number}>=
       </div>)}
     </div>
     <div style={{
-      position:'absolute',left:1520,top:686,width:250,height:121,
+      position:'absolute',left:L.otherServices.x,top:L.otherServices.y,
+      width:L.otherServices.width,height:L.otherServices.height,
       zIndex:7,opacity:show*.68,
       ...border('#40718F','rgba(50,103,150,.08)'),
       fontFamily:AT_FONT,padding:'18px 20px'
@@ -217,7 +222,7 @@ const Routes:React.FC<{
       <circle cx={state.request.x} cy={state.request.y} r={8}
         fill={routeColor} stroke="#C7FBFF" strokeWidth={1.2}
         style={{filter:'drop-shadow(0 0 10px '+routeColor+')'}}/>
-      {state.blocked>.01&&<circle cx={1076} cy={536} r={33}
+      {state.blocked>.01&&<circle cx={L.gateway.x} cy={EP004_MAIL_ROUTE.at(-1)!.y} r={33}
         stroke={C.amber} strokeWidth={2.2} fill="none"
         opacity={state.blocked*(.16+.22*beat)}/>}
     </svg>
