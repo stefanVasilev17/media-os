@@ -14,7 +14,7 @@ alter table remotion_render
          and video_retention_class is null and video_expires_at is null)
         or
         (video_data is null
-         and video_object_key ~ '^mediaos/media/video/v1/[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}\\.mp4$'
+         and video_object_key ~ '^mediaos/media/video/v1/[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}[.]mp4$'
          and video_sha256 ~ '^[a-f0-9]{64}$'
          and video_object_bytes between 1024 and 268435456
          and video_storage_verified_at is not null
