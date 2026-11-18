@@ -155,7 +155,7 @@ const ServerFleet:React.FC<{show:number;failover:number;worldFrame:number}>=
       ...border('#5DCEE8','rgba(42,176,223,.15)'),
       zIndex:8,opacity:show,fontFamily:AT_FONT,padding:'20px 20px'
     }}>
-      <div style={{fontSize:24,fontWeight:840,color:C.white,
+      <div style={{fontSize:22,fontWeight:840,color:C.white,
         letterSpacing:'-.03em'}}>Server fleet</div>
       <div style={{fontSize:13,fontWeight:700,color:C.soft,marginTop:4}}>
         Remaining capacity
@@ -180,8 +180,8 @@ const ServerFleet:React.FC<{show:number;failover:number;worldFrame:number}>=
       ...border('#40718F','rgba(50,103,150,.08)'),
       fontFamily:AT_FONT,padding:'18px 20px'
     }}>
-      <div style={{fontSize:22,fontWeight:820,color:C.white}}>Other services</div>
-      <div style={{fontSize:16,fontWeight:650,color:C.soft,marginTop:12}}>
+      <div style={{fontSize:20,fontWeight:820,color:C.white}}>Other services</div>
+      <div style={{fontSize:15,fontWeight:650,color:C.soft,marginTop:12}}>
         Not all unavailable
       </div>
     </div>
