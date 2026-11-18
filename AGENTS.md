@@ -1,5 +1,7 @@
 # MediaOS — Agent Startup and Handoff Rules
 
+**REQUIRED EP004 SOURCE INTEGRITY PRECHECK:** Run `node scripts/verify-ep004-foundation.mjs` on a real repository checkout before proposing any EP004 edit, then run `npx tsc --noEmit --project remotion-engine/tsconfig.json` or the established complete Remotion TypeScript check before code merge. The script checks exact immutable source hashes, 15/51/3 inventory, route references, allowed production service names and mandatory startup links. Passing the source check is NOT proof of a clean full TypeScript build, safe runtime media admission or visual render QA.
+
 ## 2026-11-18 EP004 DIRECTOR LOCK — CANONICAL SCRIPT + EPISODE-LEVEL VISUAL WORLD
 
 **DIRECTOR APPROVED AND LOCKED ON 2026-11-18:** EP004 `Why Microsoft 365 Went Down — And Why Failover Made It Worse`. This is the most important current episode. The **English SCRIPT V1 AND Episode-Level Visual Storytelling Pass V1 (all 15 SHOTs, 51 narration paragraphs, 3 Reels, causal map and visual rules) are BOTH DIRECTOR-LOCKED**. This changes the visual-pass status from REVIEW CANDIDATE to DIRECTOR-LOCKED without modifying the approved visual actions. No SHOT-specific actual layout or output MP4 is implied locked yet.
