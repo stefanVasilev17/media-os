@@ -76,6 +76,7 @@ public class RemotionCpuWorkerController {
             @RequestHeader(value = "X-Media-OS-Target-Composition", required = false) String targetComposition
     ) {
         requireWorker(key, workerId);
+        if(mediaObjects!=null)mediaObjects.requireWritable();
         String scope=targetComposition==null?"":targetComposition.trim();
         if (!scope.isEmpty() && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
