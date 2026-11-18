@@ -29,6 +29,7 @@ public class EpisodePackageVoiceStudioService {
     record Shot(UUID id,String shotKey,String episodeKey) {}
     record Revision(int revision,String narration,String voiceDirection) {}
     record Request(UUID shotId,int revision,String narration) {}
+    record AudioRecord(byte[] legacyAudio,String objectKey,String sha256,Long bytes,String status) {}
     public record VoiceTake(UUID id,int revision,int takeNumber,String contentType,
                             String modelId,String voiceId,BigDecimal durationSeconds,
                             boolean hasAlignment,String generatedAt,String deliveryMode) {}
@@ -45,6 +46,7 @@ public class EpisodePackageVoiceStudioService {
     private final ElevenLabsTextToSpeechService elevenLabs;
     private final Ep002VoiceIdentityGuard voiceIdentity;
     private final EpisodePackageAudioDurationProbe durationProbe;
+    private final MediaObjectStore mediaObjects;
     private final ObjectMapper mapper;
     private final TransactionTemplate transaction;
     private final boolean paidGateEnabled;
@@ -52,12 +54,13 @@ public class EpisodePackageVoiceStudioService {
     public EpisodePackageVoiceStudioService(
             JdbcClient jdbc,ElevenLabsTextToSpeechService elevenLabs,
             Ep002VoiceIdentityGuard voiceIdentity,EpisodePackageAudioDurationProbe durationProbe,
-            ObjectMapper mapper,PlatformTransactionManager transactionManager,
+            MediaObjectStore mediaObjects,ObjectMapper mapper,PlatformTransactionManager transactionManager,
             @Value("${mediaos.episode-packages.voice.writes-enabled:false}") boolean paidGateEnabled) {
         this.jdbc=jdbc;
         this.elevenLabs=elevenLabs;
         this.voiceIdentity=voiceIdentity;
         this.durationProbe=durationProbe;
+        this.mediaObjects=mediaObjects;
         this.mapper=mapper;
         this.transaction=new TransactionTemplate(transactionManager);
         this.paidGateEnabled=paidGateEnabled;
@@ -159,6 +162,7 @@ public class EpisodePackageVoiceStudioService {
         boolean tooLong=revision.narration().length()>MAX_CHARS;
         Ep002VoiceIdentityGuard.Check profile=voiceIdentity.inspect("EP002");
         String blocker=!paidGateEnabled?"New episode ElevenLabs generation is disabled by the server spend gate."
+                :!mediaObjects.writable()?"Private verified voice object storage is not ready; paid generation blocked."
                 :!elevenLabs.configured()?"ElevenLabs is not configured."
                 :!profile.verified()?profile.blockedReason()
                 :unresolved?"A prior paid request is IN_FLIGHT or UNCERTAIN. Reconcile it before another attempt."
@@ -282,6 +286,7 @@ public class EpisodePackageVoiceStudioService {
         if(!paidGateEnabled)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "New episode ElevenLabs paid generation is disabled by the server gate.");
+        mediaObjects.requireWritable();
         if(!elevenLabs.configured())
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "ElevenLabs TTS is not configured.");
@@ -351,8 +356,27 @@ public class EpisodePackageVoiceStudioService {
                     ElevenLabsTextToSpeechService.EP001_LOCKED_DELIVERY_TAG);
             BigDecimal duration=durationProbe.measure(audio.audio(),audio.contentType());
             String persistedMode=slow?SlowNaturalVoicePrompt.DELIVERY_MODE:"STANDARD";
+            UUID takeId=UUID.randomUUID();
+            String objectKey=MediaObjectStore.voiceKey(shot.episodeKey(),key,requestId,
+                    takeId,audio.contentType());
+            MediaObjectStore.Stored stored=mediaObjects.uploadVerified(
+                    objectKey,audio.audio(),audio.contentType());
+            transaction.executeWithoutResult(status->{
+                int changed=jdbc.sql("""
+                        update episode_package_voice_request
+                        set uploaded_object_key=:key,uploaded_object_sha256=:sha,
+                            uploaded_object_bytes=:bytes
+                        where request_id=:request and shot_id=:shot
+                          and revision=:revision and status='IN_FLIGHT'
+                        """).param("key",stored.key()).param("sha",stored.sha256())
+                        .param("bytes",stored.byteCount()).param("request",requestId)
+                        .param("shot",reserved.shotId()).param("revision",reserved.revision())
+                        .update();
+                if(changed!=1)throw new IllegalStateException(
+                        "Paid request lost ownership before media object manifest update.");
+            });
             transaction.executeWithoutResult(status->saveTake(
-                    reserved,requestId,audio,duration,persistedMode));
+                    reserved,requestId,takeId,stored,audio,duration,persistedMode));
         } catch(RuntimeException failure) {
             transaction.executeWithoutResult(status->jdbc.sql("""
                     update episode_package_voice_request set status='UNCERTAIN'
