@@ -320,16 +320,19 @@ public class EpisodePackageVoiceStudioService {
         return state(packageId,key);
     }
 
-    private void saveTake(Request request,UUID id,
+    private void saveTake(Request request,UUID id,UUID takeId,MediaObjectStore.Stored stored,
                           ElevenLabsTextToSpeechService.GenerationResult audio,
                           BigDecimal duration) {
         lockShot(request.shotId());
         String status=jdbc.sql("""
                 select status from episode_package_voice_request
                 where request_id=:request and shot_id=:shot and revision=:revision
+                  and uploaded_object_key=:objectKey and uploaded_object_sha256=:sha
+                  and uploaded_object_bytes=:bytes
                 for update
                 """).param("request",id).param("shot",request.shotId())
-                .param("revision",request.revision())
+                .param("revision",request.revision()).param("objectKey",stored.key())
+                .param("sha",stored.sha256()).param("bytes",stored.byteCount())
                 .query(String.class).single();
         if(!"IN_FLIGHT".equals(status))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -348,17 +351,21 @@ public class EpisodePackageVoiceStudioService {
         }
         jdbc.sql("""
                 insert into episode_package_voice_take(
-                    id,shot_id,revision,take_number,audio,content_type,file_name,
+                    id,shot_id,revision,take_number,content_type,file_name,
                     model_id,voice_id,output_format,provider_request_id,
-                    generated_alignment,duration_seconds
+                    generated_alignment,duration_seconds,
+                    audio_object_key,audio_sha256,audio_size_bytes,storage_status
                 ) values(
-                    :id,:shot,:revision,:number,:audio,:content,:filename,
-                    :model,:voice,:format,:provider,cast(:alignment as jsonb),:duration
+                    :id,:shot,:revision,:number,:content,:filename,
+                    :model,:voice,:format,:provider,cast(:alignment as jsonb),:duration,
+                    :objectKey,:sha,:bytes,'OBJECT_VERIFIED'
                 )
                 """)
-                .param("id",UUID.randomUUID()).param("shot",request.shotId())
+                .param("id",takeId).param("shot",request.shotId())
                 .param("revision",request.revision()).param("number",number)
-                .param("audio",audio.audio()).param("content",audio.contentType())
+                .param("content",audio.contentType())
+                .param("objectKey",stored.key()).param("sha",stored.sha256())
+                .param("bytes",stored.byteCount())
                 .param("filename",name).param("model",audio.modelId())
                 .param("voice",audio.voiceId()).param("format",audio.outputFormat())
                 .param("provider",audio.requestId()).param("alignment",alignment)
@@ -410,11 +417,26 @@ public class EpisodePackageVoiceStudioService {
 
     public byte[] audio(UUID packageId,String key,UUID takeId) {
         Shot shot=shot(packageId,key,DirectorIdentity.requireDirector());
-        return jdbc.sql("""
-                select audio from episode_package_voice_take where shot_id=:shot and id=:id
+        AudioRecord record=jdbc.sql("""
+                select audio,audio_object_key,audio_sha256,audio_size_bytes,storage_status
+                from episode_package_voice_take where shot_id=:shot and id=:id
                 """).param("shot",shot.id()).param("id",takeId)
-                .query(byte[].class).optional().orElseThrow(()->new ResponseStatusException(
+                .query((rs,row)->new AudioRecord(
+                        rs.getBytes("audio"),rs.getString("audio_object_key"),
+                        rs.getString("audio_sha256"),
+                        rs.getObject("audio_size_bytes",Long.class),
+                        rs.getString("storage_status")))
+                .optional().orElseThrow(()->new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"Voice take not found for this Director."));
+        if("OBJECT_VERIFIED".equals(record.status())) {
+            return mediaObjects.downloadVerified(record.objectKey(),
+                    record.sha256(),record.bytes());
+        }
+        if("LEGACY_DB".equals(record.status()) && record.legacyAudio()!=null) {
+            return record.legacyAudio();
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Voice audio has no verified object or recognized protected legacy record.");
     }
 
     public String audioContentType(UUID packageId,String key,UUID takeId) {
