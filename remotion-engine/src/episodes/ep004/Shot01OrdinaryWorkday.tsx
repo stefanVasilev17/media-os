@@ -134,7 +134,7 @@ const Gateway:React.FC<{reveal:number;blocked:number;worldFrame:number}>=
           opacity={.38+.38*beat}/>)}
       </svg>
       <div style={{color:blocked>.2?C.amber:C.mint,
-        fontWeight:830,fontSize:17,lineHeight:1.38}}>
+        fontWeight:830,fontSize:15,lineHeight:1.42}}>
         {blocked>.2?'REQUEST HELD':'REQUEST ROUTING'}
       </div>
     </div>
