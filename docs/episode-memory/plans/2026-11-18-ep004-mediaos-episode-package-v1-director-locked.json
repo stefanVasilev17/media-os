@@ -1,0 +1,1775 @@
+{
+  "schemaVersion": "mediaos.episode-package.v1",
+  "episode": {
+    "episodeKey": "EP004",
+    "title": "Why Microsoft 365 Went Down — And Why Failover Made It Worse",
+    "language": "en",
+    "audience": "Advanced US/UK engineering and architecture professionals. Cloud reliability, distributed systems, senior engineers, architects, technical decision makers. Accessible storytelling without false infrastructure specifics.",
+    "targetDurationSeconds": 1200,
+    "subjectCluster": "Cloud Infrastructure Reliability / Microsoft 365 Failover / Distributed Systems"
+  },
+  "sourceApproval": {
+    "script": "DIRECTOR_APPROVED",
+    "visualStoryline": "DIRECTOR_APPROVED",
+    "approvalNotes": "Director explicitly locked script and Episode-Level Visual Storytelling V1 on 2026-11-18. Canonical script SHA256=14c61a7d26f2be23ca30fef2280a4b13ad7ab110fadf32018b2ece6d59cb40a6; original visual pass SHA256=4f5f6a3c4b03e45f169222bf26fbc00b76dbdb88f6931fc0048153f4b19e3620. Narration contains exact spoken words from script, with only markdown emphasis and editorial [REEL] markers removed. No TTS/render/import paid consent is implied."
+  },
+  "visualIdentity": {
+    "styleReference": "Architectural Thinking — Remotion Living Architecture World / EP004 Episode-Level Director LOCK 2026-11-18",
+    "continuityRules": "ONE WORLD. ONE LIVING MAP. MANY ENGINEERING STORIES. 1920x1080 at 30 fps. Original Director-LOCKED 15 SHOT, 51 paragraph visual story is authoritative. Zero nested decorative containers; no text/icon overflow, unreadable microcopy, generic floating information cards, labels crossing nodes, or panels covering active routes. Readable main labels 20px+ and secondary labels 18px+ at 1080p. Floating glossary is allowed only for actual spoken and defined technical terms, with adequate 5.5s readable dwell; omit if not possible. Outlook cyan, Teams violet; amber waiting, red failed, green completed request. Health and capacity must remain separate, avoiding invented Microsoft performance thresholds. Packets use exactly the same authoritative path geometry, ports, world transforms and moving camera as their visible connectors. New requests take newly selected paths; existing packets never teleport. Each SHOT begins at the preceding approved MP4 actual final decoded frame, including camera, nodes and in-flight packets; no still-image cover after frame zero and no frozen 2-second intro. Director-approved narrator-free breathing is moving, not static. Preserve narration source and real future word-level alignment. No actual physical Microsoft topology claimed: schematic node counts, queues and regional borders are educational reconstruction. The source visual plan covers the first human inbox error, normal failover, Teams reroute, July bug, 14% reduced capacity, contention, >80% fleet cascade, failed containment, health versus readiness, restart relapse, UTC timeline, mitigation, general design principles and human resolution. Three self-contained Reels: SHOT07, SHOT10 and SHOT13. Reel crops must retain causal path in 9:16. Only this Director-LOCKED episode source is approved; no voice generation, render, deployment or infrastructure spending is automatically authorized.",
+    "reuseAssetKeys": [
+      "ATBackground",
+      "ATCameraRig",
+      "ATPrimaryNode",
+      "ATConnectionPath",
+      "ATFlowArrow"
+    ]
+  },
+  "shots": [
+    {
+      "shotKey": "SHOT01",
+      "title": "An Ordinary Workday Stops",
+      "editorialDurationSeconds": 65,
+      "narration": "On November twelfth, twenty twenty-six, millions of people depended on Microsoft 365 to do something ordinary: open an inbox, read a message, or send an important reply. For many, Outlook could not reach their mailbox. Some messages were delayed. Parts of other Microsoft 365 services were affected too, even when their main features still worked. From the outside, it looked like a cloud service had simply gone down.\n\nBut behind that familiar error was a much stranger chain of events. Microsoft had systems designed to move traffic away from trouble. That is normally how a large cloud platform stays available. Yet during this incident, moving work toward the remaining servers helped spread the failure. A server could come back online, receive traffic, and become unresponsive again.\n\nThe central question is not just why Microsoft 365 stopped working. It is this: how can the very mechanism meant to rescue a system become part of the failure?",
+      "voiceDirection": "Director-LOCKED VO mood: quietly urgent → curious; leave short silence after the opening consequence. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Enter via a human action. Start a question we will answer only after the cascade and recovery. **First frame:** a familiar small Outlook mailbox view inside the recurring client anchor, not a fake widescreen browser mockup. **Exit frame:** blocked request corridor toward distant gateways, ready to open into the failover demonstration in SHOT02.",
+      "startingFrame": "Start with the established Human/Outlook client and one moving mailbox request on a visible connector. Introduce only the architecture needed for the first human problem.",
+      "cameraDirection": "Start with one existing Human/Client anchor. Outlook attempts a mailbox connection; a single request follows a visible cyan connector toward a dim gateway and stops on the route. Keep other Microsoft 365 services subdued, not all marked failed. As the narrator says *Microsoft 365*, camera pulls out just enough to suggest an unseen shared entry layer. No generic status cards.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT01_P01_B01",
+          "cueAnchor": "On November twelfth, twenty twenty-six, millions of people",
+          "direction": "Paragraph P01. Visual phase 1/3. Show one ordinary moment: unread mail rows, cursor selects inbox, a deliberate mailbox request starts. The camera does not jump to a dramatic red screen.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P01_B02",
+          "cueAnchor": "or send an important reply. For many, Outlook",
+          "direction": "Paragraph P01. Visual phase 2/3. Track the cyan request along a real curved connector from client toward the partly obscured gateway boundary. As the packet reaches the boundary, movement slows and ends in an amber waiting state, then marks the route unavailable.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P01_B03",
+          "cueAnchor": "were affected too, even when their main features",
+          "direction": "Paragraph P01. Visual phase 3/3. Under the narrator's delayed-email phrase, one small message token stays waiting without claiming that every Microsoft 365 application was down. Other product symbols remain QUIET, with no red failure state. The viewer understands exactly one observable consequence: mailbox access failed.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P02_B01",
+          "cueAnchor": "But behind that familiar error was a much",
+          "direction": "Paragraph P02. Visual phase 1/3. While the client remains at the left edge, pull back slightly to reveal a small cluster of potential gateway endpoints, still mostly dim.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P02_B02",
+          "cueAnchor": "away from trouble. That is normally how a",
+          "direction": "Paragraph P02. Visual phase 2/3. A cyan path that seems to offer a second route begins to illuminate; it does not magically transport the earlier packet. Briefly show a conceptual endpoint switching red → amber restart → green response and then amber/red again as a subtle foreshadow, without giving the mechanism away.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P02_B03",
+          "cueAnchor": "toward the remaining servers helped spread the failure.",
+          "direction": "Paragraph P02. Visual phase 3/3. Use one restrained motion loop, not three concurrent flashing alerts. The viewer should now wonder why an apparently recovered machine fails again.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P03_B01",
+          "cueAnchor": "The central question is not just why Microsoft",
+          "direction": "Paragraph P03. Visual phase 1/2. Hold a composition that places the blocked client on the left, a routing junction in focus, and the still-unrevealed alternate gateway corridor on the right. One intact standby path is visible but dim.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT01_P03_B02",
+          "cueAnchor": "how can the very mechanism meant to rescue",
+          "direction": "Paragraph P03. Visual phase 2/2. A short light travels along the router's choice path, then halts before the unknown fleet. No giant question headline. A natural audio pause gives the question weight; the camera starts its gentle approach toward the routing junction, continuing into SHOT02.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "No hard reset. Transform the active human request into a clean conceptual routing example at the same world location. The real-world outage is temporarily paused while we teach the necessary concept.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT02",
+      "title": "The Promise Of Failover",
+      "editorialDurationSeconds": 70,
+      "narration": "Imagine a service with several servers that can handle the same kind of request. Under normal conditions, a traffic router spreads the work between them. If one server stops responding, the router can stop choosing that server and send new requests toward another destination. The user may notice little or nothing. We call that failover: using an alternative path or destination when the original one cannot do its job.\n\nThis is not a bad idea. It is one of the foundations of reliable cloud systems. Hardware fails. Software fails. Networks fail. A design that depends on every server staying healthy forever will eventually disappoint its users.\n\nBut failover quietly makes an assumption. The place receiving the extra work must be able to handle it. More importantly, it must not be vulnerable to the same condition that harmed the first destination. If that assumption is wrong, the backup route may be available on paper, while the system behind it is already close to its limit.\n\nAnd that is where this story begins.",
+      "voiceDirection": "Director-LOCKED VO mood: inviting, clear, confident; gentle challenge at the end. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Teach the normal, correct behavior of a failover system before exposing its hidden assumption. This is a labeled **illustrative routing demonstration**, not a claim about Microsoft’s exact endpoint layout.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: No hard reset. Transform the active human request into a clean conceptual routing example at the same world location. The real-world outage is temporarily paused while we teach the necessary concept.",
+      "cameraDirection": "Reveal a simple application request → routing boundary → service capacity path. Demonstrate a single endpoint failing and a request following a real connector to another available endpoint. Then reset the illustration, both destinations quiet. Show no floating dot, and do not imply these two demonstration nodes are actual Microsoft servers. Glossary card only at the true spoken first definition of *failover*: `FAILOVER / Moving work to an alternative path when the original path cannot serve it` if readable for ≥5.5 seconds.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT02_P01_B01",
+          "cueAnchor": "Imagine a service with several servers that can",
+          "direction": "Paragraph P01. Visual phase 1/3. The camera arrives at an existing Traffic Router. Reveal three stylized gateway destination nodes along physically drawn routes, arranged to be readable rather than numerous.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P01_B02",
+          "cueAnchor": "between them. If one server stops responding, the",
+          "direction": "Paragraph P01. Visual phase 2/3. Send three separate cyan requests from a client: each follows a visible connector, reaches a green responding endpoint, and a distinct smaller response returns via its reverse route. Then one destination turns unavailable. For the next *new* request, the router selects a different drawn branch; an earlier in-flight packet is not teleported.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P01_B03",
+          "cueAnchor": "may notice little or nothing. We call that",
+          "direction": "Paragraph P01. Visual phase 3/3. Show the old path dim while the new path activates. When VO says `failover`, optionally show a concise definition for ≥5.5 seconds: `FAILOVER — Moving work to another available path`. The picture alone should explain the term even without reading the definition.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P02_B01",
+          "cueAnchor": "This is not a bad idea. It is",
+          "direction": "Paragraph P02. Visual phase 1/2. Highlight the benefit, not the failure. Run a successful request/response on the alternate endpoint; both source client and returned response briefly turn RESOLVED.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P02_B02",
+          "cueAnchor": "Software fails. Networks fail. A design that depends",
+          "direction": "Paragraph P02. Visual phase 2/2. Represent hardware, software, and network causes as three quick visual *variations* of one failure state on the same route (node offline, process unavailable, connector blocked), sequentially, not three new diagrams. Keep the other destinations accessible. End on a healthy recovered application response: the core promise of redundancy has now been demonstrated.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P03_B01",
+          "cueAnchor": "But failover quietly makes an assumption. The place",
+          "direction": "Paragraph P03. Visual phase 1/3. Shift focus from a green status indicator to the endpoint's remaining working capacity. Above/adjacent to each server, reveal a thin load/available-headroom indicator, never a large card.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P03_B02",
+          "cueAnchor": "importantly, it must not be vulnerable to the",
+          "direction": "Paragraph P03. Visual phase 2/3. Demonstrate the second endpoint receiving the redirected traffic and its headroom shrinking, even while the node continues glowing healthy. Next, show a quiet identical vulnerability marker inside *both* destinations, but do not call it the Microsoft bug yet.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P03_B03",
+          "cueAnchor": "wrong, the backup route may be available on",
+          "direction": "Paragraph P03. Visual phase 3/3. A green route remains visible while the endpoint's spare headroom becomes amber. The viewer must see: `reachable` and `safe to receive more load` are not the same condition.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT02_P04_B01",
+          "cueAnchor": "And that is where this story begins.",
+          "direction": "Paragraph P04. Visual phase 1/1. Stop the demonstration. Keep the concept visually remembered as quiet nodes, then track the camera down the already-existing connection spine to the pair of large gateway corridors. The router and one recent redirect stay in the background so the scene feels like entering the true story through the mechanism just learned.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "A continuous camera move from the generic endpoint example toward the two incident gateway systems. Remove the demonstration's example-only labels as focus changes, not by wiping the world.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT03",
+      "title": "Two Gateway Systems, One Shared Pressure",
+      "editorialDurationSeconds": 80,
+      "narration": "Microsoft's preliminary incident report describes two separate networking gateway systems. They were built differently, so workloads could move between them during disruptions. Think of a gateway as the infrastructure that accepts connections and helps users reach the service behind it. These gateways are not the email inboxes themselves. They are part of the route people must cross to reach their inboxes.\n\nExchange Online depended on a gateway that Microsoft called the primary gateway. Teams could also use the alternative networking system. Early on November twelfth, roughly fifteen hours before the broader outage, an automated failover moved Teams traffic from that alternative system onto the primary gateway supporting Exchange.\n\nNothing about that move proves a design mistake. Failover was a normal part of operating the platform. But the destination now had a different mix of work arriving at its doors. The same gateway infrastructure was supporting additional demand from another major product. To understand why that mattered, we need to travel backward in time, to a change that had seemed harmless for months.",
+      "voiceDirection": "Director-LOCKED VO mood: exploratory; explain connections before naming details. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Establish two distinct gateway systems, two workloads, and the first real causal event: Teams traffic joins the primary corridor that supports Exchange Online.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: A continuous camera move from the generic endpoint example toward the two incident gateway systems. Remove the demonstration's example-only labels as focus changes, not by wiping the world.",
+      "cameraDirection": "Introduce two separate differently shaped gateway systems labeled `Alternative Gateway` and `Primary Gateway` as conceptual architecture. Show Exchange Online depending on the primary; show Teams traffic originally entering the alternative then moving along an exact failover path toward primary. Moving request tokens travel exclusively along their connectors. Other services stay dim. Camera first follows Teams handoff, then settles over the shared gateway boundary.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT03_P01_B01",
+          "cueAnchor": "Microsoft's preliminary incident report describes two separate networking",
+          "direction": "Paragraph P01. Visual phase 1/3. Reveal the two gateway systems as separate architectural silhouettes and lanes, not identical cards. Label them `Alternative Gateway` (lower lane) and `Primary Gateway` (upper lane).",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P01_B02",
+          "cueAnchor": "during disruptions. Think of a gateway as the",
+          "direction": "Paragraph P01. Visual phase 2/3. A Mailbox destination appears on the far right of the upper lane, and a small Teams destination farther along the other lane. Show a cyan Outlook request pass *through* the Primary Gateway and reach the mailbox; make clear that the gateway is a connection entry layer, not a mailbox storage service.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P01_B03",
+          "cueAnchor": "These gateways are not the email inboxes themselves.",
+          "direction": "Paragraph P01. Visual phase 3/3. Route lines are visible before packets move, allowing the viewer to build spatial memory. Add one quiet `Conceptual architecture` identifier for the map, since we are not drawing verified Microsoft topology.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P02_B01",
+          "cueAnchor": "Exchange Online depended on a gateway that Microsoft",
+          "direction": "Paragraph P02. Visual phase 1/2. Start from a stable split: cyan Outlook work uses primary; violet Teams work uses alternative. At `early on November twelfth` reveal a subtle UTC stamp `01:07 UTC`. The existing explicit Teams failover connector between traffic routing branches lights up.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P02_B02",
+          "cueAnchor": "twelfth, roughly fifteen hours before the broader outage,",
+          "direction": "Paragraph P02. Visual phase 2/2. Violet *new* Teams requests stop entering Alternative Gateway and begin traveling along that connector onto the Primary Gateway lane, merging with cyan traffic before the primary fleet. The actual Teams destination does not transform into Exchange; the streams merely share gateway capacity. Hold long enough to distinguish purple and cyan packets traveling into the same gateway cluster.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P03_B01",
+          "cueAnchor": "Nothing about that move proves a design mistake.",
+          "direction": "Paragraph P03. Visual phase 1/3. No red failure state yet; show the primary fleet still satisfying requests.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P03_B02",
+          "cueAnchor": "had a different mix of work arriving at",
+          "direction": "Paragraph P03. Visual phase 2/3. What changes is the composition of work, not instant failure. A small load-mix indicator becomes visibly two-colored, and available headroom reduces slightly without invented values.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT03_P03_B03",
+          "cueAnchor": "product. To understand why that mattered, we need",
+          "direction": "Paragraph P03. Visual phase 3/3. At `travel backward in time`, zoom into a selected primary gateway and let the July calendar marker appear *on that existing node*, not as a new title slide. Begin a backward semantic timeline while keeping the gateway silhouette in place.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "The same selected gateway expands into a local internal process view. The audience knows exactly which part of the map we entered.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT04",
+      "title": "The Bug That Waited Since July",
+      "editorialDurationSeconds": 95,
+      "narration": "Back in July, Microsoft began deploying a change prepared specifically for its Microsoft 365 networking gateway servers. The change spread across the fleet over several weeks. For more than three months, no visible incident exposed the problem hidden inside it. This was not a general Windows update affecting every Windows computer. The defect was specific to the gateway environment described in Microsoft's report.\n\nUnder certain load conditions, an internal Windows process could suffer from something called lock contention. In simple terms, several pieces of work need access to a shared resource, but they cannot all use it at once. More and more work begins waiting. The machine spends resources managing that pressure instead of completing useful requests. In this case, the contention could exhaust CPU and memory and leave gateway servers unresponsive.\n\nNow comes an unusual detail. Microsoft said its normal load testing did not catch the defect partly because the test machines were less powerful than the production machines, and the traffic mix was different. The contention became worse on newer hardware with more CPU cores.\n\nMore powerful hardware did not automatically mean a safer test. The production environment could expose a failure that the smaller laboratory environment did not.",
+      "voiceDirection": "Director-LOCKED VO mood: measured mystery → technical clarity; slower on hardware-testing reversal. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Explain the invisible defect and the surprising hardware-testing mismatch in understandable visual terms.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: The same selected gateway expands into a local internal process view. The audience knows exactly which part of the map we entered.",
+      "cameraDirection": "Camera pushes into a gateway node as a contained mini-world. Show `Connection Handling` and two threads trying to enter a narrow shared resource, with one waiting on a real internal path. Display only if narration says the term: glossary `LOCK CONTENTION / Work waits for access to a shared resource`. Then CPU/memory pressure rises abstractly. Use an illustrative weak-test-hardware → powerful-production-hardware comparison, clearly marked conceptual; never imply we know exact core counts. Make labels fully contained.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT04_P01_B01",
+          "cueAnchor": "Back in July, Microsoft began deploying a change",
+          "direction": "Paragraph P01. Visual phase 1/3. On the gateway's internal focus plane, introduce a short code-version indicator `July gateway update` and animate an understated deploy marker moving along a small sequence of conceptual fleet nodes, each updating quietly.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P01_B02",
+          "cueAnchor": "the fleet over several weeks. For more than",
+          "direction": "Paragraph P01. Visual phase 2/3. Do not show a Windows desktop, a global OS update, or a fabricated change log.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P01_B03",
+          "cueAnchor": "not a general Windows update affecting every Windows",
+          "direction": "Paragraph P01. Visual phase 3/3. A tiny amber vulnerability marker becomes latent behind the `Connection Handling` label, but all requests still succeed. Travel on a compact timeline line from July to November with an uneventful interval; the absence of visible failure is the storytelling point.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P02_B01",
+          "cueAnchor": "Under certain load conditions, an internal Windows process",
+          "direction": "Paragraph P02. Visual phase 1/3. Push into an exploded connection-handling mini-world *attached to* the gateway, not a stack of smaller boxes. A single shared resource appears as a constrained access point. Work items enter via a thin real path.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P02_B02",
+          "cueAnchor": "access to a shared resource, but they cannot",
+          "direction": "Paragraph P02. Visual phase 2/3. One crosses the resource and exits successfully; the next two must pause before the resource. On the narrator's term, a small glossary `LOCK CONTENTION — Multiple operations wait for one shared resource` appears, then leaves after adequate reading time. Additional arrivals accumulate as abstract pressure bands along the entry path, not as an asserted literal internal Microsoft queue.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P02_B03",
+          "cueAnchor": "managing that pressure instead of completing useful requests.",
+          "direction": "Paragraph P02. Visual phase 3/3. Thread activity visibly slows; adjacent illustrative CPU and memory pressure indicators rise with no precise measurements. The node transitions healthy → amber → unresponsive. All motion is about blocked progress rather than random jitter.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P03_B01",
+          "cueAnchor": "Now comes an unusual detail. Microsoft said its",
+          "direction": "Paragraph P03. Visual phase 1/2. Pull sideways within the same focused gateway world into a comparison of two *visual conditions*, `Load Test` versus `Production`. Do not compare invented clock speeds or core counts. The smaller test condition has fewer parallel work lanes and the contented shared resource remains manageable under its test traffic.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P03_B02",
+          "cueAnchor": "less powerful than the production machines, and the",
+          "direction": "Paragraph P03. Visual phase 2/2. The more parallel production condition has visibly more simultaneous arrivals and a different mix of tokens; the same shared resource becomes a bottleneck. Highlight `More cores` and `Different traffic mix` only when narrator introduces them, one at a time. Position the model as illustrative rather than proof of exact Microsoft hardware behavior.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P04_B01",
+          "cueAnchor": "More powerful hardware did not automatically mean a",
+          "direction": "Paragraph P04. Visual phase 1/2. Hold a clear two-state contrast: on one side, a lower-parallelism simulation passes; on the other, higher concurrency reveals a waiting cluster.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT04_P04_B02",
+          "cueAnchor": "environment could expose a failure that the smaller",
+          "direction": "Paragraph P04. Visual phase 2/2. On the emphasized line, gently dim the test example, keep the production failure focal, and then collapse both back to the actual gateway location. The final visible object is a latent defect marker anchored in every conceptual member of the same gateway fleet, not floating in disconnected empty space.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Camera exits the selected gateway back onto the fleet plane. The defect marker remains dim as knowledge we carry into the next condition.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT05",
+      "title": "Fourteen Percent Of Capacity Was Already Missing",
+      "editorialDurationSeconds": 85,
+      "narration": "The hidden software defect was only one part of the problem. A second condition was already present. According to Microsoft's preliminary report, nearly fourteen percent of the primary gateway's server capacity was out of service because of an unrelated issue from the previous day. This did not, by itself, cause the outage. Microsoft said the gateway had enough spare capacity to tolerate that reduction under its earlier conditions.\n\nThink of capacity as breathing room. A busy gateway might still have enough free resources to deal with the work it normally receives. Remove some servers, and that breathing room becomes smaller. The service can still look healthy. It can still answer requests. A dashboard can still show that the platform is available.\n\nThen change the work arriving at the gateway. Teams traffic has moved onto it, changing both load and traffic patterns. More work is now competing for fewer available resources. During the peak U.S. traffic window, those conditions made it much more likely that the hidden contention bug would appear.\n\nThe important point is that neither the missing capacity nor the earlier traffic shift needed to break the service alone. Their combination exposed the defect waiting underneath.",
+      "voiceDirection": "Director-LOCKED VO mood: calm, accumulating tension; underline independent versus combined factors. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Teach the independent capacity reduction before showing how it interacts with the Teams traffic shift and the software defect.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Camera exits the selected gateway back onto the fleet plane. The defect marker remains dim as knowledge we carry into the next condition.",
+      "cameraDirection": "Pull back to gateway fleet. Highlight a fraction of its illustrative capacity as unavailable; use a single factual external label `~14% capacity unavailable`, not an exact 14-of-100 fictional real server layout. Keep unaffected requests flowing on proper rails. Add Teams workload to primary and show remaining headroom visibly narrowing. No more than one dominant numeric callout.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT05_P01_B01",
+          "cueAnchor": "The hidden software defect was only one part",
+          "direction": "Paragraph P01. Visual phase 1/3. Reveal a clean percentage capacity track next to the primary gateway fleet labeled `Available Gateway Capacity`. Present 100% conceptual baseline as a single bar, then dim exactly about 14% of that bar and label `~14% unavailable`.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P01_B02",
+          "cueAnchor": "nearly fourteen percent of the primary gateway's server",
+          "direction": "Paragraph P01. Visual phase 2/3. This is **capacity share, not a claim about a count of physical machines**. Keep most fleet nodes green, and maintain successful Outlook response motion.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P01_B03",
+          "cueAnchor": "did not, by itself, cause the outage. Microsoft",
+          "direction": "Paragraph P01. Visual phase 3/3. Show no red global outage. The viewer learns that losing capacity was a condition the system initially tolerated.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P02_B01",
+          "cueAnchor": "Think of capacity as breathing room. A busy",
+          "direction": "Paragraph P02. Visual phase 1/3. Inside the same scene, represent free headroom as an unfilled portion of a thin capacity/load band.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P02_B02",
+          "cueAnchor": "with the work it normally receives. Remove some",
+          "direction": "Paragraph P02. Visual phase 2/3. As normal packets pass, show a margin between offered load and available work. Remove the 14% segment: the margin shrinks, but requests continue to complete and nodes keep their healthy state.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P02_B03",
+          "cueAnchor": "still look healthy. It can still answer requests.",
+          "direction": "Paragraph P02. Visual phase 3/3. On `dashboard can still show available`, show a restrained `SERVING` state and contrast it with the visibly smaller spare margin. No large dashboard UI, and no suggestion that actual Microsoft monitoring looked exactly like this.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P03_B01",
+          "cueAnchor": "Then change the work arriving at the gateway.",
+          "direction": "Paragraph P03. Visual phase 1/2. Restore the previously learned violet Teams path into view; animate Teams requests arriving into the same primary gateway on an explicitly drawn connector. Cyan continues at the previous rate while violet joins.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P03_B02",
+          "cueAnchor": "competing for fewer available resources. During the peak",
+          "direction": "Paragraph P03. Visual phase 2/2. The load band advances toward available capacity, and the July defect marker becomes amber on one focused gateway. For `peak U.S. traffic`, use one compact geographic/time-context label rather than an invented real Microsoft regional traffic chart. Time enough for the viewer to compare the available capacity against the newly combined offered work.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P04_B01",
+          "cueAnchor": "The important point is that neither the missing",
+          "direction": "Paragraph P04. Visual phase 1/2. This paragraph is a crucial **visual Aha**. Without leaving the map, briefly show three states sequentially on the *same* gateway: `Reduced capacity alone` still serving; `Changed traffic mix alone` still serving in illustrative comparison; `Together + latent bug` triggers amber contention.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT05_P04_B02",
+          "cueAnchor": "shift needed to break the service alone. Their",
+          "direction": "Paragraph P04. Visual phase 2/2. If we use captions, each is a tiny anchored condition label and not a multi-card slide. Do not imply either condition was tested in real isolated Microsoft trials. The final state fixes all three known conditions in the viewer's mind: latent bug, capacity reduction, Teams routing shift.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Stay in the primary gateway fleet and push through the one endpoint just turning amber. Next we follow work that cannot complete, rather than introducing another place.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT06",
+      "title": "When The Route Changes, So Does The Risk",
+      "editorialDurationSeconds": 80,
+      "narration": "At first, the extra traffic does not have to create a dramatic failure. The gateway can continue serving many requests while internal pressure grows. But some kinds of faults are not smooth. The system may handle one level of concurrency and then behave very differently after a hidden boundary is crossed.\n\nImagine connections arriving slightly faster than the affected process can finish setting them up. Some requests complete. Others wait. As waiting grows, more machine resources are tied up. That can slow connection handling further. The system spends more time under pressure, which gives the contention problem more chances to appear. Soon the gateway is no longer just busy. Some of its servers stop answering.\n\nThis is why a traffic graph alone can mislead an incident team. The total number of people using a service might not have increased dramatically. Yet fewer working destinations, combined with a different traffic mix, can create a much larger load on each surviving endpoint.\n\nThe danger was not simply that the cloud had too much traffic. The danger was where that traffic went, and what it triggered when it arrived.",
+      "voiceDirection": "Director-LOCKED VO mood: growing momentum; one reflective slowdown. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Make the connection between incoming traffic, constrained progress, and gateway failure physically visible.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Stay in the primary gateway fleet and push through the one endpoint just turning amber. Next we follow work that cannot complete, rather than introducing another place.",
+      "cameraDirection": "A local teaching mini-world shows flow distribution. Existing Gateway A and B node paths remain consistent. Move the *same* real request token workload along the selected path and show arrivals clustering, queues forming near `Connection Handling` and response completion slowing. Do not depict a mysterious global traffic increase; emphasize shifted traffic and reduced eligible capacity. At the last line, hold still on one amber waiting path.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT06_P01_B01",
+          "cueAnchor": "At first, the extra traffic does not have",
+          "direction": "Paragraph P01. Visual phase 1/3. Show ongoing requests being answered despite rising pressure.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P01_B02",
+          "cueAnchor": "serving many requests while internal pressure grows. But",
+          "direction": "Paragraph P01. Visual phase 2/3. A delicate work-concurrency line grows toward an unlabeled caution band while completed response packets become less frequent. Crucially, this is not a magic CPU overload triggered by an arbitrary number.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P01_B03",
+          "cueAnchor": "may handle one level of concurrency and then",
+          "direction": "Paragraph P01. Visual phase 3/3. The animation demonstrates qualitative load sensitivity, not an asserted numerical threshold. The camera remains close enough to count individual accepted work items, then begins to widen only when the effect reaches server availability.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P02_B01",
+          "cueAnchor": "Imagine connections arriving slightly faster than the affected",
+          "direction": "Paragraph P02. Visual phase 1/3. Stage a clear progression across the internal path: incoming requests arrive → a few complete → several wait at shared access → the span of waiting work grows → CPU/memory pressure rises → fewer completions exit → the endpoint stops responding.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P02_B02",
+          "cueAnchor": "grows, more machine resources are tied up. That",
+          "direction": "Paragraph P02. Visual phase 2/3. Convey the waiting pressure as a longer accumulation on the existing inlet corridor, *not an invented literal FIFO queue implementation*.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P02_B03",
+          "cueAnchor": "gives the contention problem more chances to appear.",
+          "direction": "Paragraph P02. Visual phase 3/3. The single gateway's ACTIVE outline becomes WAITING amber, then FAILED red. Every cyan/violet request stops at a valid physical route endpoint; no particle passes through a failed node and reappears on the far side.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P03_B01",
+          "cueAnchor": "This is why a traffic graph alone can",
+          "direction": "Paragraph P03. Visual phase 1/2. Pull back to contrast a steady approximate *total incoming demand* indicator on the router against a smaller number of available gateway destinations. Visually distribute the same incoming request rate across three conceptual nodes, then across two: each surviving node's received request spacing becomes tighter, while the total ingress stream looks nearly unchanged.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P03_B02",
+          "cueAnchor": "have increased dramatically. Yet fewer working destinations, combined",
+          "direction": "Paragraph P03. Visual phase 2/2. This is a general explanatory model and uses no actual Microsoft node count. Show that total platform demand and per-server load are separate dimensions.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P04_B01",
+          "cueAnchor": "The danger was not simply that the cloud",
+          "direction": "Paragraph P04. Visual phase 1/2. Trace one cyan request from the constant ingress stream to the newly crowded endpoint and stop with the latent bug marker highlighted. On `where traffic went`, illuminate the path choice; on `what it triggered`, illuminate the contention point in the destination.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT06_P04_B02",
+          "cueAnchor": "danger was where that traffic went, and what",
+          "direction": "Paragraph P04. Visual phase 2/2. Pull back far enough to include the route and endpoint in the same field of view. The last frame has one failed gateway and two surviving endpoints, setting up the cascade without a scene reset.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Keep the same router, same failed endpoint and same stream of requests. SHOT07 begins by moving *new* traffic onto drawn alternate connectors.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT07",
+      "title": "The Cascade",
+      "editorialDurationSeconds": 100,
+      "narration": "When a gateway stopped responding, Microsoft's traffic management systems redirected users toward endpoints that still appeared healthy. Usually that protects customers. This time, the surviving endpoints could encounter the same hidden defect under additional load. Each unresponsive server left fewer destinations to carry the same work. The pressure began moving through the fleet.\n\nMicrosoft's preliminary report says the cascading failure made more than eighty percent of the affected gateway servers unresponsive at the worst point, in less than two hours. To see why a normal rescue mechanism can accelerate that kind of failure, follow one request.\n\nA backup server is not automatically a rescue. Imagine one gateway stops answering requests. The traffic router does its job and sends those requests to another healthy gateway. But the second gateway has the same hidden weakness, and now it receives even more traffic. It begins to fail too. The router moves the workload again, making the surviving servers carry even more pressure. Nothing has to be wrong with the decision to reroute each request. The disaster is that every local rescue decision makes the shared system less stable. Failover can protect a service, or it can spread the failure.",
+      "voiceDirection": "Director-LOCKED VO mood: precise tension; do not raise volume; pause on the central reversal. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Deliver the central surprise: automatic rerouting repeatedly transfers extra work onto destinations with the same weakness. **Reel boundary:** the separate voiced paragraph beginning `A backup server is not automatically a rescue.` Its first visual frame must already explain the initial condition without relying on shots 01–06.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Keep the same router, same failed endpoint and same stream of requests. SHOT07 begins by moving *new* traffic onto drawn alternate connectors.",
+      "cameraDirection": "One gateway node becomes unresponsive. Traffic Manager marks it ineligible and moves affected new requests along physically drawn, bounded alternate connections. First backup brightens, queue grows, then it becomes unresponsive, creating a visible chain. Keep all dots on route geometry, and stop them when the path becomes blocked. Use 80% figure only after the factual spoken anchor. Camera widens as server regions fail, without showing undocumented exact topology. Reel region composition center-safe for 9:16.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT07_P01_B01",
+          "cueAnchor": "When a gateway stopped responding, Microsoft's traffic management",
+          "direction": "Paragraph P01. Visual phase 1/3. At the inherited shot start, node A is red, B and C remain responsive. The traffic router does not touch existing in-flight packets.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P01_B02",
+          "cueAnchor": "Usually that protects customers. This time, the surviving",
+          "direction": "Paragraph P01. Visual phase 2/3. It diverts subsequent requests over an explicit highlighted branch toward B; the valid path from A to its destination goes QUIET because A cannot serve. Node B now receives its normal flow plus the new flow, so its load indicator moves closer to the edge.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P01_B03",
+          "cueAnchor": "Each unresponsive server left fewer destinations to carry",
+          "direction": "Paragraph P01. Visual phase 3/3. Repeat one step: B becomes amber and then fails, while new traffic turns toward C. Keep the fleet spatially fixed so pressure is shown as a consequence of redirection, not as mysterious movement of boxes.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P02_B01",
+          "cueAnchor": "Microsoft's preliminary report says the cascading failure made",
+          "direction": "Paragraph P02. Visual phase 1/2. Widen to a fleet-level percent meter `>80% of affected gateway servers unresponsive`. Do **not** pretend that our three illustrated gateways correspond to the actual incident's server count.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P02_B02",
+          "cueAnchor": "point, in less than two hours. To see",
+          "direction": "Paragraph P02. Visual phase 2/2. Allow the three-node teaching diagram to scale into a broader field of dim/unresponsive gateway silhouettes while the percent meter communicates the verified approximate fleet condition. During `less than two hours`, a small clock bracket marks this period, not a false second-by-second replay. Then zoom onto one new request at the router for the short-form extraction: `follow one request` becomes a concrete visual handoff.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P03_B01",
+          "cueAnchor": "A backup server is not automatically a rescue.",
+          "direction": "Paragraph P03. Visual phase 1/3. Build this as a self-contained 40–50 second miniature in a center-safe area. **Beat A, Hook:** center router, one client, two alternative gateway destinations; one destination is already unresponsive and the alternate route is visibly ready. **Beat B, Rescue:** a *new* cyan request follows the router → B connector and completes once; B still green, so the viewer trusts the reroute. **Beat C, Pressure:** multiple new arrivals now take B's route while B's spare headroom shrinks, then internal vulnerability activates amber. **Beat D, Repeat:** B stops responding, the router selects C via an explicitly drawn path, and C's workload becomes dangerous. **Beat E, Payoff:** camera widens slightly enough to see one router and several failed endpoints while the router's routing-decision indicator remains green.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P03_B02",
+          "cueAnchor": "the same hidden weakness, and now it receives",
+          "direction": "Paragraph P03. Visual phase 2/3. On `every local rescue decision`, green local routing contrasts with red whole-system availability.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT07_P03_B03",
+          "cueAnchor": "be wrong with the decision to reroute each",
+          "direction": "Paragraph P03. Visual phase 3/3. The final spoken line has a stable, understandable frame, not a flurry of effects. In vertical crop retain client → router → B/C, never require important left/right extremes.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Stop following one request. Pull back to see the gateway fleet as capacity partitions within regions; the red outage state persists in all relevant previously explained nodes.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT08",
+      "title": "Why The Regions Did Not Contain It",
+      "editorialDurationSeconds": 85,
+      "narration": "Large platforms do not normally place all their capacity into one giant shared pool without boundaries. They divide infrastructure into regions and smaller partitions, so that a problem in one area does not automatically overwhelm every other area. Engineers sometimes call this a bulkhead, borrowing the idea from a ship: one damaged compartment should not flood the whole vessel.\n\nMicrosoft said its gateway infrastructure was divided into many capacity units, organized into regions. In this event, a separate issue prevented the normal boundaries between partitions from containing the cascading failures. That allowed the impact to spread much more widely than a local capacity problem should have.\n\nNot every Microsoft 365 workload experienced the same failure. Some services, including Teams, OneDrive, SharePoint and Office applications, could move away from the affected gateway infrastructure, so parts of their experience recovered earlier. Exchange Online could not make that same move at the required scale. That distinction matters. A shared infrastructure problem can affect many products, but its impact depends on which capabilities actually depend on the failed path.\n\nThe user does not see those dependency boundaries. They see an inbox that will not open, even while another feature may still work.",
+      "voiceDirection": "Director-LOCKED VO mood: analytical, restrained; no melodrama. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Show how scope control is different from individual node failover, then explain why Microsoft 365 products could experience different outcomes.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Stop following one request. Pull back to see the gateway fleet as capacity partitions within regions; the red outage state persists in all relevant previously explained nodes.",
+      "cameraDirection": "Reveal capacity units as grouped regions (abstract, not internal Microsoft map). Briefly illustrate a bulkhead boundary through contained crossing connectors, show propagation where isolation does not block pressure; nodes stay within frame. Show Teams/OneDrive/SharePoint pathways using alternate gateway quiet-to-active; Exchange stays anchored to primary. Do not mark every app dead. Term card only when `bulkhead` is explained.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT08_P01_B01",
+          "cueAnchor": "Large platforms do not normally place all their",
+          "direction": "Paragraph P01. Visual phase 1/3. Begin with the existing failing gateway cluster. Pull camera out and reveal two or three schematic capacity regions containing their own gateway fleets, separated by empty geographic space and crisp boundaries in the visual plane—not nested giant UI cards.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P01_B02",
+          "cueAnchor": "into regions and smaller partitions, so that a",
+          "direction": "Paragraph P01. Visual phase 2/3. Show a *general teaching condition*: one region transitions red while other regions remain QUIET and normal work is not redirected into them in the isolation example. On `bulkhead`, briefly brighten the separating boundary.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P01_B03",
+          "cueAnchor": "sometimes call this a bulkhead, borrowing the idea",
+          "direction": "Paragraph P01. Visual phase 3/3. No ship illustration is needed: the audience understands the analogy through containment. The key visual sentence is one red zone and two unaffected zones.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P02_B01",
+          "cueAnchor": "Microsoft said its gateway infrastructure was divided into",
+          "direction": "Paragraph P02. Visual phase 1/2. Return from the safe design example to the incident state on the same world. A second independent issue is represented by the *loss of effective containment*, not a fabricated line showing exactly how Microsoft routed packets between regions. Gradually light red affected-status bands in additional regions while a shared incident impact marker spans them.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P02_B02",
+          "cueAnchor": "boundaries between partitions from containing the cascading failures.",
+          "direction": "Paragraph P02. Visual phase 2/2. If some request motion crosses region boundaries, use only actual conceptual connectors and label them as schematic; do not imply this is the documented path of spread. The viewer sees that regional partitions existed but did not protect the overall service as intended. Do not suggest the separate isolation defect is the same July lock-contention defect.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P03_B01",
+          "cueAnchor": "Not every Microsoft 365 workload experienced the same",
+          "direction": "Paragraph P03. Visual phase 1/3. Use a smooth camera move back to the service-dependency layer.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P03_B02",
+          "cueAnchor": "affected gateway infrastructure, so parts of their experience",
+          "direction": "Paragraph P03. Visual phase 2/3. From the affected gateway mark the Exchange Online dependency path red. For Teams, OneDrive, SharePoint and Office, reveal restrained service labels near genuine alternate connector routes; show some traffic successfully moving away from the affected gateway layer without implying that every feature of every product was broken or fully immune.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P03_B03",
+          "cueAnchor": "distinction matters. A shared infrastructure problem can affect",
+          "direction": "Paragraph P03. Visual phase 3/3. When VO explains that Exchange could not make the same switch at scale, leave Exchange's alternative corridor visually unreachable or faded with a small `Scale constraint` context label, not a giant crossed-out arrow suggesting a literal missing cable. Other application recovery branches are green/quiet while Exchange remains impacted.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P04_B01",
+          "cueAnchor": "The user does not see those dependency boundaries.",
+          "direction": "Paragraph P04. Visual phase 1/2. Return visually to the same human device first seen in SHOT01, now as a small recurring anchor. Show inbox unavailable and, beside it, one other abstract service indicator still responding.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT08_P04_B02",
+          "cueAnchor": "inbox that will not open, even while another",
+          "direction": "Paragraph P04. Visual phase 2/2. The contrast is restrained and immediate: one person, one platform brand, different dependency paths. Keep gateway geography dimly present behind the client so the viewer understands those different user outcomes came from dependencies, not random product behavior. End on the red route to Exchange, then follow it back toward a restartable gateway for SHOT09.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Match the camera path along the blocked Exchange connector back to the affected primary gateway. Do not fade into a new free-floating server diagram.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT09",
+      "title": "Why Healthy Is Not The Same As Safe",
+      "editorialDurationSeconds": 85,
+      "narration": "Now imagine watching one of the affected gateway servers during recovery. It was unresponsive. Engineers restart it. The process begins running again. The machine appears alive. Maybe it even answers a simple check. Should the router immediately send a large amount of waiting traffic back to it?\n\nThat question separates two ideas that often get mixed together. A basic health check can tell us whether a process is alive or can answer a small request. But a service being alive does not prove that it is ready to carry a full production workload. Readiness under real traffic is a different question.\n\nMicrosoft's incident updates described efforts to change health-check behavior and to return affected servers to service. But the deeper problem was not solved by a green status alone. Under the wrong load, the same contention could return.\n\nA recovery system must therefore ask more than, “Is this machine running?” It must also ask, “Can this machine keep doing useful work when we reconnect users?”\n\nA green endpoint is helpful information. It is not a guarantee of spare capacity, safe concurrency, or successful end-to-end service.",
+      "voiceDirection": "Director-LOCKED VO mood: patient engineer explaining a subtle trap. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Explain liveness/readiness distinction in a way that prepares the viewer for failed recovery. The diagnostic split is a **general engineering lens**, not an assertion that Microsoft's actual probes worked this exact way.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Match the camera path along the blocked Exchange connector back to the affected primary gateway. Do not fade into a new free-floating server diagram.",
+      "cameraDirection": "Demonstration server changes from Booted to Responding then accepts a visible bounded test flow, where performance deteriorates under real workload. Show conceptual health check as status and separate capacity/load signal, not asserted Microsoft exact monitor implementation. Mini-world illustrates why trivial checks and real readyness differ. Keep one active comparison at a time.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT09_P01_B01",
+          "cueAnchor": "Now imagine watching one of the affected gateway",
+          "direction": "Paragraph P01. Visual phase 1/2. In close view, one gateway is FAILED red. Its restart sequence begins quietly: process marker off → starting amber → online green. A single narrow `Health check` request travels along a real probe path and receives a response, making a green `RESPONDING` light appear.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P01_B02",
+          "cueAnchor": "machine appears alive. Maybe it even answers a",
+          "direction": "Paragraph P01. Visual phase 2/2. Meanwhile, outside the gateway, many client requests remain visibly ready to arrive. At the spoken question, let the traffic router's outgoing connector glow slightly but do not release the full stream yet. Give the audience a second to notice the difference between a tiny check and a large production load.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P02_B01",
+          "cueAnchor": "That question separates two ideas that often get",
+          "direction": "Paragraph P02. Visual phase 1/3. Divide the camera's attention between the same node's simple probe route and its genuine client-request connector; do not create two replacement scenes. Label short, anchored states `ALIVE` and `READY FOR LOAD` as two separate dimensions.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P02_B02",
+          "cueAnchor": "a process is alive or can answer a",
+          "direction": "Paragraph P02. Visual phase 2/3. A single green liveness result cannot automatically illuminate readiness. Demonstrate one small successful probe, then a modest batch of client requests increasing pressure under the still-unsolved defect.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P02_B03",
+          "cueAnchor": "that it is ready to carry a full",
+          "direction": "Paragraph P02. Visual phase 3/3. The node may be alive while its load readiness remains amber. Make this a visual comparison between *test size* and *real offered work*, not merely between green and red.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P03_B01",
+          "cueAnchor": "Microsoft's incident updates described efforts to change health-check",
+          "direction": "Paragraph P03. Visual phase 1/2. Move the simple health-check indicator into QUIET, because it is contextual. The narrator references Microsoft's work on health-check behavior; represent that investigation with a restrained probe-route adjustment, not a made-up exact operational algorithm.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P03_B02",
+          "cueAnchor": "deeper problem was not solved by a green",
+          "direction": "Paragraph P03. Visual phase 2/2. Reintroduce the preexisting contention marker in the gateway and show increasing load could reactivate it. Preserve the accurate causal conclusion: changing a check cannot by itself fix the load-sensitive underlying issue.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P04_B01",
+          "cueAnchor": "A recovery system must therefore ask more than,",
+          "direction": "Paragraph P04. Visual phase 1/2. Show two short questions sequentially near the object, not large cards: first `Running?` with a green response, then `Can it handle returning traffic?` while real packets are admitted gradually on the existing path. If the second question does not have proof, show an amber `NOT YET PROVEN` state.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P04_B02",
+          "cueAnchor": "must also ask, “Can this machine keep doing",
+          "direction": "Paragraph P04. Visual phase 2/2. The visualization explicitly separates observable health from capacity-under-load. Give enough dwell for the viewer to read the second phrase, or omit the written question and let the voice carry it.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P05_B01",
+          "cueAnchor": "A green endpoint is helpful information. It is",
+          "direction": "Paragraph P05. Visual phase 1/2. Pull to medium, keep one restarted node green at its basic probe indicator, but hold its capacity headroom amber. No red state is needed yet.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT09_P05_B02",
+          "cueAnchor": "guarantee of spare capacity, safe concurrency, or successful",
+          "direction": "Paragraph P05. Visual phase 2/2. Create the moment of intellectual tension: the node looks online, the router path exists, users are still waiting. Then start opening the traffic route, carrying the audience directly into the restart-and-overload mechanism of SHOT10.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "No reset; continue the node's restart from the final state and release the real returning traffic along the same connector.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT10",
+      "title": "Restarting The Servers Made Recovery Harder",
+      "editorialDurationSeconds": 85,
+      "narration": "The hardest part of an outage can arrive during recovery. Engineers restart a gateway server, and it begins responding again. But waiting connections have not disappeared. Microsoft reported that recovered servers could become unresponsive as soon as traffic returned. Its normal automated recovery was not designed for so much of the gateway fleet to be unresponsive at once.\n\nRestarting a server is not the same as recovering a service. A restart may clear the current bad state, but it does not erase the requests waiting outside. Imagine a gateway comes back online and the router immediately sends it all the traffic it missed. The same hidden software problem appears under the returning load. The gateway stops responding again. Now the system has to recover twice. That is why large-scale recovery often needs controlled traffic admission, not just more restarts. The goal is not to make the server start. The goal is to keep it serving real users.",
+      "voiceDirection": "Director-LOCKED VO mood: tense but controlled; use silence after “again.” Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Make recovery the second dramatic failure loop. It must be visually distinguishable from initial cascade: a machine comes back, but returning demand reproduces the fault.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: No reset; continue the node's restart from the final state and release the real returning traffic along the same connector.",
+      "cameraDirection": "One failed node restarts and becomes quiet/ready, then a dense but *finite* backlog approaches on actual connector paths. Throttle gate demonstrates gradual reopening as a hypothetical alternative, distinguished from Microsoft factual recovery steps. The same node goes amber then red under load. Camera holds on meaningful state change, no glitch, no off-route particles. Reel center-safe.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT10_P01_B01",
+          "cueAnchor": "The hardest part of an outage can arrive",
+          "direction": "Paragraph P01. Visual phase 1/3. Stay on the same restarted gateway. A restart status travels amber → green.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT10_P01_B02",
+          "cueAnchor": "again. But waiting connections have not disappeared. Microsoft",
+          "direction": "Paragraph P01. Visual phase 2/3. Instead of materializing a literal internal waiting queue, show **pending external demand** as subdued client request activity concentrated on the entrance corridor. When normal routing resumes, those real requests move onto the gateway connector.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT10_P01_B03",
+          "cueAnchor": "returned. Its normal automated recovery was not designed",
+          "direction": "Paragraph P01. Visual phase 3/3. The demand indicator climbs faster than the gateway demonstrates sustained completion; the internal contention warning reappears and the gateway becomes unresponsive. Pull back just enough to show many similarly affected endpoints. Add one small `Fleet-scale recovery` label only if needed to explain why automated restart could not trivially solve the event.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT10_P02_B01",
+          "cueAnchor": "Restarting a server is not the same as",
+          "direction": "Paragraph P02. Visual phase 1/3. Present a self-contained mini-sequence within the same gateway: **Hook:** one gateway red, people waiting outside. **Restart:** a compact status progress moves to green, one health probe succeeds. **Return traffic:** router opens a visible inlet, waiting client work begins moving toward the gateway. **Relapse:** request completions slow, the same contention point becomes amber, the gateway goes red again. **Contrast:** briefly rewind just this illustrative mechanism to show what *controlled admission* would look like as a future-safe design: fewer requests admitted, some held at the inlet, sufficient completion capacity demonstrated.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT10_P02_B02",
+          "cueAnchor": "online and the router immediately sends it all",
+          "direction": "Paragraph P02. Visual phase 2/3. This last alternative must be visibly labeled `Design principle`, not claimed as a precise Microsoft action during this paragraph.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT10_P02_B03",
+          "cueAnchor": "twice. That is why large-scale recovery often needs",
+          "direction": "Paragraph P02. Visual phase 3/3. On the final line focus the actual response path reaching the client and remaining stable, as a definition of *service recovery* rather than mere process startup. Ensure the first vertical frame has the initial red node and waiting clients in the center; no outside narration context is required.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Leave the current overload frame stable. A thin temporal spine emerges along the already-seen gateway world, inviting the viewer to review how the states evolved over the incident. Do not replace the world with a generic text timeline slide.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT11",
+      "title": "The Incident Clock",
+      "editorialDurationSeconds": 85,
+      "narration": "The incident timeline makes the feedback loop easier to see. At 1:07 in the morning, UTC, Teams traffic moved onto the gateway supporting Exchange. Throughout the day, load gradually increased and isolated servers began to fail. By 4:03 in the afternoon, Microsoft detected growing connectivity anomalies. At 4:17, automated redirection moved traffic toward alternative healthy endpoints. At 4:20, the company recorded the high-priority Exchange Online impact alert.\n\nRecovery teams tried several methods during the evening. They redistributed traffic, restarted parts of the infrastructure, and investigated health-check and connection-handling problems. At 7:20 that evening, Microsoft had determined that the elevated pressure was not simply a rise in total traffic. Too many servers had become unavailable, so the remaining ones were carrying more work. Near midnight, servers that initially recovered were seen becoming unresponsive again after traffic arrived.\n\nThat is the important pattern. The original trigger matters, but the recovery system is now interacting with the same feedback loop. The team is no longer only fixing a software defect. It is also trying to stop the platform from repeatedly recreating the conditions that expose that defect.",
+      "voiceDirection": "Director-LOCKED VO mood: chronological clarity, no news-anchor rhythm. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Consolidate a complex causal chain with source-grounded chronology, not overwhelm the audience with dates.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Leave the current overload frame stable. A thin temporal spine emerges along the already-seen gateway world, inviting the viewer to review how the states evolved over the incident. Do not replace the world with a generic text timeline slide.",
+      "cameraDirection": "Camera revisits the full chain in place, with sparse anchored factual timestamps near matching events, not a new floating timeline card. Real report anchors: 01:07 Teams route shift; 16:03 detection; 16:17 redirect; 16:20 alert; 19:20 missing server capacity recognized; 23:55 restart instability; next-day 07:20 mitigation. The requests move along real paths, with final held image of restarting server waiting for admission.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT11_P01_B01",
+          "cueAnchor": "The incident timeline makes the feedback loop easier",
+          "direction": "Paragraph P01. Visual phase 1/3. Draw one delicate time axis along the bottom/side of the persistent map (not a standalone data table).",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P01_B02",
+          "cueAnchor": "supporting Exchange. Throughout the day, load gradually increased",
+          "direction": "Paragraph P01. Visual phase 2/3. Advance across documented UTC event markers sequentially: `01:07 — Teams failover`, `16:03 — Connectivity anomalies`, `16:17 — Automated redirection`, `16:20 — Exchange impact alert`. At each marker, reuse the same map state from earlier: violet traffic joins primary, gateway pressure increases, router redirects, mail path becomes blocked.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P01_B03",
+          "cueAnchor": "connectivity anomalies. At 4:17, automated redirection moved traffic",
+          "direction": "Paragraph P01. Visual phase 3/3. The narrative remains readable because only the current clock label is bright and the previous stamps become QUIET. Do not invent intermediate timestamps or precise request volumes.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P02_B01",
+          "cueAnchor": "Recovery teams tried several methods during the evening.",
+          "direction": "Paragraph P02. Visual phase 1/3. Continue the axis through the evening, but reduce the labels: `Traffic redistribution`, `Server restarts`, `Investigate health checks`, and later `Recovered nodes fail again`.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P02_B02",
+          "cueAnchor": "7:20 that evening, Microsoft had determined that the",
+          "direction": "Paragraph P02. Visual phase 2/3. The exact interventions are represented by previously taught objects: routing path brightness, server state sequence, probe route, repeat overload. At `7:20` show `19:20 UTC — Too few available servers; higher load per survivor`.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P02_B03",
+          "cueAnchor": "unavailable, so the remaining ones were carrying more",
+          "direction": "Paragraph P02. Visual phase 3/3. Near midnight show `Near midnight UTC — Recovery relapse` without making up an exact minute. All text fits and remains visible long enough; otherwise simplify label copy and let voice give precision.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P03_B01",
+          "cueAnchor": "That is the important pattern. The original trigger",
+          "direction": "Paragraph P03. Visual phase 1/2. Temporarily stop the clock movement. Two states repeat on the actual gateway: first the `root trigger` marker at connection handling, then `recovery traffic` arriving along the same route, then the red failed state.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT11_P03_B02",
+          "cueAnchor": "no longer only fixing a software defect. It",
+          "direction": "Paragraph P03. Visual phase 2/2. Run a single, restrained `restart → reloaded → failed` loop once. Highlight the real engineering problem: restoring a healthy starting state cannot be enough while recovery repeatedly recreates the faulty operating condition. End with the camera fixed near the affected connection-handling path, preparing a specific repair in SHOT12.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Carry the camera through the exact software connection-handling element already examined. Its defect marker becomes the active target for the next visual action.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT12",
+      "title": "How Recovery Became Possible",
+      "editorialDurationSeconds": 85,
+      "narration": "A turning point came when Microsoft identified the defective connection-handling path and developed an update that returned it to an earlier known-good state. Engineers applied the change to groups of servers, restarted them, and brought them back carefully. They also used traffic controls, additional capacity, and changes to distribution so recovered infrastructure was not immediately overwhelmed.\n\nThis matters because recovery had two jobs. First, remove or avoid the software behavior that could make a gateway stop responding. Second, control the workload the gateway would receive while capacity returned. Fixing the code without managing traffic could leave the system struggling through a crowded recovery. Managing traffic without addressing the defect would only reduce the chance of triggering it.\n\nBy the morning of November thirteenth, portions of the gateway infrastructure were becoming stable. Recovery progressed region by region. At 16:10 UTC, Microsoft said active customer impact had ended, although monitoring and delayed-message processing continued afterward.\n\nFor a user, this eventually became ordinary again: an inbox opens, a message appears, a reply can be sent. But the architecture lesson is not contained in that final green status.",
+      "voiceDirection": "Director-LOCKED VO mood: controlled release, authoritative without victory music. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Show recovery as the combination of a software fix and safe traffic reintroduction, not a magical single green switch.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Carry the camera through the exact software connection-handling element already examined. Its defect marker becomes the active target for the next visual action.",
+      "cameraDirection": "Show minimal data from Microsoft reported mitigation: switch internal code path back to known good, take groups out/restart, add capacity and carefully open traffic. The visual `Traffic Admission` gate allows staged paths; only actual paths animate. Place recovered regions in quiet/success green without implying instant global recovery. Show remaining delayed mail queue gradually draining to human inbox. Accurate source-time callouts optional.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT12_P01_B01",
+          "cueAnchor": "A turning point came when Microsoft identified the",
+          "direction": "Paragraph P01. Visual phase 1/3. At the existing `Connection Handling` focus, show the amber defective code-path marker replaced by a neutral `Known-good code path` marker.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P01_B02",
+          "cueAnchor": "to an earlier known-good state. Engineers applied the",
+          "direction": "Paragraph P01. Visual phase 2/3. Animate a small update propagating *in ordered groups* across conceptual gateway endpoints, each starting amber, restarting, then becoming available. While this happens, the ingress corridor does not instantly open to full traffic: the route controller meters a narrower stream, and available gateway capacity gradually increases.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P01_B03",
+          "cueAnchor": "carefully. They also used traffic controls, additional capacity,",
+          "direction": "Paragraph P01. Visual phase 3/3. Keep the update, rollout, traffic controls and capacity restoration distinguishable: one action repairs behavior, another governs demand. This is not a screenshot of Microsoft deploy tooling.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P02_B01",
+          "cueAnchor": "This matters because recovery had two jobs. First,",
+          "direction": "Paragraph P02. Visual phase 1/3. Revisit the already familiar gateway at MEDIUM framing and stage a two-step comparison over the SAME node.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P02_B02",
+          "cueAnchor": "responding. Second, control the workload the gateway would",
+          "direction": "Paragraph P02. Visual phase 2/3. First a `Fixed connection handling` status makes its internal shared-resource contention marker quiet; nevertheless the exterior demand is still high. Then `Controlled traffic return` reduces the immediate arrival rate on the visible connector until completions can keep up.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P02_B03",
+          "cueAnchor": "the system struggling through a crowded recovery. Managing",
+          "direction": "Paragraph P02. Visual phase 3/3. Briefly suggest the opposite missing-half states without a didactic three-panel slide: if software is left faulty, pressure remains risky; if traffic is uncontrolled, recovery stays crowded. The viewer sees two independent controls working in sequence, then together.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P03_B01",
+          "cueAnchor": "By the morning of November thirteenth, portions of",
+          "direction": "Paragraph P03. Visual phase 1/2. Camera moves from one recovering gateway to the region/fleet view, following a smooth continuous route. Region markers change from FAILED to WAITING/RESOLVED *one by one*, with their active pathways returning.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P03_B02",
+          "cueAnchor": "region. At 16:10 UTC, Microsoft said active customer",
+          "direction": "Paragraph P03. Visual phase 2/2. A simple incident clock reaches `13 Nov — 16:10 UTC`, paired only with `Active customer impact ended`. Keep residual delayed-message processing in QUIET amber on a secondary email-delivery connector instead of falsely signaling that every delayed email had already arrived or every issue was instantly gone. Restore service colors gradually, not via a full-frame green flash.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P04_B01",
+          "cueAnchor": "For a user, this eventually became ordinary again:",
+          "direction": "Paragraph P04. Visual phase 1/2. Trace one newly successful cyan mailbox request over the now-stable visible route; a genuine response packet travels back to the same client. The inbox opens and a delayed message appears as an abstract consequence without suggesting this exact transaction happened in Microsoft production.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT12_P04_B02",
+          "cueAnchor": "reply can be sent. But the architecture lesson",
+          "direction": "Paragraph P04. Visual phase 2/2. Hold the success briefly, then begin a pull-back toward the routing and gateway world as narrator explains that the lesson continues. The client remains a small left-side anchor as the next chapter becomes about system design.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "The live architecture remains resolved but becomes QUIET. Introduce clearly marked hypothetical improvements on the SAME geometry, so viewers do not confuse suggested design patterns with documented Microsoft mitigations.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT13",
+      "title": "What Engineers Should Design For",
+      "editorialDurationSeconds": 85,
+      "narration": "Should engineers stop using failover? No. The solution is to design it for the whole system, including shared failure modes and real spare capacity. The following principles are general architecture lessons, not claims about undocumented Microsoft internals. Listen to what a recovery system actually needs to guarantee.\n\nA system can be highly available on paper and still fail during recovery. You have healthy servers, automatic failover, and several regions. Each part sounds reliable. But if every surviving server shares the same hidden weakness, moving traffic only spreads the pressure. And if your recovery starts every server at full demand, the failure can repeat. Real resilience needs more than backup routes. It needs safe capacity, failure isolation, and a controlled way to return traffic. Availability is not the number of servers you own. It is the amount of useful work the system can still complete when things go wrong.",
+      "voiceDirection": "Director-LOCKED VO mood: reflective, senior, practical; distinguish recommendations from actual incident actions. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Transfer the technical lesson to other engineering systems. This is an explicit general-design demonstration, not the verified Microsoft implementation.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: The live architecture remains resolved but becomes QUIET. Introduce clearly marked hypothetical improvements on the SAME geometry, so viewers do not confuse suggested design patterns with documented Microsoft mitigations.",
+      "cameraDirection": "Replay same map with three alternative deterministic behaviors, sequentially not simultaneously: admission gate limits offered load, alternate routing respects capacity threshold, region boundary isolates pressure. These are illustrative engineering design options, not alleged Microsoft fixes. Reuse `ATConnectionPath`, `ATFailureState`, `ATCapacityIndicator`, `ATTrafficFailover` future primitives only if registry confirms. Reel isolated crop shows cause → protection → payoff with no giant info panels.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT13_P01_B01",
+          "cueAnchor": "Should engineers stop using failover? No. The solution",
+          "direction": "Paragraph P01. Visual phase 1/2. In the same gateway system that just recovered, briefly replay a safe successful failover and emphasize the word `No` visually through an intact functioning route, not a warning. A small unobtrusive spatial marker `GENERAL DESIGN PRINCIPLES` separates the hypothetical teaching mode from the historical incident.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT13_P01_B02",
+          "cueAnchor": "capacity. The following principles are general architecture lessons,",
+          "direction": "Paragraph P01. Visual phase 2/2. The camera settles on three already-known concepts—ingress volume, gateway spare capacity, region boundary—but doesn't show three full cards. Reveal them sequentially only as each is needed in the upcoming Reel: traffic admission, spare headroom, isolation.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT13_P02_B01",
+          "cueAnchor": "A system can be highly available on paper",
+          "direction": "Paragraph P02. Visual phase 1/3. Build a standalone visual argument. **Hook:** one wide-but-center-safe network shows multiple green servers and a healthy failover path; everything looks reassuring. **Shared weakness:** the same amber contention marker quietly appears on the backup endpoints, and the router sends traffic to them as one goes red. **Recovery replay:** a restarted node returns green, but an immediate full stream triggers amber again. **Design alternative A — capacity:** demonstrate a limit at the entrance, where new work is temporarily held outside the constrained endpoint while successful responses continue on the route. **Design alternative B — staged return:** raise admitted load gradually, watching completion activity, rather than activating every lane at full intensity. **Design alternative C — isolation:** maintain a clearly separated region where the failure in another capacity group does not take away its own service path.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT13_P02_B02",
+          "cueAnchor": "same hidden weakness, moving traffic only spreads the",
+          "direction": "Paragraph P02. Visual phase 2/3. Each alternative is shown sequentially using the same central node/connector system and the same component families. **Payoff:** end with a flow of *successfully completed work* reaching the human anchor.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT13_P02_B03",
+          "cueAnchor": "failure isolation, and a controlled way to return",
+          "direction": "Paragraph P02. Visual phase 3/3. Green server counts alone are no longer the hero; continuous useful output is. Do not claim these three patterns are literally what Microsoft implemented.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "Let the hypothetical design state gradually dim into the original incident story state without moving objects. Camera pulls back along known paths toward the full architecture composition, preparing the earned complete-map reveal.",
+      "shortsCandidate": true
+    },
+    {
+      "shotKey": "SHOT14",
+      "title": "The Architecture Paradox",
+      "editorialDurationSeconds": 75,
+      "narration": "Look again at what happened. A July change sat inside gateway software for months without an obvious problem. Another gateway handed Teams traffic to the system supporting Exchange. Part of that destination's capacity was temporarily unavailable. Under peak traffic, the combined load exposed a lock-contention defect that could make servers unresponsive.\n\nTraffic management then did what it was built to do: find other destinations. But those destinations could encounter the same weakness. Each lost endpoint increased the pressure on the remaining fleet. Even when engineers restarted servers, waiting traffic could drive them back into trouble. Recovery required treating the code defect and the traffic pressure together.\n\nThis is the paradox behind the outage. A recovery mechanism can be correct for one failing server and still be dangerous for the system as a whole. A local success does not always create global stability. Sometimes it creates the next problem. The real architecture exists in the relationships between those decisions.",
+      "voiceDirection": "Director-LOCKED VO mood: quiet payoff; one final wide camera. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "The film's major intellectual payoff. For the first time the audience can see nearly the whole architecture and mentally trace each documented causal link.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: Let the hypothetical design state gradually dim into the original incident story state without moving objects. Camera pulls back along known paths toward the full architecture composition, preparing the earned complete-map reveal.",
+      "cameraDirection": "One earned full-map zoom-out, like the prior episodes’ final architectural payoff. Show only the factual big connections: Teams failover into shared gateway, reduced capacity, latent lock contention, redirect cascade, overwhelmed recovery, controlled restoration. The three causes glow sequentially along actual connections and dim after narration. Human inbox at edge. No disconnected slides.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT14_P01_B01",
+          "cueAnchor": "Look again at what happened. A July change",
+          "direction": "Paragraph P01. Visual phase 1/3. Use the rare `FULL ARCHITECTURE WIDE`. The audience can now recognize the original client, Teams source, two gateway systems, primary fleet, internal defect, capacity band and mailbox destination.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P01_B02",
+          "cueAnchor": "problem. Another gateway handed Teams traffic to the",
+          "direction": "Paragraph P01. Visual phase 2/3. As each phrase occurs, activate one precise causal landmark in time order: `July defect` on gateway code → `Teams failover` along the violet connector → `~14% unavailable` on capacity bar → `Peak load` incoming flow → `Lock contention` inside the focused gateway group. No five-item callout panel.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P01_B03",
+          "cueAnchor": "temporarily unavailable. Under peak traffic, the combined load",
+          "direction": "Paragraph P01. Visual phase 3/3. These are spatially attached, short anchored labels, and each lights up then returns QUIET as the next becomes ACTIVE. The whole chain, not one component, is the revelation.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P02_B01",
+          "cueAnchor": "Traffic management then did what it was built",
+          "direction": "Paragraph P02. Visual phase 1/3. Re-run the cascade over a few seconds at system scale, not with real-time human-sized request counts.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P02_B02",
+          "cueAnchor": "the same weakness. Each lost endpoint increased the",
+          "direction": "Paragraph P02. Visual phase 2/3. The local router decision/path briefly lights green while affected fleet nodes transition amber/red. Then the restarted node receives returning traffic and relapses; next, the known-good code marker and controlled traffic admission work together to restore response flow.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P02_B03",
+          "cueAnchor": "waiting traffic could drive them back into trouble.",
+          "direction": "Paragraph P02. Visual phase 3/3. Use minimal accelerated replays of mechanisms already taught. The viewer should see arrows, node states and working responses, not read an event log.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P03_B01",
+          "cueAnchor": "This is the paradox behind the outage. A",
+          "direction": "Paragraph P03. Visual phase 1/3. Freeze no objects, but significantly reduce motion.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P03_B02",
+          "cueAnchor": "and still be dangerous for the system as",
+          "direction": "Paragraph P03. Visual phase 2/3. Isolate the routing junction at the moment it chooses a viable destination: routing action gets a small green `VALID LOCAL ACTION` outcome; immediately its downstream fleet is shown failing red, with a short `SYSTEM UNAVAILABLE` state at the human end. On `local success ... global stability`, hold both contrasting facts in one composition, positioned near their associated architecture rather than in two overlay boxes.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT14_P03_B03",
+          "cueAnchor": "global stability. Sometimes it creates the next problem.",
+          "direction": "Paragraph P03. Visual phase 3/3. Dim everything except their explicit causal connector. Then slowly restore the whole map to neutral, allowing the viewer to read the final point: individual mechanisms are not the same as a system outcome.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "The camera pulls back only slightly, then glides home along the already visible client-response corridor. The full map stays accessible in the background; this is the resolution of the same first request, not a new user or a new scene.",
+      "shortsCandidate": false
+    },
+    {
+      "shotKey": "SHOT15",
+      "title": "The Human Consequence And The Next Question",
+      "editorialDurationSeconds": 40,
+      "narration": "For the person waiting on an email, none of these terms mattered. What mattered was whether the message could arrive when it was needed. But behind that small moment was a system of gateways, shared capacity, hidden software behavior, and recovery decisions.\n\nThe lesson reaches beyond Microsoft 365. Every distributed system eventually has to answer the same difficult question: when one part fails, will moving its work protect the rest, or make the next failure more likely?\n\nThat is not just a question about failover. It is a question about how we design for uncertainty.",
+      "voiceDirection": "Director-LOCKED VO mood: warm but unsentimental, final reflective statement; leave two seconds of living-map motion after narration. Performance intent: calm, precise, conversational, slow natural engineering documentary. Keep narrative questions, punctuation, and realistic pauses. Preserve every spoken word exactly. Use the existing approved narrator voice/settings and first paid Take only after a separate Director approval and EP004-safe audio storage gate. This field is editorial guidance; provider delivery parameters must be verified separately.",
+      "visualGoal": "Resolve the person-to-architecture loop and leave a useful question for the viewer's own systems.",
+      "startingFrame": "Continue from the exact last DECODED APPROVED frame of the previous SHOT, including CameraRig pose, node/route state, labels, packet identities and packet progress. Prior SHOT transition: The camera pulls back only slightly, then glides home along the already visible client-response corridor. The full map stays accessible in the background; this is the resolution of the same first request, not a new user or a new scene.",
+      "cameraDirection": "Camera returns to inbox; one new request completes over a valid route. Pull back one last time to gateway and capacity boundaries. Keep the world alive after last spoken word, don't freeze a final PNG. No unsupported claim that Microsoft now guarantees full resilience.",
+      "assetKeys": [
+        "ATBackground",
+        "ATCameraRig",
+        "ATPrimaryNode",
+        "ATConnectionPath",
+        "ATFlowArrow"
+      ],
+      "visualBeats": [
+        {
+          "beatId": "SHOT15_P01_B01",
+          "cueAnchor": "For the person waiting on an email, none",
+          "direction": "Paragraph P01. Visual phase 1/2. The camera moves from the global architecture to the familiar Outlook client. A new cyan mailbox request travels through a visible healthy primary gateway route, reaches Exchange, and a smaller response travels back along the correct reverse route.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT15_P01_B02",
+          "cueAnchor": "it was needed. But behind that small moment",
+          "direction": "Paragraph P01. Visual phase 2/2. The same inbox first shown in the opening now opens; the person can read a message. Behind the client, the previously explored gateways and routes remain QUIET so the audience feels all the hidden architecture behind one simple action. No new alert banners, no invented Microsoft screenshot.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT15_P02_B01",
+          "cueAnchor": "The lesson reaches beyond Microsoft 365. Every distributed",
+          "direction": "Paragraph P02. Visual phase 1/2. Begin a restrained pullback that brings the router and two gateway destinations back into frame with the human client. One alternate route remains available as a quiet possibility; a subtle downstream capacity indicator remains visible, reminding the viewer that a backup is only safe if the destination can handle the load.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT15_P02_B02",
+          "cueAnchor": "when one part fails, will moving its work",
+          "direction": "Paragraph P02. Visual phase 2/2. Give the voiced question enough breathing room. Do not answer it with a text-heavy checklist. Let the router's branch and the actual downstream capacity offer the visual choice.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT15_P03_B01",
+          "cueAnchor": "That is not just a question about failover.",
+          "direction": "Paragraph P03. Visual phase 1/2. Camera settles on the unified living map at a human-accessible scale, not an impossibly distant overview. One normal request completes and a response returns.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        },
+        {
+          "beatId": "SHOT15_P03_B02",
+          "cueAnchor": "is a question about how we design for",
+          "direction": "Paragraph P03. Visual phase 2/2. The route and endpoint states become QUIET instead of disappearing, the client's ordinary successful view remains visible. Let approximately two seconds of natural architecture motion continue after the final spoken word if the chosen edit supports it; no motionless duplicate frame, no fake full-green guarantee, no distracting subscribe CTA covering the architecture.",
+          "assets": [
+            "ATBackground",
+            "ATCameraRig",
+            "ATPrimaryNode",
+            "ATConnectionPath"
+          ]
+        }
+      ],
+      "transition": "The final request/response loop settles into a moving quiet architecture; retain readable breathing without freeze.",
+      "shortsCandidate": false
+    }
+  ],
+  "shortsCandidates": [
+    {
+      "title": "Why a Backup Server Can Spread an Outage",
+      "shotKeys": [
+        "SHOT07"
+      ],
+      "hook": "A backup server is not automatically a rescue."
+    },
+    {
+      "title": "Why Restarting a Server Does Not Recover a Service",
+      "shotKeys": [
+        "SHOT10"
+      ],
+      "hook": "Restarting a server is not the same as recovering a service."
+    },
+    {
+      "title": "Why High Availability Can Still Fail",
+      "shotKeys": [
+        "SHOT13"
+      ],
+      "hook": "A system can be highly available on paper and still fail during recovery."
+    }
+  ]
+}
