@@ -92,7 +92,7 @@ const OutlookClient:React.FC<MailProps>=({worldFrame,press,blocked})=>{
       </div>
     </div>
     <svg width={29} height={32} viewBox="0 0 29 32" style={{
-      position:'absolute',left:236+7*(1-press),top:397-22*press,
+      position:'absolute',left:145+7*(1-press),top:397-22*press,
       filter:'drop-shadow(0 2px 2px rgba(0,0,0,.7))',
       transform:'rotate(-11deg)'}}>
       <path d="M 3 3 L 3 27 L 10 21 L 16 31 L 21 28 L 14 18 L 25 18 Z"
