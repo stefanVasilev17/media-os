@@ -23,7 +23,7 @@ export function EpisodeSelectorPage() {
       ]);
       setEpisodes(native.status === 'fulfilled' ? native.value : []);
       setImported(packages.status === 'fulfilled' ? packages.value : []);
-      const failures = [];
+      const failures: string[] = [];
       if (native.status === 'rejected') failures.push('Production workspaces could not load.');
       if (packages.status === 'rejected') failures.push('Imported Episode Packages could not load.');
       if (failures.length) setError(failures.join(' ') + ' Refresh or check your Director session.');
