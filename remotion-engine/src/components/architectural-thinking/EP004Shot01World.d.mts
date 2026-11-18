@@ -20,6 +20,14 @@ export type Ep004Shot01WorldState={
 };
 export declare const EP004_SHOT01_LOCKED_SOURCE_SHA256:string;
 export declare const EP004_SHOT01_BEATS:readonly Ep004Shot01Beat[];
+export type Ep004Shot01Bounds={x:number;y:number;width:number;height:number};
+export declare const EP004_SHOT01_LAYOUT:Readonly<{
+  client:Readonly<Ep004Shot01Bounds>;
+  gateway:Readonly<Ep004Shot01Bounds>;
+  server:Readonly<Ep004Shot01Bounds>;
+  otherServices:Readonly<Ep004Shot01Bounds>;
+}>;
+export declare function ep004Shot01LayoutValidate():boolean;
 export declare const EP004_MAIL_ROUTE:readonly Point[];
 export declare const EP004_STANDBY_ROUTE:readonly Point[];
 export declare function ep004RoutePolyline(points:readonly Point[]):string;
