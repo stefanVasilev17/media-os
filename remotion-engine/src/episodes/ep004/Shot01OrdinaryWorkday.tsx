@@ -4,8 +4,8 @@ import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {
   EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,ep004RoutePolyline,
   ep004Shot01Phase,ep004Shot01Validate
-} from '../../../ep004-shot01-world.mjs';
-import type {Ep004Shot01Props} from '../../../ep004-shot01-world.mjs';
+} from '../../components/architectural-thinking/EP004Shot01World.mjs';
+import type {Ep004Shot01Props} from '../../components/architectural-thinking/EP004Shot01World.mjs';
 
 const C={
   cyan:'#68E5FF',mint:'#68EDCA',white:'#F4F9FF',muted:'#A6C2D7',
