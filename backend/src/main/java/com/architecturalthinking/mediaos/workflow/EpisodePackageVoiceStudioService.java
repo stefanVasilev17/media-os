@@ -25,6 +25,7 @@ public class EpisodePackageVoiceStudioService {
     private static final int MAX_CHARS=5000;
     private static final int MAX_WORKING_NARRATION=12000;
     private static final int MAX_TAKES_PER_SHOT=4;
+    private static final long MAX_EPISODE_VOICE_BYTES=512L*1024*1024;
 
     record Shot(UUID id,String shotKey,String episodeKey) {}
     record Revision(int revision,String narration,String voiceDirection) {}
@@ -315,6 +316,16 @@ public class EpisodePackageVoiceStudioService {
                 requireEp003SlowFirst(shot.episodeKey(),selectedMode,attempted||hasTake);
             }
             if(slow)SlowNaturalVoicePrompt.plan(active.narration(),elevenLabs.modelId());
+            Long storedEpisodeBytes=jdbc.sql("""
+                    select coalesce(sum(t.audio_size_bytes),0)
+                    from episode_package_voice_take t
+                    join episode_package_shot s on s.id=t.shot_id
+                    where s.package_id=:package
+                    """).param("package",packageId).query(Long.class).single();
+            if (storedEpisodeBytes + MediaObjectStore.MAX_VOICE_BYTES > MAX_EPISODE_VOICE_BYTES) {
+                throw new ResponseStatusException(HttpStatus.INSUFFICIENT_STORAGE,
+                        "Voice storage safety limit: this episode cannot exceed 512 MiB.");
+            }
             Long count=jdbc.sql("""
                     select count(*) from episode_package_voice_take where shot_id=:shot
                     """).param("shot",shot.id()).query(Long.class).single();
