@@ -1,5 +1,7 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
+import {Ep004Shot01OrdinaryWorkday} from './episodes/ep004/Shot01OrdinaryWorkday';
+import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from '../ep004-shot01-world.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
 import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
 import {Shot03DirectorVisualV1} from './episodes/ep002/Shot03DirectorVisualV1';
@@ -91,6 +93,18 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL"
+        component={Ep004Shot01OrdinaryWorkday}
+        durationInFrames={dynamicDuration ?? 1950}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:1950,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          worldStartFrame:0,
+          previewOnly:true
+        }}
+      />
       <Composition
         id="EP003-SHOT11-FINALE-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot11HumanFirstFinaleV1}
