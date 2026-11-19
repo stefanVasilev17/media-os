@@ -16,7 +16,7 @@ export const EP004_STANDBY_ROUTE = Object.freeze([
   Object.freeze({x:1050,y:535}),
   Object.freeze({x:1090,y:535}),
   Object.freeze({x:1137,y:584}),
-  Object.freeze({x:1192,y:584})
+  Object.freeze({x:1151,y:584})
 ]);
 
 const clamp=(n)=>Math.min(1,Math.max(0,n));
