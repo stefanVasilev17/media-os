@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
+import {useCurrentFrame,useVideoConfig} from 'remotion';
 import {
   ATBackground,ATCameraRig,ATControlledRealismLayer,
   ATPrimaryNode,ATBackendNode,AT_FONT
@@ -45,7 +45,7 @@ const NodeRichness:React.FC<{state:V3State}>=({state})=>{
       }}
     />
     <ATPrimaryNode
-      title="Mailbox Services" left={EP004_V3_LAYOUT.mailboxFleet.x}
+      title="Mail Services" left={EP004_V3_LAYOUT.mailboxFleet.x}
       top={EP004_V3_LAYOUT.mailboxFleet.y}
       width={EP004_V3_LAYOUT.mailboxFleet.width}
       height={EP004_V3_LAYOUT.mailboxFleet.height}
@@ -57,7 +57,7 @@ const NodeRichness:React.FC<{state:V3State}>=({state})=>{
       }}>
         <span style={{width:11,height:11,borderRadius:11,
           background:CYAN,boxShadow:'0 0 11px rgba(104,229,255,.42)'}}/>
-        Representative endpoints
+        Schematic endpoints
       </div>
       {[0,1,2].map(i=><div key={i} style={{
         display:'flex',alignItems:'center',gap:16,
@@ -82,7 +82,7 @@ const NodeRichness:React.FC<{state:V3State}>=({state})=>{
           opacity:i===0?.42+.45*echo:.40,
           boxShadow:i===0?'0 0 7px '+serviceLight:'none'}}/>
       </div>)}
-      <div style={{fontFamily:AT_FONT,fontSize:17,color:SOFT,
+      <div style={{fontFamily:AT_FONT,fontSize:18,color:SOFT,
         marginTop:13}}>Illustrative topology</div>
     </ATPrimaryNode>
     <ATPrimaryNode
@@ -103,7 +103,7 @@ const NodeRichness:React.FC<{state:V3State}>=({state})=>{
         }}/>)}
       </div>
       <div style={{fontFamily:AT_FONT,color:SOFT,
-        fontSize:17,marginTop:24}}>No global failure claim</div>
+        fontSize:18,marginTop:24}}>Not all offline</div>
     </ATPrimaryNode>
   </>;
 };
