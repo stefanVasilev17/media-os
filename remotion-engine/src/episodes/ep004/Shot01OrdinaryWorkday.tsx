@@ -90,6 +90,7 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           pointerEvents:'none',overflow:'visible',fontFamily:AT_FONT}}>
         <ATOutlookMailClient
           openProgress={state.mailOpen}
+          actionProgress={state.mailAttempt}
           blocked={waiting} frame={state.worldFrame}/>
         <circle cx={state.request.x} cy={state.request.y}
           r={8} fill={state.requestStatus==='WAITING'?AMBER:CYAN}
