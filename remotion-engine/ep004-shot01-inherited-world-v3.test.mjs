@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {validateFactorySource} from './validate-factory-scenes.mjs';
 import {
  EP004_V3_LAYOUT,EP004_V3_LINEAGE,EP004_V3_ROUTES,
  EP004_V3_ROUTE_STYLE,ep004V3ValidateLayout,ep004V3Phase,
@@ -30,7 +33,9 @@ test('V3 inherits actual EP002 approved node centers instead of inventing new ma
     ',width:'+n.width+',height:'+n.height+'\\}');
   assert.match(approved,expression,'The inherited layout must remain physically exact: '+node);
  }
- assert.match(code,/SHOT02_NODES/);
+ assert.match(code,/EP004_V3_LAYOUT/);
+ assert.doesNotMatch(code,/\\.\\.\\/ep002\\//,
+   'Factory episode scene must not import protected EP002 files directly');
 });
 
 test('V3 directly uses real EP001–EP003 primitives, not replacement boxes',()=>{
@@ -44,6 +49,16 @@ test('V3 directly uses real EP001–EP003 primitives, not replacement boxes',()=
  assert.deepEqual(EP004_V3_ROUTE_STYLE,PREMIUM_ROUTE_STYLE);
  for(const p of Object.values(EP004_V3_ROUTES))
    assert.ok(ep004V3Path(p).startsWith('M'));
+});
+
+test('V3 Factory entrypoint honors reviewed-shared import boundary',()=>{
+ const sceneFile=fileURLToPath(
+   new URL('./src/episodes/ep004/Shot01InheritedWorldV3.tsx',import.meta.url));
+ const episodeDir=path.dirname(sceneFile);
+ assert.deepEqual(validateFactorySource(sceneFile,code,episodeDir),[]);
+ assert.match(code,/\\.\\.\\/\\.\\.\\/components\\/architectural-thinking\\/EP004V3InheritedWorld\\.mjs/);
+ assert.ok(!code.includes("from '../ep002/"));
+ assert.ok(!code.includes("from '../../../ep004-shot01-inherited-world-v3.mjs'"));
 });
 
 test('V3 preserves the exact approved episode source and eight true cue identifiers',()=>{
