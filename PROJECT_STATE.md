@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 V3: CI-GATED WORKER BUILD PREPARED, NOT DEPLOYED
+
+**Executed change:** [PR #323](https://github.com/stefanVasilev17/media-os/pull/323) branch `feat/ep004-shot01-v3-inherited-world-20261119`, head `44c27db7492b12b6ff1a9a961f90d055402237f6`, now contains a real `Dockerfile.remotion-worker` build-stage guard: `RUN node --test ep004-shot01-inherited-world-v3.test.mjs worker-claim-authorization.test.mjs` after the existing EP004 world test. Native worker image build must now run the specific V3 inheritance/route/SHOT02 seam regression tests; this is part of the **existing worker**, not a new service or extra QA infrastructure. The exact content of the Dockerfile was re-fetched from the branch and verified.
+
+**Actual checks:** All **10/10 V3 contract tests** re-evaluated successfully against freshly fetched GitHub V3 source in an isolated V8 evaluator: inherited EP002 coordinates/components, EP003 premium route math, 2001 exact main request-path samples, 60-frame living intro, text lanes, no second off-path request, WAITING boundary state, source-locked voice cue fail-close, exact SHOT02 continuity. **This is not an executed native `node --test`, TypeScript check, Remotion build, authentic EP001–EP003 pixel comparison or real MP4.** The newly committed Docker build guard has not yet run: GitHub check runs on the current PR commit = **0**.
+
+**Railway current proof:** Existing normal production services `media-os-backend`, `media-os-render-worker` and `Postgres` are ONLINE. The latest SUCCESS worker was built with `remotion@4.0.532`, `react@19.2.3`, `npm run build` and `npm run build:factory` (deployment `75176054-88de-4d8f-9e79-4fa202feb554`, source `e20727f74e3db27ff5954121826ee0049605b21b`). **Packages were NOT deleted in the prior optimization.** V3 source is **NOT on production**. Worker preDeployCommand is explicitly pinned to old worker commit `e20727f...` and must not be bypassed. Worker startup: `renderConcurrency=1 claimsEnabled=false`. Production backend still uses `16bc1239...`; authenticated Director's selected Take and 8/8 real provider cues remain unverified.
+
+**NEXT EXACT STEP:** In the existing authorized source/build/release channel, run the real V3 worker Docker build, Java 21 backend tests, frontend build and native Remotion still-frame QA versus actual approved EP001–EP003 frames. Fix any build/visual/cue failures without modifying locked assets. Only after verified source pin, approved original Slow Natural Take + 8/8 alignment, cost/storage P0 checks, and **explicit one-job Director CPU consent**, promote the V3 source to the shared worker/backend with safely updated immutable source pin and run one bounded S3 MP4 render. No deployment, paid operation, new service, upload or Director LOCK occurred in this checkpoint.
+
+---
+
+
 ## 2026-11-19 — EP004 SHOT01 V3 INHERITED WORLD — REAL CODE FOUNDATION COMPLETE / RENDER QA GATED
 
 **Director correction:** Stop imitating EP001–EP003; use the **existing** living architectural world assets and layouts. EP004 visual V1/V2 are REJECTED and must not be used as references. **Current source:** [Draft PR #323](https://github.com/stefanVasilev17/media-os/pull/323), branch `feat/ep004-shot01-v3-inherited-world-20261119` based on the **actual** production lineage `feat/ep003-owner-b-centered-and-header-safe-20261116`, not default main. This is NEW V3 code, NOT a repair of rejected PR #322.
