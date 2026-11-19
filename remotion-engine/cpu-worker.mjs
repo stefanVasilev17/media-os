@@ -6,7 +6,7 @@ import {bundle} from '@remotion/bundler';
 import {renderMedia, selectComposition} from '@remotion/renderer';
 import {createWorkerTokenTransport} from './worker-token-rotation.mjs';
 import {createCpuWorkerLeaseClient} from './cpu-worker-lease.mjs';
-import {shouldClaimRenderWork} from './worker-claim-authorization.mjs';
+import {shouldClaimRenderWork,requireSupportedTargetComposition} from './worker-claim-authorization.mjs';
 import {buildFactoryMedia,probeFactoryMedia} from './factory-media-worker.mjs';
 import {inspectLockedMaster,assembleLockedMaster,verifyManifest} from './ep002-locked-master-assembly.mjs';
 import {renderEp002DirectorBreathMaster} from './ep002-director-breathing-master.mjs';
@@ -38,18 +38,7 @@ if (NEXT_TOKEN_FILE && !path.isAbsolute(NEXT_TOKEN_FILE)) {
 const AUTO_LEASE = process.env.MEDIA_OS_REMOTION_CPU_AUTO_LEASE === 'true';
 const CLAIMS_ENABLED = shouldClaimRenderWork(process.env.MEDIA_OS_REMOTION_CLAIMS_ENABLED);
 const TARGET_COMPOSITION = String(process.env.MEDIA_OS_REMOTION_TARGET_COMPOSITION || '').trim();
-if (TARGET_COMPOSITION
-    && !['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE','EP002-SHOT03-CANDIDATE',
-      'EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE',
-      'EP002-DIRECTOR-MASTER','EP002-DIRECTOR-V2-PIPELINE',
-      'EP002-DIRECTOR-SHOT02-SHOT03',
-      'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04',
-      'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05',
-      'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05-SHOT06',
-      'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05-SHOT06-SHOT07',
-      'EP002-DIRECTOR-SHOT02-SHOT03-SHOT04-SHOT05-SHOT06-SHOT07-SHOT08'].includes(TARGET_COMPOSITION)) {
-  throw new Error('EP002_WORKER_TARGET_COMPOSITION_INVALID');
-}
+requireSupportedTargetComposition(TARGET_COMPOSITION);
 
 let leaseClient;
 const workloadTokens = createWorkerTokenTransport(
