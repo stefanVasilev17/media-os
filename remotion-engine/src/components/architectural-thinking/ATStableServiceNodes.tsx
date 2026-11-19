@@ -116,7 +116,7 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
             <span style={{fontSize:18,fontWeight:850,color:WHITE,
               whiteSpace:'nowrap'}}>{instanceLabel} 0{n}</span>
           </div>
-          <div style={{fontSize:13,fontWeight:800,marginTop:7,
+          <div style={{fontSize:16,fontWeight:800,marginTop:6,
             color:SOFT,letterSpacing:'.02em'}}>
             {i===0&&reroute>.4?'DEGRADED':i>0&&spreading>.3?'RISING LOAD':'AVAILABLE CAPACITY'}
           </div>
@@ -140,7 +140,7 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
         <path d="M11 75 H86" stroke="#5296B9" strokeWidth={3}
           strokeLinecap="round"/>
       </svg>
-      <div style={{margin:'5px 15px 0',fontSize:17,fontWeight:740,
+      <div style={{margin:'5px 15px 0',fontSize:18,fontWeight:740,
         lineHeight:'24px',textAlign:'center',color:SOFT}}>
         Availability may differ
       </div>
