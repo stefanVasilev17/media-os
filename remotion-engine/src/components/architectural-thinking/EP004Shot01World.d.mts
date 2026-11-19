@@ -15,7 +15,7 @@ export type Ep004Shot01WorldState={
   worldFrame:number;routeProgress:number;request:Point;
   requestStatus:'WAITING'|'IN_TRANSIT';
   mailOpen:number;blocked:number;showWorld:number;failover:number;
-  question:number;towardNext:number;secondary:Point;
+  spillover:number;question:number;towardNext:number;secondary:Point;
   secondaryVisible:boolean;secondaryOpacity:number;cameraX:number;cameraScale:number;
 };
 export declare const EP004_SHOT01_LOCKED_SOURCE_SHA256:string;
