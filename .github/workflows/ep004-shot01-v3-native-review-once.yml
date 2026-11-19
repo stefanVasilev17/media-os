@@ -1,0 +1,80 @@
+name: EP004 SHOT01 V3 Native Remotion Visual Review (bounded)
+
+on:
+  push:
+    branches:
+      - feat/ep004-shot01-v3-inherited-world-20261119
+    paths:
+      - '.github/workflows/ep004-shot01-v3-native-review-once.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ep004-shot01-v3-one-time-native-visual-review
+  cancel-in-progress: false
+
+jobs:
+  native-review:
+    name: Native Remotion 1080p 2001-frame SILENT Director-review candidate
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: remotion-engine
+    steps:
+      - name: Checkout exact approved V3 source (no protected media writes)
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install pinned Remotion dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium and ffprobe for native QA
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium-browser ffmpeg || sudo apt-get install -y -qq chromium ffmpeg
+          chromium-browser --version || chromium --version
+          ffprobe -version | head -n 1
+
+      - name: Run EP004 world and V3 source-locked checks
+        run: |
+          node --test ep004-shot01-world.test.mjs ep004-shot01-inherited-world-v3.test.mjs worker-claim-authorization.test.mjs
+          npm run generate:factory
+          node validate-factory-scenes.mjs
+
+      - name: Render one native Remotion visual REVIEW clip (no approved voice)
+        env:
+          SOURCE_SHA256: a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365
+        run: |
+          mkdir -p out
+          printf '{"durationInFrames":2001,"worldStartFrame":0,"sourceSha256":"%s","previewOnly":true}\n' "$SOURCE_SHA256" > out/ep004_v3_review_props.json
+          BROWSER=/usr/bin/chromium-browser
+          if [ ! -x "$BROWSER" ]; then BROWSER=/usr/bin/chromium; fi
+          npx remotion render src/index.ts EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL \
+            out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4 \
+            --props=out/ep004_v3_review_props.json \
+            --codec=h264 --crf=22 --concurrency=2 \
+            --gl=swangle --browser-executable="$BROWSER"
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,nb_frames \
+            -show_entries format=duration,size -of json \
+            out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4 > out/ffprobe.json
+          sha256sum out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4 > out/sha256.txt
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4)" = 1920
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4)" = 1080
+
+      - name: Upload actual native visual-review file for Director (7-day expiry)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: EP004-SHOT01-V3-NATIVE-SILENT-DIRECTOR-REVIEW
+          path: |
+            remotion-engine/out/EP004_SHOT01_V3_NATIVE_1080p_SILENT_REVIEW.mp4
+            remotion-engine/out/ffprobe.json
+            remotion-engine/out/sha256.txt
+          retention-days: 7
+          if-no-files-found: error
