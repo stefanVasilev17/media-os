@@ -81,8 +81,9 @@ test('EP004 inherits exact EP003 canonical public request path ports',()=>{
     assert.ok(state.secondaryOpacity>=0&&state.secondaryOpacity<=1);
     assert.ok(state.spillover>=0&&state.spillover<=1);
     assert.ok(state.cameraScale>=.95);
-    assert.ok(state.cameraScale<=1);
+    assert.ok(state.cameraScale<=1.08);
     assert.ok(state.mailOpen>=0&&state.mailOpen<=1);
+    assert.ok(state.mailAttempt>=0&&state.mailAttempt<=1);
   }
 });
 test('EP004 keeps approved EP003 nodes untouched and reuses canonical geometry',async()=>{
@@ -143,4 +144,20 @@ test('Outlook interaction fits inside one client and persistent nodes remain ide
   assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
   assert.match(nodes,/spreading/);
   assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
+});
+
+test('EP004 camera begins on Outlook then reveals the original EP003 main-node map',()=>{
+  const start=ep004Shot01Phase(0,props);
+  const middle=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B01+210,props);
+  const end=ep004Shot01Exit(props);
+  assert.equal(start.cameraScale,1.08);
+  assert.equal(start.cameraX,92);
+  assert.ok(middle.cameraScale<start.cameraScale);
+  assert.ok(end.cameraScale<middle.cameraScale);
+  assert.ok(end.cameraX<middle.cameraX);
+  const clientLeft=960+(56-960)*start.cameraScale+start.cameraX;
+  const clientBottom=540+(926-540)*start.cameraScale;
+  assert.ok(clientLeft>=40&&clientBottom<=1020,'Outlook frame clips at the opening');
+  const clientExitLeft=960+(56-960)*end.cameraScale+end.cameraX;
+  assert.ok(clientExitLeft>=40&&clientExitLeft<=150);
 });
