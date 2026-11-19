@@ -1,5 +1,16 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 V3 REAL DIRECTOR RENDER STARTED / VERIFY BEFORE LOCK
+
+Director's authenticated MediaOS UI completed `8/8 VERIFIED`, `Frames: 2001`, `Worker: MATCHED`, clicked the explicit one-job CPU approval, and received an actual `QUEUED` render ID **`e7e0a1ea-b9f3-4686-9fb6-41ef074659a6`** (screenshot). Railway HTTP logs confirm exact `POST /api/v1/episode-packages/d11d02a2-b649-44c9-a022-4405149f675e/shots/SHOT01/render` **HTTP 200** at `2026-11-19T15:13:21Z`. No second request, no paid ElevenLabs regeneration.
+
+Existing shared worker source remains pinned to director-approved V3 Remotion SHA `26e71933a66fa36566b720e149cc1ada56b1c27b`; composition `EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL`. Claims were enabled only for the existing worker and restricted to that target composition, with concurrency=1, **no new service**. An intermediate Railway config-triggered build from moving branch head `e3369d...` **FAILED safely** at the immutable pre-deploy source pin, **no change to selected render**. Reusing the previous approved V3 image as existing-worker redeploy **`8c2265a2-a710-45d6-b748-3e74b4475271`** succeeded. Actual runtime logs confirm `claimsEnabled=true`, `Factory capability confirmed source=26e719...`, and **`Claimed Remotion render e7e0a1ea-...`**. Tier++ technical precheck PASS (1920×1080@30fps, 2001 frames, exact SHA); native prebuilt Remotion bundle used. Rendering started at `2026-11-19T15:19:18Z` with progress observed at 10%. Voice is scheduled to mux the original saved Slow Natural Take with an exact 2-second delay after video frames are rendered.
+
+**Status as recorded: RUNNING, NOT YET A VERIFIED MP4, NOT DIRECTOR-LOCKED**. Next: monitor this exact render ID until `EP004_SHOT01_REAL_APPROVED_TAKE_MUX_QA_PASS` and `AT_TIER_PLUS_PLUS_MP4_QA`; confirm backend `SUCCEEDED`, private S3 byte count and accessible Director review video. Do not issue another render request. **Re-disable worker claims immediately after this approved job is terminal**, preserving source pin and scope; verify no unrelated jobs were claimed. Actual visual parity vs Director-approved EP001–EP003 video frames still needs human comparison; no automatic LOCK.
+
+---
+
+
 ## 2026-11-19 — EP004 SHOT01 Director Render HTTP 403 — ROUTE SECURITY FIX DEPLOYED, CPU STILL NOT QUEUED
 
 **Real Director incident and evidence:** Screenshot from logged-in EP004 Voice Studio showed `Real cues: 8/8 VERIFIED`, `Frames: 2001`, `Worker: MATCHED`, and `POST Render SHOT01 → HTTP 403`. Railway backend HTTP log explicitly records **one** `POST /api/v1/episode-packages/d11d02a2-b649-44c9-a022-4405149f675e/shots/SHOT01/render` = **403 at 2026-11-19T14:56:17.989Z**. Preceding readiness GETs returned 200. The render controller's exact path was missing from `EpisodeFactoryDirectorRoutes.POST_PATHS`, used by all three Spring Security chains (local, Google and signed JWT). These chains `denyAll` for unregistered `/api/v1/**` POST. This accounts for the 403 at the security boundary even with current voice readiness; the request was not a successful backend render admission.
