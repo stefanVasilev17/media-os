@@ -1,6 +1,9 @@
 package com.architecturalthinking.mediaos.remotion;
 
 import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
+import com.architecturalthinking.mediaos.workflow.Ep004Shot01DirectorRenderService;
+import com.architecturalthinking.mediaos.workflow.EpisodePackageValidator;
+import com.architecturalthinking.mediaos.workflow.SlowNaturalVoicePrompt;
 import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
 import com.architecturalthinking.mediaos.workflow.Ep002Shot02EditorialPausePlan;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -520,6 +523,89 @@ public class RemotionCpuWorkerController {
 
     public ResponseEntity<Map<String, Object>> claim(String key,String workerId,String sourceSha) {
         return claim(key,workerId,sourceSha,null);
+    }
+
+    @GetMapping("/{renderId}/ep004-shot01-selected-voice")
+    public ResponseEntity<byte[]> selectedEp004Shot01Voice(
+            @PathVariable UUID renderId,
+            @RequestHeader(value = "X-Media-OS-Worker-Key",required = false) String key,
+            @RequestHeader(value = "X-Media-OS-Worker",required = false) String workerId,
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha",required = false) String sourceSha
+    ) {
+        requireWorker(key,workerId);
+        if(mediaObjects==null || sourceSha==null || !sourceSha.matches("[a-f0-9]{40}"))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "EP004 private approved Take requires pinned worker source and object storage.");
+        record ApprovedEp004Voice(String objectKey,String sha,Long size,String contentType,
+                                 String narration,String narrationSha,String inputJson) {}
+        ApprovedEp004Voice selected=jdbc.sql("""
+                select t.audio_object_key,t.audio_sha256,t.audio_size_bytes,t.content_type,
+                       revision.narration,
+                       r.input_props->>'narrationSha256' as narration_sha,
+                       r.input_props::text as input_json
+                  from remotion_render r
+                  join episode_package_import p
+                    on p.id::text=r.input_props->>'packageId'
+                   and p.episode_key='EP004'
+                   and p.source_sha256=:originalSourceSha
+                  join episode_package_shot shot on shot.package_id=p.id
+                   and shot.shot_key='SHOT01'
+                  join lateral (
+                    select revision,narration from episode_package_shot_revision
+                     where shot_id=shot.id order by revision desc limit 1
+                  ) revision on true
+                  join lateral (
+                    select take_id from episode_package_voice_choice
+                     where shot_id=shot.id and revision=revision.revision
+                     order by selected_at desc,id desc limit 1
+                  ) choice on true
+                  join episode_package_voice_take t
+                    on t.id=choice.take_id and t.shot_id=shot.id
+                   and t.revision=revision.revision
+                 where r.id=:render and r.project_id=:project
+                   and r.composition_id=:composition
+                   and r.status='RUNNING' and r.worker_id=:worker
+                   and r.input_props->>'expectedSourceCommit'=:sourceSha
+                   and r.input_props->>'sourceSha256'=:originalSourceSha
+                   and r.input_props->>'voiceTakeId'=t.id::text
+                   and r.input_props->>'scriptRevision'=revision.revision::text
+                   and r.input_props->>'directorCpuApproved'='true'
+                   and r.input_props->>'previewOnly'='false'
+                   and r.fps=30 and r.width=1920 and r.height=1080
+                   and r.duration_in_frames between 600 and 9000
+                   and t.storage_status='OBJECT_VERIFIED'
+                   and t.generated_alignment->>'mediaos_delivery_mode'=:delivery
+                   and t.audio_object_key is not null
+                """)
+                .param("render",renderId).param("project",PROJECT_ID)
+                .param("worker",workerId.trim()).param("sourceSha",sourceSha)
+                .param("originalSourceSha",Ep004Shot01DirectorRenderService.SOURCE_SHA)
+                .param("composition",Ep004Shot01DirectorRenderService.COMPOSITION)
+                .param("delivery",SlowNaturalVoicePrompt.DELIVERY_MODE)
+                .query((rs,row)->new ApprovedEp004Voice(
+                        rs.getString("audio_object_key"),rs.getString("audio_sha256"),
+                        rs.getObject("audio_size_bytes",Long.class),
+                        rs.getString("content_type"),rs.getString("narration"),
+                        rs.getString("narration_sha"),rs.getString("input_json")))
+                .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,
+                        "EP004 worker-owned approved Take or original source is no longer current."));
+        Map<String,Object> input=readMap(selected.inputJson());
+        Object cueObject=input.get("cueFrames");
+        if(!(cueObject instanceof Map<?,?> cues)
+                || cues.size()!=Ep004Shot01DirectorRenderService.BEAT_IDS.size()
+                || !cues.keySet().containsAll(Ep004Shot01DirectorRenderService.BEAT_IDS)
+                || !EpisodePackageValidator.sha256(selected.narration())
+                        .equals(selected.narrationSha()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 narration SHA or eight original provider cue frames changed.");
+        if(selected.objectKey()==null || selected.sha()==null || selected.size()==null)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 original selected Take has no verified S3 manifest.");
+        byte[] audio=mediaObjects.downloadVerified(
+                selected.objectKey(),selected.sha(),selected.size());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(selected.contentType()))
+                .cacheControl(CacheControl.noStore()).body(audio);
     }
 
     @GetMapping("/{renderId}/ep002-selected-voice")
