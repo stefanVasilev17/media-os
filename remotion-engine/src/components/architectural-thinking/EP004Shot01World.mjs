@@ -98,6 +98,7 @@ export function ep004Shot01Phase(frame,props) {
   const blocked=go('SHOT01_P01_B03',74);
   const showWorld=go('SHOT01_P02_B01',170);
   const failover=go('SHOT01_P02_B02',180);
+  const spillover=go('SHOT01_P02_B03',145);
   const question=go('SHOT01_P03_B01',150);
   const towardNext=go('SHOT01_P03_B02',150);
   const requestProgress=.04+.93*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
@@ -109,7 +110,7 @@ export function ep004Shot01Phase(frame,props) {
     worldFrame:props.worldStartFrame+frame,
     routeProgress, request:ep004RoutePosition(EP004_MAIL_ROUTE,routeProgress),
     requestStatus:blocked>.12?'WAITING':'IN_TRANSIT',
-    mailOpen, blocked, showWorld, failover, question, towardNext,
+    mailOpen, blocked, showWorld, failover, spillover, question, towardNext,
     secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,secondPacketProgress),
     secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
     cameraX:-15*showWorld-12*towardNext,
