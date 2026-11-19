@@ -8,7 +8,7 @@ export interface V3State {
  routeProgress:number;request:V3Point;
  requestStatus:'WAITING'|'IN_TRANSIT';
  wait:number;revealGateway:number;revealRouter:number;revealFleet:number;
- standbyHighlight:number;endpointEcho:number;question:number;handoff:number;
+ standbyHighlight:number;choiceLightProgress:number;endpointEcho:number;question:number;handoff:number;
  camera:V3Camera;ambiance:number;nextShotWorldFrame:number;
  lockedSourceSha256:string;
 }
