@@ -2,6 +2,7 @@ package com.architecturalthinking.mediaos.system;
 
 import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
 import com.architecturalthinking.mediaos.workflow.ProductionOverviewService;
+import com.architecturalthinking.mediaos.workflow.Ep004Shot01DirectorRenderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -90,6 +91,12 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
                     Map.of("continuation", "EP002_DIRECTOR_AUTHORIZED_FULL_MASTER"));
             chain.doFilter(request, response);
+            return;
+        }
+        if (isVerifiedEp004WorkerContinuation(request)) {
+            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
+                    Map.of("continuation","EP004_DIRECTOR_APPROVED_SHOT01_RENDER"));
+            chain.doFilter(request,response);
             return;
         }
         if (isVerifiedFactoryWorkerContinuation(request)) {
@@ -290,6 +297,68 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 """).param("render",UUID.fromString(callback.group(1)))
                 .param("project",RENDER_PROJECT_ID)
                 .param("worker",worker.trim()).param("sha",sourceSha)
+                .query(Boolean.class).single());
+    }
+
+    private boolean isVerifiedEp004WorkerContinuation(HttpServletRequest request) {
+        if (jdbc==null) return false;
+        java.util.regex.Matcher callback=FINAL_REMOTION_CALLBACK.matcher(apiPath(request));
+        if (!callback.matches()) return false;
+        String operation=callback.group(2);
+        boolean complete="complete".equals(operation) && "PUT".equals(request.getMethod());
+        boolean fail="fail".equals(operation) && "POST".equals(request.getMethod());
+        if (!complete && !fail) return false;
+        if (request.getHeader("X-MediaOS-Episode-Id")!=null) return false;
+        String worker=request.getHeader("X-Media-OS-Worker");
+        String sourceSha=request.getHeader("X-Media-OS-Worker-Source-Sha");
+        if(worker==null || worker.isBlank() || sourceSha==null
+                || !sourceSha.matches("[a-f0-9]{40}")) return false;
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select exists(
+                    select 1 from remotion_render r
+                    join episode_package_import p
+                      on p.id::text=r.input_props->>'packageId'
+                     and p.episode_key='EP004'
+                     and p.source_sha256=:originalSha
+                    join episode_package_shot shot
+                      on shot.package_id=p.id and shot.shot_key='SHOT01'
+                    where r.id=:render and r.project_id=:project
+                      and r.composition_id=:composition
+                      and r.status='RUNNING' and r.worker_id=:worker
+                      and r.input_props->>'expectedSourceCommit'=:sourceSha
+                      and r.input_props->>'sourceSha256'=:originalSha
+                      and r.input_props->>'directorCpuApproved'='true'
+                      and r.input_props->>'previewOnly'='false'
+                      and r.input_props->>'voiceTakeId' is not null
+                      and r.input_props->>'narrationSha256' is not null
+                      and jsonb_typeof(r.input_props->'cueFrames')='object'
+                      and r.fps=30 and r.width=1920 and r.height=1080
+                      and r.duration_in_frames between 600 and 9000
+                      and (:isFailure or exists(
+                          select 1 from episode_package_voice_choice choice
+                          join episode_package_voice_take t
+                            on t.id=choice.take_id and t.shot_id=shot.id
+                          where choice.shot_id=shot.id
+                            and choice.revision=(select max(revision)
+                              from episode_package_shot_revision
+                              where shot_id=shot.id)
+                            and choice.take_id::text=r.input_props->>'voiceTakeId'
+                            and t.revision::text=r.input_props->>'scriptRevision'
+                            and choice.id=(select last_choice.id
+                              from episode_package_voice_choice last_choice
+                              where last_choice.shot_id=shot.id
+                                and last_choice.revision=choice.revision
+                              order by last_choice.selected_at desc,
+                                last_choice.id desc limit 1)
+                      ))
+                )
+                """)
+                .param("render",UUID.fromString(callback.group(1)))
+                .param("project",RENDER_PROJECT_ID)
+                .param("worker",worker.trim()).param("sourceSha",sourceSha)
+                .param("originalSha",Ep004Shot01DirectorRenderService.SOURCE_SHA)
+                .param("composition",Ep004Shot01DirectorRenderService.COMPOSITION)
+                .param("isFailure",fail)
                 .query(Boolean.class).single());
     }
 
