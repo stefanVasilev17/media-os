@@ -1,5 +1,20 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 V3 SECOND DIRECTOR-APPROVED WORKER BUILD FAILED ON TEST SYNTAX; FIXED IN GITHUB ONLY
+
+**Exact authorization/action:** Director explicitly approved the **second one-time Railway worker build/deployment only**, no MP4 render, no ElevenLabs request. A staged non-destructive production patch `131e86a3-9abb-4079-90c3-7ccaccd72c5e` changed only the **existing** `media-os-render-worker` source SHA and matching preDeployCommand pin from failed `44c27db7492b12b6ff1a9a961f90d055402237f6` to `8b4b2316a751af553b01814222d6fe20e3994724`. Patch review confirmed one service, no vars, no destructive resources. Authorized accept-deploy triggered Railway deployment **`11ce95cb-55b1-4b93-abec-ea5a944e576a`**.
+
+**Real native Docker result:** **FAILED** at step `44/56` (V3 and worker claim authorization Node tests), before TypeScript/Remotion bundle and Factory validation. Node 22.23.5 emitted `SyntaxError: Invalid regular expression flags` for doubly escaped regex in `ep004-shot01-inherited-world-v3.test.mjs` line 37, a bug in the previously added test, not a missing Remotion package or an observed visual defect. This attempt did NOT become the active worker and did NOT start an MP4 job.
+
+**Actual source correction:** Replaced the two unsafe Factory import regex assertions with direct `code.includes()` checks, test-code commit `1b4883aea9c09ea4b0c99f12d889d36fda6720f3`; follow-on updated V3 render handoff in [PR #323](https://github.com/stefanVasilev17/media-os/pull/323). Corrected source was re-fetched and 11/11 transformed tests ran in isolated V8 with mock Factory validator, without syntax errors. **This is source-model smoke QA only, not a real `node --test` or successful Railway build.** Original EP001–EP003 source and assets remain untouched. Factory import boundaries still enforced; no weakening of `validate-factory-scenes.mjs`.
+
+**Railway safe after failed attempt:** Three production services remain ONLINE; previous successful shared worker image `75176054-88de-4d8f-9e79-4fa202feb554` from `e20727f74e3db27ff5954121826ee0049605b21b` still serves. Latest new deployment `11ce95cb...` = FAILED, earlier `a7a3dcfb...` = FAILED. **Configured** worker source SHA and preDeployCommand are pinned to the *failed* second attempt `8b4b231...`, while successful runtime is older; preserve this distinction. No variables altered, no claims enabled, no video or TTS created, no new service/bucket/storage changes.
+
+**NEXT EXACT GATE:** Second authorized build is consumed. **DO NOT AUTO-RETRY**. Only after a new explicit Director authorization for one additional build, stage exact **current** PR #323 head source SHA + preDeploy SHA guard atomically on the existing shared worker, re-read patch ensuring one service/no variables/no destructive changes, and run native Node/Factory/TypeScript/Remotion build. After success, compare actual native V3 frames to locked EP001–EP003 before separately authorizing any CPU MP4 render with the real approved Slow Natural Take and 8/8 provider cue frames. Nothing is visually LOCKED.
+
+---
+
+
 ## 2026-11-19 — EP004 V3: FIRST AUTHORIZED NATIVE RAILWAY BUILD FAILED SAFELY; FACTORY IMPORT FIX COMMITTED, NOT RETRIED
 
 **Director approval consumed:** One bounded production build/deployment of the existing `media-os-render-worker`, **without** MP4 render, new ElevenLabs request, additional Railway service, extra Postgres storage or claims activation. Production patch `20c54b7b-6e4e-4469-94bb-5ff439ad6ad1` was inspected as **non-destructive** and changed only the existing worker source branch + exact commit pin and matching `preDeployCommand` pin. Railway accepted the one authorized deployment; attempt ID `a7a3dcfb-b31f-42c7-8b71-2f35d5b38638`, source `44c27db7492b12b6ff1a9a961f90d055402237f6`.
