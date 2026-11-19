@@ -1,5 +1,20 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 V3 NATIVE REMOTION WORKER BUILD AND DEPLOYMENT SUCCESS (NO MP4 YET)
+
+**Director permission:** Broad approval for continued bounded EP004 build/release/render execution, but authentic Director role checks, original-Take requirement, 8/8 real cues, cost/storage controls and immutable source still apply; no bypass or unapproved ElevenLabs regeneration.
+
+**Actual completed deployment:** On existing `media-os-render-worker` only, source pinned to `26e71933a66fa36566b720e149cc1ada56b1c27b` from [PR #323](https://github.com/stefanVasilev17/media-os/pull/323), matching SHA-guarded `preDeployCommand`; non-destructive staged patch `ee6ac42b-5c4f-42a2-a757-59f43acac5b9` reviewed as one worker, no variable / service / DB modification. Production deployment ID `150887f3-4674-4e4c-9ef9-47f8fc8c775d` **SUCCESS**. Runtime log confirms `EP004_SHOT01_V3_SOURCE_PIN_NATIVE_BUILD_VERIFIED`, `MediaOS Remotion CPU worker online`, `renderConcurrency=1 claimsEnabled=false` and `Factory capability confirmed source=26e71933a66fa36566b720e149cc1ada56b1c27b scenes=1`.
+
+**Real native build QA:** V3 + worker-authorization tests PASS; broad Node regression **173 PASS, 0 FAIL**; Factory generator discovers `EP004-SHOT01`; Factory source safety validation **PASS: 3 files**; TypeScript preflight reported **0 new errors** (one documented/locked EP001 baseline TS2322 remains accepted, not modified); `npm run build` **PASS** and `npm run build:factory` **PASS**; Docker image built and deployed. Native build validates code execution/bundling only, **not decoded visual similarity to approved EP001–EP003 frames**. Avoid claiming visual approval based on matching component imports.
+
+**Still separate, not completed:** No authenticated EP004 approved Slow Natural selected-Take readiness or true provider `8/8` cue-frame confirmation; production backend is on older commit `16bc1239...` and does not have PR #321 voice readiness fix. Worker job claims remain intentionally OFF. No audited Director render request queued and no new private-S3 H.264/AAC MP4, object SHA, playable file or visual Director LOCK exists. The existing three Railway services remain the complete normal production footprint. The earlier rejected V1/V2 MP4s remain REJECTED.
+
+**NEXT:** Review actual approved EP001–EP003 MP4 frames and genuine V3 native Remotion stills; confirm real selected Take and 8 aligned cues on Director-authenticated backend after safely validating/promoting voice-readiness fix. After all gates, explicitly submit one bounded authenticated SHOT01 render to existing shared queue, approve permitted claims for the precise job, verify output S3 SHA/bytes and decoded 2001/actual frames plus audio timing/seam. Update here with real artifacts and then request Director visual LOCK.
+
+---
+
+
 ## 2026-11-19 — EP004 V3 SECOND DIRECTOR-APPROVED WORKER BUILD FAILED ON TEST SYNTAX; FIXED IN GITHUB ONLY
 
 **Exact authorization/action:** Director explicitly approved the **second one-time Railway worker build/deployment only**, no MP4 render, no ElevenLabs request. A staged non-destructive production patch `131e86a3-9abb-4079-90c3-7ccaccd72c5e` changed only the **existing** `media-os-render-worker` source SHA and matching preDeployCommand pin from failed `44c27db7492b12b6ff1a9a961f90d055402237f6` to `8b4b2316a751af553b01814222d6fe20e3994724`. Patch review confirmed one service, no vars, no destructive resources. Authorized accept-deploy triggered Railway deployment **`11ce95cb-55b1-4b93-abec-ea5a944e576a`**.
