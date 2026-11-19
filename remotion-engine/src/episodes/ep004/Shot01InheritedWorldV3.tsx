@@ -201,7 +201,7 @@ const WorldRails:React.FC<{state:V3State}>=({state:s})=>{
         fill="none" stroke={MINT}
         strokeWidth={3} strokeLinecap="round"
         pathLength={1}
-        strokeDasharray={String(.20*s.standbyHighlight)+' 1'}
+        strokeDasharray={String(s.choiceLightProgress)+' 1'}
         opacity={.42*s.standbyHighlight}/>
     </svg>
     <svg width={1920} height={1080} viewBox="0 0 1920 1080"
