@@ -58,7 +58,7 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
         fontSize={23} fontWeight={850}>O</text>
       <text x={140} y={209} fontSize={29}
         fill={WHITE} fontWeight={830}>Outlook</text>
-      <text x={350} y={207} fontSize={16}
+      <text x={350} y={207} fontSize={17}
         fill="#CEE6F7" fontWeight={650}>Microsoft 365</text>
       <circle cx={445} cy={199} r={3.6} fill={WHITE}/>
       <circle cx={445} cy={211} r={3.6} fill={WHITE}/>
@@ -128,13 +128,13 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
               fill={active?MINT:'#547F9D'}/>
             <text x={172} y={y+32} fontSize={19}
               fontWeight={760} fill={WHITE}>{message.sender}</text>
-            <text x={453} y={y+32} textAnchor="end" fontSize={14}
+            <text x={453} y={y+32} textAnchor="end" fontSize={16}
               fill="#A5C0D6">{message.time}</text>
             <text x={151} y={y+63} fontSize={18}
               fontWeight={active?770:620} fill="#D9EAF7">
               {message.subject}
             </text>
-            <text x={151} y={y+90} fontSize={16}
+            <text x={151} y={y+90} fontSize={18}
               fill="#91ADC4">{message.preview}</text>
           </g>;
         })}
@@ -151,7 +151,7 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
             transform={'rotate('+(frame*3%360)+' 168 826)'}/>
           <text x={190} y={833} fill={WHITE} fontSize={19}
             fontWeight={810}>Trying to reconnect</text>
-          <text x={152} y={864} fill="#E4BFA2" fontSize={16}>
+          <text x={152} y={864} fill="#E4BFA2" fontSize={18}>
             Mail is temporarily unavailable
           </text>
         </g>
@@ -160,7 +160,7 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
             opacity={.7+.3*blink}/>
           <text x={183} y={832} fill={WHITE} fontSize={19}
             fontWeight={810}>Connected</text>
-          <text x={152} y={864} fill={SOFT} fontSize={16}>
+          <text x={152} y={864} fill={SOFT} fontSize={18}>
             Your inbox is up to date
           </text>
         </g>
