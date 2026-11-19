@@ -50,6 +50,23 @@ class WorkloadRouteFactoryTest {
     }
 
     @Test
+    void ep004ApprovedSlowNaturalVoiceHasExactAuthenticatedWorkerGetOnly() {
+        String exact = PREFIX + RENDER + "/ep004-shot01-selected-voice";
+        assertEquals(CPU, WorkloadRoute.resolve("GET",exact));
+        assertEquals(CPU, WorkloadRoute.resolve(exact));
+        assertNull(WorkloadRoute.resolve("POST",exact));
+        assertNull(WorkloadRoute.resolve("PUT",exact));
+        assertNull(WorkloadRoute.resolve("DELETE",exact));
+        assertNull(WorkloadRoute.resolve("GET",exact+"/extra"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+"invalid/ep004-shot01-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot02-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot01-selected-voice%2Fextra"));
+    }
+
+    @Test
     void approvedFactorySourceRequiresTwoValidUuidSegmentsAndGet() {
         String path = PREFIX + RENDER + "/factory-source/" + SOURCE;
         assertEquals(CPU, WorkloadRoute.resolve("GET", path));
