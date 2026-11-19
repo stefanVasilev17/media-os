@@ -135,13 +135,14 @@ export function ep004V3Phase(frame,props){
     requestStatus:amber>.28?'WAITING':'IN_TRANSIT',
     wait,revealGateway,revealRouter,revealFleet,
     standbyHighlight:standout*.70,
+    choiceLightProgress:.10*standout+.24*handoff,
     endpointEcho:trigger('SHOT01_P02_B02',56)*
       (1-trigger('SHOT01_P02_B03',130)),
     question,handoff,
     camera:Object.freeze({
-      x:30-56*revealRouter-36*handoff,
-      y:14-10*revealRouter-10*handoff,
-      scale:1.015-.059*revealRouter-.023*handoff
+      x:26-65*revealRouter-20*handoff,
+      y:12-10*revealRouter,
+      scale:1.015-.068*revealRouter+.026*handoff
     }),
     ambiance:phaseWave,
     nextShotWorldFrame:beatFrame+1,
