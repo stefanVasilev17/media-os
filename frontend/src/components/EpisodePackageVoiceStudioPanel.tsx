@@ -294,7 +294,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         </button>
         {cpuReady&&<>
           <p role="status">Source: EP004 Director-LOCKED ·
-            {' '}Real cues: {Object.keys(cpuReady.cueFrames).length}/8 ·
+            {' '}Real cues: {Object.keys(cpuReady.cueFrames).length===8?'8/8 VERIFIED':'NOT VERIFIED (all 8 required)'} ·
             {' '}Frames: {cpuReady.durationInFrames} ·
             {' '}Worker: {cpuReady.ready?'MATCHED':'NOT READY'}</p>
           {cpuReady.blockers.length>0&&<p className="episode-package-voice-blocker" role="status">
