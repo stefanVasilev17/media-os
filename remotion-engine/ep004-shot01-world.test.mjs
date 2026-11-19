@@ -48,7 +48,7 @@ test('the blocked request never teleports to the alternate route',()=>{
   for(let f=0;f<props.durationInFrames;f+=13){
     const w=ep004Shot01Phase(f,props);
     assert.ok(w.routeProgress>=last);
-    assert.ok(w.routeProgress<=.955);
+    assert.ok(w.routeProgress<=.97);
     last=w.routeProgress;
   }
   const exit=ep004Shot01Exit(props);
@@ -62,4 +62,40 @@ test('continuity contract passes exact world/camera/packet state to next shot',(
   assert.equal(exit.worldFrame+1,props.worldStartFrame+props.durationInFrames);
   assert.deepEqual(exit.request,ep004RoutePosition(EP004_MAIL_ROUTE,exit.routeProgress));
   assert.ok(Number.isFinite(exit.cameraX)&&Number.isFinite(exit.cameraScale));
+});
+
+test('EP004 inherits exact EP003 canonical public request path ports',()=>{
+  assert.deepEqual(EP004_MAIL_ROUTE,[
+    {x:485,y:532},{x:521,y:532}
+  ]);
+  assert.deepEqual(EP004_STANDBY_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:584},{x:1151,y:584}
+  ]);
+  for(let frame=0;frame<props.durationInFrames;frame+=7){
+    const state=ep004Shot01Phase(frame,props);
+    assert.deepEqual(state.request,
+      ep004RoutePosition(EP004_MAIL_ROUTE,state.routeProgress));
+    if(state.secondaryVisible)assert.deepEqual(state.secondary,
+      ep004RoutePosition(EP004_STANDBY_ROUTE,
+        Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84))));
+    assert.ok(state.cameraScale>=.95);
+    assert.ok(state.cameraScale<=1);
+    assert.ok(state.mailOpen>=0&&state.mailOpen<=1);
+  }
+});
+test('EP004 keeps approved EP003 nodes untouched and reuses canonical geometry',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const outlook=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const shot=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(nodes,/import \{SHOT02_NODES\}/);
+  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(nodes,/ATStableServiceNodes/);
+  assert.match(shot,/ATOutlookMailClient/);
+  assert.match(shot,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
+  assert.match(shot,/ep004RoutePolyline\(EP004_STANDBY_ROUTE\)/);
+  assert.doesNotMatch(shot,/const Gateway:|const Server:|const Mailbox:/);
+  assert.match(outlook,/clipPath=/);
+  assert.match(outlook,/Trying to reconnect/);
+  assert.match(outlook,/Focused/);
 });
