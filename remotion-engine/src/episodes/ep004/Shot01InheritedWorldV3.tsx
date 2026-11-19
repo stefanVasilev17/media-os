@@ -4,14 +4,13 @@ import {
   ATBackground,ATCameraRig,ATControlledRealismLayer,
   ATPrimaryNode,ATBackendNode,AT_FONT
 } from '../../components/architectural-thinking';
-import {SHOT02_NODES} from '../ep002/Shot02PremiumLayout';
 import {
   EP004_V3_LAYOUT,EP004_V3_ROUTES,EP004_V3_ROUTE_STYLE,
   ep004V3Phase,ep004V3Path,ep004V3ValidateLayout
-} from '../../../ep004-shot01-inherited-world-v3.mjs';
+} from '../../components/architectural-thinking/EP004V3InheritedWorld.mjs';
 import {ep004Shot01Validate} from '../../components/architectural-thinking/EP004Shot01World.mjs';
 import type {Ep004Shot01Props} from '../../components/architectural-thinking/EP004Shot01World.mjs';
-import type {V3State} from '../../../ep004-shot01-inherited-world-v3.mjs';
+import type {V3State} from '../../components/architectural-thinking/EP004V3InheritedWorld.mjs';
 
 const CYAN='#68E5FF',MINT='#6FECD4',AMBER='#F5A55A';
 const WHITE='#F5FCFF',SOFT='#B5D2E6';
@@ -19,8 +18,8 @@ const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 
 const NodeRichness:React.FC<{state:V3State}>=({state})=>{
   const s=state;
-  const gateway=SHOT02_NODES.gateway;
-  const router=SHOT02_NODES.balancer;
+  const gateway=EP004_V3_LAYOUT.gateway;
+  const router=EP004_V3_LAYOUT.router;
   const pulse=.5+.5*Math.sin(state.worldFrame*.035);
   const echo=state.endpointEcho;
   const serviceLight=echo>.12?
@@ -219,16 +218,6 @@ const WorldRails:React.FC<{state:V3State}>=({state:s})=>{
   </>;
 };
 
-const Ep002PremiumGrid:React.FC=()=>{
-  if(SHOT02_NODES.gateway.x!==EP004_V3_LAYOUT.gateway.x
-    ||SHOT02_NODES.gateway.y!==EP004_V3_LAYOUT.gateway.y
-    ||SHOT02_NODES.balancer.x!==EP004_V3_LAYOUT.router.x
-    ||SHOT02_NODES.auth.x!==EP004_V3_LAYOUT.mailboxFleet.x
-    ||SHOT02_NODES.database.x!==EP004_V3_LAYOUT.otherServices.x)
-    throw Error('EP004_V3_CANONICAL_EP002_COORDINATES_HAVE_DIVERGED');
-  return null;
-};
-
 export const Ep004Shot01InheritedWorldV3:React.FC<Ep004Shot01Props>=props=>{
   const frame=useCurrentFrame();
   const config=useVideoConfig();
@@ -241,7 +230,6 @@ export const Ep004Shot01InheritedWorldV3:React.FC<Ep004Shot01Props>=props=>{
   return <ATBackground>
     <ATControlledRealismLayer frame={state.worldFrame}
       realism={.96} architectureReveal={.46}/>
-    <Ep002PremiumGrid/>
     <div style={{position:'absolute',left:66,top:40,width:400,
       fontSize:17,fontWeight:710,letterSpacing:'.20em',
       color:'#A6D6F3',zIndex:28,fontFamily:AT_FONT}}>
