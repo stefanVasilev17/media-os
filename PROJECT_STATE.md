@@ -1,5 +1,26 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 V3 INHERITED WORLD — REAL CODE FOUNDATION COMPLETE / RENDER QA GATED
+
+**Director correction:** Stop imitating EP001–EP003; use the **existing** living architectural world assets and layouts. EP004 visual V1/V2 are REJECTED and must not be used as references. **Current source:** [Draft PR #323](https://github.com/stefanVasilev17/media-os/pull/323), branch `feat/ep004-shot01-v3-inherited-world-20261119` based on the **actual** production lineage `feat/ep003-owner-b-centered-and-header-safe-20261116`, not default main. This is NEW V3 code, NOT a repair of rejected PR #322.
+
+**What is genuinely implemented:**
+- `remotion-engine/src/episodes/ep004/Shot01InheritedWorldV3.tsx` is a native Remotion React/TSX composition importing the existing `ATBackground`, `ATCameraRig`, `ATControlledRealismLayer`, `ATPrimaryNode`, and `ATBackendNode` primitives; EP002 `SHOT02_NODES` is directly imported and its gateway/router/cluster/support centers matched exactly.
+- Existing `Shot01OrdinaryWorkday.tsx` now resolves to V3, preserving the approved backend composition ID `EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL`. Root and worker do NOT require a new per-shot deployment target.
+- One Outlook/human anchor (no giant UI mockup) and canonical EP002 spatial hierarchy; schematic/mail service and quiet M365 nodes avoid false exact Microsoft topology/claiming all M365 unavailable. One active cyan-to-amber mailbox request runs exclusively on a visible canonical EP003 premium curved rail. Other routes stay dim; the future choice path is highlighted by an on-path STROKE, not a second floating packet. A 60-frame moving/narrator-free intro and cue-driven camera establish the world and transition into the routing question.
+- `ep004-shot01-inherited-world-v3.mjs` and `.d.mts` pin layout, EP003 route renderer, genuine source hash, 8 cue IDs, camera motion, `ep004V3Exit` and `ep004V3Shot02Entry` with exact camera/route state and world frame +1.
+- V3 integrates isolated fixes from unmerged PR #321 (canonical persisted Slow Natural mode and real provider pause-tag-safe HEAR→SEE mapping) and PR #319 (EP004 exact composition target allowlist; claims OFF by default) without mutating original EP001–EP003 source, selected Takes or videos.
+- Full technical and storytelling handoff: `docs/engineering/EP004_SHOT01_V3_INHERITED_WORLD_RENDER_HANDOFF_20261119.md`.
+
+**Actually executed QA:** Ten contract tests from the committed V3 test file were evaluated against actual freshly retrieved source in an isolated V8 harness: **10 PASS, 0 FAIL**. All **2001** visual model states were sampled: request remained on the **same EP003 visible rail** with monotonic progress, the first 60 frames moved, the packet waited at the gateway boundary and no second/request teleport was created. Node coordinates matched EP002; camera + request identity passed the SHOT02 exact entry contract. Conservative text fit initially failed in several labels and was corrected; committed test now passes. **This is source/model QA, NOT a native Node/Maven/Remotion build, approved-MP4 visual comparison, real-Take readiness, production deploy or MP4 render.**
+
+**Hard remaining gates:** No GitHub CI check runs are present for the PR head; the isolated assistant container lacks React/Remotion dependency packages and cannot reach GitHub/npm registry. Do the real Node test suite, TypeScript check, native Remotion bundle/main+factory, Java21 verify and frontend build on authenticated runner. Generate actual Remotion stills at frame 0,1,20,59, 8 REAL aligned cue frames and final; compare visually against ACTUAL protected EP001–EP003 video frames, not recreated images, before one full MP4. Recheck Director-selected approved Take and `8/8` real provider alignment, S3 private source/readback, and worker source SHA. Only after separate **one bounded Director CPU consent** queue a single authorized shared-worker job (3 existing Railway services, concurrency 1, NO paid ElevenLabs rerun, NO new service or DB media blobs). Verify H264/AAC MP4 and actual shot join. Only the Director may visually LOCK. All previous episode masters remain protected.
+
+**NEXT EXACT TASK:** Execute V3 native build + frame-level visual parity; resolve any errors; then, only if approved voice/worker/CPU gates are met, produce one true 1920×1080@30fps Remotion + original narrator MP4 in private S3 and record job ID, Take ID, SHA, frames, audio and SHOT02 seam evidence here.
+
+---
+
+
 ## 2026-11-18 — DIRECTOR REJECTED EP004 SHOT01 V2 VISUAL (CURRENT CORRECTIVE STATUS)
 
 **Director explicit visual verdict:** "пак няма нищо общо с предните видеа!" (EP004 SHOT01 V2). This **supersedes the earlier source-level QA PASS and visual-review MP4 checkpoint**: **the V2 candidate is REJECTED, NOT LOCKED, NOT A VALID VISUAL REFERENCE, and must NOT be merged/deployed/reused as the base for another shot.** [PR #322](https://github.com/stefanVasilev17/media-os/pull/322) was closed UNMERGED and marked REJECTED. The locally rendered `EP004_SHOT01_V2_1080p_Visual_Review.mp4` was a standalone Chromium reconstruction (15 unique fps doubled to 30 fps) and is rejected alongside the earlier Python/Pillow visual-only MP4.
