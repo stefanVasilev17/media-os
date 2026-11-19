@@ -1175,7 +1175,7 @@ public class RemotionRenderController {
     }
 
     @GetMapping("/{renderId}/video")
-    public ResponseEntity<?> video(
+    public ResponseEntity<StreamingResponseBody> video(
             @PathVariable UUID renderId,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String range
     ) {
@@ -1221,15 +1221,16 @@ public class RemotionRenderController {
                     "Rendered MP4 has neither a verified S3 object nor legacy bytes.");
         if(range==null){
             headers.setContentLength(bytes.length);
-            return new ResponseEntity<>(bytes,headers,HttpStatus.OK);
+            StreamingResponseBody body=output->output.write(bytes);
+            return new ResponseEntity<>(body,headers,HttpStatus.OK);
         }
         long[] parsed=parseRange(range,bytes.length);
         int first=(int)parsed[0],last=(int)parsed[1];
-        byte[] slice=Arrays.copyOfRange(bytes,first,last+1);
-        headers.setContentLength(slice.length);
+        headers.setContentLength(last-first+1);
         headers.set(HttpHeaders.CONTENT_RANGE,
                 "bytes "+first+"-"+last+"/"+bytes.length);
-        return new ResponseEntity<>(slice,headers,HttpStatus.PARTIAL_CONTENT);
+        StreamingResponseBody body=output->output.write(bytes,first,last-first+1);
+        return new ResponseEntity<>(body,headers,HttpStatus.PARTIAL_CONTENT);
     }
 
     private CompositionProfile requireComposition(String compositionId) {
