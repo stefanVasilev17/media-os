@@ -8,16 +8,15 @@ export const EP004_SHOT01_BEATS = Object.freeze([
 ]);
 
 export const EP004_MAIL_ROUTE = Object.freeze([
-  Object.freeze({x:594,y:519}),
-  Object.freeze({x:899,y:519}),
-  Object.freeze({x:1008,y:536}),
-  Object.freeze({x:1076,y:536})
+  Object.freeze({x:485,y:532}),
+  Object.freeze({x:521,y:532})
 ]);
 
 export const EP004_STANDBY_ROUTE = Object.freeze([
-  Object.freeze({x:1366,y:536}),
-  Object.freeze({x:1462,y:536}),
-  Object.freeze({x:1520,y:495})
+  Object.freeze({x:1050,y:535}),
+  Object.freeze({x:1090,y:535}),
+  Object.freeze({x:1137,y:584}),
+  Object.freeze({x:1192,y:584})
 ]);
 
 const clamp=(n)=>Math.min(1,Math.max(0,n));
@@ -81,8 +80,8 @@ export function ep004Shot01Phase(frame,props) {
   const failover=go('SHOT01_P02_B02',180);
   const question=go('SHOT01_P03_B01',150);
   const towardNext=go('SHOT01_P03_B02',150);
-  const requestProgress=.04+.91*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
-  const routeProgress=Math.min(.955,requestProgress);
+  const requestProgress=.04+.93*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
+  const routeProgress=Math.min(.97,requestProgress);
   const secondPacketProgress=failover>0?Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84)):0;
   return Object.freeze({
     worldFrame:props.worldStartFrame+frame,
@@ -91,8 +90,8 @@ export function ep004Shot01Phase(frame,props) {
     blocked, showWorld, failover, question, towardNext,
     secondary:ep004RoutePosition(EP004_STANDBY_ROUTE,secondPacketProgress),
     secondaryVisible:failover>.18,
-    cameraX:-132*showWorld-48*towardNext,
-    cameraScale:1-.086*showWorld-.026*towardNext,
+    cameraX:-15*showWorld-12*towardNext,
+    cameraScale:1-.025*showWorld-.012*towardNext,
   });
 }
 
