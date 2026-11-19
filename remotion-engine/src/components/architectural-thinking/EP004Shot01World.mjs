@@ -16,7 +16,7 @@ export const EP004_STANDBY_ROUTE = Object.freeze([
   Object.freeze({x:1050,y:535}),
   Object.freeze({x:1090,y:535}),
   Object.freeze({x:1137,y:584}),
-  Object.freeze({x:1151,y:584})
+  Object.freeze({x:1192,y:584})
 ]);
 
 const clamp=(n)=>Math.min(1,Math.max(0,n));
@@ -24,6 +24,25 @@ const ease=(n)=>{const t=clamp(n);return t*t*(3-2*t);};
 
 export function ep004RoutePolyline(points) {
   return points.map(p=>p.x+','+p.y).join(' ');
+}
+
+export function ep004BezierPath(points){
+  if(!Array.isArray(points)||points.length!==4)
+    throw Error('EP004_CANONICAL_BEZIER_NEEDS_FOUR_POINTS');
+  const [a,b,c,d]=points;
+  return 'M '+a.x+' '+a.y+' C '+b.x+' '+b.y+' '+c.x+' '+c.y+' '+d.x+' '+d.y;
+}
+
+export function ep004BezierPosition(points,progress){
+  if(!Array.isArray(points)||points.length!==4||
+      !Number.isFinite(progress))
+    throw Error('EP004_INVALID_BEZIER_ROUTE_OR_PROGRESS');
+  const t=clamp(progress),q=1-t;
+  const [a,b,c,d]=points;
+  return {
+    x:q*q*q*a.x+3*q*q*t*b.x+3*q*t*t*c.x+t*t*t*d.x,
+    y:q*q*q*a.y+3*q*q*t*b.y+3*q*t*t*c.y+t*t*t*d.y
+  };
 }
 
 export function ep004RoutePosition(points,progress) {
@@ -83,14 +102,16 @@ export function ep004Shot01Phase(frame,props) {
   const towardNext=go('SHOT01_P03_B02',150);
   const requestProgress=.04+.93*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
   const routeProgress=Math.min(.97,requestProgress);
-  const secondPacketProgress=failover>0?Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84)):0;
+  const secondPacketPhase=((props.worldStartFrame+frame)*.0022)%1;
+  const secondPacketProgress=.03+.94*secondPacketPhase;
+  const secondaryOpacity=failover*clamp(Math.min(secondPacketPhase,1-secondPacketPhase)*13);
   return Object.freeze({
     worldFrame:props.worldStartFrame+frame,
     routeProgress, request:ep004RoutePosition(EP004_MAIL_ROUTE,routeProgress),
     requestStatus:blocked>.12?'WAITING':'IN_TRANSIT',
     mailOpen, blocked, showWorld, failover, question, towardNext,
-    secondary:ep004RoutePosition(EP004_STANDBY_ROUTE,secondPacketProgress),
-    secondaryVisible:failover>.18,
+    secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,secondPacketProgress),
+    secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
     cameraX:-15*showWorld-12*towardNext,
     cameraScale:1-.025*showWorld-.012*towardNext,
   });
