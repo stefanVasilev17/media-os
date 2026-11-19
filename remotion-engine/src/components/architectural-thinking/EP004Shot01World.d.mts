@@ -14,7 +14,7 @@ export type Ep004Shot01Props={
 export type Ep004Shot01WorldState={
   worldFrame:number;routeProgress:number;request:Point;
   requestStatus:'WAITING'|'IN_TRANSIT';
-  mailOpen:number;blocked:number;showWorld:number;failover:number;
+  mailOpen:number;mailAttempt:number;blocked:number;showWorld:number;failover:number;
   spillover:number;question:number;towardNext:number;secondary:Point;
   secondaryVisible:boolean;secondaryOpacity:number;cameraX:number;cameraScale:number;
 };
