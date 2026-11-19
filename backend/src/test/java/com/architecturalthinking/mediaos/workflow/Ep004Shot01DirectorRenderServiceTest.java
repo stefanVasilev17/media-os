@@ -35,8 +35,18 @@ class Ep004Shot01DirectorRenderServiceTest {
     }
 
     static JsonNode realAlignment() {
+        return realAlignment(false);
+    }
+
+    static JsonNode realAlignment(boolean withRealSlowNaturalPauses) {
         StringBuilder recording=new StringBuilder();
-        for(String anchor:ANCHORS) {
+        for(String original:ANCHORS) {
+            String anchor=original;
+            if(withRealSlowNaturalPauses) {
+                anchor=anchor.replace("millions of people","[pause] millions of people")
+                        .replace("that familiar error","that familiar [long pause] error")
+                        .replace("mechanism meant to rescue","mechanism [pause] meant to rescue");
+            }
             recording.append(anchor).append(" and the request continues smoothly ");
         }
         var chars=MAPPER.createArrayNode();
@@ -70,6 +80,33 @@ class Ep004Shot01DirectorRenderServiceTest {
         }
         assertEquals(60,Ep004Shot01DirectorRenderService.BREATH_FRAMES);
         assertEquals(30,Ep004Shot01DirectorRenderService.FPS);
+    }
+
+    @Test
+    void persistedSlowNaturalProvenanceIsRecognizedWithoutRelabelingAnyTake(){
+        assertEquals("ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1",SlowNaturalVoicePrompt.DELIVERY_MODE);
+        assertTrue(Ep004Shot01DirectorRenderService.isVerifiedSlowNaturalDelivery(
+                SlowNaturalVoicePrompt.DELIVERY_MODE));
+        assertFalse(Ep004Shot01DirectorRenderService.isVerifiedSlowNaturalDelivery("STANDARD"));
+        assertFalse(Ep004Shot01DirectorRenderService.isVerifiedSlowNaturalDelivery("SLOW_NATURAL"));
+        assertFalse(Ep004Shot01DirectorRenderService.isVerifiedSlowNaturalDelivery(null));
+    }
+
+    @Test
+    void realProviderPauseTagsAreNotSpokenCueWordsButTheirRealTimestampsRemain(){
+        var alignment=realAlignment(true);
+        Map<String,Integer> found=Ep004Shot01DirectorRenderService.actualCueFrames(
+                source(),alignment,2700);
+        assertEquals(8,found.size());
+        assertEquals(60,found.get("SHOT01_P01_B01"));
+        assertTrue(found.get("SHOT01_P03_B02")>found.get("SHOT01_P03_B01"));
+        var changed=source().deepCopy();
+        ((com.fasterxml.jackson.databind.node.ObjectNode)changed.path("visualBeats").get(3))
+                .put("cueAnchor","an entirely different narration never spoken here");
+        var failure=assertThrows(IllegalArgumentException.class,()->
+                Ep004Shot01DirectorRenderService.actualCueFrames(changed,alignment,2700));
+        assertTrue(failure.getMessage().contains("SHOT01_P02_B01"),
+                "Report first unmatched original beat without synthesizing a cue timestamp");
     }
 
     @Test
