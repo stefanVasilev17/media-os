@@ -10,14 +10,16 @@ const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 
 export type ATOutlookMailClientProps={
   openProgress:number;
+  actionProgress:number;
   blocked:number;
   frame:number;
 };
 
 export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
-  openProgress,blocked,frame
+  openProgress,actionProgress,blocked,frame
 })=>{
   const selected=clamp(openProgress);
+  const attempting=clamp(actionProgress);
   const waiting=clamp(blocked);
   const blink=.55+.45*Math.sin(frame*.08)**2;
   const messages=[
@@ -102,6 +104,13 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
         fontWeight={630} fill="#8EB2CF">Other</text>
       <path d="M148 416 H226" stroke={CYAN} strokeWidth={3}
         strokeLinecap="round"/>
+      <path d="M 435 498 H 418 L 425 491 M 418 498 L 425 505"
+        fill="none" stroke={CYAN} strokeWidth={3.0}
+        strokeLinejoin="round" strokeLinecap="round"
+        opacity={attempting*(1-waiting)}/>
+      <circle cx={428} cy={498} r={19} fill="none"
+        stroke={CYAN} strokeWidth={2}
+        opacity={attempting*(1-waiting)*(.14+.12*blink)}/>
       <g>
         {messages.map((message,i)=>{
           const y=439+i*112;
@@ -112,7 +121,7 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
               stroke={active?'#2E729B':'#203A52'}
               strokeWidth={active?1.4:.8}/>
             {active&&<rect x={138} y={y+1} width={336} height={104} rx={4}
-              fill="#184F76" opacity={selected*.32}/>}
+              fill="#184F76" opacity={selected*(.30+.15*attempting)}/>}
             <rect x={137} y={y} width={active?4:0} height={106}
               fill="#3DABE4" opacity={selected}/>
             <circle cx={155} cy={y+25} r={active?6:5}
