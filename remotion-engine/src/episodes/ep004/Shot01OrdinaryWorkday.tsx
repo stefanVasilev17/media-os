@@ -3,10 +3,12 @@ import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {ATStableServiceNodes} from '../../components/architectural-thinking/ATStableServiceNodes';
 import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
+import {SHOT02_AUTH_REPLICA_PORTS} from '../ep002/Shot02PressureVisuals';
 import {
   EP004_MAIL_ROUTE,
   EP004_STANDBY_ROUTE,
   ep004RoutePolyline,
+  ep004BezierPath,
   ep004Shot01Phase,
   ep004Shot01Validate
 } from '../../components/architectural-thinking/EP004Shot01World.mjs';
@@ -44,8 +46,12 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           strokeWidth={10} strokeLinecap="round" opacity={ambient*.72}/>
         <path d="M 779 532 L 804 532" stroke={CYAN}
           strokeWidth={3.6} strokeLinecap="round" opacity={ambient*.72}/>
-        {[412,498].map((y,i)=><path key={y}
-          d={'M 1050 535 C 1090 535 1129 '+y+' 1151 '+y}
+        {SHOT02_AUTH_REPLICA_PORTS.slice(0,2).map((port,i)=><path
+          key={port.id}
+          d={ep004BezierPath([
+            {x:1050,y:535},{x:1090,y:535},
+            {x:1137,y:port.y},{x:1192,y:port.y}
+          ])}
           fill="none" stroke={i===0?CYAN:MINT}
           strokeWidth={3.1} strokeLinecap="round"
           opacity={ambient*(.18+.16*failover)}/>)}
@@ -56,13 +62,13 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           fill="none" stroke={waiting>.3?AMBER:CYAN}
           strokeWidth={3.8} strokeLinejoin="round"
           strokeLinecap="round" opacity={.7+.20*pathPulse}/>
-        <polyline points={ep004RoutePolyline(EP004_STANDBY_ROUTE)}
+        <path d={ep004BezierPath(EP004_STANDBY_ROUTE)}
           fill="none" stroke="#1B405E" strokeWidth={10}
-          strokeLinecap="round" strokeLinejoin="round"
+          strokeLinecap="round"
           opacity={ambient*.8}/>
-        <polyline points={ep004RoutePolyline(EP004_STANDBY_ROUTE)}
+        <path d={ep004BezierPath(EP004_STANDBY_ROUTE)}
           fill="none" stroke={MINT} strokeWidth={3.4}
-          strokeLinecap="round" strokeLinejoin="round"
+          strokeLinecap="round"
           opacity={ambient*(.07+.77*failover)}/>
       </svg>
       <div style={{
@@ -92,7 +98,7 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           r={17} fill="none"
           stroke={state.requestStatus==='WAITING'?AMBER:CYAN}
           strokeWidth={2} opacity={.13+.32*pathPulse}/>
-        {state.secondaryVisible&&<g opacity={failover}>
+        {state.secondaryVisible&&<g opacity={state.secondaryOpacity}>
           <circle cx={state.secondary.x} cy={state.secondary.y}
             r={6} fill={MINT}
             style={{filter:'drop-shadow(0 0 9px rgba(111,236,212,.76))'}}/>
@@ -100,12 +106,12 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
         {waiting>.03&&<circle cx={521} cy={532} r={24}
           stroke={AMBER} strokeWidth={2.4} fill="none"
           opacity={waiting*(.13+.27*pathPulse)}/>}
-        <text x={570} y={117} fontFamily={AT_FONT}
+        <text x={560} y={116} fontFamily={AT_FONT}
           fontSize={38} fontWeight={890}
           letterSpacing="-.02em" fill={WHITE}>
           AN ORDINARY WORKDAY STOPS
         </text>
-        <path d="M 570 142 H 1280" stroke={CYAN}
+        <path d="M 560 143 H 1260" stroke={CYAN}
           strokeWidth={2} opacity={.55}/>
       </svg>
     </div>
