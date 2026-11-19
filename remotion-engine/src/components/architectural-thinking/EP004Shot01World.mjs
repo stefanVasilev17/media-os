@@ -114,8 +114,8 @@ export function ep004Shot01Phase(frame,props) {
     mailOpen, mailAttempt, blocked, showWorld, failover, spillover, question, towardNext,
     secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,secondPacketProgress),
     secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
-    cameraX:-15*showWorld-12*towardNext,
-    cameraScale:1-.025*showWorld-.012*towardNext,
+    cameraX:92-95*showWorld-24*towardNext,
+    cameraScale:1.08-.10*showWorld-.017*towardNext,
   });
 }
 
