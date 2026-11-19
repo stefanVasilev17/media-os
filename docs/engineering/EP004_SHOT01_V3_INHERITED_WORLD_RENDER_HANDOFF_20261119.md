@@ -74,7 +74,7 @@ Use one persistent `ATCameraRig`. V3 camera is deterministic from real cue-align
 - `remotion-engine/src/components/architectural-thinking/EP004V3InheritedWorld.d.mts` — state and layout type declarations; the original root declaration re-exports the public types for compatibility.
 - `remotion-engine/src/episodes/ep004/Shot01InheritedWorldV3.tsx` — actual Remotion component importing real AT assets, Outlook adaptation, native gateway/router diagrams, service world and visible curves.
 - `remotion-engine/src/episodes/ep004/Shot01OrdinaryWorkday.tsx` — integration to existing production composition ID and Root/worker.
-- `remotion-engine/ep004-shot01-inherited-world-v3.test.mjs` — 10 contracts: exact inherited centers, true components, original locked SHA, 2001-frame no-detach/no-backwards sampling, moving 2s intro, boundary hold, text fit, no static screenshot, strict production cue and SHOT02 seam.
+- `remotion-engine/ep004-shot01-inherited-world-v3.test.mjs` — 11 contracts: exact source-verified EP002 layout, direct shared-primitives-only Factory imports, original locked SHA, 2001-frame no-detach/no-backwards sampling, moving 2s intro, boundary hold, text fit, no static screenshot, strict production cue and SHOT02 seam.
 - Exact pending isolated fixes from PR #321 (correct persisted Slow Natural metadata/provider pause tags, no invented cue timing) and PR #319 (narrow EP004 worker target allowlist, claims off by default) are **copied into this V3 branch without altering approved Takes or Railway**.
 
 ## 7. Test evidence and honest limits
