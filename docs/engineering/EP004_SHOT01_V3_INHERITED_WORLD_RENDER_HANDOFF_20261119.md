@@ -13,7 +13,7 @@
 
 Canonical actual-source inheritance:
 - `ATBackground`, `ATControlledRealismLayer`, `ATCameraRig`, `ATPrimaryNode`, `ATBackendNode` directly imported from the existing `ATArchitecturePrimitives.tsx` and `ATVisualPrimitives.tsx`.
-- EP002 `SHOT02_NODES` immutable centers and sizes from `Shot02PremiumLayout.ts`. The V3 scene **imports** `SHOT02_NODES` and hard-fails if its inherited coordinates diverge.
+- EP002 `SHOT02_NODES` immutable centers and sizes from `Shot02PremiumLayout.ts`. **Factory scene isolation forbids cross-episode imports**; V3 holds the exact reviewed EP002 coordinate snapshot inside `EP004V3InheritedWorld.mjs`, and a native Node test compares each coordinate to the real EP002 source. The V3 TSX does not import EP002 directly.
 - The exact EP003 `premiumRouteD`, `premiumRoutePoint`, `PREMIUM_ROUTE_STYLE` implementation from `ep003-premium-routing-v2.mjs` computes BOTH visible rails and request coordinates.
 - Existing worker/Root composition ID remains `EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL`; `Shot01OrdinaryWorkday.tsx` is now a thin export alias to `Shot01InheritedWorldV3.tsx`. No new worker service/composition ID/volume/bucket required.
 - EP002/EP003 files are **read-only**; the V3 implementation does not rewrite their approved creative material.
@@ -70,8 +70,8 @@ Use one persistent `ATCameraRig`. V3 camera is deterministic from real cue-align
 
 ## 6. Implementation inventory
 
-- `remotion-engine/ep004-shot01-inherited-world-v3.mjs` — frozen EP002-anchored layout, new EP004 routes using EP003 premium route engine, storyboard previews isolated from real approved cues, deterministic camera/motion, SHOT02 exit/entry.
-- `remotion-engine/ep004-shot01-inherited-world-v3.d.mts` — state and layout type declarations.
+- `remotion-engine/src/components/architectural-thinking/EP004V3InheritedWorld.mjs` — Factory-approved shared world model with frozen EP002-verified geometry and read-only EP003 premium routing, real-source-gated cues, deterministic camera/motion, SHOT02 exit/entry. The original root `ep004-shot01-inherited-world-v3.mjs` is only a compatibility re-export for Node tools/tests.
+- `remotion-engine/src/components/architectural-thinking/EP004V3InheritedWorld.d.mts` — state and layout type declarations; the original root declaration re-exports the public types for compatibility.
 - `remotion-engine/src/episodes/ep004/Shot01InheritedWorldV3.tsx` — actual Remotion component importing real AT assets, Outlook adaptation, native gateway/router diagrams, service world and visible curves.
 - `remotion-engine/src/episodes/ep004/Shot01OrdinaryWorkday.tsx` — integration to existing production composition ID and Root/worker.
 - `remotion-engine/ep004-shot01-inherited-world-v3.test.mjs` — 10 contracts: exact inherited centers, true components, original locked SHA, 2001-frame no-detach/no-backwards sampling, moving 2s intro, boundary hold, text fit, no static screenshot, strict production cue and SHOT02 seam.
@@ -108,3 +108,13 @@ mvn -B -q verify
 6. Deliver MP4 to Director for review. **Only Director may visually LOCK.** Then update `PROJECT_STATE.md` with actual job ID, source commit, Take ID, SHA, frame QA and next SHOT02 entry contract.
 
 **No original EP001–EP003 MP4 was read or copied in this source-build pass; actual visual parity remains unverified.** No native Remotion MP4, deployment, or paid CPU operation was performed during V3 development.
+
+## 9. 2026-11-19 — ACTUAL RAILWAY BUILD ATTEMPT AND FACTORY SOURCE-CORRECTION
+
+The Director authorized **one bounded build/deployment of V3 on the existing worker, not a video render**. The staged change pinned `media-os-render-worker` to `44c27db7492b12b6ff1a9a961f90d055402237f6` and updated the exact pre-deploy source SHA guard atomically. Railway accepted exactly that one-service change; new deployment `a7a3dcfb-b31f-42c7-8b71-2f35d5b38638` is **FAILED**, and did not become the running worker. No new service, job, voice generation or S3 render was created. The prior worker build `75176054-88de-4d8f-9e79-4fa202feb554` remains SUCCESS and ONLINE.
+
+Real build evidence: all prior Node tests, including the new V3/worker check (**12 PASS / 0 FAIL**) and prior regression batch (**173 PASS / 0 FAIL**) succeeded. At Docker build step **52/56**, `node validate-factory-scenes.mjs` correctly rejected two cross-boundary imports inside `Shot01InheritedWorldV3.tsx`: `../ep002/Shot02PremiumLayout` and `../../../ep004-shot01-inherited-world-v3.mjs`. This is a deliberate Factory security boundary; **do not disable or relax the validator**.
+
+Source fix **committed after the single authorized build failure, NOT DEPLOYED or native-build-verified**: place the complete V3 world model/declarations under `src/components/architectural-thinking/EP004V3InheritedWorld.mjs` and `.d.mts`, import that reviewed shared module from EP004, and remove the forbidden EP002 runtime import. Preserve exact EP002 geometry via the test comparing frozen V3 values to real `Shot02PremiumLayout.ts`; preserve the original EP003 pure premium route implementation read-only from the shared module. Add a native `validateFactorySource` assertion to the test suite. Legacy root V3 model/declaration files remain compatibility re-exports. Verified with source inspection: all V3 direct scene imports now lie in the allowed episode/shared-primitives boundary; all 2001 frame positions still lie on the matching premium route, with exact EP002 geometry and camera/packet seam match. **This is source-only QA; a SECOND native Railway build is REQUIRED to prove compilation**.
+
+**The original single-build consent is exhausted. No automatic retry.** Railway config still points to failed source commit `44c27db...`, while prior successful old code is serving. Before any newly approved second build, update **both** worker source commit pin and preDeployCommand SHA to the *new* PR head in the same production patch, review all staged resources, and leave claims OFF. Run the same Docker build checks followed by real native Remotion still-frame quality evaluation. A successful worker deployment is NOT authorization to generate voice or to render a full MP4.
