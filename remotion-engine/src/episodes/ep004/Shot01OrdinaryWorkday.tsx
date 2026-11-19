@@ -79,6 +79,7 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           frame={state.worldFrame}
           blocked={waiting}
           failover={failover}
+          spillover={state.spillover}
           serviceTitle="Outlook Service"
           requestLabel="MAIL REQUESTS"
           instanceLabel="SERVER"
