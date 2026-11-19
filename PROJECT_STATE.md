@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 Director Render HTTP 403 — ROUTE SECURITY FIX DEPLOYED, CPU STILL NOT QUEUED
+
+**Real Director incident and evidence:** Screenshot from logged-in EP004 Voice Studio showed `Real cues: 8/8 VERIFIED`, `Frames: 2001`, `Worker: MATCHED`, and `POST Render SHOT01 → HTTP 403`. Railway backend HTTP log explicitly records **one** `POST /api/v1/episode-packages/d11d02a2-b649-44c9-a022-4405149f675e/shots/SHOT01/render` = **403 at 2026-11-19T14:56:17.989Z**. Preceding readiness GETs returned 200. The render controller's exact path was missing from `EpisodeFactoryDirectorRoutes.POST_PATHS`, used by all three Spring Security chains (local, Google and signed JWT). These chains `denyAll` for unregistered `/api/v1/**` POST. This accounts for the 403 at the security boundary even with current voice readiness; the request was not a successful backend render admission.
+
+**Fix, tests and protections:** Isolated [PR #325](https://github.com/stefanVasilev17/media-os/pull/325) **MERGED** into production lineage at merge commit `b5d3b1dbd6a752200349247959d189c9de26e1b2`. Source-only change added exact `"/api/v1/episode-packages/{packageId}/shots/SHOT01/render"` to `EpisodeFactoryDirectorRoutes.POST_PATHS`, no wildcard. Added test in `DirectorHttpAuthorizationTest` (Director allowed, anonymous/Viewer/Editor/sibling SHOT02/suffix denied); added `GlobalCreationPreflightFilterTest` (canonical auditId required on request, forged episode identity denied). **No CSRF bypass, Director identity bypass, creation preflight bypass, duplicate job changes, Remotion visual changes, Take regeneration, database migration, or worker claim activation.** Existing frontend global same-origin fetch injects X-XSRF-TOKEN for non-GET requests.
+
+**Native production build evidence:** Existing Railway backend only, deployed **`3ab3df84-dfee-46d7-9dc4-d16ebf84fad5` = SUCCESS**, source SHA `52cadca490a52b505ecc8aa86a9f0c7d8229f3aa`, with matching immutable `preDeployCommand` guard. Build ran frontend tests and bundle; Java 21 PostgreSQL verification `mvn test`: **543 tests, 0 failures, 0 errors, 47 skipped**, including exact Director access and project audit tests. Application startup and Flyway validated 128 migrations, **no schema changes**. All 3 existing Railway services (backend, render worker, Postgres) ONLINE, no staged changes. Backend remains source pinned to tested PR head while merged production lineage records same fix.
+
+**Render status:** **NOT RENDERED**. No authenticated Director POST succeeded yet on the fixed backend; no CPU job created by this fix. Worker still `renderConcurrency=1 claimsEnabled=false`. The authenticated Director should refresh EP004 SHOT01 readiness, verify 8/8 and MATCHED still hold, and use UI to approve and submit ONE render request. Confirm `renderId` / QUEUED result; do not fire repeat CPU submissions on ambiguous failure. Once an actual queued Director-audited request exists, use narrow authorized worker admission and protect original Take and S3 output; verify native visual frames vs EP001–EP003 before Director LOCK. Do not claim 403 is proven absent until real authenticated UI POST completes.
+
+---
+
+
 ## 2026-11-19 — EP004 SHOT01 V3: WORKER + ISOLATED VOICE READINESS BACKEND BOTH DEPLOYED; MP4 NOT RENDERED
 
 **Actual production proof:** Existing three services are ONLINE. V3 native Remotion worker deployment 150887f3-4674-4e4c-9ef9-47f8fc8c775d SUCCESS at exact source 26e71933a66fa36566b720e149cc1ada56b1c27b, with native main and Factory bundles, 173 source regression tests, factory validator, and capability heartbeat. Worker is still renderConcurrency=1, claimsEnabled=false. No automatic CPU claims and no new services.
