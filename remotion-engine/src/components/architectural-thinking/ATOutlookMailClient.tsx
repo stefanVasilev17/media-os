@@ -104,13 +104,6 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
         fontWeight={630} fill="#8EB2CF">Other</text>
       <path d="M148 416 H226" stroke={CYAN} strokeWidth={3}
         strokeLinecap="round"/>
-      <path d="M 435 498 H 418 L 425 491 M 418 498 L 425 505"
-        fill="none" stroke={CYAN} strokeWidth={3.0}
-        strokeLinejoin="round" strokeLinecap="round"
-        opacity={attempting*(1-waiting)}/>
-      <circle cx={428} cy={498} r={19} fill="none"
-        stroke={CYAN} strokeWidth={2}
-        opacity={attempting*(1-waiting)*(.14+.12*blink)}/>
       <g>
         {messages.map((message,i)=>{
           const y=439+i*112;
@@ -139,6 +132,13 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
           </g>;
         })}
       </g>
+      <path d="M 435 498 H 418 L 425 491 M 418 498 L 425 505"
+        fill="none" stroke={CYAN} strokeWidth={3.0}
+        strokeLinejoin="round" strokeLinecap="round"
+        opacity={attempting*(1-waiting)}/>
+      <circle cx={428} cy={498} r={19} fill="none"
+        stroke={CYAN} strokeWidth={2}
+        opacity={attempting*(1-waiting)*(.14+.12*blink)}/>
       <rect x={138} y={792} width={333} height={93} rx={10}
         fill="#0B2F3D" stroke="#236B75" strokeWidth={1.7}/>
       <rect x={138} y={792} width={333} height={93} rx={10}
