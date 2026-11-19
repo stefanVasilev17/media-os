@@ -56,6 +56,8 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
         fontSize={23} fontWeight={850}>O</text>
       <text x={140} y={209} fontSize={29}
         fill={WHITE} fontWeight={830}>Outlook</text>
+      <text x={350} y={207} fontSize={16}
+        fill="#CEE6F7" fontWeight={650}>Microsoft 365</text>
       <circle cx={445} cy={199} r={3.6} fill={WHITE}/>
       <circle cx={445} cy={211} r={3.6} fill={WHITE}/>
       <rect x={76} y={260} width={391} height={49} rx={9}
@@ -84,6 +86,16 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
       <path d="M127 326 V926" stroke="#1C425D" strokeWidth={1.5}/>
       <text x={150} y={369} fontSize={28}
         fontWeight={820} fill={WHITE}>Inbox</text>
+      <rect x={235} y={344} width={39} height={32} rx={15}
+        fill="#133D5A" stroke="#356E91" strokeWidth={1}/>
+      <text x={254} y={366} fontSize={17} fontWeight={820}
+        fill={CYAN} textAnchor="middle">3</text>
+      <rect x={304} y={339} width={163} height={42} rx={8}
+        fill="#155B91" stroke="#3796CA" strokeWidth={1.3}/>
+      <path d="M 322 360 H 339 M 330.5 351.5 V 368.5"
+        stroke={WHITE} strokeWidth={2.8} strokeLinecap="round"/>
+      <text x={352} y={368} fontSize={17}
+        fontWeight={800} fill={WHITE}>New mail</text>
       <text x={148} y={405} fontSize={18}
         fontWeight={820} fill={CYAN}>Focused</text>
       <text x={252} y={405} fontSize={18}
@@ -96,9 +108,11 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
           const active=i===0;
           return <g key={message.sender}>
             <rect x={137} y={y} width={338} height={106} rx={5}
-              fill={active?'#123852':'#091F33'}
+              fill={active?'#0E2B43':'#091F33'}
               stroke={active?'#2E729B':'#203A52'}
               strokeWidth={active?1.4:.8}/>
+            {active&&<rect x={138} y={y+1} width={336} height={104} rx={4}
+              fill="#184F76" opacity={selected*.32}/>}
             <rect x={137} y={y} width={active?4:0} height={106}
               fill="#3DABE4" opacity={selected}/>
             <circle cx={155} cy={y+25} r={active?6:5}
@@ -117,10 +131,11 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
         })}
       </g>
       <rect x={138} y={792} width={333} height={93} rx={10}
-        fill={waiting>.12?'#302A25':'#0B2F3D'}
-        stroke={waiting>.12?AMBER:'#236B75'} strokeWidth={1.7}/>
-      {waiting>.12?
-        <g opacity={waiting}>
+        fill="#0B2F3D" stroke="#236B75" strokeWidth={1.7}/>
+      <rect x={138} y={792} width={333} height={93} rx={10}
+        fill="#302A25" stroke={AMBER} strokeWidth={1.7}
+        opacity={waiting}/>
+      <g opacity={waiting}>
           <circle cx={168} cy={826} r={11}
             fill="none" stroke={AMBER} strokeWidth={3.3}
             strokeDasharray="30 12"
@@ -130,8 +145,8 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
           <text x={152} y={864} fill="#E4BFA2" fontSize={16}>
             Mail is temporarily unavailable
           </text>
-        </g>:
-        <g>
+        </g>
+      <g opacity={1-waiting}>
           <circle cx={165} cy={825} r={6} fill={MINT}
             opacity={.7+.3*blink}/>
           <text x={183} y={832} fill={WHITE} fontSize={19}
@@ -139,7 +154,7 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
           <text x={152} y={864} fill={SOFT} fontSize={16}>
             Your inbox is up to date
           </text>
-        </g>}
+        </g>
     </g>
     <rect x={56} y={157} width={430} height={769} rx={25}
       fill="none" stroke={waiting>.4?AMBER:CYAN}
