@@ -16,13 +16,15 @@ export type Ep004Shot01WorldState={
   requestStatus:'WAITING'|'IN_TRANSIT';
   mailOpen:number;blocked:number;showWorld:number;failover:number;
   question:number;towardNext:number;secondary:Point;
-  secondaryVisible:boolean;cameraX:number;cameraScale:number;
+  secondaryVisible:boolean;secondaryOpacity:number;cameraX:number;cameraScale:number;
 };
 export declare const EP004_SHOT01_LOCKED_SOURCE_SHA256:string;
 export declare const EP004_SHOT01_BEATS:readonly Ep004Shot01Beat[];
 export declare const EP004_MAIL_ROUTE:readonly Point[];
 export declare const EP004_STANDBY_ROUTE:readonly Point[];
 export declare function ep004RoutePolyline(points:readonly Point[]):string;
+export declare function ep004BezierPath(points:readonly Point[]):string;
+export declare function ep004BezierPosition(points:readonly Point[],progress:number):Point;
 export declare function ep004RoutePosition(points:readonly Point[],progress:number):Point;
 export declare function ep004Shot01Validate(props:Ep004Shot01Props):boolean;
 export declare function ep004Shot01Phase(frame:number,props:Ep004Shot01Props):Ep004Shot01WorldState;
