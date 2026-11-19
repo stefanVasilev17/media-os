@@ -34,7 +34,7 @@ test('V3 inherits actual EP002 approved node centers instead of inventing new ma
   assert.match(approved,expression,'The inherited layout must remain physically exact: '+node);
  }
  assert.match(code,/EP004_V3_LAYOUT/);
- assert.doesNotMatch(code,/\\.\\.\\/ep002\\//,
+ assert.ok(!code.includes("from '../ep002/"),
    'Factory episode scene must not import protected EP002 files directly');
 });
 
@@ -56,7 +56,7 @@ test('V3 Factory entrypoint honors reviewed-shared import boundary',()=>{
    new URL('./src/episodes/ep004/Shot01InheritedWorldV3.tsx',import.meta.url));
  const episodeDir=path.dirname(sceneFile);
  assert.deepEqual(validateFactorySource(sceneFile,code,episodeDir),[]);
- assert.match(code,/\\.\\.\\/\\.\\.\\/components\\/architectural-thinking\\/EP004V3InheritedWorld\\.mjs/);
+ assert.ok(code.includes("from '../../components/architectural-thinking/EP004V3InheritedWorld.mjs'"), 'The V3 scene must use the reviewed shared world model');
  assert.ok(!code.includes("from '../ep002/"));
  assert.ok(!code.includes("from '../../../ep004-shot01-inherited-world-v3.mjs'"));
 });
