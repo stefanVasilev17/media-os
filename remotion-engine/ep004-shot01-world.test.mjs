@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_SHOT01_BEATS,
   EP004_SHOT01_LOCKED_SOURCE_SHA256,ep004RoutePolyline,
-  ep004RoutePosition,ep004Shot01Phase,ep004Shot01Exit,
+  ep004RoutePosition,ep004BezierPath,ep004BezierPosition,ep004Shot01Phase,ep004Shot01Exit,
   ep004Shot01Validate
 } from './src/components/architectural-thinking/EP004Shot01World.mjs';
 
@@ -28,7 +28,7 @@ test('all eight original cues must be real, strictly increasing, and after movin
   assert.throws(()=>ep004Shot01Validate({...props,cueFrames:{...props.cueFrames,SHOT01_P01_B01:10}}),/REAL_ORDERED_VOICE_CUE/);
 });
 test('request tokens stay exactly on the visible source-of-truth polylines',()=>{
-  for(const line of [EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE]){
+  for(const line of [EP004_MAIL_ROUTE]){
     assert.equal(ep004RoutePolyline(line).split(' ').length,line.length);
     for(let n=0;n<=100;n++){
       const p=ep004RoutePosition(line,n/100);
@@ -69,15 +69,17 @@ test('EP004 inherits exact EP003 canonical public request path ports',()=>{
     {x:485,y:532},{x:521,y:532}
   ]);
   assert.deepEqual(EP004_STANDBY_ROUTE,[
-    {x:1050,y:535},{x:1090,y:535},{x:1137,y:584},{x:1151,y:584}
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:584},{x:1192,y:584}
   ]);
   for(let frame=0;frame<props.durationInFrames;frame+=7){
     const state=ep004Shot01Phase(frame,props);
     assert.deepEqual(state.request,
       ep004RoutePosition(EP004_MAIL_ROUTE,state.routeProgress));
     if(state.secondaryVisible)assert.deepEqual(state.secondary,
-      ep004RoutePosition(EP004_STANDBY_ROUTE,
-        Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84))));
+      ep004BezierPosition(EP004_STANDBY_ROUTE,
+        .03+.94*((props.worldStartFrame+frame)*.0022%1)));
+    assert.ok(state.secondaryOpacity>=0&&state.secondaryOpacity<=1);
+    assert.ok(state.spillover>=0&&state.spillover<=1);
     assert.ok(state.cameraScale>=.95);
     assert.ok(state.cameraScale<=1);
     assert.ok(state.mailOpen>=0&&state.mailOpen<=1);
@@ -93,9 +95,52 @@ test('EP004 keeps approved EP003 nodes untouched and reuses canonical geometry',
   assert.match(nodes,/ATStableServiceNodes/);
   assert.match(shot,/ATOutlookMailClient/);
   assert.match(shot,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
-  assert.match(shot,/ep004RoutePolyline\(EP004_STANDBY_ROUTE\)/);
+  assert.match(shot,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
   assert.doesNotMatch(shot,/const Gateway:|const Server:|const Mailbox:/);
   assert.match(outlook,/clipPath=/);
   assert.match(outlook,/Trying to reconnect/);
   assert.match(outlook,/Focused/);
+});
+
+test('standby request stays on the exact EP003 Bezier route, including 2001 live frames',()=>{
+  assert.equal(ep004BezierPath(EP004_STANDBY_ROUTE),
+    'M 1050 535 C 1090 535 1137 584 1192 584');
+  assert.deepEqual(ep004BezierPosition(EP004_STANDBY_ROUTE,0),{x:1050,y:535});
+  assert.deepEqual(ep004BezierPosition(EP004_STANDBY_ROUTE,1),{x:1192,y:584});
+  let previous=null;
+  for(let f=0;f<2001;f++){
+    const st=ep004Shot01Phase(f,{...props,durationInFrames:2001});
+    const phase=(f*.0022)%1;
+    const expected=ep004BezierPosition(EP004_STANDBY_ROUTE,.03+.94*phase);
+    assert.deepEqual(st.secondary,expected);
+    assert.ok(st.secondaryOpacity>=0&&st.secondaryOpacity<=1);
+    if(previous && phase<previous.phase) {
+      assert.ok(previous.opacity<.10);
+      assert.ok(st.secondaryOpacity<.10);
+    }
+    previous={phase,opacity:st.secondaryOpacity};
+  }
+});
+test('narrated pressure reaches downstream servers only after the true spillover beat',()=>{
+  const before=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03-1,props);
+  const during=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03+80,props);
+  assert.equal(before.spillover,0);
+  assert.ok(during.spillover>0&&during.spillover<1);
+  const end=ep004Shot01Exit(props);
+  assert.equal(end.spillover,1);
+});
+test('Outlook interaction fits inside one client and persistent nodes remain identical in layout',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const client=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(client,/Focused/);
+  assert.match(client,/Microsoft 365/);
+  assert.match(client,/New mail/);
+  assert.match(client,/Search mail/);
+  assert.match(client,/Trying to reconnect/);
+  assert.match(client,/opacity=\{1-waiting\}/);
+  assert.match(nodes,/SHOT02_NODES/);
+  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(nodes,/spreading/);
+  assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
 });
