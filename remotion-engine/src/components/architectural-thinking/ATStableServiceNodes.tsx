@@ -34,6 +34,7 @@ export type ATStableServiceNodesProps={
   frame:number;
   blocked:number;
   failover:number;
+  spillover:number;
   serviceTitle:string;
   requestLabel:string;
   instanceLabel:string;
@@ -41,9 +42,10 @@ export type ATStableServiceNodesProps={
 };
 
 export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
-  frame,blocked,failover,serviceTitle,requestLabel,instanceLabel,showOtherServices
+  frame,blocked,failover,spillover,serviceTitle,requestLabel,instanceLabel,showOtherServices
 })=>{
   const reroute=clamp(failover);
+  const spreading=clamp(spillover);
   const waiting=clamp(blocked);
   const pulse=.5+.5*Math.sin(frame*.034);
   const rows=[1,2,3];
@@ -95,28 +97,28 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       </div>
       {rows.map((n,i)=>{
         const y=SHOT02_AUTH_REPLICA_PORTS[i].y-SHOT02_NODES.auth.y-35;
-        const affected=reroute*(i===0?1:.18);
-        const accent=affected>.4?AMBER:'#498CB7';
+        const affected=clamp(i===0?reroute:spreading*(.70+.22*Math.sin(frame*.03+i)));
+        const accent=affected>.28?AMBER:'#498CB7';
         return <div key={n} style={{
           position:'absolute',left:40,top:y,width:268,height:71,
           boxSizing:'border-box',display:'flex',flexDirection:'column',
           justifyContent:'center',padding:'8px 11px',
           border:'2px solid '+accent,borderRadius:11,
           background:'linear-gradient(140deg,rgba(10,47,71,.99),rgba(5,26,48,.99))',
-          boxShadow:affected>.4?
+          boxShadow:affected>.28?
             '0 0 '+(12+10*pulse)+'px rgba(243,152,92,.29)':
             '0 0 9px rgba(55,202,252,.16)'
         }}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <span style={{height:10,width:10,borderRadius:3,
-              background:affected>.4?AMBER:MINT,
-              boxShadow:affected>.4?'0 0 11px '+AMBER:'0 0 8px '+MINT}}/>
+              background:affected>.28?AMBER:MINT,
+              boxShadow:affected>.28?'0 0 11px '+AMBER:'0 0 8px '+MINT}}/>
             <span style={{fontSize:18,fontWeight:850,color:WHITE,
               whiteSpace:'nowrap'}}>{instanceLabel} 0{n}</span>
           </div>
           <div style={{fontSize:13,fontWeight:800,marginTop:7,
             color:SOFT,letterSpacing:'.02em'}}>
-            {affected>.4?'RECOVERY TRAFFIC':'AVAILABLE CAPACITY'}
+            {i===0&&reroute>.4?'DEGRADED':i>0&&spreading>.3?'RISING LOAD':'AVAILABLE CAPACITY'}
           </div>
         </div>;
       })}
