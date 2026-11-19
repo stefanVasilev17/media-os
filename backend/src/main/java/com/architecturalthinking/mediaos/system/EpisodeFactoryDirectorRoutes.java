@@ -6,6 +6,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/episode-packages/import",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/generate",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/approve",
+            "/api/v1/episode-packages/{packageId}/shots/SHOT01/render",
             "/api/v1/creative/episodes/EP002/master/render",
             "/api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow",
             "/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview",
