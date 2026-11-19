@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-19 — EP004 SHOT01 V3 NATIVE REMOTION BUILD AND PRODUCTION WORKER DEPLOYMENT SUCCESS (VIDEO NOT YET RENDERED)
+
+**VERIFIED SUCCESSFUL OPERATION:** Director authorized all necessary follow-up build/deployment actions toward one EP004 SHOT01 V3 output, subject to actual approval gates. Existing Railway production `media-os-render-worker` received source-pinned commit `26e71933a66fa36566b720e149cc1ada56b1c27b` from PR #323 in non-destructive single-worker environment patch `ee6ac42b-5c4f-42a2-a757-59f43acac5b9`. Actual deployment **`150887f3-4674-4e4c-9ef9-47f8fc8c775d` = SUCCESS** (confirmed with Railway list-deployments and live environment-status). The three existing services `media-os-render-worker`, `media-os-backend`, `Postgres` are ONLINE. No new service, bucket, DB storage, paid TTS request or media render was created.
+
+**Direct native Docker evidence:** EP004 existing-world/model and worker tests passed; broad regression **173 PASS / 0 FAIL**, `node validate-factory-scenes.mjs` **PASS** (3 source files), `node build-typecheck-preflight.mjs` **zero NEW errors** (one previously documented EP001 TS2322 baseline diagnostic remains), `npm run build` produced `/app/remotion-engine/build`, and `npm run build:factory` produced `/app/remotion-engine/build-factory`. Worker image exported successfully. Runtime logs include `EP004_SHOT01_V3_SOURCE_PIN_NATIVE_BUILD_VERIFIED`, `Factory capability confirmed source=26e71933a66fa36566b720e149cc1ada56b1c27b scenes=1`, and `renderConcurrency=1 claimsEnabled=false`. **The Factory composition is deployed but cannot claim rendering jobs until separately authorized admission.**
+
+**NOT YET DONE:** Actual native V3 still-frame capture and side-by-side parity against approved EP001–EP003 MP4 frames; authenticated selected original Slow Natural voice Take with 8/8 real provider cues and source/revision readiness; validated backend-vs-worker source contract (backend still older commit), consent-backed bounded render authorization; S3-stored 1920x1080 H264/AAC MP4 with frame/audio/path/shot-seam acceptance; Director review and LOCK. **No EP004 SHOT01 video is yet complete or Director-LOCKED; successful build/deployment is not successful rendering.**
+
+**NEXT EXACT STEP:** Use the live V3 worker/bundle and authenticated MediaOS readiness workflow to inspect actual V3 stills, compare to genuinely approved EP001–EP003 frames, validate selected original voice alignment (8/8) and safe worker/source pin. Once those gates pass, perform ONE authorized bounded render on the existing shared worker (no provider voice rerun), verify S3 checksum/bytes/codec/cue+path sync and provide actual MP4 for Director review. Do not enable general CPU auto-claims or fake a Chromium/Python stand-in. Update this document again after proof of successful MP4.
+
+---
+
+
 ## 2026-11-19 — EP004 SHOT01 V3 NATIVE REMOTION WORKER BUILD AND DEPLOYMENT SUCCESS (NO MP4 YET)
 
 **Director permission:** Broad approval for continued bounded EP004 build/release/render execution, but authentic Director role checks, original-Take requirement, 8/8 real cues, cost/storage controls and immutable source still apply; no bypass or unapproved ElevenLabs regeneration.
