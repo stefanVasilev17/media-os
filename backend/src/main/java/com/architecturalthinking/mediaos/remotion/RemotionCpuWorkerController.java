@@ -1,6 +1,8 @@
 package com.architecturalthinking.mediaos.remotion;
 
 import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
+import com.architecturalthinking.mediaos.workflow.EpisodePackageValidator;
+import com.architecturalthinking.mediaos.workflow.Ep004Shot01DirectorRenderService;
 import com.architecturalthinking.mediaos.workflow.Ep002DirectorVoiceCueService;
 import com.architecturalthinking.mediaos.workflow.Ep002Shot02EditorialPausePlan;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -520,6 +522,106 @@ public class RemotionCpuWorkerController {
 
     public ResponseEntity<Map<String, Object>> claim(String key,String workerId,String sourceSha) {
         return claim(key,workerId,sourceSha,null);
+    }
+
+    private record Ep004ApprovedVoice(String objectKey, String sha256, long bytes,
+                                     String contentType, String narration,
+                                     String expectedNarrationSha,
+                                     String inputProps) {}
+
+    @GetMapping("/{renderId}/ep004-shot01-selected-voice")
+    public ResponseEntity<byte[]> ep004Shot01SelectedVoice(
+            @PathVariable UUID renderId,
+            @RequestHeader(value = "X-Media-OS-Worker-Key",required = false) String key,
+            @RequestHeader(value = "X-Media-OS-Worker",required = false) String workerId,
+            @RequestHeader(value = "X-Media-OS-Worker-Source-Sha",required = false) String sourceSha
+    ) {
+        requireWorker(key,workerId);
+        if(mediaObjects==null || !mediaObjects.readable()
+                || sourceSha==null || !sourceSha.matches("[a-f0-9]{40}"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 worker source or private voice reader is unavailable.");
+
+        Ep004ApprovedVoice selected=jdbc.sql("""
+                select t.audio_object_key as object_key,t.audio_sha256 as audio_sha,
+                       t.audio_size_bytes as audio_bytes,t.content_type,
+                       revision.narration, r.input_props->>'narrationSha256' as expected_narration_sha,
+                       r.input_props::text as props
+                from remotion_render r
+                join episode_package_import imported
+                  on imported.id::text=r.input_props->>'packageId'
+                join episode_package_shot shot on shot.package_id=imported.id
+                  and shot.shot_key='SHOT01'
+                join episode_package_voice_take t
+                  on t.id::text=r.input_props->>'voiceTakeId' and t.shot_id=shot.id
+                join episode_package_shot_revision revision
+                  on revision.shot_id=shot.id and revision.revision=t.revision
+                where r.id=:render and r.project_id=:project
+                  and r.composition_id='EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL'
+                  and r.episode_id is null
+                  and r.status='RUNNING' and r.worker_id=:worker
+                  and r.profile='REVIEW' and r.width=1920 and r.height=1080
+                  and r.fps=30
+                  and r.input_props->>'expectedSourceCommit'=:sourceSha
+                  and r.input_props->>'sourceSha256'=:sourceHash
+                  and r.input_props->>'directorCpuApproved'='true'
+                  and r.input_props->>'previewOnly'='false'
+                  and r.input_props->>'scriptRevision'=t.revision::text
+                  and imported.episode_key='EP004' and imported.source_sha256=:sourceHash
+                  and t.storage_status='OBJECT_VERIFIED'
+                  and t.generated_alignment->>'mediaos_delivery_mode'
+                      ='ELEVEN_V4_AUTO_SLOW_NATURAL_PAUSES_V1'
+                  and t.revision=(select max(latest.revision)
+                      from episode_package_shot_revision latest where latest.shot_id=shot.id)
+                  and exists(select 1 from episode_package_voice_choice choice
+                      where choice.shot_id=shot.id and choice.revision=t.revision
+                        and choice.take_id=t.id and choice.id=(
+                            select latest_choice.id from episode_package_voice_choice latest_choice
+                            where latest_choice.shot_id=shot.id
+                              and latest_choice.revision=t.revision
+                            order by latest_choice.selected_at desc,latest_choice.id desc
+                            limit 1))
+                """)
+                .param("render",renderId).param("project",PROJECT_ID)
+                .param("worker",workerId.trim()).param("sourceSha",sourceSha)
+                .param("sourceHash",Ep004Shot01DirectorRenderService.SOURCE_SHA)
+                .query((rs,row)->new Ep004ApprovedVoice(
+                        rs.getString("object_key"),rs.getString("audio_sha"),
+                        rs.getLong("audio_bytes"),rs.getString("content_type"),
+                        rs.getString("narration"),rs.getString("expected_narration_sha"),
+                        rs.getString("props")))
+                .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,
+                        "EP004 approved Take is not current for this exact claimed render."));
+
+        if(!EpisodePackageValidator.sha256(selected.narration())
+                .equals(selected.expectedNarrationSha())
+                || selected.bytes()<512 || selected.bytes()>MediaObjectStore.MAX_VOICE_BYTES
+                || !selected.objectKey().startsWith(MediaObjectStore.VOICE_PREFIX+"EP004/SHOT01/")
+                || !("audio/mpeg".equals(selected.contentType())
+                    || "audio/wav".equals(selected.contentType()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 current narration, voice manifest or media type does not match.");
+        }
+        try {
+            var props=objectMapper.readTree(selected.inputProps());
+            var cues=props.path("cueFrames");
+            if(!cues.isObject() || cues.size()!=Ep004Shot01DirectorRenderService.BEAT_IDS.size())
+                throw new IllegalArgumentException("Eight ordered HEAR-SEE anchors required.");
+            for(String beat:Ep004Shot01DirectorRenderService.BEAT_IDS) {
+                var frame=cues.path(beat);
+                if(!frame.isIntegralNumber() || frame.asInt()<60)
+                    throw new IllegalArgumentException("Provider HEAR-SEE cue is unavailable.");
+            }
+        }catch(Exception invalid) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 provider cue frames changed during CPU render.",invalid);
+        }
+        byte[] audio=mediaObjects.downloadVerified(selected.objectKey(),selected.sha256(),
+                selected.bytes());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(selected.contentType()))
+                .cacheControl(CacheControl.noStore())
+                .body(audio);
     }
 
     @GetMapping("/{renderId}/ep002-selected-voice")
