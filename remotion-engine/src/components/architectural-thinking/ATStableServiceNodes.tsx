@@ -44,11 +44,11 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
     <ATBackendNode title="Load Balancer"
       x={nodes.balancer.x} y={nodes.balancer.y}
       width={nodes.balancer.width} height={nodes.balancer.height}
-      reveal={1} quiet={.08} active={reroute*.18}
+      reveal={1} quiet={.045} active={.08+.17*reroute}
       sections={[]}
       balancerIntro={{
-        frame,arrival:.23,selected:reroute,
-        handoff:reroute,unhealthy:reroute*.4,flow:.20+.36*reroute,
+        frame,arrival:.82,selected:reroute,
+        handoff:reroute,unhealthy:reroute*.24,flow:.47+.29*reroute,
       }}/>
     <ATPrimaryNode title={serviceTitle}
       left={nodes.auth.x} top={nodes.auth.y}
@@ -56,34 +56,48 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       compact reveal={1} active={spreading*.22} quiet={.04}>
       <div style={{display:'flex',flexDirection:'column',gap:0}}>
         {[0,1,2].map((i)=>{
-          const pressure=clamp(i===0?reroute:spreading*(.78+.1*Math.sin(frame*.025+i)));
+          const pressure=clamp(i===0?reroute:spreading*(.78+.10*Math.sin(frame*.025+i)));
           const signal=pressure>.32?AMBER:MINT;
           const state=i===0&&reroute>.55?'DEGRADED':i>0&&spreading>.4?'RISING LOAD':'AVAILABLE';
+          const activity=clamp(.19+.17*Math.sin(frame*.035+i*1.1)**2+pressure*.65);
           return <div key={i} style={{
-            height:65,display:'flex',alignItems:'center',gap:10,
-            borderBottom:'1px solid rgba(115,160,207,.21)',
-            padding:'0 2px',boxSizing:'border-box',
+            height:67,display:'flex',alignItems:'center',gap:11,
+            borderBottom:i<2?'1px solid rgba(117,164,210,.20)':'none',
+            padding:'0 4px',boxSizing:'border-box',
           }}>
-            <svg viewBox="0 0 38 34" width={38} height={34}
+            <svg viewBox="0 0 36 36" width={36} height={36}
               style={{flexShrink:0,overflow:'visible'}}>
-              <rect x={2} y={3} width={34} height={28} rx={5}
-                fill="#0C2340" stroke={signal} strokeWidth={2}/>
-              <path d="M 9 13 H 29 M 9 20 H 24"
-                stroke={signal} strokeWidth={2} strokeLinecap="round"/>
-              <circle cx={29} cy={25} r={3} fill={signal}
-                opacity={.55+.4*pulse}/>
+              <rect x={2} y={2} width={32} height={32} rx={8}
+                fill="#081E35" stroke="rgba(107,163,216,.65)" strokeWidth={1.35}/>
+              {[10,18,26].map(y=><g key={y}>
+                <path d={'M 9 '+y+' H 27'} stroke="#416F97"
+                  strokeWidth={2} strokeLinecap="round"/>
+                <circle cx={26} cy={y} r={2.2} fill={signal}
+                  opacity={.45+.40*pulse}/>
+              </g>)}
+              <path d="M 8 5 H 28" stroke="rgba(178,218,247,.18)"
+                strokeWidth={1.2} strokeLinecap="round"/>
             </svg>
             <div style={{display:'flex',flexDirection:'column',
-              gap:4,flex:1,minWidth:0}}>
-              <div style={{fontSize:20,fontWeight:760,color:'#F7FAFF',
-                whiteSpace:'nowrap'}}>{instanceLabel} 0{i+1}</div>
-              <div style={{fontSize:17,fontWeight:650,
-                color:pressure>.32?'#F3BF93':'#A6C4DE',
-                whiteSpace:'nowrap'}}>{state}</div>
+              justifyContent:'center',gap:5,flex:1,minWidth:0}}>
+              <div style={{fontSize:20,fontWeight:765,letterSpacing:'-.015em',
+                color:'#F7FAFF',whiteSpace:'nowrap'}}>
+                {instanceLabel} 0{i+1}
+              </div>
+              <div style={{fontSize:18,fontWeight:660,letterSpacing:'-.012em',
+                color:pressure>.32?'#F3BF93':'#B6D4EB',whiteSpace:'nowrap'}}>
+                {state}
+              </div>
             </div>
-            <div style={{width:8,height:8,borderRadius:'50%',
-              background:signal,boxShadow:'0 0 8px '+signal,
-              opacity:.6+.3*pulse}}/>
+            <div style={{display:'flex',alignItems:'flex-end',gap:3,
+              width:34,height:21,flexShrink:0}}>
+              {[0,1,2,3].map(j=><div key={j} style={{
+                width:6,height:8+j*4,borderRadius:3,
+                background:j/4<activity ? signal : '#31516D',
+                boxShadow:j/4<activity ? '0 0 7px '+signal : 'none',
+                opacity:j/4<activity ? .7+.3*pulse : .46,
+              }}/>)}
+            </div>
           </div>;
         })}
       </div>
