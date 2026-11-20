@@ -1,6 +1,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
 import {reconcilePaidVoiceState} from '../lib/paidVoiceReconciliation';
+import {isExpectedTakeApproved,voiceReadinessExplanation} from '../lib/voiceTakeApproval';
+import type {ShotReadinessSnapshot} from '../lib/voiceTakeApproval';
 
 type Take={
   id:string;revision:number;takeNumber:number;contentType:string;
@@ -15,6 +17,7 @@ type Ep004Readiness={
   blockers:string[];nextAction:string;
 };
 type RenderResult={renderId:string;status:string;videoUrl?:string};
+type EpisodeReadinessResponse={shots:ShotReadinessSnapshot[]};
 type State={
   packageId:string;shotKey:string;revision:number;narration:string;
   voiceDirection:string;narrationSha256:string;takes:Take[];
@@ -49,6 +52,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const [loading,setLoading]=useState(true);
   const [consent,setConsent]=useState(false);
   const [paidReconciliationRequired,setPaidReconciliationRequired]=useState(false);
+  const [shotReadiness,setShotReadiness]=useState<ShotReadinessSnapshot|null>(null);
+  const [shotReadinessError,setShotReadinessError]=useState('');
   const [cpuConsent,setCpuConsent]=useState(false);
   const [cpuBusy,setCpuBusy]=useState(false);
   const [cpuReady,setCpuReady]=useState<Ep004Readiness|null>(null);
@@ -66,6 +71,15 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
     const state=await checked<State>(await fetch(base,{cache:'no-store'}));
     apply(state);
   },[base]);
+  const refreshShotReadiness=useCallback(async()=>{
+    const url='/api/v1/episode-packages/'+encodeURIComponent(packageId)+'/voice-readiness';
+    const report=await checked<EpisodeReadinessResponse>(
+      await fetch(url,{cache:'no-store'}));
+    const shot=report.shots.find(entry=>entry.shotKey===shotKey);
+    if(!shot)throw Error('Voice readiness did not include '+shotKey);
+    setShotReadiness(shot);
+    setShotReadinessError('');
+  },[packageId,shotKey]);
 
   async function recheckPaidAttempt(originalFailure=''){
     try{
@@ -98,6 +112,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[base]);
+
+  useEffect(()=>{
+    if(!data?.approvedCurrentRevision||!data.selectedTakeId){
+      setShotReadiness(null);
+      setShotReadinessError('');
+      return;
+    }
+    void refreshShotReadiness().catch(reason=>
+      setShotReadinessError('Voice readiness could not be refreshed: '+String(reason)));
+  },[data?.approvedCurrentRevision,data?.selectedTakeId,refreshShotReadiness]);
 
   const cpuBase='/api/v1/episode-packages/'+encodeURIComponent(packageId)+
     '/shots/SHOT01';
@@ -206,7 +230,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   }
 
   async function approve(){
-    if(!data||!take||dirty||busy||inFlight.current)return;
+    if(!data||!take||dirty||busy||inFlight.current
+      ||isExpectedTakeApproved(data,take))return;
     if(!window.confirm('Approve Take '+take.slice(0,8)+'… for '+shotKey+
       ' revision '+data.revision+'? This does NOT authorize OpenAI agents.'))return;
     inFlight.current=true;setBusy(true);setError('');setMessage('');
@@ -216,11 +241,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         body:JSON.stringify({expectedRevision:data.revision,takeId:take,
           decision:'DIRECTOR_APPROVE'}),
       }));
+      if(!isExpectedTakeApproved(result,take))
+        throw Error('The server did not confirm the selected Take as approved for the current revision.');
       apply(result);
-      onStatusChanged?.();
-      setMessage('Director-approved Take selected for current revision. '+
-        'Voice timing still requires explicit verification before AI execution.');
-    }catch(e){setError(String(e));}
+      setMessage('SUCCESS: The selected Voice Take is Director-approved for this revision. '+
+        'SHOT production readiness and visual Director LOCK are separate checks.');
+      try{onStatusChanged?.();}
+      catch(notifyFailure){
+        setShotReadinessError('Approval succeeded, but the page refresh failed: '+String(notifyFailure));
+      }
+    }catch(e){setError('Voice Take approval could not be confirmed: '+String(e));}
     finally{inFlight.current=false;setBusy(false);}
   }
 
@@ -279,10 +309,34 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           </div>)}
       </div>
 
+      <p className="episode-package-voice-note">
+        Approve selected Take is a free voice decision. The paid ElevenLabs authorization
+        checkbox below is only for generating NEW audio and is not required for approval.
+      </p>
+      {data.approvedCurrentRevision&&data.selectedTakeId&&<>
+        <p className="episode-package-notice" role="status">
+          VOICE TAKE DIRECTOR APPROVED · Current revision {data.revision}.
+          This does not mean SHOT visual Director LOCK is complete.
+        </p>
+        {shotReadiness&&<p className="episode-package-voice-note" role="status">
+          SHOT voice readiness: <strong>{shotReadiness.status}</strong>.
+          {' '}{voiceReadinessExplanation(shotReadiness)}
+        </p>}
+        {shotReadinessError&&<p className="episode-package-voice-note" role="status">
+          {shotReadinessError}. Your existing Take approval is preserved.
+        </p>}
+        <button type="button" disabled={busy||loading}
+          onClick={()=>void refreshShotReadiness().catch(reason=>
+            setShotReadinessError('Voice readiness could not be refreshed: '+String(reason)))}>
+          <RefreshCw size={14}/> Recheck SHOT voice readiness (read-only)
+        </button>
+      </>}
       <button type="button" className="episode-package-voice-primary"
-        disabled={!take||busy||dirty||data.takes.every(t=>t.id!==take||t.revision!==data.revision)}
+        disabled={!take||busy||dirty||data.takes.every(t=>t.id!==take||t.revision!==data.revision)
+          ||isExpectedTakeApproved(data,take)}
         onClick={()=>void approve()}>
-        <ShieldCheck size={16}/> Approve selected current-revision Take
+        <ShieldCheck size={16}/>{isExpectedTakeApproved(data,take)
+          ?' Selected Take already Director-approved':' Approve selected current-revision Take'}
       </button>
 
       <div className="episode-package-voice-paid">
