@@ -49,7 +49,7 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       reveal={1} quiet={.045} active={.08+.22*reroute+.10*stress}
       sections={[]}
       balancerIntro={{
-        frame:frame*.40,arrival:.82,selected:reroute,
+        frame:frame*.40,arrival:.82,selected:reroute,hidePrimaryPacket:true,
         handoff:.12*reroute,unhealthy:reroute*.24,
         flow:.01+.24*reroute+.08*spreading,
       }}/>
