@@ -18,6 +18,7 @@ export const EP004_LOCKED_EP003_REPLICA_Y=[412,498,584] as const;
 export type ATStableServiceNodesProps={
   frame:number;
   blocked:number;
+  tension:number;
   failover:number;
   spillover:number;
   serviceTitle:string;
@@ -27,9 +28,10 @@ export type ATStableServiceNodesProps={
 };
 
 export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
-  frame,blocked,failover,spillover,serviceTitle,requestLabel,instanceLabel,showOtherServices,
+  frame,blocked,tension,failover,spillover,serviceTitle,requestLabel,instanceLabel,showOtherServices,
 })=>{
   const waiting=clamp(blocked);
+  const stress=clamp(tension);
   const reroute=clamp(failover);
   const spreading=clamp(spillover);
   const pulse=.5+.5*Math.sin(frame*.035);
@@ -38,32 +40,41 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
     <ATBackendNode title="API Gateway"
       x={nodes.gateway.x} y={nodes.gateway.y}
       width={nodes.gateway.width} height={nodes.gateway.height}
-      reveal={1} quiet={.08} active={waiting*.20}
+      reveal={1} quiet={.08} active={waiting*.20+stress*.12}
       sections={[]}
-      gatewayIntro={{frame,arrival:.30,inspection:.30+.38*waiting}}/>
+      gatewayIntro={{frame,arrival:.30,inspection:.30+.38*waiting+.14*stress}}/>
     <ATBackendNode title="Load Balancer"
       x={nodes.balancer.x} y={nodes.balancer.y}
       width={nodes.balancer.width} height={nodes.balancer.height}
-      reveal={1} quiet={.045} active={.08+.17*reroute}
+      reveal={1} quiet={.045} active={.08+.22*reroute+.10*stress}
       sections={[]}
       balancerIntro={{
         frame:frame*.40,arrival:.82,selected:reroute,
-        handoff:.08*reroute,unhealthy:reroute*.24,flow:.01+.095*reroute,
+        handoff:.12*reroute,unhealthy:reroute*.24,
+        flow:.01+.24*reroute+.08*spreading,
       }}/>
     <ATPrimaryNode title={serviceTitle}
       left={nodes.auth.x} top={nodes.auth.y}
       width={nodes.auth.width} height={nodes.auth.height}
-      compact reveal={1} active={spreading*.22} quiet={.04}>
+      compact reveal={1} active={spreading*.22+stress*.11} quiet={.04}>
       <div style={{display:'flex',flexDirection:'column',gap:0}}>
         {[0,1,2].map((i)=>{
-          const pressure=clamp(i===0?reroute:spreading*(.74+.10*i));
-          const signal=pressure>.32?AMBER:MINT;
-          const state=i===0&&reroute>.55?'DEGRADED':i>0&&spreading>.4?'RISING LOAD':'AVAILABLE';
+          const pressure=clamp(i===0?waiting:i===2?
+            reroute*(.70+.18*spreading):spreading*.82);
+          const signal=i===0&&pressure>.32?AMBER:MINT;
+          const state=i===0&&waiting>.55?'DEGRADED':
+            i>0&&pressure>.40?'RISING LOAD':'AVAILABLE';
           const activity=clamp(.20+pressure*.58);
           return <div key={i} style={{
             height:67,display:'flex',alignItems:'center',gap:11,
             borderBottom:i<2?'1px solid rgba(117,164,210,.20)':'none',
             padding:'0 4px',boxSizing:'border-box',
+            borderRadius:9,
+            background:i===0?
+              `linear-gradient(90deg,rgba(245,165,90,${.015+.14*stress}),transparent 75%)`:
+              `linear-gradient(90deg,rgba(111,236,212,${.012+.065*pressure}),transparent 75%)`,
+            boxShadow:i===0&&stress>.12?
+              `inset 3px 0 0 rgba(245,165,90,${.12+.60*stress})`:'none',
           }}>
             <svg viewBox="0 0 36 36" width={36} height={36}
               style={{flexShrink:0,overflow:'visible'}}>
