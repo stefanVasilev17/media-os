@@ -1,5 +1,19 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-20 — EP004 SHOT01 V8 — DIRECTOR VISUAL LOCKED (ACTUAL V8 MP4 HUMAN-APPROVED); RUNTIME DATABASE LOCK NOT YET VERIFIED
+
+**EXPLICIT DIRECTOR COMMAND:** After watching real V8 final output, Director wrote **“Това вече ми харесва. ЛОКВАМЕ”**. The **human visual approval gate is satisfied** for EP004 SHOT01 **V8 only**, not V7 or earlier versions, and not the full 13–16-minute EP004 episode. Exact immutable decision: [EP004 SHOT01 V8 Director Visual Lock](docs/visual/EP004_SHOT01_V8_DIRECTOR_LOCK_20261120.md).
+
+**LOCKED RENDER ID:** `e8f3818e-aac0-40f2-8e1a-d70e9fa108e0`; source `590448542604e8308750664354bbd8dea55a53e5`; production composition `EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL`, **2001 real encoded frames, 30fps, 1920×1080, 66.7 sec**, H264/AAC MP4 6,693,892 bytes. Real worker `EP004_SHOT01_REAL_APPROVED_TAKE_MUX_QA_PASS`, `ACTUAL_MP4_TECHNICAL_QA_PASS`, successful `Completed`, and HTTP 206 production playback confirmed. The Director's approval now **supersedes the prior technical job's `VISUAL_DIRECTOR_REVIEW_REQUIRED` as a creative judgment**; do not pretend job metadata or an authenticated MediaOS DB status was changed. Original selected Take and 8/8 HEAR→SEE cues are unchanged. Earlier successful V4–V7 videos remain immutable non-LOCKED history.
+
+**NO FURTHER EP004 SHOT01 EDITS:** V8's removed internal Load Balancer green hero marker stays hidden; keep native LB curves / packets on true external paths, Outlook UI Microsoft 365 + menu clearance, amber degraded diagnostics, controlled failover and healthy-intake tension, all approved camera motion and original voice. This is a firm Director visual LOCK for subsequent agents. Changes require explicit new Director unlock/version and must preserve this V8. Do not regenerate voice or render SHOT01 for SHOT02.
+
+**TECHNICAL PERSISTENCE NOT VERIFIED:** The available connected GitHub/Railway tools allow signed source documentation and runtime log inspection, but do not provide the Director's authenticated MediaOS lock-write operation or the MP4 byte checksum. Thus the real `visual_shot_lock` / equivalent DB entry, immutable MP4 **SHA-256** and `EP004 Full Video (latest)` registration are explicitly **PENDING VERIFICATION**, not falsely claimed complete. Any future runtime lock must require proper Director actor authentication, a real EP004 shot/script revision, exact render ID and SHA-verified object, and must not create a paid render. As SHOT01 is the first locked EP004 film segment, its existing MP4 is the canonical contiguous 1-shot prefix, not yet a separately verified full-film player.
+
+**NEXT PRODUCTION:** EP004 **SHOT02** inherits the last actual encoded V8 frame **2000** plus its running Remotion world/camera/route state. Respect continuous living animation, narrator-free seam breathing, voice/timestamp gates, exact inherited node geometry and shared 3-service lean deployment. Prepare next-shot design and source only against this approved V8; paid SHOT02 render and new TTS remain separately Director-authorized.
+
+---
+
 ## 2026-11-20 — EP004 SHOT01 V8 FINAL DIRECTOR MICRO-CORRECTION: HIDE INTERNAL GREEN LOAD BALANCER HERO MARKER ONLY — NATIVE PASS, MERGED, WORKER DEPLOYED, V8 MP4 PENDING
 
 **DIRECTOR DECISION:** After reviewing the real successful V7 candidate, Director said the visual storytelling is **very good** and requests **only** removal of the single green moving dot *inside the native Load Balancer*. This is a highly scoped cosmetic correction; other living request dots, line illumination, pod status, failure diagnostics and tension are deliberately preserved. Director has **not** yet watched a V8 MP4 or issued a verified visual LOCK on that MP4.
