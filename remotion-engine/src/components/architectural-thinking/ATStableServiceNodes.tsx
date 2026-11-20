@@ -47,7 +47,7 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       reveal={1} quiet={.045} active={.08+.17*reroute}
       sections={[]}
       balancerIntro={{
-        frame:Math.floor(frame*.40),arrival:.82,selected:reroute,
+        frame:frame*.40,arrival:.82,selected:reroute,
         handoff:.08*reroute,unhealthy:reroute*.24,flow:.01+.095*reroute,
       }}/>
     <ATPrimaryNode title={serviceTitle}
