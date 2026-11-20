@@ -193,3 +193,40 @@ test('EP004 V4 final source keeps exact Outlook and inherited EP003 nodes inside
   assert.doesNotMatch(scene,/const (?:Gateway|Mailbox|Server):/);
   assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
 });
+
+
+test('V5 Outlook header never overlaps the Microsoft 365 product label and three-dot menu',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const src=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  assert.match(src,/<text x=\{140\} y=\{197\} fontSize=\{28\}/);
+  assert.match(src,/<text x=\{140\} y=\{222\} fontSize=\{17\}[\s\S]{0,110}>Microsoft 365<\/text>/);
+  assert.match(src,/<rect x=\{427\} y=\{172\} width=\{37\} height=\{58\} rx=\{12\}/);
+  assert.match(src,/\{\[186,201,216\]\.map\(y=><circle key=\{y\}/);
+  const conservativeLabelRight=140+'Microsoft 365'.length*17*.75;
+  assert.ok(conservativeLabelRight<427-35,'Microsoft 365 may overlap menu reserved area');
+  assert.ok(172>159 && 172+58<239,'Menu must fit within header height');
+  assert.ok(216+2.7<239,'Third dot must fit within the header');
+  assert.doesNotMatch(src,/<text x=\{350\} y=\{207\}/);
+});
+
+test('V5 reuses the original locked-size premium Load Balancer and Outlook Service shells',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(nodes,/import \{ATBackendNode,ATPrimaryNode\} from '\.\/ATArchitecturePrimitives'/);
+  assert.match(nodes,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
+  assert.match(nodes,/frame,arrival:\.82,selected:reroute/);
+  assert.match(nodes,/flow:\.47\+\.29\*reroute/);
+  assert.match(nodes,/height:67,display:'flex'/);
+  assert.match(nodes,/RISING LOAD/);
+  assert.match(nodes,/AVAILABLE/);
+  assert.match(nodes,/fontSize:18,fontWeight:660/);
+  assert.match(nodes,/activity=clamp/);
+  assert.match(nodes,/\[0,1,2,3\]\.map\(j=>/);
+  assert.doesNotMatch(nodes,/ATMiniWorld|position:'absolute',top:/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ATOutlookMailClient/);
+});
