@@ -47,8 +47,8 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       reveal={1} quiet={.045} active={.08+.17*reroute}
       sections={[]}
       balancerIntro={{
-        frame,arrival:.82,selected:reroute,
-        handoff:reroute,unhealthy:reroute*.24,flow:.47+.29*reroute,
+        frame:Math.floor(frame*.40),arrival:.82,selected:reroute,
+        handoff:.08*reroute,unhealthy:reroute*.24,flow:.01+.095*reroute,
       }}/>
     <ATPrimaryNode title={serviceTitle}
       left={nodes.auth.x} top={nodes.auth.y}
@@ -56,10 +56,10 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
       compact reveal={1} active={spreading*.22} quiet={.04}>
       <div style={{display:'flex',flexDirection:'column',gap:0}}>
         {[0,1,2].map((i)=>{
-          const pressure=clamp(i===0?reroute:spreading*(.78+.10*Math.sin(frame*.025+i)));
+          const pressure=clamp(i===0?reroute:spreading*(.74+.10*i));
           const signal=pressure>.32?AMBER:MINT;
           const state=i===0&&reroute>.55?'DEGRADED':i>0&&spreading>.4?'RISING LOAD':'AVAILABLE';
-          const activity=clamp(.19+.17*Math.sin(frame*.035+i*1.1)**2+pressure*.65);
+          const activity=clamp(.20+pressure*.58);
           return <div key={i} style={{
             height:67,display:'flex',alignItems:'center',gap:11,
             borderBottom:i<2?'1px solid rgba(117,164,210,.20)':'none',
