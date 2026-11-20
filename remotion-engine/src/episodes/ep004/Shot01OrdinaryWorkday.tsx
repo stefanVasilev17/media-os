@@ -8,6 +8,7 @@ import {
   EP004_STANDBY_ROUTE,
   EP004_HANDOFF_ROUTE,
   EP004_SPILLOVER_ROUTE,
+  EP004_DEGRADED_ROUTE,
   EP004_LOCKED_EP003_SERVICE_PORTS,
   ep004RoutePolyline,
   ep004BezierPath,
@@ -62,6 +63,22 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           strokeWidth={3.1} strokeLinecap="round"
           opacity={ambient*(i===0?.16*(1-.65*failover):
             .10+.72*state.spillover)}/>)}
+        <path d={ep004BezierPath(EP004_DEGRADED_ROUTE)}
+          fill="none" stroke={AMBER} strokeLinecap="round"
+          strokeWidth={3.2+state.tension*1.9}
+          opacity={ambient*state.tension*(.70-.45*failover)}/>
+        <path d={ep004BezierPath(EP004_STANDBY_ROUTE)}
+          fill="none" stroke={MINT} strokeLinecap="round"
+          strokeWidth={7.0} pathLength={1}
+          strokeDasharray={String(.001+.72*failover)+' 1'}
+          opacity={ambient*.82*failover}
+          style={{filter:'drop-shadow(0 0 6px rgba(111,236,212,.56))'}}/>
+        <path d={ep004BezierPath(EP004_SPILLOVER_ROUTE)}
+          fill="none" stroke={MINT} strokeLinecap="round"
+          strokeWidth={6.0} pathLength={1}
+          strokeDasharray={String(.001+.72*state.spillover)+' 1'}
+          opacity={ambient*.77*state.spillover}
+          style={{filter:'drop-shadow(0 0 6px rgba(111,236,212,.48))'}}/>
         <polyline points={ep004RoutePolyline(EP004_MAIL_ROUTE)}
           fill="none" stroke="#204A63" strokeWidth={11}
           strokeLinejoin="round" strokeLinecap="round"/>
@@ -85,6 +102,7 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
         <ATStableServiceNodes
           frame={state.worldFrame}
           blocked={waiting}
+          tension={state.tension}
           failover={failover}
           spillover={state.spillover}
           serviceTitle="Outlook Service"
@@ -99,6 +117,14 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           openProgress={state.mailOpen}
           actionProgress={state.mailAttempt}
           blocked={waiting} frame={state.worldFrame}/>
+        {state.diagnostics.map(signal=><g key={signal.id}
+          opacity={signal.opacity}>
+          <circle cx={signal.x} cy={signal.y} r={5.7}
+            fill="none" stroke={AMBER} strokeWidth={2.3}
+            style={{filter:'drop-shadow(0 0 7px rgba(245,165,90,.75))'}}/>
+          <circle cx={signal.x} cy={signal.y} r={1.8}
+            fill={AMBER}/>
+        </g>)}
         {state.traffic.map(token=>{
           const color=token.status==='QUEUED'||token.status==='WAITING'
             ?AMBER:token.lane==='STANDBY'||token.lane==='SPILLOVER'
@@ -107,6 +133,10 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
             <circle cx={token.x} cy={token.y}
               r={token.radius} fill={color}
               style={{filter:'drop-shadow(0 0 5px '+color+')'}}/>
+            {token.status==='ROUTED'&&<circle
+              cx={token.x} cy={token.y}
+              r={token.radius+5.5} fill="none" stroke={MINT}
+              strokeWidth={1.25} opacity={.17+.24*failover}/>}
             {token.id==='mail-primary'&&<circle
               cx={token.x} cy={token.y} r={token.radius+8}
               fill="none" stroke={color} strokeWidth={1.4}
