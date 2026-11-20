@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_SHOT01_BEATS,
+  EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_HANDOFF_ROUTE,
+  EP004_SPILLOVER_ROUTE,ep004RequestTraffic,EP004_SHOT01_BEATS,
   EP004_SHOT01_LOCKED_SOURCE_SHA256,ep004RoutePolyline,
   ep004RoutePosition,ep004BezierPath,ep004BezierPosition,ep004Shot01Phase,ep004Shot01Exit,
   ep004Shot01Validate
@@ -185,7 +186,7 @@ test('EP004 V4 final source keeps exact Outlook and inherited EP003 nodes inside
   assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
   assert.doesNotMatch(scene,/from ['\"]\.\.\/ep002\//);
   assert.doesNotMatch(nodes,/from ['\"]\.\.\/\.\.\/episodes\/ep002\//);
-  assert.match(scene,/opacity=\{state\.secondaryOpacity\}/);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
   assert.match(client,/clipPath="url\(#ep004-outlook-window-clip\)"/);
   assert.match(client,/Microsoft 365/);
   assert.match(client,/Trying to reconnect/);
@@ -219,7 +220,7 @@ test('V5 reuses the original locked-size premium Load Balancer and Outlook Servi
   assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
   assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
   assert.match(nodes,/frame,arrival:\.82,selected:reroute/);
-  assert.match(nodes,/flow:\.47\+\.29\*reroute/);
+  assert.match(nodes,/flow:\.01\+\.095\*reroute/);
   assert.match(nodes,/height:67,display:'flex'/);
   assert.match(nodes,/RISING LOAD/);
   assert.match(nodes,/AVAILABLE/);
@@ -229,4 +230,100 @@ test('V5 reuses the original locked-size premium Load Balancer and Outlook Servi
   assert.doesNotMatch(nodes,/ATMiniWorld|position:'absolute',top:/);
   assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
   assert.match(scene,/ATOutlookMailClient/);
+});
+
+
+test('V6 uses precise visible geometry for all four physical traffic lanes',()=>{
+  assert.deepEqual(EP004_HANDOFF_ROUTE,[{x:779,y:532},{x:804,y:532}]);
+  assert.deepEqual(EP004_SPILLOVER_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:498},{x:1192,y:498}
+  ]);
+  assert.equal(ep004BezierPath(EP004_SPILLOVER_ROUTE),
+    'M 1050 535 C 1090 535 1137 498 1192 498');
+  const routes={
+    MAIL:EP004_MAIL_ROUTE,
+    HANDOFF:EP004_HANDOFF_ROUTE,
+    STANDBY:EP004_STANDBY_ROUTE,
+    SPILLOVER:EP004_SPILLOVER_ROUTE
+  };
+  let checked=0;
+  for(let frame=0;frame<2001;frame++){
+    const w=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    assert.deepEqual(w.traffic,ep004RequestTraffic(w));
+    const ids=new Set();
+    for(const t of w.traffic){
+      assert.equal(ids.has(t.id),false,'duplicate live request token '+t.id);
+      ids.add(t.id);
+      const expected=t.lane==='MAIL'||t.lane==='HANDOFF'?
+        ep004RoutePosition(routes[t.lane],t.progress):
+        ep004BezierPosition(routes[t.lane],t.progress);
+      assert.ok(Math.hypot(t.x-expected.x,t.y-expected.y)<1e-8,
+        'request detached from authoritative '+t.lane+' route at '+frame);
+      assert.ok(t.opacity>=0&&t.opacity<=1);
+      assert.ok(t.radius>=2.5&&t.radius<=6.5);
+      assert.ok(t.progress>=0&&t.progress<=1);
+      if(t.lane==='STANDBY'||t.lane==='SPILLOVER'){
+        assert.ok(t.x<1151,'request overlays server interior instead of stopping at port');
+      }
+      checked++;
+    }
+  }
+  assert.ok(checked>=18000,'expected a living plurality of requests');
+});
+
+test('V6 stages causal queue, failover and spillover only after real HEAR-SEE anchors',()=>{
+  const before=ep004Shot01Phase(props.cueFrames.SHOT01_P01_B03-1,props);
+  const queue=ep004Shot01Phase(props.cueFrames.SHOT01_P01_B03+80,props);
+  const beforeReroute=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B02-1,props);
+  const reroute=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B02+180,props);
+  const beforeSpillover=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03-1,props);
+  const spillover=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03+145,props);
+  assert.equal(before.traffic.filter(t=>t.status==='QUEUED').length,0);
+  const linedUp=queue.traffic.filter(t=>t.status==='QUEUED');
+  assert.equal(linedUp.length,4);
+  assert.deepEqual(linedUp.map(t=>t.progress),[.72,.51,.30,.10]);
+  assert.ok(linedUp.every(t=>t.y===532));
+  assert.equal(beforeReroute.traffic.some(t=>t.lane==='STANDBY'),false);
+  assert.equal(beforeReroute.traffic.some(t=>t.lane==='HANDOFF'),false);
+  assert.ok(reroute.traffic.some(t=>t.lane==='STANDBY'));
+  assert.ok(reroute.traffic.some(t=>t.lane==='HANDOFF'));
+  assert.equal(beforeSpillover.traffic.some(t=>t.lane==='SPILLOVER'),false);
+  assert.ok(spillover.traffic.some(t=>t.lane==='SPILLOVER'));
+});
+
+test('V6 request tokens never visibly teleport at loop boundaries across all 2001 frames',()=>{
+  const last=new Map();
+  let maxStep=0;
+  for(let frame=0;frame<2001;frame++){
+    const w=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    for(const t of w.traffic){
+      const previous=last.get(t.id);
+      if(previous&&previous.frame===frame-1&&
+         previous.opacity>.2&&t.opacity>.2){
+        const step=Math.hypot(t.x-previous.x,t.y-previous.y);
+        maxStep=Math.max(maxStep,step);
+        assert.ok(step<3,'teleport for '+t.id+' at frame '+frame+': '+step);
+      }
+      last.set(t.id,{frame,x:t.x,y:t.y,opacity:t.opacity});
+    }
+  }
+  assert.ok(maxStep>.02,'requests must actually move during playback');
+  const terminal=ep004Shot01Exit({...props,durationInFrames:2001});
+  assert.deepEqual(terminal.traffic,ep004RequestTraffic(terminal));
+});
+
+test('V6 Remotion renderer uses one traffic model and native route geometries',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
+  assert.match(scene,/ep004RoutePolyline\(EP004_HANDOFF_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_SPILLOVER_ROUTE\)/);
+  assert.doesNotMatch(scene,/state\.secondaryVisible&&/);
+  assert.doesNotMatch(scene,/state\.request\.x/);
+  assert.match(nodes,/frame:Math\.floor\(frame\*\.40\)/);
+  assert.match(nodes,/flow:\.01\+\.095\*reroute/);
+  assert.match(nodes,/const activity=clamp\(\.20\+pressure\*\.58\)/);
 });
