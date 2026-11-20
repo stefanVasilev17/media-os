@@ -18,6 +18,10 @@ export type Ep004RequestToken={
   progress:number;opacity:number;radius:number;
   status:'IN_TRANSIT'|'WAITING'|'QUEUED'|'ROUTED';
 };
+export type Ep004FailureSignal={
+  id:string;x:number;y:number;progress:number;opacity:number;
+  direction:'TO_LOAD_BALANCER';
+};
 export type Ep004Shot01WorldState={
   worldFrame:number;routeProgress:number;request:Point;
   requestStatus:'WAITING'|'IN_TRANSIT';
@@ -25,6 +29,8 @@ export type Ep004Shot01WorldState={
   spillover:number;question:number;towardNext:number;secondary:Point;
   secondaryVisible:boolean;secondaryOpacity:number;cameraX:number;cameraScale:number;
   traffic:readonly Ep004RequestToken[];
+  tension:number;timeSinceFailover:number;timeSinceSpillover:number;
+  diagnostics:readonly Ep004FailureSignal[];
 };
 export declare const EP004_SHOT01_LOCKED_SOURCE_SHA256:string;
 export declare const EP004_SHOT01_BEATS:readonly Ep004Shot01Beat[];
@@ -32,6 +38,7 @@ export declare const EP004_MAIL_ROUTE:readonly Point[];
 export declare const EP004_STANDBY_ROUTE:readonly Point[];
 export declare const EP004_HANDOFF_ROUTE:readonly Point[];
 export declare const EP004_SPILLOVER_ROUTE:readonly Point[];
+export declare const EP004_DEGRADED_ROUTE:readonly Point[];
 export declare const EP004_LOCKED_EP003_SERVICE_PORTS:readonly number[];
 export declare function ep004RoutePolyline(points:readonly Point[]):string;
 export declare function ep004BezierPath(points:readonly Point[]):string;
@@ -41,3 +48,4 @@ export declare function ep004Shot01Validate(props:Ep004Shot01Props):boolean;
 export declare function ep004Shot01Phase(frame:number,props:Ep004Shot01Props):Ep004Shot01WorldState;
 export declare function ep004Shot01Exit(props:Ep004Shot01Props):Ep004Shot01WorldState;
 export declare function ep004RequestTraffic(state:Ep004Shot01WorldState):readonly Ep004RequestToken[];
+export declare function ep004FailureSignals(state:Ep004Shot01WorldState):readonly Ep004FailureSignal[];
