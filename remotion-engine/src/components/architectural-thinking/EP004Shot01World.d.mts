@@ -11,17 +11,27 @@ export type Ep004Shot01Props={
   voiceTakeId?:string;
   cueFrames?:Record<Ep004Shot01Beat,number>;
 };
+export type Ep004RequestToken={
+  id:string;
+  lane:'MAIL'|'HANDOFF'|'STANDBY'|'SPILLOVER';
+  x:number;y:number;
+  progress:number;opacity:number;radius:number;
+  status:'IN_TRANSIT'|'WAITING'|'QUEUED'|'ROUTED';
+};
 export type Ep004Shot01WorldState={
   worldFrame:number;routeProgress:number;request:Point;
   requestStatus:'WAITING'|'IN_TRANSIT';
   mailOpen:number;mailAttempt:number;blocked:number;showWorld:number;failover:number;
   spillover:number;question:number;towardNext:number;secondary:Point;
   secondaryVisible:boolean;secondaryOpacity:number;cameraX:number;cameraScale:number;
+  traffic:readonly Ep004RequestToken[];
 };
 export declare const EP004_SHOT01_LOCKED_SOURCE_SHA256:string;
 export declare const EP004_SHOT01_BEATS:readonly Ep004Shot01Beat[];
 export declare const EP004_MAIL_ROUTE:readonly Point[];
 export declare const EP004_STANDBY_ROUTE:readonly Point[];
+export declare const EP004_HANDOFF_ROUTE:readonly Point[];
+export declare const EP004_SPILLOVER_ROUTE:readonly Point[];
 export declare const EP004_LOCKED_EP003_SERVICE_PORTS:readonly number[];
 export declare function ep004RoutePolyline(points:readonly Point[]):string;
 export declare function ep004BezierPath(points:readonly Point[]):string;
@@ -30,3 +40,4 @@ export declare function ep004RoutePosition(points:readonly Point[],progress:numb
 export declare function ep004Shot01Validate(props:Ep004Shot01Props):boolean;
 export declare function ep004Shot01Phase(frame:number,props:Ep004Shot01Props):Ep004Shot01WorldState;
 export declare function ep004Shot01Exit(props:Ep004Shot01Props):Ep004Shot01WorldState;
+export declare function ep004RequestTraffic(state:Ep004Shot01WorldState):readonly Ep004RequestToken[];

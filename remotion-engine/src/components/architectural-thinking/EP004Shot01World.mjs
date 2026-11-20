@@ -12,6 +12,18 @@ export const EP004_MAIL_ROUTE = Object.freeze([
   Object.freeze({x:521,y:532})
 ]);
 
+export const EP004_HANDOFF_ROUTE = Object.freeze([
+  Object.freeze({x:779,y:532}),
+  Object.freeze({x:804,y:532})
+]);
+
+export const EP004_SPILLOVER_ROUTE = Object.freeze([
+  Object.freeze({x:1050,y:535}),
+  Object.freeze({x:1090,y:535}),
+  Object.freeze({x:1137,y:498}),
+  Object.freeze({x:1192,y:498})
+]);
+
 export const EP004_LOCKED_EP003_SERVICE_PORTS = Object.freeze([412,498,584]);
 
 export const EP004_STANDBY_ROUTE = Object.freeze([
@@ -109,7 +121,7 @@ export function ep004Shot01Phase(frame,props) {
   const secondPacketPhase=((props.worldStartFrame+frame)*.0022)%1;
   const secondPacketProgress=.03+.94*secondPacketPhase;
   const secondaryOpacity=failover*clamp(Math.min(secondPacketPhase,1-secondPacketPhase)*13);
-  return Object.freeze({
+  const state={
     worldFrame:props.worldStartFrame+frame,
     routeProgress, request:ep004RoutePosition(EP004_MAIL_ROUTE,routeProgress),
     requestStatus:blocked>.12?'WAITING':'IN_TRANSIT',
@@ -118,7 +130,79 @@ export function ep004Shot01Phase(frame,props) {
     secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
     cameraX:92-95*showWorld-24*towardNext,
     cameraScale:1.08-.10*showWorld-.017*towardNext,
-  });
+  };
+  return Object.freeze({...state,traffic:ep004RequestTraffic(state)});
+}
+
+const loop01=(n)=>((n%1)+1)%1;
+const loopVisibility=(t)=>{
+  return ease(t/.14)*ease((1-t)/.14);
+};
+
+export function ep004RequestTraffic(state){
+  if(!state||!Number.isInteger(state.worldFrame)
+      ||!Number.isFinite(state.blocked)
+      ||!Number.isFinite(state.failover)
+      ||!Number.isFinite(state.spillover)
+      ||!Number.isFinite(state.mailOpen))
+    throw Error('EP004_TRAFFIC_REQUIRES_VALID_WORLD_STATE');
+
+  const tokens=[];
+  const put=(id,lane,point,progress,opacity,radius,status)=>{
+    const clampedOpacity=clamp(opacity);
+    if(clampedOpacity<.001)return;
+    tokens.push(Object.freeze({
+      id,lane,x:point.x,y:point.y,progress,
+      opacity:clampedOpacity,radius,status
+    }));
+  };
+  const time=state.worldFrame;
+  const waiting=clamp(state.blocked);
+  const reroute=clamp(state.failover);
+  const spilling=clamp(state.spillover);
+  const appeared=.22+.78*clamp(state.mailOpen);
+
+  put('mail-primary','MAIL',state.request,state.routeProgress,
+    appeared,6.1,state.requestStatus);
+
+  for(let i=0;i<4;i++){
+    const phase=loop01(time*.0063+i*.25+.17);
+    put('mail-moving-'+i,'MAIL',ep004RoutePosition(EP004_MAIL_ROUTE,phase),
+      phase,appeared*(1-waiting)*.73*loopVisibility(phase),
+      3.0,'IN_TRANSIT');
+
+    const slot=[.72,.51,.30,.10][i];
+    const queueVisibility=ease((waiting-i*.11)/.36);
+    put('mail-queued-'+i,'MAIL',ep004RoutePosition(EP004_MAIL_ROUTE,slot),
+      slot,queueVisibility*(.71+.06*Math.sin(time*.038+i*.40)**2),
+      3.0,'QUEUED');
+  }
+
+  for(let i=0;i<3;i++){
+    const phase=loop01(time*.0052+i/3+.13);
+    put('gateway-handoff-'+i,'HANDOFF',
+      ep004RoutePosition(EP004_HANDOFF_ROUTE,phase),
+      phase,reroute*.75*loopVisibility(phase),2.8,'IN_TRANSIT');
+  }
+
+  for(let i=0;i<4;i++){
+    const phase=loop01(time*.0030+i*.25+.09);
+    const progress=.025+.68*phase;
+    put('outlook-recovery-'+i,'STANDBY',
+      ep004BezierPosition(EP004_STANDBY_ROUTE,progress),
+      progress,reroute*.86*loopVisibility(phase),
+      3.6,'ROUTED');
+  }
+
+  for(let i=0;i<3;i++){
+    const phase=loop01(time*.0027+i/3+.18);
+    const progress=.025+.68*phase;
+    put('outlook-spillover-'+i,'SPILLOVER',
+      ep004BezierPosition(EP004_SPILLOVER_ROUTE,progress),
+      progress,spilling*.74*loopVisibility(phase),
+      3.3,'ROUTED');
+  }
+  return Object.freeze(tokens);
 }
 
 export function ep004Shot01Exit(props){
