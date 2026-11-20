@@ -433,3 +433,22 @@ test('V7 visuals intensify original architecture rather than adding false routes
   assert.doesNotMatch(scene,/state\.secondaryVisible/);
   assert.doesNotMatch(scene,/const DegradedPod|const HealthyPod/);
 });
+
+
+test('V8 removes only the green moving hero marker inside EP004 Load Balancer',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const primitive=await readFile(new URL('./src/components/architectural-thinking/ATArchitecturePrimitives.tsx',import.meta.url),'utf8');
+  const adapter=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(primitive,/balancerIntro\?:\{[^}]*hidePrimaryPacket\?:boolean/);
+  assert.match(primitive,/\{!balancerIntro\.hidePrimaryPacket&&\(\(\)=>\{/);
+  assert.match(primitive,/const travel=Math\.max\(0,Math\.min\(1,balancerIntro\.handoff\?\?0\)\)/);
+  assert.match(primitive,/return <circle cx=\{x\} cy=\{y\} r=\{4\.7\}/);
+  assert.match(adapter,/title="Load Balancer"[\s\S]*?balancerIntro=\{\{[\s\S]*?hidePrimaryPacket:true/);
+  assert.equal((adapter.match(/hidePrimaryPacket:true/g)||[]).length,1);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/state\.diagnostics\.map\(signal=>/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_DEGRADED_ROUTE\)/);
+  assert.doesNotMatch(scene,/hidePrimaryPacket/);
+});
