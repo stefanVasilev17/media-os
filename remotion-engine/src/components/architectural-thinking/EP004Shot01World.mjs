@@ -12,6 +12,8 @@ export const EP004_MAIL_ROUTE = Object.freeze([
   Object.freeze({x:521,y:532})
 ]);
 
+export const EP004_LOCKED_EP003_SERVICE_PORTS = Object.freeze([412,498,584]);
+
 export const EP004_STANDBY_ROUTE = Object.freeze([
   Object.freeze({x:1050,y:535}),
   Object.freeze({x:1090,y:535}),
