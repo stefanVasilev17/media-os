@@ -179,13 +179,15 @@ public final class Ep004Shot01DirectorRenderService {
                     and project_id='11111111-1111-1111-1111-111111111111'::uuid
                     and input_props->>'voiceTakeId'=:take
                     and input_props->>'narrationSha256'=:narrationSha
+                    and input_props->>'expectedSourceCommit'=:sourceCommit
                     and status in ('QUEUED','RUNNING','SUCCEEDED'))
                 """).param("composition",COMPOSITION)
                 .param("take",ready.selectedTakeId())
                 .param("narrationSha",ready.narrationSha256())
+                .param("sourceCommit",request.expectedSourceCommit())
                 .query(Boolean.class).single();
         if(alreadyQueued)throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "An EP004 SHOT01 job already exists for this approved Take. Inspect it; no duplicate CPU spend.");
+                "An EP004 SHOT01 job already exists for this approved Take and source revision. Inspect it; no duplicate CPU spend.");
 
         Map<String,Object> props=new LinkedHashMap<>();
         props.put("durationInFrames",ready.durationInFrames());

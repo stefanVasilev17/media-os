@@ -8,16 +8,17 @@ export const EP004_SHOT01_BEATS = Object.freeze([
 ]);
 
 export const EP004_MAIL_ROUTE = Object.freeze([
-  Object.freeze({x:594,y:519}),
-  Object.freeze({x:899,y:519}),
-  Object.freeze({x:1008,y:536}),
-  Object.freeze({x:1076,y:536})
+  Object.freeze({x:485,y:532}),
+  Object.freeze({x:521,y:532})
 ]);
 
+export const EP004_LOCKED_EP003_SERVICE_PORTS = Object.freeze([412,498,584]);
+
 export const EP004_STANDBY_ROUTE = Object.freeze([
-  Object.freeze({x:1366,y:536}),
-  Object.freeze({x:1462,y:536}),
-  Object.freeze({x:1520,y:495})
+  Object.freeze({x:1050,y:535}),
+  Object.freeze({x:1090,y:535}),
+  Object.freeze({x:1137,y:584}),
+  Object.freeze({x:1192,y:584})
 ]);
 
 const clamp=(n)=>Math.min(1,Math.max(0,n));
@@ -25,6 +26,25 @@ const ease=(n)=>{const t=clamp(n);return t*t*(3-2*t);};
 
 export function ep004RoutePolyline(points) {
   return points.map(p=>p.x+','+p.y).join(' ');
+}
+
+export function ep004BezierPath(points){
+  if(!Array.isArray(points)||points.length!==4)
+    throw Error('EP004_CANONICAL_BEZIER_NEEDS_FOUR_POINTS');
+  const [a,b,c,d]=points;
+  return 'M '+a.x+' '+a.y+' C '+b.x+' '+b.y+' '+c.x+' '+c.y+' '+d.x+' '+d.y;
+}
+
+export function ep004BezierPosition(points,progress){
+  if(!Array.isArray(points)||points.length!==4||
+      !Number.isFinite(progress))
+    throw Error('EP004_INVALID_BEZIER_ROUTE_OR_PROGRESS');
+  const t=clamp(progress),q=1-t;
+  const [a,b,c,d]=points;
+  return {
+    x:q*q*q*a.x+3*q*q*t*b.x+3*q*t*t*c.x+t*t*t*d.x,
+    y:q*q*q*a.y+3*q*q*t*b.y+3*q*t*t*c.y+t*t*t*d.y
+  };
 }
 
 export function ep004RoutePosition(points,progress) {
@@ -76,23 +96,28 @@ export function ep004Shot01Phase(frame,props) {
     SHOT01_P03_B01:1450, SHOT01_P03_B02:1690
   }:props.cueFrames;
   const go=(key,n=70)=>ease((frame-c[key])/n);
+  const mailOpen=go('SHOT01_P01_B01',58);
+  const mailAttempt=go('SHOT01_P01_B02',55);
   const blocked=go('SHOT01_P01_B03',74);
   const showWorld=go('SHOT01_P02_B01',170);
   const failover=go('SHOT01_P02_B02',180);
+  const spillover=go('SHOT01_P02_B03',145);
   const question=go('SHOT01_P03_B01',150);
   const towardNext=go('SHOT01_P03_B02',150);
-  const requestProgress=.04+.91*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
-  const routeProgress=Math.min(.955,requestProgress);
-  const secondPacketProgress=failover>0?Math.min(.87,.03+((props.worldStartFrame+frame)*.0031%0.84)):0;
+  const requestProgress=.04+.93*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
+  const routeProgress=Math.min(.97,requestProgress);
+  const secondPacketPhase=((props.worldStartFrame+frame)*.0022)%1;
+  const secondPacketProgress=.03+.94*secondPacketPhase;
+  const secondaryOpacity=failover*clamp(Math.min(secondPacketPhase,1-secondPacketPhase)*13);
   return Object.freeze({
     worldFrame:props.worldStartFrame+frame,
     routeProgress, request:ep004RoutePosition(EP004_MAIL_ROUTE,routeProgress),
     requestStatus:blocked>.12?'WAITING':'IN_TRANSIT',
-    blocked, showWorld, failover, question, towardNext,
-    secondary:ep004RoutePosition(EP004_STANDBY_ROUTE,secondPacketProgress),
-    secondaryVisible:failover>.18,
-    cameraX:-132*showWorld-48*towardNext,
-    cameraScale:1-.086*showWorld-.026*towardNext,
+    mailOpen, mailAttempt, blocked, showWorld, failover, spillover, question, towardNext,
+    secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,secondPacketProgress),
+    secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
+    cameraX:92-95*showWorld-24*towardNext,
+    cameraScale:1.08-.10*showWorld-.017*towardNext,
   });
 }
 
