@@ -1,6 +1,7 @@
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
-import {ATBackendNode,ATPrimaryNode,AT_FONT} from './index';
+import {ATBackendNode,ATPrimaryNode} from './ATArchitecturePrimitives';
+import {AT_FONT} from './ATVisualPrimitives';
 
 const MINT='#6FECD4',AMBER='#F5A55A',CYAN='#68E5FF';
 const clamp=(n:number)=>Math.min(1,Math.max(0,n));
