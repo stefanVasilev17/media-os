@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_HANDOFF_ROUTE,
-  EP004_SPILLOVER_ROUTE,ep004RequestTraffic,EP004_SHOT01_BEATS,
+  EP004_SPILLOVER_ROUTE,EP004_DEGRADED_ROUTE,
+  ep004RequestTraffic,ep004FailureSignals,EP004_SHOT01_BEATS,
   EP004_SHOT01_LOCKED_SOURCE_SHA256,ep004RoutePolyline,
   ep004RoutePosition,ep004BezierPath,ep004BezierPosition,ep004Shot01Phase,ep004Shot01Exit,
   ep004Shot01Validate
@@ -220,7 +221,7 @@ test('V5 reuses the original locked-size premium Load Balancer and Outlook Servi
   assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
   assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
   assert.match(nodes,/frame:frame\*\.40,arrival:\.82,selected:reroute/);
-  assert.match(nodes,/flow:\.01\+\.095\*reroute/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
   assert.match(nodes,/height:67,display:'flex'/);
   assert.match(nodes,/RISING LOAD/);
   assert.match(nodes,/AVAILABLE/);
@@ -324,6 +325,111 @@ test('V6 Remotion renderer uses one traffic model and native route geometries',a
   assert.doesNotMatch(scene,/state\.secondaryVisible&&/);
   assert.doesNotMatch(scene,/state\.request\.x/);
   assert.match(nodes,/frame:frame\*\.40/);
-  assert.match(nodes,/flow:\.01\+\.095\*reroute/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
   assert.match(nodes,/const activity=clamp\(\.20\+pressure\*\.58\)/);
+});
+
+
+test('V7 degraded-pod feedback is a reverse diagnostic signal, never a rerouted request',()=>{
+  assert.deepEqual(EP004_DEGRADED_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:412},{x:1192,y:412}
+  ]);
+  assert.equal(ep004BezierPath(EP004_DEGRADED_ROUTE),
+    'M 1050 535 C 1090 535 1137 412 1192 412');
+  let previous=new Map(),checked=0;
+  let peak=0;
+  for(let frame=0;frame<2001;frame++){
+    const state=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    assert.deepEqual(state.diagnostics,ep004FailureSignals(state));
+    for(const signal of state.diagnostics){
+      assert.equal(signal.direction,'TO_LOAD_BALANCER');
+      assert.ok(signal.opacity>0&&signal.opacity<=1);
+      const onRoute=ep004BezierPosition(EP004_DEGRADED_ROUTE,signal.progress);
+      assert.ok(Math.hypot(onRoute.x-signal.x,onRoute.y-signal.y)<1e-8,
+        'fault signal detached from degraded route');
+      assert.ok(signal.x<1151,'fault indicator overlaps the degraded server UI');
+      const prev=previous.get(signal.id);
+      if(prev&&prev.frame===frame-1&&prev.opacity>.20&&signal.opacity>.20){
+        const delta=Math.hypot(prev.x-signal.x,prev.y-signal.y);
+        assert.ok(delta<3,'visible fault signal teleported');
+        assert.ok(signal.progress<=prev.progress,'feedback must travel towards the Load Balancer');
+      }
+      previous.set(signal.id,{...signal,frame});
+      peak=Math.max(peak,signal.opacity);
+      checked++;
+    }
+  }
+  assert.ok(checked>1000,'fault diagnosis must remain visually alive across the story');
+  assert.ok(peak>.3,'diagnostic feedback should be visible, not decorative noise');
+});
+
+test('V7 cue-anchored pressure rises before rerouting and healthy intake never begins early',()=>{
+  const at=(frame)=>ep004Shot01Phase(frame,props);
+  const beforeWorld=at(props.cueFrames.SHOT01_P02_B01-1);
+  const world=at(props.cueFrames.SHOT01_P02_B01+100);
+  const preFailover=at(props.cueFrames.SHOT01_P02_B02-1);
+  const healthy=at(props.cueFrames.SHOT01_P02_B02+150);
+  const preSpill=at(props.cueFrames.SHOT01_P02_B03-1);
+  const overload=at(props.cueFrames.SHOT01_P02_B03+145);
+  assert.equal(beforeWorld.tension,0);
+  assert.equal(beforeWorld.diagnostics.length,0);
+  assert.ok(world.tension>.20);
+  assert.ok(preFailover.tension>world.tension,'pressure should intensify before failover');
+  assert.equal(preFailover.failover,0);
+  assert.equal(preFailover.traffic.some(x=>x.lane==='STANDBY'),false);
+  assert.ok(healthy.traffic.some(x=>x.lane==='STANDBY'));
+  assert.equal(preSpill.traffic.some(x=>x.lane==='SPILLOVER'),false);
+  assert.ok(overload.traffic.some(x=>x.lane==='SPILLOVER'));
+  assert.ok(overload.tension>.50,'failover should not falsely suggest total recovery');
+  const initialQueue=at(props.cueFrames.SHOT01_P02_B02-1)
+    .traffic.filter(x=>x.status==='QUEUED');
+  const continuedQueue=overload.traffic.filter(x=>x.status==='QUEUED');
+  assert.equal(initialQueue.length,4);
+  assert.equal(continuedQueue.length,4);
+  assert.ok(continuedQueue.every((token,i)=>token.opacity<initialQueue[i].opacity),
+    'some waiting pressure must drain as healthy pods take new traffic');
+});
+
+test('V7 faster healthy traffic stays on drawn paths without visible teleport in 2001 frames',()=>{
+  const prev=new Map();
+  const routes={STANDBY:EP004_STANDBY_ROUTE,SPILLOVER:EP004_SPILLOVER_ROUTE};
+  let visible=0,maxStep=0;
+  for(let frame=0;frame<2001;frame++){
+    const state=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    for(const token of state.traffic.filter(t=>t.lane==='STANDBY'||t.lane==='SPILLOVER')){
+      const onRoute=ep004BezierPosition(routes[token.lane],token.progress);
+      assert.ok(Math.hypot(token.x-onRoute.x,token.y-onRoute.y)<1e-8);
+      const last=prev.get(token.id);
+      if(last&&last.frame===frame-1&&last.opacity>.20&&token.opacity>.20){
+        const step=Math.hypot(token.x-last.x,token.y-last.y);
+        assert.ok(step<3,'healthy request jumps or teleports at '+frame);
+        maxStep=Math.max(maxStep,step);
+      }
+      visible++;
+      prev.set(token.id,{...token,frame});
+    }
+  }
+  assert.ok(visible>1500);
+  assert.ok(maxStep>.15,'rerouted traffic is too slow to convey rising throughput');
+  const exit=ep004Shot01Exit({...props,durationInFrames:2001});
+  assert.deepEqual(exit.traffic,ep004RequestTraffic(exit));
+  assert.deepEqual(exit.diagnostics,ep004FailureSignals(exit));
+});
+
+test('V7 visuals intensify original architecture rather than adding false routes or cards',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(scene,/ep004BezierPath\(EP004_DEGRADED_ROUTE\)/);
+  assert.match(scene,/state\.diagnostics\.map\(signal=>/);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/strokeDasharray=\{String\(\.001\+\.72\*failover\)/);
+  assert.match(scene,/strokeDasharray=\{String\(\.001\+\.72\*state\.spillover\)/);
+  assert.match(scene,/tension=\{state\.tension\}/);
+  assert.match(nodes,/i===0\&\&waiting>\.55\?'DEGRADED'/);
+  assert.match(nodes,/reroute\*\(\.70\+\.18\*spreading\)/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
+  assert.doesNotMatch(scene,/Math\.random|setInterval|setTimeout|foreignObject/);
+  assert.doesNotMatch(scene,/state\.secondaryVisible/);
+  assert.doesNotMatch(scene,/const DegradedPod|const HealthyPod/);
 });
