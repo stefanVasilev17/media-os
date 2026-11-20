@@ -56,12 +56,15 @@ export const ATOutlookMailClient:React.FC<ATOutlookMailClientProps>=({
       <rect x={75} y={180} width={30} height={38} rx={5} fill="#0868B8"/>
       <text x={90} y={207} textAnchor="middle" fill={WHITE}
         fontSize={23} fontWeight={850}>O</text>
-      <text x={140} y={209} fontSize={29}
-        fill={WHITE} fontWeight={830}>Outlook</text>
-      <text x={350} y={207} fontSize={17}
-        fill="#CEE6F7" fontWeight={650}>Microsoft 365</text>
-      <circle cx={445} cy={199} r={3.6} fill={WHITE}/>
-      <circle cx={445} cy={211} r={3.6} fill={WHITE}/>
+      <text x={140} y={197} fontSize={28}
+        fill={WHITE} fontWeight={830} letterSpacing="-.025em">Outlook</text>
+      <text x={140} y={222} fontSize={17}
+        fill="#C0DCEF" fontWeight={600}>Microsoft 365</text>
+      <rect x={427} y={172} width={37} height={58} rx={12}
+        fill="#0A3862" stroke="#73B7E3" strokeWidth={1}
+        opacity={.67}/>
+      {[186,201,216].map(y=><circle key={y}
+        cx={445.5} cy={y} r={2.7} fill="#E2F4FF"/>)}
       <rect x={76} y={260} width={391} height={49} rx={9}
         fill="#0F314C" stroke="#376783" strokeWidth={1.4}/>
       <circle cx={100} cy={283} r={8} fill="none"
