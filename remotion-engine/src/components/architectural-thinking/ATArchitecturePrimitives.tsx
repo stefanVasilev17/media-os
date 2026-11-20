@@ -175,7 +175,7 @@ export type ATBackendNodeProps = {
   sectionReveals?:Record<string,number>;
   dnsLookup?:{hostname:string;address:string;reveal:number;found:number};
   gatewayIntro?:{arrival:number;inspection:number;frame:number};
-  balancerIntro?:{arrival:number;selected:number;flow?:number;frame?:number;handoff?:number;unhealthy?:number};
+  balancerIntro?:{arrival:number;selected:number;flow?:number;frame?:number;handoff?:number;unhealthy?:number;hidePrimaryPacket?:boolean};
   zIndex?:number;
   width?:number;
   height?:number;
@@ -249,7 +249,7 @@ export const ATBackendNode:React.FC<ATBackendNodeProps> = ({
               fill={hue} opacity={(balancerIntro.flow??0)*(.35+.55*(1-Math.abs(2*p-1)))}
               style={{filter:'drop-shadow(0 0 3px '+hue+')'}}/>;
           })}
-          {(()=>{
+          {!balancerIntro.hidePrimaryPacket&&(()=>{
             const travel=Math.max(0,Math.min(1,balancerIntro.handoff??0));
             const branch=Math.min(1,travel/.70);
             const exit=Math.max(0,(travel-.70)/.30);
