@@ -187,7 +187,7 @@ export function ep004RequestTraffic(state){
 
   for(let i=0;i<4;i++){
     const phase=loop01(time*.0030+i*.25+.09);
-    const progress=.025+.75*phase;
+    const progress=.025+.68*phase;
     put('outlook-recovery-'+i,'STANDBY',
       ep004BezierPosition(EP004_STANDBY_ROUTE,progress),
       progress,reroute*.86*loopVisibility(phase),
@@ -196,7 +196,7 @@ export function ep004RequestTraffic(state){
 
   for(let i=0;i<3;i++){
     const phase=loop01(time*.0027+i/3+.18);
-    const progress=.025+.75*phase;
+    const progress=.025+.68*phase;
     put('outlook-spillover-'+i,'SPILLOVER',
       ep004BezierPosition(EP004_SPILLOVER_ROUTE,progress),
       progress,spilling*.74*loopVisibility(phase),
