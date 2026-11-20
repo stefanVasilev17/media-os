@@ -91,8 +91,10 @@ test('EP004 keeps approved EP003 nodes untouched and reuses canonical geometry',
   const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
   const outlook=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
   const shot=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
-  assert.match(nodes,/import \{SHOT02_NODES\}/);
-  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(nodes,/ATBackendNode/);
+  assert.match(nodes,/ATPrimaryNode/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
   assert.match(nodes,/ATStableServiceNodes/);
   assert.match(shot,/ATOutlookMailClient/);
   assert.match(shot,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
@@ -140,8 +142,8 @@ test('Outlook interaction fits inside one client and persistent nodes remain ide
   assert.match(client,/Search mail/);
   assert.match(client,/Trying to reconnect/);
   assert.match(client,/opacity=\{1-waiting\}/);
-  assert.match(nodes,/SHOT02_NODES/);
-  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
   assert.match(nodes,/spreading/);
   assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
 });
@@ -170,11 +172,19 @@ test('EP004 V4 final source keeps exact Outlook and inherited EP003 nodes inside
   const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
   const canonical=await readFile(new URL('./src/episodes/ep002/Shot02PremiumLayout.ts',import.meta.url),'utf8');
   assert.match(canonical,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
+  assert.match(nodes,/\[412,498,584\]/);
+
   assert.match(canonical,/balancer:\{x:927,y:410,width:246,height:250\}/);
   assert.match(canonical,/auth:\{x:1326,y:315,width:350,height:348\}/);
-  assert.match(nodes,/SHOT02_NODES/);
-  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
   assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.doesNotMatch(scene,/from ['\"]\.\.\/ep002\//);
+  assert.doesNotMatch(nodes,/from ['\"]\.\.\/\.\.\/episodes\/ep002\//);
   assert.match(scene,/opacity=\{state\.secondaryOpacity\}/);
   assert.match(client,/clipPath="url\(#ep004-outlook-window-clip\)"/);
   assert.match(client,/Microsoft 365/);
