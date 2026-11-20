@@ -24,6 +24,13 @@ export const EP004_SPILLOVER_ROUTE = Object.freeze([
   Object.freeze({x:1192,y:498})
 ]);
 
+export const EP004_DEGRADED_ROUTE = Object.freeze([
+  Object.freeze({x:1050,y:535}),
+  Object.freeze({x:1090,y:535}),
+  Object.freeze({x:1137,y:412}),
+  Object.freeze({x:1192,y:412})
+]);
+
 export const EP004_LOCKED_EP003_SERVICE_PORTS = Object.freeze([412,498,584]);
 
 export const EP004_STANDBY_ROUTE = Object.freeze([
@@ -116,6 +123,12 @@ export function ep004Shot01Phase(frame,props) {
   const spillover=go('SHOT01_P02_B03',145);
   const question=go('SHOT01_P03_B01',150);
   const towardNext=go('SHOT01_P03_B02',150);
+  const timeSinceFailover=Math.max(0,frame-c.SHOT01_P02_B02);
+  const timeSinceSpillover=Math.max(0,frame-c.SHOT01_P02_B03);
+  const tension=clamp(blocked*showWorld*
+    (.20+.80*ease((frame-c.SHOT01_P02_B01)/
+      Math.max(110,c.SHOT01_P02_B02-c.SHOT01_P02_B01)))*
+    (1-.22*failover));
   const requestProgress=.04+.93*ease((frame-c.SHOT01_P01_B01)/Math.max(130,c.SHOT01_P01_B03-c.SHOT01_P01_B01));
   const routeProgress=Math.min(.97,requestProgress);
   const secondPacketPhase=((props.worldStartFrame+frame)*.0022)%1;
@@ -126,12 +139,13 @@ export function ep004Shot01Phase(frame,props) {
     routeProgress, request:ep004RoutePosition(EP004_MAIL_ROUTE,routeProgress),
     requestStatus:blocked>.12?'WAITING':'IN_TRANSIT',
     mailOpen, mailAttempt, blocked, showWorld, failover, spillover, question, towardNext,
+    tension,timeSinceFailover,timeSinceSpillover,
     secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,secondPacketProgress),
     secondaryOpacity, secondaryVisible:secondaryOpacity>.01,
     cameraX:92-95*showWorld-24*towardNext,
     cameraScale:1.08-.10*showWorld-.017*towardNext,
   };
-  return Object.freeze({...state,traffic:ep004RequestTraffic(state)});
+  return Object.freeze({...state,traffic:ep004RequestTraffic(state),diagnostics:ep004FailureSignals(state)});
 }
 
 const loop01=(n)=>((n%1)+1)%1;
@@ -174,7 +188,7 @@ export function ep004RequestTraffic(state){
     const slot=[.72,.51,.30,.10][i];
     const queueVisibility=ease((waiting-i*.11)/.36);
     put('mail-queued-'+i,'MAIL',ep004RoutePosition(EP004_MAIL_ROUTE,slot),
-      slot,queueVisibility*(.71+.06*Math.sin(time*.038+i*.40)**2),
+      slot,queueVisibility*(1-.43*reroute-.15*spilling)*(.71+.06*Math.sin(time*.038+i*.40)**2),
       3.0,'QUEUED');
   }
 
@@ -186,7 +200,9 @@ export function ep004RequestTraffic(state){
   }
 
   for(let i=0;i<4;i++){
-    const phase=loop01(time*.0030+i*.25+.09);
+    const since=Math.max(0,state.timeSinceFailover??0);
+    const accelerated=Math.max(0,since-70)*.0032;
+    const phase=loop01(time*.0030+accelerated+i*.25+.09);
     const progress=.025+.68*phase;
     put('outlook-recovery-'+i,'STANDBY',
       ep004BezierPosition(EP004_STANDBY_ROUTE,progress),
@@ -195,7 +211,9 @@ export function ep004RequestTraffic(state){
   }
 
   for(let i=0;i<3;i++){
-    const phase=loop01(time*.0027+i/3+.18);
+    const since=Math.max(0,state.timeSinceSpillover??0);
+    const accelerated=Math.max(0,since-70)*.0026;
+    const phase=loop01(time*.0027+accelerated+i/3+.18);
     const progress=.025+.68*phase;
     put('outlook-spillover-'+i,'SPILLOVER',
       ep004BezierPosition(EP004_SPILLOVER_ROUTE,progress),
@@ -203,6 +221,28 @@ export function ep004RequestTraffic(state){
       3.3,'ROUTED');
   }
   return Object.freeze(tokens);
+}
+
+export function ep004FailureSignals(state){
+  if(!state||!Number.isInteger(state.worldFrame)
+      ||!Number.isFinite(state.tension)
+      ||!Number.isFinite(state.failover))
+    throw Error('EP004_DIAGNOSTICS_REQUIRE_ALIGNED_WORLD_STATE');
+  const strength=clamp(state.tension)*(1-.78*clamp(state.failover));
+  const signals=[];
+  for(let i=0;i<3;i++){
+    const phase=loop01(state.worldFrame*.0037+i/3+.11);
+    const progress=.68-.61*phase;
+    const position=ep004BezierPosition(EP004_DEGRADED_ROUTE,progress);
+    const opacity=clamp(strength*.84*loopVisibility(phase));
+    if(opacity<.001)continue;
+    signals.push(Object.freeze({
+      id:'unhealthy-feedback-'+i,
+      x:position.x,y:position.y,progress,opacity,
+      direction:'TO_LOAD_BALANCER'
+    }));
+  }
+  return Object.freeze(signals);
 }
 
 export function ep004Shot01Exit(props){
