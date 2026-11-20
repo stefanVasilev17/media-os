@@ -8,10 +8,13 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class EpisodePackageCueTimingVerifier {
     private static final double AUDIO_DURATION_TOLERANCE_SECONDS = 0.75;
+    private static final Pattern NONVERBAL_PAUSE_TAG = Pattern.compile("(?i)\\[(?:long\\s+)?pause\\]");
     private final ObjectMapper mapper;
 
     public EpisodePackageCueTimingVerifier(ObjectMapper mapper) {
@@ -44,9 +47,16 @@ public class EpisodePackageCueTimingVerifier {
         if (spokenNarration.isBlank())
             return Result.fail("WORKING_NARRATION_MISSING");
 
+        boolean slowNatural = SlowNaturalVoicePrompt.DELIVERY_MODE.equals(
+                provider.path("mediaos_delivery_mode").asText(""));
+        if (slowNatural && !EpisodePackageValidator.sha256(narration).equalsIgnoreCase(
+                provider.path("mediaos_spoken_script_sha256").asText("")))
+            return Result.fail("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION");
+
         Result last = Result.fail("PROVIDER_ALIGNMENT_MISSING_OR_INVALID");
         for (String key : List.of("alignment", "normalized_alignment")) {
-            Timeline timeline = parseTimeline(provider.path(key), measuredDuration.doubleValue());
+            Timeline timeline = parseTimeline(provider.path(key),
+                    measuredDuration.doubleValue(), slowNatural);
             if (timeline == null) continue;
             last = compare(timeline, spokenNarration, beats);
             if (last.verified()) return last;
@@ -82,7 +92,8 @@ public class EpisodePackageCueTimingVerifier {
         return Result.pass(out);
     }
 
-    private Timeline parseTimeline(JsonNode payload, double duration) {
+    private Timeline parseTimeline(JsonNode payload, double duration,
+                                   boolean stripNonverbalPauseTags) {
         if (!payload.isObject()) return null;
         JsonNode letters = payload.path("characters");
         JsonNode startTimes = payload.path("character_start_times_seconds");
@@ -92,8 +103,8 @@ public class EpisodePackageCueTimingVerifier {
                 || letters.size() != endTimes.size() || letters.size() > 30000) return null;
         List<Double> starts = new ArrayList<>();
         List<Double> ends = new ArrayList<>();
-        StringBuilder normalized = new StringBuilder();
-        List<Integer> offsets = new ArrayList<>();
+        StringBuilder rawText = new StringBuilder();
+        List<Integer> rawOffsets = new ArrayList<>();
         double previousStart = 0;
         for (int i = 0; i < letters.size(); i++) {
             JsonNode letter = letters.get(i);
@@ -109,17 +120,35 @@ public class EpisodePackageCueTimingVerifier {
             ends.add(to);
             previousStart = from;
             String raw = letter.asText();
-            for (int cp : raw.codePoints().toArray()) {
+            rawText.append(raw);
+            for (int p = 0; p < raw.length(); p++) rawOffsets.add(i);
+            if (rawText.length() > 60000) return null;
+        }
+
+        boolean[] skipped = new boolean[rawText.length()];
+        if (stripNonverbalPauseTags) {
+            Matcher markers = NONVERBAL_PAUSE_TAG.matcher(rawText);
+            while (markers.find())
+                for (int p = markers.start(); p < markers.end(); p++) skipped[p] = true;
+        }
+
+        StringBuilder normalized = new StringBuilder();
+        List<Integer> offsets = new ArrayList<>();
+        for (int p = 0; p < rawText.length();) {
+            int cp = Character.codePointAt(rawText, p);
+            int width = Character.charCount(cp);
+            if (!skipped[p]) {
                 if (Character.isLetterOrDigit(cp)) {
                     String lower = new String(Character.toChars(cp)).toLowerCase(Locale.ROOT);
                     normalized.append(lower);
-                    for (int p = 0; p < lower.length(); p++) offsets.add(i);
+                    for (int j = 0; j < lower.length(); j++) offsets.add(rawOffsets.get(p));
                 } else if (Character.isWhitespace(cp) && normalized.length() > 0
                         && normalized.charAt(normalized.length()-1) != ' ') {
                     normalized.append(' ');
-                    offsets.add(i);
+                    offsets.add(rawOffsets.get(p));
                 }
             }
+            p += width;
         }
         return new Timeline(normalized.toString().trim(), offsets, starts, ends);
     }
