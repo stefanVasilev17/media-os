@@ -1,5 +1,19 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-20 — EP004 SHOT02 V1 CONTINUITY FOUNDATION BUILT AND NATIVE-VERIFIED; SCRIPT/VOICE AND PIXEL SEAM PENDING
+
+**DIRECTOR SAID BEGIN SHOT02 immediately after LOCKING EP004 SHOT01 V8.** The Executor implemented and merged [PR #342](https://github.com/stefanVasilev17/media-os/pull/342) into production lineage, exact CI-tested source commit `6cfa25fbab435317b7ad9c27378f9dd3eb2c89d8` (merge commit `6ba1329dd255c2c73600428c24cdaaf10e6107b5`). Full [technical handoff](docs/engineering/EP004_SHOT02_CONTINUITY_FOUNDATION_20261120.md).
+
+**WHAT EXISTS:** A new `EP004-SHOT02-CONTINUITY-V1-STORYBOARD` 1080p / 30fps / preview-only Remotion composition, separate SHOT02 scene, deterministic V8-pinned world-continuation helper and .d.mts, first 60 moving frames, small subsequent investigative camera motion, 270-frame path/teleport regressions, and a native Docker test. **0 edits** to locked SHOT01 V8 code or EP001–EP003 LOCKED sources. Preview frame 0 equals the **modeled** SHOT01 preview exit state, not yet confirmed against the *decoded* V8 MP4 last-frame bytes. This is a **mock timing / continuity-development canvas**, not production SHOT02. `previewOnly=false` fails closed; `Shot02GeneratedScene.tsx` is intentionally **absent** until actual approved script and voice alignment are available.
+
+**REAL RAILWAY QA:** Shared-worker native CI deployment `d6a3cf73-e017-470b-bd4f-4b0357cf7214` **SUCCESS**, source commit `6cfa25fbab435317b7ad9c27378f9dd3eb2c89d8`, `claimsEnabled=false`: 5/5 new SHOT02 tests, 23/23 unchanged EP004 SHOT01 tests, 173/173 worker tests **PASS**, Factory 3 safe episode-local files with production registry **SHOT01 ONLY**, TypeScript no new errors, both Remotion bundles PASS. No new TTS, MP4, budget authorization, DB binary blob or Railway service. The tested source is merged and versioned but **NOT a renderable production SHOT02**.
+
+**BLOCKER / NEXT ENGINEERING INPUT:** The real EP004 SHOT02 Director-approved Script/SCENE text, selected Voice Take and HEAR→SEE timestamps were not accessible in versioned GitHub/source materials through current tools. Read them from authenticated MediaOS or an exact Director-controlled export before building narrative beats or paid render. Verify the V8 object's actual SHA-256 and decoded last encoded frame index **2000**, and match SHOT02 first encoded frame + continuous motion; do not claim full-pixel seam based on preview-only mock cues. After exact scripts/cues, implement SHOT02 factory `GeneratedScene` and Director-gated real MP4, then WIP SHOT01+SHOT02 film preview; only after future Director SHOT02 visual LOCK create immutable accumulated film.
+
+**PRODUCTION PRESERVATION:** The native CI temporarily disabled claims and changed worker to the SHOT02 branch only for tests. **Restore exact V8 worker source SHA `590448542604e8308750664354bbd8dea55a53e5` with claims enabled/concurrency 1**, preserve locked V8 render `e8f3818e-aac0-40f2-8e1a-d70e9fa108e0`, three Railway services and existing original audio. Existing GitHub Director V8 lock stands.
+
+---
+
 ## 2026-11-20 — EP004 SHOT01 V8 — DIRECTOR VISUAL LOCKED (ACTUAL V8 MP4 HUMAN-APPROVED); RUNTIME DATABASE LOCK NOT YET VERIFIED
 
 **EXPLICIT DIRECTOR COMMAND:** After watching real V8 final output, Director wrote **“Това вече ми харесва. ЛОКВАМЕ”**. The **human visual approval gate is satisfied** for EP004 SHOT01 **V8 only**, not V7 or earlier versions, and not the full 13–16-minute EP004 episode. Exact immutable decision: [EP004 SHOT01 V8 Director Visual Lock](docs/visual/EP004_SHOT01_V8_DIRECTOR_LOCK_20261120.md).
