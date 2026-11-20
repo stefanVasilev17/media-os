@@ -6,6 +6,8 @@ import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOut
 import {
   EP004_MAIL_ROUTE,
   EP004_STANDBY_ROUTE,
+  EP004_HANDOFF_ROUTE,
+  EP004_SPILLOVER_ROUTE,
   EP004_LOCKED_EP003_SERVICE_PORTS,
   ep004RoutePolyline,
   ep004BezierPath,
@@ -42,19 +44,24 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
       <svg width={1920} height={1080} viewBox="0 0 1920 1080"
         style={{position:'absolute',inset:0,zIndex:3,
           overflow:'visible',pointerEvents:'none'}}>
-        <path d="M 779 532 L 804 532" stroke="#2E657F"
+        <polyline points={ep004RoutePolyline(EP004_HANDOFF_ROUTE)}
+          fill="none" stroke="#2E657F"
           strokeWidth={10} strokeLinecap="round" opacity={ambient*.72}/>
-        <path d="M 779 532 L 804 532" stroke={CYAN}
-          strokeWidth={3.6} strokeLinecap="round" opacity={ambient*.72}/>
+        <polyline points={ep004RoutePolyline(EP004_HANDOFF_ROUTE)}
+          fill="none" stroke={CYAN}
+          strokeWidth={3.6} strokeLinecap="round"
+          opacity={ambient*(.17+.62*failover)}/>
         {EP004_LOCKED_EP003_SERVICE_PORTS.slice(0,2).map((portY,i)=><path
           key={portY}
-          d={ep004BezierPath([
-            {x:1050,y:535},{x:1090,y:535},
-            {x:1137,y:portY},{x:1192,y:portY}
-          ])}
+          d={i===1?ep004BezierPath(EP004_SPILLOVER_ROUTE):
+            ep004BezierPath([
+              {x:1050,y:535},{x:1090,y:535},
+              {x:1137,y:portY},{x:1192,y:portY}
+            ])}
           fill="none" stroke={i===0?CYAN:MINT}
           strokeWidth={3.1} strokeLinecap="round"
-          opacity={ambient*(.18+.16*failover)}/>)}
+          opacity={ambient*(i===0?.16*(1-.65*failover):
+            .10+.72*state.spillover)}/>)}
         <polyline points={ep004RoutePolyline(EP004_MAIL_ROUTE)}
           fill="none" stroke="#204A63" strokeWidth={11}
           strokeLinejoin="round" strokeLinecap="round"/>
@@ -92,22 +99,23 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           openProgress={state.mailOpen}
           actionProgress={state.mailAttempt}
           blocked={waiting} frame={state.worldFrame}/>
-        <circle cx={state.request.x} cy={state.request.y}
-          r={8} fill={state.requestStatus==='WAITING'?AMBER:CYAN}
-          opacity={.7+.3*pathPulse}
-          style={{filter:'drop-shadow(0 0 10px rgba(104,229,255,.72))'}}/>
-        <circle cx={state.request.x} cy={state.request.y}
-          r={17} fill="none"
-          stroke={state.requestStatus==='WAITING'?AMBER:CYAN}
-          strokeWidth={2} opacity={.13+.32*pathPulse}/>
-        {state.secondaryVisible&&<g opacity={state.secondaryOpacity}>
-          <circle cx={state.secondary.x} cy={state.secondary.y}
-            r={6} fill={MINT}
-            style={{filter:'drop-shadow(0 0 9px rgba(111,236,212,.76))'}}/>
-        </g>}
-        {waiting>.03&&<circle cx={521} cy={532} r={24}
-          stroke={AMBER} strokeWidth={2.4} fill="none"
-          opacity={waiting*(.13+.27*pathPulse)}/>}
+        {state.traffic.map(token=>{
+          const color=token.status==='QUEUED'||token.status==='WAITING'
+            ?AMBER:token.lane==='STANDBY'||token.lane==='SPILLOVER'
+              ?MINT:CYAN;
+          return <g key={token.id} opacity={token.opacity}>
+            <circle cx={token.x} cy={token.y}
+              r={token.radius} fill={color}
+              style={{filter:'drop-shadow(0 0 5px '+color+')'}}/>
+            {token.id==='mail-primary'&&<circle
+              cx={token.x} cy={token.y} r={token.radius+8}
+              fill="none" stroke={color} strokeWidth={1.4}
+              opacity={.18+.19*pathPulse}/>}
+          </g>;
+        })}
+        {waiting>.03&&<circle cx={521} cy={532} r={17}
+          stroke={AMBER} strokeWidth={1.5} fill="none"
+          opacity={waiting*(.12+.10*pathPulse)}/>}
         <text x={560} y={116} fontFamily={AT_FONT}
           fontSize={38} fontWeight={890}
           letterSpacing="-.02em" fill={WHITE}>
