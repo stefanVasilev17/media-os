@@ -219,7 +219,7 @@ test('V5 reuses the original locked-size premium Load Balancer and Outlook Servi
   assert.match(nodes,/balancer:\{x:927,y:410,width:246,height:250\}/);
   assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
   assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
-  assert.match(nodes,/frame,arrival:\.82,selected:reroute/);
+  assert.match(nodes,/frame:Math\.floor\(frame\*\.40\),arrival:\.82,selected:reroute/);
   assert.match(nodes,/flow:\.01\+\.095\*reroute/);
   assert.match(nodes,/height:67,display:'flex'/);
   assert.match(nodes,/RISING LOAD/);
