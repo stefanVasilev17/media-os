@@ -93,9 +93,9 @@ export const ATStableServiceNodes:React.FC<ATStableServiceNodesProps>=({
               width:34,height:21,flexShrink:0}}>
               {[0,1,2,3].map(j=><div key={j} style={{
                 width:6,height:8+j*4,borderRadius:3,
-                background:j/4<activity?signal:'#31516D',
-                boxShadow:j/4<activity?'0 0 7px '+signal:'none',
-                opacity:j/4<activity?.7+.3*pulse:.46,
+                background:j/4<activity ? signal : '#31516D',
+                boxShadow:j/4<activity ? '0 0 7px '+signal : 'none',
+                opacity:j/4<activity ? .7+.3*pulse : .46,
               }}/>)}
             </div>
           </div>;
