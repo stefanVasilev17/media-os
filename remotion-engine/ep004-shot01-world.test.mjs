@@ -161,3 +161,25 @@ test('EP004 camera begins on Outlook then reveals the original EP003 main-node m
   const clientExitLeft=960+(56-960)*end.cameraScale+end.cameraX;
   assert.ok(clientExitLeft>=40&&clientExitLeft<=150);
 });
+
+
+test('EP004 V4 final source keeps exact Outlook and inherited EP003 nodes inside the video safe area',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const client=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const canonical=await readFile(new URL('./src/episodes/ep002/Shot02PremiumLayout.ts',import.meta.url),'utf8');
+  assert.match(canonical,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(canonical,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(canonical,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/SHOT02_NODES/);
+  assert.match(nodes,/SHOT02_AUTH_REPLICA_PORTS/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/opacity=\{state\.secondaryOpacity\}/);
+  assert.match(client,/clipPath="url\(#ep004-outlook-window-clip\)"/);
+  assert.match(client,/Microsoft 365/);
+  assert.match(client,/Trying to reconnect/);
+  assert.match(scene,/actionProgress=\{state\.mailAttempt\}/);
+  assert.doesNotMatch(scene,/const (?:Gateway|Mailbox|Server):/);
+  assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
+});
