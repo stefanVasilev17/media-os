@@ -3,10 +3,10 @@ import {AbsoluteFill,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {ATStableServiceNodes} from '../../components/architectural-thinking/ATStableServiceNodes';
 import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
-import {SHOT02_AUTH_REPLICA_PORTS} from '../ep002/Shot02PressureVisuals';
 import {
   EP004_MAIL_ROUTE,
   EP004_STANDBY_ROUTE,
+  EP004_LOCKED_EP003_SERVICE_PORTS,
   ep004RoutePolyline,
   ep004BezierPath,
   ep004Shot01Phase,
@@ -46,11 +46,11 @@ export const Ep004Shot01OrdinaryWorkday:React.FC<Ep004Shot01Props>=props=>{
           strokeWidth={10} strokeLinecap="round" opacity={ambient*.72}/>
         <path d="M 779 532 L 804 532" stroke={CYAN}
           strokeWidth={3.6} strokeLinecap="round" opacity={ambient*.72}/>
-        {SHOT02_AUTH_REPLICA_PORTS.slice(0,2).map((port,i)=><path
-          key={port.id}
+        {EP004_LOCKED_EP003_SERVICE_PORTS.slice(0,2).map((portY,i)=><path
+          key={portY}
           d={ep004BezierPath([
             {x:1050,y:535},{x:1090,y:535},
-            {x:1137,y:port.y},{x:1192,y:port.y}
+            {x:1137,y:portY},{x:1192,y:portY}
           ])}
           fill="none" stroke={i===0?CYAN:MINT}
           strokeWidth={3.1} strokeLinecap="round"
