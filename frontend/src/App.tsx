@@ -3,6 +3,7 @@ import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
 import {ThreeFinishedEpisodes} from './pages/ThreeFinishedEpisodes';
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import {EpisodePackageImportPage} from './pages/EpisodePackageImportPage';
+import {DirectorQuietEpisodePage} from './pages/DirectorQuietEpisodePage';
 import {Ep003Shot07V2DirectorReview} from './components/Ep003Shot07V2DirectorReview';
 import {Ep003Shot07V3DirectorReview} from './components/Ep003Shot07V3DirectorReview';
 import {Ep003Shot08V1DirectorReview} from './components/Ep003Shot08V1DirectorReview';
@@ -153,7 +154,10 @@ export function App() {
   if (hash === '#/library/EP001' || hash === '#/library/EP002' || hash === '#/library/EP003') {
     page = <ThreeFinishedEpisodes episode={hash.endsWith('EP001') ? 'EP001' : hash.endsWith('EP002') ? 'EP002' : 'EP003'} />;
   } else if (hash === '#/episode-packages/import' || hash.startsWith('#/episode-packages/import?')) {
-    page = <EpisodePackageImportPage />;
+    const packageId=new URLSearchParams(hash.split('?',2)[1]||'').get('packageId');
+    page=packageId&&/^[0-9a-fA-F-]{36}$/.test(packageId)
+      ?<DirectorQuietEpisodePage key={packageId} packageId={packageId}/>
+      :<EpisodePackageImportPage />;
   } else if (hash === '#/episodes/new' || hash.startsWith('#/episodes/new?')) {
     page = <EpisodeNewPage />;
   } else if (preparationRoute) {

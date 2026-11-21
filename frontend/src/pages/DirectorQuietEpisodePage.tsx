@@ -1,0 +1,402 @@
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {ArrowLeft,Check,ChevronRight,Film,Headphones,Play,RefreshCw,Save,Volume2} from 'lucide-react';
+import '../styles/directorQuietEpisode.css';
+
+type Shot={shotKey:string;title:string};
+type Episode={packageId:string;episodeKey:string;title:string;shots:Shot[]};
+type Take={id:string;takeNumber:number;revision:number;durationSeconds:number|null;deliveryMode?:string};
+type Voice={
+  shotKey:string;revision:number;narration:string;voiceDirection:string;
+  narrationSha256:string;takes:Take[];selectedTakeId:string|null;
+  approvedCurrentRevision:boolean;canGenerate:boolean;canGenerateSlow:boolean;
+  generationStatus:string;blockedReason:string;
+};
+type Readiness={
+  ready:boolean;episodeKey:string;shotKey:string;selectedTakeId:string|null;
+  narrationSha256:string|null;expectedSourceCommit:string;durationInFrames:number;
+  blockers:string[];nextAction:string;
+};
+type Render={renderId:string;status:string;progress?:number;videoUrl?:string;compositionId?:string};
+type ShotLock={shotKey:string;renderId:string;lockedAt:string};
+type FilmState={locks:ShotLock[];shotCount:number;videoUrl:string|null;
+  state:string;renderIds:string[];durationInFrames:number;error?:string};
+
+const base='/api/v1/episode-packages';
+const compositions:Record<string,string>={
+  SHOT01:'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
+  SHOT02:'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL',
+  SHOT03:'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL'
+};
+async function result<T>(response:Response):Promise<T>{
+  if(!response.ok)throw Error('HTTP '+response.status+': '+(await response.text()).slice(0,270));
+  return response.json() as Promise<T>;
+}
+const errorText=(cause:unknown)=>cause instanceof Error?cause.message:String(cause);
+
+export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
+  const [episode,setEpisode]=useState<Episode|null>(null);
+  const [activeShot,setActiveShot]=useState('SHOT01');
+  const [tab,setTab]=useState<'SHOT'|'FULL'>('SHOT');
+  const [voice,setVoice]=useState<Voice|null>(null);
+  const [script,setScript]=useState('');
+  const [direction,setDirection]=useState('');
+  const [chosenTake,setChosenTake]=useState('');
+  const [readiness,setReadiness]=useState<Readiness|null>(null);
+  const [render,setRender]=useState<Render|null>(null);
+  const [film,setFilm]=useState<FilmState|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState('');
+  const [error,setError]=useState('');
+  const [notice,setNotice]=useState('');
+  const [voiceConsent,setVoiceConsent]=useState(false);
+  const [cpuConsent,setCpuConsent]=useState(false);
+  const voiceRequest=useRef<string|null>(null);
+  const cpuRequest=useRef<string|null>(null);
+  const serial=useRef(0);
+  const root=base+'/'+encodeURIComponent(packageId);
+  const shotRoot=root+'/shots/'+encodeURIComponent(activeShot);
+  const editing=!!voice&&(script!==voice.narration||direction!==voice.voiceDirection);
+  const target=compositions[activeShot];
+  const renderMatches=!!voice?.approvedCurrentRevision&&!!readiness?.ready
+    &&readiness.episodeKey===episode?.episodeKey&&readiness.shotKey===activeShot
+    &&readiness.selectedTakeId===voice.selectedTakeId
+    &&readiness.narrationSha256===voice.narrationSha256;
+
+  const refreshFilm=useCallback(async()=>{
+    const data=await result<FilmState>(await fetch(root+'/film',{cache:'no-store'}));
+    setFilm(data);
+  },[root]);
+
+  useEffect(()=>{
+    let active=true;
+    const params=new URLSearchParams(window.location.hash.split('?',2)[1]||'');
+    const requested=params.get('shot');
+    setLoading(true);setError('');
+    void fetch(root,{cache:'no-store'}).then(result<Episode>).then(data=>{
+      if(!active)return;
+      setEpisode(data);
+      setActiveShot(requested&&data.shots.some(s=>s.shotKey===requested)
+        ?requested:data.shots[0]?.shotKey??'SHOT01');
+    }).catch(e=>{if(active)setError(errorText(e));})
+      .finally(()=>{if(active)setLoading(false);});
+    return()=>{active=false;};
+  },[root]);
+
+  const refreshVoice=useCallback(async()=>{
+    const shot=activeShot;
+    const data=await result<Voice>(await fetch(root+'/shots/'+encodeURIComponent(shot)+'/voice',
+      {cache:'no-store'}));
+    if(data.shotKey!==shot)throw Error('Voice returned a different SHOT. No action was taken.');
+    setVoice(data);setScript(data.narration);setDirection(data.voiceDirection);
+    setChosenTake(data.selectedTakeId??'');setVoiceConsent(false);
+    return data;
+  },[root,activeShot]);
+
+  const refreshRender=useCallback(async()=>{
+    const shot=activeShot;
+    if(episode?.episodeKey!=='EP004'||!compositions[shot]){
+      setReadiness(null);setRender(null);return;
+    }
+    const ready=await result<Readiness>(await fetch(root+'/shots/'+shot+'/render-readiness',
+      {cache:'no-store'}));
+    if(ready.episodeKey!=='EP004'||ready.shotKey!==shot)
+      throw Error('Wrong SHOT returned by render readiness.');
+    const composition=compositions[shot];
+    const latest=/^[a-f0-9]{40}$/.test(ready.expectedSourceCommit)
+      ?await result<Render>(await fetch('/api/v1/remotion/renders/compositions/'
+        +encodeURIComponent(composition)+'/latest?profile=REVIEW&sourceCommit='
+        +encodeURIComponent(ready.expectedSourceCommit),{cache:'no-store'})):null;
+    setReadiness(ready);setCpuConsent(false);
+    setRender(latest?.status==='EMPTY'?null:latest);
+  },[root,activeShot,episode?.episodeKey]);
+
+  useEffect(()=>{
+    const current=++serial.current;let active=true;
+    setVoice(null);setRender(null);setReadiness(null);
+    setError('');setNotice('');setCpuConsent(false);setVoiceConsent(false);
+    void Promise.all([
+      fetch(root+'/shots/'+encodeURIComponent(activeShot)+'/voice',{cache:'no-store'})
+        .then(result<Voice>),
+      fetch(root+'/film',{cache:'no-store'}).then(result<FilmState>)
+    ]).then(([v,f])=>{
+      if(!active||current!==serial.current)return;
+      if(v.shotKey!==activeShot)throw Error('Wrong SHOT voice response.');
+      setVoice(v);setScript(v.narration);setDirection(v.voiceDirection);
+      setChosenTake(v.selectedTakeId??'');setFilm(f);
+    }).catch(e=>{if(active&&current===serial.current)setError(errorText(e));});
+    return()=>{active=false;serial.current++;};
+  },[activeShot,root]);
+
+  useEffect(()=>{
+    if(!voice?.approvedCurrentRevision||episode?.episodeKey!=='EP004')return;
+    void refreshRender().catch(e=>setError(errorText(e)));
+  },[voice?.approvedCurrentRevision,voice?.selectedTakeId,episode?.episodeKey,refreshRender]);
+
+  async function saveScript(){
+    if(!voice||!editing||busy)return;
+    setBusy('save');setError('');setNotice('');
+    try{
+      const updated=await result<Voice>(await fetch(shotRoot+'/voice/script',{
+        method:'PUT',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({expectedRevision:voice.revision,narration:script,
+          voiceDirection:direction})
+      }));
+      setVoice(updated);setScript(updated.narration);setDirection(updated.voiceDirection);
+      setChosenTake(updated.selectedTakeId??'');
+      setReadiness(null);setRender(null);setCpuConsent(false);
+      setNotice('Script saved · revision '+updated.revision+'. Generate or select a Take for this revision.');
+    }catch(e){setError(errorText(e));}finally{setBusy('');}
+  }
+
+  async function generateVoice(){
+    if(!voice||editing||busy||!voiceConsent||!voice.canGenerateSlow)return;
+    if(!window.confirm('Generate one paid ElevenLabs Slow Natural Take for '+activeShot
+      +' revision '+voice.revision+'? This uses the current saved script.'))return;
+    const id=voiceRequest.current??window.crypto.randomUUID();voiceRequest.current=id;
+    setBusy('voice');setError('');setNotice('');
+    try{
+      const updated=await result<Voice>(await fetch(shotRoot+'/voice/generate',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({expectedRevision:voice.revision,
+          expectedNarrationSha256:voice.narrationSha256,requestId:id,
+          confirmPaidElevenLabs:true,deliveryMode:'SLOW_NATURAL'})
+      }));
+      voiceRequest.current=null;
+      setVoice(updated);setChosenTake(updated.selectedTakeId??'');
+      setVoiceConsent(false);
+      setNotice('Voice generated. Listen and approve the Take you want to use.');
+    }catch(e){setError('Voice request outcome needs review: '+errorText(e)
+      +'. Refresh this SHOT before requesting any additional paid Take.');}
+    finally{setBusy('');}
+  }
+
+  async function approveVoice(){
+    if(!voice||!chosenTake||editing||busy)return;
+    if(!window.confirm('Approve selected voice Take for '+activeShot+'?'))return;
+    setBusy('approve');setError('');setNotice('');
+    try{
+      const updated=await result<Voice>(await fetch(shotRoot+'/voice/approve',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({expectedRevision:voice.revision,
+          takeId:chosenTake,decision:'DIRECTOR_APPROVE'})
+      }));
+      setVoice(updated);setChosenTake(updated.selectedTakeId??'');
+      setNotice('Voice Take approved. Video rendering can now be checked.');
+    }catch(e){setError(errorText(e));}finally{setBusy('');}
+  }
+
+  async function startRender(){
+    if(!voice||!renderMatches||!readiness||!cpuConsent||editing||busy)return;
+    if(!window.confirm('Render '+activeShot+' at 1920×1080 using the approved Take? '
+      +'This consumes Railway CPU and private storage, but no ElevenLabs call.'))return;
+    const id=cpuRequest.current??window.crypto.randomUUID();cpuRequest.current=id;
+    setBusy('render');setError('');setNotice('');
+    try{
+      const job=await result<Render>(await fetch(shotRoot+'/render',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({requestId:id,expectedNarrationSha256:readiness.narrationSha256,
+          expectedVoiceTakeId:readiness.selectedTakeId,
+          expectedSourceCommit:readiness.expectedSourceCommit,
+          maximumFrames:readiness.durationInFrames,confirmCpuRender:true})
+      }));
+      if(job.compositionId!==target)throw Error('Render returned the wrong composition.');
+      cpuRequest.current=null;setRender(job);setCpuConsent(false);
+      setNotice(job.status==='READY'?'Existing render found. No new job was started.'
+        :job.status==='QUEUED'?'Render queued.':'Render status: '+job.status);
+    }catch(e){setError('Render request must be checked before retrying: '+errorText(e));}
+    finally{setBusy('');}
+  }
+
+  async function lockShot(){
+    if(!render||render.status!=='READY'||!render.renderId||busy)return;
+    if(!window.confirm('Director LOCK '+activeShot+' using this exact rendered MP4? '
+      +'The consecutive locked SHOTs will be assembled into one full-video file.'))return;
+    setBusy('lock');setError('');setNotice('');
+    try{
+      await result<FilmState>(await fetch(root+'/film/locks/'+encodeURIComponent(activeShot),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({renderId:render.renderId,confirmLock:true})
+      })).then(setFilm);
+      setNotice(activeShot+' locked. The Full Video tab contains the saved contiguous film.');
+    }catch(e){setError('Lock or film assembly did not finish: '+errorText(e)
+      +'. Refresh Full Video to inspect saved state; do not render the SHOT again.');}
+    finally{setBusy('');}
+  }
+
+  const active=episode?.shots.find(s=>s.shotKey===activeShot);
+  const locked=film?.locks.find(s=>s.shotKey===activeShot);
+  const fullUrl=film?.videoUrl??null;
+  return <main className="director-minimal">
+    <header className="director-minimal-top">
+      <button type="button" className="director-minimal-back"
+        onClick={()=>{window.location.hash='#/episodes';}}><ArrowLeft size={18}/> Episodes</button>
+      <span className="director-minimal-mark">MediaOS · Director</span>
+    </header>
+    {loading&&<p className="director-minimal-muted">Opening episode…</p>}
+    {episode&&<>
+      <header className="director-minimal-heading">
+        <div><p className="director-minimal-eyebrow">{episode.episodeKey}</p>
+          <h1>{episode.title}</h1></div>
+        <span className="director-minimal-counter">{film?.locks.length??0} / {episode.shots.length} locked</span>
+      </header>
+      <div className="director-minimal-body">
+        <aside className="director-minimal-sidebar" aria-label="Choose SHOT">
+          <p className="director-minimal-eyebrow">Shots</p>
+          {episode.shots.map((shot,index)=>{
+            const isLocked=film?.locks.some(l=>l.shotKey===shot.shotKey);
+            return <button type="button" key={shot.shotKey}
+              aria-current={activeShot===shot.shotKey&&tab==='SHOT'?'page':undefined}
+              className={'director-minimal-shot'+(activeShot===shot.shotKey&&tab==='SHOT'?' selected':'')}
+              onClick={()=>{
+                if(editing&&!window.confirm('Discard unsaved script edits?'))return;
+                setActiveShot(shot.shotKey);setTab('SHOT');
+              }}>
+              <span className="director-minimal-shot-number">{String(index+1).padStart(2,'0')}</span>
+              <span className="director-minimal-shot-name"><strong>{shot.shotKey}</strong>
+                <small>{shot.title}</small></span>
+              {isLocked?<Check size={17} aria-label="Locked"/>:<ChevronRight size={16}/>}
+            </button>;
+          })}
+          <button type="button"
+            className={'director-minimal-full'+(tab==='FULL'?' selected':'')}
+            onClick={()=>{
+              if(editing&&!window.confirm('Discard unsaved script edits?'))return;
+              setTab('FULL');void refreshFilm().catch(e=>setError(errorText(e)));
+            }}><Film size={18}/> Full Video</button>
+        </aside>
+        <div className="director-minimal-main">
+          {error&&<p className="director-minimal-error" role="alert">{error}</p>}
+          {notice&&<p className="director-minimal-success" role="status">{notice}</p>}
+          {tab==='FULL'?<section className="director-minimal-panel">
+            <div className="director-minimal-section-head">
+              <div><p className="director-minimal-eyebrow">Your finished shots</p>
+                <h2>Full Video</h2></div>
+              <button type="button" className="director-minimal-subtle"
+                onClick={()=>void refreshFilm().catch(e=>setError(errorText(e)))}>
+                <RefreshCw size={15}/> Refresh</button>
+            </div>
+            <p className="director-minimal-muted">{film?.shotCount??0} consecutive locked SHOTs.
+              Only approved MP4 files are used. One player, one continuous video.</p>
+            {fullUrl?<video key={fullUrl} controls playsInline preload="metadata"
+              className="director-minimal-video" src={fullUrl}
+              aria-label="One complete film of all consecutive locked SHOTs"/>:
+              <p className="director-minimal-empty">The full video will appear here after you lock
+                SHOT01 and any following SHOTs in order.</p>}
+            {(film?.locks.length??0)>0&&<p className="director-minimal-muted">
+              Locked: {film!.locks.map(s=>s.shotKey).join(' · ')}</p>}
+            {film?.state==='ASSEMBLY_FAILED'&&
+              <p role="alert" className="director-minimal-error">
+                Assembly needs attention. Locked SHOT MP4s are preserved. {film.error}</p>}
+          </section>:<div className="director-minimal-sections">
+            <div className="director-minimal-shot-heading">
+              <div><p className="director-minimal-eyebrow">{activeShot}</p>
+                <h2>{active?.title}</h2></div>
+              {locked&&<span className="director-minimal-locked"><Check size={14}/> Locked MP4</span>}
+            </div>
+            <section className="director-minimal-panel">
+              <div className="director-minimal-section-head">
+                <div><p className="director-minimal-eyebrow">01 · Script</p><h3>Your narration</h3></div>
+                <button type="button" className="director-minimal-primary"
+                  disabled={!editing||!!busy||script.trim().length<20||direction.trim().length<8}
+                  onClick={()=>void saveScript()}><Save size={17}/> Save script</button>
+              </div>
+              <textarea aria-label="SHOT narration" value={script}
+                onChange={e=>setScript(e.target.value)} disabled={!voice||!!busy}
+                className="director-minimal-script" rows={11}/>
+              {voice&&<p className="director-minimal-muted">
+                Revision {voice.revision}. You can edit your script anytime. Saving a new
+                revision does not delete previously recorded audio or locked videos.</p>}
+              <details className="director-minimal-advanced">
+                <summary>Voice direction</summary>
+                <textarea aria-label="Voice direction" value={direction}
+                  onChange={e=>setDirection(e.target.value)} disabled={!voice||!!busy} rows={3}/>
+              </details>
+            </section>
+            <section className="director-minimal-panel">
+              <div className="director-minimal-section-head">
+                <div><p className="director-minimal-eyebrow">02 · Voice</p>
+                  <h3>ElevenLabs</h3></div>
+                <button type="button" className="director-minimal-subtle"
+                  disabled={!!busy} onClick={()=>void refreshVoice().catch(e=>setError(errorText(e)))}>
+                  <RefreshCw size={15}/> Refresh</button>
+              </div>
+              <label className="director-minimal-confirm">
+                <input type="checkbox" checked={voiceConsent}
+                  disabled={!voice?.canGenerateSlow||editing||!!busy}
+                  onChange={e=>setVoiceConsent(e.target.checked)}/>
+                I approve one paid ElevenLabs voice generation.
+              </label>
+              <button type="button" className="director-minimal-primary"
+                disabled={!voice?.canGenerateSlow||!voiceConsent||editing||!!busy}
+                onClick={()=>void generateVoice()}>
+                <Volume2 size={17}/>{busy==='voice'?'Generating…':'Generate voice'}
+              </button>
+              {voice&&voice.takes.length===0&&<p className="director-minimal-muted">
+                No recorded Takes yet.</p>}
+              {voice?.takes.map(take=><div className="director-minimal-take" key={take.id}>
+                <label><input type="radio" name={'take-'+activeShot} value={take.id}
+                  checked={chosenTake===take.id}
+                  disabled={!!busy||editing||take.revision!==voice.revision}
+                  onChange={()=>setChosenTake(take.id)}/>
+                  Take {take.takeNumber} {take.id===voice.selectedTakeId&&voice.approvedCurrentRevision?' · Approved':''}
+                </label>
+                <audio controls preload="none" src={shotRoot+'/voice/takes/'
+                  +encodeURIComponent(take.id)+'/audio'} aria-label={'Listen to Take '+take.takeNumber}/>
+              </div>)}
+              {!!voice?.takes.length&&<button type="button" className="director-minimal-subtle"
+                disabled={!!busy||editing||!chosenTake||
+                  voice?.takes.every(t=>t.id!==chosenTake||t.revision!==voice.revision)||
+                  (voice.approvedCurrentRevision&&chosenTake===voice.selectedTakeId)}
+                onClick={()=>void approveVoice()}>
+                <Check size={16}/> {voice?.approvedCurrentRevision&&chosenTake===voice.selectedTakeId
+                  ?'Voice approved':'Approve selected Take'}
+              </button>}
+              {voice?.blockedReason&&!voice.canGenerateSlow&&<p className="director-minimal-muted">
+                {voice.blockedReason}</p>}
+            </section>
+            <section className="director-minimal-panel">
+              <div className="director-minimal-section-head">
+                <div><p className="director-minimal-eyebrow">03 · Video</p>
+                  <h3>Render & Lock</h3></div>
+                {target&&<button type="button" className="director-minimal-subtle"
+                  disabled={!!busy}
+                  onClick={()=>void refreshRender().catch(e=>setError(errorText(e)))}>
+                  <RefreshCw size={15}/> Check readiness</button>}
+              </div>
+              {!target?<p className="director-minimal-muted">This SHOT's rendering scene is not
+                deployed yet. Script and voice editing remain available.</p>:<>
+                <p className="director-minimal-muted">
+                  {readiness?.ready?'Ready for a Director render':readiness?.blockers.length
+                    ?'Not ready: '+readiness.blockers.join(' · ')
+                    :'Approve a voice Take to check rendering.'}
+                </p>
+                <label className="director-minimal-confirm">
+                  <input type="checkbox" checked={cpuConsent}
+                    disabled={!renderMatches||!!busy||editing}
+                    onChange={e=>setCpuConsent(e.target.checked)}/>
+                  I approve one video render using Railway CPU.
+                </label>
+                <button type="button" className="director-minimal-primary"
+                  disabled={!cpuConsent||!renderMatches||!!busy||editing}
+                  onClick={()=>void startRender()}><Play size={16}/>
+                  {busy==='render'?'Queuing…':'Render video'}</button>
+                {render&&<div className="director-minimal-render">
+                  <p role="status">Video: {render.status}
+                    {typeof render.progress==='number'?' · '+render.progress+'%':''}</p>
+                  {render.videoUrl&&<video key={render.videoUrl} controls playsInline
+                    preload="metadata" className="director-minimal-video" src={render.videoUrl}
+                    aria-label={'Rendered '+activeShot+' video'}/>}
+                  {render.status==='READY'&&<button type="button" className="director-minimal-lock"
+                    disabled={!!busy||locked?.renderId===render.renderId}
+                    onClick={()=>void lockShot()}><Check size={16}/>
+                    {locked?.renderId===render.renderId?'SHOT locked':'Lock SHOT & add to Full Video'}
+                  </button>}
+                </div>}
+              </>}
+            </section>
+          </div>}
+        </div>
+      </div>
+    </>}
+  </main>;
+}
