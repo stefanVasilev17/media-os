@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {shot10TextWidth} from './shot10-content-fit-layout.mjs';
+import {ep003CardIsReadable,ep003CardOpacity} from './ep003-readable-card-policy.mjs';
 import {
   EP004_SHOT01_LOCKED_SOURCE_SHA256,EP004_MAIL_ROUTE,EP004_HANDOFF_ROUTE,
   EP004_STANDBY_ROUTE,EP004_SPILLOVER_ROUTE,EP004_DEGRADED_ROUTE,
@@ -28,6 +30,7 @@ const props={
   voiceTakeId:'00000000-0000-4000-8000-000000000001',
   narrationSha256:'a'.repeat(64),expectedSourceCommit:'b'.repeat(40),
   shotTitle:'Two Gateway Systems, One Shared Pressure',
+  failoverTermStartFrame:210,
   verifiedCues:cues,
   visualBeats:cues.map((z,i)=>({beatId:z.beatId,cueAnchor:z.anchor,
     direction:'Show original source visual beat '+i}))
@@ -43,6 +46,8 @@ test('SHOT02 production validates real voice, original locked V8 and source SHA'
     {previousSourceCommit:'f'.repeat(40)},{worldStartFrame:2001},
     {previewOnly:true},{directorCpuApproved:false},
     {narrationSha256:'0'}, {expectedSourceCommit:'bad'},
+    {failoverTermStartFrame:59},{failoverTermStartFrame:1900},
+    {failoverTermStartFrame:null},
     {verifiedCues:[]}, {visualBeats:[]},
     {episodeKey:'EP003'},{shotKey:'SHOT01'}
   ])assert.throws(()=>validateEp004Shot02Render({...props,...changed}),
@@ -145,4 +150,38 @@ test('SHOT02 selected audio is authorized before any paid CPU frames and reautho
   assert.match(worker,/ep004-shot02-selected-voice/);
   assert.match(worker,/EP004_SHOT02_APPROVED_TAKE_CPU_PREFLIGHT_PASS/);
   assert.match(worker,/await leaseClient\.refresh\(\)/);
+});
+
+
+test('FAILOVER glossary reproduces EP003 amber definition card and contains locked text',async()=>{
+  const file=await readFile(new URL('./src/episodes/ep004/Shot02DirectorV1.tsx',import.meta.url),'utf8');
+  assert.match(file,/const FAILOVER_TITLE='FAILOVER'/);
+  assert.match(file,/Moving work to an alternative path/);
+  assert.match(file,/when the original path cannot serve it/);
+  assert.match(file,/ep003CardOpacity\(frame,start,until\)/);
+  assert.match(file,/ep003CardIsReadable\(FAILOVER_TITLE,definition,start,until,30\)/);
+  assert.match(file,/shot10TextWidth\(line,29\)/);
+  assert.match(file,/borderRadius:17,border:'2px solid '\+AMBER/);
+  assert.match(file,/background:'linear-gradient\(120deg,rgba\(10,32,50,\.977\),rgba\(5,19,37,\.988\)\)'/);
+  assert.match(file,/boxShadow:'0 13px 36px rgba\(0,0,0,\.33\),0 0 18px rgba\(89,202,232,\.08\)'/);
+  assert.match(file,/fontSize:23,lineHeight:'29px'/);
+  assert.match(file,/fontSize:29,lineHeight:'39px'/);
+  assert.match(file,/start=\{props.failoverTermStartFrame\}/);
+  assert.doesNotMatch(file,/props\.visualBeats\[state\.cueIndex\]\.direction/);
+  const title='FAILOVER';
+  const lines=['Moving work to an alternative path',
+    'when the original path cannot serve it'];
+  const start=210,end=start+240,left=560,top=742,height=178;
+  assert.ok(ep003CardIsReadable(title,lines.join(' '),start,end,30));
+  assert.equal(ep003CardOpacity(start-1,start,end),0);
+  assert.equal(ep003CardOpacity(start,start,end),0);
+  assert.ok(ep003CardOpacity(start+18,start,end)>.99);
+  assert.equal(ep003CardOpacity(end,start,end),0);
+  const width=Math.ceil(Math.max(shot10TextWidth(title,23),
+    ...lines.map(line=>shot10TextWidth(line,29)))+80);
+  assert.ok(width>=320&&width<=950);
+  assert.ok(left+width<=1510&&top+height<=1020);
+  assert.ok(top>=690,'Glossary does not overlap locked EP003 nodes ending at 663px');
+  assert.ok(left>=560,'Glossary does not overlap Outlook client ending at x485');
+  assert.ok(start>=60&&end<=props.durationInFrames-45);
 });
