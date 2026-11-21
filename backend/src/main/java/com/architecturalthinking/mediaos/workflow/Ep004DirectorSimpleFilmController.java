@@ -56,7 +56,7 @@ public final class Ep004DirectorSimpleFilmController {
                 "Director-owned EP004 package was not found.");
     }
 
-    private static String composition(String shotKey){
+    static String composition(String shotKey){
         return switch(shotKey){
             case "SHOT01" -> "EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL";
             case "SHOT02" -> "EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL";
@@ -75,7 +75,7 @@ public final class Ep004DirectorSimpleFilmController {
                 rs.getObject("locked_at",OffsetDateTime.class))).list();
     }
 
-    private static List<ShotLock> consecutive(List<ShotLock> locks){
+    static List<ShotLock> consecutive(List<ShotLock> locks){
         List<ShotLock> prefix=new ArrayList<>();
         for(int i=1;i<=40;i++){
             String expected=String.format(java.util.Locale.ROOT,"SHOT%02d",i);
@@ -87,7 +87,7 @@ public final class Ep004DirectorSimpleFilmController {
         return List.copyOf(prefix);
     }
 
-    private static String identity(List<ShotLock> locks){
+    static String identity(List<ShotLock> locks){
         return String.join(",",locks.stream().map(s->s.renderId().toString()).toList());
     }
 
@@ -277,10 +277,11 @@ public final class Ep004DirectorSimpleFilmController {
                 process.destroyForcibly();
                 throw new IllegalStateException("Film assembly exceeded the 120-second CPU limit.");
             }
-            if(process.exitValue()!=0)
+            if(process.exitValue()!=0){
+                String details=Files.readString(log);
                 throw new IllegalStateException("FFmpeg stream-copy failed: "+
-                    Files.readString(log).substring(0,
-                        Math.min(500,(int)Files.size(log))));
+                    details.substring(0,Math.min(500,details.length())));
+            }
             if(Files.size(output)>MediaObjectStore.MAX_VIDEO_BYTES)
                 throw new IllegalStateException("Continuous film exceeds S3 256 MiB limit.");
             byte[] merged=Files.readAllBytes(output);
