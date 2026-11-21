@@ -41,6 +41,7 @@ export declare const EP004_SHOT03_PREDECESSOR:{
 };
 export declare const EP004_SHOT03_STORYBOARD_ONLY:true;
 export declare const EP004_SHOT03_BREATH_FRAMES:60;
+export declare const EP004_SHOT03_LAYOUT_SWITCH_FRAME:98;
 export declare const EP004_SHOT03_ROUTES:Record<string,ReadonlyArray<{x:number;y:number}>>;
 export declare const EP004_SHOT03_NODES:Record<string,{left:number;top:number;width:number;height:number}>;
 export declare function validateEp004Shot03Storyboard(props:Ep004Shot03StoryboardProps):boolean;

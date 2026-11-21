@@ -21,6 +21,7 @@ export const EP004_SHOT03_PREDECESSOR=Object.freeze({
 });
 export const EP004_SHOT03_STORYBOARD_ONLY=true;
 export const EP004_SHOT03_BREATH_FRAMES=60;
+export const EP004_SHOT03_LAYOUT_SWITCH_FRAME=98;
 export const EP004_SHOT03_ROUTES=Object.freeze({
   OUTLOOK_PRIMARY:Object.freeze([{x:485,y:532},{x:690,y:532},{x:820,y:370},{x:1185,y:370}]),
   PRIMARY_MAILBOX:Object.freeze([{x:1445,y:370},{x:1500,y:370},{x:1595,y:370},{x:1632,y:370}]),
@@ -44,7 +45,7 @@ const PHASES=Object.freeze([
     label:'TEAMS  →  ALTERNATIVE GATEWAY  →  TEAMS'}),
   Object.freeze({start:293,end:417,
     label:'01:07 UTC  ·  TEAMS MOVES TO THE PRIMARY GATEWAY'}),
-  Object.freeze({start:425,end:510,
+  Object.freeze({start:425,end:529,
     label:'BACK TO JULY  ·  GATEWAY CONFIGURATION CHANGES'}),
 ]);
 export function ep004Shot03Clarity(frame){
@@ -52,11 +53,11 @@ export function ep004Shot03Clarity(frame){
     throw Error('EP004_SHOT03_CLARITY_FRAME_OUT_OF_RANGE');
   const phase=PHASES.find(p=>frame>=p.start&&frame<p.end);
   const noteOpacity=phase
-    ?Math.min(ease((frame-phase.start)/16),ease((phase.end-frame)/20)):0;
+    ?Math.min(ease((frame-phase.start)/8),ease((phase.end-frame)/12)):0;
   const outlookFocus=ease((frame-120)/25)*(1-ease((frame-213)/28));
   const alternativeFocus=ease((frame-223)/25)*(1-ease((frame-283)/32));
   const rerouteFocus=ease((frame-287)/34)*(1-ease((frame-418)/40));
-  const julyFocus=ease((frame-422)/24)*(1-ease((frame-490)/33));
+  const julyFocus=ease((frame-427)/10)*(1-ease((frame-520)/18));
   const redirect=ease((frame-285)/86);
   const routes=Object.freeze({
     OUTLOOK_PRIMARY:clamp(.41+.54*outlookFocus+.26*rerouteFocus),
@@ -143,8 +144,8 @@ export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
     ?props.worldStartFrame+frame:worldFrameOverride;
   if(!Number.isInteger(worldFrame)||worldFrame<props.worldStartFrame)
     throw Error('EP004_SHOT03_WORLD_TIME_MUST_REMAIN_MONOTONIC');
-  const reveal=ease((frame-EP004_SHOT03_BREATH_FRAMES-38)/110);
-  const original=ease((frame-EP004_SHOT03_BREATH_FRAMES)/104);
+  const reveal=frame>=EP004_SHOT03_LAYOUT_SWITCH_FRAME?1:0;
+  const original=1-reveal;
   const cross=ease((frame-285)/86);
   const shared=ease((frame-325)/100);
   const july=ease((frame-420)/85);
@@ -155,14 +156,13 @@ export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
     ...exit,worldFrame,
     timeSinceFailover:exit.timeSinceFailover+2123+frame,
     timeSinceSpillover:exit.timeSinceSpillover+2123+frame,
-    cameraX:exit.cameraX-30-12,
-    cameraScale:exit.cameraScale+.018,
+    cameraX:exit.cameraX,
+    cameraScale:exit.cameraScale,
     tension:exit.tension+.09*oldStage+
       .04*Math.sin(worldFrame*.038)**2,
   };
-  const cameraX=baseState.cameraX-70*ease((frame-95)/195)
-    -29*july;
-  const cameraScale=baseState.cameraScale+.023*reveal+.047*july;
+  const cameraX=reveal?0:exit.cameraX;
+  const cameraScale=reveal?1:exit.cameraScale;
   const flow=(key,color,count,speed,visibility,kind)=>{
     const tokens=[];
     for(let i=0;i<count;i++){
