@@ -331,6 +331,10 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.input_props->>'voiceTakeId' is not null
                       and r.input_props->>'packageId' is not null
                       and r.input_props->>'renderRequestId' is not null
+                      and (r.composition_id<>'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
+                        or (r.input_props->>'shotKey'='SHOT02'
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40))
                 )
                 """)
                 .param("render",renderId).param("project",RENDER_PROJECT_ID)
