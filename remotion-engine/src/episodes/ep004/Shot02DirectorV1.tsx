@@ -158,7 +158,6 @@ export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
           opacity={state.headerProgress}>
           {props.shotTitle.slice(0,58).toUpperCase()}
         </text>
-        
         <path d="M 560 143 H 1260" stroke={CYAN}
           strokeWidth={2} opacity={.55}/>
       </svg>
