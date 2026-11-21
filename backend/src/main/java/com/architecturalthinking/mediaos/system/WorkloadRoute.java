@@ -48,6 +48,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
                         || operation.equals("/factory-selected-voice")
                         || operation.equals("/ep004-shot01-selected-voice")
                         || operation.equals("/ep004-shot02-selected-voice")
+                         || operation.equals("/ep004-shot03-selected-voice")
+                         || operation.equals("/ep004-shot03-previous-video")
                         || factorySourceOperation(operation)
                         || ep002MasterSourceOperation(operation)));
             return allowed ? new WorkloadRoute("REMOTION_CPU", null) : null;
@@ -100,7 +102,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
         String operation = remainder.substring(separator);
         if (!List.of("/progress", "/complete", "/fail", "/ep002-selected-voice",
                 "/factory-selected-voice", "/ep004-shot01-selected-voice",
-                "/ep004-shot02-selected-voice").contains(operation) && !factorySourceOperation(operation)
+                "/ep004-shot02-selected-voice", "/ep004-shot03-selected-voice",
+                 "/ep004-shot03-previous-video").contains(operation) && !factorySourceOperation(operation)
                 && !ep002MasterSourceOperation(operation))
             return null;
         return new WorkloadRoute("REMOTION_CPU", null);
