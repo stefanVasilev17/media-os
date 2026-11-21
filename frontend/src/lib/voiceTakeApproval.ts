@@ -21,3 +21,22 @@ export function voiceReadinessExplanation(shot:ShotReadinessSnapshot):string{
   return 'Voice Take is Director-approved, but SHOT production readiness is blocked by: '
     +blockers+'. These are separate from Voice Take approval; do not regenerate audio automatically.';
 }
+
+export function readinessRecheckReceipt(
+  current:ShotReadinessSnapshot,
+  previous:ShotReadinessSnapshot|null
+):string{
+  if(current.status==='VOICE_READY'&&current.blockers.length===0)
+    return current.shotKey+' check completed: VOICE_READY. Existing Take and real HEAR → SEE cues are verified. No new audio was generated.';
+  const blockers=current.blockers.length
+    ?current.blockers.join(', ')
+    :current.timingStatus||'No specific blocker was returned';
+  const unchanged=previous!==null
+    &&previous.status===current.status
+    &&previous.timingStatus===current.timingStatus
+    &&previous.blockers.join('|')===current.blockers.join('|');
+  return current.shotKey+' check completed: '+current.status
+    +(unchanged?' (unchanged)':'')
+    +'. Current blocker(s): '+blockers
+    +'. A read-only check does not approve audio, rewrite narration, or clear a real blocker. No paid call was sent.';
+}
