@@ -9,6 +9,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/episode-packages/{packageId}/shots/SHOT01/render",
             "/api/v1/episode-packages/{packageId}/shots/SHOT02/render",
             "/api/v1/episode-packages/{packageId}/shots/SHOT03/render",
+            "/api/v1/episode-packages/{packageId}/film/locks/{shotKey}",
             "/api/v1/creative/episodes/EP002/master/render",
             "/api/v1/creative/episodes/EP002/shots/{shotKey}/generate-slow",
             "/api/v1/creative/episodes/EP002/shots/SHOT03/render-preview",
