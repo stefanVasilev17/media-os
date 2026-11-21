@@ -396,8 +396,9 @@ public final class Ep004DirectorSimpleFilmController {
                     store.streamVideoRange(source.objectKey(),source.sha256(),
                         source.bytes(),0,source.bytes()-1,output);
                 }
-                if(Files.size(target)!=source.bytes())
-                    throw new IOException("Original SHOT streaming download was truncated.");
+                if(Files.size(target)!=source.bytes()
+                        ||!source.sha256().equals(MediaObjectStore.sha256(target)))
+                    throw new IOException("Original SHOT streaming download failed byte-count or SHA-256 verification.");
             }
             Ep004LosslessFilmAssembler.assemble(folder,sources.size(),frames);
             Path output=folder.resolve("full-video.mp4");

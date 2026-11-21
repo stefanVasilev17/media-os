@@ -215,6 +215,19 @@ public final class MediaObjectStore implements AutoCloseable {
         }
     }
 
+    static String sha256(Path path) throws IOException {
+        try{
+            MessageDigest digest=MessageDigest.getInstance("SHA-256");
+            try(InputStream in=Files.newInputStream(path)){
+                byte[] buf=new byte[64*1024];int n;
+                while((n=in.read(buf))!=-1)digest.update(buf,0,n);
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        }catch(NoSuchAlgorithmException impossible){
+            throw new IllegalStateException("SHA-256 unavailable.",impossible);
+        }
+    }
+
     static String sha256(byte[] bytes) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
@@ -295,12 +308,7 @@ public final class MediaObjectStore implements AutoCloseable {
                         ||header[6]!='y'||header[7]!='p')
                     throw new IllegalArgumentException("Full film is not an ISO BMFF MP4.");
             }
-            MessageDigest digest=MessageDigest.getInstance("SHA-256");
-            try(InputStream in=Files.newInputStream(file)){
-                byte[] buf=new byte[64*1024];int n;
-                while((n=in.read(buf))!=-1)digest.update(buf,0,n);
-            }
-            String hash=HexFormat.of().formatHex(digest.digest());
+            String hash=sha256(file);
             Map<String,String> metadata=Map.of("sha256",hash,"owner","mediaos-video",
                     "retention","director-locked-film");
             uploadId=client.createMultipartUpload(CreateMultipartUploadRequest.builder()
@@ -349,12 +357,18 @@ public final class MediaObjectStore implements AutoCloseable {
             if(checked!=length||!hash.equals(HexFormat.of().formatHex(readback.digest())))
                 throw new IOException("S3 full film SHA-256 readback mismatch.");
             return new Stored(key,hash,length);
-        }catch(S3Exception|IOException|NoSuchAlgorithmException failure){
+        }catch(Exception failure){
             if(uploadId!=null&&!uploaded){
                 try{client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
                     .bucket(bucket).key(key).uploadId(uploadId).build());}
                 catch(S3Exception ignored){}
             }
+            if(uploaded){
+                try{client.deleteObject(software.amazon.awssdk.services.s3.model
+                    .DeleteObjectRequest.builder().bucket(bucket).key(key).build());}
+                catch(S3Exception ignored){}
+            }
+            if(failure instanceof ResponseStatusException response)throw response;
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                 "Verified bounded S3 full film upload failed. Original SHOTs remain unchanged.",
                 failure);
