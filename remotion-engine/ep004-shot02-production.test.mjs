@@ -4,6 +4,10 @@ import {readFile} from 'node:fs/promises';
 import {shot10TextWidth} from './shot10-content-fit-layout.mjs';
 import {ep003CardIsReadable,ep003CardOpacity} from './ep003-readable-card-policy.mjs';
 import {
+  atGlossaryTextWidth,atGlossaryCardIsReadable,atGlossaryCardOpacity,
+  atGlossaryMinReadableFrames
+} from './src/components/architectural-thinking/ATReadableTermCardPolicy.mjs';
+import {
   EP004_SHOT01_LOCKED_SOURCE_SHA256,EP004_MAIL_ROUTE,EP004_HANDOFF_ROUTE,
   EP004_STANDBY_ROUTE,EP004_SPILLOVER_ROUTE,EP004_DEGRADED_ROUTE,
   ep004Shot01Exit,ep004RoutePosition,ep004BezierPosition
@@ -184,4 +188,30 @@ test('FAILOVER glossary reproduces EP003 amber definition card and contains lock
   assert.ok(top>=690,'Glossary does not overlap locked EP003 nodes ending at 663px');
   assert.ok(left>=560,'Glossary does not overlap Outlook client ending at x485');
   assert.ok(start>=60&&end<=props.durationInFrames-45);
+});
+
+
+test('factory-safe shared glossary policy is mathematically identical to EP003 across real inputs',()=>{
+  const words=['FAILOVER','LATENCY','BOTTLENECK',
+    'Moving work to an alternative path',
+    'when the original path cannot serve it'];
+  for(const term of words){
+    for(const size of [18,23,29]){
+      assert.equal(atGlossaryTextWidth(term,size),shot10TextWidth(term,size));
+    }
+  }
+  for(const start of [60,210,650]){
+    for(const frames of [90,165,210,240,270]){
+      const end=start+frames;
+      const text='Moving work to an alternative path when the original path cannot serve it';
+      assert.equal(atGlossaryCardIsReadable('FAILOVER',text,start,end,30),
+        ep003CardIsReadable('FAILOVER',text,start,end,30));
+      for(const frame of [start-1,start,start+1,start+18,start+frames-20,end-1,end]){
+        assert.equal(atGlossaryCardOpacity(frame,start,end),
+          ep003CardOpacity(frame,start,end));
+      }
+    }
+  }
+  assert.ok(atGlossaryMinReadableFrames('FAILOVER',
+    'Moving work to an alternative path when the original path cannot serve it',30)<=240);
 });
