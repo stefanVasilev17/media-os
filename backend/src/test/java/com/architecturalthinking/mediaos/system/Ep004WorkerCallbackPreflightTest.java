@@ -22,7 +22,7 @@ class Ep004WorkerCallbackPreflightTest {
     private static final String WORKER="ep004-worker-qa";
 
     @Test
-    void onlyTheExactDirectorApprovedEp004RenderCanReportCompleteOrFail() throws Exception {
+    void onlyTheExactSourcePinnedDirectorApprovedEp004ShotCanCompleteOrFail() throws Exception {
         String url=System.getenv("CI_POSTGRES_URL");
         Assumptions.assumeTrue(
                 "jdbc:postgresql://127.0.0.1:5432/media_os".equals(url)
@@ -31,63 +31,90 @@ class Ep004WorkerCallbackPreflightTest {
         Flyway.configure().dataSource(url,"media_os","media_os")
                 .locations("classpath:db/migration").load().migrate();
         JdbcClient jdbc=JdbcClient.create(new DriverManagerDataSource(url,"media_os","media_os"));
-        UUID renderId=UUID.randomUUID();
         var memory=mock(ProductionMemoryService.class);
         var filter=new GlobalCreationPreflightFilter(memory,new ObjectMapper(),jdbc);
-        String props=new ObjectMapper().writeValueAsString(Map.of(
-                "expectedSourceCommit",COMMIT,
-                "sourceSha256",SOURCE,
-                "directorCpuApproved",true,
-                "previewOnly",false,
-                "voiceTakeId",UUID.randomUUID().toString(),
-                "packageId",UUID.randomUUID().toString(),
-                "renderRequestId",UUID.randomUUID().toString()));
-        try {
-            jdbc.sql("""
-                    insert into remotion_render(
-                      id,project_id,episode_id,composition_id,render_key,engine_version,
-                      input_props,render_hash,profile,status,width,height,fps,duration_in_frames,worker_id
-                    ) values (
-                      :id,:project,null,'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
-                      'EP004_SHOT01_APPROVED_VOICE_REVIEW','QA',cast(:props as jsonb),
-                      :hash,'REVIEW','RUNNING',1920,1080,30,2001,:worker
-                    )
-                    """)
-                    .param("id",renderId).param("project",PROJECT).param("props",props)
-                    .param("hash",renderId.toString()).param("worker",WORKER).update();
-            for(String operation:new String[]{"complete","fail"}) {
-                String method="complete".equals(operation)?"PUT":"POST";
-                MockHttpServletRequest request=new MockHttpServletRequest(method,
-                        "/api/v1/remotion/renders/worker/"+renderId+"/"+operation);
-                request.addHeader("X-Media-OS-Worker",WORKER);
-                request.addHeader("X-Media-OS-Worker-Source-Sha",COMMIT);
-                MockHttpServletResponse response=new MockHttpServletResponse();
-                MockFilterChain chain=new MockFilterChain();
-                filter.doFilter(request,response,chain);
-                assertSame(request,chain.getRequest());
-                assertEquals(200,response.getStatus());
-                assertEquals(Map.of("continuation","EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"),
-                        request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT"));
+        for(String composition:new String[]{
+                "EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                "EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL"}) {
+            UUID renderId=UUID.randomUUID();
+            String shotKey=composition.contains("SHOT02")?"SHOT02":"SHOT01";
+            String props=new ObjectMapper().writeValueAsString(Map.of(
+                    "expectedSourceCommit",COMMIT,
+                    "sourceSha256",SOURCE,
+                    "directorCpuApproved",true,
+                    "previewOnly",false,
+                    "voiceTakeId",UUID.randomUUID().toString(),
+                    "packageId",UUID.randomUUID().toString(),
+                    "renderRequestId",UUID.randomUUID().toString(),
+                    "shotKey",shotKey,
+                    "verifiedCues",java.util.List.of(
+                            Map.of("beatId",shotKey+"_P01_B01"),
+                            Map.of("beatId",shotKey+"_P01_B02"))));
+            try {
+                jdbc.sql("""
+                        insert into remotion_render(
+                          id,project_id,episode_id,composition_id,render_key,engine_version,
+                          input_props,render_hash,profile,status,width,height,fps,duration_in_frames,worker_id
+                        ) values (
+                          :id,:project,null,:composition,:renderKey,'QA',cast(:props as jsonb),
+                          :hash,'REVIEW','RUNNING',1920,1080,30,2124,:worker
+                        )
+                        """)
+                        .param("id",renderId).param("project",PROJECT)
+                        .param("composition",composition).param("renderKey",shotKey+"_REVIEW")
+                        .param("props",props).param("hash",renderId.toString())
+                        .param("worker",WORKER).update();
+                for(String operation:new String[]{"complete","fail"}) {
+                    String method="complete".equals(operation)?"PUT":"POST";
+                    MockHttpServletRequest request=new MockHttpServletRequest(method,
+                            "/api/v1/remotion/renders/worker/"+renderId+"/"+operation);
+                    request.addHeader("X-Media-OS-Worker",WORKER);
+                    request.addHeader("X-Media-OS-Worker-Source-Sha",COMMIT);
+                    MockHttpServletResponse response=new MockHttpServletResponse();
+                    MockFilterChain chain=new MockFilterChain();
+                    filter.doFilter(request,response,chain);
+                    assertSame(request,chain.getRequest());
+                    assertEquals(200,response.getStatus());
+                    assertEquals(Map.of("continuation",
+                                    "EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"),
+                            request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT"));
+                }
+                for(String incorrect:new String[]{"worker","commit","episode"}) {
+                    MockHttpServletRequest request=new MockHttpServletRequest("POST",
+                            "/api/v1/remotion/renders/worker/"+renderId+"/fail");
+                    request.addHeader("X-Media-OS-Worker",
+                            "worker".equals(incorrect)?"another-worker":WORKER);
+                    request.addHeader("X-Media-OS-Worker-Source-Sha",
+                            "commit".equals(incorrect)?"0".repeat(40):COMMIT);
+                    if("episode".equals(incorrect))
+                        request.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
+                    MockHttpServletResponse response=new MockHttpServletResponse();
+                    MockFilterChain chain=new MockFilterChain();
+                    filter.doFilter(request,response,chain);
+                    assertEquals(409,response.getStatus());
+                    assertNull(chain.getRequest());
+                }
+                if("SHOT02".equals(shotKey)) {
+                    jdbc.sql("""
+                            update remotion_render
+                               set input_props=jsonb_set(input_props,'{verifiedCues}','[]'::jsonb)
+                             where id=:id
+                            """).param("id",renderId).update();
+                    MockHttpServletRequest denied=new MockHttpServletRequest("PUT",
+                            "/api/v1/remotion/renders/worker/"+renderId+"/complete");
+                    denied.addHeader("X-Media-OS-Worker",WORKER);
+                    denied.addHeader("X-Media-OS-Worker-Source-Sha",COMMIT);
+                    MockHttpServletResponse response=new MockHttpServletResponse();
+                    MockFilterChain chain=new MockFilterChain();
+                    filter.doFilter(denied,response,chain);
+                    assertEquals(409,response.getStatus());
+                    assertNull(chain.getRequest());
+                }
+            }finally{
+                jdbc.sql("delete from remotion_render where id=:id")
+                        .param("id",renderId).update();
             }
-            for(String incorrect:new String[]{"worker","commit","episode"}) {
-                MockHttpServletRequest request=new MockHttpServletRequest("POST",
-                        "/api/v1/remotion/renders/worker/"+renderId+"/fail");
-                request.addHeader("X-Media-OS-Worker",
-                        "worker".equals(incorrect)?"another-worker":WORKER);
-                request.addHeader("X-Media-OS-Worker-Source-Sha",
-                        "commit".equals(incorrect)?"0".repeat(40):COMMIT);
-                if("episode".equals(incorrect))
-                    request.addHeader("X-MediaOS-Episode-Id",UUID.randomUUID().toString());
-                MockHttpServletResponse response=new MockHttpServletResponse();
-                MockFilterChain chain=new MockFilterChain();
-                filter.doFilter(request,response,chain);
-                assertEquals(409,response.getStatus());
-                assertNull(chain.getRequest());
-            }
-            verifyNoInteractions(memory);
-        }finally{
-            jdbc.sql("delete from remotion_render where id=:id")
-                    .param("id",renderId).update();
         }
+        verifyNoInteractions(memory);
     }
 }
