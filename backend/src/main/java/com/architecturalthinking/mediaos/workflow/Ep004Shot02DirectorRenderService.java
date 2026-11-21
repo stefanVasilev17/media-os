@@ -101,7 +101,8 @@ public final class Ep004Shot02DirectorRenderService {
             blockers.add("SHOT02_ORIGINAL_VOICE_AND_CUES_NOT_VERIFIED");
         if(selected==null)
             blockers.add("DIRECTOR_APPROVED_CURRENT_TAKE_MISSING");
-        else if(!selected.audioKey().startsWith(MediaObjectStore.VOICE_PREFIX+"EP004/SHOT02/"))
+        else if(selected.audioKey()==null
+                ||!selected.audioKey().startsWith(MediaObjectStore.VOICE_PREFIX+"EP004/SHOT02/"))
             blockers.add("SHOT02_APPROVED_AUDIO_OBJECT_UNVERIFIED");
         if(!storage.writable())blockers.add("PRIVATE_MEDIA_OBJECT_STORAGE_NOT_WRITABLE");
         int frames=shot==null||shot.measuredDurationSeconds()==null?0:
