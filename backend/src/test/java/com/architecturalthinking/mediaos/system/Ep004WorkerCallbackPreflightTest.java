@@ -66,7 +66,7 @@ class Ep004WorkerCallbackPreflightTest {
                 filter.doFilter(request,response,chain);
                 assertSame(request,chain.getRequest());
                 assertEquals(200,response.getStatus());
-                assertEquals(Map.of("continuation","EP004_DIRECTOR_APPROVED_SHOT01_RENDER"),
+                assertEquals(Map.of("continuation","EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"),
                         request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT"));
             }
             for(String incorrect:new String[]{"worker","commit","episode"}) {
