@@ -94,7 +94,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         }
         if (isVerifiedEp004WorkerContinuation(request)) {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
-                    Map.of("continuation", "EP004_DIRECTOR_APPROVED_SHOT01_RENDER"));
+                    Map.of("continuation", "EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"));
             chain.doFilter(request, response);
             return;
         }
