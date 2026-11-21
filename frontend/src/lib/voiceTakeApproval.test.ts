@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {isExpectedTakeApproved,voiceReadinessExplanation} from './voiceTakeApproval';
+import {isExpectedTakeApproved,voiceReadinessExplanation,readinessRecheckReceipt} from './voiceTakeApproval';
 describe('Director voice Take approval and SHOT readiness must remain distinct',()=>{
   it('confirms the exact current-revision Take',()=>{
     expect(isExpectedTakeApproved({selectedTakeId:'a',approvedCurrentRevision:true},'a')).toBe(true);
@@ -39,5 +39,40 @@ describe('Director voice Take approval and SHOT readiness must remain distinct',
       timingStatus:'NO_APPROVED_TAKE',blockers:['DIRECTOR_APPROVED_CURRENT_REVISION_TAKE_MISSING']
     });
     expect(msg).toContain('not Director-approved');
+  });
+});
+
+describe('read-only manual readiness refresh must always tell Director what happened',()=>{
+  const blocked={
+    shotKey:'SHOT02',status:'BLOCKED',approvedCurrentRevision:true,
+    timingStatus:'SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION',
+    blockers:['SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION']
+  };
+  it('announces a successful HTTP 200 check even if the same blocker remains',()=>{
+    const text=readinessRecheckReceipt(blocked,blocked);
+    expect(text).toContain('SHOT02 check completed: BLOCKED (unchanged)');
+    expect(text).toContain('SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION');
+    expect(text).toContain('No paid call was sent');
+  });
+  it('reports exact remaining blocker when source changed but audio readiness did not clear',()=>{
+    const text=readinessRecheckReceipt(
+      {...blocked,blockers:['VISUAL_CUE_NOT_ALIGNED_IN_AUDIO_ORDER'],
+        timingStatus:'VISUAL_CUE_NOT_ALIGNED_IN_AUDIO_ORDER'},blocked);
+    expect(text).toContain('Current blocker(s): VISUAL_CUE_NOT_ALIGNED_IN_AUDIO_ORDER');
+    expect(text).not.toContain('(unchanged)');
+  });
+  it('reports VOICE_READY but never implies visual Director LOCK or new audio',()=>{
+    const text=readinessRecheckReceipt({
+      ...blocked,status:'VOICE_READY',blockers:[],timingStatus:'HEAR_SEE_CUES_VERIFIED'
+    },blocked);
+    expect(text).toContain('check completed: VOICE_READY');
+    expect(text).toContain('No new audio was generated');
+    expect(text).not.toContain('VISUAL DIRECTOR LOCKED');
+  });
+  it('never falsely resolves a paid-provider blocker',()=>{
+    const text=readinessRecheckReceipt({...blocked,
+      blockers:['PAID_VOICE_REQUEST_IN_FLIGHT_OR_UNCERTAIN']},null);
+    expect(text).toContain('PAID_VOICE_REQUEST_IN_FLIGHT_OR_UNCERTAIN');
+    expect(text).toContain('No paid call was sent');
   });
 });
