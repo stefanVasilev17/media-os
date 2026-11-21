@@ -443,12 +443,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         </>}
         {renderJob&&<>
           <p>Render: {renderJob.status} · {renderJob.renderId}</p>
+          {renderJob.status==='FAILED'&&<p role="alert" className="episode-package-voice-blocker">
+            This render failed. No MP4 was produced and no automatic CPU retry is scheduled.
+            The original Director-approved Voice Take remains unchanged.
+          </p>}
           {renderJob.videoUrl&&<video controls preload="metadata"
             src={renderJob.videoUrl} style={{width:'100%',maxWidth:800,aspectRatio:'16 / 9'}}/>}
         </>}
       </section>}
     </>}
     {error&&<p className="episode-hub-error" role="alert">{error}</p>}
-    {message&&<p className="episode-package-notice" role="status">{message}</p>}
+    {message&&!(ep004Supported&&renderJob?.status==='FAILED'&&message.startsWith('One approved '))&&<p className="episode-package-notice" role="status">{message}</p>}
   </div>;
 }
