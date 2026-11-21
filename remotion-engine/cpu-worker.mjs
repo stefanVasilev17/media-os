@@ -683,8 +683,8 @@ async function muxEp004Shot01ApprovedVoice(job,videoPath,inputProps){
   }
 }
 
-async function muxEp004Shot02ApprovedVoice(job,videoPath,inputProps){
-  if(job.compositionId!=='EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')return;
+async function fetchEp004Shot02ApprovedVoice(job,inputProps){
+  if(job.compositionId!=='EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')throw Error('EP004_SHOT02_COMPOSITION_NOT_AUTHORIZED');
   if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
       ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA
       ||inputProps.previewOnly!==false
@@ -695,6 +695,7 @@ async function muxEp004Shot02ApprovedVoice(job,videoPath,inputProps){
       ||inputProps.verifiedCues.length<2||inputProps.verifiedCues.length>40
       ||inputProps.shotKey!=='SHOT02')
     throw Error('EP004_APPROVED_CUE_SOURCE_OR_WORKER_MISMATCH');
+  await leaseClient.refresh();
   const response=await workloadTokens.request(
     `${BACKEND_URL}/api/v1/remotion/renders/worker/${job.renderId}/ep004-shot02-selected-voice`,
     {method:'GET',headers:headers({'X-Media-OS-Worker-Source-Sha':FACTORY_SOURCE_SHA})});
@@ -705,6 +706,12 @@ async function muxEp004Shot02ApprovedVoice(job,videoPath,inputProps){
   const bytes=Buffer.from(await response.arrayBuffer());
   if(bytes.length<512||bytes.length>24*1024*1024)
     throw Error('EP004_SELECTED_TAKE_SIZE_INVALID');
+  return bytes;
+}
+
+async function muxEp004Shot02ApprovedVoice(job,videoPath,inputProps){
+  if(job.compositionId!=='EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')return;
+  const bytes=await fetchEp004Shot02ApprovedVoice(job,inputProps);
   const audioFile=path.join(os.tmpdir(),`ep004-shot02-${job.renderId}-take`);
   const output=path.join(os.tmpdir(),`ep004-shot02-${job.renderId}-mux.mp4`);
   try{
@@ -1130,6 +1137,11 @@ async function render(job) {
     if (['EP002-SHOT01-DRAFT','EP002-SHOT02-CANDIDATE',
           'EP002-SHOT03-CANDIDATE','EP002-SHOT04-CANDIDATE','EP002-SHOT05-CANDIDATE','EP002-SHOT06-CANDIDATE','EP002-SHOT07-CANDIDATE','EP002-SHOT08-CANDIDATE','EP002-SHOT09-CANDIDATE','EP002-SHOT10-CANDIDATE','EP002-SHOT11-CANDIDATE'].includes(job.compositionId)) {
       await readEp002SelectedVoice(job, inputProps);
+    }
+
+    if (job.compositionId === 'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL') {
+      await fetchEp004Shot02ApprovedVoice(job,inputProps);
+      console.log('EP004_SHOT02_APPROVED_TAKE_CPU_PREFLIGHT_PASS renderId='+job.renderId);
     }
 
     const serveUrl = job.compositionId === 'AT-FACTORY-SHOT'

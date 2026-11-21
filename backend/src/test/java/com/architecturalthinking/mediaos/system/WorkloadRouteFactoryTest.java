@@ -91,8 +91,20 @@ class WorkloadRouteFactoryTest {
         assertNull(WorkloadRoute.resolve("GET",approved+"/extra"));
         assertNull(WorkloadRoute.resolve("GET",
                 PREFIX+"not-a-uuid/ep004-shot01-selected-voice"));
+        String shot02=PREFIX+RENDER+"/ep004-shot02-selected-voice";
+        assertEquals(CPU,WorkloadRoute.resolve("GET",shot02));
+        assertEquals(CPU,WorkloadRoute.resolve(shot02));
+        assertNull(WorkloadRoute.resolve("POST",shot02));
+        assertNull(WorkloadRoute.resolve("PUT",shot02));
+        assertNull(WorkloadRoute.resolve("DELETE",shot02));
+        assertNull(WorkloadRoute.resolve("HEAD",shot02));
+        assertNull(WorkloadRoute.resolve("GET",shot02+"/extra"));
         assertNull(WorkloadRoute.resolve("GET",
-                PREFIX+RENDER+"/ep004-shot02-selected-voice"));
+                PREFIX+"not-a-uuid/ep004-shot02-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot03-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot02-selected-voice/../../extra"));
         assertNull(WorkloadRoute.resolve("GET",
                 PREFIX+RENDER+"/ep004-shot01-selected-voice/../../extra"));
     }

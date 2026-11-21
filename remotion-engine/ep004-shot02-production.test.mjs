@@ -131,3 +131,18 @@ test('production SHOT02 contains no generic voice-beat card or free-form text ov
   assert.match(source,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
   assert.match(source,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
 });
+
+
+test('SHOT02 selected audio is authorized before any paid CPU frames and reauthorized before final mux',async()=>{
+  const worker=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8');
+  const entry=worker.slice(worker.indexOf('async function render(job)'));
+  const preflight=entry.indexOf('await fetchEp004Shot02ApprovedVoice(job,inputProps);');
+  const expensive=entry.indexOf('await renderMedia({');
+  const mux=entry.indexOf('await muxEp004Shot02ApprovedVoice(job,outputPath,inputProps);');
+  assert.ok(preflight>0&&expensive>preflight&&mux>expensive,
+    'approved voice GET must succeed before CPU frames, then run again at final mux');
+  assert.match(worker,/async function fetchEp004Shot02ApprovedVoice\(job,inputProps\)/);
+  assert.match(worker,/ep004-shot02-selected-voice/);
+  assert.match(worker,/EP004_SHOT02_APPROVED_TAKE_CPU_PREFLIGHT_PASS/);
+  assert.match(worker,/await leaseClient\.refresh\(\)/);
+});
