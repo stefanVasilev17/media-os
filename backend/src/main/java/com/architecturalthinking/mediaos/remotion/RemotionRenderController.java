@@ -54,6 +54,8 @@ public class RemotionRenderController {
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
             Map.entry("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT01_APPROVED_VOICE_REVIEW",null,1920,1080,30,1950,true)),
+            Map.entry("EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT02_APPROVED_VOICE_REVIEW",null,1920,1080,30,2124,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
                 new CompositionProfile("EP002_DIRECTOR_MASTER", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT01-DRAFT",
@@ -230,6 +232,7 @@ public class RemotionRenderController {
             @RequestBody(required = false) RenderRequest request
     ) {
         if ("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
+                || "EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId)
                 || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
@@ -256,6 +259,19 @@ public class RemotionRenderController {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "EP004 Director-selected real Take, exact cues and CPU approval required.");
         return ensureVerifiedRender("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
+    public Map<String,Object> ensureVerifiedEp004Shot02Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!"SHOT02".equals(verifiedProps.get("shotKey")))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 SHOT02 exact Director-approved voice, authentic cues, original story and bounded CPU approval are required.");
+        return ensureVerifiedRender("EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL",
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
@@ -334,7 +350,8 @@ public class RemotionRenderController {
         int durationInFrames = resolveDurationInFrames(composition, inputProps);
         inputProps.put("durationInFrames", durationInFrames);
         Map<String,Object> semanticRenderProps=new LinkedHashMap<>(inputProps);
-        if("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId))
+        if("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
+                ||"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
