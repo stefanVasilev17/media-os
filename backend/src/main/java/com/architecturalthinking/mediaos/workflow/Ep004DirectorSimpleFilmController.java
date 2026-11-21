@@ -228,6 +228,121 @@ public final class Ep004DirectorSimpleFilmController {
         return snapshot(packageId);
     }
 
+    private AssemblyState assemblyState(UUID packageId){
+        return jdbc.sql("""
+            select render_ids,status,error from episode_director_film_job
+              where package_id=:package
+            """).param("package",packageId)
+            .query((rs,i)->new AssemblyState(rs.getString("render_ids"),
+                rs.getString("status"),rs.getString("error")))
+            .optional().orElse(null);
+    }
+
+    private void queueAssembly(UUID packageId){
+        List<ShotLock> prefix=consecutive(locks(packageId));
+        if(prefix.isEmpty()||current(currentFilm(packageId),prefix))return;
+        if(prefix.size()==1){
+            ShotLock single=prefix.get(0);
+            VideoSource source=verifiedRender(packageId,single.shotKey(),single.renderId());
+            store.verifyVideoManifest(source.objectKey(),source.sha256(),source.bytes());
+            saveFilm(packageId,UUID.randomUUID(),source.objectKey(),source.sha256(),
+                source.bytes(),1,identity(prefix),source.frames());
+            return;
+        }
+        if(!store.writable())throw new ResponseStatusException(HttpStatus.CONFLICT,
+            "Private film storage must be writable before an assembly can be queued.");
+        jdbc.sql("""
+           insert into episode_director_film_job(package_id,render_ids,status)
+           values(:package,:sequence,'QUEUED')
+           on conflict(package_id) do update set
+             render_ids=excluded.render_ids,status='QUEUED',attempts=0,
+             error=null,lease_until=null,updated_at=now()
+           where episode_director_film_job.render_ids is distinct from excluded.render_ids
+           """).param("package",packageId)
+             .param("sequence",identity(prefix)).update();
+    }
+
+    public record RetryRequest(Boolean confirmRetry) {}
+
+    @PostMapping("/retry")
+    public Map<String,Object> retry(@PathVariable UUID packageId,
+            @RequestBody RetryRequest request,HttpServletRequest http){
+        requireEpisode(packageId);
+        Object audit=http.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
+        if(!(audit instanceof Map<?,?> receipt)
+                ||!(receipt.get("auditId") instanceof UUID)
+                ||request==null||!Boolean.TRUE.equals(request.confirmRetry()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "An audited, explicit Director retry is required.");
+        List<ShotLock> prefix=consecutive(locks(packageId));
+        if(prefix.size()<2)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "There is no consecutive multi-SHOT film to retry.");
+        if(current(currentFilm(packageId),prefix))return snapshot(packageId);
+        int n=jdbc.sql("""
+            update episode_director_film_job
+               set status='QUEUED',attempts=0,error=null,lease_until=null,updated_at=now()
+             where package_id=:package and render_ids=:sequence and status='ERROR'
+            """).param("package",packageId)
+              .param("sequence",identity(prefix)).update();
+        if(n!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This film is not in a retryable error state. Refresh Full Video.");
+        return snapshot(packageId);
+    }
+
+    @Scheduled(initialDelayString="${MEDIAOS_FULL_FILM_START_DELAY_MS:15000}",
+               fixedDelayString="${MEDIAOS_FULL_FILM_POLL_MS:4000}")
+    public void processAssemblyQueue(){
+        try{
+            jdbc.sql("""
+                update episode_director_film_job
+                   set status='QUEUED',lease_until=null,updated_at=now()
+                 where status='RUNNING' and lease_until<now() and attempts<3
+                """).update();
+            jdbc.sql("""
+                update episode_director_film_job
+                   set status='ERROR',error='Full Video assembly timed out. Safe retry available.',
+                       lease_until=null,updated_at=now()
+                 where status='RUNNING' and lease_until<now() and attempts>=3
+                """).update();
+            AssemblyJob job=jdbc.sql("""
+                with available as (
+                  select package_id from episode_director_film_job
+                   where status='QUEUED' and attempts<3
+                   order by updated_at limit 1 for update skip locked
+                )
+                update episode_director_film_job j
+                   set status='RUNNING',attempts=attempts+1,
+                       lease_until=now()+interval '20 minutes',updated_at=now()
+                  from available
+                 where j.package_id=available.package_id
+                returning j.package_id,j.render_ids
+                """).query((rs,i)->new AssemblyJob(
+                    rs.getObject("package_id",UUID.class),rs.getString("render_ids")))
+                    .optional().orElse(null);
+            if(job==null)return;
+            try{
+                assemble(job.packageId(),job.sequence());
+                jdbc.sql("""
+                  update episode_director_film_job set status='READY',error=null,
+                         lease_until=null,updated_at=now()
+                   where package_id=:package and render_ids=:sequence and status='RUNNING'
+                  """).param("package",job.packageId())
+                     .param("sequence",job.sequence()).update();
+            }catch(Exception error){
+                LOG.error("Full film assembly failed; existing SHOT locks are retained",error);
+                jdbc.sql("""
+                  update episode_director_film_job set status='ERROR',
+                         error='Full Video needs a retry. Original SHOTs are preserved.',
+                         lease_until=null,updated_at=now()
+                   where package_id=:package and render_ids=:sequence and status='RUNNING'
+                  """).param("package",job.packageId())
+                     .param("sequence",job.sequence()).update();
+            }
+        }catch(Exception unexpected){
+            LOG.error("Full film worker database coordination failed",unexpected);
+        }
+    }
+
     private void saveFilm(UUID packageId,UUID filmId,String key,String sha,long bytes,
                           int count,String sequence,int frames){
         jdbc.sql("""
