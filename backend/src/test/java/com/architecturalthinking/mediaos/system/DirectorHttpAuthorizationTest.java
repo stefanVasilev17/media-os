@@ -58,6 +58,9 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT02/render")
         String ep004Shot02Render() { return "only-after-director-security"; }
 
+        @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT03/render")
+        String ep004Shot03Render() { return "only-after-director-security"; }
+
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
@@ -189,11 +192,12 @@ class DirectorHttpAuthorizationTest {
     }
 
     @Test
-    void ep004OnlyExactShot01AndShot02RenderRoutesAllowDirectorAndRejectOtherRoles()
+    void ep004OnlyExactShot01ThroughShot03RenderRoutesAllowDirectorAndRejectOtherRoles()
             throws Exception {
         String exact="/api/v1/episode-packages/11111111-1111-4111-8111-111111111111"
                 + "/shots/SHOT01/render";
-        for(String authorized:new String[]{exact,exact.replace("SHOT01","SHOT02")}){
+        for(String authorized:new String[]{exact,exact.replace("SHOT01","SHOT02"),
+                exact.replace("SHOT01","SHOT03")}){
             mvc.perform(post(authorized).with(
                     jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                     .andExpect(status().isOk());
@@ -206,10 +210,11 @@ class DirectorHttpAuthorizationTest {
         }
         for(String forbidden:new String[]{
                 exact+"/again",
-                exact.replace("SHOT01","SHOT03"),
+                exact.replace("SHOT01","SHOT04"),
                 exact.replace("/render","/render-bypass"),
                 exact.replace("/render","/render/without-audit"),
-                exact.replace("SHOT01","SHOT02")+"/again"
+                exact.replace("SHOT01","SHOT02")+"/again",
+                exact.replace("SHOT01","SHOT03")+"/again"
         }) {
             mvc.perform(post(forbidden).with(
                     jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
