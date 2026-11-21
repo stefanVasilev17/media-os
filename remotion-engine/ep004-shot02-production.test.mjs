@@ -55,7 +55,7 @@ test('reject synthetic, reversed, outside-timeline, mismatched or duplicate cues
     {verifiedCues:[cues[0],{...cues[1],beatId:cues[0].beatId},cues[2]]},
     {verifiedCues:[cues[0],{...cues[1],endFrame:2100},cues[2]]},
     {visualBeats:props.visualBeats.map((x,i)=>i===1?{...x,cueAnchor:'Altered cue'}:x)},
-    {verifiedCues:[cues[0],{...cues[1],startFrame:100},cues[2]]}
+    {verifiedCues:[cues[0],{...cues[1],startFrame:90},cues[2]]}
   ])assert.throws(()=>validateEp004Shot02Render({...props,...changed}),
     /MISMATCH/);
 });
