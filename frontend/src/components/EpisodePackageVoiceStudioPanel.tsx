@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
 import {reconcilePaidVoiceState} from '../lib/paidVoiceReconciliation';
 import {isExpectedTakeApproved,voiceReadinessExplanation,readinessRecheckReceipt} from '../lib/voiceTakeApproval';
+import {matchesApprovedRenderTarget,approvedRenderReceipt} from '../lib/ep004RenderTargetPolicy';
 import type {ShotReadinessSnapshot} from '../lib/voiceTakeApproval';
 
 type Take={
@@ -16,7 +17,7 @@ type Ep004Readiness={
   cueFrames:Record<string,number>;expectedSourceCommit:string;
   blockers:string[];nextAction:string;
 };
-type RenderResult={renderId:string;status:string;videoUrl?:string};
+type RenderResult={renderId:string;status:string;videoUrl?:string;compositionId?:string;progress?:number};
 type EpisodeReadinessResponse={shots:ShotReadinessSnapshot[]};
 type State={
   packageId:string;shotKey:string;revision:number;narration:string;
@@ -71,6 +72,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const knownPaidTakeIds=useRef<string[]>([]);
   const readinessCheckInFlight=useRef(false);
   const cpuRequestId=useRef<string|null>(null);
+  const cpuRefreshSerial=useRef(0);
 
   const apply=(result:State)=>{
     setData(result);setNarration(result.narration);setDirection(result.voiceDirection);
@@ -159,25 +161,33 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
     '/shots/'+encodeURIComponent(shotKey);
   const reloadCpu=useCallback(async()=>{
     if(!ep004Supported)return;
+    const serial=++cpuRefreshSerial.current;
     const response=await checked<Ep004Readiness>(
       await fetch(cpuBase+'/render-readiness',{cache:'no-store'}));
+    if(response.episodeKey!=='EP004'||response.shotKey!==shotKey)
+      throw Error('Render readiness belongs to another SHOT. No CPU request was sent.');
+    const compiledSource=/^[a-f0-9]{40}$/.test(response.expectedSourceCommit)
+      ?response.expectedSourceCommit:null;
+    const latest=compiledSource?await checked<RenderResult>(await fetch(
+      '/api/v1/remotion/renders/compositions/'+encodeURIComponent(cpuComposition)
+      +'/latest?profile=REVIEW&sourceCommit='+encodeURIComponent(compiledSource),
+      {cache:'no-store'})):null;
+    if(serial!==cpuRefreshSerial.current)return;
     setCpuReady(response);setCpuConsent(false);
-    const latest=await checked<RenderResult>(await fetch(
-      '/api/v1/remotion/renders/compositions/'+encodeURIComponent(cpuComposition)+'/latest?profile=REVIEW',
-      {cache:'no-store'}));
-    setRenderJob(latest.status==='EMPTY'?null:latest);
-  },[cpuBase,cpuComposition,ep004Supported]);
+    setRenderJob(latest?.status==='EMPTY'?null:latest);
+  },[cpuBase,cpuComposition,ep004Supported,shotKey]);
 
   useEffect(()=>{
+    setCpuReady(null);setCpuConsent(false);setRenderJob(null);
     if(ep004Supported && data?.approvedCurrentRevision){
       void reloadCpu().catch(reason=>setError(String(reason)));
-    }else{
-      setCpuReady(null);setCpuConsent(false);
     }
+    return()=>{cpuRefreshSerial.current++;};
   },[ep004Supported,data?.approvedCurrentRevision,data?.selectedTakeId,reloadCpu]);
 
   async function renderApprovedShot(){
     if(!ep004Supported||!data?.approvedCurrentRevision||!cpuReady?.ready||
+        !matchesApprovedRenderTarget(episodeKey,shotKey,data,cpuReady)||
         !cpuConsent||cpuBusy||busy||dirty)return;
     if(!window.confirm('Render EP004 '+shotKey+' as a real 1920x1080 Remotion Director candidate using ONLY the selected current-revision Take and verified HEAR → SEE cues? This consumes bounded shared CPU and private S3 storage, but makes NO ElevenLabs call. Continue with one approved CPU job?'))return;
     setCpuBusy(true);setError('');setMessage('');
@@ -192,14 +202,20 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           expectedSourceCommit:cpuReady.expectedSourceCommit,
           maximumFrames:cpuReady.durationInFrames,confirmCpuRender:true})
       }));
+      if(output.compositionId&&output.compositionId!==cpuComposition)
+        throw Error('Render server returned an unexpected composition. Stop and inspect.');
       cpuRequestId.current=null;
       setRenderJob(output);setCpuConsent(false);
-      setMessage('One approved '+shotKey+' Remotion candidate queued. No voice was regenerated. Refresh render status to review the MP4.');
+      setMessage(approvedRenderReceipt(shotKey,output.status));
     }catch(reason){setError(String(reason)+' Do not send another render request while the previous job might exist.');}
     finally{setCpuBusy(false);}
   }
 
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
+  const cpuContextMatches=matchesApprovedRenderTarget(
+    episodeKey,shotKey,data,cpuReady);
+  const cpuActionBlocked=!cpuReady?.ready||!cpuContextMatches||
+    !cpuConsent||cpuBusy||busy||dirty;
   const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
     &&narration.length<=12000&&direction.trim().length>=8&&direction.length<=1200;
   const paidConsentDisabled=!data||!data.canGenerate||busy||dirty||paidReconciliationRequired;
@@ -414,7 +430,10 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         </p>
       </div>
       {ep004Supported&&data.approvedCurrentRevision&&<section className="episode-package-voice-paid">
-        <h4>{shotKey} · 1080p Remotion Director Review</h4>
+        <h4>Render target: EP004 / {shotKey} · 1080p Director Review</h4>
+        <p role="status">This control sends work for <strong>{shotKey} only</strong>.
+          {' '}To render SHOT03 V2, the current heading must say SHOT03;
+          rendering another SHOT will not create a SHOT03 candidate.</p>
         <p>Only the current approved Take is used. The backend derives every HEAR → SEE cue
           from saved ElevenLabs provider alignment, not from editorial estimates.
           The existing shared worker stores the MP4 in private S3.</p>
@@ -426,25 +445,36 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           <p role="status">Source: EP004 Director-LOCKED ·
             {' '}Real cues: {cpuReady.ready?Object.keys(cpuReady.cueFrames).length+' VERIFIED':'NOT VERIFIED'} ·
             {' '}Frames: {cpuReady.durationInFrames} ·
-            {' '}Worker: {cpuReady.ready?'MATCHED':'NOT READY'}</p>
+            {' '}Worker: {cpuReady.ready?'MATCHED':'NOT READY'} ·
+            {' '}Source: {cpuReady.expectedSourceCommit?.slice(0,12)||'UNVERIFIED'}</p>
+          {!cpuContextMatches&&<p className="episode-package-voice-blocker" role="alert">
+            Current SHOT/Take does not match the render readiness result.
+            Refresh this SHOT before approving CPU work.
+          </p>}
+          {dirty&&<p className="episode-package-voice-blocker" role="status">
+            Render is disabled because the working narration or direction contains
+            unsaved changes. Save or discard them first.
+          </p>}
           {cpuReady.blockers.length>0&&<p className="episode-package-voice-blocker" role="status">
             {cpuReady.blockers.join(' · ')}. {cpuReady.nextAction}
           </p>}
           <label className="episode-package-voice-option">
             <input type="checkbox" checked={cpuConsent}
-              disabled={!cpuReady.ready||cpuBusy||busy||dirty}
+              disabled={!cpuReady.ready||!cpuContextMatches||cpuBusy||busy||dirty}
               onChange={event=>setCpuConsent(event.target.checked)}/>
             I approve one bounded shared-CPU render of this current {shotKey} Take.
             No ElevenLabs generation and no automatic rerun.
           </label>
           <button type="button" className="episode-package-voice-primary"
-            disabled={!cpuReady.ready||!cpuConsent||cpuBusy||busy||dirty}
+            disabled={cpuActionBlocked}
             onClick={()=>{void renderApprovedShot();}}>
             {cpuBusy?'Queuing approved render…':'Render '+shotKey+' · 1080p Director Candidate'}
           </button>
         </>}
         {renderJob&&<>
-          <p>Render: {renderJob.status} · {renderJob.renderId}</p>
+          <p role="status">Current-source render: {renderJob.status}
+            {' '}· {renderJob.renderId}
+            {renderJob.progress!=null?' · '+renderJob.progress+'%':''}</p>
           {renderJob.status==='FAILED'&&<p role="alert" className="episode-package-voice-blocker">
             This render failed. No MP4 was produced and no automatic CPU retry is scheduled.
             The original Director-approved Voice Take remains unchanged.

@@ -1137,23 +1137,29 @@ public class RemotionRenderController {
     @GetMapping("/compositions/{compositionId}/latest")
     public Map<String, Object> latest(
             @PathVariable String compositionId,
-            @RequestParam(defaultValue = "FAST_PREVIEW") String profile
+            @RequestParam(defaultValue = "FAST_PREVIEW") String profile,
+            @RequestParam(defaultValue = "") String sourceCommit
     ) {
         CompositionProfile composition = requireComposition(compositionId);
         String profileName = profile.trim().toUpperCase();
         requireOutputProfile(profileName, composition);
+        if(!sourceCommit.isEmpty() && !sourceCommit.matches("[a-f0-9]{40}"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A source-specific render lookup requires an exact 40-character commit SHA.");
         return jdbc.sql("""
                 select id, composition_id, render_key, engine_version, profile, status,
                        width, height, fps, duration_in_frames, progress, size_bytes, error,
                        created_at, finished_at
                 from remotion_render
                 where project_id=:projectId and composition_id=:compositionId and profile=:profile
+                  and (:sourceCommit = '' or input_props->>'expectedSourceCommit'=:sourceCommit)
                 order by created_at desc
                 limit 1
                 """)
                 .param("projectId", PROJECT_ID)
                 .param("compositionId", compositionId)
                 .param("profile", profileName)
+                .param("sourceCommit", sourceCommit)
                 .query(this::mapRenderRow)
                 .optional()
                 .map(this::response)
