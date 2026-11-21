@@ -105,6 +105,10 @@ public final class Ep004DirectorSimpleFilmController {
             &&film.renderIds().equals(identity(prefix));
     }
 
+    static String versionedFilmUrl(UUID packageId,UUID filmId){
+        return "/api/v1/episode-packages/"+packageId+"/film/video?v="+filmId;
+    }
+
     private Map<String,Object> snapshot(UUID packageId){
         List<ShotLock> all=locks(packageId),prefix=consecutive(all);
         Film film=currentFilm(packageId);
@@ -118,8 +122,7 @@ public final class Ep004DirectorSimpleFilmController {
         response.put("durationInFrames",ready?film.frames():0);
         response.put("state",ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01":"ASSEMBLY_REQUIRED");
         response.put("filmId",ready?film.id().toString():null);
-        response.put("videoUrl",ready?"/api/v1/episode-packages/"+packageId
-            +"/film/video?v="+film.id():null);
+        response.put("videoUrl",ready?versionedFilmUrl(packageId,film.id()):null);
         return response;
     }
 
