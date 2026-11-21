@@ -249,7 +249,7 @@ test('Director V4 smoothly reveals gateways over 100 moving frames without a ful
     './src/episodes/ep004/Shot03DirectorV1.tsx',import.meta.url),'utf8');
   assert.match(director,/maskImage:oldMask/);
   assert.match(director,/maskImage:gatewayMask/);
-  assert.match(director,/headingOpacity=\{state.sourceHeadingOpacity\}/);
+  assert.match(director,/headerOpacity=\{state.sourceHeadingOpacity\}/);
   assert.match(director,/headingOpacity=\{state.gatewayHeadingOpacity\}/);
   assert.doesNotMatch(director,/shutterProgress|shutterOverOldWorld|crossfade/);
 });
