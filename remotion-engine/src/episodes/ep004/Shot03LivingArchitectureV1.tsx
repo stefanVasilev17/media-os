@@ -23,7 +23,7 @@ const GATEWAY_TEXT_CONTENT_FIT=[
   ['Alternative',22,212],['Independent route',16,212],
   ['WORKLOAD MIX',16,206],['JULY',17,206],['GATEWAY UPDATE',19,206],
   ['Exchange',20,173],['Online',20,173],
-  ['Teams',21,132],['Microsoft 365',15,132]
+  ['Teams',21,132],['Microsoft',15,132]
 ] as const;
 for(const [label,size,availableWidth] of GATEWAY_TEXT_CONTENT_FIT)
   if(atGlossaryTextWidth(label,size)>availableWidth)
@@ -125,7 +125,7 @@ const GatewayShapes:React.FC<{
         fontSize={21} fill={WHITE} fontWeight={850}>Teams</text>
       <text x={EP004_SHOT03_NODES.teams.left+70}
         y={EP004_SHOT03_NODES.teams.top+75}
-        fontSize={15} fill={SECONDARY} fontWeight={650}>Microsoft 365</text>
+        fontSize={15} fill={SECONDARY} fontWeight={650}>Microsoft</text>
     </g>
   </g>;
 };
