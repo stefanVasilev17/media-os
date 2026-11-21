@@ -12,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
@@ -21,7 +20,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/episode-packages/{packageId}/film")
@@ -119,7 +117,9 @@ public final class Ep004DirectorSimpleFilmController {
         response.put("renderIds",ready?List.of(film.renderIds().split(",")):List.of());
         response.put("durationInFrames",ready?film.frames():0);
         response.put("state",ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01":"ASSEMBLY_REQUIRED");
-        response.put("videoUrl",ready?"/api/v1/episode-packages/"+packageId+"/film/video":null);
+        response.put("filmId",ready?film.id().toString():null);
+        response.put("videoUrl",ready?"/api/v1/episode-packages/"+packageId
+            +"/film/video?v="+film.id():null);
         return response;
     }
 
@@ -254,34 +254,14 @@ public final class Ep004DirectorSimpleFilmController {
         Path folder=null;
         try{
             folder=Files.createTempDirectory("mediaos-director-film-");
-            StringBuilder concat=new StringBuilder();
             for(int i=0;i<sources.size();i++){
                 VideoSource source=sources.get(i);
                 String name=String.format(java.util.Locale.ROOT,"shot%02d.mp4",i+1);
                 Files.write(folder.resolve(name),
                     store.downloadVideoVerified(source.objectKey(),source.sha256(),source.bytes()));
-                concat.append("file '").append(name).append("'\n");
             }
-            Files.writeString(folder.resolve("sequence.txt"),concat.toString(),
-                StandardCharsets.UTF_8);
+            Ep004LosslessFilmAssembler.assemble(folder,sources.size(),frames);
             Path output=folder.resolve("full-video.mp4");
-            Path log=folder.resolve("ffmpeg.log");
-            ProcessBuilder builder=new ProcessBuilder(
-                "ffmpeg","-hide_banner","-nostdin","-loglevel","error",
-                "-f","concat","-safe","0","-i",folder.resolve("sequence.txt").toString(),
-                "-c","copy","-movflags","+faststart","-y",output.toString());
-            builder.directory(folder.toFile()).redirectErrorStream(true)
-                .redirectOutput(log.toFile());
-            Process process=builder.start();
-            if(!process.waitFor(120,TimeUnit.SECONDS)){
-                process.destroyForcibly();
-                throw new IllegalStateException("Film assembly exceeded the 120-second CPU limit.");
-            }
-            if(process.exitValue()!=0){
-                String details=Files.readString(log);
-                throw new IllegalStateException("FFmpeg stream-copy failed: "+
-                    details.substring(0,Math.min(500,details.length())));
-            }
             if(Files.size(output)>MediaObjectStore.MAX_VIDEO_BYTES)
                 throw new IllegalStateException("Continuous film exceeds S3 256 MiB limit.");
             byte[] merged=Files.readAllBytes(output);
