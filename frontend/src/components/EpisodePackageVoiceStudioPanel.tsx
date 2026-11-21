@@ -40,6 +40,10 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
 }){
   const ep003SlowOnly=episodeKey==='EP003';
   const ep004Shot01=episodeKey==='EP004'&&shotKey==='SHOT01';
+  const ep004Shot02=episodeKey==='EP004'&&shotKey==='SHOT02';
+  const ep004Supported=ep004Shot01||ep004Shot02;
+  const cpuComposition=ep004Shot02?'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
+    :'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL';
   const base='/api/v1/episode-packages/'+encodeURIComponent(packageId)
     +'/shots/'+encodeURIComponent(shotKey)+'/voice';
   const [data,setData]=useState<State|null>(null);
@@ -150,30 +154,30 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   },[data?.approvedCurrentRevision,data?.selectedTakeId,refreshShotReadiness]);
 
   const cpuBase='/api/v1/episode-packages/'+encodeURIComponent(packageId)+
-    '/shots/SHOT01';
+    '/shots/'+encodeURIComponent(shotKey);
   const reloadCpu=useCallback(async()=>{
-    if(!ep004Shot01)return;
+    if(!ep004Supported)return;
     const response=await checked<Ep004Readiness>(
       await fetch(cpuBase+'/render-readiness',{cache:'no-store'}));
     setCpuReady(response);setCpuConsent(false);
     const latest=await checked<RenderResult>(await fetch(
-      '/api/v1/remotion/renders/compositions/EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL/latest?profile=REVIEW',
+      '/api/v1/remotion/renders/compositions/'+encodeURIComponent(cpuComposition)+'/latest?profile=REVIEW',
       {cache:'no-store'}));
     setRenderJob(latest.status==='EMPTY'?null:latest);
-  },[cpuBase,ep004Shot01]);
+  },[cpuBase,cpuComposition,ep004Supported]);
 
   useEffect(()=>{
-    if(ep004Shot01 && data?.approvedCurrentRevision){
+    if(ep004Supported && data?.approvedCurrentRevision){
       void reloadCpu().catch(reason=>setError(String(reason)));
     }else{
       setCpuReady(null);setCpuConsent(false);
     }
-  },[ep004Shot01,data?.approvedCurrentRevision,data?.selectedTakeId,reloadCpu]);
+  },[ep004Supported,data?.approvedCurrentRevision,data?.selectedTakeId,reloadCpu]);
 
-  async function renderApprovedShot01(){
-    if(!ep004Shot01||!data?.approvedCurrentRevision||!cpuReady?.ready||
+  async function renderApprovedShot(){
+    if(!ep004Supported||!data?.approvedCurrentRevision||!cpuReady?.ready||
         !cpuConsent||cpuBusy||busy||dirty)return;
-    if(!window.confirm('Render EP004 SHOT01 as a real 1920x1080 Remotion review MP4 using ONLY the selected approved Slow Natural Take. This consumes bounded shared CPU time and S3 storage, but makes NO ElevenLabs call. Continue with this one approved CPU job?'))return;
+    if(!window.confirm('Render EP004 '+shotKey+' as a real 1920x1080 Remotion Director candidate using ONLY the selected current-revision Take and verified HEAR → SEE cues? This consumes bounded shared CPU and private S3 storage, but makes NO ElevenLabs call. Continue with one approved CPU job?'))return;
     setCpuBusy(true);setError('');setMessage('');
     const id=cpuRequestId.current??window.crypto.randomUUID();
     cpuRequestId.current=id;
@@ -188,7 +192,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
       }));
       cpuRequestId.current=null;
       setRenderJob(output);setCpuConsent(false);
-      setMessage('One approved SHOT01 Remotion job queued. No voice was regenerated. Refresh render status to see the completed MP4.');
+      setMessage('One approved '+shotKey+' Remotion candidate queued. No voice was regenerated. Refresh render status to review the MP4.');
     }catch(reason){setError(String(reason)+' Do not send another render request while the previous job might exist.');}
     finally{setCpuBusy(false);}
   }
@@ -407,8 +411,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           Actual voice speed is reviewed by the Director after generation.
         </p>
       </div>
-      {ep004Shot01&&data.approvedCurrentRevision&&<section className="episode-package-voice-paid">
-        <h4>SHOT01 · 1080p Remotion Director Review</h4>
+      {ep004Supported&&data.approvedCurrentRevision&&<section className="episode-package-voice-paid">
+        <h4>{shotKey} · 1080p Remotion Director Review</h4>
         <p>Only the current approved Take is used. The backend derives every HEAR → SEE cue
           from saved ElevenLabs provider alignment, not from editorial estimates.
           The existing shared worker stores the MP4 in private S3.</p>
@@ -418,7 +422,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         </button>
         {cpuReady&&<>
           <p role="status">Source: EP004 Director-LOCKED ·
-            {' '}Real cues: {Object.keys(cpuReady.cueFrames).length===8?'8/8 VERIFIED':'NOT VERIFIED (all 8 required)'} ·
+            {' '}Real cues: {cpuReady.ready?Object.keys(cpuReady.cueFrames).length+' VERIFIED':'NOT VERIFIED'} ·
             {' '}Frames: {cpuReady.durationInFrames} ·
             {' '}Worker: {cpuReady.ready?'MATCHED':'NOT READY'}</p>
           {cpuReady.blockers.length>0&&<p className="episode-package-voice-blocker" role="status">
@@ -428,13 +432,13 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
             <input type="checkbox" checked={cpuConsent}
               disabled={!cpuReady.ready||cpuBusy||busy||dirty}
               onChange={event=>setCpuConsent(event.target.checked)}/>
-            I approve one bounded shared-CPU render of this current SHOT01 Take.
+            I approve one bounded shared-CPU render of this current {shotKey} Take.
             No ElevenLabs generation and no automatic rerun.
           </label>
           <button type="button" className="episode-package-voice-primary"
             disabled={!cpuReady.ready||!cpuConsent||cpuBusy||busy||dirty}
-            onClick={()=>{void renderApprovedShot01();}}>
-            {cpuBusy?'Queuing approved render…':'Render SHOT01 · 1080p Director Candidate'}
+            onClick={()=>{void renderApprovedShot();}}>
+            {cpuBusy?'Queuing approved render…':'Render '+shotKey+' · 1080p Director Candidate'}
           </button>
         </>}
         {renderJob&&<>
