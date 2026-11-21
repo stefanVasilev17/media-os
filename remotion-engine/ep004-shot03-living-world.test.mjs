@@ -5,6 +5,7 @@ import {ep004BezierPosition} from './src/components/architectural-thinking/EP004
 import {
   EP004_SHOT03_PREDECESSOR,EP004_SHOT03_STORYBOARD_ONLY,
   EP004_SHOT03_BREATH_FRAMES,EP004_SHOT03_ROUTES,
+  EP004_SHOT03_LAYOUT_SWITCH_FRAME,
   EP004_SHOT03_NODES,validateEp004Shot03Routes,
   validateEp004Shot03Storyboard,ep004Shot03StoryboardWorld
 } from './src/components/architectural-thinking/EP004Shot03LivingWorld.mjs';
@@ -101,7 +102,8 @@ test('Teams joins Primary without being reclassified as Exchange or instantly de
   assert.ok(shift.tokens.filter(t=>t.route==='TEAMS_ALTERNATIVE').every(t=>t.opacity<.05));
   assert.ok(shift.sharedLoad>.8);
   assert.ok(july.julyMarker>.9);
-  assert.ok(july.cameraScale>normal.cameraScale);
+  assert.equal(july.cameraScale,1,'No new Outlook zoom in the new architecture');
+  assert.equal(normal.cameraScale,1,'The diagram camera stays fixed');
 });
 test('the screen has only earned labels and never invents architecture counts or generic cards',async()=>{
   const scene=await readFile(new URL('./src/episodes/ep004/Shot03LivingArchitectureV1.tsx',import.meta.url),'utf8');
@@ -109,14 +111,16 @@ test('the screen has only earned labels and never invents architecture counts or
   const factory=await readFile(new URL('./src/episodes/ep004/Shot03GeneratedScene.tsx',import.meta.url),'utf8');
   assert.doesNotMatch(scene,/CONCEPTUAL ARCHITECTURE/);
   assert.match(scene,/state\.clarity\.note/);
-  assert.match(scene,/Primary Gateway/);
+  assert.match(scene,/>Primary<\/text>/);
+  assert.match(scene,/>Gateway<\/text>/);
   assert.match(scene,/Alternative Gateway/);
-  assert.match(scene,/Exchange Online/);
+  assert.match(scene,/>Exchange<\/text>/);
+  assert.match(scene,/>Online<\/text>/);
   assert.match(scene,/Microsoft Teams/);
   const story=await readFile(new URL('./src/components/architectural-thinking/EP004Shot03LivingWorld.mjs',import.meta.url),'utf8');
   assert.match(story,/01:07 UTC/);
   assert.doesNotMatch(scene,/JULY GATEWAY UPDATE/);
-  assert.match(scene,/JULY UPDATE/);
+  assert.match(scene,/GATEWAY UPDATE/);
   assert.match(story,/BACK TO JULY/);
   assert.match(scene,/ATOutlookMailClient/);
   assert.match(scene,/ATStableServiceNodes/);
@@ -126,4 +130,35 @@ test('the screen has only earned labels and never invents architecture counts or
   assert.match(root,/EP004-SHOT03-LIVING-WORLD-STORYBOARD-V1/);
   assert.match(root,/previewOnly:true as const/);
   assert.match(factory,/validateEp004Shot03Storyboard\(props\)/);
+});
+
+test('Director V3 fixed camera and exclusive diagram state avoid Outlook push-in and morph',()=>{
+  assert.equal(EP004_SHOT03_LAYOUT_SWITCH_FRAME,98);
+  const before=ep004Shot03StoryboardWorld(97,props);
+  const after=ep004Shot03StoryboardWorld(98,props);
+  assert.equal(before.originalOpacity,1);
+  assert.equal(before.gatewayReveal,0);
+  assert.equal(after.originalOpacity,0);
+  assert.equal(after.gatewayReveal,1);
+  for(const frame of [98,120,245,344,465,520,539]){
+    const s=ep004Shot03StoryboardWorld(frame,props);
+    assert.equal(s.cameraScale,1,'Outlook must not be zoomed');
+    assert.equal(s.cameraX,0,'No story camera tracking the Outlook client');
+    assert.equal(s.originalOpacity*s.gatewayReveal,0,
+      'Old and new diagrams must never overlap');
+  }
+});
+
+test('Director V3 uses recognizable Microsoft Teams app icon and safe 2-line gateway typography',async()=>{
+  const scene=await readFile(new URL(
+    './src/episodes/ep004/Shot03LivingArchitectureV1.tsx',import.meta.url),'utf8');
+  assert.match(scene,/const TeamsAppIcon/);
+  assert.match(scene,/Microsoft Teams app icon/);
+  assert.match(scene,/fill="#464EB8"/);
+  assert.match(scene,/fill="#5059C9"/);
+  assert.match(scene,/GATEWAY_TEXT_CONTENT_FIT/);
+  assert.match(scene,/atGlossaryTextWidth\(label,size\)>availableWidth/);
+  assert.match(scene,/fontSize=\{22\}[\s\S]{0,130}>Alternative<\/text>/);
+  assert.match(scene,/GATEWAY UPDATE/);
+  assert.doesNotMatch(scene,/M 572 696 L 589 686 L 606 696 L 589 706 Z/);
 });
