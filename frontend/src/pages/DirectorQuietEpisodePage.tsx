@@ -231,11 +231,15 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       +'The consecutive locked SHOTs will be assembled into one full-video file.'))return;
     setBusy('lock');setError('');setNotice('');
     try{
-      await result<FilmState>(await fetch(root+'/film/locks/'+encodeURIComponent(activeShot),{
+      const current=await result<FilmState>(await fetch(
+        root+'/film/locks/'+encodeURIComponent(activeShot),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({renderId:render.renderId,confirmLock:true})
-      })).then(setFilm);
-      setNotice(activeShot+' locked. The Full Video tab contains the saved contiguous film.');
+      }));
+      setFilm(current);
+      setNotice(current.state==='READY'
+        ?activeShot+' locked. The Full Video tab has the latest continuous MP4.'
+        :activeShot+' locked. Full Video starts with SHOT01 and includes only consecutive locked SHOTs.');
     }catch(e){setError('Lock or film assembly did not finish: '+errorText(e)
       +'. Refresh Full Video to inspect saved state; do not render the SHOT again.');}
     finally{setBusy('');}
