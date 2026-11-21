@@ -1,5 +1,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
+import {reconcilePaidVoiceState} from '../lib/paidVoiceReconciliation';
+import {isExpectedTakeApproved,voiceReadinessExplanation,readinessRecheckReceipt} from '../lib/voiceTakeApproval';
+import type {ShotReadinessSnapshot} from '../lib/voiceTakeApproval';
 
 type Take={
   id:string;revision:number;takeNumber:number;contentType:string;
@@ -14,6 +17,7 @@ type Ep004Readiness={
   blockers:string[];nextAction:string;
 };
 type RenderResult={renderId:string;status:string;videoUrl?:string};
+type EpisodeReadinessResponse={shots:ShotReadinessSnapshot[]};
 type State={
   packageId:string;shotKey:string;revision:number;narration:string;
   voiceDirection:string;narrationSha256:string;takes:Take[];
@@ -47,12 +51,19 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true);
   const [consent,setConsent]=useState(false);
+  const [paidReconciliationRequired,setPaidReconciliationRequired]=useState(false);
+  const [shotReadiness,setShotReadiness]=useState<ShotReadinessSnapshot|null>(null);
+  const [shotReadinessError,setShotReadinessError]=useState('');
+  const [checkingReadiness,setCheckingReadiness]=useState(false);
+  const [readinessCheckFeedback,setReadinessCheckFeedback]=useState('');
   const [cpuConsent,setCpuConsent]=useState(false);
   const [cpuBusy,setCpuBusy]=useState(false);
   const [cpuReady,setCpuReady]=useState<Ep004Readiness|null>(null);
   const [renderJob,setRenderJob]=useState<RenderResult|null>(null);
   const inFlight=useRef(false);
   const pendingPaidId=useRef<string|null>(null);
+  const knownPaidTakeIds=useRef<string[]>([]);
+  const readinessCheckInFlight=useRef(false);
   const cpuRequestId=useRef<string|null>(null);
 
   const apply=(result:State)=>{
@@ -63,6 +74,61 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
     const state=await checked<State>(await fetch(base,{cache:'no-store'}));
     apply(state);
   },[base]);
+  const refreshShotReadiness=useCallback(async()=>{
+    const url='/api/v1/episode-packages/'+encodeURIComponent(packageId)+'/voice-readiness';
+    const report=await checked<EpisodeReadinessResponse>(
+      await fetch(url,{cache:'no-store'}));
+    const shot=report.shots.find(entry=>entry.shotKey===shotKey);
+    if(!shot)throw Error('Voice readiness did not include '+shotKey);
+    setShotReadiness(shot);
+    setShotReadinessError('');
+    return shot;
+  },[packageId,shotKey]);
+
+  async function recheckShotReadinessWithReceipt(){
+    if(readinessCheckInFlight.current)return;
+    readinessCheckInFlight.current=true;
+    setCheckingReadiness(true);
+    setReadinessCheckFeedback('Checking existing SHOT voice readiness (read-only, no charge)…');
+    try{
+      const previous=shotReadiness;
+      const current=await refreshShotReadiness();
+      const checkedAt=new Date().toLocaleTimeString();
+      setReadinessCheckFeedback(readinessRecheckReceipt(current,previous)
+        +' Checked at '+checkedAt+'.');
+    }catch(reason){
+      const failure='Read-only check failed: '+String(reason)
+        +'. The existing approved Take is unchanged. No paid call was sent.';
+      setShotReadinessError(failure);
+      setReadinessCheckFeedback('Readiness check failed. See error above.');
+    }finally{
+      readinessCheckInFlight.current=false;
+      setCheckingReadiness(false);
+    }
+  }
+
+  async function recheckPaidAttempt(originalFailure=''){
+    try{
+      const state=await checked<State>(await fetch(base,{cache:'no-store'}));
+      apply(state);
+      const outcome=reconcilePaidVoiceState(state,knownPaidTakeIds.current);
+      setPaidReconciliationRequired(!outcome.resolved);
+      if(outcome.resolved){
+        pendingPaidId.current=null;
+        setError('');
+        setMessage(outcome.message);
+        onStatusChanged?.();
+      }else{
+        setMessage('');
+        setError((originalFailure?originalFailure+'. ':'')+outcome.message);
+      }
+    }catch(recheckFailure){
+      setPaidReconciliationRequired(true);
+      setError((originalFailure?originalFailure+'. ':'')
+        +'Read-only request status refresh failed: '+String(recheckFailure)
+        +'. Do not retry the paid request until the provider outcome is reconciled.');
+    }
+  }
 
   useEffect(()=>{
     let active=true;setLoading(true);setError('');setMessage('');
@@ -72,6 +138,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
       .finally(()=>{if(active)setLoading(false);});
     return()=>{active=false;};
   },[base]);
+
+  useEffect(()=>{
+    if(!data?.approvedCurrentRevision||!data.selectedTakeId){
+      setShotReadiness(null);
+      setShotReadinessError('');
+      return;
+    }
+    void refreshShotReadiness().catch(reason=>
+      setShotReadinessError('Voice readiness could not be refreshed: '+String(reason)));
+  },[data?.approvedCurrentRevision,data?.selectedTakeId,refreshShotReadiness]);
 
   const cpuBase='/api/v1/episode-packages/'+encodeURIComponent(packageId)+
     '/shots/SHOT01';
@@ -120,8 +196,9 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
   const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
     &&narration.length<=12000&&direction.trim().length>=8&&direction.length<=1200;
-  const paidConsentDisabled=!data||!data.canGenerate||busy||dirty;
+  const paidConsentDisabled=!data||!data.canGenerate||busy||dirty||paidReconciliationRequired;
   const paidConsentReason=!data?'Voice state is still loading.'
+    :paidReconciliationRequired?'An earlier paid request has an unresolved outcome. Recheck its existing status without generating again.'
     :!data.canGenerate?(data.blockedReason||'Voice generation is blocked by the server.')
     :busy?'A voice operation is running. Finish it before confirming another request.'
     :dirty?'Working narration or voice direction has unsaved changes. Save the revision first.'
@@ -148,6 +225,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   async function generate(mode:'STANDARD'|'SLOW_NATURAL'='SLOW_NATURAL'){
     if(ep003SlowOnly&&mode!=='SLOW_NATURAL')return;
     if(!data||!data.canGenerate||dirty||!consent||busy||inFlight.current
+      ||paidReconciliationRequired
       ||(mode==='SLOW_NATURAL'&&!data.canGenerateSlow))return;
     if(!window.confirm('This is a '+(mode==='SLOW_NATURAL'?'Slow Natural':'Standard')
       +' paid ElevenLabs API generation for '+shotKey+
@@ -156,6 +234,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
     inFlight.current=true;setBusy(true);setError('');setMessage('');
     const id=pendingPaidId.current??window.crypto.randomUUID();
     pendingPaidId.current=id;
+    knownPaidTakeIds.current=data.takes.map(item=>item.id);
     try{
       const result=await checked<State>(await fetch(base+'/generate',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -164,18 +243,21 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           confirmPaidElevenLabs:true,deliveryMode:mode}),
       }));
       pendingPaidId.current=null;
+      setPaidReconciliationRequired(false);
       apply(result);
       onStatusChanged?.();
       setMessage((mode==='SLOW_NATURAL'?'New Slow Natural':'New Standard')
         +' Take stored. Listen and approve your preferred Take; previous recordings are preserved.');
     }catch(e){
-      setError(String(e)+' Payment status may be uncertain. Do not retry without reconciling the provider request.');
+      setPaidReconciliationRequired(true);
       setConsent(false);
+      await recheckPaidAttempt(String(e));
     }finally{inFlight.current=false;setBusy(false);}
   }
 
   async function approve(){
-    if(!data||!take||dirty||busy||inFlight.current)return;
+    if(!data||!take||dirty||busy||inFlight.current
+      ||isExpectedTakeApproved(data,take))return;
     if(!window.confirm('Approve Take '+take.slice(0,8)+'… for '+shotKey+
       ' revision '+data.revision+'? This does NOT authorize OpenAI agents.'))return;
     inFlight.current=true;setBusy(true);setError('');setMessage('');
@@ -185,11 +267,16 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         body:JSON.stringify({expectedRevision:data.revision,takeId:take,
           decision:'DIRECTOR_APPROVE'}),
       }));
+      if(!isExpectedTakeApproved(result,take))
+        throw Error('The server did not confirm the selected Take as approved for the current revision.');
       apply(result);
-      onStatusChanged?.();
-      setMessage('Director-approved Take selected for current revision. '+
-        'Voice timing still requires explicit verification before AI execution.');
-    }catch(e){setError(String(e));}
+      setMessage('SUCCESS: The selected Voice Take is Director-approved for this revision. '+
+        'SHOT production readiness and visual Director LOCK are separate checks.');
+      try{onStatusChanged?.();}
+      catch(notifyFailure){
+        setShotReadinessError('Approval succeeded, but the page refresh failed: '+String(notifyFailure));
+      }
+    }catch(e){setError('Voice Take approval could not be confirmed: '+String(e));}
     finally{inFlight.current=false;setBusy(false);}
   }
 
@@ -198,7 +285,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
       <h3><Mic2 size={19}/> Voice Studio · {shotKey}</h3>
       <button type="button" disabled={busy||loading}
         onClick={()=>{if(dirty&&!window.confirm('Discard unsaved narration edits?'))return;
-          setLoading(true);void refresh().catch(e=>setError(String(e)))
+          setLoading(true);void (paidReconciliationRequired?
+            recheckPaidAttempt():refresh()).catch(e=>setError(String(e)))
             .finally(()=>setLoading(false));}}>
         <RefreshCw size={14}/> Refresh</button>
     </div>
@@ -247,16 +335,52 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
           </div>)}
       </div>
 
+      <p className="episode-package-voice-note">
+        Approve selected Take is a free voice decision. The paid ElevenLabs authorization
+        checkbox below is only for generating NEW audio and is not required for approval.
+      </p>
+      {data.approvedCurrentRevision&&data.selectedTakeId&&<>
+        <p className="episode-package-notice" role="status">
+          VOICE TAKE DIRECTOR APPROVED · Current revision {data.revision}.
+          This does not mean SHOT visual Director LOCK is complete.
+        </p>
+        {shotReadiness&&<p className="episode-package-voice-note" role="status">
+          SHOT voice readiness: <strong>{shotReadiness.status}</strong>.
+          {' '}{voiceReadinessExplanation(shotReadiness)}
+        </p>}
+        {shotReadinessError&&<p className="episode-package-voice-note" role="status">
+          {shotReadinessError}. Your existing Take approval is preserved.
+        </p>}
+        {readinessCheckFeedback&&<p className="episode-package-voice-note"
+          role="status" aria-live="polite">{readinessCheckFeedback}</p>}
+        <button type="button" disabled={busy||loading||checkingReadiness}
+          onClick={()=>void recheckShotReadinessWithReceipt()}>
+          <RefreshCw size={14}/>
+          {checkingReadiness
+            ?' Checking SHOT voice readiness…'
+            :' Recheck SHOT voice readiness (read-only)'}
+        </button>
+      </>}
       <button type="button" className="episode-package-voice-primary"
-        disabled={!take||busy||dirty||data.takes.every(t=>t.id!==take||t.revision!==data.revision)}
+        disabled={!take||busy||dirty||data.takes.every(t=>t.id!==take||t.revision!==data.revision)
+          ||isExpectedTakeApproved(data,take)}
         onClick={()=>void approve()}>
-        <ShieldCheck size={16}/> Approve selected current-revision Take
+        <ShieldCheck size={16}/>{isExpectedTakeApproved(data,take)
+          ?' Selected Take already Director-approved':' Approve selected current-revision Take'}
       </button>
 
       <div className="episode-package-voice-paid">
         <h4>Generate new Take · Paid ElevenLabs call</h4>
         <p>Server paid gate: {data.paidGateEnabled?'enabled':'disabled'} ·
           {' '}Latest paid attempt: {label(data.generationStatus)}</p>
+        {paidReconciliationRequired&&<button type="button"
+          disabled={busy||loading||dirty}
+          onClick={()=>{
+            setBusy(true);
+            void recheckPaidAttempt().finally(()=>setBusy(false));
+          }}>
+          <RefreshCw size={14}/> Recheck existing paid request (read-only, no charge)
+        </button>}
         {paidConsentReason&&<p id={'paid-consent-reason-'+shotKey}
           className="episode-package-voice-blocker" role="status">
           {paidConsentDisabled?'Paid consent is disabled: ':'Slow Natural unavailable: '}
@@ -270,10 +394,10 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
             No automatic retry or OpenAI visual execution.</span>
         </label>
         {!ep003SlowOnly&&<button type="button" className="episode-package-voice-primary"
-          disabled={!data.canGenerate||!consent||busy||dirty}
+          disabled={!data.canGenerate||!consent||busy||dirty||paidReconciliationRequired}
           onClick={()=>void generate('STANDARD')}><Mic2 size={16}/> Generate one Take (paid)</button>}
         <button type="button" className="episode-package-voice-primary"
-          disabled={!data.canGenerateSlow||!consent||busy||dirty}
+          disabled={!data.canGenerateSlow||!consent||busy||dirty||paidReconciliationRequired}
           onClick={()=>void generate('SLOW_NATURAL')}><Mic2 size={16}/>
           {ep003SlowOnly?'Generate (slow intake) · First Take (paid)':'Generate Slow Natural Take (paid)'}</button>
         <p className="episode-package-voice-note">
