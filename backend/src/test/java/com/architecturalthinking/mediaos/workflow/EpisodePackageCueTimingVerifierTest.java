@@ -200,4 +200,46 @@ class EpisodePackageCueTimingVerifierTest {
         var outcome=verifier.verify(SCRIPT,STORY,payload,new BigDecimal("10.000"));
         assertTrue(outcome.verified(),outcome.failureCode());
     }
+    @Test
+    void firstFailoverWordComesFromRealProviderCharacterTimingNotBeatEstimates()
+            throws Exception {
+        String narration="We call that failover: using an alternative path. "
+                +"But failover requires healthy capacity.";
+        String spoken="[pause] "+narration;
+        String aligned=slowAlignment(narration,spoken,false);
+        var occurrence=verifier.firstSpokenTermStartSeconds(narration,aligned,
+                new BigDecimal("10.000"),"Failover");
+        assertTrue(occurrence.isPresent());
+        assertEquals(spoken.indexOf("failover")*.03,occurrence.getAsDouble(),.001);
+        assertTrue(occurrence.getAsDouble()<
+                spoken.lastIndexOf("failover")*.03);
+    }
+
+    @Test
+    void failoverTermMustBeExactWordInCurrentNarrationAndActualVoice() throws Exception {
+        String narration="The failover can work. Another failover may occur.";
+        String delivery=slowAlignment(narration,narration,false);
+        assertTrue(verifier.firstSpokenTermStartSeconds(narration,delivery,
+                new BigDecimal("10.000"),"FAILOVER").isPresent());
+        assertTrue(verifier.firstSpokenTermStartSeconds(
+                "The prefailover service was live.",delivery,
+                new BigDecimal("10.000"),"failover").isEmpty());
+        assertTrue(verifier.firstSpokenTermStartSeconds(narration,
+                slowAlignment("Changed text",narration,false),
+                new BigDecimal("10.000"),"failover").isEmpty());
+        assertTrue(verifier.firstSpokenTermStartSeconds(narration,"{}",
+                new BigDecimal("10.000"),"failover").isEmpty());
+        assertTrue(verifier.firstSpokenTermStartSeconds(narration,delivery,
+                new BigDecimal("0.1"),"failover").isEmpty());
+    }
+
+    @Test
+    void normalizedRealProviderAlignmentMaySupplyFirstFailoverWord() throws Exception {
+        String narration="We call that failover: using another destination.";
+        var timing=verifier.firstSpokenTermStartSeconds(narration,
+                slowAlignment(narration,"[long pause] "+narration,true),
+                new BigDecimal("10.000"),"failover");
+        assertTrue(timing.isPresent());
+    }
+
 }
