@@ -3,6 +3,7 @@ import {useCurrentFrame,useVideoConfig,AbsoluteFill} from 'remotion';
 import {ATBackground,AT_FONT} from '../../components/architectural-thinking';
 import {ATStableServiceNodes} from '../../components/architectural-thinking/ATStableServiceNodes';
 import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
+import {atGlossaryTextWidth} from '../../components/architectural-thinking/ATReadableTermCardPolicy.mjs';
 import {
   EP004_MAIL_ROUTE,EP004_HANDOFF_ROUTE,EP004_STANDBY_ROUTE,
   EP004_SPILLOVER_ROUTE,EP004_DEGRADED_ROUTE,
@@ -17,6 +18,31 @@ import type {Ep004Shot03StoryboardProps,Ep004Shot03StoryboardState}
 
 const CYAN='#68E5FF',VIOLET='#B49BFF',MINT='#6FECD4';
 const AMBER='#F5A55A',WHITE='#F5FCFF',SECONDARY='#B1CDDF';
+const GATEWAY_TEXT_CONTENT_FIT=[
+  ['Primary',22,206],['Gateway',22,206],['Entry and routing',16,206],
+  ['Alternative',22,212],['Independent route',16,212],
+  ['WORKLOAD MIX',16,206],['JULY',17,206],['GATEWAY UPDATE',19,206],
+  ['Exchange',20,173],['Online',20,173],
+  ['Teams',21,132],['Microsoft 365',15,132]
+] as const;
+for(const [label,size,availableWidth] of GATEWAY_TEXT_CONTENT_FIT)
+  if(atGlossaryTextWidth(label,size)>availableWidth)
+    throw Error('SHOT03_GATEWAY_TEXT_MUST_FIT_INSIDE_NODE: '+label);
+
+const TeamsAppIcon:React.FC<{x:number;y:number;size:number}>=({x,y,size})=>
+  <g transform={'translate('+x+' '+y+') scale('+(size/64)+')'}
+    aria-label="Microsoft Teams app icon">
+    <circle cx="50" cy="18" r="11" fill="#7B83EB"/>
+    <path d="M39 30 H61 V42 C61 51 56 56 49 56 C42 56 38 52 38 45 Z"
+      fill="#7B83EB"/>
+    <circle cx="37" cy="16" r="13" fill="#5059C9"/>
+    <path d="M21 29 H51 V44 C51 54 44 60 35 60 C26 60 20 54 20 44 Z"
+      fill="#5059C9"/>
+    <rect x="3" y="19" width="35" height="36" rx="5" fill="#464EB8"
+      style={{filter:'drop-shadow(0 3px 4px rgba(0,0,0,.22))'}}/>
+    <path d="M12 28 H30 V33 H24 V47 H18 V33 H12 Z" fill={WHITE}/>
+  </g>;
+
 const GatewayShapes:React.FC<{
   reveal:number;redirect:number;sharedLoad:number;julyCallout:number;worldFrame:number;
   primaryFocus:number;alternativeFocus:number;
@@ -40,27 +66,27 @@ const GatewayShapes:React.FC<{
       style={{filter:'drop-shadow(0 0 '+(9+12*primaryFocus)+'px rgba(75,195,248,.39))'}}/>
     <path d={'M '+(p.left+25)+' '+(p.top+12)+' H '+(p.left+p.width-25)}
       stroke={CYAN} strokeWidth={1.7} opacity={.30+.19*primaryGlow}/>
-    <text x={p.left+27} y={p.top+46} fontSize={22} fontWeight={850}
-      fill={WHITE}>Primary Gateway</text>
-    <text x={p.left+27} y={p.top+73} fontSize={18} fontWeight={650}
-      fill={SECONDARY}>Entry and routing</text>
+    <text x={p.left+27} y={p.top+45} fontSize={22} fontWeight={850}
+      fill={WHITE}>Primary</text>
+    <text x={p.left+27} y={p.top+72} fontSize={22} fontWeight={850}
+      fill={WHITE}>Gateway</text>
     <g opacity={1-.89*julyCallout}>
-      <text x={p.left+27} y={p.top+96} fontSize={18} fontWeight={750}
+      <text x={p.left+27} y={p.top+96} fontSize={16} fontWeight={750}
         fill={SECONDARY}>WORKLOAD MIX</text>
-      <rect x={p.left+27} y={p.top+106} width={204} height={10}
+      <rect x={p.left+27} y={p.top+112} width={204} height={10}
         rx={5} fill="#1E3A57"/>
-      <rect x={p.left+27} y={p.top+106} width={204-67*sharedLoad}
+      <rect x={p.left+27} y={p.top+112} width={204-67*sharedLoad}
         height={10} rx={5} fill={CYAN}/>
-      <rect x={p.left+231-67*sharedLoad} y={p.top+106}
+      <rect x={p.left+231-67*sharedLoad} y={p.top+112}
         width={67*sharedLoad} height={10} rx={5} fill={VIOLET}/>
       <circle cx={p.left+236} cy={p.top+35} r={5} fill={MINT}
         opacity={.5+.5*primaryGlow}/>
     </g>
     <g opacity={julyCallout}>
-      <path d={'M '+(p.left+27)+' '+(p.top+99)+' H '+(p.left+230)}
-        stroke={AMBER} strokeWidth={1.3} opacity={.7}/>
-      <text x={p.left+29} y={p.top+125} fontSize={19}
-        fontWeight={850} fill={AMBER}>JULY UPDATE</text>
+      <text x={p.left+27} y={p.top+94} fontSize={17}
+        fontWeight={850} fill={AMBER}>JULY</text>
+      <text x={p.left+27} y={p.top+119} fontSize={19}
+        fontWeight={850} fill={AMBER}>GATEWAY UPDATE</text>
     </g>
     <path d={alternativeOutline} fill="#151D3A"
       stroke={VIOLET} strokeWidth={2.5+1.2*alternativeFocus}
@@ -68,28 +94,39 @@ const GatewayShapes:React.FC<{
       style={{filter:'drop-shadow(0 0 '+(7+11*alternativeFocus)+'px rgba(180,155,255,.32))'}}/>
     <path d={'M '+(a.left+30)+' '+(a.top+14)+' H '+(a.left+a.width-30)}
       stroke={VIOLET} strokeWidth={1.5} opacity={.38}/>
-    <text x={a.left+24} y={a.top+47} fontSize={20.5} fontWeight={850}
-      fill={WHITE}>Alternative Gateway</text>
-    <text x={a.left+24} y={a.top+76} fontSize={18} fontWeight={670}
+    <text x={a.left+24} y={a.top+44} fontSize={22} fontWeight={850}
+      fill={WHITE}>Alternative</text>
+    <text x={a.left+24} y={a.top+71} fontSize={22} fontWeight={850}
+      fill={WHITE}>Gateway</text>
+    <text x={a.left+24} y={a.top+99} fontSize={16} fontWeight={670}
       fill={SECONDARY}>Independent route</text>
     <circle cx={a.left+a.width-25} cy={a.top+96} r={4.5}
       fill={MINT} opacity={.85-.25*redirect}/>
-    {[
-      {key:'mailbox',label:'Exchange Online',detail:'Mailbox service',color:CYAN},
-      {key:'teams',label:'Microsoft Teams',detail:'Teams service',color:VIOLET},
-    ].map(({key,label,detail,color})=>{
-      const n=EP004_SHOT03_NODES[key];
-      return <g key={key}>
-        <rect x={n.left} y={n.top} width={n.width} height={n.height}
-          rx={16} stroke={color} strokeWidth={2} fill="#081C31" opacity={.94}/>
-        <path d={'M '+(n.left+18)+' '+(n.top+17)+' H '+(n.left+58)}
-          stroke={color} strokeWidth={3} strokeLinecap="round"/>
-        <text x={n.left+18} y={n.top+51} fontSize={22}
-          fill={WHITE} fontWeight={840}>{label}</text>
-        <text x={n.left+18} y={n.top+77} fontSize={16}
-          fill={SECONDARY} fontWeight={620}>{detail}</text>
-      </g>;
-    })}
+    <g>
+      {[
+        {key:'mailbox',color:CYAN},
+        {key:'teams',color:VIOLET},
+      ].map(({key,color})=>{
+        const n=EP004_SHOT03_NODES[key];
+        return <rect key={key} x={n.left} y={n.top}
+          width={n.width} height={n.height} rx={16}
+          stroke={color} strokeWidth={2} fill="#081C31" opacity={.94}/>;
+      })}
+      <text x={EP004_SHOT03_NODES.mailbox.left+18}
+        y={EP004_SHOT03_NODES.mailbox.top+47}
+        fontSize={20} fontWeight={840} fill={WHITE}>Exchange</text>
+      <text x={EP004_SHOT03_NODES.mailbox.left+18}
+        y={EP004_SHOT03_NODES.mailbox.top+74}
+        fontSize={20} fontWeight={840} fill={WHITE}>Online</text>
+      <TeamsAppIcon x={EP004_SHOT03_NODES.teams.left+18}
+        y={EP004_SHOT03_NODES.teams.top+26} size={43}/>
+      <text x={EP004_SHOT03_NODES.teams.left+70}
+        y={EP004_SHOT03_NODES.teams.top+49}
+        fontSize={21} fill={WHITE} fontWeight={850}>Teams</text>
+      <text x={EP004_SHOT03_NODES.teams.left+70}
+        y={EP004_SHOT03_NODES.teams.top+75}
+        fontSize={15} fill={SECONDARY} fontWeight={650}>Microsoft 365</text>
+    </g>
   </g>;
 };
 
@@ -167,9 +204,8 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
           primaryFocus={state.clarity.primaryFocus}
           alternativeFocus={state.clarity.alternativeFocus}/>
         <g opacity={state.gatewayReveal}>
-          <path d="M 572 696 L 589 686 L 606 696 L 589 706 Z"
-            fill={VIOLET} stroke="#DDD0FF" strokeWidth={1.7}/>
-          <text x={589} y={730} textAnchor="middle" fill={VIOLET}
+          <TeamsAppIcon x={565} y={668} size={48}/>
+          <text x={589} y={732} textAnchor="middle" fill={VIOLET}
             fontSize={18} fontWeight={790}>TEAMS</text>
           {state.tokens.map(t=><g key={t.id} opacity={t.opacity}>
             <circle cx={t.x} cy={t.y} r={t.radius+1.2}
