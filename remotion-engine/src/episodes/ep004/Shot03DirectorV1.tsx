@@ -32,10 +32,5 @@ export const Ep004Shot03DirectorV1:React.FC<Ep004Shot03RenderProps>=props=>{
         <Img src={props.previousLastFrameDataUri}
           style={{width:1920,height:1080,objectFit:'fill'}}/>
       </AbsoluteFill>}
-    {frame>180&&<div style={{
-      position:'absolute',right:49,bottom:38,color:'#9CBAC9',
-      fontSize:14,fontWeight:730,opacity:.57,pointerEvents:'none'}}>
-      EP004 / SHOT03 · DIRECTOR REVIEW CANDIDATE
-    </div>}
   </AbsoluteFill>;
 };
