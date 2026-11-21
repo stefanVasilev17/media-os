@@ -74,7 +74,7 @@ const FailoverGlossaryCard:React.FC<{frame:number;start:number;duration:number}>
     </div>;
   };
 
-export const Ep004Shot03PreviousLiveTail:React.FC<Ep004Shot02RenderProps&{sourceFrame:number}>=props=>{
+export const Ep004Shot03PreviousLiveTail:React.FC<Ep004Shot02RenderProps&{sourceFrame:number;headerOpacity?:number}>=props=>{
   const frame=props.sourceFrame;
   if(!Number.isInteger(frame)||frame<2123||frame>2313)
     throw Error('EP004_SHOT03_PREDECESSOR_TAIL_SOURCE_FRAME_INVALID');
@@ -198,6 +198,7 @@ export const Ep004Shot03PreviousLiveTail:React.FC<Ep004Shot02RenderProps&{source
         {waiting>.03&&<circle cx={521} cy={532} r={17}
           stroke={AMBER} strokeWidth={1.5} fill="none"
           opacity={waiting*(.12+.10*pathPulse)}/>}
+        <g opacity={props.headerOpacity??1}>
         <text x={560} y={116} fontFamily={AT_FONT}
           fontSize={38} fontWeight={890}
           letterSpacing="-.02em" fill={WHITE}
@@ -212,6 +213,7 @@ export const Ep004Shot03PreviousLiveTail:React.FC<Ep004Shot02RenderProps&{source
         </text>
         <path d="M 560 143 H 1260" stroke={CYAN}
           strokeWidth={2} opacity={.55}/>
+        </g>
       </svg>
     </div>
     <AbsoluteFill style={{pointerEvents:'none',zIndex:25}}>
