@@ -116,6 +116,15 @@ public final class Ep004DirectorSimpleFilmController {
         return "/api/v1/episode-packages/"+packageId+"/film/video?v="+filmId;
     }
 
+    static String filmState(boolean ready,int consecutiveCount,
+            AssemblyState job,String expectedSequence){
+        if(ready)return "READY";
+        if(consecutiveCount==0)return "WAITING_FOR_SHOT01";
+        if(job==null||!expectedSequence.equals(job.sequence()))
+            return "ASSEMBLY_REQUIRED";
+        return "ERROR".equals(job.status())?"ASSEMBLY_FAILED":"ASSEMBLING";
+    }
+
     private Map<String,Object> snapshot(UUID packageId){
         List<ShotLock> all=locks(packageId),prefix=consecutive(all);
         Film film=currentFilm(packageId);
@@ -125,11 +134,7 @@ public final class Ep004DirectorSimpleFilmController {
             "shotKey",x.shotKey(),"renderId",x.renderId().toString(),
             "lockedAt",x.lockedAt().toString())).toList());
         AssemblyState job=assemblyState(packageId);
-        boolean matchingJob=job!=null&&!prefix.isEmpty()
-                &&job.sequence().equals(identity(prefix));
-        String state=ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01"
-                :matchingJob?"ERROR".equals(job.status())?"ASSEMBLY_FAILED"
-                    :"ASSEMBLING":"ASSEMBLY_REQUIRED";
+        String state=filmState(ready,prefix.size(),job,identity(prefix));
         response.put("shotCount",ready?film.count():prefix.size());
         response.put("renderIds",ready?List.of(film.renderIds().split(",")):List.of());
         response.put("durationInFrames",ready?film.frames():0);
