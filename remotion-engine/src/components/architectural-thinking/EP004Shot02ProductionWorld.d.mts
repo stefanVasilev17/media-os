@@ -11,6 +11,7 @@ export type Ep004Shot02RenderProps={
   directorCpuApproved:true;scriptRevision:number;voiceTakeId:string;
   narrationSha256:string;expectedSourceCommit:string;
   shotTitle:string;verifiedCues:VerifiedShot02Cue[];
+  failoverTermStartFrame:number;
   visualBeats:VerifiedShot02Beat[];
 };
 export type Ep004Shot02ProductionState={
