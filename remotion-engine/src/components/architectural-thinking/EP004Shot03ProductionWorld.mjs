@@ -124,7 +124,7 @@ export function ep004Shot03ProductionWorld(frame,props){
   const transitionActive=frame>EP004_SHOT03_SWITCH_START_FRAME
     &&frame<EP004_SHOT03_SWITCH_END_FRAME;
   const sourceAlpha=frame<EP004_SHOT03_SWITCH_END_FRAME?1:0;
-  const storyAlpha=frame>=EP004_SHOT03_SWITCH_START_FRAME?1:0;
+  const storyAlpha=frame>EP004_SHOT03_SWITCH_START_FRAME?1:0;
   const transitionBoundaryX=1920*(1-revealProgress);
   const sourceHeadingOpacity=1-ease((revealProgress-.05)/.45);
   const gatewayHeadingOpacity=ease((revealProgress-.50)/.45);
