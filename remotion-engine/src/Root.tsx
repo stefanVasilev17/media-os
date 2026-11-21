@@ -3,6 +3,7 @@ import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
 import {Ep004Shot01OrdinaryWorkday} from './episodes/ep004/Shot01OrdinaryWorkday';
 import {Ep004Shot02ContinuityV1} from './episodes/ep004/Shot02ContinuityV1';
 import {Shot02GeneratedScene as Ep004Shot02DirectorV1} from './episodes/ep004/Shot02GeneratedScene';
+import {Shot03GeneratedScene as Ep004Shot03LivingStoryboard} from './episodes/ep004/Shot03GeneratedScene';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -96,6 +97,21 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP004-SHOT03-LIVING-WORLD-STORYBOARD-V1"
+        component={Ep004Shot03LivingStoryboard}
+        durationInFrames={dynamicDuration??540}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          episodeKey:'EP004' as const,shotKey:'SHOT03' as const,
+          previewOnly:true as const,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          previousRenderId:'20758da0-46f9-4973-9ef8-ec93eb437a5a',
+          previousSourceCommit:'714d7c31affb84793780eee42bc5062387b069a7',
+          previousFrameCount:2124,previousLastEncodedFrame:2123,
+          worldStartFrame:4123,durationInFrames:540
+        }}
+      />
       <Composition
         id="EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL"
         component={Ep004Shot02DirectorV1}
