@@ -121,3 +121,13 @@ test('preview original remains isolated and SHOT01 V8 files are never modified',
   assert.match(root,/EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL/);
   assert.match(root,/EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL/);
 });
+
+test('production SHOT02 contains no generic voice-beat card or free-form text overflow',async()=>{
+  const source=await readFile(new URL('./src/episodes/ep004/Shot02DirectorV1.tsx',import.meta.url),'utf8');
+  assert.doesNotMatch(source,/ARCHITECTURE UNDER PRESSURE/);
+  assert.doesNotMatch(source,/props\.visualBeats\[state\.cueIndex\]\.direction/);
+  assert.doesNotMatch(source,/<rect x=\{554\} y=\{880\}/);
+  assert.match(source,/state\.traffic\.map\(/);
+  assert.match(source,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
+  assert.match(source,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+});

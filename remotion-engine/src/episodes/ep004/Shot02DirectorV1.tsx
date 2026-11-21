@@ -158,20 +158,6 @@ export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
           opacity={state.headerProgress}>
           {props.shotTitle.slice(0,58).toUpperCase()}
         </text>
-        {state.cueIndex>=0&&<g opacity={state.cueProgress*.87}>
-          <rect x={554} y={880} width={805} height={87} rx={16}
-            fill="#112D46" stroke={MINT} strokeWidth={1.5}
-            strokeOpacity={.33+.22*state.visualStage}/>
-          <circle cx={589} cy={925} r={7.3} fill={MINT}
-            opacity={.6+.3*Math.sin(state.worldFrame*.06)**2}/>
-          <text x={614} y={913} fontFamily={AT_FONT}
-            fontSize={15} fontWeight={820} fill={MINT}
-            letterSpacing=".11em">ARCHITECTURE UNDER PRESSURE</text>
-          <text x={614} y={945} fontFamily={AT_FONT}
-            fontSize={21} fontWeight={680} fill={WHITE}>
-            {props.visualBeats[state.cueIndex].direction.slice(0,76)}
-          </text>
-        </g>}
         <path d="M 560 143 H 1260" stroke={CYAN}
           strokeWidth={2} opacity={.55}/>
       </svg>
