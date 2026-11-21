@@ -45,7 +45,7 @@ const GatewayShapes:React.FC<{
     <text x={p.left+27} y={p.top+73} fontSize={18} fontWeight={650}
       fill={SECONDARY}>Entry and routing</text>
     <g opacity={1-.89*julyCallout}>
-      <text x={p.left+27} y={p.top+96} fontSize={14} fontWeight={750}
+      <text x={p.left+27} y={p.top+96} fontSize={18} fontWeight={750}
         fill={SECONDARY}>WORKLOAD MIX</text>
       <rect x={p.left+27} y={p.top+106} width={204} height={10}
         rx={5} fill="#1E3A57"/>
