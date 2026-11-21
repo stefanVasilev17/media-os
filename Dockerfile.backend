@@ -8,6 +8,7 @@ RUN npm run build
 
 FROM maven:3.9-eclipse-temurin-21 AS backend-build
 WORKDIR /backend
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY backend/pom.xml ./
 RUN mvn -q -B dependency:go-offline
 COPY backend/src ./src
@@ -17,7 +18,7 @@ RUN MAVEN_OPTS="-Xmx768m -XX:MaxMetaspaceSize=320m" mvn -B -q -ntp -Dmaven.test.
 RUN MAVEN_OPTS="-Xmx768m -XX:MaxMetaspaceSize=320m" mvn -B -ntp package
 
 FROM backend-build AS postgres-verification
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql postgresql-client ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql postgresql-client && rm -rf /var/lib/apt/lists/*
 RUN set -eux; \
     service postgresql start; \
     runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE USER media_os WITH LOGIN PASSWORD 'media_os'"; \
