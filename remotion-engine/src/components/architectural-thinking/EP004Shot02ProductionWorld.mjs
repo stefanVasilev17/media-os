@@ -95,7 +95,7 @@ export function ep004Shot02ProductionWorld(frame,props){
     secondary:ep004BezierPosition(EP004_STANDBY_ROUTE,.03+.94*packetCycle),
     secondaryOpacity,
     secondaryVisible:secondaryOpacity>.01,
-    tension:exit.tension+.09*stage+.04*Math.sin(worldFrame*.038)**2
+    tension:exit.tension+.09*stage+.04*focus*Math.sin(worldFrame*.038)**2
   };
   return Object.freeze({
     ...state,
