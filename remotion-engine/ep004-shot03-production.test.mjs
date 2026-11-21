@@ -202,39 +202,57 @@ test('Director V2 explanation advances one grounded route at a time and clears o
   assert.throws(()=>ep004Shot03Clarity(540),/FRAME_OUT_OF_RANGE/);
 });
 
-test('Director V3 8-frame shutter replaces 120-frame old/new morph with a clean single world',async()=>{
-  assert.equal(EP004_SHOT03_SWITCH_FRAME,104);
-  assert.equal(EP004_SHOT03_SWITCH_END_FRAME-
-    EP004_SHOT03_SWITCH_START_FRAME,8);
-  let last=0;
+test('Director V4 smoothly reveals gateways over 100 moving frames without a full-frame flash',async()=>{
+  assert.equal(EP004_SHOT03_SWITCH_START_FRAME,90);
+  assert.equal(EP004_SHOT03_SWITCH_FRAME,140);
+  assert.equal(EP004_SHOT03_SWITCH_END_FRAME,190);
+  const early=ep004Shot03ProductionWorld(90,props);
+  const half=ep004Shot03ProductionWorld(140,props);
+  const complete=ep004Shot03ProductionWorld(190,props);
+  assert.equal(early.sourceAlpha,1);
+  assert.equal(early.storyAlpha,0);
+  assert.equal(early.revealProgress,0);
+  assert.equal(half.sourceAlpha,1);
+  assert.equal(half.storyAlpha,1,
+    'Both live diagram sources must be available for complementary spatial masks');
+  assert.ok(Math.abs(half.revealProgress-.5)<.00001);
+  assert.ok(Math.abs(half.transitionBoundaryX-960)<.001);
+  assert.equal(complete.sourceAlpha,0);
+  assert.equal(complete.storyAlpha,1);
+  assert.equal(complete.revealProgress,1);
+  assert.equal(complete.transitionBoundaryX,0);
+  assert.equal(early.sourceHeadingOpacity,1);
+  assert.equal(complete.gatewayHeadingOpacity,1);
+  let lastBoundary=1920;
+  let lastWorld=4122;
   for(let frame=0;frame<=190;frame++){
-    const s=ep004Shot03ProductionWorld(frame,props);
-    assert.equal(s.worldFrame,4123+frame);
-    assert.equal(s.sourceAlpha+s.storyAlpha,1);
-    assert.equal(s.sourceAlpha*s.storyAlpha,0,
-      'Never draw the old and new diagrams over one another');
-    assert.equal(s.sourceAlpha,frame<104?1:0);
-    assert.ok(s.shutterProgress>=0&&s.shutterProgress<=1);
-    if(frame===104)assert.equal(s.shutterProgress,1);
-    if(frame===100||frame===108)assert.equal(s.shutterProgress,0);
-    if(frame>0)assert.ok(s.worldFrame>last);
-    last=s.worldFrame;
-  }
-  for(const frame of [104,200,950,1940,2600]){
-    const s=ep004Shot03ProductionWorld(frame,props);
-    assert.equal(s.storyboard.cameraScale,1,
-      'No Outlook close-up in the new architecture');
-    assert.equal(s.storyboard.originalOpacity,0);
-    assert.equal(s.storyboard.gatewayReveal,1);
+    const state=ep004Shot03ProductionWorld(frame,props);
+    assert.equal(state.worldFrame,4123+frame);
+    assert.equal(state.worldFrame,lastWorld+1);
+    assert.ok(state.transitionBoundaryX<=lastBoundary+0.0001);
+    assert.ok(state.transitionBoundaryX>=0&&state.transitionBoundaryX<=1920);
+    assert.ok(state.sourceHeadingOpacity>=0&&state.sourceHeadingOpacity<=1);
+    assert.ok(state.gatewayHeadingOpacity>=0&&state.gatewayHeadingOpacity<=1);
+    if(frame>=91&&frame<190){
+      assert.equal(state.transitionActive,true);
+      assert.equal(state.sourceAlpha,1);
+      assert.equal(state.storyAlpha,1);
+      assert.equal(state.storyboard.originalOpacity,0,
+        'New gateway layer must not repeat the old architecture');
+    }
+    if(frame>0)assert.ok(lastBoundary-state.transitionBoundaryX<30,
+      'Transition must not jump or snap more than 30 screen pixels/frame');
+    lastBoundary=state.transitionBoundaryX;
+    lastWorld=state.worldFrame;
   }
   const director=await readFile(new URL(
     './src/episodes/ep004/Shot03DirectorV1.tsx',import.meta.url),'utf8');
-  assert.match(director,/state.shutterProgress/);
-  assert.match(director,/state.sourceAlpha/);
-  assert.match(director,/state.storyAlpha/);
-  assert.doesNotMatch(director,/crossfade|morph|shutterOverOldWorld/);
+  assert.match(director,/maskImage:oldMask/);
+  assert.match(director,/maskImage:gatewayMask/);
+  assert.match(director,/headingOpacity=\{state.sourceHeadingOpacity\}/);
+  assert.match(director,/headingOpacity=\{state.gatewayHeadingOpacity\}/);
+  assert.doesNotMatch(director,/shutterProgress|shutterOverOldWorld|crossfade/);
 });
-
 test('Director V3 July gateway annotation holds through a readable real-voice interval',()=>{
   let previous=-1,visible=0;
   for(let frame=props.backwardFrame;frame<props.durationInFrames;frame++){

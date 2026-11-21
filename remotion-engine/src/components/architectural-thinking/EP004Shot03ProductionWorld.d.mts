@@ -25,7 +25,9 @@ export type Ep004Shot03RenderProps={
 export type Ep004Shot03ProductionState={
   worldFrame:number;sourceFrame:number;
   originalSourceWorldFrame:number;
-  sourceAlpha:number;storyAlpha:number;shutterProgress:number;
+  sourceAlpha:number;storyAlpha:number;
+  revealProgress:number;transitionActive:boolean;transitionBoundaryX:number;
+  sourceHeadingOpacity:number;gatewayHeadingOpacity:number;
   editorialFrame:number;sourceSnapshotIsStatic:false;
   silenceFrames:60;realVoiceStartFrame:60;
   cameraX:number;cameraScale:number;
@@ -34,9 +36,9 @@ export type Ep004Shot03ProductionState={
 export declare const EP004_SHOT03_COMPOSITION:string;
 export declare const EP004_SHOT03_TAIL_FRAMES:45;
 export declare const EP004_SHOT03_SOURCE_TAIL_FRAMES:190;
-export declare const EP004_SHOT03_SWITCH_FRAME:104;
-export declare const EP004_SHOT03_SWITCH_START_FRAME:100;
-export declare const EP004_SHOT03_SWITCH_END_FRAME:108;
+export declare const EP004_SHOT03_SWITCH_FRAME:140;
+export declare const EP004_SHOT03_SWITCH_START_FRAME:90;
+export declare const EP004_SHOT03_SWITCH_END_FRAME:190;
 export declare function extendedEp004Shot02SourceProps(
   props:Ep004Shot03RenderProps):Ep004Shot02RenderProps;
 export declare function validateEp004Shot03Production(

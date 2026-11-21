@@ -131,8 +131,9 @@ const GatewayShapes:React.FC<{
 };
 
 export const Shot03LivingArchitectureWorldView:React.FC<{
-  state:Ep004Shot03StoryboardState;showStoryboardFooter:boolean
-}>=({state,showStoryboardFooter})=>{
+  state:Ep004Shot03StoryboardState;showStoryboardFooter:boolean;
+  headingOpacity?:number;
+}>=({state,showStoryboardFooter,headingOpacity=1})=>{
   const previous=state.originalState;
   const zoom='translate3d('+state.cameraX+'px,0,0) scale('+state.cameraScale+')';
   const phaseGlow=.68+.32*Math.sin(state.worldFrame*.048)**2;
@@ -221,6 +222,7 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
             {state.clarity.note}
           </text>
         </g>
+        <g opacity={headingOpacity}>
         <text x={560} y={116} fill={WHITE} fontSize={35}
           fontWeight={890} letterSpacing="-.02em" opacity={state.originalOpacity}>
           THE PROMISE OF FAILOVER
@@ -230,6 +232,7 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
           TWO GATEWAY SYSTEMS, ONE SHARED PRESSURE
         </text>
         <path d="M 560 143 H 1260" stroke={CYAN} strokeWidth={2} opacity={.55}/>
+        </g>
       </svg>
     </div>
     {showStoryboardFooter&&<div style={{position:'absolute',right:49,bottom:38,zIndex:80,

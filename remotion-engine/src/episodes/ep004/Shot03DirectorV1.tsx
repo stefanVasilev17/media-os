@@ -8,6 +8,9 @@ import {extendedEp004Shot02SourceProps,ep004Shot03ProductionWorld,
 import type {Ep004Shot03RenderProps}
   from '../../components/architectural-thinking/EP004Shot03ProductionWorld.mjs';
 
+const FRAME_WIDTH=1920;
+const SOFT_EDGE_PX=88;
+
 export const Ep004Shot03DirectorV1:React.FC<Ep004Shot03RenderProps>=props=>{
   const frame=useCurrentFrame(),config=useVideoConfig();
   if(config.width!==1920||config.height!==1080||config.fps!==30
@@ -16,24 +19,35 @@ export const Ep004Shot03DirectorV1:React.FC<Ep004Shot03RenderProps>=props=>{
   validateEp004Shot03Production(props);
   const state=ep004Shot03ProductionWorld(frame,props);
   const predecessorProps=extendedEp004Shot02SourceProps(props);
+
+  // A soft right-to-left spatial reveal keeps both worlds moving continuously.
+  // Complementary masks avoid stacking two unrelated diagrams or flashing white.
+  const boundary=state.transitionBoundaryX;
+  const softStart=Math.max(0,boundary-SOFT_EDGE_PX);
+  const softEnd=Math.min(FRAME_WIDTH,boundary+SOFT_EDGE_PX);
+  const oldMask='linear-gradient(90deg,#000 0px,#000 '+softStart+
+    'px,transparent '+softEnd+'px,transparent 1920px)';
+  const gatewayMask='linear-gradient(90deg,transparent 0px,transparent '+
+    softStart+'px,#000 '+softEnd+'px,#000 1920px)';
+  const oldStyle=state.transitionActive
+    ?{maskImage:oldMask,WebkitMaskImage:oldMask}
+    :{};
+  const gatewayStyle=state.transitionActive
+    ?{maskImage:gatewayMask,WebkitMaskImage:gatewayMask}
+    :{};
+
   return <AbsoluteFill style={{background:'#030B17'}}>
     {state.sourceAlpha>0&&<AbsoluteFill style={{
-      opacity:state.sourceAlpha,pointerEvents:'none'}}>
+      ...oldStyle,pointerEvents:'none'}}>
       <Ep004Shot03PreviousLiveTail {...predecessorProps}
+        headerOpacity={state.sourceHeadingOpacity}
         sourceFrame={state.sourceFrame}/>
     </AbsoluteFill>}
     {state.storyAlpha>0&&<AbsoluteFill style={{
-      opacity:state.storyAlpha,pointerEvents:'none'}}>
+      ...gatewayStyle,pointerEvents:'none'}}>
       <Shot03LivingArchitectureWorldView state={state.storyboard}
+        headingOpacity={state.gatewayHeadingOpacity}
         showStoryboardFooter={false}/>
-    </AbsoluteFill>}
-    {state.shutterProgress>0&&<AbsoluteFill style={{
-      zIndex:50,pointerEvents:'none',opacity:state.shutterProgress,
-      background:'linear-gradient(120deg,#031021 0%,#0B2842 53%,#07172E 100%)'
-    }}>
-      <div style={{position:'absolute',top:'50%',left:0,right:0,height:2,
-        transform:'translateY(-50%)',background:'#68E5FF',
-        boxShadow:'0 0 20px rgba(104,229,255,.65)',opacity:.68}}/>
     </AbsoluteFill>}
     {frame===0&&props.previousLastFrameDataUri&&
       <AbsoluteFill style={{zIndex:99,pointerEvents:'none'}}>
