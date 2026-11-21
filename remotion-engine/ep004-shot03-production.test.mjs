@@ -10,7 +10,7 @@ import {
 import {ep004Shot02ProductionWorld}
   from './src/components/architectural-thinking/EP004Shot02ProductionWorld.mjs';
 import {
-  EP004_SHOT03_PREDECESSOR,EP004_SHOT03_ROUTES
+  EP004_SHOT03_PREDECESSOR,EP004_SHOT03_ROUTES,ep004Shot03Clarity
 } from './src/components/architectural-thinking/EP004Shot03LivingWorld.mjs';
 import {
   EP004_SHOT03_COMPOSITION,extendedEp004Shot02SourceProps,
@@ -159,4 +159,43 @@ test('pre-CPU real Take and original SHOT02 2124-frame SHA are verified before e
   assert.match(worker,/'-map','0:v:0','-an','-frames:v','30'/);
   assert.match(worker,/animatedUniqueFrames/);
   assert.match(worker,/EP004_SHOT03_ACTUAL_SEAM_PSNR/);
+});
+
+test('Director V2 explanation advances one grounded route at a time and clears orange end copy',async()=>{
+  const outlook=ep004Shot03Clarity(150);
+  const alternative=ep004Shot03Clarity(246);
+  const rerouted=ep004Shot03Clarity(344);
+  const july=ep004Shot03Clarity(464);
+  const final=ep004Shot03Clarity(539);
+  assert.match(outlook.note,/OUTLOOK.*PRIMARY.*EXCHANGE ONLINE/);
+  assert.match(alternative.note,/TEAMS.*ALTERNATIVE.*TEAMS/);
+  assert.match(rerouted.note,/01:07 UTC.*PRIMARY GATEWAY/);
+  assert.match(july.note,/JULY.*GATEWAY/);
+  for(const stage of [outlook,alternative,rerouted,july])
+    assert.ok(stage.noteOpacity>.5,'One readable explanatory line must have real dwell');
+  assert.ok(outlook.routes.OUTLOOK_PRIMARY>.8);
+  assert.ok(alternative.routes.TEAMS_ALTERNATIVE>.75);
+  assert.equal(alternative.routes.TEAMS_FAILOVER,0);
+  assert.ok(rerouted.routes.TEAMS_FAILOVER>.55);
+  assert.ok(rerouted.routes.TEAMS_ALTERNATIVE<.25);
+  assert.ok(july.julyCallout>.5);
+  assert.equal(final.julyCallout,0,'The orange July caption must be absent at the final frame');
+  assert.equal(final.utcStamp,0,'The November UTC caption cannot leak into the July ending');
+  assert.equal(final.note,'');
+  assert.equal(final.noteOpacity,0,'No end-of-shot floating explanatory text');
+  const ending=ep004Shot03ProductionWorld(props.durationInFrames-1,props);
+  assert.equal(ending.storyboard.clarity.julyCallout,0);
+  assert.equal(ending.storyboard.clarity.noteOpacity,0);
+  assert.equal(ending.storyAlpha,1);
+  assert.equal(ending.sourceAlpha,0);
+  assert.equal(ending.worldFrame,4123+props.durationInFrames-1);
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot03LivingArchitectureV1.tsx',import.meta.url),'utf8');
+  const director=await readFile(new URL('./src/episodes/ep004/Shot03DirectorV1.tsx',import.meta.url),'utf8');
+  assert.doesNotMatch(scene,/JULY GATEWAY UPDATE|CONCEPTUAL ARCHITECTURE/);
+  assert.match(scene,/state.clarity.note/);
+  assert.match(scene,/state.clarity.routes\[key\]/);
+  assert.match(scene,/julyCallout=\{state.clarity.julyCallout\}/);
+  assert.doesNotMatch(director,/DIRECTOR REVIEW CANDIDATE/);
+  assert.match(director,/frame===0&&props.previousLastFrameDataUri/);
+  assert.throws(()=>ep004Shot03Clarity(540),/FRAME_OUT_OF_RANGE/);
 });
