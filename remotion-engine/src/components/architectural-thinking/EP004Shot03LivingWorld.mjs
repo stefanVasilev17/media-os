@@ -37,6 +37,45 @@ export const EP004_SHOT03_NODES=Object.freeze({
 });
 const clamp=n=>Math.min(1,Math.max(0,n));
 const ease=n=>{const x=clamp(n);return x*x*(3-2*x);};
+const PHASES=Object.freeze([
+  Object.freeze({start:120,end:216,
+    label:'OUTLOOK  →  PRIMARY GATEWAY  →  EXCHANGE ONLINE'}),
+  Object.freeze({start:224,end:285,
+    label:'TEAMS  →  ALTERNATIVE GATEWAY  →  TEAMS'}),
+  Object.freeze({start:293,end:417,
+    label:'01:07 UTC  ·  TEAMS MOVES TO THE PRIMARY GATEWAY'}),
+  Object.freeze({start:425,end:510,
+    label:'BACK TO JULY  ·  GATEWAY CONFIGURATION CHANGES'}),
+]);
+export function ep004Shot03Clarity(frame){
+  if(!Number.isInteger(frame)||frame<0||frame>539)
+    throw Error('EP004_SHOT03_CLARITY_FRAME_OUT_OF_RANGE');
+  const phase=PHASES.find(p=>frame>=p.start&&frame<p.end);
+  const noteOpacity=phase
+    ?Math.min(ease((frame-phase.start)/16),ease((phase.end-frame)/20)):0;
+  const outlookFocus=ease((frame-120)/25)*(1-ease((frame-213)/28));
+  const alternativeFocus=ease((frame-223)/25)*(1-ease((frame-283)/32));
+  const rerouteFocus=ease((frame-287)/34)*(1-ease((frame-418)/40));
+  const julyFocus=ease((frame-422)/24)*(1-ease((frame-490)/33));
+  const redirect=ease((frame-285)/86);
+  const routes=Object.freeze({
+    OUTLOOK_PRIMARY:clamp(.41+.54*outlookFocus+.26*rerouteFocus),
+    PRIMARY_MAILBOX:clamp(.38+.57*outlookFocus),
+    TEAMS_ALTERNATIVE:clamp((1-redirect)*(.23+.73*alternativeFocus)),
+    ALTERNATIVE_TEAMS:clamp((1-redirect)*(.22+.74*alternativeFocus)),
+    TEAMS_FAILOVER:clamp(redirect*(.31+.66*rerouteFocus+.22*julyFocus)),
+    PRIMARY_TEAMS:clamp(redirect*(.31+.65*rerouteFocus+.20*julyFocus)),
+  });
+  return Object.freeze({
+    note:phase?.label??'',
+    noteOpacity,
+    routes,
+    primaryFocus:clamp(.26+.42*outlookFocus+.65*rerouteFocus+.30*julyFocus),
+    alternativeFocus:clamp(.20+.75*alternativeFocus),
+    julyCallout:julyFocus,
+    utcStamp:ease((frame-286)/22)*(1-ease((frame-415)/35)),
+  });
+}
 const loop=n=>((n%1)+1)%1;
 const near=(a,b)=>Math.abs(a-b)<0.000001;
 const endpoint=(key,start)=>EP004_SHOT03_ROUTES[key][start?0:3];
@@ -110,6 +149,7 @@ export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
   const shared=ease((frame-325)/100);
   const july=ease((frame-420)/85);
   const selectedOriginal=1-original;
+  const clarity=ep004Shot03Clarity(frame);
   const oldStage=1;
   const baseState={
     ...exit,worldFrame,
@@ -136,20 +176,20 @@ export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
     return tokens;
   };
   const tokens=[
-    ...flow('OUTLOOK_PRIMARY','CYAN',4,.0036,reveal,'OUTLOOK'),
-    ...flow('PRIMARY_MAILBOX','CYAN',2,.0042,reveal,'OUTLOOK'),
-    ...flow('TEAMS_ALTERNATIVE','VIOLET',4,.0031,reveal*(1-cross),'TEAMS'),
-    ...flow('ALTERNATIVE_TEAMS','VIOLET',2,.0037,reveal*(1-cross),'TEAMS'),
-    ...flow('TEAMS_FAILOVER','VIOLET',5,.0031,reveal*cross,'TEAMS'),
-    ...flow('PRIMARY_TEAMS','VIOLET',3,.0037,reveal*cross,'TEAMS'),
+    ...flow('OUTLOOK_PRIMARY','CYAN',4,.0036,reveal*clarity.routes.OUTLOOK_PRIMARY,'OUTLOOK'),
+    ...flow('PRIMARY_MAILBOX','CYAN',2,.0042,reveal*clarity.routes.PRIMARY_MAILBOX,'OUTLOOK'),
+    ...flow('TEAMS_ALTERNATIVE','VIOLET',4,.0031,reveal*clarity.routes.TEAMS_ALTERNATIVE,'TEAMS'),
+    ...flow('ALTERNATIVE_TEAMS','VIOLET',2,.0037,reveal*clarity.routes.ALTERNATIVE_TEAMS,'TEAMS'),
+    ...flow('TEAMS_FAILOVER','VIOLET',5,.0031,reveal*clarity.routes.TEAMS_FAILOVER,'TEAMS'),
+    ...flow('PRIMARY_TEAMS','VIOLET',3,.0037,reveal*clarity.routes.PRIMARY_TEAMS,'TEAMS'),
   ];
   return Object.freeze({
     frame,worldFrame,
     cameraX,cameraScale,
     originalOpacity:selectedOriginal,
     gatewayReveal:reveal,redirect:cross,sharedLoad:shared,
-    julyMarker:july,
-    utcStamp:ease((frame-286)/22)*(1-july*.45),
+    julyMarker:july,clarity,
+    utcStamp:clarity.utcStamp,
     originalState:Object.freeze({
       ...baseState,
       traffic:ep004RequestTraffic(baseState),
