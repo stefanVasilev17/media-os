@@ -978,6 +978,8 @@ public class RemotionCpuWorkerController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "MEDIA_OS_RENDER_WORKER_KEY is not configured.");
         }
         if (key == null || key.isBlank() || !constantTimeEquals(workerKey, key.trim())) {
+            org.slf4j.LoggerFactory.getLogger(RemotionCpuWorkerController.class)
+                    .warn("REMOTION_CPU_WORKER_KEY_MISMATCH_NO_SECRET_LOGGED");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Remotion CPU worker key.");
         }
         if (workerId == null || workerId.isBlank() || workerId.length() > 160) {
