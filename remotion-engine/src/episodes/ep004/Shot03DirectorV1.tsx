@@ -27,6 +27,14 @@ export const Ep004Shot03DirectorV1:React.FC<Ep004Shot03RenderProps>=props=>{
       <Shot03LivingArchitectureWorldView state={state.storyboard}
         showStoryboardFooter={false}/>
     </AbsoluteFill>}
+    {state.shutterProgress>0&&<AbsoluteFill style={{
+      zIndex:50,pointerEvents:'none',opacity:state.shutterProgress,
+      background:'linear-gradient(120deg,#031021 0%,#0B2842 53%,#07172E 100%)'
+    }}>
+      <div style={{position:'absolute',top:'50%',left:0,right:0,height:2,
+        transform:'translateY(-50%)',background:'#68E5FF',
+        boxShadow:'0 0 20px rgba(104,229,255,.65)',opacity:.68}}/>
+    </AbsoluteFill>}
     {frame===0&&props.previousLastFrameDataUri&&
       <AbsoluteFill style={{zIndex:99,pointerEvents:'none'}}>
         <Img src={props.previousLastFrameDataUri}
