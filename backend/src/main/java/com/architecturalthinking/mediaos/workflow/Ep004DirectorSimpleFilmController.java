@@ -10,6 +10,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,7 +29,9 @@ import java.util.UUID;
 public final class Ep004DirectorSimpleFilmController {
     private static final String PROJECT_ID="11111111-1111-1111-1111-111111111111";
     private static final int FPS=30;
-    private static final long MAX_INPUT_BYTES=190L*1024*1024;
+    private static final long MAX_INPUT_BYTES=MediaObjectStore.MAX_FILM_BYTES
+        -8L*1024*1024;
+    private static final Logger LOG=LoggerFactory.getLogger(Ep004DirectorSimpleFilmController.class);
     private final JdbcClient jdbc;
     private final MediaObjectStore store;
 
@@ -41,6 +46,8 @@ public final class Ep004DirectorSimpleFilmController {
                        int scriptRevision) {}
     record Film(UUID id,String objectKey,String sha256,long bytes,int count,
                 String renderIds,int frames) {}
+    record AssemblyJob(UUID packageId,String sequence) {}
+    record AssemblyState(String sequence,String status,String error) {}
 
     private void requireEpisode(UUID packageId){
         var actor=DirectorIdentity.requireDirector();
@@ -117,10 +124,18 @@ public final class Ep004DirectorSimpleFilmController {
         response.put("locks",all.stream().map(x->Map.of(
             "shotKey",x.shotKey(),"renderId",x.renderId().toString(),
             "lockedAt",x.lockedAt().toString())).toList());
-        response.put("shotCount",ready?film.count():0);
+        AssemblyState job=assemblyState(packageId);
+        boolean matchingJob=job!=null&&!prefix.isEmpty()
+                &&job.sequence().equals(identity(prefix));
+        String state=ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01"
+                :matchingJob?"ERROR".equals(job.status())?"ASSEMBLY_FAILED"
+                    :"ASSEMBLING":"ASSEMBLY_REQUIRED";
+        response.put("shotCount",ready?film.count():prefix.size());
         response.put("renderIds",ready?List.of(film.renderIds().split(",")):List.of());
         response.put("durationInFrames",ready?film.frames():0);
-        response.put("state",ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01":"ASSEMBLY_REQUIRED");
+        response.put("state",state);
+        response.put("error","ASSEMBLY_FAILED".equals(state)
+            ?"Full Video joining needs a retry. All locked SHOT files are preserved.":null);
         response.put("filmId",ready?film.id().toString():null);
         response.put("videoUrl",ready?versionedFilmUrl(packageId,film.id()):null);
         return response;
@@ -209,7 +224,7 @@ public final class Ep004DirectorSimpleFilmController {
               render_id=excluded.render_id,locked_at=now()
             """).param("package",packageId).param("shot",shotKey)
                 .param("render",source.renderId()).update();
-        assemble(packageId);
+        queueAssembly(packageId);
         return snapshot(packageId);
     }
 
