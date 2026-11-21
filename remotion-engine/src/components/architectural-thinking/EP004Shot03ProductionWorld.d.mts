@@ -15,6 +15,7 @@ export type Ep004Shot03RenderProps={
   previousLastEncodedFrame:number;worldStartFrame:number;
   previousVideoSha256:string;
   previousShot02Props:Ep004Shot02RenderProps;
+  previousLastFrameDataUri?:string;
   durationInFrames:number;previewOnly:false;directorCpuApproved:true;
   voiceTakeId:string;narrationSha256:string;scriptRevision:number;
   expectedSourceCommit:string;shotTitle:string;
