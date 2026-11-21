@@ -171,7 +171,7 @@ export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
             fontSize={21} fontWeight={680} fill={WHITE}>
             {props.visualBeats[state.cueIndex].direction.slice(0,76)}
           </text>
-        </g>
+        </g>}
         <path d="M 560 143 H 1260" stroke={CYAN}
           strokeWidth={2} opacity={.55}/>
       </svg>
