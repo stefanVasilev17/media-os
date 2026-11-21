@@ -1,0 +1,454 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  EP004_MAIL_ROUTE,EP004_STANDBY_ROUTE,EP004_HANDOFF_ROUTE,
+  EP004_SPILLOVER_ROUTE,EP004_DEGRADED_ROUTE,
+  ep004RequestTraffic,ep004FailureSignals,EP004_SHOT01_BEATS,
+  EP004_SHOT01_LOCKED_SOURCE_SHA256,ep004RoutePolyline,
+  ep004RoutePosition,ep004BezierPath,ep004BezierPosition,ep004Shot01Phase,ep004Shot01Exit,
+  ep004Shot01Validate
+} from './src/components/architectural-thinking/EP004Shot01World.mjs';
+
+const props={
+  sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+  durationInFrames:2000,worldStartFrame:0,previewOnly:false,
+  voiceTakeId:'11111111-1111-4111-8111-111111111111',
+  cueFrames:Object.fromEntries(EP004_SHOT01_BEATS.map((beat,i)=>[beat,65+220*i]))
+};
+
+test('preview never claims to be a voice-verified production render',()=>{
+  assert.equal(ep004Shot01Validate({...props,previewOnly:true,voiceTakeId:undefined,cueFrames:undefined}),true);
+  assert.throws(()=>ep004Shot01Validate({...props,previewOnly:false,cueFrames:undefined}),/REAL_ORDERED_VOICE_CUE/);
+  assert.throws(()=>ep004Shot01Validate({...props,voiceTakeId:'not-a-selected-take'}),/DIRECTOR_SELECTED_TAKE/);
+  assert.throws(()=>ep004Shot01Validate({...props,sourceSha256:'wrong'}),/LOCKED_SOURCE/);
+});
+test('all eight original cues must be real, strictly increasing, and after moving prelude',()=>{
+  assert.equal(EP004_SHOT01_BEATS.length,8);
+  assert.equal(ep004Shot01Validate(props),true);
+  const bad={...props,cueFrames:{...props.cueFrames,SHOT01_P01_B02:65}};
+  assert.throws(()=>ep004Shot01Validate(bad),/REAL_ORDERED_VOICE_CUE/);
+  assert.throws(()=>ep004Shot01Validate({...props,cueFrames:{...props.cueFrames,SHOT01_P01_B01:10}}),/REAL_ORDERED_VOICE_CUE/);
+});
+test('request tokens stay exactly on the visible source-of-truth polylines',()=>{
+  for(const line of [EP004_MAIL_ROUTE]){
+    assert.equal(ep004RoutePolyline(line).split(' ').length,line.length);
+    for(let n=0;n<=100;n++){
+      const p=ep004RoutePosition(line,n/100);
+      const onSegment=line.slice(1).some((b,i)=>{
+        const a=line[i];
+        const cross=(p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x);
+        const dot=(p.x-a.x)*(b.x-a.x)+(p.y-a.y)*(b.y-a.y);
+        return Math.abs(cross)<1e-6 && dot>=-1e-7
+          &&dot<=(b.x-a.x)**2+(b.y-a.y)**2+1e-7;
+      });
+      assert.equal(onSegment,true,'detached packet on route at '+n);
+    }
+  }
+});
+test('the blocked request never teleports to the alternate route',()=>{
+  let last=-Infinity;
+  for(let f=0;f<props.durationInFrames;f+=13){
+    const w=ep004Shot01Phase(f,props);
+    assert.ok(w.routeProgress>=last);
+    assert.ok(w.routeProgress<=.97);
+    last=w.routeProgress;
+  }
+  const exit=ep004Shot01Exit(props);
+  assert.equal(exit.worldFrame,1999);
+  assert.equal(exit.requestStatus,'WAITING');
+  assert.ok(exit.towardNext>.95);
+  assert.ok(exit.cameraScale<1);
+});
+test('continuity contract passes exact world/camera/packet state to next shot',()=>{
+  const exit=ep004Shot01Exit(props);
+  assert.equal(exit.worldFrame+1,props.worldStartFrame+props.durationInFrames);
+  assert.deepEqual(exit.request,ep004RoutePosition(EP004_MAIL_ROUTE,exit.routeProgress));
+  assert.ok(Number.isFinite(exit.cameraX)&&Number.isFinite(exit.cameraScale));
+});
+
+test('EP004 inherits exact EP003 canonical public request path ports',()=>{
+  assert.deepEqual(EP004_MAIL_ROUTE,[
+    {x:485,y:532},{x:521,y:532}
+  ]);
+  assert.deepEqual(EP004_STANDBY_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:584},{x:1192,y:584}
+  ]);
+  for(let frame=0;frame<props.durationInFrames;frame+=7){
+    const state=ep004Shot01Phase(frame,props);
+    assert.deepEqual(state.request,
+      ep004RoutePosition(EP004_MAIL_ROUTE,state.routeProgress));
+    if(state.secondaryVisible)assert.deepEqual(state.secondary,
+      ep004BezierPosition(EP004_STANDBY_ROUTE,
+        .03+.94*((props.worldStartFrame+frame)*.0022%1)));
+    assert.ok(state.secondaryOpacity>=0&&state.secondaryOpacity<=1);
+    assert.ok(state.spillover>=0&&state.spillover<=1);
+    assert.ok(state.cameraScale>=.95);
+    assert.ok(state.cameraScale<=1.08);
+    assert.ok(state.mailOpen>=0&&state.mailOpen<=1);
+    assert.ok(state.mailAttempt>=0&&state.mailAttempt<=1);
+  }
+});
+test('EP004 keeps approved EP003 nodes untouched and reuses canonical geometry',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const outlook=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const shot=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(nodes,/ATBackendNode/);
+  assert.match(nodes,/ATPrimaryNode/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
+  assert.match(nodes,/ATStableServiceNodes/);
+  assert.match(shot,/ATOutlookMailClient/);
+  assert.match(shot,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
+  assert.match(shot,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.doesNotMatch(shot,/const Gateway:|const Server:|const Mailbox:/);
+  assert.match(outlook,/clipPath=/);
+  assert.match(outlook,/Trying to reconnect/);
+  assert.match(outlook,/Focused/);
+});
+
+test('standby request stays on the exact EP003 Bezier route, including 2001 live frames',()=>{
+  assert.equal(ep004BezierPath(EP004_STANDBY_ROUTE),
+    'M 1050 535 C 1090 535 1137 584 1192 584');
+  assert.deepEqual(ep004BezierPosition(EP004_STANDBY_ROUTE,0),{x:1050,y:535});
+  assert.deepEqual(ep004BezierPosition(EP004_STANDBY_ROUTE,1),{x:1192,y:584});
+  let previous=null;
+  for(let f=0;f<2001;f++){
+    const st=ep004Shot01Phase(f,{...props,durationInFrames:2001});
+    const phase=(f*.0022)%1;
+    const expected=ep004BezierPosition(EP004_STANDBY_ROUTE,.03+.94*phase);
+    assert.deepEqual(st.secondary,expected);
+    assert.ok(st.secondaryOpacity>=0&&st.secondaryOpacity<=1);
+    if(previous && phase<previous.phase) {
+      assert.ok(previous.opacity<.10);
+      assert.ok(st.secondaryOpacity<.10);
+    }
+    previous={phase,opacity:st.secondaryOpacity};
+  }
+});
+test('narrated pressure reaches downstream servers only after the true spillover beat',()=>{
+  const before=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03-1,props);
+  const during=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03+80,props);
+  assert.equal(before.spillover,0);
+  assert.ok(during.spillover>0&&during.spillover<1);
+  const end=ep004Shot01Exit(props);
+  assert.equal(end.spillover,1);
+});
+test('Outlook interaction fits inside one client and persistent nodes remain identical in layout',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const client=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(client,/Focused/);
+  assert.match(client,/Microsoft 365/);
+  assert.match(client,/New mail/);
+  assert.match(client,/Search mail/);
+  assert.match(client,/Trying to reconnect/);
+  assert.match(client,/opacity=\{1-waiting\}/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
+  assert.match(nodes,/spreading/);
+  assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
+});
+
+test('EP004 camera begins on Outlook then reveals the original EP003 main-node map',()=>{
+  const start=ep004Shot01Phase(0,props);
+  const middle=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B01+210,props);
+  const end=ep004Shot01Exit(props);
+  assert.equal(start.cameraScale,1.08);
+  assert.equal(start.cameraX,92);
+  assert.ok(middle.cameraScale<start.cameraScale);
+  assert.ok(end.cameraScale<middle.cameraScale);
+  assert.ok(end.cameraX<middle.cameraX);
+  const clientLeft=960+(56-960)*start.cameraScale+start.cameraX;
+  const clientBottom=540+(926-540)*start.cameraScale;
+  assert.ok(clientLeft>=40&&clientBottom<=1020,'Outlook frame clips at the opening');
+  const clientExitLeft=960+(56-960)*end.cameraScale+end.cameraX;
+  assert.ok(clientExitLeft>=40&&clientExitLeft<=150);
+});
+
+
+test('EP004 V4 final source keeps exact Outlook and inherited EP003 nodes inside the video safe area',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const client=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const canonical=await readFile(new URL('./src/episodes/ep002/Shot02PremiumLayout.ts',import.meta.url),'utf8');
+  assert.match(canonical,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
+  assert.match(nodes,/\[412,498,584\]/);
+
+  assert.match(canonical,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(canonical,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/EP004_LOCKED_EP003_NODE_BOUNDS/);
+  assert.match(nodes,/EP004_LOCKED_EP003_REPLICA_Y/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.doesNotMatch(scene,/from ['\"]\.\.\/ep002\//);
+  assert.doesNotMatch(nodes,/from ['\"]\.\.\/\.\.\/episodes\/ep002\//);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(client,/clipPath="url\(#ep004-outlook-window-clip\)"/);
+  assert.match(client,/Microsoft 365/);
+  assert.match(client,/Trying to reconnect/);
+  assert.match(scene,/actionProgress=\{state\.mailAttempt\}/);
+  assert.doesNotMatch(scene,/const (?:Gateway|Mailbox|Server):/);
+  assert.doesNotMatch(client,/foreignObject|<iframe|<video/);
+});
+
+
+test('V5 Outlook header never overlaps the Microsoft 365 product label and three-dot menu',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const src=await readFile(new URL('./src/components/architectural-thinking/ATOutlookMailClient.tsx',import.meta.url),'utf8');
+  assert.match(src,/<text x=\{140\} y=\{197\} fontSize=\{28\}/);
+  assert.match(src,/<text x=\{140\} y=\{222\} fontSize=\{17\}[\s\S]{0,110}>Microsoft 365<\/text>/);
+  assert.match(src,/<rect x=\{427\} y=\{172\} width=\{37\} height=\{58\} rx=\{12\}/);
+  assert.match(src,/\{\[186,201,216\]\.map\(y=><circle key=\{y\}/);
+  const conservativeLabelRight=140+'Microsoft 365'.length*17*.75;
+  assert.ok(conservativeLabelRight<427-35,'Microsoft 365 may overlap menu reserved area');
+  assert.ok(172>159 && 172+58<239,'Menu must fit within header height');
+  assert.ok(216+2.7<239,'Third dot must fit within the header');
+  assert.doesNotMatch(src,/<text x=\{350\} y=\{207\}/);
+});
+
+test('V5 reuses the original locked-size premium Load Balancer and Outlook Service shells',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(nodes,/import \{ATBackendNode,ATPrimaryNode\} from '\.\/ATArchitecturePrimitives'/);
+  assert.match(nodes,/gateway:\{x:650,y:410,width:258,height:250\}/);
+  assert.match(nodes,/balancer:\{x:927,y:410,width:246,height:250\}/);
+  assert.match(nodes,/auth:\{x:1326,y:315,width:350,height:348\}/);
+  assert.match(nodes,/database:\{x:1697,y:368,width:252,height:280\}/);
+  assert.match(nodes,/frame:frame\*\.40,arrival:\.82,selected:reroute/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
+  assert.match(nodes,/height:67,display:'flex'/);
+  assert.match(nodes,/RISING LOAD/);
+  assert.match(nodes,/AVAILABLE/);
+  assert.match(nodes,/fontSize:18,fontWeight:660/);
+  assert.match(nodes,/activity=clamp/);
+  assert.match(nodes,/\[0,1,2,3\]\.map\(j=>/);
+  assert.doesNotMatch(nodes,/ATMiniWorld|position:'absolute',top:/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ATOutlookMailClient/);
+});
+
+
+test('V6 uses precise visible geometry for all four physical traffic lanes',()=>{
+  assert.deepEqual(EP004_HANDOFF_ROUTE,[{x:779,y:532},{x:804,y:532}]);
+  assert.deepEqual(EP004_SPILLOVER_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:498},{x:1192,y:498}
+  ]);
+  assert.equal(ep004BezierPath(EP004_SPILLOVER_ROUTE),
+    'M 1050 535 C 1090 535 1137 498 1192 498');
+  const routes={
+    MAIL:EP004_MAIL_ROUTE,
+    HANDOFF:EP004_HANDOFF_ROUTE,
+    STANDBY:EP004_STANDBY_ROUTE,
+    SPILLOVER:EP004_SPILLOVER_ROUTE
+  };
+  let checked=0;
+  for(let frame=0;frame<2001;frame++){
+    const w=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    assert.deepEqual(w.traffic,ep004RequestTraffic(w));
+    const ids=new Set();
+    for(const t of w.traffic){
+      assert.equal(ids.has(t.id),false,'duplicate live request token '+t.id);
+      ids.add(t.id);
+      const expected=t.lane==='MAIL'||t.lane==='HANDOFF'?
+        ep004RoutePosition(routes[t.lane],t.progress):
+        ep004BezierPosition(routes[t.lane],t.progress);
+      assert.ok(Math.hypot(t.x-expected.x,t.y-expected.y)<1e-8,
+        'request detached from authoritative '+t.lane+' route at '+frame);
+      assert.ok(t.opacity>=0&&t.opacity<=1);
+      assert.ok(t.radius>=2.5&&t.radius<=6.5);
+      assert.ok(t.progress>=0&&t.progress<=1);
+      if(t.lane==='STANDBY'||t.lane==='SPILLOVER'){
+        assert.ok(t.x<1151,'request overlays server interior instead of stopping at port');
+      }
+      checked++;
+    }
+  }
+  assert.ok(checked>=18000,'expected a living plurality of requests');
+});
+
+test('V6 stages causal queue, failover and spillover only after real HEAR-SEE anchors',()=>{
+  const before=ep004Shot01Phase(props.cueFrames.SHOT01_P01_B03-1,props);
+  const queue=ep004Shot01Phase(props.cueFrames.SHOT01_P01_B03+80,props);
+  const beforeReroute=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B02-1,props);
+  const reroute=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B02+180,props);
+  const beforeSpillover=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03-1,props);
+  const spillover=ep004Shot01Phase(props.cueFrames.SHOT01_P02_B03+145,props);
+  assert.equal(before.traffic.filter(t=>t.status==='QUEUED').length,0);
+  const linedUp=queue.traffic.filter(t=>t.status==='QUEUED');
+  assert.equal(linedUp.length,4);
+  assert.deepEqual(linedUp.map(t=>t.progress),[.72,.51,.30,.10]);
+  assert.ok(linedUp.every(t=>t.y===532));
+  assert.equal(beforeReroute.traffic.some(t=>t.lane==='STANDBY'),false);
+  assert.equal(beforeReroute.traffic.some(t=>t.lane==='HANDOFF'),false);
+  assert.ok(reroute.traffic.some(t=>t.lane==='STANDBY'));
+  assert.ok(reroute.traffic.some(t=>t.lane==='HANDOFF'));
+  assert.equal(beforeSpillover.traffic.some(t=>t.lane==='SPILLOVER'),false);
+  assert.ok(spillover.traffic.some(t=>t.lane==='SPILLOVER'));
+});
+
+test('V6 request tokens never visibly teleport at loop boundaries across all 2001 frames',()=>{
+  const last=new Map();
+  let maxStep=0;
+  for(let frame=0;frame<2001;frame++){
+    const w=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    for(const t of w.traffic){
+      const previous=last.get(t.id);
+      if(previous&&previous.frame===frame-1&&
+         previous.opacity>.2&&t.opacity>.2){
+        const step=Math.hypot(t.x-previous.x,t.y-previous.y);
+        maxStep=Math.max(maxStep,step);
+        assert.ok(step<3,'teleport for '+t.id+' at frame '+frame+': '+step);
+      }
+      last.set(t.id,{frame,x:t.x,y:t.y,opacity:t.opacity});
+    }
+  }
+  assert.ok(maxStep>.02,'requests must actually move during playback');
+  const terminal=ep004Shot01Exit({...props,durationInFrames:2001});
+  assert.deepEqual(terminal.traffic,ep004RequestTraffic(terminal));
+});
+
+test('V6 Remotion renderer uses one traffic model and native route geometries',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/ep004RoutePolyline\(EP004_MAIL_ROUTE\)/);
+  assert.match(scene,/ep004RoutePolyline\(EP004_HANDOFF_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_SPILLOVER_ROUTE\)/);
+  assert.doesNotMatch(scene,/state\.secondaryVisible&&/);
+  assert.doesNotMatch(scene,/state\.request\.x/);
+  assert.match(nodes,/frame:frame\*\.40/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
+  assert.match(nodes,/const activity=clamp\(\.20\+pressure\*\.58\)/);
+});
+
+
+test('V7 degraded-pod feedback is a reverse diagnostic signal, never a rerouted request',()=>{
+  assert.deepEqual(EP004_DEGRADED_ROUTE,[
+    {x:1050,y:535},{x:1090,y:535},{x:1137,y:412},{x:1192,y:412}
+  ]);
+  assert.equal(ep004BezierPath(EP004_DEGRADED_ROUTE),
+    'M 1050 535 C 1090 535 1137 412 1192 412');
+  let previous=new Map(),checked=0;
+  let peak=0;
+  for(let frame=0;frame<2001;frame++){
+    const state=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    assert.deepEqual(state.diagnostics,ep004FailureSignals(state));
+    for(const signal of state.diagnostics){
+      assert.equal(signal.direction,'TO_LOAD_BALANCER');
+      assert.ok(signal.opacity>0&&signal.opacity<=1);
+      const onRoute=ep004BezierPosition(EP004_DEGRADED_ROUTE,signal.progress);
+      assert.ok(Math.hypot(onRoute.x-signal.x,onRoute.y-signal.y)<1e-8,
+        'fault signal detached from degraded route');
+      assert.ok(signal.x<1151,'fault indicator overlaps the degraded server UI');
+      const prev=previous.get(signal.id);
+      if(prev&&prev.frame===frame-1&&prev.opacity>.20&&signal.opacity>.20){
+        const delta=Math.hypot(prev.x-signal.x,prev.y-signal.y);
+        assert.ok(delta<3,'visible fault signal teleported');
+        assert.ok(signal.progress<=prev.progress,'feedback must travel towards the Load Balancer');
+      }
+      previous.set(signal.id,{...signal,frame});
+      peak=Math.max(peak,signal.opacity);
+      checked++;
+    }
+  }
+  assert.ok(checked>1000,'fault diagnosis must remain visually alive across the story');
+  assert.ok(peak>.3,'diagnostic feedback should be visible, not decorative noise');
+});
+
+test('V7 cue-anchored pressure rises before rerouting and healthy intake never begins early',()=>{
+  const at=(frame)=>ep004Shot01Phase(frame,props);
+  const beforeWorld=at(props.cueFrames.SHOT01_P02_B01-1);
+  const world=at(props.cueFrames.SHOT01_P02_B01+100);
+  const preFailover=at(props.cueFrames.SHOT01_P02_B02-1);
+  const healthy=at(props.cueFrames.SHOT01_P02_B02+150);
+  const preSpill=at(props.cueFrames.SHOT01_P02_B03-1);
+  const overload=at(props.cueFrames.SHOT01_P02_B03+145);
+  assert.equal(beforeWorld.tension,0);
+  assert.equal(beforeWorld.diagnostics.length,0);
+  assert.ok(world.tension>.20);
+  assert.ok(preFailover.tension>world.tension,'pressure should intensify before failover');
+  assert.equal(preFailover.failover,0);
+  assert.equal(preFailover.traffic.some(x=>x.lane==='STANDBY'),false);
+  assert.ok(healthy.traffic.some(x=>x.lane==='STANDBY'));
+  assert.equal(preSpill.traffic.some(x=>x.lane==='SPILLOVER'),false);
+  assert.ok(overload.traffic.some(x=>x.lane==='SPILLOVER'));
+  assert.ok(overload.tension>.50,'failover should not falsely suggest total recovery');
+  const initialQueue=at(props.cueFrames.SHOT01_P02_B02-1)
+    .traffic.filter(x=>x.status==='QUEUED');
+  const continuedQueue=overload.traffic.filter(x=>x.status==='QUEUED');
+  assert.equal(initialQueue.length,4);
+  assert.equal(continuedQueue.length,4);
+  assert.ok(continuedQueue.every((token,i)=>token.opacity<initialQueue[i].opacity),
+    'some waiting pressure must drain as healthy pods take new traffic');
+});
+
+test('V7 faster healthy traffic stays on drawn paths without visible teleport in 2001 frames',()=>{
+  const prev=new Map();
+  const routes={STANDBY:EP004_STANDBY_ROUTE,SPILLOVER:EP004_SPILLOVER_ROUTE};
+  let visible=0,maxStep=0;
+  for(let frame=0;frame<2001;frame++){
+    const state=ep004Shot01Phase(frame,{...props,durationInFrames:2001});
+    for(const token of state.traffic.filter(t=>t.lane==='STANDBY'||t.lane==='SPILLOVER')){
+      const onRoute=ep004BezierPosition(routes[token.lane],token.progress);
+      assert.ok(Math.hypot(token.x-onRoute.x,token.y-onRoute.y)<1e-8);
+      const last=prev.get(token.id);
+      if(last&&last.frame===frame-1&&last.opacity>.20&&token.opacity>.20){
+        const step=Math.hypot(token.x-last.x,token.y-last.y);
+        assert.ok(step<3,'healthy request jumps or teleports at '+frame);
+        maxStep=Math.max(maxStep,step);
+      }
+      visible++;
+      prev.set(token.id,{...token,frame});
+    }
+  }
+  assert.ok(visible>1500);
+  assert.ok(maxStep>.15,'rerouted traffic is too slow to convey rising throughput');
+  const exit=ep004Shot01Exit({...props,durationInFrames:2001});
+  assert.deepEqual(exit.traffic,ep004RequestTraffic(exit));
+  assert.deepEqual(exit.diagnostics,ep004FailureSignals(exit));
+});
+
+test('V7 visuals intensify original architecture rather than adding false routes or cards',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  const nodes=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  assert.match(scene,/ep004BezierPath\(EP004_DEGRADED_ROUTE\)/);
+  assert.match(scene,/state\.diagnostics\.map\(signal=>/);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/strokeDasharray=\{String\(\.001\+\.72\*failover\)/);
+  assert.match(scene,/strokeDasharray=\{String\(\.001\+\.72\*state\.spillover\)/);
+  assert.match(scene,/tension=\{state\.tension\}/);
+  assert.match(nodes,/i===0\&\&waiting>\.55\?'DEGRADED'/);
+  assert.match(nodes,/reroute\*\(\.70\+\.18\*spreading\)/);
+  assert.match(nodes,/flow:\.01\+\.24\*reroute\+\.08\*spreading/);
+  assert.doesNotMatch(scene,/Math\.random|setInterval|setTimeout|foreignObject/);
+  assert.doesNotMatch(scene,/state\.secondaryVisible/);
+  assert.doesNotMatch(scene,/const DegradedPod|const HealthyPod/);
+});
+
+
+test('V8 removes only the green moving hero marker inside EP004 Load Balancer',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const primitive=await readFile(new URL('./src/components/architectural-thinking/ATArchitecturePrimitives.tsx',import.meta.url),'utf8');
+  const adapter=await readFile(new URL('./src/components/architectural-thinking/ATStableServiceNodes.tsx',import.meta.url),'utf8');
+  const scene=await readFile(new URL('./src/episodes/ep004/Shot01OrdinaryWorkday.tsx',import.meta.url),'utf8');
+  assert.match(primitive,/balancerIntro\?:\{[^}]*hidePrimaryPacket\?:boolean/);
+  assert.match(primitive,/\{!balancerIntro\.hidePrimaryPacket&&\(\(\)=>\{/);
+  assert.match(primitive,/const travel=Math\.max\(0,Math\.min\(1,balancerIntro\.handoff\?\?0\)\)/);
+  assert.match(primitive,/return <circle cx=\{x\} cy=\{y\} r=\{4\.7\}/);
+  assert.match(adapter,/title="Load Balancer"[\s\S]*?balancerIntro=\{\{[\s\S]*?hidePrimaryPacket:true/);
+  assert.equal((adapter.match(/hidePrimaryPacket:true/g)||[]).length,1);
+  assert.match(scene,/state\.traffic\.map\(token=>/);
+  assert.match(scene,/state\.diagnostics\.map\(signal=>/);
+  assert.match(scene,/ep004BezierPath\(EP004_STANDBY_ROUTE\)/);
+  assert.match(scene,/ep004BezierPath\(EP004_DEGRADED_ROUTE\)/);
+  assert.doesNotMatch(scene,/hidePrimaryPacket/);
+});

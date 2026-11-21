@@ -52,6 +52,12 @@ class DirectorHttpAuthorizationTest {
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs")
         String factoryCreate() { return "created"; }
 
+        @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT01/render")
+        String ep004Shot01Render() { return "only-after-director-security"; }
+
+        @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT02/render")
+        String ep004Shot02Render() { return "only-after-director-security"; }
+
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
 
@@ -180,6 +186,35 @@ class DirectorHttpAuthorizationTest {
         mvc.perform(post("/api/v1/unreviewed").with(
                 jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ep004OnlyExactShot01AndShot02RenderRoutesAllowDirectorAndRejectOtherRoles()
+            throws Exception {
+        String exact="/api/v1/episode-packages/11111111-1111-4111-8111-111111111111"
+                + "/shots/SHOT01/render";
+        for(String authorized:new String[]{exact,exact.replace("SHOT01","SHOT02")}){
+            mvc.perform(post(authorized).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isOk());
+            for(String role:new String[]{"ROLE_VIEWER","ROLE_EDITOR"}) {
+                mvc.perform(post(authorized).with(
+                        jwt().authorities(new SimpleGrantedAuthority(role))))
+                        .andExpect(status().isForbidden());
+            }
+            mvc.perform(post(authorized)).andExpect(status().isUnauthorized());
+        }
+        for(String forbidden:new String[]{
+                exact+"/again",
+                exact.replace("SHOT01","SHOT03"),
+                exact.replace("/render","/render-bypass"),
+                exact.replace("/render","/render/without-audit"),
+                exact.replace("SHOT01","SHOT02")+"/again"
+        }) {
+            mvc.perform(post(forbidden).with(
+                    jwt().authorities(new SimpleGrantedAuthority("ROLE_DIRECTOR"))))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     @Test

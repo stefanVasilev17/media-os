@@ -1,9 +1,11 @@
 package com.architecturalthinking.mediaos.remotion;
 
 import com.architecturalthinking.mediaos.workflow.ProductionMemoryService;
+import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,9 +45,17 @@ public class RemotionRenderController {
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V2 = UUID.fromString("22059373-cc17-44fd-ad03-56d092cc57dc");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V3 = UUID.fromString("d67eec72-66bb-427b-bdb9-0d4043ed5dd2");
     private static final UUID DIRECTOR_LOCKED_EP003_SHOT09_V2 = UUID.fromString("b3a3912f-79ee-4c72-b313-cbe09f950a5e");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT08_V4 = UUID.fromString("07207345-1350-4e82-aea2-3c369160f653");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT09_V3 = UUID.fromString("53ac60b4-346e-400b-8dec-7932ef2de94d");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT10_V2 = UUID.fromString("174c8a8b-3202-4067-95ef-7dab1de11aa3");
+    private static final UUID DIRECTOR_LOCKED_EP003_SHOT11_V1 = UUID.fromString("80dcf256-5cf3-4b38-8517-19dcff7a6ac9");
     private static final String ENGINE_VERSION_PREFIX = "AT_REMOTION_";
 
     private static final Map<String, CompositionProfile> COMPOSITIONS = Map.ofEntries(
+            Map.entry("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT01_APPROVED_VOICE_REVIEW",null,1920,1080,30,1950,true)),
+            Map.entry("EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT02_APPROVED_VOICE_REVIEW",null,1920,1080,30,2124,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
                 new CompositionProfile("EP002_DIRECTOR_MASTER", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT01-DRAFT",
@@ -174,18 +185,27 @@ public class RemotionRenderController {
     private final ProductionMemoryService productionMemory;
     private final StorageHealthService storage;
     private final String engineVersion;
+    private final MediaObjectStore mediaObjects;
 
+    @Autowired
     public RemotionRenderController(
             JdbcClient jdbc,
             ObjectMapper objectMapper,
             ProductionMemoryService productionMemory,
-            StorageHealthService storage
+            StorageHealthService storage,
+            MediaObjectStore mediaObjects
     ) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
         this.productionMemory = productionMemory;
         this.storage = storage;
+        this.mediaObjects = mediaObjects;
         this.engineVersion = resolveEngineVersion();
+    }
+
+    public RemotionRenderController(JdbcClient jdbc, ObjectMapper objectMapper,
+            ProductionMemoryService productionMemory, StorageHealthService storage) {
+        this(jdbc,objectMapper,productionMemory,storage,null);
     }
 
     private String resolveEngineVersion() {
@@ -211,7 +231,9 @@ public class RemotionRenderController {
             @PathVariable String compositionId,
             @RequestBody(required = false) RenderRequest request
     ) {
-        if ("EP002-DIRECTOR-MASTER".equals(compositionId)
+        if ("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
+                || "EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId)
+                || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
                 || "EP002-SHOT03-CANDIDATE".equals(compositionId)
@@ -227,6 +249,30 @@ public class RemotionRenderController {
                     "EP002 render inputs must come from the verified selected-voice Director endpoint.");
         }
         return ensureVerifiedRender(compositionId,request);
+    }
+
+    public Map<String,Object> ensureVerifiedEp004Shot01Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("cueFrames"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 Director-selected real Take, exact cues and CPU approval required.");
+        return ensureVerifiedRender("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
+    public Map<String,Object> ensureVerifiedEp004Shot02Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!"SHOT02".equals(verifiedProps.get("shotKey")))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "EP004 SHOT02 exact Director-approved voice, authentic cues, original story and bounded CPU approval are required.");
+        return ensureVerifiedRender("EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
     }
 
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
@@ -304,6 +350,9 @@ public class RemotionRenderController {
         int durationInFrames = resolveDurationInFrames(composition, inputProps);
         inputProps.put("durationInFrames", durationInFrames);
         Map<String,Object> semanticRenderProps=new LinkedHashMap<>(inputProps);
+        if("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
+                ||"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId))
+            semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
                  ||"EP002-SHOT04-CANDIDATE".equals(compositionId)
@@ -380,7 +429,7 @@ public class RemotionRenderController {
                   and render_key in ('EP003_SHOT01_V1','EP003_SHOT01_V2')
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -412,7 +461,7 @@ public class RemotionRenderController {
                         and render_key='EP003_SHOT02_MOTION_V4'))
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by case when id='78db6f85-ba05-4714-ba4f-fc70d64def88'::uuid then 0 else 1 end,
                          finished_at desc,created_at desc,id desc
@@ -441,7 +490,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -452,6 +501,121 @@ public class RemotionRenderController {
                 .map(this::response)
                 .orElseGet(()->Map.of("status","EMPTY",
                         "reason","NO_VERIFIED_EP003_SHOT08_V3_MP4_YET"));
+    }
+
+    @GetMapping("/ep003/shot08/v4/latest-successful")
+    public Map<String,Object> latestEp003Shot08V4DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT08-SHARDING-V4-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT08_SHARDING_V4'
+                  and engine_version='EP003_SHOT08_PIN_143975e3d6c0'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=5372
+                  and width=1920 and height=1080 and fps=30
+                  and (video_data is not null or video_object_key is not null)
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT08_V4_MP4_YET"));
+    }
+
+    @GetMapping("/ep003/shot09/v3/latest-successful")
+    public Map<String,Object> latestEp003Shot09V3DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT09-FAILOVER-V3-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT09_FAILOVER_V3'
+                  and engine_version='EP003_SHOT09_PIN_599d23563c9c'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3145
+                  and width=1920 and height=1080 and fps=30
+                  and (video_data is not null or video_object_key is not null)
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT09_V3_MP4_YET"));
+    }
+
+    @GetMapping("/ep003/shot11/v1/latest-successful")
+    public Map<String,Object> latestEp003Shot11V1DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT11-FINALE-V1-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT11_FINALE_V1'
+                  and engine_version='EP003_SHOT11_PIN_140398af1c5b'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=3104
+                  and width=1920 and height=1080 and fps=30
+                  and (input_props->>'directorLocked')='false'
+                  and (input_props->>'voiceTakeId')='5c3435f6-ae66-4ec3-a6b0-bf1cc8207486'
+                  and (input_props->>'previousRenderId')='174c8a8b-3202-4067-95ef-7dab1de11aa3'
+                  and (video_data is not null or video_object_key is not null)
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT11_V1_REAL_MP4_YET"));
+    }
+
+    @GetMapping("/ep003/shot10/v2/latest-successful")
+    public Map<String,Object> latestEp003Shot10V2DirectorReview() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE'
+                  and render_key='EP003_SHOT10_MEASUREMENT_V2'
+                  and engine_version='EP003_SHOT10_PIN_51403eaa9dde'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and duration_in_frames=4016
+                  and width=1920 and height=1080 and fps=30
+                  and (video_data is not null or video_object_key is not null)
+                  and coalesce(size_bytes,0)>1000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_SHOT10_V2_MP4_YET"));
     }
 
     @GetMapping("/ep003/shot10/v1/latest-successful")
@@ -469,7 +633,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=4016
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -497,7 +661,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -525,7 +689,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3145
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -553,7 +717,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -581,7 +745,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=5372
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -609,7 +773,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3476
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -636,7 +800,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -663,7 +827,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -690,7 +854,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -717,7 +881,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames between 1500 and 7200
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -744,7 +908,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -771,7 +935,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -798,7 +962,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and duration_in_frames=3080
                   and width=1920 and height=1080 and fps=30
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>1000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -809,6 +973,43 @@ public class RemotionRenderController {
                 .map(this::response)
                 .orElseGet(()->Map.of("status","EMPTY",
                         "reason","NO_RENDERED_EP003_SHOT03_V2_CANDIDATE_YET"));
+    }
+
+    @GetMapping("/ep003/cumulative/wip-corrected-ten/latest-successful")
+    public Map<String,Object> latestEp003CorrectedTenShotWipFilm() {
+        return jdbc.sql("""
+                select id, composition_id, render_key, engine_version, profile, status,
+                       width, height, fps, duration_in_frames, progress, size_bytes, error,
+                       created_at, finished_at
+                from remotion_render
+                where project_id=:projectId
+                  and composition_id='EP003-CUMULATIVE-WIP-CORRECTED-TEN-SHOT'
+                  and render_key='EP003_CUMULATIVE_WIP_CORRECTED_SHOTS_01_TO_10'
+                  and engine_version='EP003_WIP_OWNER_B_V2'
+                  and profile='REVIEW'
+                  and status='SUCCEEDED'
+                  and width=1920 and height=1080 and fps=30
+                  and duration_in_frames=35489
+                  and (input_props->>'wip')='true'
+                  and (input_props->>'directorLocked')='false'
+                  and (input_props->>'verified')='true'
+                  and (input_props->>'shotCount')='10'
+                  and (input_props->>'lockedPrefixShotCount')='7'
+                  and (input_props->'sequence'->7->>'renderKey')='EP003_SHOT08_SHARDING_V4'
+                  and (input_props->'sequence'->8->>'renderKey')='EP003_SHOT09_FAILOVER_V3'
+                  and (input_props->'sequence'->9->>'renderKey')='EP003_SHOT10_MEASUREMENT_V2'
+                  and jsonb_array_length(input_props->'qa')=9
+                  and (video_data is not null or video_object_key is not null)
+                  and coalesce(size_bytes,0)>2000000
+                order by finished_at desc,created_at desc,id desc
+                limit 1
+                """)
+                .param("projectId",PROJECT_ID)
+                .query(this::mapRenderRow)
+                .optional()
+                .map(this::response)
+                .orElseGet(()->Map.of("status","EMPTY",
+                        "reason","NO_VERIFIED_EP003_CORRECTED_TEN_SHOT_WIP_FILM_YET"));
     }
 
     @GetMapping("/ep003/cumulative/latest-successful")
@@ -825,7 +1026,7 @@ public class RemotionRenderController {
                   and status='SUCCEEDED'
                   and (input_props->>'directorLocked')='true'
                   and (input_props->>'verified')='true'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by (input_props->>'shotCount')::integer desc,
                          finished_at desc,created_at desc,id desc
@@ -861,7 +1062,7 @@ public class RemotionRenderController {
                   and (input_props->'sequence'->2->>'shotKey')='SHOT03'
                   and (input_props->'sequence'->2->>'directorLocked')='false'
                   and (input_props->'sequence'->2->>'renderKey')='EP003_SHOT03_WORDING_V4'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>2000000
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -890,7 +1091,7 @@ public class RemotionRenderController {
                   and (input_props->>'directorLocked')='false'
                   and (input_props->>'verified')='true'
                   and (input_props->>'lockedPrefixShotCount')='1'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -963,7 +1164,7 @@ public class RemotionRenderController {
                   and composition_id=:compositionId
                   and profile='REVIEW'
                   and status='SUCCEEDED'
-                  and video_data is not null
+                  and (video_data is not null or video_object_key is not null)
                   and coalesce(size_bytes,0)>0
                 order by finished_at desc,created_at desc,id desc
                 limit 1
@@ -991,43 +1192,63 @@ public class RemotionRenderController {
     }
 
     @GetMapping("/{renderId}/video")
-    public ResponseEntity<byte[]> video(
+    public ResponseEntity<StreamingResponseBody> video(
             @PathVariable UUID renderId,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String range
     ) {
-        VideoArtifact artifact = jdbc.sql("""
-                select video_data, coalesce(media_type, 'video/mp4') as media_type
-                from remotion_render
-                where id=:id and project_id=:projectId and status='SUCCEEDED'
-                """)
-                .param("id", renderId)
-                .param("projectId", PROJECT_ID)
-                .query((rs, rowNum) -> new VideoArtifact(rs.getBytes("video_data"), rs.getString("media_type")))
-                .optional()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rendered Remotion preview is not available."));
+        VideoArtifact artifact=jdbc.sql("""
+                select video_data,coalesce(media_type,'video/mp4') as media_type,
+                       video_object_key,video_sha256,video_object_bytes
+                  from remotion_render
+                 where id=:id and project_id=:projectId and status='SUCCEEDED'
+                """).param("id",renderId).param("projectId",PROJECT_ID)
+                .query((rs,n)->new VideoArtifact(
+                        rs.getBytes("video_data"),rs.getString("media_type"),
+                        rs.getString("video_object_key"),rs.getString("video_sha256"),
+                        rs.getObject("video_object_bytes",Long.class)))
+                .optional().orElseThrow(()->new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,"Rendered Remotion preview is not available."));
 
-        byte[] bytes = artifact.bytes();
-        if (bytes == null || bytes.length == 0) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Rendered Remotion preview is empty.");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers=new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(artifact.mediaType()));
-        headers.set(HttpHeaders.ACCEPT_RANGES, "bytes");
-        headers.setCacheControl("private, max-age=31536000, immutable");
+        headers.set(HttpHeaders.ACCEPT_RANGES,"bytes");
+        headers.setCacheControl("private, no-store");
 
-        if (range == null || !range.startsWith("bytes=")) {
-            headers.setContentLength(bytes.length);
-            return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
+        if(artifact.objectKey()!=null) {
+            if(mediaObjects==null || artifact.objectBytes()==null)
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Private video reader is not configured.");
+            mediaObjects.verifyVideoManifest(artifact.objectKey(),
+                    artifact.sha256(),artifact.objectBytes());
+            long size=artifact.objectBytes();
+            long[] selection=range==null?new long[]{0,size-1}:parseRange(range,size);
+            long from=selection[0],to=selection[1];
+            headers.setContentLength(to-from+1);
+            if(range!=null)headers.set(HttpHeaders.CONTENT_RANGE,
+                    "bytes "+from+"-"+to+"/"+size);
+            StreamingResponseBody body=output->mediaObjects.streamVideoRange(
+                    artifact.objectKey(),artifact.sha256(),size,from,to,output);
+            return new ResponseEntity<>(body,headers,
+                    range==null?HttpStatus.OK:HttpStatus.PARTIAL_CONTENT);
         }
 
-        long[] parsed = parseRange(range, bytes.length);
-        int start = (int) parsed[0];
-        int end = (int) parsed[1];
-        byte[] slice = Arrays.copyOfRange(bytes, start, end + 1);
+        byte[] bytes=artifact.bytes();
+        if(bytes==null||bytes.length==0)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Rendered MP4 has neither a verified S3 object nor legacy bytes.");
+        if(range==null){
+            headers.setContentLength(bytes.length);
+            StreamingResponseBody body=output->output.write(bytes);
+            return new ResponseEntity<>(body,headers,HttpStatus.OK);
+        }
+        long[] parsed=parseRange(range,bytes.length);
+        int first=(int)parsed[0],last=(int)parsed[1];
+        byte[] slice=Arrays.copyOfRange(bytes,first,last+1);
         headers.setContentLength(slice.length);
-        headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + bytes.length);
-        return new ResponseEntity<>(slice, headers, HttpStatus.PARTIAL_CONTENT);
+        headers.set(HttpHeaders.CONTENT_RANGE,
+                "bytes "+first+"-"+last+"/"+bytes.length);
+        StreamingResponseBody body=output->output.write(slice);
+        return new ResponseEntity<>(body,headers,HttpStatus.PARTIAL_CONTENT);
     }
 
     private CompositionProfile requireComposition(String compositionId) {
@@ -1150,7 +1371,11 @@ public class RemotionRenderController {
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT07_V3)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V2)
                 || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V3)
-                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V2));
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT08_V4)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT09_V3)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT10_V2)
+                || row.id().equals(DIRECTOR_LOCKED_EP003_SHOT11_V1));
         result.put("compositionId", row.compositionId());
         result.put("renderKey", row.renderKey());
         result.put("engineVersion", row.engineVersion());
@@ -1180,7 +1405,7 @@ public class RemotionRenderController {
         };
     }
 
-    private long[] parseRange(String range, int length) {
+    private long[] parseRange(String range, long length) {
         try {
             String value = range.substring("bytes=".length()).split(",", 2)[0].trim();
             String[] parts = value.split("-", 2);
@@ -1213,7 +1438,7 @@ public class RemotionRenderController {
     ) {}
 
     private record OutputProfile(int width, int height) {}
-    private record VideoArtifact(byte[] bytes, String mediaType) {}
+    private record VideoArtifact(byte[] bytes, String mediaType, String objectKey, String sha256, Long objectBytes) {}
 
     private record RenderRow(
             UUID id,

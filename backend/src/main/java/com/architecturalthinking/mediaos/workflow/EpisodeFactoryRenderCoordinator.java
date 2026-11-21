@@ -291,7 +291,7 @@ public class EpisodeFactoryRenderCoordinator {
         for(var output:List.of(master.get(0),shorts.get(0),shorts.get(1),shorts.get(2))){
             if(output.renderId()==null)throw conflict("A required final MP4 has not been created.");
             String status=jdbc.sql("""
-                    select status from remotion_render where id=:render and video_data is not null
+                    select status from remotion_render where id=:render and (video_data is not null or video_object_key is not null)
                     """).param("render",UUID.fromString(output.renderId()))
                     .query(String.class).optional().orElse("");
             if(!"SUCCEEDED".equals(status))throw conflict("The master and all three Shorts must be rendered before final review.");

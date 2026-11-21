@@ -68,7 +68,12 @@ export async function validateFactoryTree(root=episodeRoot){
     if(!dirent.isDirectory() || !/^ep[0-9]{3,}$/.test(dirent.name)
         ||['ep001','ep002'].includes(dirent.name))continue;
     const episode=path.join(root,dirent.name);
-    for(const entity of await fs.readdir(episode,{withFileTypes:true})){
+    const entries=await fs.readdir(episode,{withFileTypes:true});
+    // Older EP003 authored Remotion files are not Factory entrypoints.
+    // Validate every source in a directory only after a GeneratedScene exists.
+    if(!entries.some(file=>file.isFile()&&/^Shot[0-9]{2}GeneratedScene\.tsx$/.test(file.name)))
+      continue;
+    for(const entity of entries){
       if(!entity.isFile())throw Error('Factory episode-local dependencies must be files only: '+entity.name);
       if(!/^[A-Za-z][A-Za-z0-9_-]{0,90}\.tsx?$/.test(entity.name))
         throw Error('Factory contains unsupported source file type: '+entity.name);

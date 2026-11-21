@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { listEpisodeWorkspaces, type EpisodeSummary } from '../api/episodeWorkspaceApi';
 import { episodeDirectorRoute } from '../api/episodeDirectorApi';
+import { importedEpisodeRoute, listImportedEpisodePackages, type ImportedEpisodeSummary } from '../api/episodePackageApi';
+import { episodeHomeFeed } from '../lib/episodeHomeFeed';
 import { ep001, ep002 } from '../lib/episodeProductionLibrary';
 import '../styles/episodeDirectorHub.css';
 import '../styles/episodeSelectorQuiet.css';
 
 export function EpisodeSelectorPage() {
   const [episodes, setEpisodes] = useState<EpisodeSummary[]>([]);
+  const [imported, setImported] = useState<ImportedEpisodeSummary[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState('');
 
@@ -15,15 +18,23 @@ export function EpisodeSelectorPage() {
     setBusy(true);
     setError('');
     try {
-      setEpisodes(await listEpisodeWorkspaces());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load episodes.');
+      const [native, packages] = await Promise.allSettled([
+        listEpisodeWorkspaces(), listImportedEpisodePackages()
+      ]);
+      setEpisodes(native.status === 'fulfilled' ? native.value : []);
+      setImported(packages.status === 'fulfilled' ? packages.value : []);
+      const failures: string[] = [];
+      if (native.status === 'rejected') failures.push('Production workspaces could not load.');
+      if (packages.status === 'rejected') failures.push('Imported Episode Packages could not load.');
+      if (failures.length) setError(failures.join(' ') + ' Refresh or check your Director session.');
     } finally {
       setBusy(false);
     }
   }
 
   useEffect(() => { void refresh(); }, []);
+
+  const activeEpisodes = episodeHomeFeed(episodes, imported);
 
   return (
     <main className="media-os-page episode-hub episode-selector-quiet">
@@ -38,43 +49,54 @@ export function EpisodeSelectorPage() {
       </header>
       {error && <p role="alert" className="episode-hub-error">{error}</p>}
       {busy && <p className="episode-selector-message">Loading episodes…</p>}
-      {!busy && episodes.length === 0 &&
-        <p className="episode-selector-message">No native production episodes found. The approved source library is still available.</p>}
+      {!busy && activeEpisodes.length === 0 && !error &&
+        <p className="episode-selector-message">No active imported or native production episodes. The completed-film library remains available.</p>}
       <section className="episode-selector-list" aria-label="Choose an episode">
         <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP001';}}>
           <span className="episode-selector-id">EP001</span>
-          <span className="episode-selector-name"><strong>{ep001.title}</strong><small>Current 12-SHOT production · LOCKED sources, voice and videos</small></span>
+          <span className="episode-selector-name"><strong>{ep001.title}</strong><small>Full MP4 20:56.77 · H.264/AAC · standalone SHOTs and voice takes removed</small></span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
         <button type="button" className="episode-selector-row" onClick={() => {window.location.hash='#/library/EP002';}}>
           <span className="episode-selector-id">EP002</span>
-          <span className="episode-selector-name"><strong>{ep002.title}</strong><small>{episodes.some(row=>row.episodeNumber==='EP002')?'Production workspace +':'Source library · not yet registered in production'} · 11 locked script SHOTs / 59 approved visual beats</small></span>
+          <span className="episode-selector-name"><strong>{ep002.title}</strong><small>Full MP4 13:01.53 · H.264/AAC · standalone SHOTs and voice takes removed</small></span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
         <button type="button" className="episode-selector-row"
-          onClick={() => {window.location.hash='#/episode-packages/import?ep003=1';}}>
+          onClick={() => {window.location.hash='#/library/EP003';}}>
           <span className="episode-selector-id">EP003</span>
           <span className="episode-selector-name">
             <strong>What Happens When One Database Is No Longer Enough?</strong>
-            <small>Script v0.4 DIRECTOR LOCKED · 11 SHOTs · Slow Intake Voice Factory</small>
+            <small>Full MP4 21:26.43 · 11 SHOTs Director LOCKED · H.264/AAC</small>
           </span>
           <ArrowRight size={22} aria-hidden="true"/>
         </button>
-        {[...episodes].filter(episode => !['EP001','EP002','EP003'].includes(episode.episodeNumber))
-          .sort((a, b) => b.episodeNumber.localeCompare(a.episodeNumber, undefined, { numeric: true }))
-          .map(episode => (
+        {activeEpisodes.map(item => item.kind === 'imported' ? (
+          <button type="button" className="episode-selector-row episode-selector-imported"
+            aria-label={item.number + ' — ' + item.episode.title + ', imported source, open Voice Studio'}
+            key={'package-' + item.episode.packageId}
+            onClick={() => {window.location.hash=importedEpisodeRoute(item.episode.packageId, 'SHOT01');}}>
+            <span className="episode-selector-id">{item.number}</span>
+            <span className="episode-selector-name">
+              <strong>{item.episode.title}</strong>
+              <small>Imported source · {item.episode.shotCount} SHOTs · {item.episode.beatCount} HEAR → SEE beats · {item.episode.status} · Open Voice Studio</small>
+            </span>
+            <ArrowRight size={22} aria-hidden="true"/>
+          </button>
+        ) : (
           <button type="button"
-            className={episode.fullyLocked ? 'episode-selector-row fully-locked' : 'episode-selector-row'}
-            aria-label={episode.episodeNumber + ' — ' + episode.title + (episode.fullyLocked ? ', fully locked' : '')}
-            key={episode.id}
+            className={item.episode.fullyLocked ? 'episode-selector-row fully-locked' : 'episode-selector-row'}
+            aria-label={item.number + ' — ' + item.episode.title + (item.episode.fullyLocked ? ', fully locked' : '')}
+            key={'workspace-' + item.episode.id}
             onClick={() => {
+              const episode=item.episode;
               window.location.hash = episode.hasBrief === true
                 && ['RESEARCH','SCRIPT','SCENE'].includes(episode.currentStage)
                   ? '#/episodes/' + episode.id + '/prepare'
                   : episodeDirectorRoute(episode.id);
             }}>
-            <span className="episode-selector-id">{episode.episodeNumber}</span>
-            <strong>{episode.title}</strong>
+            <span className="episode-selector-id">{item.number}</span>
+            <strong>{item.episode.title}</strong>
             <ArrowRight size={22} aria-hidden="true"/>
           </button>
         ))}

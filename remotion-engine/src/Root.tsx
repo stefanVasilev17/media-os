@@ -1,5 +1,10 @@
 import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
+import {Ep004Shot01OrdinaryWorkday} from './episodes/ep004/Shot01OrdinaryWorkday';
+import {Ep004Shot02ContinuityV1} from './episodes/ep004/Shot02ContinuityV1';
+import {Shot02GeneratedScene as Ep004Shot02DirectorV1} from './episodes/ep004/Shot02GeneratedScene';
+import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
+import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
 import {Shot02DirectorVisualV5} from './episodes/ep002/Shot02DirectorVisualV5';
 import {Shot03DirectorVisualV1} from './episodes/ep002/Shot03DirectorVisualV1';
@@ -24,6 +29,10 @@ import {Ep003Shot08WhenCopiesAreNotEnoughV3} from './episodes/ep003/Shot08WhenCo
 import {Ep003Shot09WhenPrimaryDisappearsV1} from './episodes/ep003/Shot09WhenPrimaryDisappearsV1';
 import {Ep003Shot09WhenPrimaryDisappearsV2} from './episodes/ep003/Shot09WhenPrimaryDisappearsV2';
 import {Ep003Shot10ProveArchitectureV1} from './episodes/ep003/Shot10ProveArchitectureV1';
+import {Ep003Shot08WhenCopiesAreNotEnoughV4} from './episodes/ep003/Shot08WhenCopiesAreNotEnoughV4';
+import {Ep003Shot09WhenPrimaryDisappearsV3} from './episodes/ep003/Shot09WhenPrimaryDisappearsV3';
+import {Ep003Shot10ProveArchitectureV2} from './episodes/ep003/Shot10ProveArchitectureV2';
+import {Ep003Shot11HumanFirstFinaleV1} from './episodes/ep003/Shot11HumanFirstFinaleV1';
 import {Composition, getInputProps} from 'remotion';
 import {LoginIntentLiveScene, loginIntentLiveSceneSchema} from './episodes/ep001/live-diagram/LoginIntentLiveScene';
 import {PhoneFirstPreview, phoneFirstPreviewSchema} from './episodes/ep001/live-diagram/PhoneFirstPreview';
@@ -88,6 +97,115 @@ export const Root: React.FC = () => {
   return (
     <>
       <Composition
+        id="EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL"
+        component={Ep004Shot02DirectorV1}
+        durationInFrames={dynamicDuration??2124}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          episodeKey:'EP004' as const,shotKey:'SHOT02' as const,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          previousRenderId:EP004_SHOT01_V8_LOCKED_RENDER_ID,
+          previousSourceCommit:EP004_SHOT01_V8_SOURCE_COMMIT,
+          worldStartFrame:EP004_SHOT01_V8_LAST_FRAME,
+          durationInFrames:2124,previewOnly:false as const,
+          directorCpuApproved:true as const,scriptRevision:1,
+          voiceTakeId:'00000000-0000-4000-8000-000000000000',
+          narrationSha256:'0'.repeat(64),expectedSourceCommit:'0'.repeat(40),
+          shotTitle:'Two Gateway Systems, One Shared Pressure',
+          verifiedCues:[],visualBeats:[]
+        }}
+      />
+      <Composition
+        id="EP004-SHOT02-CONTINUITY-V1-STORYBOARD"
+        component={Ep004Shot02ContinuityV1}
+        durationInFrames={dynamicDuration ?? 270}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          previousRenderId:EP004_SHOT01_V8_LOCKED_RENDER_ID,
+          previousSourceCommit:EP004_SHOT01_V8_SOURCE_COMMIT,
+          previousSourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          worldStartFrame:EP004_SHOT01_V8_LAST_FRAME,
+          durationInFrames:270,
+          previewOnly:true
+        }}
+      />
+      <Composition
+        id="EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL"
+        component={Ep004Shot01OrdinaryWorkday}
+        durationInFrames={dynamicDuration ?? 1950}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:1950,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          worldStartFrame:0,
+          previewOnly:true
+        }}
+      />
+      <Composition
+        id="EP003-SHOT11-FINALE-V1-DIRECTOR-CANDIDATE"
+        component={Ep003Shot11HumanFirstFinaleV1}
+        durationInFrames={dynamicDuration ?? 3104}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:3104,
+          voiceTakeId:'5c3435f6-ae66-4ec3-a6b0-bf1cc8207486',
+          previousRenderId:'174c8a8b-3202-4067-95ef-7dab1de11aa3',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:47457,
+          cueFrames:{
+            BEGIN:60,ONE_PERSON:165,FOLLOWED:270,AUTH_STATE:375,
+            PRESSURE:480,HEALTHY:585,BOTTLENECK:690,PROTECTED:795,
+            CAPACITY:900,CHOICES:1005,REPLICATION:1110,CONSISTENCY:1215,
+            SHARDING:1320,FAILOVER:1425,RESPONSIBILITY:1530,
+            MORE_CAPACITY:1635,MORE_COPIES:1740,MORE_OWNERS:1845,
+            SYSTEM_DESIGN:1950,NOT_COMPONENTS:2055,TRADEOFF:2160,
+            HUMAN:2460,LOGIN:2565,SUCCESS:2670
+          },
+        }}
+      />
+      <Composition
+        id="EP003-SHOT10-MEASUREMENT-V2-DIRECTOR-CANDIDATE"
+        component={Ep003Shot10ProveArchitectureV2}
+        durationInFrames={dynamicDuration ?? 4016}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:4016,
+          voiceTakeId:'0168eb87-538f-49d8-9c79-132d822bdb60',
+          previousRenderId:'b3a3912f-79ee-4c72-b313-cbe09f950a5e',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:43442,
+          cueFrames:{
+            RETURN:60,
+            ORIGINAL_DB:190,
+            EXPLORED:320,
+            PROVE:450,
+            OUTCOME:580,
+            SUCCESS:710,
+            SLI:840,
+            SLI_DEFINITION:970,
+            SLO:1100,
+            TWO_SECONDS:1230,
+            REJECTED:1360,
+            LATENCY:1490,
+            P95:1620,
+            SUCCESS_BIAS:1750,
+            HALF_USERS:1880,
+            DATABASE_METRICS:2010,
+            SHARD_OVERLOAD:2140,
+            TEST_FAILOVER:2270,
+            RECOVERY:2400,
+            RTO_RPO:2530,
+            COMPARE:2660,
+            MORE_LOGINS:2790,
+            PRESSURE:2920,
+            COMPLEXITY:3050,
+            PURPOSE:3180,
+          },
+        }}
+      />
+      <Composition
         id="EP003-SHOT10-MEASUREMENT-V1-DIRECTOR-CANDIDATE"
         component={Ep003Shot10ProveArchitectureV1}
         durationInFrames={dynamicDuration ?? 4016}
@@ -125,6 +243,46 @@ export const Root: React.FC = () => {
             PRESSURE:2920,
             COMPLEXITY:3050,
             PURPOSE:3180,
+          },
+        }}
+      />
+      <Composition
+        id="EP003-SHOT09-FAILOVER-V3-DIRECTOR-CANDIDATE"
+        component={Ep003Shot09WhenPrimaryDisappearsV3}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'7510815a-d096-415f-b4f0-52ae8398ce45',
+          previousRenderId:'00000000-0000-4000-8000-000000000000',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:40298,
+          cueFrames:{
+            INTRO:60,
+            PRIMARY_AND_REPLICA:74,
+            PRIMARY_OWNS:88,
+            PRIMARY_FAIL:102,
+            REQUEST_FAILURE:116,
+            OTHER_SHARD:130,
+            RECOVERY_PATH:144,
+            PROMOTE:158,
+            FAILOVER:172,
+            LEGITIMATE_OWNER:186,
+            OLD_RETURN:200,
+            TWO_WRITERS:214,
+            SPLIT_BRAIN:228,
+            FENCING:242,
+            FENCE_MEANING:256,
+            DATA_RISK:270,
+            ASYNC:284,
+            LAG:298,
+            DATA_LOSS:312,
+            GREEN_ARROW:326,
+            CORRECTNESS:340,
+            INSTANCES:354,
+            WRONG_STATE:368,
+            TEST_FAILURES:382,
           },
         }}
       />
@@ -205,6 +363,51 @@ export const Root: React.FC = () => {
             INSTANCES:354,
             WRONG_STATE:368,
             TEST_FAILURES:382,
+          },
+        }}
+      />
+      <Composition
+        id="EP003-SHOT08-SHARDING-V4-DIRECTOR-CANDIDATE"
+        component={Ep003Shot08WhenCopiesAreNotEnoughV4}
+        durationInFrames={dynamicDuration ?? 660}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          durationInFrames:660,
+          voiceTakeId:'368c239c-a93b-437e-a833-2f955fa51803',
+          previousRenderId:'09457c3c-32d9-432c-aa92-67f0e7b13f60',
+          previousLastFrameSha256:'0'.repeat(64),
+          previousLastFrameDataUri:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lm0AAAAASUVORK5CYII=',
+          worldStartFrame:34927,
+          cueFrames:{
+            INTRO:60,
+            ONE_PRIMARY:76,
+            DIVIDE:92,
+            OWNER_A:108,
+            OWNER_B:124,
+            SHARDING:140,
+            SHARD_DEF:156,
+            INDEPENDENT_PRIMARY:172,
+            CRITICAL_LOOKUPS:188,
+            SHARD_A:204,
+            SHARD_B:220,
+            AUTHORITATIVE:236,
+            SHARD_KEY_QUESTION:252,
+            SHARD_KEY:268,
+            SHARD_KEY_DEF:284,
+            MAPPING:300,
+            ROUTING:316,
+            IDENTIFIER_CHANGE:332,
+            MISSING_KEY:348,
+            HOT_SHARD_QUESTION:364,
+            HOT_SHARD:380,
+            HOT_WARNING:396,
+            CROSS_SHARD:412,
+            EACH_REPLICAS:428,
+            COMPARE:444,
+            COMPARE_DEF:460,
+            CAPACITY:476,
+            HYPOTHESIS:492,
+            FAILURE:508
           },
         }}
       />

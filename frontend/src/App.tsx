@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { EpisodeSelectorPage } from './pages/EpisodeSelectorPage';
-import { EpisodeProductionLibraryPage } from './pages/EpisodeProductionLibraryPage';
+import {ThreeFinishedEpisodes} from './pages/ThreeFinishedEpisodes';
 import { EpisodeNewPage } from './pages/EpisodeNewPage';
 import {EpisodePackageImportPage} from './pages/EpisodePackageImportPage';
 import {Ep003Shot07V2DirectorReview} from './components/Ep003Shot07V2DirectorReview';
@@ -10,8 +10,13 @@ import {Ep003Shot08V2DirectorReview} from './components/Ep003Shot08V2DirectorRev
 import {Ep003Shot09V1DirectorReview} from './components/Ep003Shot09V1DirectorReview';
 import {Ep003Shot09V2DirectorReview} from './components/Ep003Shot09V2DirectorReview';
 import {Ep003Shot10V1DirectorReview} from './components/Ep003Shot10V1DirectorReview';
+import {Ep003Shot10V2DirectorReview} from './components/Ep003Shot10V2DirectorReview';
+import {Ep003Shot11V1DirectorReview} from './components/Ep003Shot11V1DirectorReview';
 import {Ep003Shot08V3DirectorReview} from './components/Ep003Shot08V3DirectorReview';
+import {Ep003Shot08V4DirectorReview} from './components/Ep003Shot08V4DirectorReview';
+import {Ep003Shot09V3DirectorReview} from './components/Ep003Shot09V3DirectorReview';
 import {Ep003CumulativeFullVideo} from './components/Ep003CumulativeFullVideo';
+import {Ep003CorrectedTenShotFullWip} from './components/Ep003CorrectedTenShotFullWip';
 import { EpisodePreparationPage } from './pages/EpisodePreparationPage';
 import { ProductionMemoryImportPage } from './pages/ProductionMemoryImportPage';
 import { DirectorRuleStudioPage } from './pages/DirectorRuleStudioPage';
@@ -42,6 +47,7 @@ const ShotRenderPage = lazy(async () => {
 });
 
 function normalizeLegacyRoute(hash: string) {
+  if (/^#\/ep003\/shot\d{2}(?:\/|$)/.test(hash) || hash.startsWith('#/ep003/corrected/full')) return '#/ep003/full';
   if (hash.startsWith('#/spline-agent')) return '#/agents/spline';
   if (hash.startsWith('#/diagnostics')) return '#/agents/spline';
   if (hash.startsWith('#/browser-clone-proof')) return '#/agents/spline';
@@ -74,6 +80,25 @@ export function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  if (hash === '#/ep003/shot08/v4') {
+    return <div className="media-os-product-shell"><Ep003Shot08V4DirectorReview/></div>;
+  }
+  if (hash === '#/ep003/shot09/v3') {
+    return <div className="media-os-product-shell"><Ep003Shot09V3DirectorReview/></div>;
+  }
+
+  if (hash === '#/ep003/corrected/full') {
+    return <div className="media-os-product-shell"><Ep003CorrectedTenShotFullWip/></div>;
+  }
+
+  if (hash === '#/ep003/shot11/v1') {
+    return <div className="media-os-product-shell"><Ep003Shot11V1DirectorReview/></div>;
+  }
+
+  if (hash === '#/ep003/shot10/v2') {
+    return <div className="media-os-product-shell"><Ep003Shot10V2DirectorReview/></div>;
+  }
 
   if (hash === '#/ep003/shot10/v1') {
     return <div className="media-os-product-shell"><Ep003Shot10V1DirectorReview/></div>;
@@ -125,8 +150,8 @@ export function App() {
   let page: ReactNode;
 
   const preparationRoute = /^#\/episodes\/([0-9a-fA-F-]{36})\/prepare(?:\?|$)/.exec(hash);
-  if (hash === '#/library/EP001' || hash === '#/library/EP002') {
-    page = <EpisodeProductionLibraryPage episodeKey={hash.endsWith('EP001') ? 'EP001' : 'EP002'} />;
+  if (hash === '#/library/EP001' || hash === '#/library/EP002' || hash === '#/library/EP003') {
+    page = <ThreeFinishedEpisodes episode={hash.endsWith('EP001') ? 'EP001' : hash.endsWith('EP002') ? 'EP002' : 'EP003'} />;
   } else if (hash === '#/episode-packages/import' || hash.startsWith('#/episode-packages/import?')) {
     page = <EpisodePackageImportPage />;
   } else if (hash === '#/episodes/new' || hash.startsWith('#/episodes/new?')) {

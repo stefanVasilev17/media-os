@@ -1,0 +1,8 @@
+FROM node:22-alpine
+RUN apk add --no-cache ffmpeg
+WORKDIR /app/cumulative-engine
+COPY cumulative-engine/package.json ./
+RUN npm install --no-audit --no-fund
+COPY cumulative-engine/mediaos-three-master-embedded-audio-probe-once.mjs ./
+RUN node --check mediaos-three-master-embedded-audio-probe-once.mjs
+CMD ["node","/app/cumulative-engine/mediaos-three-master-embedded-audio-probe-once.mjs"]

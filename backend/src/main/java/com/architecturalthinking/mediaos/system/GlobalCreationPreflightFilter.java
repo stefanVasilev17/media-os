@@ -92,6 +92,12 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        if (isVerifiedEp004WorkerContinuation(request)) {
+            request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
+                    Map.of("continuation", "EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"));
+            chain.doFilter(request, response);
+            return;
+        }
         if (isVerifiedFactoryWorkerContinuation(request)) {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
                     Map.of("continuation", "FACTORY_DIRECTOR_AUTHORIZED_RENDER"));
@@ -290,6 +296,49 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                 """).param("render",UUID.fromString(callback.group(1)))
                 .param("project",RENDER_PROJECT_ID)
                 .param("worker",worker.trim()).param("sha",sourceSha)
+                .query(Boolean.class).single());
+    }
+
+    private boolean isVerifiedEp004WorkerContinuation(HttpServletRequest request) {
+        if(jdbc==null)return false;
+        java.util.regex.Matcher callback=FINAL_REMOTION_CALLBACK.matcher(apiPath(request));
+        if(!callback.matches())return false;
+        String operation=callback.group(2);
+        if(!(("complete".equals(operation) && "PUT".equals(request.getMethod()))
+              || ("fail".equals(operation) && "POST".equals(request.getMethod()))))
+            return false;
+        if(request.getHeader("X-MediaOS-Episode-Id")!=null)return false;
+        String worker=request.getHeader("X-Media-OS-Worker");
+        String sourceSha=request.getHeader("X-Media-OS-Worker-Source-Sha");
+        if(worker==null||worker.isBlank()||sourceSha==null
+                ||!sourceSha.matches("[a-f0-9]{40}"))return false;
+        UUID renderId=UUID.fromString(callback.group(1));
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select exists(
+                    select 1 from remotion_render r
+                    where r.id=:render and r.project_id=:project
+                      and r.episode_id is null
+                      and r.composition_id in ('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
+                                               'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')
+                      and r.profile='REVIEW' and r.width=1920 and r.height=1080
+                      and r.fps=30 and r.duration_in_frames between 600 and 9000
+                      and r.status='RUNNING' and r.worker_id=:worker
+                      and r.input_props->>'expectedSourceCommit'=:sourceSha
+                      and r.input_props->>'sourceSha256'
+                          ='a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365'
+                      and r.input_props->>'directorCpuApproved'='true'
+                      and r.input_props->>'previewOnly'='false'
+                      and r.input_props->>'voiceTakeId' is not null
+                      and r.input_props->>'packageId' is not null
+                      and r.input_props->>'renderRequestId' is not null
+                      and (r.composition_id<>'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
+                        or (r.input_props->>'shotKey'='SHOT02'
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40))
+                )
+                """)
+                .param("render",renderId).param("project",RENDER_PROJECT_ID)
+                .param("worker",worker.trim()).param("sourceSha",sourceSha)
                 .query(Boolean.class).single());
     }
 

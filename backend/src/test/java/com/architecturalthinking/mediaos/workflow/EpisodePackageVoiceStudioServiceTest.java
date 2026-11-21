@@ -18,6 +18,7 @@ class EpisodePackageVoiceStudioServiceTest {
         var service=new EpisodePackageVoiceStudioService(jdbc,provider,
                 org.mockito.Mockito.mock(Ep002VoiceIdentityGuard.class),
                 org.mockito.Mockito.mock(EpisodePackageAudioDurationProbe.class),
+                org.mockito.Mockito.mock(MediaObjectStore.class),
                 new com.fasterxml.jackson.databind.ObjectMapper(),
                 org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class),
                 true);
@@ -27,6 +28,15 @@ class EpisodePackageVoiceStudioServiceTest {
                         UUID.randomUUID(),true,"UNSAFE_FAST"));
         assertEquals(HttpStatus.BAD_REQUEST,failure.getStatusCode());
         org.mockito.Mockito.verifyNoInteractions(jdbc,provider);
+    }
+
+    @Test
+    void ep004NewProductionVoiceDoesNotRequireDeletedLegacyEp001TakeBytes() {
+        assertTrue(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP002"));
+        assertTrue(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP003"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP004"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity("EP005"));
+        assertFalse(EpisodePackageVoiceStudioService.requiresLegacyEp001VoiceIdentity(null));
     }
 
     @Test

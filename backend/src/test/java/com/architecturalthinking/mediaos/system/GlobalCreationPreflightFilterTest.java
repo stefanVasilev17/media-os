@@ -191,6 +191,35 @@ class GlobalCreationPreflightFilterTest {
     }
 
     @Test
+    void ep004Shot01CpuRenderMustWriteCanonicalProjectAuditBeforeController()
+            throws Exception {
+        when(memory.hasSingleEpisode()).thenReturn(false);
+        UUID audit=UUID.randomUUID();
+        when(memory.preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID)))
+                .thenReturn(Map.of("auditId",audit,"status","CONTEXT_READY"));
+        String path="/api/v1/episode-packages/"
+                +"d11d02a2-b649-44c9-a022-4405149f675e/shots/SHOT01/render";
+        MockHttpServletRequest permitted=new MockHttpServletRequest("POST",path);
+        MockHttpServletResponse allowedResponse=new MockHttpServletResponse();
+        MockFilterChain chain=new MockFilterChain();
+        filter.doFilter(permitted,allowedResponse,chain);
+        assertThat(chain.getRequest()).isSameAs(permitted);
+        assertThat(allowedResponse.getHeader("X-MediaOS-Preflight")).isEqualTo(audit.toString());
+        assertThat(permitted.getAttribute("MEDIA_OS_CREATION_PREFLIGHT"))
+                .isEqualTo(Map.of("auditId",audit,"status","CONTEXT_READY"));
+        verify(memory).preflight(eq("ALL"),any(),eq(ProductionOverviewService.EPISODE_ID));
+
+        MockHttpServletRequest forged=new MockHttpServletRequest("POST",path);
+        forged.addHeader("X-MediaOS-Episode-Id",
+                "33333333-3333-4333-8333-333333333333");
+        MockHttpServletResponse rejected=new MockHttpServletResponse();
+        MockFilterChain denied=new MockFilterChain();
+        filter.doFilter(forged,rejected,denied);
+        assertThat(rejected.getStatus()).isEqualTo(409);
+        assertThat(denied.getRequest()).isNull();
+    }
+
+    @Test
     void independentVerificationAndAutopilotWritesNeedProjectAudit() throws Exception {
         when(memory.hasSingleEpisode()).thenReturn(false);
         UUID audit=UUID.randomUUID();

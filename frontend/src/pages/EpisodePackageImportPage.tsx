@@ -26,7 +26,10 @@ import {Ep003Shot09V1DirectorReview} from '../components/Ep003Shot09V1DirectorRe
 import {Ep003Shot08V3DirectorReview} from '../components/Ep003Shot08V3DirectorReview';
 import {Ep003Shot09V2DirectorReview} from '../components/Ep003Shot09V2DirectorReview';
 import {Ep003Shot10V1DirectorReview} from '../components/Ep003Shot10V1DirectorReview';
+import {Ep003Shot08V4DirectorReview} from '../components/Ep003Shot08V4DirectorReview';
+import {Ep003Shot09V3DirectorReview} from '../components/Ep003Shot09V3DirectorReview';
 import {Ep003CumulativeFullVideo} from '../components/Ep003CumulativeFullVideo';
+import {Ep003Shot11V1DirectorReview} from '../components/Ep003Shot11V1DirectorReview';
 
 type Shot={shotKey:string;title:string;narration:string;voiceDirection:string;visualStory:unknown;voiceTaskStatus:string};
 type Imported={packageId:string;episodeKey:string;title:string;status:string;shotCount:number;beatCount:number;sourceSha256:string;shots:Shot[]};
@@ -55,7 +58,24 @@ export function EpisodePackageImportPage(){
 
   async function refresh(){setSaved(await json<Entry[]>(await fetch(BASE,{cache:'no-store'})));}
   useEffect(()=>{
-    if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
+    const params=new URLSearchParams(window.location.hash.split('?',2)[1]||'');
+    const packageId=params.get('packageId');
+    const requestedShot=params.get('shot');
+    if(packageId){
+      if(!/^[0-9a-fA-F-]{36}$/.test(packageId)){
+        setError('Invalid imported episode package ID.');
+        return;
+      }
+      setBusy(true);
+      void Promise.all([
+        fetch(BASE+'/'+encodeURIComponent(packageId),{cache:'no-store'}).then(json<Imported>),
+        refresh()
+      ]).then(([episode])=>{
+        setDetails(episode);
+        setActiveVoiceShot(requestedShot&&episode.shots.some(s=>s.shotKey===requestedShot)
+          ?requestedShot:null);
+      }).catch(e=>setError(String(e))).finally(()=>setBusy(false));
+    }else if(window.location.hash.startsWith('#/episode-packages/import?ep003=1')){
       setBusy(true);
       void fetch(BASE+'/prepare-ep003',{
         method:'POST',headers:{'Content-Type':'application/json'},body:'{}'
@@ -160,31 +180,37 @@ export function EpisodePackageImportPage(){
         </button>)}
     </section>
     {details&&<section className="episode-package-panel">
+       {details.episodeKey==='EP003'?<Ep003CumulativeFullVideo/>:<>
       <h2>{details.episodeKey} · All voice tasks</h2>
       <p>{details.status} · {details.shots.filter(shot=>
         shot.voiceTaskStatus==='VOICE_APPROVED_TIMING_REVIEW_REQUIRED').length}/{details.shotCount}
         {' '}SHOTs have a Director-selected current-revision Take.
         The imported source remains immutable. Provider alignment and timing still require
         separate validation before any future OpenAI batch authorization.</p>
-      {details.episodeKey==='EP003'&&<Ep003CumulativeFullVideo/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot10V1DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot09V2DirectorReview/>}
-      {details.episodeKey==='EP003'&&<Ep003Shot08V3DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT09 V1 · NOT LOCKED</summary><Ep003Shot09V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<Ep003Shot08V2DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT08 V1 · NOT LOCKED</summary><Ep003Shot08V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<Ep003Shot07V3DirectorReview/>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V2 · NOT LOCKED</summary><Ep003Shot07V2DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V1 · NOT LOCKED</summary><Ep003Shot07V1DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
-      {details.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
+
+      {details&&false&&<>
+      {details?.episodeKey==='EP003'&&<Ep003Shot11V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot01DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot02DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot03V4DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot04V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot05V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot06V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot09V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V4DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot10V1DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot09V2DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT09 V1 · NOT LOCKED</summary><Ep003Shot09V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot08V2DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT08 V1 · NOT LOCKED</summary><Ep003Shot08V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<Ep003Shot07V3DirectorReview/>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V2 · NOT LOCKED</summary><Ep003Shot07V2DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT07 V1 · NOT LOCKED</summary><Ep003Shot07V1DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V3 · previous primary wording · NOT LOCKED</summary><Ep003Shot03V3DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V2 · approved database replica shapes · not LOCKED</summary><Ep003Shot03V2DirectorReview/></details>}
+      {details?.episodeKey==='EP003'&&<details className="episode-package-shot"><summary>Historical SHOT03 V1 · blue service-style replicas</summary><Ep003Shot03DirectorReview/></details>}
+      </>}
       <EpisodeVoiceReadinessPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}/>
       <EpisodeCodexCloudPanel packageId={details.packageId}
@@ -196,7 +222,8 @@ export function EpisodePackageImportPage(){
       <EpisodeMultiShotExecutionPanel packageId={details.packageId}
         refreshVersion={readinessRefresh}
         onStatusChanged={()=>setReadinessRefresh(v=>v+1)}/>
-      {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}>
+      {details.shots.map(shot=><details className="episode-package-shot" key={shot.shotKey}
+        open={activeVoiceShot===shot.shotKey ? true : undefined}>
         <summary>{shot.shotKey} · {shot.title} <span>{shot.voiceTaskStatus}</span></summary>
         <p><strong>Original approved narration:</strong> {shot.narration}</p>
         <p><strong>Original voice direction:</strong> {shot.voiceDirection}</p>
@@ -214,6 +241,7 @@ export function EpisodePackageImportPage(){
           <pre>{JSON.stringify(shot.visualStory,null,2)}</pre>
         </details>
       </details>)}
+       </>}
     </section>}
   </main>;
 }

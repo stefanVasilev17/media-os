@@ -185,3 +185,7 @@
 .ep003-director-review-actions a:hover,.ep003-director-review-actions button:hover{background:#1c4b67}
 .ep003-director-review-caution{font-size:13px;line-height:1.65;color:#a8c4d7;margin:18px 0 0}
 @media(max-width:650px){.ep003-director-review{padding:14px}.ep003-director-review-heading{flex-direction:column}.ep003-director-review-actions{flex-direction:column;align-items:stretch}.ep003-director-review-actions a,.ep003-director-review-actions button{justify-content:center}}
+
+.episode-package-voice-option-disabled{cursor:not-allowed!important;opacity:.68}
+.episode-package-voice-option-disabled input{cursor:not-allowed}
+.episode-package-voice-blocker{padding:12px 14px;border:1px solid #a77d52;background:#382d24;border-radius:8px;color:#ffdfb5!important;font-size:13px;line-height:1.65}

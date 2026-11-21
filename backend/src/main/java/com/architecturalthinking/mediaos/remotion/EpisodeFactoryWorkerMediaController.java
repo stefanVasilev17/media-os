@@ -1,5 +1,7 @@
 package com.architecturalthinking.mediaos.remotion;
 
+import com.architecturalthinking.mediaos.workflow.MediaObjectStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -16,13 +18,21 @@ import java.util.UUID;
 public class EpisodeFactoryWorkerMediaController {
     private final JdbcClient jdbc;
     private final String secret;
+    private final MediaObjectStore mediaObjects;
 
+    @Autowired
     public EpisodeFactoryWorkerMediaController(JdbcClient jdbc,
-            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey) {
+            @Value("${MEDIA_OS_RENDER_WORKER_KEY:}") String workerKey,
+            MediaObjectStore mediaObjects) {
         this.jdbc=jdbc;this.secret=workerKey==null?"":workerKey.trim();
+        this.mediaObjects=mediaObjects;
     }
 
-    record Media(byte[] bytes,String type) {}
+    public EpisodeFactoryWorkerMediaController(JdbcClient jdbc,String workerKey){
+        this(jdbc,workerKey,null);
+    }
+
+    record Media(byte[] bytes,String type,String objectKey,String sha256,Long objectBytes) {}
 
     @GetMapping("/{renderId}/factory-selected-voice")
     public ResponseEntity<byte[]> voice(
@@ -31,7 +41,7 @@ public class EpisodeFactoryWorkerMediaController {
             @RequestHeader(value="X-Media-OS-Worker",required=false) String worker) {
         requireWorker(key,worker);
         var audio=jdbc.sql("""
-                select t.audio,t.content_type
+                select t.audio,t.content_type,t.audio_object_key,t.audio_sha256,t.audio_size_bytes
                   from episode_factory_shot fs
                   join episode_factory_production_run run on run.id=fs.run_id
                   join episode_package_voice_take t
@@ -50,17 +60,22 @@ public class EpisodeFactoryWorkerMediaController {
                    and r.composition_id='AT-FACTORY-SHOT'
                    and run.verified_pr_commit=r.input_props->>'expectedSourceCommit'
                 """).param("render",renderId).param("worker",worker.trim())
-                .query((rs,n)->new Media(rs.getBytes("audio"),rs.getString("content_type")))
+                .query((rs,n)->new Media(rs.getBytes("audio"),rs.getString("content_type"),
+                        rs.getString("audio_object_key"),rs.getString("audio_sha256"),
+                        rs.getObject("audio_size_bytes",Long.class)))
                 .optional().orElseThrow(()->
                     new ResponseStatusException(HttpStatus.CONFLICT,
                             "Current Director-approved factory voice is not available for active worker render."));
-        if(audio.bytes()==null||audio.bytes().length<100)
+        byte[] playable=audio.objectKey()!=null
+                ?requireStore().downloadVerified(audio.objectKey(),audio.sha256(),audio.objectBytes())
+                :audio.bytes();
+        if(playable==null||playable.length<100)
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Approved Take audio is missing.");
+                    "Current Director-approved Take audio is missing.");
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(audio.type()))
                 .cacheControl(CacheControl.noStore())
-                .body(audio.bytes());
+                .body(playable);
     }
 
     @GetMapping("/{targetId}/factory-source/{sourceId}")
@@ -70,7 +85,8 @@ public class EpisodeFactoryWorkerMediaController {
             @RequestHeader(value="X-Media-OS-Worker",required=false) String worker) {
         requireWorker(key,worker);
         var mp4=jdbc.sql("""
-                select source.video_data,source.media_type
+                select source.video_data,source.media_type,source.video_object_key,
+                       source.video_sha256,source.video_object_bytes
                   from episode_factory_output_plan plan
                   join episode_factory_production_run run on run.id=plan.run_id
                   join episode_factory_shot shot on shot.run_id=run.id
@@ -82,20 +98,31 @@ public class EpisodeFactoryWorkerMediaController {
                    and target.composition_id in ('AT-FACTORY-MASTER','AT-FACTORY-SHORT')
                    and source.status='SUCCEEDED'
                    and source.composition_id='AT-FACTORY-SHOT'
-                   and source.video_data is not null
+                   and (source.video_data is not null or source.video_object_key is not null)
                    and run.verified_pr_commit=target.input_props->>'expectedSourceCommit'
                  limit 1
                 """).param("source",sourceId).param("target",targetId)
                 .param("worker",worker.trim())
                 .query((rs,n)->new Media(rs.getBytes("video_data"),
-                        rs.getString("media_type"))).optional().orElseThrow(()->
+                        rs.getString("media_type"),rs.getString("video_object_key"),
+                        rs.getString("video_sha256"),
+                        rs.getObject("video_object_bytes",Long.class))).optional().orElseThrow(()->
                     new ResponseStatusException(HttpStatus.FORBIDDEN,
                             "Requested MP4 is not an approved SHOT input for the active factory output job."));
-        if(mp4.bytes()==null||mp4.bytes().length<1000
+        byte[] sourceBytes=mp4.objectKey()!=null
+                ?requireStore().downloadVideoVerified(mp4.objectKey(),mp4.sha256(),mp4.objectBytes())
+                :mp4.bytes();
+        if(sourceBytes==null||sourceBytes.length<1000
                 ||!"video/mp4".equals(mp4.type()))
             throw new ResponseStatusException(HttpStatus.CONFLICT,"Approved MP4 is invalid.");
         return ResponseEntity.ok().contentType(MediaType.valueOf("video/mp4"))
-                .cacheControl(CacheControl.noStore()).body(mp4.bytes());
+                .cacheControl(CacheControl.noStore()).body(sourceBytes);
+    }
+
+    private MediaObjectStore requireStore(){
+        if(mediaObjects==null)throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Private media object store is unavailable.");
+        return mediaObjects;
     }
 
     private void requireWorker(String key,String worker) {

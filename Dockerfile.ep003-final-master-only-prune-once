@@ -1,0 +1,9 @@
+FROM node:22-alpine
+WORKDIR /app/cumulative-engine
+COPY cumulative-engine/package.json ./
+RUN npm install --no-audit --no-fund --prefer-offline
+COPY cumulative-engine/ ./
+COPY remotion-engine/ep003-director-locked-visual-sequence-11.json /app/remotion-engine/ep003-director-locked-visual-sequence-11.json
+RUN node --check ep003-final-master-only-prune-once.mjs
+RUN node --test ep003-final-master-only-prune-once.test.mjs
+CMD ["node","/app/cumulative-engine/ep003-final-master-only-prune-once.mjs"]

@@ -81,6 +81,23 @@ class WorkloadRouteFactoryTest {
     }
 
     @Test
+    void ep004ApprovedVoiceRequiresExactWorkerGetAndCannotChangeScope() {
+        String approved=PREFIX+RENDER+"/ep004-shot01-selected-voice";
+        assertEquals(CPU,WorkloadRoute.resolve("GET",approved));
+        assertEquals(CPU,WorkloadRoute.resolve(approved));
+        assertNull(WorkloadRoute.resolve("POST",approved));
+        assertNull(WorkloadRoute.resolve("PUT",approved));
+        assertNull(WorkloadRoute.resolve("DELETE",approved));
+        assertNull(WorkloadRoute.resolve("GET",approved+"/extra"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+"not-a-uuid/ep004-shot01-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot02-selected-voice"));
+        assertNull(WorkloadRoute.resolve("GET",
+                PREFIX+RENDER+"/ep004-shot01-selected-voice/../../extra"));
+    }
+
+    @Test
     void oldCpuWorkerOperationsKeepTheirExactMethods() {
         assertEquals(CPU, WorkloadRoute.resolve("POST", PREFIX + "claim"));
         assertEquals(CPU, WorkloadRoute.resolve("POST", PREFIX + RENDER + "/progress"));
