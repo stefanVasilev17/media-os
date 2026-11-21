@@ -18,8 +18,10 @@ import type {Ep004Shot03StoryboardProps,Ep004Shot03StoryboardState}
 const CYAN='#68E5FF',VIOLET='#B49BFF',MINT='#6FECD4';
 const AMBER='#F5A55A',WHITE='#F5FCFF',SECONDARY='#B1CDDF';
 const GatewayShapes:React.FC<{
-  reveal:number;redirect:number;sharedLoad:number;july:number;worldFrame:number;
-}>=({reveal,redirect,sharedLoad,july,worldFrame})=>{
+  reveal:number;redirect:number;sharedLoad:number;julyCallout:number;worldFrame:number;
+  primaryFocus:number;alternativeFocus:number;
+}>=({reveal,redirect,sharedLoad,julyCallout,worldFrame,
+    primaryFocus,alternativeFocus})=>{
   const p=EP004_SHOT03_NODES.primary,a=EP004_SHOT03_NODES.alternative;
   const primaryGlow=.35+.65*Math.sin(worldFrame*.029)**2;
   const primaryOutline=['M',p.left+20,p.top,'H',p.left+p.width-20,
@@ -33,15 +35,16 @@ const GatewayShapes:React.FC<{
     'Q',a.left,a.top+a.height,a.left,a.top+a.height-29,
     'V',a.top+29,'Q',a.left,a.top,a.left+30,a.top,'Z'].join(' ');
   return <g opacity={reveal} fontFamily={AT_FONT}>
-    <path d={primaryOutline} fill="#071E32" stroke={CYAN} strokeWidth={2.7}
-      style={{filter:'drop-shadow(0 0 13px rgba(75,195,248,.18))'}}/>
+    <path d={primaryOutline} fill="#071E32" stroke={CYAN}
+      strokeWidth={2.5+1.35*primaryFocus} opacity={.64+.36*primaryFocus}
+      style={{filter:'drop-shadow(0 0 '+(9+12*primaryFocus)+'px rgba(75,195,248,.39))'}}/>
     <path d={'M '+(p.left+25)+' '+(p.top+12)+' H '+(p.left+p.width-25)}
       stroke={CYAN} strokeWidth={1.7} opacity={.30+.19*primaryGlow}/>
-    <text x={p.left+27} y={p.top+46} fontSize={24} fontWeight={850}
+    <text x={p.left+27} y={p.top+46} fontSize={22} fontWeight={850}
       fill={WHITE}>Primary Gateway</text>
-    <text x={p.left+27} y={p.top+73} fontSize={17} fontWeight={650}
-      fill={SECONDARY}>Connection entry layer</text>
-    <g opacity={1-july}>
+    <text x={p.left+27} y={p.top+73} fontSize={18} fontWeight={650}
+      fill={SECONDARY}>Entry and routing</text>
+    <g opacity={1-.89*julyCallout}>
       <text x={p.left+27} y={p.top+96} fontSize={14} fontWeight={750}
         fill={SECONDARY}>WORKLOAD MIX</text>
       <rect x={p.left+27} y={p.top+106} width={204} height={10}
@@ -53,20 +56,22 @@ const GatewayShapes:React.FC<{
       <circle cx={p.left+236} cy={p.top+35} r={5} fill={MINT}
         opacity={.5+.5*primaryGlow}/>
     </g>
-    <g opacity={july}>
+    <g opacity={julyCallout}>
       <path d={'M '+(p.left+27)+' '+(p.top+99)+' H '+(p.left+230)}
         stroke={AMBER} strokeWidth={1.3} opacity={.7}/>
       <text x={p.left+29} y={p.top+125} fontSize={19}
-        fontWeight={850} fill={AMBER}>JULY GATEWAY UPDATE</text>
+        fontWeight={850} fill={AMBER}>JULY UPDATE</text>
     </g>
     <path d={alternativeOutline} fill="#151D3A"
-      stroke={VIOLET} strokeWidth={2.6} opacity={1-.30*redirect}/>
+      stroke={VIOLET} strokeWidth={2.5+1.2*alternativeFocus}
+      opacity={.62+.38*alternativeFocus}
+      style={{filter:'drop-shadow(0 0 '+(7+11*alternativeFocus)+'px rgba(180,155,255,.32))'}}/>
     <path d={'M '+(a.left+30)+' '+(a.top+14)+' H '+(a.left+a.width-30)}
       stroke={VIOLET} strokeWidth={1.5} opacity={.38}/>
-    <text x={a.left+24} y={a.top+47} fontSize={23} fontWeight={850}
+    <text x={a.left+24} y={a.top+47} fontSize={20.5} fontWeight={850}
       fill={WHITE}>Alternative Gateway</text>
-    <text x={a.left+24} y={a.top+76} fontSize={17} fontWeight={670}
-      fill={SECONDARY}>Separate gateway system</text>
+    <text x={a.left+24} y={a.top+76} fontSize={18} fontWeight={670}
+      fill={SECONDARY}>Independent route</text>
     <circle cx={a.left+a.width-25} cy={a.top+96} r={4.5}
       fill={MINT} opacity={.85-.25*redirect}/>
     {[
@@ -117,20 +122,17 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
         </g>
         <g opacity={state.gatewayReveal}>
           {Object.entries(EP004_SHOT03_ROUTES).map(([key,points])=>{
-            const redirected=key==='TEAMS_FAILOVER'||key==='PRIMARY_TEAMS';
-            const alternative=key==='TEAMS_ALTERNATIVE'||key==='ALTERNATIVE_TEAMS';
             const violet=key!=='OUTLOOK_PRIMARY'&&key!=='PRIMARY_MAILBOX';
-            const opacity=redirected ? .13+.82*state.redirect :
-              alternative ? .85*(1-state.redirect):.75;
+            const opacity=state.clarity.routes[key]??.15;
             return <g key={key} opacity={opacity}>
               <path d={ep004BezierPath(points)} fill="none"
                 stroke={violet?'#253454':'#1B4A60'}
                 strokeWidth={10} strokeLinecap="round"/>
               <path d={ep004BezierPath(points)} fill="none"
                 stroke={violet?VIOLET:CYAN}
-                strokeWidth={redirected?4.5:3.8} strokeLinecap="round"
-                opacity={.62+.28*phaseGlow}
-                style={redirected?{filter:'drop-shadow(0 0 6px rgba(180,155,255,.36))'}:{}}/>
+                strokeWidth={3.1+1.65*opacity} strokeLinecap="round"
+                opacity={.25+.70*opacity*phaseGlow}
+                style={opacity>.64?{filter:'drop-shadow(0 0 6px rgba(180,155,255,.30))'}:{}}/>
             </g>;
           })}
         </g>
@@ -161,24 +163,26 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
         </g>
         <GatewayShapes reveal={state.gatewayReveal}
           redirect={state.redirect} sharedLoad={state.sharedLoad}
-          july={state.julyMarker} worldFrame={state.worldFrame}/>
+          julyCallout={state.clarity.julyCallout} worldFrame={state.worldFrame}
+          primaryFocus={state.clarity.primaryFocus}
+          alternativeFocus={state.clarity.alternativeFocus}/>
         <g opacity={state.gatewayReveal}>
           <path d="M 572 696 L 589 686 L 606 696 L 589 706 Z"
             fill={VIOLET} stroke="#DDD0FF" strokeWidth={1.7}/>
           <text x={589} y={730} textAnchor="middle" fill={VIOLET}
             fontSize={18} fontWeight={790}>TEAMS</text>
           {state.tokens.map(t=><g key={t.id} opacity={t.opacity}>
-            <circle cx={t.x} cy={t.y} r={t.radius}
+            <circle cx={t.x} cy={t.y} r={t.radius+1.2}
               fill={t.color==='VIOLET'?VIOLET:CYAN}
-              style={{filter:'drop-shadow(0 0 6px '+(t.color==='VIOLET'?VIOLET:CYAN)+')'}}/>
+              style={{filter:'drop-shadow(0 0 7px '+(t.color==='VIOLET'?VIOLET:CYAN)+')'}}/>
+            {t.id.endsWith('-0')&&<circle cx={t.x} cy={t.y}
+              r={t.radius+5} fill="none" stroke={WHITE}
+              strokeWidth={1.3} opacity={.54}/>}
           </g>)}
-          <text x={560} y={210} fill={SECONDARY}
-            fontSize={18} fontWeight={650} opacity={.73}>
-            CONCEPTUAL ARCHITECTURE
-          </text>
-          <text x={900} y={590} fill={VIOLET}
-            fontSize={20} fontWeight={860} opacity={state.utcStamp}>
-            01:07 UTC · TEAMS ROUTE CHANGE
+          <text x={560} y={204} fill={SECONDARY}
+            fontSize={23} fontWeight={750}
+            opacity={state.gatewayReveal*state.clarity.noteOpacity}>
+            {state.clarity.note}
           </text>
         </g>
         <text x={560} y={116} fill={WHITE} fontSize={35}
@@ -193,7 +197,7 @@ export const Shot03LivingArchitectureWorldView:React.FC<{
       </svg>
     </div>
     {showStoryboardFooter&&<div style={{position:'absolute',right:49,bottom:38,zIndex:80,
-      color:'#9CBAC9',fontSize:14,fontWeight:720,fontFamily:AT_FONT,opacity:.78}}>
+      color:'#9CBAC9',fontSize:18,fontWeight:720,fontFamily:AT_FONT,opacity:.78}}>
       EP004 / SHOT03 · MOVING STORYBOARD · NO APPROVED VOICE OR SEAM QA
     </div>}
   </ATBackground>;
