@@ -113,7 +113,8 @@ test('the screen has only earned labels and never invents architecture counts or
   assert.match(scene,/state\.clarity\.note/);
   assert.match(scene,/>Primary<\/text>/);
   assert.match(scene,/>Gateway<\/text>/);
-  assert.match(scene,/Alternative Gateway/);
+  assert.match(scene,/>Alternative<\/text>/);
+  assert.match(scene,/>Gateway<\/text>/);
   assert.match(scene,/>Exchange<\/text>/);
   assert.match(scene,/>Online<\/text>/);
   assert.match(scene,/Microsoft Teams/);
