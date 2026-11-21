@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 public final class WorkloadIdentityFilter extends OncePerRequestFilter {
+    private static final org.slf4j.Logger LOGGER=org.slf4j.LoggerFactory.getLogger(WorkloadIdentityFilter.class);
     public static final String VERIFIED_WORKER =
             WorkloadIdentityFilter.class.getName() + ".verified";
     private final WorkloadCredentialService credentials;
@@ -37,6 +38,9 @@ public final class WorkloadIdentityFilter extends OncePerRequestFilter {
             String legacyId = request.getHeader("X-Media-OS-Worker");
             if (legacyId == null || legacyId.isBlank()
                     || (id != null && !id.equals(legacyId))) {
+                if("POST".equals(request.getMethod())
+                        &&"/api/v1/remotion/renders/worker/claim".equals(request.getRequestURI()))
+                    LOGGER.warn("REMOTION_CPU_CLAIM_AUTH_IDENTITY_MISMATCH_NO_SECRET_LOGGED");
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
@@ -47,6 +51,9 @@ public final class WorkloadIdentityFilter extends OncePerRequestFilter {
                 request.getHeader("X-MediaOS-Workload-Token"),
                 id, route.scope(), route.jobId());
         if (verified == null) {
+            if("POST".equals(request.getMethod())
+                    &&"/api/v1/remotion/renders/worker/claim".equals(request.getRequestURI()))
+                LOGGER.warn("REMOTION_CPU_CLAIM_SCOPED_CREDENTIAL_INVALID_OR_EXPIRED_NO_SECRET_LOGGED");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
