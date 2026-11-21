@@ -241,6 +241,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     finally{setBusy('');}
   }
 
+  const archived=episode?.episodeKey==='EP003';
   const active=episode?.shots.find(s=>s.shotKey===activeShot);
   const locked=film?.locks.find(s=>s.shotKey===activeShot);
   const fullUrl=film?.videoUrl??null;
@@ -255,7 +256,9 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       <header className="director-minimal-heading">
         <div><p className="director-minimal-eyebrow">{episode.episodeKey}</p>
           <h1>{episode.title}</h1></div>
-        <span className="director-minimal-counter">{film?.locks.length??0} / {episode.shots.length} locked</span>
+        <span className="director-minimal-counter">
+          {archived?'Finished episode':(film?.locks.length??0)+' / '+episode.shots.length+' locked'}
+        </span>
       </header>
       <div className="director-minimal-body">
         <aside className="director-minimal-sidebar" aria-label="Choose SHOT">
@@ -318,11 +321,11 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               <div className="director-minimal-section-head">
                 <div><p className="director-minimal-eyebrow">01 · Script</p><h3>Your narration</h3></div>
                 <button type="button" className="director-minimal-primary"
-                  disabled={!editing||!!busy||script.trim().length<20||direction.trim().length<8}
+                  disabled={!!archived||!editing||!!busy||script.trim().length<20||direction.trim().length<8}
                   onClick={()=>void saveScript()}><Save size={17}/> Save script</button>
               </div>
               <textarea aria-label="SHOT narration" value={script}
-                onChange={e=>setScript(e.target.value)} disabled={!voice||!!busy}
+                onChange={e=>setScript(e.target.value)} disabled={!!archived||!voice||!!busy}
                 className="director-minimal-script" rows={11}/>
               {voice&&<p className="director-minimal-muted">
                 Revision {voice.revision}.
@@ -333,7 +336,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               <details className="director-minimal-advanced">
                 <summary>Voice direction</summary>
                 <textarea aria-label="Voice direction" value={direction}
-                  onChange={e=>setDirection(e.target.value)} disabled={!voice||!!busy} rows={3}/>
+                  onChange={e=>setDirection(e.target.value)} disabled={!!archived||!voice||!!busy} rows={3}/>
               </details>
             </section>
             <section className="director-minimal-panel">
@@ -346,12 +349,12 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               </div>
               <label className="director-minimal-confirm">
                 <input type="checkbox" checked={voiceConsent}
-                  disabled={!voice?.canGenerateSlow||editing||!!busy}
+                  disabled={!!archived||!voice?.canGenerateSlow||editing||!!busy}
                   onChange={e=>setVoiceConsent(e.target.checked)}/>
                 I approve one paid ElevenLabs voice generation.
               </label>
               <button type="button" className="director-minimal-primary"
-                disabled={!voice?.canGenerateSlow||!voiceConsent||editing||!!busy}
+                disabled={!!archived||!voice?.canGenerateSlow||!voiceConsent||editing||!!busy}
                 onClick={()=>void generateVoice()}>
                 <Volume2 size={17}/>{busy==='voice'?'Generating…':'Generate voice'}
               </button>
