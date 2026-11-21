@@ -100,7 +100,10 @@ export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
   if(!Number.isInteger(frame)||frame<0||frame>=props.durationInFrames)
     throw Error('EP004_SHOT03_FRAME_OUTSIDE_STORYBOARD');
   const exit=originalExit();
-  const worldFrame=props.worldStartFrame+frame;
+  const worldFrame=worldFrameOverride===null
+    ?props.worldStartFrame+frame:worldFrameOverride;
+  if(!Number.isInteger(worldFrame)||worldFrame<props.worldStartFrame)
+    throw Error('EP004_SHOT03_WORLD_TIME_MUST_REMAIN_MONOTONIC');
   const reveal=ease((frame-EP004_SHOT03_BREATH_FRAMES-38)/110);
   const original=ease((frame-EP004_SHOT03_BREATH_FRAMES)/104);
   const cross=ease((frame-285)/86);
