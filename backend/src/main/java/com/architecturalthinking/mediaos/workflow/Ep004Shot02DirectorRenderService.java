@@ -47,17 +47,20 @@ public final class Ep004Shot02DirectorRenderService {
             String selectedTakeId,String narrationSha256,String sourceSha256,
             int durationInFrames,Map<String,Integer> cueFrames,
             List<Map<String,Object>> verifiedCues,
-            String expectedSourceCommit,List<String> blockers,String nextAction) {}
+            String expectedSourceCommit,Integer failoverTermStartFrame,
+            List<String> blockers,String nextAction) {}
 
     record Selected(String title,String storyJson,int revision,String narration,
-                    UUID takeId,String audioKey,BigDecimal measuredDuration) {}
+                    UUID takeId,String audioKey,BigDecimal measuredDuration,
+                    String providerAlignmentJson) {}
 
     private Selected selected(UUID packageId) {
         var actor=DirectorIdentity.requireDirector();
         return jdbc.sql("""
                 select s.title,s.original_visual_story::text as story,
                        rev.revision,rev.narration,t.id as take_id,
-                       t.audio_object_key,t.duration_seconds
+                       t.audio_object_key,t.duration_seconds,
+                       t.generated_alignment::text as provider_alignment_json
                   from episode_package_import p
                   join episode_package_shot s on s.package_id=p.id and s.shot_key='SHOT02'
                   join lateral(select revision,narration from episode_package_shot_revision
@@ -74,7 +77,8 @@ public final class Ep004Shot02DirectorRenderService {
                 .query((rs,n)->new Selected(rs.getString("title"),rs.getString("story"),
                         rs.getInt("revision"),rs.getString("narration"),
                         rs.getObject("take_id",UUID.class),rs.getString("audio_object_key"),
-                        rs.getBigDecimal("duration_seconds")))
+                        rs.getBigDecimal("duration_seconds"),
+                        rs.getString("provider_alignment_json")))
                 .optional().orElse(null);
     }
 
@@ -153,11 +157,25 @@ public final class Ep004Shot02DirectorRenderService {
                 }
             }catch(Exception failure){blockers.add("ORIGINAL_SHOT02_STORY_MALFORMED");}
         }
+        Integer failoverTermStartFrame=null;
+        if(selected!=null&&selected.providerAlignmentJson()!=null){
+            var spokenTime=new EpisodePackageCueTimingVerifier(mapper)
+                    .firstSpokenTermStartSeconds(selected.narration(),
+                            selected.providerAlignmentJson(),selected.measuredDuration(),
+                            "failover");
+            if(spokenTime.isPresent()){
+                int aligned=BREATH_FRAMES+(int)Math.round(spokenTime.getAsDouble()*FPS);
+                if(aligned>=BREATH_FRAMES&&aligned+240<=frames-TAIL_FRAMES)
+                    failoverTermStartFrame=aligned;
+            }
+        }
+        if(failoverTermStartFrame==null)
+            blockers.add("FAILOVER_FIRST_SPOKEN_TERM_PROVIDER_ALIGNMENT_NOT_VERIFIED");
         return new Readiness(blockers.isEmpty(),"EP004","SHOT02",
                 shot==null?null:shot.selectedTakeId(),
                 selected==null?null:EpisodePackageValidator.sha256(selected.narration()),
                 overall.sourceSha256(),frames,Map.copyOf(cues),List.copyOf(verified),
-                sourceCommit,List.copyOf(blockers),blockers.isEmpty()
+                sourceCommit,failoverTermStartFrame,List.copyOf(blockers),blockers.isEmpty()
                 ?"Director may approve one bounded SHOT02 1080p real-voice review render."
                 :"Resolve original voice, story, storage or matching compiled worker before CPU consent.");
     }
@@ -220,6 +238,7 @@ public final class Ep004Shot02DirectorRenderService {
         props.put("voiceTakeId",ready.selectedTakeId());
         props.put("narrationSha256",ready.narrationSha256());
         props.put("verifiedCues",ready.verifiedCues());
+        props.put("failoverTermStartFrame",ready.failoverTermStartFrame());
         props.put("visualBeats",beats);
         props.put("shotTitle",s.title());
         props.put("expectedSourceCommit",request.expectedSourceCommit());
