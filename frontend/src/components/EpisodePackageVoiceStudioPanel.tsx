@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
 import {reconcilePaidVoiceState} from '../lib/paidVoiceReconciliation';
 import {isExpectedTakeApproved,voiceReadinessExplanation,readinessRecheckReceipt} from '../lib/voiceTakeApproval';
+import {matchesApprovedRenderTarget,approvedRenderReceipt} from '../lib/ep004RenderTargetPolicy';
 import type {ShotReadinessSnapshot} from '../lib/voiceTakeApproval';
 
 type Take={
@@ -186,8 +187,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
 
   async function renderApprovedShot(){
     if(!ep004Supported||!data?.approvedCurrentRevision||!cpuReady?.ready||
-        cpuReady.episodeKey!=='EP004'||cpuReady.shotKey!==shotKey||
-        data.shotKey!==shotKey||cpuReady.selectedTakeId!==data.selectedTakeId||
+        !matchesApprovedRenderTarget(episodeKey,shotKey,data,cpuReady)||
         !cpuConsent||cpuBusy||busy||dirty)return;
     if(!window.confirm('Render EP004 '+shotKey+' as a real 1920x1080 Remotion Director candidate using ONLY the selected current-revision Take and verified HEAR → SEE cues? This consumes bounded shared CPU and private S3 storage, but makes NO ElevenLabs call. Continue with one approved CPU job?'))return;
     setCpuBusy(true);setError('');setMessage('');
@@ -206,22 +206,14 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         throw Error('Render server returned an unexpected composition. Stop and inspect.');
       cpuRequestId.current=null;
       setRenderJob(output);setCpuConsent(false);
-      const status=output.status;
-      setMessage(status==='QUEUED'
-        ?'One approved '+shotKey+' candidate is QUEUED for the selected source. No voice was regenerated.'
-        :status==='RENDERING'
-          ?'The approved '+shotKey+' render is RENDERING. No new voice was generated.'
-          :status==='READY'
-            ?'An existing completed '+shotKey+' candidate was returned. No new render entered the queue.'
-            :'The server returned '+status+' for '+shotKey+'. Inspect this render status before another request.');
+      setMessage(approvedRenderReceipt(shotKey,output.status));
     }catch(reason){setError(String(reason)+' Do not send another render request while the previous job might exist.');}
     finally{setCpuBusy(false);}
   }
 
   const dirty=!!data && (narration!==data.narration||direction!==data.voiceDirection);
-  const cpuContextMatches=!!cpuReady&&!!data&&cpuReady.episodeKey==='EP004'
-    &&cpuReady.shotKey===shotKey&&data.shotKey===shotKey
-    &&cpuReady.selectedTakeId===data.selectedTakeId;
+  const cpuContextMatches=matchesApprovedRenderTarget(
+    episodeKey,shotKey,data,cpuReady);
   const cpuActionBlocked=!cpuReady?.ready||!cpuContextMatches||
     !cpuConsent||cpuBusy||busy||dirty;
   const canSave=!!data&&!ep003SlowOnly&&dirty&&!busy&&narration.trim().length>=20
