@@ -357,12 +357,18 @@ public final class MediaObjectStore implements AutoCloseable {
             if(checked!=length||!hash.equals(HexFormat.of().formatHex(readback.digest())))
                 throw new IOException("S3 full film SHA-256 readback mismatch.");
             return new Stored(key,hash,length);
-        }catch(S3Exception|IOException|NoSuchAlgorithmException failure){
+        }catch(Exception failure){
             if(uploadId!=null&&!uploaded){
                 try{client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
                     .bucket(bucket).key(key).uploadId(uploadId).build());}
                 catch(S3Exception ignored){}
             }
+            if(uploaded){
+                try{client.deleteObject(software.amazon.awssdk.services.s3.model
+                    .DeleteObjectRequest.builder().bucket(bucket).key(key).build());}
+                catch(S3Exception ignored){}
+            }
+            if(failure instanceof ResponseStatusException response)throw response;
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                 "Verified bounded S3 full film upload failed. Original SHOTs remain unchanged.",
                 failure);
