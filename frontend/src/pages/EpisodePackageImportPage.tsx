@@ -120,9 +120,10 @@ export function EpisodePackageImportPage(){
         body:JSON.stringify({requestId:id,fileName:file.name,sourceText:preview.raw,
           expectedSha256:preview.hash,confirmSourceImport:true}),
       }));
-      requestId.current=null;setDetails(result);setActiveVoiceShot(null);setPreview(null);setFile(null);setConfirmed(false);
-      setNotice(result.shotCount+' SHOT source records and voice tasks were stored with no paid API calls.');
+      requestId.current=null;setPreview(null);setFile(null);setConfirmed(false);
       await refresh();
+      window.location.hash='#/episode-packages/import?packageId='
+        +encodeURIComponent(result.packageId)+'&shot=SHOT01';
     }catch(e){setError(String(e)+' Retry the same file to reuse the pending request ID.');}
     finally{inFlight.current=false;setBusy(false);}
   }
@@ -174,7 +175,8 @@ export function EpisodePackageImportPage(){
       </div>
       {saved.length===0?<p>No imported sources yet. EP001 and EP002 remain untouched.</p>
         :saved.map(x=><button className="episode-package-entry" type="button" key={x.packageId}
-          onClick={()=>void show(x.packageId)}>
+          onClick={()=>{window.location.hash='#/episode-packages/import?packageId='
+            +encodeURIComponent(x.packageId)+'&shot=SHOT01';}}>
           <strong>{x.episodeKey} · {x.title}</strong>
           <span>{x.shotCount} SHOTs · {x.beatCount} beats · {x.status}</span>
         </button>)}
