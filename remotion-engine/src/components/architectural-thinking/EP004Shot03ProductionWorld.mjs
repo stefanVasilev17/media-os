@@ -104,7 +104,8 @@ export function ep004Shot03ProductionWorld(frame,props){
     durationInFrames:540,
   };
   const editorialFrame=Math.max(0,Math.min(539,Math.floor(remap(frame,props))));
-  const storyboard=ep004Shot03StoryboardWorld(editorialFrame,storyboardProps);
+  const storyboard=ep004Shot03StoryboardWorld(editorialFrame,storyboardProps,
+    SOURCE.worldStartFrame+frame);
   const fade=ease((frame-EP004_SHOT03_BREATH_FRAMES)/120);
   const storyAlpha=fade,sourceAlpha=1-fade;
   return Object.freeze({
