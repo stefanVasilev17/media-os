@@ -72,7 +72,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     const params=new URLSearchParams(window.location.hash.split('?',2)[1]||'');
     const requested=params.get('shot');
     setLoading(true);setError('');
-    void result<Episode>(fetch(root,{cache:'no-store'})).then(data=>{
+    void fetch(root,{cache:'no-store'}).then(result<Episode>).then(data=>{
       if(!active)return;
       setEpisode(data);
       setActiveShot(requested&&data.shots.some(s=>s.shotKey===requested)
