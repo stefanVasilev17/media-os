@@ -10,9 +10,11 @@ const ease=x=>{const v=clamp(x);return v*v*(3-2*v);};
 export const EP004_SHOT03_COMPOSITION='EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL';
 export const EP004_SHOT03_TAIL_FRAMES=45;
 export const EP004_SHOT03_SOURCE_TAIL_FRAMES=190;
-export const EP004_SHOT03_SWITCH_FRAME=104;
-export const EP004_SHOT03_SWITCH_START_FRAME=100;
-export const EP004_SHOT03_SWITCH_END_FRAME=108;
+// An unhurried right-to-left reveal keeps the old diagram alive until the
+// new gateway topology takes its place. No flash or full-frame hard cut.
+export const EP004_SHOT03_SWITCH_START_FRAME=90;
+export const EP004_SHOT03_SWITCH_FRAME=140;
+export const EP004_SHOT03_SWITCH_END_FRAME=190;
 const SOURCE=EP004_SHOT03_PREDECESSOR;
 
 function checkCues(props){
@@ -85,10 +87,10 @@ export function validateEp004Shot03Production(props){
 }
 function remap(frame,props){
   if(frame<=EP004_SHOT03_BREATH_FRAMES)return frame;
-  if(frame<EP004_SHOT03_SWITCH_FRAME)return frame;
+  if(frame<EP004_SHOT03_SWITCH_START_FRAME)return frame;
   if(frame<props.novemberFrame)
-    return 98+(frame-EP004_SHOT03_SWITCH_FRAME)*
-      187/(props.novemberFrame-EP004_SHOT03_SWITCH_FRAME);
+    return 98+(frame-EP004_SHOT03_SWITCH_START_FRAME)*
+      187/(props.novemberFrame-EP004_SHOT03_SWITCH_START_FRAME);
   if(frame<props.backwardFrame)
     return 285+(frame-props.novemberFrame)*135/
       (props.backwardFrame-props.novemberFrame);
@@ -115,20 +117,23 @@ export function ep004Shot03ProductionWorld(frame,props){
   const editorialFrame=Math.max(0,Math.min(539,Math.floor(remap(frame,props))));
   const storyboard=ep004Shot03StoryboardWorld(editorialFrame,storyboardProps,
     SOURCE.worldStartFrame+frame);
-  const sourceAlpha=frame<EP004_SHOT03_SWITCH_FRAME?1:0;
-  const storyAlpha=1-sourceAlpha;
-  const shutterProgress=frame<EP004_SHOT03_SWITCH_START_FRAME
-    ||frame>=EP004_SHOT03_SWITCH_END_FRAME?0:
-    frame<=EP004_SHOT03_SWITCH_FRAME
-      ?ease((frame-EP004_SHOT03_SWITCH_START_FRAME)/
-        (EP004_SHOT03_SWITCH_FRAME-EP004_SHOT03_SWITCH_START_FRAME))
-      :ease((EP004_SHOT03_SWITCH_END_FRAME-frame)/
-        (EP004_SHOT03_SWITCH_END_FRAME-EP004_SHOT03_SWITCH_FRAME));
+  // Both worlds continue moving during the transition, but their spatial
+  // masks are complementary: no diagram overlap, no static freeze, no shutter.
+  const revealProgress=ease((frame-EP004_SHOT03_SWITCH_START_FRAME)/
+    (EP004_SHOT03_SWITCH_END_FRAME-EP004_SHOT03_SWITCH_START_FRAME));
+  const transitionActive=frame>EP004_SHOT03_SWITCH_START_FRAME
+    &&frame<EP004_SHOT03_SWITCH_END_FRAME;
+  const sourceAlpha=frame<EP004_SHOT03_SWITCH_END_FRAME?1:0;
+  const storyAlpha=frame>=EP004_SHOT03_SWITCH_START_FRAME?1:0;
+  const transitionBoundaryX=1920*(1-revealProgress);
+  const sourceHeadingOpacity=1-ease((revealProgress-.05)/.45);
+  const gatewayHeadingOpacity=ease((revealProgress-.50)/.45);
   return Object.freeze({
     worldFrame:SOURCE.worldStartFrame+frame,
     sourceFrame:SOURCE.lastEncodedFrame+tail,
     originalSourceWorldFrame:previous.worldFrame,
-    sourceAlpha,storyAlpha,shutterProgress,
+    sourceAlpha,storyAlpha,revealProgress,transitionActive,
+    transitionBoundaryX,sourceHeadingOpacity,gatewayHeadingOpacity,
     editorialFrame,sourceSnapshotIsStatic:false,
     silenceFrames:EP004_SHOT03_BREATH_FRAMES,
     realVoiceStartFrame:EP004_SHOT03_BREATH_FRAMES,
