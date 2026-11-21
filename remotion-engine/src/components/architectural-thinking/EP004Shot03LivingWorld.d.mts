@@ -38,4 +38,4 @@ export declare const EP004_SHOT03_NODES:Record<string,{left:number;top:number;wi
 export declare function validateEp004Shot03Storyboard(props:Ep004Shot03StoryboardProps):boolean;
 export declare function validateEp004Shot03Routes():boolean;
 export declare function ep004Shot03StoryboardWorld(frame:number,
-  props:Ep004Shot03StoryboardProps):Ep004Shot03StoryboardState;
+  props:Ep004Shot03StoryboardProps,worldFrameOverride?:number|null):Ep004Shot03StoryboardState;
