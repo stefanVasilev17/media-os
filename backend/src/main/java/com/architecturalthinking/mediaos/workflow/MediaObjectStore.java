@@ -14,9 +14,19 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 
 import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
@@ -33,6 +43,8 @@ public final class MediaObjectStore implements AutoCloseable {
     public static final String VOICE_PREFIX = "mediaos/media/voice/v1/";
     public static final long MAX_VOICE_BYTES = 24L * 1024 * 1024;
     public static final long MAX_VIDEO_BYTES = 256L * 1024 * 1024;
+    public static final long MAX_FILM_BYTES = 4L * 1024 * 1024 * 1024;
+    private static final int FILM_PART_BYTES = 16 * 1024 * 1024;
     public static final String VIDEO_PREFIX = "mediaos/media/video/v1/";
     public record Stored(String key, String sha256, long byteCount) {}
 
@@ -264,12 +276,97 @@ public final class MediaObjectStore implements AutoCloseable {
         }
     }
 
+    /** Large continuous films use verified multipart S3 upload with bounded 16 MiB memory. */
+    public Stored uploadFilmVerified(UUID filmId,Path file) {
+        requireWritable();
+        String key=videoKey(filmId);
+        requireSafeVideoKey(key);
+        if(file==null||!Files.isRegularFile(file))
+            throw new IllegalArgumentException("Missing real completed film file.");
+        String uploadId=null;boolean uploaded=false;
+        try{
+            long length=Files.size(file);
+            if(length<1024||length>MAX_FILM_BYTES)
+                throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
+                    "Full film exceeds the 4 GiB bounded MP4 artifact limit.");
+            try(InputStream in=Files.newInputStream(file)){
+                byte[] header=in.readNBytes(12);
+                if(header.length!=12||header[4]!='f'||header[5]!='t'
+                        ||header[6]!='y'||header[7]!='p')
+                    throw new IllegalArgumentException("Full film is not an ISO BMFF MP4.");
+            }
+            MessageDigest digest=MessageDigest.getInstance("SHA-256");
+            try(InputStream in=Files.newInputStream(file)){
+                byte[] buf=new byte[64*1024];int n;
+                while((n=in.read(buf))!=-1)digest.update(buf,0,n);
+            }
+            String hash=HexFormat.of().formatHex(digest.digest());
+            Map<String,String> metadata=Map.of("sha256",hash,"owner","mediaos-video",
+                    "retention","director-locked-film");
+            uploadId=client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+                .bucket(bucket).key(key).contentType("video/mp4")
+                .metadata(metadata).build()).uploadId();
+            List<CompletedPart> parts=new ArrayList<>();
+            try(InputStream in=Files.newInputStream(file)){
+                long pending=length;int partNumber=1;
+                while(pending>0){
+                    int size=(int)Math.min(pending,(long)FILM_PART_BYTES);
+                    byte[] part=in.readNBytes(size);
+                    if(part.length!=size)
+                        throw new IOException("Local full film truncated during upload.");
+                    String etag=client.uploadPart(UploadPartRequest.builder()
+                        .bucket(bucket).key(key).uploadId(uploadId)
+                        .partNumber(partNumber).contentLength((long)size).build(),
+                        RequestBody.fromBytes(part)).eTag();
+                    if(etag==null||etag.isBlank())
+                        throw new IOException("S3 returned no film part ETag.");
+                    parts.add(CompletedPart.builder().partNumber(partNumber)
+                        .eTag(etag).build());
+                    pending-=size;partNumber++;
+                }
+            }
+            client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                .bucket(bucket).key(key).uploadId(uploadId)
+                .multipartUpload(CompletedMultipartUpload.builder()
+                    .parts(parts).build()).build());
+            uploaded=true;
+            verifyVideoManifest(key,hash,length);
+            MessageDigest readback=MessageDigest.getInstance("SHA-256");
+            long checked=0;
+            for(long first=0;first<length;first+=FILM_PART_BYTES){
+                long last=Math.min(length-1,first+FILM_PART_BYTES-1L);
+                try(InputStream in=client.getObject(GetObjectRequest.builder()
+                        .bucket(bucket).key(key)
+                        .range("bytes="+first+"-"+last).build())){
+                    byte[] buf=new byte[64*1024];long remaining=last-first+1;
+                    while(remaining>0){
+                        int n=in.read(buf,0,(int)Math.min(buf.length,remaining));
+                        if(n<0)throw new IOException("Full film S3 readback truncated.");
+                        readback.update(buf,0,n);remaining-=n;checked+=n;
+                    }
+                }
+            }
+            if(checked!=length||!hash.equals(HexFormat.of().formatHex(readback.digest())))
+                throw new IOException("S3 full film SHA-256 readback mismatch.");
+            return new Stored(key,hash,length);
+        }catch(S3Exception|IOException|NoSuchAlgorithmException failure){
+            if(uploadId!=null&&!uploaded){
+                try{client.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                    .bucket(bucket).key(key).uploadId(uploadId).build());}
+                catch(S3Exception ignored){}
+            }
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                "Verified bounded S3 full film upload failed. Original SHOTs remain unchanged.",
+                failure);
+        }
+    }
+
     public void verifyVideoManifest(String key,String expectedHash,long expectedBytes) {
         if(!readable())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                 "Private video object reader is not configured.");
         requireSafeVideoKey(key);
         if(expectedHash==null||!expectedHash.matches("[a-f0-9]{64}")
-                ||expectedBytes<1024||expectedBytes>MAX_VIDEO_BYTES)
+                ||expectedBytes<1024||expectedBytes>MAX_FILM_BYTES)
             throw new IllegalArgumentException("Invalid video manifest.");
         try {
             var head=client.headObject(HeadObjectRequest.builder()
@@ -290,21 +387,28 @@ public final class MediaObjectStore implements AutoCloseable {
         verifyVideoManifest(key,expectedHash,expectedBytes);
         if(start<0||end<start||end>=expectedBytes)
             throw new IllegalArgumentException("Invalid video byte range.");
-        try(InputStream input=client.getObject(GetObjectRequest.builder()
-                .bucket(bucket).key(key).range("bytes="+start+"-"+end).build())){
-            byte[] buf=new byte[64*1024];long remaining=end-start+1;
-            while(remaining>0){
-                int n=input.read(buf,0,(int)Math.min(buf.length,remaining));
-                if(n<0)throw new IOException("S3 ranged MP4 ended before expected length.");
-                output.write(buf,0,n);remaining-=n;
+        long from=start;
+        while(from<=end){
+            long to=Math.min(end,from+FILM_PART_BYTES-1L);
+            try(InputStream input=client.getObject(GetObjectRequest.builder()
+                    .bucket(bucket).key(key).range("bytes="+from+"-"+to).build())){
+                byte[] buf=new byte[64*1024];long remaining=to-from+1;
+                while(remaining>0){
+                    int n=input.read(buf,0,(int)Math.min(buf.length,remaining));
+                    if(n<0)throw new IOException("S3 ranged MP4 ended before expected length.");
+                    output.write(buf,0,n);remaining-=n;
+                }
+            }catch(S3Exception ex){
+                throw new IOException("Private video range failed.",ex);
             }
-        }catch(S3Exception ex){
-            throw new IOException("Private video range failed.",ex);
+            from=to+1;
         }
     }
 
     public byte[] downloadVideoVerified(String key,String expectedHash,long expectedBytes) {
         verifyVideoManifest(key,expectedHash,expectedBytes);
+        if(expectedBytes>MAX_VIDEO_BYTES)throw new IllegalArgumentException(
+                "Large completed film must be streamed, not loaded into JVM memory.");
         try {
             byte[] bytes=client.getObject(GetObjectRequest.builder()
                     .bucket(bucket).key(key).build(),
