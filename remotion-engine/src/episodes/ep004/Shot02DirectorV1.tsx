@@ -178,7 +178,7 @@ export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
     </div>
     <div style={{position:'absolute',right:50,
       bottom:39,zIndex:90,color:'#9CBAC9',fontSize:15,
-      opacity:.54,fontFamily:AT_FONT,fontWeight:740}}>
+      opacity:state.headerProgress*.54,fontFamily:AT_FONT,fontWeight:740}}>
       EP004 / SHOT02 · DIRECTOR REVIEW CANDIDATE
     </div>
   </ATBackground>;
