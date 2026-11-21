@@ -128,6 +128,7 @@ test('preview original remains isolated and SHOT01 V8 files are never modified',
   assert.match(production,/ep004Shot02ProductionWorld\(frame,props\)/);
   assert.match(generated,/validateEp004Shot02Render\(props\)/);
   assert.match(root,/EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL/);
+  assert.match(root,/failoverTermStartFrame:-1/);
   assert.match(root,/EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL/);
 });
 
