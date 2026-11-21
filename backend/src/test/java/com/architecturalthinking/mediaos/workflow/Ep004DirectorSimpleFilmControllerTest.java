@@ -53,6 +53,36 @@ class Ep004DirectorSimpleFilmControllerTest {
         assertTrue(v1.startsWith("/api/v1/episode-packages/"+packageId+"/film/video"));
     }
 
+    @Test void fullFilmQueueStateNeverClaimsReadyBeforeActualVerifiedMaster() {
+        var waiting=new Ep004DirectorSimpleFilmController.AssemblyState(
+            "render-a,render-b","QUEUED",null);
+        var running=new Ep004DirectorSimpleFilmController.AssemblyState(
+            "render-a,render-b","RUNNING",null);
+        var failed=new Ep004DirectorSimpleFilmController.AssemblyState(
+            "render-a,render-b","ERROR","joining failed");
+        assertEquals("WAITING_FOR_SHOT01",
+            Ep004DirectorSimpleFilmController.filmState(false,0,waiting,"render-a,render-b"));
+        assertEquals("ASSEMBLING",
+            Ep004DirectorSimpleFilmController.filmState(false,2,waiting,"render-a,render-b"));
+        assertEquals("ASSEMBLING",
+            Ep004DirectorSimpleFilmController.filmState(false,2,running,"render-a,render-b"));
+        assertEquals("ASSEMBLY_FAILED",
+            Ep004DirectorSimpleFilmController.filmState(false,2,failed,"render-a,render-b"));
+        assertEquals("ASSEMBLY_REQUIRED",
+            Ep004DirectorSimpleFilmController.filmState(false,3,failed,
+                "render-a,render-b,render-c"));
+        assertEquals("ASSEMBLY_REQUIRED",
+            Ep004DirectorSimpleFilmController.filmState(false,2,null,"render-a,render-b"));
+        assertEquals("READY",
+            Ep004DirectorSimpleFilmController.filmState(true,3,failed,"render-a,render-b"));
+    }
+
+    @Test void longFilmCapacityIsIndependentFromSmallIndividualShotBound() {
+        assertEquals(256L*1024*1024,MediaObjectStore.MAX_VIDEO_BYTES);
+        assertEquals(4L*1024*1024*1024,MediaObjectStore.MAX_FILM_BYTES);
+        assertTrue(MediaObjectStore.MAX_FILM_BYTES>MediaObjectStore.MAX_VIDEO_BYTES);
+    }
+
     @Test void renderFingerprintChangesIfDirectorRelocksOneShot() {
         var shot1=locked("SHOT01");
         var a=new Ep004DirectorSimpleFilmController.ShotLock(

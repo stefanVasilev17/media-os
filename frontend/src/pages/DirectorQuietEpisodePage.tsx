@@ -146,6 +146,14 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   },[activeShot,root,episode?.episodeKey]);
 
   useEffect(()=>{
+    if(tab!=='FULL'||film?.state!=='ASSEMBLING')return;
+    const timer=window.setInterval(()=>{
+      void refreshFilm().catch(reason=>setError(errorText(reason)));
+    },4000);
+    return()=>window.clearInterval(timer);
+  },[tab,film?.state,refreshFilm]);
+
+  useEffect(()=>{
     if(!voice?.approvedCurrentRevision||episode?.episodeKey!=='EP004')return;
     void refreshRender().catch(e=>setError(errorText(e)));
   },[voice?.approvedCurrentRevision,voice?.selectedTakeId,episode?.episodeKey,refreshRender]);
@@ -239,9 +247,26 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       setFilm(current);
       setNotice(current.state==='READY'
         ?activeShot+' locked. The Full Video tab has the latest continuous MP4.'
-        :activeShot+' locked. Full Video starts with SHOT01 and includes only consecutive locked SHOTs.');
+        :current.state==='ASSEMBLING'
+          ?activeShot+' locked. The full episode is joining automatically; no video is re-rendered.'
+          :activeShot+' locked. Full Video starts with SHOT01 and includes only consecutive locked SHOTs.');
     }catch(e){setError('Lock or film assembly did not finish: '+errorText(e)
       +'. Refresh Full Video to inspect saved state; do not render the SHOT again.');}
+    finally{setBusy('');}
+  }
+
+  async function retryFilm(){
+    if(!film||film.state!=='ASSEMBLY_FAILED'||busy)return;
+    if(!window.confirm('Retry joining the already locked SHOT MP4s? '
+      +'This uses small assembly CPU and storage, but no new Remotion or ElevenLabs call.'))return;
+    setBusy('film');setError('');setNotice('');
+    try{
+      const response=await fetch(root+'/film/retry',{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({confirmRetry:true})});
+      setFilm(await result<FilmState>(response));
+      setNotice('The existing locked SHOTs were queued for a new lossless join.');
+    }catch(e){setError(errorText(e));}
     finally{setBusy('');}
   }
 
@@ -305,6 +330,10 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 ?'One player for the finished Director-approved episode.'
                 :(film?.shotCount??0)+' consecutive locked SHOTs. One player, one continuous video.'}
             </p>
+            {film?.state==='ASSEMBLING'&&<p role="status" className="director-minimal-muted">
+              Building the continuous Full Video from locked SHOTs. Original MP4s are
+              preserved. This page refreshes automatically.
+            </p>}
             {fullUrl?<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
               aria-label="One complete film of all consecutive locked SHOTs"/>:
@@ -312,9 +341,14 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 SHOT01 and any following SHOTs in order.</p>}
             {(film?.locks.length??0)>0&&<p className="director-minimal-muted">
               Locked: {film!.locks.map(s=>s.shotKey).join(' · ')}</p>}
-            {film?.state==='ASSEMBLY_FAILED'&&
+            {film?.state==='ASSEMBLY_FAILED'&&<>
               <p role="alert" className="director-minimal-error">
-                Assembly needs attention. Locked SHOT MP4s are preserved. {film.error}</p>}
+                Assembly needs attention. Locked SHOT MP4s are preserved. {film.error}</p>
+              <button type="button" className="director-minimal-subtle"
+                disabled={!!busy} onClick={()=>void retryFilm()}>
+                <RefreshCw size={15}/> Retry joining Full Video
+              </button>
+            </>}
           </section>:<div className="director-minimal-sections">
             <div className="director-minimal-shot-heading">
               <div><p className="director-minimal-eyebrow">{activeShot}</p>

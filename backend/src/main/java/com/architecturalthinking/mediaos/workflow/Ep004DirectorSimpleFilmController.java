@@ -10,6 +10,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,7 +29,9 @@ import java.util.UUID;
 public final class Ep004DirectorSimpleFilmController {
     private static final String PROJECT_ID="11111111-1111-1111-1111-111111111111";
     private static final int FPS=30;
-    private static final long MAX_INPUT_BYTES=190L*1024*1024;
+    private static final long MAX_INPUT_BYTES=MediaObjectStore.MAX_FILM_BYTES
+        -8L*1024*1024;
+    private static final Logger LOG=LoggerFactory.getLogger(Ep004DirectorSimpleFilmController.class);
     private final JdbcClient jdbc;
     private final MediaObjectStore store;
 
@@ -41,6 +46,8 @@ public final class Ep004DirectorSimpleFilmController {
                        int scriptRevision) {}
     record Film(UUID id,String objectKey,String sha256,long bytes,int count,
                 String renderIds,int frames) {}
+    record AssemblyJob(UUID packageId,String sequence) {}
+    record AssemblyState(String sequence,String status,String error) {}
 
     private void requireEpisode(UUID packageId){
         var actor=DirectorIdentity.requireDirector();
@@ -109,6 +116,15 @@ public final class Ep004DirectorSimpleFilmController {
         return "/api/v1/episode-packages/"+packageId+"/film/video?v="+filmId;
     }
 
+    static String filmState(boolean ready,int consecutiveCount,
+            AssemblyState job,String expectedSequence){
+        if(ready)return "READY";
+        if(consecutiveCount==0)return "WAITING_FOR_SHOT01";
+        if(job==null||!expectedSequence.equals(job.sequence()))
+            return "ASSEMBLY_REQUIRED";
+        return "ERROR".equals(job.status())?"ASSEMBLY_FAILED":"ASSEMBLING";
+    }
+
     private Map<String,Object> snapshot(UUID packageId){
         List<ShotLock> all=locks(packageId),prefix=consecutive(all);
         Film film=currentFilm(packageId);
@@ -117,10 +133,14 @@ public final class Ep004DirectorSimpleFilmController {
         response.put("locks",all.stream().map(x->Map.of(
             "shotKey",x.shotKey(),"renderId",x.renderId().toString(),
             "lockedAt",x.lockedAt().toString())).toList());
-        response.put("shotCount",ready?film.count():0);
+        AssemblyState job=assemblyState(packageId);
+        String state=filmState(ready,prefix.size(),job,identity(prefix));
+        response.put("shotCount",ready?film.count():prefix.size());
         response.put("renderIds",ready?List.of(film.renderIds().split(",")):List.of());
         response.put("durationInFrames",ready?film.frames():0);
-        response.put("state",ready?"READY":prefix.isEmpty()?"WAITING_FOR_SHOT01":"ASSEMBLY_REQUIRED");
+        response.put("state",state);
+        response.put("error","ASSEMBLY_FAILED".equals(state)
+            ?"Full Video joining needs a retry. All locked SHOT files are preserved.":null);
         response.put("filmId",ready?film.id().toString():null);
         response.put("videoUrl",ready?versionedFilmUrl(packageId,film.id()):null);
         return response;
@@ -209,8 +229,123 @@ public final class Ep004DirectorSimpleFilmController {
               render_id=excluded.render_id,locked_at=now()
             """).param("package",packageId).param("shot",shotKey)
                 .param("render",source.renderId()).update();
-        assemble(packageId);
+        queueAssembly(packageId);
         return snapshot(packageId);
+    }
+
+    private AssemblyState assemblyState(UUID packageId){
+        return jdbc.sql("""
+            select render_ids,status,error from episode_director_film_job
+              where package_id=:package
+            """).param("package",packageId)
+            .query((rs,i)->new AssemblyState(rs.getString("render_ids"),
+                rs.getString("status"),rs.getString("error")))
+            .optional().orElse(null);
+    }
+
+    private void queueAssembly(UUID packageId){
+        List<ShotLock> prefix=consecutive(locks(packageId));
+        if(prefix.isEmpty()||current(currentFilm(packageId),prefix))return;
+        if(prefix.size()==1){
+            ShotLock single=prefix.get(0);
+            VideoSource source=verifiedRender(packageId,single.shotKey(),single.renderId());
+            store.verifyVideoManifest(source.objectKey(),source.sha256(),source.bytes());
+            saveFilm(packageId,UUID.randomUUID(),source.objectKey(),source.sha256(),
+                source.bytes(),1,identity(prefix),source.frames());
+            return;
+        }
+        if(!store.writable())throw new ResponseStatusException(HttpStatus.CONFLICT,
+            "Private film storage must be writable before an assembly can be queued.");
+        jdbc.sql("""
+           insert into episode_director_film_job(package_id,render_ids,status)
+           values(:package,:sequence,'QUEUED')
+           on conflict(package_id) do update set
+             render_ids=excluded.render_ids,status='QUEUED',attempts=0,
+             error=null,lease_until=null,updated_at=now()
+           where episode_director_film_job.render_ids is distinct from excluded.render_ids
+           """).param("package",packageId)
+             .param("sequence",identity(prefix)).update();
+    }
+
+    public record RetryRequest(Boolean confirmRetry) {}
+
+    @PostMapping("/retry")
+    public Map<String,Object> retry(@PathVariable UUID packageId,
+            @RequestBody RetryRequest request,HttpServletRequest http){
+        requireEpisode(packageId);
+        Object audit=http.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
+        if(!(audit instanceof Map<?,?> receipt)
+                ||!(receipt.get("auditId") instanceof UUID)
+                ||request==null||!Boolean.TRUE.equals(request.confirmRetry()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "An audited, explicit Director retry is required.");
+        List<ShotLock> prefix=consecutive(locks(packageId));
+        if(prefix.size()<2)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "There is no consecutive multi-SHOT film to retry.");
+        if(current(currentFilm(packageId),prefix))return snapshot(packageId);
+        int n=jdbc.sql("""
+            update episode_director_film_job
+               set status='QUEUED',attempts=0,error=null,lease_until=null,updated_at=now()
+             where package_id=:package and render_ids=:sequence and status='ERROR'
+            """).param("package",packageId)
+              .param("sequence",identity(prefix)).update();
+        if(n!=1)throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This film is not in a retryable error state. Refresh Full Video.");
+        return snapshot(packageId);
+    }
+
+    @Scheduled(initialDelayString="${MEDIAOS_FULL_FILM_START_DELAY_MS:15000}",
+               fixedDelayString="${MEDIAOS_FULL_FILM_POLL_MS:4000}")
+    public void processAssemblyQueue(){
+        try{
+            jdbc.sql("""
+                update episode_director_film_job
+                   set status='QUEUED',lease_until=null,updated_at=now()
+                 where status='RUNNING' and lease_until<now() and attempts<3
+                """).update();
+            jdbc.sql("""
+                update episode_director_film_job
+                   set status='ERROR',error='Full Video assembly timed out. Safe retry available.',
+                       lease_until=null,updated_at=now()
+                 where status='RUNNING' and lease_until<now() and attempts>=3
+                """).update();
+            AssemblyJob job=jdbc.sql("""
+                with available as (
+                  select package_id from episode_director_film_job
+                   where status='QUEUED' and attempts<3
+                   order by updated_at limit 1 for update skip locked
+                )
+                update episode_director_film_job j
+                   set status='RUNNING',attempts=attempts+1,
+                       lease_until=now()+interval '20 minutes',updated_at=now()
+                  from available
+                 where j.package_id=available.package_id
+                returning j.package_id,j.render_ids
+                """).query((rs,i)->new AssemblyJob(
+                    rs.getObject("package_id",UUID.class),rs.getString("render_ids")))
+                    .optional().orElse(null);
+            if(job==null)return;
+            try{
+                assemble(job.packageId(),job.sequence());
+                jdbc.sql("""
+                  update episode_director_film_job set status='READY',error=null,
+                         lease_until=null,updated_at=now()
+                   where package_id=:package and render_ids=:sequence and status='RUNNING'
+                  """).param("package",job.packageId())
+                     .param("sequence",job.sequence()).update();
+            }catch(Exception error){
+                LOG.error("Full film assembly failed; existing SHOT locks are retained",error);
+                jdbc.sql("""
+                  update episode_director_film_job set status='ERROR',
+                         error='Full Video needs a retry. Original SHOTs are preserved.',
+                         lease_until=null,updated_at=now()
+                   where package_id=:package and render_ids=:sequence and status='RUNNING'
+                  """).param("package",job.packageId())
+                     .param("sequence",job.sequence()).update();
+            }
+        }catch(Exception unexpected){
+            LOG.error("Full film worker database coordination failed",unexpected);
+        }
     }
 
     private void saveFilm(UUID packageId,UUID filmId,String key,String sha,long bytes,
@@ -231,9 +366,11 @@ public final class Ep004DirectorSimpleFilmController {
             .param("frames",frames).update();
     }
 
-    private synchronized void assemble(UUID packageId){
+    private synchronized void assemble(UUID packageId,String expectedSequence){
         List<ShotLock> prefix=consecutive(locks(packageId));
-        if(prefix.isEmpty()||current(currentFilm(packageId),prefix))return;
+        if(prefix.size()<2||!expectedSequence.equals(identity(prefix)))
+            throw new IllegalStateException("Locked SHOT sequence changed before assembly.");
+        if(current(currentFilm(packageId),prefix))return;
         List<VideoSource> sources=new ArrayList<>();
         long inputSize=0;int frames=0;
         for(ShotLock item:prefix){
@@ -242,16 +379,10 @@ public final class Ep004DirectorSimpleFilmController {
             inputSize+=source.bytes();frames+=source.frames();
             if(inputSize>MAX_INPUT_BYTES)
                 throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Full film source bytes exceed the 190 MiB bounded copy budget.");
+                    "Full film source bytes exceed the bounded 4 GiB storage budget.");
             sources.add(source);
         }
         String sequence=identity(prefix);
-        if(sources.size()==1){
-            VideoSource video=sources.get(0);
-            saveFilm(packageId,UUID.randomUUID(),video.objectKey(),video.sha256(),
-                video.bytes(),1,sequence,video.frames());
-            return;
-        }
         if(!store.writable())throw new ResponseStatusException(HttpStatus.CONFLICT,
             "Private video storage must be writable to assemble the full film.");
         Path folder=null;
@@ -260,16 +391,20 @@ public final class Ep004DirectorSimpleFilmController {
             for(int i=0;i<sources.size();i++){
                 VideoSource source=sources.get(i);
                 String name=String.format(java.util.Locale.ROOT,"shot%02d.mp4",i+1);
-                Files.write(folder.resolve(name),
-                    store.downloadVideoVerified(source.objectKey(),source.sha256(),source.bytes()));
+                Path target=folder.resolve(name);
+                try(var output=Files.newOutputStream(target)){
+                    store.streamVideoRange(source.objectKey(),source.sha256(),
+                        source.bytes(),0,source.bytes()-1,output);
+                }
+                if(Files.size(target)!=source.bytes())
+                    throw new IOException("Original SHOT streaming download was truncated.");
             }
             Ep004LosslessFilmAssembler.assemble(folder,sources.size(),frames);
             Path output=folder.resolve("full-video.mp4");
-            if(Files.size(output)>MediaObjectStore.MAX_VIDEO_BYTES)
-                throw new IllegalStateException("Continuous film exceeds S3 256 MiB limit.");
-            byte[] merged=Files.readAllBytes(output);
+            if(Files.size(output)>MediaObjectStore.MAX_FILM_BYTES)
+                throw new IllegalStateException("Continuous film exceeds the 4 GiB master limit.");
             UUID id=UUID.randomUUID();
-            MediaObjectStore.Stored saved=store.uploadVideoVerified(id,merged);
+            MediaObjectStore.Stored saved=store.uploadFilmVerified(id,output);
             if(!sequence.equals(identity(consecutive(locks(packageId)))))
                 throw new IllegalStateException("Director changed locked SHOTs during film assembly.");
             saveFilm(packageId,id,saved.key(),saved.sha256(),saved.byteCount(),
