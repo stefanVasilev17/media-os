@@ -40,6 +40,19 @@ class Ep004DirectorSimpleFilmControllerTest {
             Ep004DirectorSimpleFilmController.identity(List.of(shot1,shot2,shot3)));
     }
 
+    @Test void fullVideoPlayerUrlChangesWhenANewFilmIsAssembled() {
+        UUID packageId=UUID.randomUUID();
+        UUID first=UUID.randomUUID();
+        UUID second=UUID.randomUUID();
+        String v1=Ep004DirectorSimpleFilmController.versionedFilmUrl(packageId,first);
+        String v2=Ep004DirectorSimpleFilmController.versionedFilmUrl(packageId,second);
+        assertNotEquals(v1,v2,"An updated film must remount the browser video player.");
+        assertEquals(v1,Ep004DirectorSimpleFilmController.versionedFilmUrl(packageId,first),
+                "Returning to the same saved film must keep an immutable URL.");
+        assertTrue(v1.endsWith("?v="+first));
+        assertTrue(v1.startsWith("/api/v1/episode-packages/"+packageId+"/film/video"));
+    }
+
     @Test void renderFingerprintChangesIfDirectorRelocksOneShot() {
         var shot1=locked("SHOT01");
         var a=new Ep004DirectorSimpleFilmController.ShotLock(
