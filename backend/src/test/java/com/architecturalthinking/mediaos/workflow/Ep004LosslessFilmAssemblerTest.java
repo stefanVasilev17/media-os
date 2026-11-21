@@ -61,6 +61,9 @@ class Ep004LosslessFilmAssemblerTest {
         String first=sha(folder.resolve("shot01.mp4"));
         String second=sha(folder.resolve("shot02.mp4"));
         String third=sha(folder.resolve("shot03.mp4"));
+        assertEquals(first,MediaObjectStore.sha256(folder.resolve("shot01.mp4")));
+        assertEquals(second,MediaObjectStore.sha256(folder.resolve("shot02.mp4")));
+        assertEquals(third,MediaObjectStore.sha256(folder.resolve("shot03.mp4")));
 
         Ep004LosslessFilmAssembler.assemble(folder,3,135);
 
