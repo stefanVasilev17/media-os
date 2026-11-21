@@ -63,9 +63,19 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     &&readiness.narrationSha256===voice.narrationSha256;
 
   const refreshFilm=useCallback(async()=>{
+    if(episode?.episodeKey==='EP003'){
+      const legacy=await result<{status:string;videoUrl?:string;durationInFrames?:number}>(
+        await fetch('/api/v1/remotion/renders/ep003/cumulative/latest-successful',
+          {cache:'no-store'}));
+      setFilm({locks:[],shotCount:legacy.status==='READY'?11:0,
+        videoUrl:legacy.status==='READY'?legacy.videoUrl??null:null,
+        state:legacy.status==='READY'?'READY':'EMPTY',renderIds:[],
+        durationInFrames:legacy.durationInFrames??0});
+      return;
+    }
     const data=await result<FilmState>(await fetch(root+'/film',{cache:'no-store'}));
     setFilm(data);
-  },[root]);
+  },[root,episode?.episodeKey]);
 
   useEffect(()=>{
     let active=true;
@@ -111,13 +121,21 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   },[root,activeShot,episode?.episodeKey]);
 
   useEffect(()=>{
+    if(!episode)return;
     const current=++serial.current;let active=true;
     setVoice(null);setRender(null);setReadiness(null);
     setError('');setNotice('');setCpuConsent(false);setVoiceConsent(false);
+    const filmRequest=episode.episodeKey==='EP003'
+      ?fetch('/api/v1/remotion/renders/ep003/cumulative/latest-successful',
+        {cache:'no-store'}).then(result<{status:string;videoUrl?:string;durationInFrames?:number}>)
+        .then(legacy=>({locks:[],shotCount:legacy.status==='READY'?11:0,
+          videoUrl:legacy.status==='READY'?legacy.videoUrl??null:null,
+          state:legacy.status==='READY'?'READY':'EMPTY',renderIds:[],
+          durationInFrames:legacy.durationInFrames??0} as FilmState))
+      :fetch(root+'/film',{cache:'no-store'}).then(result<FilmState>);
     void Promise.all([
       fetch(root+'/shots/'+encodeURIComponent(activeShot)+'/voice',{cache:'no-store'})
-        .then(result<Voice>),
-      fetch(root+'/film',{cache:'no-store'}).then(result<FilmState>)
+        .then(result<Voice>),filmRequest
     ]).then(([v,f])=>{
       if(!active||current!==serial.current)return;
       if(v.shotKey!==activeShot)throw Error('Wrong SHOT voice response.');
@@ -125,7 +143,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       setChosenTake(v.selectedTakeId??'');setFilm(f);
     }).catch(e=>{if(active&&current===serial.current)setError(errorText(e));});
     return()=>{active=false;serial.current++;};
-  },[activeShot,root]);
+  },[activeShot,root,episode?.episodeKey]);
 
   useEffect(()=>{
     if(!voice?.approvedCurrentRevision||episode?.episodeKey!=='EP004')return;
@@ -223,6 +241,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     finally{setBusy('');}
   }
 
+  const archived=episode?.episodeKey==='EP003';
   const active=episode?.shots.find(s=>s.shotKey===activeShot);
   const locked=film?.locks.find(s=>s.shotKey===activeShot);
   const fullUrl=film?.videoUrl??null;
@@ -237,7 +256,9 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       <header className="director-minimal-heading">
         <div><p className="director-minimal-eyebrow">{episode.episodeKey}</p>
           <h1>{episode.title}</h1></div>
-        <span className="director-minimal-counter">{film?.locks.length??0} / {episode.shots.length} locked</span>
+        <span className="director-minimal-counter">
+          {archived?'Finished episode':(film?.locks.length??0)+' / '+episode.shots.length+' locked'}
+        </span>
       </header>
       <div className="director-minimal-body">
         <aside className="director-minimal-sidebar" aria-label="Choose SHOT">
@@ -275,8 +296,11 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 onClick={()=>void refreshFilm().catch(e=>setError(errorText(e)))}>
                 <RefreshCw size={15}/> Refresh</button>
             </div>
-            <p className="director-minimal-muted">{film?.shotCount??0} consecutive locked SHOTs.
-              Only approved MP4 files are used. One player, one continuous video.</p>
+            <p className="director-minimal-muted">
+              {episode.episodeKey==='EP003'
+                ?'One player for the finished Director-approved episode.'
+                :(film?.shotCount??0)+' consecutive locked SHOTs. One player, one continuous video.'}
+            </p>
             {fullUrl?<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
               aria-label="One complete film of all consecutive locked SHOTs"/>:
@@ -297,19 +321,22 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               <div className="director-minimal-section-head">
                 <div><p className="director-minimal-eyebrow">01 · Script</p><h3>Your narration</h3></div>
                 <button type="button" className="director-minimal-primary"
-                  disabled={!editing||!!busy||script.trim().length<20||direction.trim().length<8}
+                  disabled={!!archived||!editing||!!busy||script.trim().length<20||direction.trim().length<8}
                   onClick={()=>void saveScript()}><Save size={17}/> Save script</button>
               </div>
               <textarea aria-label="SHOT narration" value={script}
-                onChange={e=>setScript(e.target.value)} disabled={!voice||!!busy}
+                onChange={e=>setScript(e.target.value)} disabled={!!archived||!voice||!!busy}
                 className="director-minimal-script" rows={11}/>
               {voice&&<p className="director-minimal-muted">
-                Revision {voice.revision}. You can edit your script anytime. Saving a new
-                revision does not delete previously recorded audio or locked videos.</p>}
+                Revision {voice.revision}.
+                {episode.episodeKey==='EP003'
+                  ?' This archived episode keeps its original locked source.'
+                  :' You can edit your script anytime. Saving a new revision does not delete audio or locked videos.'}
+              </p>}
               <details className="director-minimal-advanced">
                 <summary>Voice direction</summary>
                 <textarea aria-label="Voice direction" value={direction}
-                  onChange={e=>setDirection(e.target.value)} disabled={!voice||!!busy} rows={3}/>
+                  onChange={e=>setDirection(e.target.value)} disabled={!!archived||!voice||!!busy} rows={3}/>
               </details>
             </section>
             <section className="director-minimal-panel">
@@ -322,12 +349,12 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               </div>
               <label className="director-minimal-confirm">
                 <input type="checkbox" checked={voiceConsent}
-                  disabled={!voice?.canGenerateSlow||editing||!!busy}
+                  disabled={!!archived||!voice?.canGenerateSlow||editing||!!busy}
                   onChange={e=>setVoiceConsent(e.target.checked)}/>
                 I approve one paid ElevenLabs voice generation.
               </label>
               <button type="button" className="director-minimal-primary"
-                disabled={!voice?.canGenerateSlow||!voiceConsent||editing||!!busy}
+                disabled={!!archived||!voice?.canGenerateSlow||!voiceConsent||editing||!!busy}
                 onClick={()=>void generateVoice()}>
                 <Volume2 size={17}/>{busy==='voice'?'Generating…':'Generate voice'}
               </button>
@@ -386,7 +413,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                   {render.videoUrl&&<video key={render.videoUrl} controls playsInline
                     preload="metadata" className="director-minimal-video" src={render.videoUrl}
                     aria-label={'Rendered '+activeShot+' video'}/>}
-                  {render.status==='READY'&&<button type="button" className="director-minimal-lock"
+                  {episode.episodeKey==='EP004'&&render.status==='READY'&&<button type="button" className="director-minimal-lock"
                     disabled={!!busy||locked?.renderId===render.renderId}
                     onClick={()=>void lockShot()}><Check size={16}/>
                     {locked?.renderId===render.renderId?'SHOT locked':'Lock SHOT & add to Full Video'}
