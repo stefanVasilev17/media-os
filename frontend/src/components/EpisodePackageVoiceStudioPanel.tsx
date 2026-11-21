@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {RefreshCw,Save,Mic2,ShieldCheck} from 'lucide-react';
 import {reconcilePaidVoiceState} from '../lib/paidVoiceReconciliation';
-import {isExpectedTakeApproved,voiceReadinessExplanation} from '../lib/voiceTakeApproval';
+import {isExpectedTakeApproved,voiceReadinessExplanation,readinessRecheckReceipt} from '../lib/voiceTakeApproval';
 import type {ShotReadinessSnapshot} from '../lib/voiceTakeApproval';
 
 type Take={
@@ -54,6 +54,8 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const [paidReconciliationRequired,setPaidReconciliationRequired]=useState(false);
   const [shotReadiness,setShotReadiness]=useState<ShotReadinessSnapshot|null>(null);
   const [shotReadinessError,setShotReadinessError]=useState('');
+  const [checkingReadiness,setCheckingReadiness]=useState(false);
+  const [readinessCheckFeedback,setReadinessCheckFeedback]=useState('');
   const [cpuConsent,setCpuConsent]=useState(false);
   const [cpuBusy,setCpuBusy]=useState(false);
   const [cpuReady,setCpuReady]=useState<Ep004Readiness|null>(null);
@@ -61,6 +63,7 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const inFlight=useRef(false);
   const pendingPaidId=useRef<string|null>(null);
   const knownPaidTakeIds=useRef<string[]>([]);
+  const readinessCheckInFlight=useRef(false);
   const cpuRequestId=useRef<string|null>(null);
 
   const apply=(result:State)=>{
@@ -79,7 +82,30 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
     if(!shot)throw Error('Voice readiness did not include '+shotKey);
     setShotReadiness(shot);
     setShotReadinessError('');
+    return shot;
   },[packageId,shotKey]);
+
+  async function recheckShotReadinessWithReceipt(){
+    if(readinessCheckInFlight.current)return;
+    readinessCheckInFlight.current=true;
+    setCheckingReadiness(true);
+    setReadinessCheckFeedback('Checking existing SHOT voice readiness (read-only, no charge)…');
+    try{
+      const previous=shotReadiness;
+      const current=await refreshShotReadiness();
+      const checkedAt=new Date().toLocaleTimeString();
+      setReadinessCheckFeedback(readinessRecheckReceipt(current,previous)
+        +' Checked at '+checkedAt+'.');
+    }catch(reason){
+      const failure='Read-only check failed: '+String(reason)
+        +'. The existing approved Take is unchanged. No paid call was sent.';
+      setShotReadinessError(failure);
+      setReadinessCheckFeedback('Readiness check failed. See error above.');
+    }finally{
+      readinessCheckInFlight.current=false;
+      setCheckingReadiness(false);
+    }
+  }
 
   async function recheckPaidAttempt(originalFailure=''){
     try{
@@ -325,10 +351,14 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
         {shotReadinessError&&<p className="episode-package-voice-note" role="status">
           {shotReadinessError}. Your existing Take approval is preserved.
         </p>}
-        <button type="button" disabled={busy||loading}
-          onClick={()=>void refreshShotReadiness().catch(reason=>
-            setShotReadinessError('Voice readiness could not be refreshed: '+String(reason)))}>
-          <RefreshCw size={14}/> Recheck SHOT voice readiness (read-only)
+        {readinessCheckFeedback&&<p className="episode-package-voice-note"
+          role="status" aria-live="polite">{readinessCheckFeedback}</p>}
+        <button type="button" disabled={busy||loading||checkingReadiness}
+          onClick={()=>void recheckShotReadinessWithReceipt()}>
+          <RefreshCw size={14}/>
+          {checkingReadiness
+            ?' Checking SHOT voice readiness…'
+            :' Recheck SHOT voice readiness (read-only)'}
         </button>
       </>}
       <button type="button" className="episode-package-voice-primary"
