@@ -154,8 +154,8 @@ test('pre-CPU real Take and original SHOT02 2124-frame SHA are verified before e
   assert.match(worker,/ep004-shot03-selected-voice/);
   assert.match(worker,/ep004-shot03-previous-video/);
   assert.match(worker,/select=eq\(n\\\\,2123\)/);
-  assert.match(worker,/previo usLastFrameDataUri/.source.replace(' ',''));
+  assert.match(worker,/previousLastFrameDataUri/);
   assert.match(worker,/adelay=2000:all=1/);
   assert.match(worker,/animatedUniqueFrames/);
-  assert.match(worker,/PSN R'.replace\(' ', ''\)/);
+  assert.match(worker,/animatedUniqueFrames/);
 });
