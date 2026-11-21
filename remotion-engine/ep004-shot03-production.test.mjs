@@ -13,8 +13,10 @@ import {
   EP004_SHOT03_PREDECESSOR,EP004_SHOT03_ROUTES,ep004Shot03Clarity
 } from './src/components/architectural-thinking/EP004Shot03LivingWorld.mjs';
 import {
-  EP004_SHOT03_COMPOSITION,extendedEp004Shot02SourceProps,
-  validateEp004Shot03Production,ep004Shot03ProductionWorld
+  EP004_SHOT03_COMPOSITION,EP004_SHOT03_SWITCH_FRAME,
+  EP004_SHOT03_SWITCH_START_FRAME,EP004_SHOT03_SWITCH_END_FRAME,
+  extendedEp004Shot02SourceProps,validateEp004Shot03Production,
+  ep004Shot03ProductionWorld
 } from './src/components/architectural-thinking/EP004Shot03ProductionWorld.mjs';
 
 const priorCues=[
@@ -198,4 +200,51 @@ test('Director V2 explanation advances one grounded route at a time and clears o
   assert.doesNotMatch(director,/DIRECTOR REVIEW CANDIDATE/);
   assert.match(director,/frame===0&&props.previousLastFrameDataUri/);
   assert.throws(()=>ep004Shot03Clarity(540),/FRAME_OUT_OF_RANGE/);
+});
+
+test('Director V3 8-frame shutter replaces 120-frame old/new morph with a clean single world',async()=>{
+  assert.equal(EP004_SHOT03_SWITCH_FRAME,104);
+  assert.equal(EP004_SHOT03_SWITCH_END_FRAME-
+    EP004_SHOT03_SWITCH_START_FRAME,8);
+  let last=0;
+  for(let frame=0;frame<=190;frame++){
+    const s=ep004Shot03ProductionWorld(frame,props);
+    assert.equal(s.worldFrame,4123+frame);
+    assert.equal(s.sourceAlpha+s.storyAlpha,1);
+    assert.equal(s.sourceAlpha*s.storyAlpha,0,
+      'Never draw the old and new diagrams over one another');
+    assert.equal(s.sourceAlpha,frame<104?1:0);
+    assert.ok(s.shutterProgress>=0&&s.shutterProgress<=1);
+    if(frame===104)assert.equal(s.shutterProgress,1);
+    if(frame===100||frame===108)assert.equal(s.shutterProgress,0);
+    if(frame>0)assert.ok(s.worldFrame>last);
+    last=s.worldFrame;
+  }
+  for(const frame of [104,200,950,1940,2600]){
+    const s=ep004Shot03ProductionWorld(frame,props);
+    assert.equal(s.storyboard.cameraScale,1,
+      'No Outlook close-up in the new architecture');
+    assert.equal(s.storyboard.originalOpacity,0);
+    assert.equal(s.storyboard.gatewayReveal,1);
+  }
+  const director=await readFile(new URL(
+    './src/episodes/ep004/Shot03DirectorV1.tsx',import.meta.url),'utf8');
+  assert.match(director,/state.shutterProgress/);
+  assert.match(director,/state.sourceAlpha/);
+  assert.match(director,/state.storyAlpha/);
+  assert.doesNotMatch(director,/crossfade|morph|shutterOverOldWorld/);
+});
+
+test('Director V3 July gateway annotation holds through a readable real-voice interval',()=>{
+  let previous=-1,visible=0;
+  for(let frame=props.backwardFrame;frame<props.durationInFrames;frame++){
+    const s=ep004Shot03ProductionWorld(frame,props);
+    if(s.storyboard.clarity.julyCallout>.75)visible++;
+    assert.ok(s.editorialFrame>=previous);
+    previous=s.editorialFrame;
+  }
+  assert.ok(visible>=165,'July gateway label must hold at least 5.5 seconds @30fps');
+  const tail=ep004Shot03ProductionWorld(props.durationInFrames-1,props);
+  assert.equal(tail.storyboard.clarity.julyCallout,0);
+  assert.equal(tail.storyboard.clarity.noteOpacity,0);
 });
