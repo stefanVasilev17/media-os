@@ -43,6 +43,7 @@ RUN node --check cpu-worker.mjs
 RUN node --test ep004-shot01-world.test.mjs
 RUN node --test ep004-shot02-continuity.test.mjs
 RUN node --test ep004-shot02-production.test.mjs
+RUN node --test ep004-shot03-living-world.test.mjs
 RUN node --check ep002-locked-master-assembly.mjs
 RUN node --test ep002-locked-master-assembly.test.mjs
 RUN node --test ep002-director-breathing-master.test.mjs
