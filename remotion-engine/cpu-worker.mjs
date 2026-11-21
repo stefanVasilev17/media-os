@@ -835,7 +835,8 @@ async function verifyEp004Shot03SeamAndMotion(job,outputPath,sourcePNG,directory
   if(!Number.isFinite(psnr)||psnr<34)
     throw Error('EP004_SHOT03_FRAME0_ACTUAL_ENCODED_SEAM_PSNR_FAILED');
   const frames=await captureNative('ffmpeg',['-hide_banner','-loglevel','error',
-    '-i',outputPath,'-frames:v','30','-f','framemd5','-']);
+    '-i',outputPath,'-map','0:v:0','-an','-frames:v','30',
+    '-f','framemd5','-']);
   const hashes=frames.stdout.split('\n').filter(v=>v&&!v.startsWith('#'))
     .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
   if(hashes.length!==30||new Set(hashes).size<5)
