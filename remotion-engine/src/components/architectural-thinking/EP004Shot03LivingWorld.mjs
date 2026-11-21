@@ -95,7 +95,7 @@ const originalExit=()=>ep004Shot01Exit({
   durationInFrames:2001,
   worldStartFrame:0,previewOnly:true,
 });
-export function ep004Shot03StoryboardWorld(frame,props){
+export function ep004Shot03StoryboardWorld(frame,props,worldFrameOverride=null){
   validateEp004Shot03Storyboard(props);
   if(!Number.isInteger(frame)||frame<0||frame>=props.durationInFrames)
     throw Error('EP004_SHOT03_FRAME_OUTSIDE_STORYBOARD');

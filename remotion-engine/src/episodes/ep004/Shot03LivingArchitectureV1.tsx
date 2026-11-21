@@ -12,7 +12,7 @@ import {
   EP004_SHOT03_ROUTES,EP004_SHOT03_NODES,
   validateEp004Shot03Storyboard,ep004Shot03StoryboardWorld
 } from '../../components/architectural-thinking/EP004Shot03LivingWorld.mjs';
-import type {Ep004Shot03StoryboardProps}
+import type {Ep004Shot03StoryboardProps,Ep004Shot03StoryboardState}
   from '../../components/architectural-thinking/EP004Shot03LivingWorld.mjs';
 
 const CYAN='#68E5FF',VIOLET='#B49BFF',MINT='#6FECD4';
@@ -88,13 +88,9 @@ const GatewayShapes:React.FC<{
   </g>;
 };
 
-export const Shot03LivingArchitectureV1:React.FC<Ep004Shot03StoryboardProps>=props=>{
-  const frame=useCurrentFrame(),config=useVideoConfig();
-  if(config.width!==1920||config.height!==1080||config.fps!==30
-      ||config.durationInFrames!==props.durationInFrames)
-    throw Error('EP004_SHOT03_REQUIRES_1080P_30FPS_PREVIEW');
-  validateEp004Shot03Storyboard(props);
-  const state=ep004Shot03StoryboardWorld(frame,props);
+export const Shot03LivingArchitectureWorldView:React.FC<{
+  state:Ep004Shot03StoryboardState;showStoryboardFooter:boolean
+}>=({state,showStoryboardFooter})=>{
   const previous=state.originalState;
   const zoom='translate3d('+state.cameraX+'px,0,0) scale('+state.cameraScale+')';
   const phaseGlow=.68+.32*Math.sin(state.worldFrame*.048)**2;
@@ -196,9 +192,19 @@ export const Shot03LivingArchitectureV1:React.FC<Ep004Shot03StoryboardProps>=pro
         <path d="M 560 143 H 1260" stroke={CYAN} strokeWidth={2} opacity={.55}/>
       </svg>
     </div>
-    <div style={{position:'absolute',right:49,bottom:38,zIndex:80,
+    {showStoryboardFooter&&<div style={{position:'absolute',right:49,bottom:38,zIndex:80,
       color:'#9CBAC9',fontSize:14,fontWeight:720,fontFamily:AT_FONT,opacity:.78}}>
       EP004 / SHOT03 · MOVING STORYBOARD · NO APPROVED VOICE OR SEAM QA
-    </div>
+    </div>}
   </ATBackground>;
+};
+
+export const Shot03LivingArchitectureV1:React.FC<Ep004Shot03StoryboardProps>=props=>{
+  const frame=useCurrentFrame(),config=useVideoConfig();
+  if(config.width!==1920||config.height!==1080||config.fps!==30
+      ||config.durationInFrames!==props.durationInFrames)
+    throw Error('EP004_SHOT03_REQUIRES_1080P_30FPS_PREVIEW');
+  validateEp004Shot03Storyboard(props);
+  const state=ep004Shot03StoryboardWorld(frame,props);
+  return <Shot03LivingArchitectureWorldView state={state} showStoryboardFooter/>;
 };

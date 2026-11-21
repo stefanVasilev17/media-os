@@ -41,8 +41,10 @@ export function EpisodePackageVoiceStudioPanel({packageId,shotKey,episodeKey,onS
   const ep003SlowOnly=episodeKey==='EP003';
   const ep004Shot01=episodeKey==='EP004'&&shotKey==='SHOT01';
   const ep004Shot02=episodeKey==='EP004'&&shotKey==='SHOT02';
-  const ep004Supported=ep004Shot01||ep004Shot02;
-  const cpuComposition=ep004Shot02?'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
+  const ep004Shot03=episodeKey==='EP004'&&shotKey==='SHOT03';
+  const ep004Supported=ep004Shot01||ep004Shot02||ep004Shot03;
+  const cpuComposition=ep004Shot03?'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL'
+    :ep004Shot02?'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
     :'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL';
   const base='/api/v1/episode-packages/'+encodeURIComponent(packageId)
     +'/shots/'+encodeURIComponent(shotKey)+'/voice';
