@@ -34,3 +34,20 @@ describe('MediaOS minimal Director surface is built from exact native operations
     expect(page).toContain('episode.shots.map');
   });
 });
+
+describe('Long episode Full Video remains one player and non-blocking',()=>{
+  it('continues refreshing only while a real master is ASSEMBLING',()=>{
+    expect(page).toContain("film?.state!=='ASSEMBLING'");
+    expect(page).toContain('window.setInterval');
+    expect(page).toContain('window.clearInterval');
+    expect(page).toContain('src={fullUrl}');
+    expect(page).toContain('key={fullUrl}');
+  });
+  it('offers retry only after failure, never a new paid Remotion job',()=>{
+    expect(page).toContain("film?.state==='ASSEMBLY_FAILED'");
+    expect(page).toContain("root+'/film/retry'");
+    expect(page).toContain('confirmRetry:true');
+    expect(page).toContain('Original MP4s are');
+    expect(page).toContain('no new Remotion or ElevenLabs call');
+  });
+});
