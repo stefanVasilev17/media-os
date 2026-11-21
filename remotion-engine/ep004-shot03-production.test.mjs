@@ -157,5 +157,5 @@ test('pre-CPU real Take and original SHOT02 2124-frame SHA are verified before e
   assert.match(worker,/previousLastFrameDataUri/);
   assert.match(worker,/adelay=2000:all=1/);
   assert.match(worker,/animatedUniqueFrames/);
-  assert.match(worker,/animatedUniqueFrames/);
+  assert.match(worker,/EP004_SHOT03_ACTUAL_SEAM_PSNR/);
 });
