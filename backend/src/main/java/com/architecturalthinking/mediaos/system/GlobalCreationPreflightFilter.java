@@ -319,7 +319,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                     where r.id=:render and r.project_id=:project
                       and r.episode_id is null
                       and r.composition_id in ('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
-                                               'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')
+                                               'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL',
+                                               'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL')
                       and r.profile='REVIEW' and r.width=1920 and r.height=1080
                       and r.fps=30 and r.duration_in_frames between 600 and 9000
                       and r.status='RUNNING' and r.worker_id=:worker
@@ -333,6 +334,17 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.input_props->>'renderRequestId' is not null
                       and (r.composition_id<>'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
                         or (r.input_props->>'shotKey'='SHOT02'
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40))
+                      and (r.composition_id<>'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL'
+                        or (r.input_props->>'shotKey'='SHOT03'
+                          and r.input_props->>'previousRenderId'='20758da0-46f9-4973-9ef8-ec93eb437a5a'
+                          and r.input_props->>'previousSourceCommit'='714d7c31affb84793780eee42bc5062387b069a7'
+                          and r.input_props->>'previousFrameCount'='2124'
+                          and r.input_props->>'previousLastEncodedFrame'='2123'
+                          and r.input_props->>'worldStartFrame'='4123'
+                          and length(r.input_props->>'previousVideoSha256')=64
+                          and jsonb_typeof(r.input_props->'previousShot02Props')='object'
                           and jsonb_typeof(r.input_props->'verifiedCues')='array'
                           and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40))
                 )
