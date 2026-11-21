@@ -2,6 +2,7 @@ import React from 'react';
 import {EpisodeShotQaPreview} from './episodes/shared/EpisodeShotQaPreview';
 import {Ep004Shot01OrdinaryWorkday} from './episodes/ep004/Shot01OrdinaryWorkday';
 import {Ep004Shot02ContinuityV1} from './episodes/ep004/Shot02ContinuityV1';
+import {Shot02GeneratedScene as Ep004Shot02DirectorV1} from './episodes/ep004/Shot02GeneratedScene';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -95,6 +96,25 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL"
+        component={Ep004Shot02DirectorV1}
+        durationInFrames={dynamicDuration??2124}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          episodeKey:'EP004' as const,shotKey:'SHOT02' as const,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          previousRenderId:EP004_SHOT01_V8_LOCKED_RENDER_ID,
+          previousSourceCommit:EP004_SHOT01_V8_SOURCE_COMMIT,
+          worldStartFrame:EP004_SHOT01_V8_LAST_FRAME,
+          durationInFrames:2124,previewOnly:false as const,
+          directorCpuApproved:true as const,scriptRevision:1,
+          voiceTakeId:'00000000-0000-4000-8000-000000000000',
+          narrationSha256:'0'.repeat(64),expectedSourceCommit:'0'.repeat(40),
+          shotTitle:'Two Gateway Systems, One Shared Pressure',
+          verifiedCues:[],visualBeats:[]
+        }}
+      />
       <Composition
         id="EP004-SHOT02-CONTINUITY-V1-STORYBOARD"
         component={Ep004Shot02ContinuityV1}

@@ -41,6 +41,97 @@ class EpisodePackageCueTimingVerifierTest {
         return root.toString();
     }
 
+    private static String slowAlignment(String currentNarration,String providerText,
+                                        boolean normalizedOnly) throws Exception {
+        ObjectNode root=(ObjectNode)MAPPER.readTree(alignment(providerText));
+        root.put("mediaos_delivery_mode",SlowNaturalVoicePrompt.DELIVERY_MODE);
+        root.put("mediaos_spoken_script_sha256",
+                EpisodePackageValidator.sha256(currentNarration));
+        if(normalizedOnly)
+            root.set("normalized_alignment",root.remove("alignment"));
+        return root.toString();
+    }
+
+    @Test
+    void v4SlowNaturalPauseTokensAreNonverbalAndReuseOriginalRealCharacterTimes() throws Exception {
+        var plan=SlowNaturalVoicePrompt.plan(SCRIPT,"eleven_v4");
+        assertTrue(plan.text().contains("[pause]"));
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,plan.text(),false),new BigDecimal("10.000"));
+        assertTrue(result.verified(),result.failureCode());
+        assertEquals(2,result.cues().size());
+        assertTrue(result.cues().get(0).startSeconds()<result.cues().get(1).startSeconds());
+        int actualStart=plan.text().indexOf("The server gives");
+        assertEquals(actualStart*.03,result.cues().get(1).startSeconds(),.001);
+    }
+
+    @Test
+    void slowNaturalLongPauseDirectiveDoesNotCreateFalseSpokenWords() throws Exception {
+        String submitted="The phone sends one request. [long pause] The server gives no answer.";
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,submitted,false),new BigDecimal("10.000"));
+        assertTrue(result.verified(),result.failureCode());
+        assertEquals(2,result.cues().size());
+    }
+
+    @Test
+    void slowNaturalPauseMarkerAlsoWorksWithValidatedNormalizedAlignment() throws Exception {
+        String submitted="The phone sends one request. [pause] The server gives no answer.";
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,submitted,true),new BigDecimal("10.000"));
+        assertTrue(result.verified(),result.failureCode());
+        assertEquals(2,result.cues().size());
+    }
+
+    @Test
+    void slowNaturalNeverDropsActuallyDifferentSpokenWords() throws Exception {
+        String different="The phone sends an incorrect request. [pause] The server gives no answer.";
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,different,false),new BigDecimal("10.000"));
+        assertEquals("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION",result.failureCode());
+        assertFalse(result.verified());
+    }
+
+    @Test
+    void slowNaturalNeverRemovesActualWordPauseWithoutExactBracketMarker() throws Exception {
+        String different="The phone sends one request pause. The server gives no answer.";
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,different,false),new BigDecimal("10.000"));
+        assertEquals("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION",result.failureCode());
+    }
+
+    @Test
+    void pauseTagsCannotBeSilentlyRemovedInStandardTake() throws Exception {
+        var payload=(ObjectNode)MAPPER.readTree(alignment(
+                "The phone sends one request. [pause] The server gives no answer."));
+        payload.put("mediaos_delivery_mode","STANDARD");
+        payload.put("mediaos_spoken_script_sha256",EpisodePackageValidator.sha256(SCRIPT));
+        var result=verifier.verify(SCRIPT,STORY,payload.toString(),
+                new BigDecimal("10.000"));
+        assertEquals("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION",result.failureCode());
+    }
+
+    @Test
+    void slowNaturalCurrentNarrationHashMismatchBlocksEvenWhenWordSequenceMatches()
+            throws Exception {
+        var payload=(ObjectNode)MAPPER.readTree(slowAlignment(SCRIPT,
+                "The phone sends one request. [pause] The server gives no answer.",false));
+        payload.put("mediaos_spoken_script_sha256",
+                EpisodePackageValidator.sha256("Different source narration"));
+        var result=verifier.verify(SCRIPT,STORY,payload.toString(),
+                new BigDecimal("10.000"));
+        assertEquals("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION",result.failureCode());
+    }
+
+    @Test
+    void malformedOrUnclosedPauseTagsRemainBlocked() throws Exception {
+        var result=verifier.verify(SCRIPT,STORY,
+                slowAlignment(SCRIPT,
+                    "The phone sends one request. [pause The server gives no answer.",
+                    false),new BigDecimal("10.000"));
+        assertEquals("SPOKEN_AUDIO_DIFFERS_FROM_CURRENT_NARRATION",result.failureCode());
+    }
+
     @Test
     void mapsRealProviderCharacterTimingToTwoOrderedVisualBeats() {
         String payload=alignment("[calm, conversational, confident] "+SCRIPT);

@@ -94,7 +94,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
         }
         if (isVerifiedEp004WorkerContinuation(request)) {
             request.setAttribute("MEDIA_OS_CREATION_PREFLIGHT",
-                    Map.of("continuation", "EP004_DIRECTOR_APPROVED_SHOT01_RENDER"));
+                    Map.of("continuation", "EP004_DIRECTOR_APPROVED_SOURCE_PINNED_SHOT_RENDER"));
             chain.doFilter(request, response);
             return;
         }
@@ -318,7 +318,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                     select 1 from remotion_render r
                     where r.id=:render and r.project_id=:project
                       and r.episode_id is null
-                      and r.composition_id='EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL'
+                      and r.composition_id in ('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
+                                               'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')
                       and r.profile='REVIEW' and r.width=1920 and r.height=1080
                       and r.fps=30 and r.duration_in_frames between 600 and 9000
                       and r.status='RUNNING' and r.worker_id=:worker
@@ -330,6 +331,10 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.input_props->>'voiceTakeId' is not null
                       and r.input_props->>'packageId' is not null
                       and r.input_props->>'renderRequestId' is not null
+                      and (r.composition_id<>'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL'
+                        or (r.input_props->>'shotKey'='SHOT02'
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40))
                 )
                 """)
                 .param("render",renderId).param("project",RENDER_PROJECT_ID)
