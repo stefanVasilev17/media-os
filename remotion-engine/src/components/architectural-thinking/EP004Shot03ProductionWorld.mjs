@@ -71,6 +71,11 @@ export function validateEp004Shot03Production(props){
     ||typeof props.expectedSourceCommit!=='string'||!/^[a-f0-9]{40}$/.test(props.expectedSourceCommit)
     ||typeof props.shotTitle!=='string'||props.shotTitle.length<8)
     throw Error('SHOT03_REAL_VOICE_EXACT_SOURCE_SEAM_AND_60F_GUARD_REQUIRED');
+  if(props.previousLastFrameDataUri!=null
+      &&(typeof props.previousLastFrameDataUri!=='string'
+        ||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(props.previousLastFrameDataUri)
+        ||props.previousLastFrameDataUri.length>12000000))
+    throw Error('SHOT03_FRAME_ZERO_SNAPSHOT_MUST_BE_AUTHENTIC_VERIFIED_PNG');
   extendedEp004Shot02SourceProps(props);
   checkCues(props);
   return true;
