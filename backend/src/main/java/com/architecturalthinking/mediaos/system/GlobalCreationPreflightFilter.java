@@ -318,7 +318,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                     select 1 from remotion_render r
                     where r.id=:render and r.project_id=:project
                       and r.episode_id is null
-                      and r.composition_id='EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL'
+                      and r.composition_id in ('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
+                                               'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL')
                       and r.profile='REVIEW' and r.width=1920 and r.height=1080
                       and r.fps=30 and r.duration_in_frames between 600 and 9000
                       and r.status='RUNNING' and r.worker_id=:worker
