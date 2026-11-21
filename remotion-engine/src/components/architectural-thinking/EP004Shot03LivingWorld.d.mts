@@ -13,10 +13,18 @@ export type Ep004Shot03Traffic={
   id:string;route:string;color:'CYAN'|'VIOLET';kind:'OUTLOOK'|'TEAMS';
   x:number;y:number;progress:number;opacity:number;radius:number;
 };
+export type Ep004Shot03Clarity={
+  note:string;noteOpacity:number;
+  routes:Record<string,number>;
+  primaryFocus:number;alternativeFocus:number;
+  julyCallout:number;utcStamp:number;
+};
+export declare function ep004Shot03Clarity(frame:number):Ep004Shot03Clarity;
 export type Ep004Shot03StoryboardState={
   frame:number;worldFrame:number;cameraX:number;cameraScale:number;
   originalOpacity:number;gatewayReveal:number;redirect:number;
   sharedLoad:number;julyMarker:number;utcStamp:number;
+  clarity:Ep004Shot03Clarity;
   originalState:{
     worldFrame:number;blocked:number;failover:number;spillover:number;
     tension:number;mailOpen:number;mailAttempt:number;question:number;
