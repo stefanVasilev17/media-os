@@ -29,6 +29,9 @@ export function validateEp004Shot02Render(props){
     ||props.directorCpuApproved!==true
     ||!Number.isInteger(props.durationInFrames)
     ||props.durationInFrames<600||props.durationInFrames>9000
+    ||!Number.isInteger(props.failoverTermStartFrame)
+    ||props.failoverTermStartFrame<EP004_SHOT02_BREATH_FRAMES
+    ||props.failoverTermStartFrame+240>props.durationInFrames-EP004_SHOT02_TAIL_FRAMES
     ||!Number.isInteger(props.scriptRevision)||props.scriptRevision<1
     ||typeof props.voiceTakeId!=='string'
     ||!/^[a-f0-9-]{36}$/.test(props.voiceTakeId)

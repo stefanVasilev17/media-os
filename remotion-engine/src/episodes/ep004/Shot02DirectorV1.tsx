@@ -17,11 +17,60 @@ import {ep004Shot02ProductionWorld,validateEp004Shot02Render}
   from '../../components/architectural-thinking/EP004Shot02ProductionWorld.mjs';
 import type {Ep004Shot02RenderProps}
   from '../../components/architectural-thinking/EP004Shot02ProductionWorld.mjs';
+import {shot10TextWidth} from '../../../shot10-content-fit-layout.mjs';
+import {ep003CardIsReadable,ep003CardOpacity}
+  from '../../../ep003-readable-card-policy.mjs';
 
 const CYAN='#68E5FF';
 const MINT='#6FECD4';
 const AMBER='#F5A55A';
 const WHITE='#F5FCFF';
+
+const FAILOVER_TITLE='FAILOVER';
+const FAILOVER_LINES=[
+  'Moving work to an alternative path',
+  'when the original path cannot serve it'
+] as const;
+const FAILOVER_HOLD_FRAMES=240;
+const FAILOVER_LEFT=560;
+const FAILOVER_TOP=742;
+const FAILOVER_HEIGHT=178;
+const FAILOVER_PADDING=34;
+
+const FailoverGlossaryCard:React.FC<{frame:number;start:number;duration:number}>=
+  ({frame,start,duration})=>{
+    const until=start+FAILOVER_HOLD_FRAMES;
+    const definition=FAILOVER_LINES.join(' ');
+    if(start<60||until>duration-45
+        ||!ep003CardIsReadable(FAILOVER_TITLE,definition,start,until,30))
+      throw Error('EP004_SHOT02_FAILOVER_GLOSSARY_TIMING_UNSAFE');
+    if(frame<start||frame>=until)return null;
+    const width=Math.ceil(Math.max(
+      shot10TextWidth(FAILOVER_TITLE,23),
+      ...FAILOVER_LINES.map(line=>shot10TextWidth(line,29))
+    )+FAILOVER_PADDING*2+12);
+    if(width<320||width>950||FAILOVER_LEFT+width>1510
+        ||FAILOVER_TOP+FAILOVER_HEIGHT>1020)
+      throw Error('EP004_SHOT02_FAILOVER_GLOSSARY_TEXT_OVERFLOW');
+    const alpha=ep003CardOpacity(frame,start,until);
+    return <div style={{position:'absolute',left:FAILOVER_LEFT,top:FAILOVER_TOP,
+      width,height:FAILOVER_HEIGHT,boxSizing:'border-box',
+      padding:'20px 34px',zIndex:23,
+      borderRadius:17,border:'2px solid '+AMBER,
+      background:'linear-gradient(120deg,rgba(10,32,50,.977),rgba(5,19,37,.988))',
+      boxShadow:'0 13px 36px rgba(0,0,0,.33),0 0 18px rgba(89,202,232,.08)',
+      opacity:alpha,pointerEvents:'none',fontFamily:AT_FONT,
+      transform:'translateY('+((1-alpha)*5)+'px)'}}>
+      <div style={{color:AMBER,fontSize:23,lineHeight:'29px',
+        letterSpacing:'.015em',fontWeight:850,whiteSpace:'nowrap'}}>
+        {FAILOVER_TITLE}
+      </div>
+      <div style={{color:WHITE,fontSize:29,lineHeight:'39px',fontWeight:900,
+        marginTop:11,whiteSpace:'nowrap',letterSpacing:'-.01em'}}>
+        {FAILOVER_LINES.map(line=><div key={line}>{line}</div>)}
+      </div>
+    </div>;
+  };
 
 export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
   const frame=useCurrentFrame();
@@ -162,6 +211,10 @@ export const Ep004Shot02DirectorV1:React.FC<Ep004Shot02RenderProps>=props=>{
           strokeWidth={2} opacity={.55}/>
       </svg>
     </div>
+    <AbsoluteFill style={{pointerEvents:'none',zIndex:25}}>
+      <FailoverGlossaryCard frame={frame}
+        start={props.failoverTermStartFrame} duration={props.durationInFrames}/>
+    </AbsoluteFill>
     <div style={{position:'absolute',right:50,
       bottom:39,zIndex:90,color:'#9CBAC9',fontSize:15,
       opacity:state.headerProgress*.54,fontFamily:AT_FONT,fontWeight:740}}>

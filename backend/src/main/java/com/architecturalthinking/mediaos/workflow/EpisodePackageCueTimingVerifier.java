@@ -64,6 +64,42 @@ public class EpisodePackageCueTimingVerifier {
         return last;
     }
 
+    public java.util.OptionalDouble firstSpokenTermStartSeconds(
+            String narration,String providerAlignmentJson,
+            BigDecimal measuredDuration,String term) {
+        if(narration==null||providerAlignmentJson==null
+                ||measuredDuration==null||measuredDuration.signum()<=0)
+            return java.util.OptionalDouble.empty();
+        String spoken=normalize(narration);
+        String keyword=normalize(term);
+        if(spoken.isBlank()||keyword.isBlank()||keyword.contains(" "))
+            return java.util.OptionalDouble.empty();
+        Matcher occurrence=Pattern.compile("(?<![a-z0-9])"
+                +Pattern.quote(keyword)+"(?![a-z0-9])").matcher(spoken);
+        if(!occurrence.find())return java.util.OptionalDouble.empty();
+        JsonNode provider;
+        try {provider=mapper.readTree(providerAlignmentJson);}
+        catch(Exception malformed){return java.util.OptionalDouble.empty();}
+        boolean slowNatural=SlowNaturalVoicePrompt.DELIVERY_MODE.equals(
+                provider.path("mediaos_delivery_mode").asText(""));
+        if(slowNatural&&!EpisodePackageValidator.sha256(narration).equalsIgnoreCase(
+                provider.path("mediaos_spoken_script_sha256").asText("")))
+            return java.util.OptionalDouble.empty();
+        for(String key:List.of("alignment","normalized_alignment")){
+            Timeline timeline=parseTimeline(provider.path(key),
+                    measuredDuration.doubleValue(),slowNatural);
+            if(timeline==null)continue;
+            int narrationAt=timeline.text().indexOf(spoken);
+            if(narrationAt<0)continue;
+            int termAt=narrationAt+occurrence.start();
+            if(termAt<0||termAt>=timeline.indices().size())continue;
+            double time=timeline.starts().get(timeline.indices().get(termAt));
+            if(Double.isFinite(time)&&time>=0&&time<=measuredDuration.doubleValue())
+                return java.util.OptionalDouble.of(round(time));
+        }
+        return java.util.OptionalDouble.empty();
+    }
+
     private Result compare(Timeline timeline, String narration, JsonNode beats) {
         int narrationStart = timeline.text().indexOf(narration);
         if (narrationStart < 0)
