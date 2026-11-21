@@ -17,9 +17,11 @@ import {ep004Shot02ProductionWorld,validateEp004Shot02Render}
   from '../../components/architectural-thinking/EP004Shot02ProductionWorld.mjs';
 import type {Ep004Shot02RenderProps}
   from '../../components/architectural-thinking/EP004Shot02ProductionWorld.mjs';
-import {shot10TextWidth} from '../../../shot10-content-fit-layout.mjs';
-import {ep003CardIsReadable,ep003CardOpacity}
-  from '../../../ep003-readable-card-policy.mjs';
+import {
+  atGlossaryTextWidth as shot10TextWidth,
+  atGlossaryCardIsReadable as ep003CardIsReadable,
+  atGlossaryCardOpacity as ep003CardOpacity
+} from '../../components/architectural-thinking/ATReadableTermCardPolicy.mjs';
 
 const CYAN='#68E5FF';
 const MINT='#6FECD4';
