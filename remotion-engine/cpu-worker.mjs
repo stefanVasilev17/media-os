@@ -769,7 +769,7 @@ async function fetchEp004Shot03ApprovedVoice(job,inputProps){
      ||inputProps.previousFrameCount!==2124
      ||inputProps.previousLastEncodedFrame!==2123
      ||inputProps.worldStartFrame!==4123
-     ||!/[a-f0-9]{64}/.test(inputProps.previousVideoSha256||''))
+     ||!/^[a-f0-9]{64}$/.test(inputProps.previousVideoSha256||''))
     throw Error('EP004_SHOT03_CURRENT_APPROVED_TAKE_60F_SOURCE_GUARD_FAILED');
   await leaseClient.refresh();
   const res=await workloadTokens.request(
@@ -840,7 +840,7 @@ async function verifyEp004Shot03SeamAndMotion(job,outputPath,sourcePNG,directory
     .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
   if(hashes.length!==30||new Set(hashes).size<5)
     throw Error('EP004_SHOT03_FRAME1_TO30_STATIC_PREDECESSOR_COVER_PROHIBITED');
-  console.log('EP004_SHOT03_ACTUAL_SEAM_PSN R'.replace(' ', '')+'='+psnr.toFixed(2)+
+  console.log('EP004_SHOT03_ACTUAL_SEAM_PSNR='+psnr.toFixed(2)+
     ' animatedUniqueFrames='+new Set(hashes).size+' renderId='+job.renderId);
 }
 
