@@ -112,6 +112,7 @@ export const Root: React.FC = () => {
           voiceTakeId:'00000000-0000-4000-8000-000000000000',
           narrationSha256:'0'.repeat(64),expectedSourceCommit:'0'.repeat(40),
           shotTitle:'Two Gateway Systems, One Shared Pressure',
+          failoverTermStartFrame:-1,
           verifiedCues:[],visualBeats:[]
         }}
       />
