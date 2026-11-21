@@ -361,9 +361,11 @@ public final class Ep004DirectorSimpleFilmController {
             .param("frames",frames).update();
     }
 
-    private synchronized void assemble(UUID packageId){
+    private synchronized void assemble(UUID packageId,String expectedSequence){
         List<ShotLock> prefix=consecutive(locks(packageId));
-        if(prefix.isEmpty()||current(currentFilm(packageId),prefix))return;
+        if(prefix.size()<2||!expectedSequence.equals(identity(prefix)))
+            throw new IllegalStateException("Locked SHOT sequence changed before assembly.");
+        if(current(currentFilm(packageId),prefix))return;
         List<VideoSource> sources=new ArrayList<>();
         long inputSize=0;int frames=0;
         for(ShotLock item:prefix){
@@ -372,16 +374,10 @@ public final class Ep004DirectorSimpleFilmController {
             inputSize+=source.bytes();frames+=source.frames();
             if(inputSize>MAX_INPUT_BYTES)
                 throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Full film source bytes exceed the 190 MiB bounded copy budget.");
+                    "Full film source bytes exceed the bounded 4 GiB storage budget.");
             sources.add(source);
         }
         String sequence=identity(prefix);
-        if(sources.size()==1){
-            VideoSource video=sources.get(0);
-            saveFilm(packageId,UUID.randomUUID(),video.objectKey(),video.sha256(),
-                video.bytes(),1,sequence,video.frames());
-            return;
-        }
         if(!store.writable())throw new ResponseStatusException(HttpStatus.CONFLICT,
             "Private video storage must be writable to assemble the full film.");
         Path folder=null;
@@ -390,16 +386,20 @@ public final class Ep004DirectorSimpleFilmController {
             for(int i=0;i<sources.size();i++){
                 VideoSource source=sources.get(i);
                 String name=String.format(java.util.Locale.ROOT,"shot%02d.mp4",i+1);
-                Files.write(folder.resolve(name),
-                    store.downloadVideoVerified(source.objectKey(),source.sha256(),source.bytes()));
+                Path target=folder.resolve(name);
+                try(var output=Files.newOutputStream(target)){
+                    store.streamVideoRange(source.objectKey(),source.sha256(),
+                        source.bytes(),0,source.bytes()-1,output);
+                }
+                if(Files.size(target)!=source.bytes())
+                    throw new IOException("Original SHOT streaming download was truncated.");
             }
             Ep004LosslessFilmAssembler.assemble(folder,sources.size(),frames);
             Path output=folder.resolve("full-video.mp4");
-            if(Files.size(output)>MediaObjectStore.MAX_VIDEO_BYTES)
-                throw new IllegalStateException("Continuous film exceeds S3 256 MiB limit.");
-            byte[] merged=Files.readAllBytes(output);
+            if(Files.size(output)>MediaObjectStore.MAX_FILM_BYTES)
+                throw new IllegalStateException("Continuous film exceeds the 4 GiB master limit.");
             UUID id=UUID.randomUUID();
-            MediaObjectStore.Stored saved=store.uploadVideoVerified(id,merged);
+            MediaObjectStore.Stored saved=store.uploadFilmVerified(id,output);
             if(!sequence.equals(identity(consecutive(locks(packageId)))))
                 throw new IllegalStateException("Director changed locked SHOTs during film assembly.");
             saveFilm(packageId,id,saved.key(),saved.sha256(),saved.byteCount(),
