@@ -48,7 +48,7 @@ describe('Long episode Full Video remains one player and non-blocking',()=>{
     expect(page).toContain("film?.state==='ASSEMBLY_FAILED'");
     expect(page).toContain("root+'/film/retry'");
     expect(page).toContain('confirmRetry:true');
-    expect(page).toContain('Original MP4s are');
+    expect(page).toContain('Locked SHOT MP4s are preserved.');
     expect(page).toContain('no new Remotion or ElevenLabs call');
   });
 });
