@@ -60,6 +60,8 @@ class DirectorHttpAuthorizationTest {
 
         @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT03/render")
         String ep004Shot03Render() { return "only-after-director-security"; }
+        @PostMapping("/api/v1/episode-packages/{packageId}/shots/SHOT04/render")
+        String ep004Shot04Render() { return "only-after-director-security"; }
 
         @PostMapping("/api/v1/episode-packages/{packageId}/factory-production/runs/{runId}/{operation}")
         String factoryAction() { return "factory-action"; }
