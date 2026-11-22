@@ -111,19 +111,20 @@ test('locked SHOT03 seam, exact SHOT04 voice mux, no paid TTS or automatic CPU j
   assert.doesNotMatch(shot,/static freeze|fake audio|elevenlabs\.generate/);
 });
 
-test('SHOT04 director container pulse removes floating rings and reuses true node borders',async()=>{
+test('SHOT04 Director-approved gateway focus is static, without new rings, glow or pulse',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot04ProductionScene.tsx',import.meta.url),'utf8');
   assert.doesNotMatch(shot,/<circle cx=\{state\.focusX\}/);
   assert.doesNotMatch(shot,/state\.focusX-42/);
+  assert.doesNotMatch(shot,/spotlightPulse|pulseFade|focusAge|drop-shadow/);
+  assert.doesNotMatch(shot,/focusPulse|strokeWidth=\{3\+|fillOpacity=\{\.12\+/);
   assert.match(shot,/EP004_SHOT03_NODES/);
   assert.match(shot,/primaryBorder/);
   assert.match(shot,/alternativeBorder/);
   assert.match(shot,/focusedNode\?\.\[0\]==='primary'/);
   assert.match(shot,/focusedNode\?\.\[0\]==='alternative'/);
-  assert.match(shot,/fillOpacity=\{\.12\+\.10\*spotlightPulse\}/);
+  assert.equal((shot.match(/fillOpacity=\{0\.14\}/g)||[]).length,3);
+  assert.equal((shot.match(/strokeWidth=\{3\}/g)||[]).length,3);
   assert.match(shot,/stroke=\{MINT\}/);
-  assert.match(shot,/spotlightPulse=state\.focusPulse\*pulseFade/);
-  assert.match(shot,/focusAge-90\)\/60/);
   assert.match(shot,/state\.storyboard\.cameraX/);
   assert.match(shot,/state\.storyboard\.cameraScale/);
   assert.match(shot,/Shot03LivingArchitectureWorldView/);
