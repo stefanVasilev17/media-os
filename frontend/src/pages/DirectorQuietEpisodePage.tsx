@@ -28,7 +28,8 @@ const base='/api/v1/episode-packages';
 const compositions:Record<string,string>={
   SHOT01:'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
   SHOT02:'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL',
-  SHOT03:'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL'
+  SHOT03:'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL',
+  SHOT04:'EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL'
 };
 async function result<T>(response:Response):Promise<T>{
   if(!response.ok)throw Error('HTTP '+response.status+': '+(await response.text()).slice(0,270));

@@ -67,6 +67,9 @@ public class RemotionCpuWorkerController {
     static boolean isEp004Shot03Target(String scope) {
         return "EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(scope);
     }
+    static boolean isEp004Shot04Target(String scope) {
+        return "EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(scope);
+    }
 
     public record ProgressRequest(int progress) {}
     public record FailureRequest(String error) {}
@@ -85,6 +88,7 @@ public class RemotionCpuWorkerController {
         if (!scope.isEmpty() && !"EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(scope)
                 && !"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(scope)
                 && !isEp004Shot03Target(scope)
+                && !isEp004Shot04Target(scope)
                 && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)

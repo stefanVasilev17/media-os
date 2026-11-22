@@ -12,6 +12,8 @@ test('CPU claim dispatch stays disabled unless explicitly activated', () => {
 test('EP004 SHOT01 is a valid single-composition scoped release target',()=>{
   assert.equal(requireSupportedTargetComposition('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL'),
     'EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL');
+  assert.equal(requireSupportedTargetComposition('EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL'),
+    'EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL');
   assert.equal(requireSupportedTargetComposition('EP002-SHOT10-CANDIDATE'),
     'EP002-SHOT10-CANDIDATE');
   assert.equal(requireSupportedTargetComposition(''), '');
