@@ -37,10 +37,14 @@ describe('MediaOS minimal Director surface is built from exact native operations
 });
 
 describe('Long episode Full Video remains one player and non-blocking',()=>{
-  it('continues refreshing only while a real master is ASSEMBLING',()=>{
-    expect(page).toContain("film?.state!=='ASSEMBLING'");
+  it('keeps checking for one full master when consecutive locked clips exist',()=>{
+    expect(page).toContain("film?.state==='READY'");
+    expect(page).toContain("film?.state==='ASSEMBLY_FAILED'");
+    expect(page).toContain('(film?.locks.length??0)<2');
     expect(page).toContain('window.setInterval');
     expect(page).toContain('window.clearInterval');
+    expect(page).toContain('The combined MP4 will appear above the individual clips automatically.');
+    expect(page).toContain('Full Video is ready.');
     expect(page).toContain('src={fullUrl}');
     expect(page).toContain('key={fullUrl}');
   });

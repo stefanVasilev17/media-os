@@ -447,14 +447,19 @@ public final class Ep004DirectorSimpleFilmController {
     public void logPendingAssemblyStatus(){
         try{
             jdbc.sql("""
-               select package_id,status,attempts,lease_until,error
-                 from episode_director_film_job
-                where status <> 'READY' and updated_at > now()-interval '60 minutes'
-                order by updated_at desc limit 4
+               select j.package_id,j.status,j.attempts,j.lease_until,j.error,
+                      f.film_id,f.shot_count,f.render_ids as saved_render_ids,j.render_ids as job_render_ids
+                 from episode_director_film_job j
+                 left join episode_director_film f on f.package_id=j.package_id
+                where j.updated_at > now()-interval '60 minutes'
+                order by j.updated_at desc limit 4
                """).query((rs,i)->{
-                LOG.info("Full Video job: packageId={} status={} attempts={} leased={} issue={}",
+                LOG.info("Full Video job: packageId={} status={} attempts={} leased={} filmPresent={} filmShots={} matchingSequence={} issue={}",
                     rs.getObject("package_id",UUID.class),rs.getString("status"),
                     rs.getInt("attempts"),rs.getObject("lease_until")!=null,
+                    rs.getObject("film_id")!=null,rs.getObject("shot_count"),
+                    java.util.Objects.equals(rs.getString("saved_render_ids"),
+                                             rs.getString("job_render_ids")),
                     rs.getString("error"));
                 return 1;
             }).list();

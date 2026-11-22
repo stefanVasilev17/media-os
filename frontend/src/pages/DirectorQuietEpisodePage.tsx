@@ -179,12 +179,14 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   },[activeShot,root,episode?.episodeKey]);
 
   useEffect(()=>{
-    if(tab!=='FULL'||film?.state!=='ASSEMBLING')return;
+    if(tab!=='FULL'||episode?.episodeKey!=='EP004'
+        ||film?.state==='READY'||film?.state==='ASSEMBLY_FAILED'
+        ||(film?.locks.length??0)<2)return;
     const timer=window.setInterval(()=>{
       void refreshFilm().catch(reason=>setError(errorText(reason)));
     },4000);
     return()=>window.clearInterval(timer);
-  },[tab,film?.state,refreshFilm]);
+  },[tab,episode?.episodeKey,film?.state,film?.locks.length,refreshFilm]);
 
   useEffect(()=>{
     if(!voice?.approvedCurrentRevision||episode?.episodeKey!=='EP004')return;
@@ -370,8 +372,14 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 ?'The finished Director-approved episode.'
                 :(film?.locks.length??0)+' locked SHOTs. Only the currently locked videos are shown.'}
             </p>
-            {film?.state==='ASSEMBLING'&&<p role="status" className="director-minimal-muted">
-              Building Full Video from the latest locked SHOTs. This page updates automatically.
+            {!fullUrl&&(film?.locks.length??0)>=2
+              &&film?.state!=='ASSEMBLY_FAILED'&&
+              <p role="status" className="director-minimal-muted">
+                Preparing one continuous Full Video from the locked SHOTs.
+                The combined MP4 will appear above the individual clips automatically.
+              </p>}
+            {fullUrl&&<p role="status" className="director-minimal-muted">
+              Full Video is ready. Watch the complete continuous MP4 below.
             </p>}
             {fullUrl&&<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
