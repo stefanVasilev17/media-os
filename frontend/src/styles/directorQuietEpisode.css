@@ -118,3 +118,8 @@
   border-radius:14px;padding:17px;background:#0b1b2c;gap:13px}
 .director-minimal-new-render{margin-top:14px;padding:15px;border:1px solid var(--dm-line);
   border-radius:12px;align-items:flex-start}
+
+.director-minimal-locked-clips{display:flex;flex-direction:column;gap:18px}
+.director-minimal-locked-clip{display:flex;flex-direction:column;gap:10px}
+.director-minimal-locked-clip-name{display:flex;gap:8px;align-items:center;
+  color:#b9f0dd;font-size:14px;font-weight:720;margin:0}
