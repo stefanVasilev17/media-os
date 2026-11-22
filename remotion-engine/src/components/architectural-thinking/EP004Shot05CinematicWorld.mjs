@@ -13,13 +13,23 @@ const ease=n=>{const x=clamp(n);return x*x*(3-2*x);};
 const lerp=(a,b,t)=>a+(b-a)*t;
 const CAMERA=Object.freeze({
   WIDE:Object.freeze({x:0,y:0,scale:1.0}),
-  MAIL:Object.freeze({x:-102,y:20,scale:1.18}),
-  TEAMS:Object.freeze({x:68,y:-18,scale:1.16}),
-  SHARED:Object.freeze({x:-92,y:48,scale:1.27}),
-  DEGRADED:Object.freeze({x:-125,y:50,scale:1.29}),
-  SWITCH:Object.freeze({x:30,y:-52,scale:1.16}),
-  ALTERNATIVE:Object.freeze({x:80,y:-38,scale:1.19}),
-  CONSEQUENCE:Object.freeze({x:0,y:-20,scale:1.08})
+  MAIL:Object.freeze({x:15,y:8,scale:1.13}),
+  TEAMS:Object.freeze({x:35,y:-22,scale:1.15}),
+  SHARED:Object.freeze({x:40,y:20,scale:1.15}),
+  DEGRADED:Object.freeze({x:-84,y:45,scale:1.27}),
+  SWITCH:Object.freeze({x:30,y:-48,scale:1.16}),
+  ALTERNATIVE:Object.freeze({x:55,y:-40,scale:1.15}),
+  CONSEQUENCE:Object.freeze({x:-5,y:-10,scale:1.07})
+});
+const RACK=Object.freeze({
+  WIDE:Object.freeze({x:0,y:0,scale:0}),
+  MAIL:Object.freeze({x:-105,y:14,scale:.11}),
+  TEAMS:Object.freeze({x:-60,y:-12,scale:.08}),
+  SHARED:Object.freeze({x:-118,y:18,scale:.12}),
+  DEGRADED:Object.freeze({x:-25,y:12,scale:.02}),
+  SWITCH:Object.freeze({x:-20,y:-45,scale:.07}),
+  ALTERNATIVE:Object.freeze({x:-45,y:-32,scale:.085}),
+  CONSEQUENCE:Object.freeze({x:-95,y:12,scale:.055})
 });
 const scene=(key,title,subtitle,paths,nodes,camera,accent)=>Object.freeze({
   key,title,subtitle,paths:Object.freeze(paths),nodes:Object.freeze(nodes),camera,accent
@@ -103,19 +113,21 @@ export function ep004Shot05CinematicState(frame,cues,beats,duration){
     ?cues[index].startFrame-cues[index-1].startFrame:0;
   const previousHold=previousSpan>=215?ease((previousSpan-118)/64):0;
   const oldPose=preceding?CAMERA[preceding.camera]:CAMERA.WIDE;
+  const oldRack=preceding?RACK[preceding.camera]:RACK.WIDE;
+  const nextRack=RACK[stage.camera];
   const from=Object.freeze({
-    x:oldPose.x+14*previousHold,
-    y:oldPose.y+7*previousHold,
-    scale:oldPose.scale+.018*previousHold
+    x:oldPose.x+oldRack.x*previousHold,
+    y:oldPose.y+oldRack.y*previousHold,
+    scale:oldPose.scale+oldRack.scale*previousHold
   });
   const target=CAMERA[stage.camera];
   const firstDuration=Math.max(24,Math.min(66,Math.floor(available*.38)));
   const progress=index>=0?ease(time/firstDuration):0;
   const settle=available>=215?ease((time-118)/64):0;
   const camera=Object.freeze({
-    x:lerp(from.x,target.x,progress)+settle*14,
-    y:lerp(from.y,target.y,progress)+settle*7,
-    scale:lerp(from.scale,target.scale,progress)+settle*.018,
+    x:lerp(from.x,target.x,progress)+settle*nextRack.x,
+    y:lerp(from.y,target.y,progress)+settle*nextRack.y,
+    scale:lerp(from.scale,target.scale,progress)+settle*nextRack.scale,
   });
   const interiorOpacity=ease((frame-30)/62);
   const sourceOpacity=1-ease((frame-4)/80);
