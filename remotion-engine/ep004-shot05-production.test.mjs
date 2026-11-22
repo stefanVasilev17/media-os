@@ -121,7 +121,7 @@ test('SHOT05 cinematic camera never zoom-loops and pauses to explain each cue',(
   const heldB=ep004Shot05CinematicState(405,cues,beats,props.durationInFrames);
   assert.equal(first.camera.scale,1);
   assert.ok(during.camera.scale>1);
-  assert.deepEqual(heldA.camera,heldB,'camera must hold, not zoom repeatedly');
+  assert.deepEqual(heldA.camera,heldB.camera,'camera must hold, not zoom repeatedly');
   const pressure=ep004Shot05CinematicState(560,cues,beats,props.durationInFrames);
   const shifted=ep004Shot05CinematicState(1020,cues,beats,props.durationInFrames);
   assert.equal(pressure.stage.key,'SHARED');
