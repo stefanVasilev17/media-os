@@ -132,7 +132,7 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
     'verifyEp004Shot05SeamAndMotion'
   ])assert.ok(worker.includes(name),name+' should be implemented');
   assert.match(source,/EP004_SHOT05_REAL/);
-  assert.match(worker,/import \\{EP004_SHOT05_COMPOSITION\\} from '\\.\\/src\\/components\\/architectural-thinking\\/EP004Shot05ProductionWorld\\.mjs';/);
+  assert.ok(worker.includes("import {EP004_SHOT05_COMPOSITION} from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';"));
   assert.match(worker,/const EP004_SHOT05_REAL=EP004_SHOT05_COMPOSITION;/);
   assert.doesNotMatch(worker,/EP004-SHOT05-CONTINUOUS-GATEWAYS-V1-VISUAL/);
   assert.equal(EP004_SHOT05_COMPOSITION,
