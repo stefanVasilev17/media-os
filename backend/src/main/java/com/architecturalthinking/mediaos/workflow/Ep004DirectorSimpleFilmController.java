@@ -353,6 +353,8 @@ public final class Ep004DirectorSimpleFilmController {
            where episode_director_film_job.render_ids is distinct from excluded.render_ids
            """).param("package",packageId)
              .param("sequence",identity(prefix)).update();
+        LOG.info("Full Video assembly queued packageId={} shotCount={}",
+            packageId,prefix.size());
     }
 
     public record RetryRequest(Boolean confirmRetry) {}
@@ -413,14 +415,18 @@ public final class Ep004DirectorSimpleFilmController {
                     rs.getObject("package_id",UUID.class),rs.getString("render_ids")))
                     .optional().orElse(null);
             if(job==null)return;
+            LOG.info("Full Video assembly START packageId={} shotCount={}",
+                job.packageId(),job.sequence().split(",").length);
             try{
                 assemble(job.packageId(),job.sequence());
+                LOG.info("Full Video assembly MP4 VERIFIED packageId={}",job.packageId());
                 jdbc.sql("""
                   update episode_director_film_job set status='READY',error=null,
                          lease_until=null,updated_at=now()
                    where package_id=:package and render_ids=:sequence and status='RUNNING'
                   """).param("package",job.packageId())
                      .param("sequence",job.sequence()).update();
+                LOG.info("Full Video assembly READY packageId={}",job.packageId());
             }catch(Exception error){
                 LOG.error("Full film assembly failed; existing SHOT locks are retained",error);
                 jdbc.sql("""
@@ -433,6 +439,27 @@ public final class Ep004DirectorSimpleFilmController {
             }
         }catch(Exception unexpected){
             LOG.error("Full film worker database coordination failed",unexpected);
+        }
+    }
+
+    @Scheduled(initialDelayString="${MEDIAOS_FULL_FILM_DIAG_START_MS:25000}",
+               fixedDelayString="${MEDIAOS_FULL_FILM_DIAG_POLL_MS:30000}")
+    public void logPendingAssemblyStatus(){
+        try{
+            jdbc.sql("""
+               select package_id,status,attempts,lease_until,error
+                 from episode_director_film_job
+                where status <> 'READY' and updated_at > now()-interval '60 minutes'
+                order by updated_at desc limit 4
+               """).query((rs,i)->{
+                LOG.info("Full Video job: packageId={} status={} attempts={} leased={} issue={}",
+                    rs.getObject("package_id",UUID.class),rs.getString("status"),
+                    rs.getInt("attempts"),rs.getObject("lease_until")!=null,
+                    rs.getString("error"));
+                return 1;
+            }).list();
+        }catch(Exception error){
+            LOG.warn("Full Video job status inspection unavailable",error);
         }
     }
 
