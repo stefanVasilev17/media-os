@@ -98,7 +98,7 @@ public final class Ep004Shot05DirectorRenderService {
                  and r.input_props->>'sourceSha256'=:source
                  and r.input_props->>'previewOnly'='false'
                  and r.input_props->>'directorCpuApproved'='true'
-                 and r.input_props->>'worldStartFrame'='4123'
+                 and r.input_props->>'worldStartFrame'='6356'
                  and r.video_sha256 ~ '^[a-f0-9]{64}$'
                  and r.video_object_bytes between 1024 and 268435456
                  and r.video_object_key is not null
