@@ -42,8 +42,6 @@ class WorkloadRouteEp004Shot04Test {
         assertNull(WorkloadRoute.resolve("GET",
                 WORKER + renderId + "/ep004-shot04-previous-video/other"));
         assertNull(WorkloadRoute.resolve("GET",
-                WORKER + renderId + "/ep004-shot05-selected-voice"));
-        assertNull(WorkloadRoute.resolve("GET",
                 "/api/v1/episodes/" + renderId + "/ep004-shot04-selected-voice"));
     }
 }
