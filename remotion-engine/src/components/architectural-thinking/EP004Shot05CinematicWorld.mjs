@@ -99,7 +99,15 @@ export function ep004Shot05CinematicState(frame,cues,beats,duration){
   const nextStart=index>=0&&index+1<cues.length?cues[index+1].startFrame:duration;
   const time=Math.max(0,frame-beatStart);
   const available=nextStart-beatStart;
-  const from=preceding?CAMERA[preceding.camera]:CAMERA.WIDE;
+  const previousSpan=index>=1
+    ?cues[index].startFrame-cues[index-1].startFrame:0;
+  const previousHold=previousSpan>=215?ease((previousSpan-118)/64):0;
+  const oldPose=preceding?CAMERA[preceding.camera]:CAMERA.WIDE;
+  const from=Object.freeze({
+    x:oldPose.x+14*previousHold,
+    y:oldPose.y+7*previousHold,
+    scale:oldPose.scale+.018*previousHold
+  });
   const target=CAMERA[stage.camera];
   const firstDuration=Math.max(24,Math.min(66,Math.floor(available*.38)));
   const progress=index>=0?ease(time/firstDuration):0;
@@ -109,9 +117,9 @@ export function ep004Shot05CinematicState(frame,cues,beats,duration){
     y:lerp(from.y,target.y,progress)+settle*7,
     scale:lerp(from.scale,target.scale,progress)+settle*.018,
   });
-  const interiorOpacity=ease((frame-36)/70);
-  const sourceOpacity=1-ease((frame-24)/86);
-  const sourcePush=1+1.16*ease((frame-24)/102);
+  const interiorOpacity=ease((frame-30)/62);
+  const sourceOpacity=1-ease((frame-4)/80);
+  const sourcePush=1+1.16*ease((frame-2)/95);
   const stageAppear=index>=0?ease(time/35):0;
   const routeProgress=index>=0?ease((time-12)/100):0;
   const actionProgress=index>=0?ease((time-54)/112):0;
@@ -120,7 +128,7 @@ export function ep004Shot05CinematicState(frame,cues,beats,duration){
     frame,beatIndex:index,stage,beatAge:time,
     sourceOpacity,sourcePush,interiorOpacity,stageAppear,
     routeProgress,actionProgress,captionOpacity,camera,
-    sceneFullyRevealed:frame>=106,
+    sceneFullyRevealed:frame>=100,
     spoke:frame>=72,beatDuration:available
   });
 }
