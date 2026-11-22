@@ -58,6 +58,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP004_SHOT02_APPROVED_VOICE_REVIEW",null,1920,1080,30,2124,true)),
             Map.entry("EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT03_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
+            Map.entry("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT04_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
                 new CompositionProfile("EP002_DIRECTOR_MASTER", null, 1920, 1080, 30, 6, true)),
             Map.entry("EP002-SHOT01-DRAFT",
@@ -236,6 +238,7 @@ public class RemotionRenderController {
         if ("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
                 || "EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId)
                  || "EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId)
+                 || "EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId)
                 || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
@@ -294,6 +297,23 @@ public class RemotionRenderController {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "SHOT03 requires approved Take, 60-frame original audio cues, exact SHOT02 MP4 and audited CPU approval.");
         return ensureVerifiedRender("EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
+    public Map<String,Object> ensureVerifiedEp004Shot04Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!"EP004".equals(verifiedProps.get("episodeKey"))
+                ||!"SHOT04".equals(verifiedProps.get("shotKey"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!verifiedProps.containsKey("previousVideoSha256")
+                ||!verifiedProps.containsKey("breathFrames")
+                ||!verifiedProps.containsKey("renderRequestId"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "SHOT04 requires the exact locked SHOT03, approved current Take, 72-frame voice delay and Director CPU approval.");
+        return ensureVerifiedRender("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
@@ -374,7 +394,8 @@ public class RemotionRenderController {
         Map<String,Object> semanticRenderProps=new LinkedHashMap<>(inputProps);
         if("EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL".equals(compositionId)
                 ||"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId)
-                 ||"EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId))
+                 ||"EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId)
+                 ||"EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
