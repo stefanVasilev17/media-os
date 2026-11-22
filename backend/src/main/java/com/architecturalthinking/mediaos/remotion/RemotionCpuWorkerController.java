@@ -70,6 +70,9 @@ public class RemotionCpuWorkerController {
     static boolean isEp004Shot04Target(String scope) {
         return "EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(scope);
     }
+    static boolean isEp004Shot05Target(String scope) {
+        return "EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(scope);
+    }
 
     public record ProgressRequest(int progress) {}
     public record FailureRequest(String error) {}
@@ -89,6 +92,7 @@ public class RemotionCpuWorkerController {
                 && !"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(scope)
                 && !isEp004Shot03Target(scope)
                 && !isEp004Shot04Target(scope)
+                && !isEp004Shot05Target(scope)
                 && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
@@ -278,6 +282,25 @@ public class RemotionCpuWorkerController {
                         where cap.worker_id=:workerId and cap.source_commit=:sourceSha
                           and cap.build_checked=true
                           and cap.bundled_scenes::text like '%EP004-SHOT03%'
+                          and cap.last_heartbeat_at>now()-interval '120 seconds')))
+                  and (composition_id<>'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL'
+                    or (input_props->>'expectedSourceCommit'=:sourceSha
+                      and :targetComposition='EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL'
+                      and input_props->>'directorCpuApproved'='true'
+                      and input_props->>'previewOnly'='false'
+                      and input_props->>'episodeKey'='EP004'
+                      and input_props->>'shotKey'='SHOT05'
+                      and input_props->>'breathFrames'='72'
+                      and input_props->>'sourceSha256'
+                          ='a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365'
+                      and length(input_props->>'previousVideoSha256')=64
+                      and jsonb_typeof(input_props->'previousShot04Props')='object'
+                      and jsonb_typeof(input_props->'verifiedCues')='array'
+                      and jsonb_array_length(input_props->'verifiedCues') between 2 and 40
+                      and exists(select 1 from episode_factory_worker_capability cap
+                        where cap.worker_id=:workerId and cap.source_commit=:sourceSha
+                          and cap.build_checked=true
+                          and cap.bundled_scenes::text like '%EP004-SHOT05%'
                           and cap.last_heartbeat_at>now()-interval '120 seconds')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
