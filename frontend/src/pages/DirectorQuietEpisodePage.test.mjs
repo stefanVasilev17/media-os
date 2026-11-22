@@ -28,7 +28,8 @@ describe('MediaOS minimal Director surface is built from exact native operations
   });
   it('uses reviewed MP4 IDs to lock, and one unified player for contiguous film',()=>{
     expect(page).toContain("film/locks/");
-    expect(page).toContain('renderId:render.renderId');
+    expect(page).toContain('renderId,confirmLock:true');
+    expect(page).toContain('lockShot(item.renderId)');
     expect(page).toContain('key={fullUrl}');
     expect(page).toContain('src={fullUrl}');
     expect(page).toContain('episode.shots.map');
@@ -71,7 +72,8 @@ describe('Historical EP004 MP4s are visible before any new paid render',()=>{
   });
   it('does not claim a historical MP4 can be locked when original voice approval is missing',()=>{
     expect(page).toContain('its original approved voice record could');
-    expect(page).toContain('could not be verified');
+    expect(page).toContain('not be verified');
+    expect(page).toContain('It cannot be locked automatically.');
     expect(page).toContain('This MP4 is saved');
   });
 });
