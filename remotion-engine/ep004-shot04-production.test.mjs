@@ -101,6 +101,11 @@ test('locked SHOT03 seam, exact SHOT04 voice mux, no paid TTS or automatic CPU j
   const root=await readFile(new URL('./src/Root.tsx',import.meta.url),'utf8');
   const shot=await readFile(new URL('./src/episodes/ep004/Shot04ProductionScene.tsx',import.meta.url),'utf8');
   assert.match(root,/EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL/);
+  const generated=await readFile(new URL('./src/episodes/ep004/Shot04GeneratedScene.tsx',import.meta.url),'utf8');
+  assert.match(generated,/validateEp004Shot04Production\(props\)/);
+  assert.match(generated,/Shot04ProductionScene/);
+  const workerGuard=await readFile(new URL('./worker-claim-authorization.mjs',import.meta.url),'utf8');
+  assert.match(workerGuard,/EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL/);
   assert.match(shot,/frame===0&&props.previousLastFrameDataUri/);
   assert.match(shot,/Shot03LivingArchitectureWorldView/);
   assert.doesNotMatch(shot,/static freeze|fake audio|elevenlabs\.generate/);
