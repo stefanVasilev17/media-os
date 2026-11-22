@@ -51,3 +51,27 @@ describe('Long episode Full Video remains one player and non-blocking',()=>{
     expect(page).toContain('no new Remotion or ElevenLabs call');
   });
 });
+
+describe('Historical EP004 MP4s are visible before any new paid render',()=>{
+  it('loads previously completed shots independently of current source commit or voice revision',()=>{
+    expect(page).toContain("root+'/film/candidates/'");
+    expect(page).toContain('refreshSavedRenders');
+    expect(page).toContain('savedRenders.map');
+    expect(page).toContain('item.videoUrl');
+    expect(page).toContain('item.canLock');
+    expect(page).toContain('lockShot(item.renderId)');
+    expect(page).toContain('Earlier completed video');
+  });
+  it('never forces a paid CPU render when an approved earlier MP4 exists',()=>{
+    expect(page).toContain('Render a new version (optional)');
+    expect(page).toContain('open={!checkingSaved&&savedRenders.length===0}');
+    expect(page).toContain('I approve one new video render using Railway CPU.');
+    expect(page).toContain('confirmCpuRender:true');
+    expect(page).toContain('confirmLock:true');
+  });
+  it('does not claim a historical MP4 can be locked when original voice approval is missing',()=>{
+    expect(page).toContain('its original approved voice record could');
+    expect(page).toContain('could not be verified');
+    expect(page).toContain('This MP4 is saved');
+  });
+});
