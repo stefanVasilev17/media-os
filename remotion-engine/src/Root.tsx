@@ -6,6 +6,7 @@ import {Shot02GeneratedScene as Ep004Shot02DirectorV1} from './episodes/ep004/Sh
 import {Shot03GeneratedScene as Ep004Shot03LivingStoryboard} from './episodes/ep004/Shot03GeneratedScene';
 import {Shot03ProductionScene as Ep004Shot03Production} from './episodes/ep004/Shot03ProductionScene';
 import {Shot04ProductionScene as Ep004Shot04Production} from './episodes/ep004/Shot04ProductionScene';
+import {Shot05ProductionScene as Ep004Shot05Production} from './episodes/ep004/Shot05ProductionScene';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -99,6 +100,41 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition
+        id="EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL"
+        component={Ep004Shot05Production}
+        durationInFrames={dynamicDuration??2400}
+        fps={30} width={1920} height={1080}
+        defaultProps={{
+          episodeKey:'EP004' as const,shotKey:'SHOT05' as const,
+          previewOnly:false as const,directorCpuApproved:true as const,
+          sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+          previousRenderId:'00000000-0000-4000-8000-000000000000',
+          previousSourceCommit:'0'.repeat(40),
+          previousFrameCount:2791,previousLastEncodedFrame:2790,
+          previousWorldStartFrame:6356,worldStartFrame:9146,
+          previousVideoSha256:'0'.repeat(64),
+          previousShot04Props:{
+            episodeKey:'EP004' as const,shotKey:'SHOT04' as const,
+            previewOnly:false as const,directorCpuApproved:true as const,
+            sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
+            previousRenderId:'00000000-0000-4000-8000-000000000000',
+            previousSourceCommit:'0'.repeat(40),
+            previousFrameCount:2234,previousLastEncodedFrame:2233,
+            worldStartFrame:6356,previousVideoSha256:'0'.repeat(64),
+            durationInFrames:2791,breathFrames:72 as const,scriptRevision:1,
+            voiceTakeId:'00000000-0000-4000-8000-000000000000',
+            narrationSha256:'0'.repeat(64),expectedSourceCommit:'0'.repeat(40),
+            shotTitle:'The previous gateway architecture',
+            verifiedCues:[],visualBeats:[],
+          },
+          durationInFrames:2400,breathFrames:72 as const,scriptRevision:1,
+          voiceTakeId:'00000000-0000-4000-8000-000000000000',
+          narrationSha256:'0'.repeat(64),expectedSourceCommit:'0'.repeat(40),
+          shotTitle:'Gateway traffic and cascading consequences',
+          verifiedCues:[],visualBeats:[],
+        }}
+      />
       <Composition
         id="EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL"
         component={Ep004Shot04Production}
