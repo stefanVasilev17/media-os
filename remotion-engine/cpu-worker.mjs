@@ -15,6 +15,7 @@ import {renderEp002DirectorContinuityMaster,EP002_V3_MODE,EP002_V3_TRANSITION} f
 import {renderEp002V4CleanCutMaster,EP002_V4_MODE,EP002_V4_TRANSITION,EP002_V4_SHOT10} from './ep002-director-clean-cut-master.mjs';
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
+import {EP004_SHOT05_COMPOSITION} from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -1004,7 +1005,7 @@ async function verifyEp004Shot04SeamAndMotion(job,outputPath,lastPNG,directory){
       ' animatedFrames='+new Set(hashes).size+' renderId='+job.renderId);
 }
 
-const EP004_SHOT05_REAL='EP004-SHOT05-CONTINUOUS-GATEWAYS-V1-VISUAL';
+const EP004_SHOT05_REAL=EP004_SHOT05_COMPOSITION;
 
 async function fetchEp004Shot05ApprovedVoice(job,inputProps){
   if(job.compositionId!==EP004_SHOT05_REAL)
