@@ -35,6 +35,8 @@ async function result<T>(response:Response):Promise<T>{
   return response.json() as Promise<T>;
 }
 const errorText=(cause:unknown)=>cause instanceof Error?cause.message:String(cause);
+const lockedVideoUrl=(renderId:string)=>
+  '/api/v1/remotion/renders/'+encodeURIComponent(renderId)+'/video';
 
 export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const [episode,setEpisode]=useState<Episode|null>(null);
@@ -306,6 +308,12 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const active=episode?.shots.find(s=>s.shotKey===activeShot);
   const locked=film?.locks.find(s=>s.shotKey===activeShot);
   const fullUrl=film?.videoUrl??null;
+  const selectedVideo=locked
+    ?savedRenders.find(item=>item.renderId===locked.renderId)
+    :(savedRenders.find(item=>item.canLock)??savedRenders[0]);
+  const shotVideoUrl=locked?lockedVideoUrl(locked.renderId):selectedVideo?.videoUrl??null;
+  const lockedClipsToPreview=(film?.locks??[]).filter(item=>
+    !fullUrl||!(film?.renderIds??[]).includes(item.renderId));
   return <main className="director-minimal">
     <header className="director-minimal-top">
       <button type="button" className="director-minimal-back"
@@ -359,20 +367,40 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             </div>
             <p className="director-minimal-muted">
               {episode.episodeKey==='EP003'
-                ?'One player for the finished Director-approved episode.'
-                :(film?.shotCount??0)+' consecutive locked SHOTs. One player, one continuous video.'}
+                ?'The finished Director-approved episode.'
+                :(film?.locks.length??0)+' locked SHOTs. Only the currently locked videos are shown.'}
             </p>
             {film?.state==='ASSEMBLING'&&<p role="status" className="director-minimal-muted">
-              Building the continuous Full Video from locked SHOTs. Original MP4s are
-              preserved. This page refreshes automatically.
+              Building Full Video from the latest locked SHOTs. This page updates automatically.
             </p>}
-            {fullUrl?<video key={fullUrl} controls playsInline preload="metadata"
+            {fullUrl&&<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
-              aria-label="One complete film of all consecutive locked SHOTs"/>:
-              <p className="director-minimal-empty">The full video will appear here after you lock
-                SHOT01 and any following SHOTs in order.</p>}
-            {(film?.locks.length??0)>0&&<p className="director-minimal-muted">
-              Locked: {film!.locks.map(s=>s.shotKey).join(' · ')}</p>}
+              aria-label="Full Video assembled from consecutive locked SHOTs"/>}
+            {lockedClipsToPreview.length>0&&
+              <div className="director-minimal-locked-clips">
+                {fullUrl&&<p className="director-minimal-muted">
+                  Also locked, waiting for the preceding SHOTs:</p>}
+                {lockedClipsToPreview.map(item=><div key={item.shotKey}
+                  className="director-minimal-locked-clip">
+                  <p className="director-minimal-locked-clip-name">
+                    <Check size={15}/> {item.shotKey} · Locked
+                  </p>
+                  <video controls playsInline preload="metadata"
+                    className="director-minimal-video"
+                    src={lockedVideoUrl(item.renderId)}
+                    aria-label={'Locked '+item.shotKey+' MP4'}/>
+                </div>)}
+              </div>}
+            {!fullUrl&&lockedClipsToPreview.length===0&&
+              <p className="director-minimal-empty">
+                No SHOTs are locked yet. The full film appears here when consecutive
+                SHOTs starting with SHOT01 are locked.
+              </p>}
+            {!fullUrl&&lockedClipsToPreview.length>0&&
+              <p className="director-minimal-muted">
+                A single combined Full Video will appear after SHOT01 and the following
+                SHOTs are locked in order. The locked videos above are already available.
+              </p>}
             {film?.state==='ASSEMBLY_FAILED'&&<>
               <p role="alert" className="director-minimal-error">
                 Assembly needs attention. Locked SHOT MP4s are preserved. {film.error}</p>
@@ -454,7 +482,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             <section className="director-minimal-panel">
               <div className="director-minimal-section-head">
                 <div><p className="director-minimal-eyebrow">03 · Video</p>
-                  <h3>Existing videos & Lock</h3></div>
+                  <h3>Video</h3></div>
                 {target&&<button type="button" className="director-minimal-subtle"
                   disabled={!!busy||checkingSaved}
                   onClick={()=>{
@@ -467,40 +495,31 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 {checkingSaved&&<p className="director-minimal-muted" role="status">
                   Finding previously rendered videos. No new rendering is needed.
                 </p>}
-                {!checkingSaved&&savedRenders.length>0&&
-                  <p className="director-minimal-muted">These MP4s are already finished
-                    and stored. Watch the video and LOCK the version you approve.
-                    Earlier source versions are included; this does not use Railway CPU.</p>}
-                {savedRenders.map((item,i)=><div className="director-minimal-render"
-                  key={item.renderId}>
-                  <div className="director-minimal-existing-title">
-                    <strong>{locked?.renderId===item.renderId||item.locked
-                      ?'Locked video':i===0?'Ready to review':'Earlier completed video'}</strong>
-                    <span>Saved version {item.scriptRevision} ·
-                      {Math.round(item.durationInFrames/30)} seconds
-                      {item.finishedAt?' · '+item.finishedAt.slice(0,10):''}</span>
-                  </div>
-                  <video controls playsInline preload="metadata" src={item.videoUrl}
-                    className="director-minimal-video"
-                    aria-label={'Existing '+activeShot+' video '+(i+1)}/>
-                  {locked?.renderId===item.renderId||item.locked?
-                    <span className="director-minimal-locked">
-                      <Check size={14}/> SHOT locked</span>:
-                    item.canLock?<button type="button"
+                {shotVideoUrl&&<div className="director-minimal-render">
+                  <p className="director-minimal-muted">
+                    {locked?'This SHOT is locked and included in Full Video.'
+                      :'Video ready to review. Lock it to include it in Full Video.'}
+                  </p>
+                  <video key={shotVideoUrl} controls playsInline preload="metadata"
+                    src={shotVideoUrl} className="director-minimal-video"
+                    aria-label={activeShot+' video preview'}/>
+                  {locked?<span className="director-minimal-locked">
+                    <Check size={14}/> SHOT locked</span>:
+                    selectedVideo?.canLock?<button type="button"
                       className="director-minimal-lock" disabled={!!busy}
-                      onClick={()=>void lockShot(item.renderId)}>
+                      onClick={()=>void lockShot(selectedVideo.renderId)}>
                       <Check size={16}/> Lock SHOT & add to Full Video
                     </button>:
                     <p className="director-minimal-muted">
-                      This MP4 is saved, but its original approved voice record could
-                      not be verified. It cannot be locked automatically.
+                      This video cannot be locked because its original voice approval
+                      could not be verified. No new render has been started.
                     </p>}
-                </div>)}
+                </div>}
                 <details className="director-minimal-advanced"
-                  open={!checkingSaved&&savedRenders.length===0}>
-                  <summary>{savedRenders.length>0
-                    ?'Render a new version (optional)'
-                    :'No saved MP4 available — render a new version'}</summary>
+                  open={!checkingSaved&&!shotVideoUrl}>
+                  <summary>{shotVideoUrl
+                    ?'Render new video (optional)'
+                    :'No saved MP4 available — render video'}</summary>
                   <div className="director-minimal-render director-minimal-new-render">
                     <p className="director-minimal-muted">
                       {readiness?.ready?'Ready for a new Director render'
