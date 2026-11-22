@@ -16,6 +16,8 @@ class Ep004Shot03DirectorPostRouteTest {
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT02/render"));
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT03/render"));
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT04/render"));
+        assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT05/render"));
+        assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT06/render"));
         assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/{shotKey}/render"));
     }
 }
