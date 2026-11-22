@@ -132,6 +132,21 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
     'verifyEp004Shot05SeamAndMotion'
   ])assert.ok(worker.includes(name),name+' should be implemented');
   assert.match(source,/EP004_SHOT05_REAL/);
+  assert.match(worker,/import \\{EP004_SHOT05_COMPOSITION\\} from '\\.\\/src\\/components\\/architectural-thinking\\/EP004Shot05ProductionWorld\\.mjs';/);
+  assert.match(worker,/const EP004_SHOT05_REAL=EP004_SHOT05_COMPOSITION;/);
+  assert.doesNotMatch(worker,/EP004-SHOT05-CONTINUOUS-GATEWAYS-V1-VISUAL/);
+  assert.equal(EP004_SHOT05_COMPOSITION,
+    'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL');
+  const beforeRender=source.indexOf("if(job.compositionId===EP004_SHOT05_REAL){");
+  const actualRender=source.indexOf("await renderMedia({");
+  const afterRender=source.lastIndexOf("await muxEp004Shot05ApprovedVoice(job,outputPath,inputProps);");
+  const finalFormatCheck=source.indexOf("const probed=await probeFactoryMedia(outputPath);");
+  assert.ok(beforeRender>0 && beforeRender<actualRender,
+    'SHOT05 real Take and locked SHOT04 frame must be loaded BEFORE CPU render');
+  assert.ok(afterRender>actualRender && afterRender<finalFormatCheck,
+    'SHOT05 AAC mux and seam QA must run BEFORE final H264/AAC format check');
+  assert.match(source,/shot05SourceFrame=await preflightEp004Shot05PreviousVideo/);
+  assert.match(source,/await verifyEp004Shot05SeamAndMotion/);
   assert.match(worker,/adelay=2400:all=1/);
   assert.match(worker,/EP004_SHOT05_PREVIOUS_LOCKED_SHOT04_SHA256_LAST_FRAME_QA_PASS/);
   const claims=await readFile(new URL('./worker-claim-authorization.mjs',import.meta.url),'utf8');
