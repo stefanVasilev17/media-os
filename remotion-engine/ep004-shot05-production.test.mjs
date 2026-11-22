@@ -6,6 +6,10 @@ import {EP004_SHOT01_LOCKED_SOURCE_SHA256}
 import {EP004_SHOT05_COMPOSITION,EP004_SHOT05_BREATH_FRAMES,
   validateEp004Shot05Production,ep004Shot05ProductionWorld,ep004Shot05StoryRoute}
   from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
+import {EP004_SHOT05_CINEMATIC_GRAMMAR,EP004_SHOT05_XRAY_ROUTES,
+  ep004Shot05XrayPosition,ep004Shot05XrayPath,ep004Shot05CinematicStage,
+  ep004Shot05CinematicState,validateEp004Shot05XrayRoutes}
+  from './src/components/architectural-thinking/EP004Shot05CinematicWorld.mjs';
 const approvedPrior={
   episodeKey:'EP004',shotKey:'SHOT04',previewOnly:false,
   directorCpuApproved:true,sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
@@ -66,23 +70,70 @@ test('SHOT05 keeps actual Director source and original SHOT04 encoded continuity
   ])
     assert.throws(()=>validateEp004Shot05Production({...props,...change}),/EP004_SHOT05/);
 });
-test('SHOT05 first seventy-two frames continue true moving world without fabricated narration',()=>{
+test('SHOT05 actual final SHOT04 frame is preserved before a finite one-way camera entry',()=>{
   assert.equal(EP004_SHOT05_BREATH_FRAMES,72);
-  let before=props.worldStartFrame-1;
-  const positions=new Set();
-  for(let frame=0;frame<=110;frame++){
+  const a=ep004Shot05ProductionWorld(0,props);
+  assert.equal(a.worldFrame,props.worldStartFrame);
+  assert.equal(a.sourceWorldFrame,props.previousWorldStartFrame+2790);
+  assert.equal(a.cinematic.sourceOpacity,1);
+  assert.equal(a.cinematic.sourcePush,1);
+  assert.equal(a.cinematic.interiorOpacity,0);
+  assert.equal(a.cinematic.beatIndex,-1);
+  assert.equal(a.spoken,false);
+  let previous=props.worldStartFrame-1;
+  for(let frame=0;frame<200;frame++){
     const state=ep004Shot05ProductionWorld(frame,props);
-    assert.equal(state.worldFrame,props.worldStartFrame+frame);
-    assert.ok(state.worldFrame>before);before=state.worldFrame;
+    assert.equal(state.worldFrame,++previous);
     assert.equal(state.spoken,frame>=72);
-    if(frame<72)assert.equal(state.beatIndex,-1);
-    assert.ok(state.cameraScale>=state.previous.cameraScale);
-    assert.equal(state.storyboard.gatewayReveal,1);
-    positions.add(state.storyboard.tokens[0].x.toFixed(4));
+    assert.ok(state.cameraScale>=1&&state.cameraScale<=1.315);
+    assert.ok(Number.isFinite(state.panX));
+    assert.ok(state.cinematic.sourcePush>=1&&state.cinematic.sourcePush<=2.16);
+    if(frame<72)assert.equal(state.cinematic.beatIndex,-1);
   }
-  assert.ok(positions.size>10,'existing on-route requests must continue moving');
-  assert.equal(ep004Shot05ProductionWorld(0,props).oldOpacity,1);
-  assert.ok(ep004Shot05ProductionWorld(130,props).routeOpacity>0);
+  const late=ep004Shot05ProductionWorld(340,props);
+  assert.equal(late.cinematic.sourceOpacity,0);
+  assert.equal(late.cinematic.interiorOpacity,1);
+  assert.equal(late.cinematic.sceneFullyRevealed,true);
+  assert.equal(late.cinematic.stage.key,'MAIL');
+});
+test('SHOT05 uniquely redraws a physically bounded cutaway without invalid amber splines',()=>{
+  assert.equal(EP004_SHOT05_CINEMATIC_GRAMMAR,'GATEWAY_XRAY_DIRECTOR_V2');
+  assert.equal(validateEp004Shot05XrayRoutes(),true);
+  assert.equal(Object.keys(EP004_SHOT05_XRAY_ROUTES).length,6);
+  for(const [key,points] of Object.entries(EP004_SHOT05_XRAY_ROUTES)){
+    assert.match(ep004Shot05XrayPath(points),/^M /);
+    assert.equal(points.length,4);
+    for(let i=0;i<=100;i++){
+      const p=ep004Shot05XrayPosition(points,i/100);
+      assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y),key);
+      assert.ok(p.x>=115&&p.x<=1800&&p.y>=320&&p.y<=920,key);
+    }
+  }
+  assert.equal(ep004Shot05CinematicStage('Teams traffic failover',2).key,'SWITCH');
+  assert.equal(ep004Shot05CinematicStage('Shared primary gateway pressure',1).key,'SHARED');
+  assert.equal(ep004Shot05CinematicStage('Exchange mailbox',0).key,'MAIL');
+  assert.equal(ep004Shot05CinematicStage('Outage unavailable',3).key,'DEGRADED');
+});
+test('SHOT05 cinematic camera never zoom-loops and pauses to explain each cue',()=>{
+  const first=ep004Shot05CinematicState(0,cues,beats,props.durationInFrames);
+  const during=ep004Shot05CinematicState(141,cues,beats,props.durationInFrames);
+  const heldA=ep004Shot05CinematicState(330,cues,beats,props.durationInFrames);
+  const heldB=ep004Shot05CinematicState(405,cues,beats,props.durationInFrames);
+  assert.equal(first.camera.scale,1);
+  assert.ok(during.camera.scale>1);
+  assert.deepEqual(heldA.camera,heldB,'camera must hold, not zoom repeatedly');
+  const pressure=ep004Shot05CinematicState(560,cues,beats,props.durationInFrames);
+  const shifted=ep004Shot05CinematicState(1020,cues,beats,props.durationInFrames);
+  assert.equal(pressure.stage.key,'SHARED');
+  assert.equal(shifted.stage.key,'SWITCH');
+  assert.notDeepEqual(pressure.camera,shifted.camera);
+  for(let i=0;i<props.durationInFrames;i+=13){
+    const c=ep004Shot05CinematicState(i,cues,beats,props.durationInFrames);
+    assert.ok(Number.isFinite(c.camera.x)&&Number.isFinite(c.camera.y));
+    assert.ok(c.camera.scale>=1&&c.camera.scale<1.32);
+    assert.ok(c.sourceOpacity>=0&&c.sourceOpacity<=1);
+    assert.ok(c.interiorOpacity>=0&&c.interiorOpacity<=1);
+  }
 });
 test('SHOT05 use only real authored routes and voice-cue-directed activity',()=>{
   assert.deepEqual(ep004Shot05StoryRoute('Outlook Exchange').routes,
@@ -102,19 +153,23 @@ test('SHOT05 use only real authored routes and voice-cue-directed activity',()=>
   assert.equal(changed.route.key,'REROUTE');
   assert.notEqual(first.cameraScale,ep004Shot05ProductionWorld(0,props).cameraScale);
 });
-test('SHOT05 visual rejects floating gateway rings and stays inside the same map',async()=>{
+test('SHOT05 director V2 is truly an immersive gateway cutaway, not recycled SHOT03 map',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
-  assert.match(shot,/Shot03LivingArchitectureWorldView/);
-  assert.match(shot,/EP004_SHOT03_ROUTES/);
-  assert.match(shot,/ep004BezierPosition/);
-  assert.match(shot,/PacketStreams/);
-  assert.match(shot,/state\.worldFrame/);
-  assert.match(shot,/GatewayHighlight/);
+  const world=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs',import.meta.url),'utf8');
+  const cutaway=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05CinematicWorld.mjs',import.meta.url),'utf8');
+  assert.match(shot,/ActivityWorld/);
+  assert.match(shot,/XRayGateway/);
+  assert.match(shot,/RouteLine/);
   assert.match(shot,/previousLastFrameDataUri/);
-  assert.match(shot,/frame===0/);
-  assert.doesNotMatch(shot,/<circle cx=\{state\.focusX\}/);
-  assert.doesNotMatch(shot,/spotlightPulse|pulseFade|drop-shadow|Math\.random/);
-  assert.doesNotMatch(shot,/SIMULATED|ILLUSTRATIVE|decorative|latencyMs/);
+  assert.match(shot,/frame===0&&!props.previousLastFrameDataUri/);
+  assert.match(shot,/transformOrigin:'69% 49%'/);
+  assert.match(shot,/transform:worldTransform/);
+  assert.match(shot,/EditorialOverlay/);
+  assert.match(shot,/SHOT05_AUTHENTIC_LOCKED_SHOT04_LAST_FRAME_REQUIRED/);
+  assert.doesNotMatch(shot,/Shot03LivingArchitectureWorldView|EP004_SHOT03_ROUTES/);
+  assert.doesNotMatch(shot,/stroke=\\{AMBER\\}|Math\\.random|Math\\.sin|drop-shadow|spotlightPulse/);
+  assert.doesNotMatch(world,/previous\\.cameraScale\\s*\\+|ep004Shot03StoryboardWorld/);
+  assert.doesNotMatch(cutaway,/Math\\.random|Math\\.sin|setInterval|Date\\.now/);
   const wrapper=await readFile(new URL('./src/episodes/ep004/Shot05GeneratedScene.tsx',import.meta.url),'utf8');
   assert.match(wrapper,/validateEp004Shot05Production/);
   const factory=await readFile(new URL('./generate-factory-registry.mjs',import.meta.url),'utf8');
