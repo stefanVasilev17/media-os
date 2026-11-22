@@ -17,6 +17,9 @@ type Readiness={
   blockers:string[];nextAction:string;
 };
 type Render={renderId:string;status:string;progress?:number;videoUrl?:string;compositionId?:string};
+type SavedRender={renderId:string;shotKey:string;status:'READY';videoUrl:string;
+  durationInFrames:number;scriptRevision:number;sourceCommit:string;
+  finishedAt:string;canLock:boolean;locked:boolean};
 type ShotLock={shotKey:string;renderId:string;lockedAt:string};
 type FilmState={locks:ShotLock[];shotCount:number;videoUrl:string|null;
   state:string;renderIds:string[];durationInFrames:number;error?:string};
@@ -43,6 +46,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const [chosenTake,setChosenTake]=useState('');
   const [readiness,setReadiness]=useState<Readiness|null>(null);
   const [render,setRender]=useState<Render|null>(null);
+  const [savedRenders,setSavedRenders]=useState<SavedRender[]>([]);
+  const [checkingSaved,setCheckingSaved]=useState(false);
   const [film,setFilm]=useState<FilmState|null>(null);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState('');
@@ -53,6 +58,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const voiceRequest=useRef<string|null>(null);
   const cpuRequest=useRef<string|null>(null);
   const serial=useRef(0);
+  const savedSerial=useRef(0);
   const root=base+'/'+encodeURIComponent(packageId);
   const shotRoot=root+'/shots/'+encodeURIComponent(activeShot);
   const editing=!!voice&&(script!==voice.narration||direction!==voice.voiceDirection);
@@ -101,6 +107,31 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     setChosenTake(data.selectedTakeId??'');setVoiceConsent(false);
     return data;
   },[root,activeShot]);
+
+  const refreshSavedRenders=useCallback(async()=>{
+    const shot=activeShot;
+    const request=++savedSerial.current;
+    setCheckingSaved(true);
+    try{
+      const videos=await result<SavedRender[]>(await fetch(
+        root+'/film/candidates/'+encodeURIComponent(shot),{cache:'no-store'}));
+      if(request!==savedSerial.current)return;
+      if(!Array.isArray(videos)||videos.some(item=>item.shotKey!==shot
+          ||item.status!=='READY'))
+        throw Error('MediaOS returned unexpected saved MP4 data.');
+      setSavedRenders(videos);
+    }finally{
+      if(request===savedSerial.current)setCheckingSaved(false);
+    }
+  },[root,activeShot]);
+
+  useEffect(()=>{
+    if(episode?.episodeKey!=='EP004')return;
+    setSavedRenders([]);
+    void refreshSavedRenders().catch(reason=>setError(
+      'Saved videos could not be loaded: '+errorText(reason)));
+    return()=>{savedSerial.current++;};
+  },[episode?.episodeKey,refreshSavedRenders]);
 
   const refreshRender=useCallback(async()=>{
     const shot=activeShot;
@@ -233,8 +264,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     finally{setBusy('');}
   }
 
-  async function lockShot(){
-    if(!render||render.status!=='READY'||!render.renderId||busy)return;
+  async function lockShot(renderId:string){
+    if(!renderId||busy)return;
     if(!window.confirm('Director LOCK '+activeShot+' using this exact rendered MP4? '
       +'The consecutive locked SHOTs will be assembled into one full-video file.'))return;
     setBusy('lock');setError('');setNotice('');
@@ -242,9 +273,10 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
       const current=await result<FilmState>(await fetch(
         root+'/film/locks/'+encodeURIComponent(activeShot),{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({renderId:render.renderId,confirmLock:true})
+        body:JSON.stringify({renderId,confirmLock:true})
       }));
       setFilm(current);
+      void refreshSavedRenders().catch(reason=>setError(errorText(reason)));
       setNotice(current.state==='READY'
         ?activeShot+' locked. The Full Video tab has the latest continuous MP4.'
         :current.state==='ASSEMBLING'
@@ -453,7 +485,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                     aria-label={'Rendered '+activeShot+' video'}/>}
                   {episode.episodeKey==='EP004'&&render.status==='READY'&&<button type="button" className="director-minimal-lock"
                     disabled={!!busy||locked?.renderId===render.renderId}
-                    onClick={()=>void lockShot()}><Check size={16}/>
+                    onClick={()=>void lockShot(render.renderId)}><Check size={16}/>
                     {locked?.renderId===render.renderId?'SHOT locked':'Lock SHOT & add to Full Video'}
                   </button>}
                 </div>}
