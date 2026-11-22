@@ -1,5 +1,5 @@
-import type {Ep004Shot04RenderProps,Ep004Shot04State} from './EP004Shot04ProductionWorld.mjs';
-import type {Ep004Shot03StoryboardState} from './EP004Shot03LivingWorld.mjs';
+import type {Ep004Shot04RenderProps} from './EP004Shot04ProductionWorld.mjs';
+import type {Ep004Shot05CinematicState} from './EP004Shot05CinematicWorld.mjs';
 export type Ep004Shot05Cue={beatId:string;anchor:string;startFrame:number;endFrame:number};
 export type Ep004Shot05Beat={beatId:string;cueAnchor:string;direction:string};
 export type Ep004Shot05RenderProps={
@@ -17,12 +17,10 @@ export type Ep004Shot05Route={
   key:string;focus:string;routes:string[];
 };
 export type Ep004Shot05State={
-  frame:number;worldFrame:number;spoken:boolean;
-  storyboard:Ep004Shot03StoryboardState;previous:Ep004Shot04State;
-  beatIndex:number;route:Ep004Shot05Route|null;
-  focus:{x:number;y:number};cueAge:number;routeOpacity:number;
-  oldOpacity:number;sceneIn:number;appear:number;
-  cameraScale:number;panX:number;activeColor:string;
+  frame:number;worldFrame:number;sourceWorldFrame:number;spoken:boolean;
+  beatIndex:number;route:Ep004Shot05Route|null;cinematic:Ep004Shot05CinematicState;
+  cameraScale:number;panX:number;routeOpacity:number;
+  oldOpacity:number;sceneIn:number;appear:number;cueAge:number;
   titleOpacity:number;sourceHeadingOpacity:number;
 };
 export declare const EP004_SHOT05_COMPOSITION:'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL';
