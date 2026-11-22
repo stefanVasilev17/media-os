@@ -109,3 +109,12 @@
   .director-minimal-heading{flex-direction:column;gap:12px}
   .director-minimal-panel{padding:18px}
 }
+
+.director-minimal-existing-title{display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;color:var(--dm-ink)}
+.director-minimal-existing-title strong{font-size:15px;font-weight:760}
+.director-minimal-existing-title span{font-size:12px;color:var(--dm-muted)}
+.director-minimal-panel>.director-minimal-render{border:1px solid #284454;
+  border-radius:14px;padding:17px;background:#0b1b2c;gap:13px}
+.director-minimal-new-render{margin-top:14px;padding:15px;border:1px solid var(--dm-line);
+  border-radius:12px;align-items:flex-start}
