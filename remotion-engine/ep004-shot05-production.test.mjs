@@ -135,6 +135,18 @@ test('SHOT05 cinematic camera never zoom-loops and pauses to explain each cue',(
     assert.ok(c.interiorOpacity>=0&&c.interiorOpacity<=1);
   }
 });
+test('SHOT05 aggressive dolly never jumps at a voice cue boundary or restarts its zoom',()=>{
+  for(const cue of cues){
+    const before=ep004Shot05CinematicState(cue.startFrame-1,cues,beats,props.durationInFrames);
+    const after=ep004Shot05CinematicState(cue.startFrame,cues,beats,props.durationInFrames);
+    assert.ok(Math.abs(before.camera.x-after.camera.x)<2.5,'camera x discontinuity');
+    assert.ok(Math.abs(before.camera.y-after.camera.y)<2.5,'camera y discontinuity');
+    assert.ok(Math.abs(before.camera.scale-after.camera.scale)<.008,'zoom discontinuity');
+  }
+  const once=ep004Shot05CinematicState(105+200,cues,beats,props.durationInFrames);
+  const twice=ep004Shot05CinematicState(105+300,cues,beats,props.durationInFrames);
+  assert.deepEqual(once.camera,twice.camera,'dolly must hold after completed inspected action');
+});
 test('SHOT05 use only real authored routes and voice-cue-directed activity',()=>{
   assert.deepEqual(ep004Shot05StoryRoute('Outlook Exchange').routes,
     ['OUTLOOK_PRIMARY','PRIMARY_MAILBOX']);
