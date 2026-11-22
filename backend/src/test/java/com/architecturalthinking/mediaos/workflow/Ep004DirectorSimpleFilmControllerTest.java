@@ -21,8 +21,8 @@ class Ep004DirectorSimpleFilmControllerTest {
             Ep004DirectorSimpleFilmController.composition("SHOT02"));
         assertEquals("EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL",
             Ep004DirectorSimpleFilmController.composition("SHOT03"));
-        assertThrows(ResponseStatusException.class,
-            ()->Ep004DirectorSimpleFilmController.composition("SHOT04"));
+        assertEquals("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
+            Ep004DirectorSimpleFilmController.composition("SHOT04"));
         assertThrows(ResponseStatusException.class,
             ()->Ep004DirectorSimpleFilmController.composition("../SHOT03"));
     }
