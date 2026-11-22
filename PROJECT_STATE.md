@@ -1,5 +1,13 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-22 — EP004 SHOT04 STATIC ACTIVE: REAL DIRECTOR-REQUESTED RENDER SUCCESS / VISUAL REVIEW PENDING
+
+**Director initiated the render; Executor verified Railway runtime, not an automatic re-render.** The exact production worker `e49d82aa-7998-4db2-907f-31f535f97cb0` claimed render `443dce4e-aa25-4b0f-a69b-26fe26a9d21b` at `2026-11-22T16:38:10Z`, using `expectedSourceCommit=07bda35ffc4e89caf72dff280c8c070d3637a310` and composition `EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL`. Worker verified the real previously LOCKED SHOT03 SHA/last-frame source and approved voice before CPU rendering (`EP004_SHOT04_PREVIOUS_LOCKED_SHOT03_SHA256_LAST_FRAME_QA_PASS` and `EP004_SHOT04_APPROVED_VOICE_AND_VERIFIED_SHOT03_PRECPU_PASS`).
+
+**ACTUAL MP4 TECHNICAL QA PASS:** finished `2026-11-22T16:43:36Z`, 2791 frames / 93.033 seconds, Full HD 1920x1080 at 30fps, H.264/AAC, 6,463,028 bytes. `EP004_SHOT04_REAL_APPROVED_TAKE_72F_AUDIO_DELAY_QA_PASS` confirmed 72-frame silence; `EP004_SHOT04_SEAM_PSNR=44.65 animatedFrames=30` confirmed the actual SHOT03 seam and early motion; `AT_TIER_PLUS_PLUS_MP4_QA` returned `ACTUAL_MP4_TECHNICAL_QA_PASS`. Render ended with `AT_TIER_PLUS_PLUS_DIRECTOR_REVIEW_PENDING`, no runtime error. Technical QA must not be confused with Director's visual acceptance.
+
+**NEXT DIRECTOR ACTION:** open MediaOS's completed SHOT04 video, check that the static mint ACTIVE container is clear and free of the Director-rejected pulse/shimmer/rings, listen for natural pace and verify SHOT03→04 continuity, then explicitly approve or request further correction. Do not automatically mark SHOT04 LOCKED, regenerate ElevenLabs voice, initiate duplicate CPU renders or move to SHOT05 merely because technical QA passed. Keep the source SHA pinned and historical MP4s distinguishable.
+
 ## 2026-11-22 — EP004 SHOT04 STATIC ACTIVE FINAL SOURCE LIVE / DIRECTOR VIDEO RENDER READY
 
 **DONE / VERIFIED:** Director explicitly rejected the new decorative gateway shimmer/pulse. Executor removed only the SHOT04-added ring/glow/pulse and made the active container tint and stroke fixed (`fillOpacity={0.14}`, `strokeWidth={3}`) on original gateway geometry. The locked SHOT03 predecessor and genuine first decoded seam, 72-frame silence, approved selected audio, verified beat alignment, routes, moving traffic and all earlier Director-LOCKED assets remain unchanged. Dedicated `SHOT04 Director-approved gateway focus is static` regression PASS; Dockerfile Remotion tests including 173 combined worker contract tests PASS, TypeScript preflight zero NEW errors (one documented unrelated EP001 baseline issue), original and factory Remotion bundles PASS, factory scene inventory PASS.
