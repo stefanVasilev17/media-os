@@ -1,8 +1,8 @@
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './EP004Shot01World.mjs';
-import {EP004_SHOT03_PREDECESSOR,ep004Shot03StoryboardWorld,EP004_SHOT03_NODES}
-  from './EP004Shot03LivingWorld.mjs';
-import {ep004Shot04ProductionWorld,validateEp004Shot04Production}
-  from './EP004Shot04ProductionWorld.mjs';
+import {EP004_SHOT03_PREDECESSOR} from './EP004Shot03LivingWorld.mjs';
+import {validateEp004Shot04Production} from './EP004Shot04ProductionWorld.mjs';
+import {ep004Shot05CinematicState,validateEp004Shot05XrayRoutes}
+  from './EP004Shot05CinematicWorld.mjs';
 
 export const EP004_SHOT05_COMPOSITION='EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL';
 export const EP004_SHOT05_BREATH_FRAMES=72;
@@ -12,8 +12,6 @@ const ease=x=>{const t=clamp(x);return t*t*(3-2*t);};
 const UUID=/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const SHA=/^[a-f0-9]{64}$/;
 const COMMIT=/^[a-f0-9]{40}$/;
-const center=key=>({x:EP004_SHOT03_NODES[key].left+EP004_SHOT03_NODES[key].width/2,
-  y:EP004_SHOT03_NODES[key].top+EP004_SHOT03_NODES[key].height/2});
 
 export function ep004Shot05StoryRoute(direction,index=0){
   const text=String(direction||'').toLowerCase();
@@ -91,39 +89,27 @@ export function validateEp004Shot05Production(props){
 
 export function ep004Shot05ProductionWorld(frame,props){
   validateEp004Shot05Production(props);
+  validateEp004Shot05XrayRoutes();
   if(!Number.isInteger(frame)||frame<0||frame>=props.durationInFrames)
     throw Error('EP004_SHOT05_FRAME_OUTSIDE_APPROVED_VOICE');
-  const previous=ep004Shot04ProductionWorld(props.previousLastEncodedFrame,props.previousShot04Props);
-  const worldFrame=props.worldStartFrame+frame;
-  const sourceProps={
-    episodeKey:'EP004',shotKey:'SHOT03',previewOnly:true,
-    sourceSha256:EP004_SHOT03_PREDECESSOR.sourceSha256,
-    previousRenderId:EP004_SHOT03_PREDECESSOR.renderId,
-    previousSourceCommit:EP004_SHOT03_PREDECESSOR.sourceCommit,
-    previousFrameCount:EP004_SHOT03_PREDECESSOR.frameCount,
-    previousLastEncodedFrame:EP004_SHOT03_PREDECESSOR.lastEncodedFrame,
-    worldStartFrame:EP004_SHOT03_PREDECESSOR.worldStartFrame,
-    durationInFrames:540,
-  };
-  const storyboard=ep004Shot03StoryboardWorld(539,sourceProps,worldFrame);
-  let beatIndex=-1;
-  for(let i=0;i<props.verifiedCues.length;i++)
-    if(frame>=props.verifiedCues[i].startFrame)beatIndex=i;
+  const cinematic=ep004Shot05CinematicState(
+    frame,props.verifiedCues,props.visualBeats,props.durationInFrames);
+  const beatIndex=cinematic.beatIndex;
   const cue=beatIndex>=0?props.verifiedCues[beatIndex]:null;
-  const direction=beatIndex>=0?props.visualBeats[beatIndex].direction:'';
-  const route=beatIndex<0?null:ep004Shot05StoryRoute(direction,beatIndex);
-  const cueAge=cue?frame-cue.startFrame:0;
-  const appear=cue?ease(cueAge/32):0;
-  const sceneIn=ease((frame-EP004_SHOT05_BREATH_FRAMES+9)/48);
-  const oldOpacity=1-ease((frame-EP004_SHOT05_BREATH_FRAMES+5)/38);
-  const focus=route?center(route.focus):{x:previous.focusX,y:previous.focusY};
-  const cameraScale=previous.cameraScale+(.105*ease((frame-EP004_SHOT05_BREATH_FRAMES)/100))
-    +.015*appear;
-  const panX=-Math.round(22*appear+(focus.x>1530?36:0)*appear);
-  const routeOpacity=sceneIn*appear;
-  return Object.freeze({frame,worldFrame,spoken:frame>=EP004_SHOT05_BREATH_FRAMES,
-    storyboard,previous,beatIndex,route,focus,cueAge,
-    routeOpacity,oldOpacity,sceneIn,appear,cameraScale,panX,
-    activeColor:route?.key==='DEGRADED'?'AMBER':route?.key==='ALTERNATIVE'?'VIOLET':'MINT',
-    titleOpacity:sceneIn,sourceHeadingOpacity:0});
+  const route=beatIndex>=0
+    ?ep004Shot05StoryRoute(props.visualBeats[beatIndex].direction,beatIndex):null;
+  const worldFrame=props.worldStartFrame+frame;
+  return Object.freeze({
+    frame,worldFrame,spoken:frame>=EP004_SHOT05_BREATH_FRAMES,
+    sourceWorldFrame:props.previousWorldStartFrame+props.previousLastEncodedFrame,
+    beatIndex,route,cinematic,
+    cameraScale:cinematic.camera.scale,panX:cinematic.camera.x,
+    routeOpacity:cinematic.routeProgress,
+    oldOpacity:cinematic.sourceOpacity,
+    sceneIn:cinematic.interiorOpacity,
+    appear:cinematic.stageAppear,
+    cueAge:cue?frame-cue.startFrame:0,
+    titleOpacity:cinematic.captionOpacity,
+    sourceHeadingOpacity:0
+  });
 }
