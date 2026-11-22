@@ -19,7 +19,7 @@ import java.util.UUID;
 
 @Service
 public final class Ep004Shot05DirectorRenderService {
-    public static final String COMPOSITION="EP004-SHOT05-CONTINUOUS-GATEWAYS-V1-VISUAL";
+    public static final String COMPOSITION="EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL";
     public static final String SOURCE_SHA=Ep004Shot01DirectorRenderService.SOURCE_SHA;
     public static final int FPS=30;
     public static final int BREATH_FRAMES=72;
