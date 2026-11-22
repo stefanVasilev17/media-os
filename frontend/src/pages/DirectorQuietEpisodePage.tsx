@@ -454,41 +454,88 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             <section className="director-minimal-panel">
               <div className="director-minimal-section-head">
                 <div><p className="director-minimal-eyebrow">03 · Video</p>
-                  <h3>Render & Lock</h3></div>
+                  <h3>Existing videos & Lock</h3></div>
                 {target&&<button type="button" className="director-minimal-subtle"
-                  disabled={!!busy}
-                  onClick={()=>void refreshRender().catch(e=>setError(errorText(e)))}>
-                  <RefreshCw size={15}/> Check readiness</button>}
+                  disabled={!!busy||checkingSaved}
+                  onClick={()=>{
+                    void refreshSavedRenders().catch(e=>setError(errorText(e)));
+                    void refreshRender().catch(e=>setError(errorText(e)));
+                  }}><RefreshCw size={15}/> Refresh videos</button>}
               </div>
-              {!target?<p className="director-minimal-muted">This SHOT's rendering scene is not
-                deployed yet. Script and voice editing remain available.</p>:<>
-                <p className="director-minimal-muted">
-                  {readiness?.ready?'Ready for a Director render':readiness?.blockers.length
-                    ?'Not ready: '+readiness.blockers.join(' · ')
-                    :'Approve a voice Take to check rendering.'}
-                </p>
-                <label className="director-minimal-confirm">
-                  <input type="checkbox" checked={cpuConsent}
-                    disabled={!renderMatches||!!busy||editing}
-                    onChange={e=>setCpuConsent(e.target.checked)}/>
-                  I approve one video render using Railway CPU.
-                </label>
-                <button type="button" className="director-minimal-primary"
-                  disabled={!cpuConsent||!renderMatches||!!busy||editing}
-                  onClick={()=>void startRender()}><Play size={16}/>
-                  {busy==='render'?'Queuing…':'Render video'}</button>
-                {render&&<div className="director-minimal-render">
-                  <p role="status">Video: {render.status}
-                    {typeof render.progress==='number'?' · '+render.progress+'%':''}</p>
-                  {render.videoUrl&&<video key={render.videoUrl} controls playsInline
-                    preload="metadata" className="director-minimal-video" src={render.videoUrl}
-                    aria-label={'Rendered '+activeShot+' video'}/>}
-                  {episode.episodeKey==='EP004'&&render.status==='READY'&&<button type="button" className="director-minimal-lock"
-                    disabled={!!busy||locked?.renderId===render.renderId}
-                    onClick={()=>void lockShot(render.renderId)}><Check size={16}/>
-                    {locked?.renderId===render.renderId?'SHOT locked':'Lock SHOT & add to Full Video'}
-                  </button>}
-                </div>}
+              {!target?<p className="director-minimal-muted">The visual scene is not
+                ready yet. Script and voice editing remain available.</p>:<>
+                {checkingSaved&&<p className="director-minimal-muted" role="status">
+                  Finding previously rendered videos. No new rendering is needed.
+                </p>}
+                {!checkingSaved&&savedRenders.length>0&&
+                  <p className="director-minimal-muted">These MP4s are already finished
+                    and stored. Watch the video and LOCK the version you approve.
+                    Earlier source versions are included; this does not use Railway CPU.</p>}
+                {savedRenders.map((item,i)=><div className="director-minimal-render"
+                  key={item.renderId}>
+                  <div className="director-minimal-existing-title">
+                    <strong>{locked?.renderId===item.renderId||item.locked
+                      ?'Locked video':i===0?'Ready to review':'Earlier completed video'}</strong>
+                    <span>Saved version {item.scriptRevision} ·
+                      {Math.round(item.durationInFrames/30)} seconds
+                      {item.finishedAt?' · '+item.finishedAt.slice(0,10):''}</span>
+                  </div>
+                  <video controls playsInline preload="metadata" src={item.videoUrl}
+                    className="director-minimal-video"
+                    aria-label={'Existing '+activeShot+' video '+(i+1)}/>
+                  {locked?.renderId===item.renderId||item.locked?
+                    <span className="director-minimal-locked">
+                      <Check size={14}/> SHOT locked</span>:
+                    item.canLock?<button type="button"
+                      className="director-minimal-lock" disabled={!!busy}
+                      onClick={()=>void lockShot(item.renderId)}>
+                      <Check size={16}/> Lock SHOT & add to Full Video
+                    </button>:
+                    <p className="director-minimal-muted">
+                      This MP4 is saved, but its original approved voice record could
+                      not be verified. It cannot be locked automatically.
+                    </p>}
+                </div>)}
+                <details className="director-minimal-advanced"
+                  open={!checkingSaved&&savedRenders.length===0}>
+                  <summary>{savedRenders.length>0
+                    ?'Render a new version (optional)'
+                    :'No saved MP4 available — render a new version'}</summary>
+                  <div className="director-minimal-render director-minimal-new-render">
+                    <p className="director-minimal-muted">
+                      {readiness?.ready?'Ready for a new Director render'
+                        :readiness?.blockers.length
+                          ?'Not ready: '+readiness.blockers.join(' · ')
+                          :'Approve the current voice Take to render a new version.'}
+                    </p>
+                    <label className="director-minimal-confirm">
+                      <input type="checkbox" checked={cpuConsent}
+                        disabled={!renderMatches||!!busy||editing}
+                        onChange={e=>setCpuConsent(e.target.checked)}/>
+                      I approve one new video render using Railway CPU.
+                    </label>
+                    <button type="button" className="director-minimal-primary"
+                      disabled={!cpuConsent||!renderMatches||!!busy||editing}
+                      onClick={()=>void startRender()}><Play size={16}/>
+                      {busy==='render'?'Queuing…':'Render video'}</button>
+                    {render&&<div className="director-minimal-render">
+                      <p role="status">New video: {render.status}
+                        {typeof render.progress==='number'?' · '+render.progress+'%':''}</p>
+                      {render.videoUrl&&<video key={render.videoUrl} controls playsInline
+                        preload="metadata" className="director-minimal-video"
+                        src={render.videoUrl}
+                        aria-label={'Newly rendered '+activeShot+' video'}/>}
+                      {episode.episodeKey==='EP004'&&render.status==='READY'&&
+                        <button type="button" className="director-minimal-lock"
+                          disabled={!!busy||locked?.renderId===render.renderId}
+                          onClick={()=>void lockShot(render.renderId)}>
+                          <Check size={16}/>
+                          {locked?.renderId===render.renderId
+                            ?'SHOT locked':'Lock SHOT & add to Full Video'}
+                        </button>}
+                    </div>}
+                  </div>
+                </details>
               </>}
             </section>
           </div>}
