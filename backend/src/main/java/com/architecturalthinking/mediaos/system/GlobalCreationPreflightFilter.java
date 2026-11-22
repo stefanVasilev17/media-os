@@ -321,7 +321,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                       and r.composition_id in ('EP004-SHOT01-ORDINARY-WORKDAY-V1-VISUAL',
                                                'EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL',
                                                'EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL',
-                                               'EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL')
+                                               'EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL',
+                                               'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL')
                       and r.profile='REVIEW' and r.width=1920 and r.height=1080
                       and r.fps=30 and r.duration_in_frames between 600 and 9000
                       and r.status='RUNNING' and r.worker_id=:worker
@@ -358,6 +359,30 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                               and previousLock.shot_key='SHOT03'
                               and previousLock.render_id::text=
                                   r.input_props->>'previousRenderId')))
+                      and (r.composition_id<>'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL'
+                        or (r.input_props->>'episodeKey'='EP004'
+                          and r.input_props->>'shotKey'='SHOT05'
+                          and r.input_props->>'breathFrames'='72'
+                          and length(r.input_props->>'previousVideoSha256')=64
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues') between 2 and 40
+                          and jsonb_typeof(r.input_props->'previousShot04Props')='object'
+                          and r.input_props->'previousShot04Props'->>'shotKey'='SHOT04'
+                          and r.input_props->'previousShot04Props'->>'expectedSourceCommit'=
+                              r.input_props->>'previousSourceCommit'
+                          and exists(
+                            select 1 from episode_director_shot_lock previousLock
+                            join remotion_render previous on previous.id=previousLock.render_id
+                            where previousLock.package_id=(r.input_props->>'packageId')::uuid
+                              and previousLock.shot_key='SHOT04'
+                              and previousLock.render_id::text=r.input_props->>'previousRenderId'
+                              and previous.composition_id='EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL'
+                              and previous.status='SUCCEEDED'
+                              and previous.video_sha256=r.input_props->>'previousVideoSha256'
+                              and previous.duration_in_frames::text=
+                                  r.input_props->>'previousFrameCount'
+                              and previous.input_props->>'worldStartFrame'=
+                                  r.input_props->>'previousWorldStartFrame')))
                 )
                 """)
                 .param("render",renderId).param("project",RENDER_PROJECT_ID)
