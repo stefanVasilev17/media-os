@@ -110,3 +110,22 @@ test('locked SHOT03 seam, exact SHOT04 voice mux, no paid TTS or automatic CPU j
   assert.match(shot,/Shot03LivingArchitectureWorldView/);
   assert.doesNotMatch(shot,/static freeze|fake audio|elevenlabs\.generate/);
 });
+
+test('SHOT04 director container pulse removes floating rings and reuses true node borders',async()=>{
+  const shot=await readFile(new URL('./src/episodes/ep004/Shot04ProductionScene.tsx',import.meta.url),'utf8');
+  assert.doesNotMatch(shot,/<circle cx=\{state\.focusX\}/);
+  assert.doesNotMatch(shot,/state\.focusX-42/);
+  assert.match(shot,/EP004_SHOT03_NODES/);
+  assert.match(shot,/primaryBorder/);
+  assert.match(shot,/alternativeBorder/);
+  assert.match(shot,/focusedNode\?\.\[0\]==='primary'/);
+  assert.match(shot,/focusedNode\?\.\[0\]==='alternative'/);
+  assert.match(shot,/fillOpacity=\{\.12\+\.10\*spotlightPulse\}/);
+  assert.match(shot,/stroke=\{MINT\}/);
+  assert.match(shot,/spotlightPulse=state\.focusPulse\*pulseFade/);
+  assert.match(shot,/focusAge-90\)\/60/);
+  assert.match(shot,/state\.storyboard\.cameraX/);
+  assert.match(shot,/state\.storyboard\.cameraScale/);
+  assert.match(shot,/Shot03LivingArchitectureWorldView/);
+  assert.match(shot,/frame===0&&props\.previousLastFrameDataUri/);
+});
