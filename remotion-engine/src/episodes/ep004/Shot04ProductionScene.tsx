@@ -48,11 +48,6 @@ export const Shot04ProductionScene:React.FC<Ep004Shot04RenderProps>=props=>{
   const focusedNode=Object.entries(EP004_SHOT03_NODES).find(([,node])=>
     Math.abs(state.focusX-(node.left+node.width/2))<16&&
     Math.abs(state.focusY-(node.top+node.height/2))<16);
-  const cueStart=state.beatIndex<0?frame:
-    props.verifiedCues[state.beatIndex].startFrame;
-  const focusAge=frame-cueStart;
-  const pulseFade=1-Math.min(1,Math.max(0,(focusAge-90)/60));
-  const spotlightPulse=state.focusPulse*pulseFade;
   return <AbsoluteFill style={{background:'#030B17',overflow:'hidden'}}>
     <AbsoluteFill style={{
       transform:'scale('+state.cameraScale+')',
@@ -66,25 +61,22 @@ export const Shot04ProductionScene:React.FC<Ep004Shot04RenderProps>=props=>{
           state.storyboard.cameraScale+')',
         transformOrigin:'960px 540px'}}>
         <svg width={1920} height={1080} viewBox="0 0 1920 1080">
-          <g opacity={state.focusAlpha} style={{
-            filter:'drop-shadow(0 0 '+(5+8*spotlightPulse)+
-              'px rgba(111,236,212,.38))'
-          }}>
+          <g opacity={state.focusAlpha}>
             {focusedNode?.[0]==='primary'&&
               <path d={primaryBorder} fill={MINT}
-                fillOpacity={.12+.10*spotlightPulse}
-                stroke={MINT} strokeWidth={3+1.4*spotlightPulse}/>}
+                fillOpacity={0.14}
+                stroke={MINT} strokeWidth={3}/>}
             {focusedNode?.[0]==='alternative'&&
               <path d={alternativeBorder} fill={MINT}
-                fillOpacity={.12+.10*spotlightPulse}
-                stroke={MINT} strokeWidth={3+1.4*spotlightPulse}/>}
+                fillOpacity={0.14}
+                stroke={MINT} strokeWidth={3}/>}
             {focusedNode&&focusedNode[0]!=='primary'&&
               focusedNode[0]!=='alternative'&&
               <rect x={focusedNode[1].left} y={focusedNode[1].top}
                 width={focusedNode[1].width} height={focusedNode[1].height}
                 rx={16} fill={MINT}
-                fillOpacity={.12+.10*spotlightPulse}
-                stroke={MINT} strokeWidth={3+1.4*spotlightPulse}/>}
+                fillOpacity={0.14}
+                stroke={MINT} strokeWidth={3}/>}
           </g>
         </svg>
       </AbsoluteFill>
