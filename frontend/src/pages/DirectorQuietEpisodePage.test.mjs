@@ -29,7 +29,7 @@ describe('MediaOS minimal Director surface is built from exact native operations
   it('uses reviewed MP4 IDs to lock, and one unified player for contiguous film',()=>{
     expect(page).toContain("film/locks/");
     expect(page).toContain('renderId,confirmLock:true');
-    expect(page).toContain('lockShot(item.renderId)');
+    expect(page).toContain('lockShot(selectedVideo.renderId)');
     expect(page).toContain('key={fullUrl}');
     expect(page).toContain('src={fullUrl}');
     expect(page).toContain('episode.shots.map');
@@ -53,27 +53,36 @@ describe('Long episode Full Video remains one player and non-blocking',()=>{
   });
 });
 
-describe('Historical EP004 MP4s are visible before any new paid render',()=>{
-  it('loads previously completed shots independently of current source commit or voice revision',()=>{
-    expect(page).toContain("root+'/film/candidates/'");
-    expect(page).toContain('refreshSavedRenders');
-    expect(page).toContain('savedRenders.map');
-    expect(page).toContain('item.videoUrl');
-    expect(page).toContain('item.canLock');
-    expect(page).toContain('lockShot(item.renderId)');
-    expect(page).toContain('Earlier completed video');
+describe('Director sees only one current SHOT preview and one Full Video tab',()=>{
+  it('never shows a visible render-version history or older video label',()=>{
+    expect(page).toContain('const selectedVideo=locked');
+    expect(page).toContain('savedRenders.find(item=>item.renderId===locked.renderId)');
+    expect(page).toContain('savedRenders.find(item=>item.canLock)');
+    expect(page).toContain('src={shotVideoUrl}');
+    expect(page).not.toContain('savedRenders.map(');
+    expect(page).not.toContain('Earlier completed video');
+    expect(page).not.toContain('Earlier source versions');
+    expect(page).not.toContain('Saved version ');
+    expect(page).not.toContain('Existing videos & Lock');
   });
-  it('never forces a paid CPU render when an approved earlier MP4 exists',()=>{
-    expect(page).toContain('Render a new version (optional)');
-    expect(page).toContain('open={!checkingSaved&&savedRenders.length===0}');
-    expect(page).toContain('I approve one new video render using Railway CPU.');
-    expect(page).toContain('confirmCpuRender:true');
+  it('Full Video shows only latest Director-locked SHOTs and one assembled film player',()=>{
+    expect(page).toContain('> Full Video</button>');
+    expect(page).toContain('src={fullUrl}');
+    expect(page).toContain('key={fullUrl}');
+    expect(page).toContain('lockedClipsToPreview=(film?.locks??[]).filter');
+    expect(page).toContain('!(film?.renderIds??[]).includes(item.renderId)');
+    expect(page).toContain('lockedClipsToPreview.map(item=>');
+    expect(page).toContain('src={lockedVideoUrl(item.renderId)}');
+    expect(page).toContain('Locked');
+    expect(page).toContain('Only the currently locked videos are shown.');
+  });
+  it('does not auto lock or start any new paid render from the Full Video tab',()=>{
+    expect(page).toContain('lockShot(selectedVideo.renderId)');
     expect(page).toContain('confirmLock:true');
-  });
-  it('does not claim a historical MP4 can be locked when original voice approval is missing',()=>{
-    expect(page).toContain('its original approved voice record could');
-    expect(page).toContain('not be verified');
-    expect(page).toContain('It cannot be locked automatically.');
-    expect(page).toContain('This MP4 is saved');
+    expect(page).toContain('Render new video (optional)');
+    expect(page).toContain('open={!checkingSaved&&!shotVideoUrl}');
+    expect(page).toContain('confirmCpuRender:true');
+    expect(page).toContain('I approve one new video render using Railway CPU.');
+    expect(page).toContain('This video cannot be locked because its original voice approval');
   });
 });
