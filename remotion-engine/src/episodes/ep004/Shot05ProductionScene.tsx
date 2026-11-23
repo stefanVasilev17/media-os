@@ -146,8 +146,8 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
     return mix(old,next,changing);
   };
   const opacity=(id:NodeId)=>{
-    const old=prev?.visible.includes(id)?1:seen.has(id)?.18:0;
-    const next=now.visible.includes(id)?1:seen.has(id)?.19:0;
+    const old=prev?.visible.includes(id)?1:(seen.has(id)?0.18:0);
+    const next=now.visible.includes(id)?1:(seen.has(id)?0.19:0);
     return mix(old,next,changing);
   };
   const laneColor=(key:TrackId)=>key.includes('TEAMS')||key.includes('ALTERNATIVE')
