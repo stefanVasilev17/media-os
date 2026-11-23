@@ -1,5 +1,5 @@
 import type {Ep004Shot04RenderProps} from './EP004Shot04ProductionWorld.mjs';
-import type {Ep004Shot05CinematicState} from './EP004Shot05CinematicWorld.mjs';
+import type {Ep004Shot05ClarityState} from './EP004Shot05ClarityWorld.mjs';
 export type Ep004Shot05Cue={beatId:string;anchor:string;startFrame:number;endFrame:number};
 export type Ep004Shot05Beat={beatId:string;cueAnchor:string;direction:string};
 export type Ep004Shot05RenderProps={
@@ -18,7 +18,7 @@ export type Ep004Shot05Route={
 };
 export type Ep004Shot05State={
   frame:number;worldFrame:number;sourceWorldFrame:number;spoken:boolean;
-  beatIndex:number;route:Ep004Shot05Route|null;cinematic:Ep004Shot05CinematicState;
+  beatIndex:number;route:Ep004Shot05Route|null;cinematic:Ep004Shot05ClarityState;
   cameraScale:number;panX:number;routeOpacity:number;
   oldOpacity:number;sceneIn:number;appear:number;cueAge:number;
   titleOpacity:number;sourceHeadingOpacity:number;
