@@ -132,7 +132,7 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
   const oldLanes=prev?.lanes??[];
   const activeLanes=now.lanes;
   const strength=(id:TrackId)=>{
-    const old=oldLanes.includes(id)?.82:0;
+    const old=oldLanes.includes(id)?0.82:0;
     let next=activeLanes.includes(id)?scene.flowActivation:0;
     if(now.key==='SHARED'||now.key==='CONSEQUENCE'){
       if(id==='TEAMS_FAILOVER'||id==='PRIMARY_TEAMS')
