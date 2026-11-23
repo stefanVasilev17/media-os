@@ -1,5 +1,17 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-23 — EP004 SHOT05 V4: DIRECTOR CORRECTION DELIVERED, SOURCE VERIFIED, VISUAL REVIEW PENDING
+
+**Director-requested V4 scene correction:** Gateway is rebuilt as a shaped routing core with two visible animated internal paths; separate inbound and outbound animated request tokens follow the physical route geometry; load-reduction stage keeps slower, lower-density traffic visible. Teams input and output roles now read TEAMS APP / TEAMS SERVICE; OUTLOOK APP is distinguished from EXCHANGE ONLINE; CONSTRAINED has been replaced with HEADROOM LOW. The literal 14% capacity-loss label still requires matching original approved narration. V3 was rejected; V4 remains a visual review candidate, not a Director LOCK.
+
+**Immutable protection:** EP004 SHOT01–04 and the genuine locked SHOT04 predecessor last frame/MP4 were not changed. The selected SHOT05 voice, approved real HEAR->SEE cues, 72-frame breath, composition ID, Director paid gate, auth, SHA checks, AAC mux and worker Factory contract remain preserved.
+
+**Verified source:** V4 source code commit d94e5f83e46615095daf95a355ada05814c99f68; exact Railway production promotion source 289a3bd401cee87dfb5cde72cb0fa4da2245aef0; existing Worker deployment 21db313d-3465-4d7d-b57c-00cca094c16e SUCCESS. Runtime predeploy SHA guard EP004_SHOT05_V4_LIVING_PACKET_PIN_PASS. Authenticated Factory heartbeat: source=289a3bd401cee87dfb5cde72cb0fa4da2245aef0 scenes=5. SHOT05 11/11 PASS, shared Worker 173/173 PASS, zero new TypeScript errors (one protected legacy EP001 baseline remains), standard and Factory Remotion bundles built. Existing Worker, Backend, PostgreSQL all ONLINE with no active warnings.
+
+**Cost/next gate:** No paid SHOT05 V4 MP4 render, TTS, extra services, buckets or volumes were created. The next step is a separate authenticated Director CPU render consent in MediaOS with exact live SHA preflight, then actual MP4/voice/seam/motion inspection and Director-only visual LOCK. Existing Railway explicit-promotion-only watch pattern remains. Do not call V4 visually approved before viewing actual output.
+
+---
+
 ## 2026-11-23 — EP004 SHOT05 DIRECTOR V3: PROGRESSIVE CLARITY, CONTENT-FITTED, RENDER-READY SOURCE ON LIVE WORKER
 
 **DIRECTOR-OBSERVED V2 VISUAL REJECTION, SCREENSHOT-BASED:** The prior V2 screen was difficult to understand and was rejected: too many route paths and simultaneously visible cards, clipped input sides, a footer obscuring Alternative Gateway, tiny top microcopy, misleading visual clutter and text that threatened to escape containers. SHOT05 V1 also had orange-path/zoom-loop Director rejections. A successful V2 H264/AAC video is NOT a visual approval.
