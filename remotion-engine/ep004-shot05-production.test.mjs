@@ -92,8 +92,8 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.sourceOpacity,0);
   assert.equal(last.cinematic.interiorOpacity,1);
 });
-test('SHOT05 V3 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'PROGRESSIVE_SINGLE_FOCUS_V3');
+test('SHOT05 V4 measured typography fits every actual node and varying content-size heading',()=>{
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'VISIBLE_PACKET_ROUTING_V4');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
@@ -114,7 +114,7 @@ test('SHOT05 V3 measured typography fits every actual node and varying content-s
     assert.ok(h.y+h.height<245,'header cannot overlap diagram nodes');
   }
 });
-test('SHOT05 V3 original geography preserves route-to-node endpoints and no clutter',()=>{
+test('SHOT05 V4 original geography preserves route-to-node endpoints and no clutter',()=>{
   assert.equal(Object.keys(EP004_SHOT05_TRACKS).length,6);
   for(const [key,r] of Object.entries(EP004_SHOT05_TRACKS)){
     assert.match(r.path,/^M /,key);
@@ -178,7 +178,7 @@ test('SHOT05 absolute camera has steady educational holds and no repeated zoom',
     assert.ok(Math.abs(v.camera.x)<=12&&Math.abs(v.camera.y)<=18);
   }
 });
-test('SHOT05 V3 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
+test('SHOT05 V4 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   const world=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs',import.meta.url),'utf8');
   const clarity=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs',import.meta.url),'utf8');
@@ -228,4 +228,35 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
   assert.match(worker,/EP004_SHOT05_PREVIOUS_LOCKED_SHOT04_SHA256_LAST_FRAME_QA_PASS/);
   const claims=await readFile(new URL('./worker-claim-authorization.mjs',import.meta.url),'utf8');
   assert.match(claims,/EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL/);
+});
+
+test('SHOT05 V4 distinguishes client apps and downstream services and moves actual request packets',async()=>{
+  assert.equal(EP004_SHOT05_NODES.outlook.title,'OUTLOOK APP');
+  assert.equal(EP004_SHOT05_NODES.teams.title,'TEAMS APP');
+  assert.equal(EP004_SHOT05_NODES.teamsService.title,'TEAMS SERVICE');
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  assert.match(src,/pathLength=\{100\}/);
+  assert.match(src,/strokeDashoffset=\{offset-i\*31\.3\}/);
+  assert.match(src,/frame\*speed/);
+  assert.match(src,/status==='14%'\?'14% CAPACITY LOST':status/);
+  assert.doesNotMatch(src,/\bCONSTRAINED\b/);
+  assert.match(src,/motion>.04/);
+});
+test('SHOT05 V4 preserves moving inputs and outputs while showing reduced headroom',()=>{
+  const states=[
+    ep004Shot05ClarityStage('Gateway capacity reduced',4),
+    ep004Shot05ClarityStage('14 percent capacity lost',4),
+    ep004Shot05ClarityStage('Gateway outage unavailable',4)
+  ];
+  for(const state of states){
+    assert.ok(state.visible.includes('primary'));
+    assert.ok(state.visible.includes('outlook'));
+    assert.ok(state.visible.includes('teamsService'));
+    for(const id of ['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'])
+      assert.ok(state.lanes.includes(id));
+  }
+  assert.equal(states[0].primaryStatus,'HEADROOM LOW');
+  assert.equal(states[1].primaryStatus,'14%');
+  for(const route of Object.values(EP004_SHOT05_TRACKS))
+    assert.deepEqual(route.segments.at(-1),route.end);
 });

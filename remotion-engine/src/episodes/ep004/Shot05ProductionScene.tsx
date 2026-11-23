@@ -48,75 +48,106 @@ const Title:React.FC<{title:string;accent:string;opacity:number}>=
 
 const Node:React.FC<{
   nodeId:NodeId;intensity:number;tone:string;
-  status:string|null;capacity:boolean;motion:number;
-}>=({nodeId,intensity,tone,status,capacity,motion})=>{
+  status:string|null;capacity:boolean;motion:number;frame:number;
+}>=({nodeId,intensity,tone,status,capacity,motion,frame})=>{
   const n=EP004_SHOT05_NODES[nodeId];
   if(intensity<=0)return null;
-  const active=intensity>.40;
-  const isPrimary=nodeId==='primary';
-  const isCapacity=isPrimary&&status!=null;
-  const iconColor=active?tone:QUIET;
-  const titleY=isPrimary?n.y+65:n.y+n.h/2+n.font*.37;
-  const labelWidth=ep004Shot05MeasuredTextWidth(n.title,n.font);
-  if(labelWidth+54>n.w)throw Error('SHOT05_LABEL_CLIP_'+nodeId);
+  const active=intensity>.38;
+  const accent=active?tone:QUIET;
+  if(ep004Shot05MeasuredTextWidth(n.title,n.font)+54>n.w)
+    throw Error('SHOT05_LABEL_CLIP_'+nodeId);
+  if(nodeId!=='primary')return <g opacity={intensity}>
+    <rect x={n.x+8} y={n.y+10} width={n.w} height={n.h}
+      rx={20} fill="#000713" opacity={.68}/>
+    <rect x={n.x} y={n.y} width={n.w} height={n.h}
+      rx={20} fill={active?PANEL:'#071320'}
+      stroke={accent} strokeOpacity={active?.8:.48}
+      strokeWidth={active?2.6:1.7}/>
+    <rect x={n.x+18} y={n.y+17} width={4} height={n.h-34}
+      rx={2} fill={accent} opacity={active?.82:.42}/>
+    <text x={n.x+n.w/2+5} y={n.y+n.h/2+n.font*.35}
+      fontFamily={FONT} fontSize={n.font} fontWeight={820}
+      textAnchor="middle" fill={WHITE}>{n.title}</text>
+  </g>;
+  const portY=[n.y+76,n.y+167];
+  const speed=capacity?1.35:3.15;
+  const progress=frame*speed;
+  const left=n.x+32;
+  const width=n.w-64;
   return <g opacity={intensity}>
-    <rect x={n.x+9} y={n.y+11} width={n.w} height={n.h} rx={21}
-      fill="#010814" opacity={.66}/>
-    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={21}
-      fill={active?PANEL:'#071320'}
-      stroke={active?iconColor:BOUNDARY}
-      strokeWidth={active?3.2:1.8}/>
-    <rect x={n.x+19} y={n.y+20} width={5} height={n.h-40}
-      rx={2.5} fill={iconColor} opacity={active?.9:.55}/>
-    <text x={n.x+n.w/2+9} y={titleY}
-      fontFamily={FONT} fontSize={n.font}
-      fontWeight={850} textAnchor="middle" fill={WHITE}
-      letterSpacing="-.018em">{n.title}</text>
-    {isPrimary&&isCapacity&&status==='14%'&&
-      <g>
-        <text x={n.x+112} y={n.y+171} fill={AMBER}
-          fontFamily={FONT} fontSize={65} fontWeight={900}
-          textAnchor="middle">14%</text>
-        <text x={n.x+307} y={n.y+161} fill={WHITE}
-          fontFamily={FONT} fontSize={26} fontWeight={800}
-          textAnchor="middle">CAPACITY LOST</text>
-        <rect x={n.x+36} y={n.y+203} width={n.w-72} height={13}
-          rx={6.5} fill={MINT} opacity={.78}/>
-        <rect x={n.x+n.w-36-(n.w-72)*.14} y={n.y+203}
-          width={(n.w-72)*.14} height={13} rx={6.5}
-          fill={AMBER}/>
-      </g>}
-    {isPrimary&&isCapacity&&status!=='14%'&&
-      <text x={n.x+n.w/2} y={n.y+160}
-        textAnchor="middle" fontFamily={FONT} fontSize={31}
-        fontWeight={850} fill={AMBER}>{status}</text>}
-    {isPrimary&&!isCapacity&&
-      <g opacity={Math.max(.30,motion)}>
-        <path d={'M '+(n.x+60)+' '+(n.y+164)+' H '+(n.x+n.w-59)}
-          fill="none" stroke={iconColor} strokeWidth={4}
-          strokeLinecap="round" opacity={.65}/>
-        <rect x={n.x+65+mix(0,n.w-146,motion)}
-          y={n.y+159} width={17} height={10}
-          rx={5} fill={iconColor}/>
-      </g>}
+    <rect x={n.x+13} y={n.y+16} width={n.w} height={n.h}
+      rx={25} fill="#010713" opacity={.76}/>
+    <path d={'M '+(n.x+30)+' '+n.y+' H '+(n.x+n.w-31)+
+      ' L '+(n.x+n.w)+' '+(n.y+31)+' V '+(n.y+n.h-31)+
+      ' L '+(n.x+n.w-31)+' '+(n.y+n.h)+' H '+(n.x+30)+
+      ' L '+n.x+' '+(n.y+n.h-31)+' V '+(n.y+30)+' Z'}
+      fill="#071C2C" stroke={accent} strokeWidth={3.5}
+      strokeLinejoin="round" strokeOpacity={.95}/>
+    <path d={'M '+(n.x+42)+' '+(n.y+72)+' H '+(n.x+n.w-42)}
+      stroke="#27445C" strokeWidth={1.8} opacity={.75}/>
+    <text x={n.x+n.w/2} y={n.y+55} fill={WHITE}
+      fontSize={n.font} fontFamily={FONT} textAnchor="middle"
+      fontWeight={850} letterSpacing="-.018em">{n.title}</text>
+    {portY.map((y,i)=><g key={'lane-'+i}>
+      <path d={'M '+left+' '+y+' H '+(left+width)}
+        fill="none" stroke={i===1?VIOLET:CYAN} strokeWidth={5}
+        strokeLinecap="round" opacity={.27+.36*motion}/>
+      <path d={'M '+left+' '+y+' H '+(left+width)}
+        fill="none" stroke={i===1?VIOLET:CYAN} strokeWidth={1.6}
+        strokeDasharray="5 12" opacity={.34+.3*motion}/>
+      {motion>.04&&[0,1,2].map(packet=><rect
+        key={'packet-'+packet}
+        x={left+((progress+packet*125+i*52)%width)}
+        y={y-4.5} width={19} height={9} rx={4.5}
+        fill={i===1?VIOLET:CYAN}
+        opacity={capacity?(packet===0 ? .7 : .2):(.7+.3*motion)}
+      />)}
+      <rect x={n.x-5} y={y-10} width={12} height={20} rx={4}
+        fill="#12334A" stroke={i===1?VIOLET:CYAN} strokeWidth={2}/>
+      <rect x={n.x+n.w-7} y={y-10} width={12} height={20} rx={4}
+        fill="#12334A" stroke={i===1?VIOLET:CYAN} strokeWidth={2}/>
+    </g>)}
+    <rect x={n.x+n.w/2-39} y={n.y+88} width={78} height={105}
+      rx={12} fill="#0A2539" stroke={accent} strokeWidth={2.3}/>
+    <path d={'M '+(n.x+n.w/2-17)+' '+(n.y+113)+
+      ' H '+(n.x+n.w/2+17)+' M '+(n.x+n.w/2-17)+
+      ' '+(n.y+133)+' H '+(n.x+n.w/2+17)+' M '+
+      (n.x+n.w/2-17)+' '+(n.y+153)+' H '+(n.x+n.w/2+17)}
+      fill="none" stroke={accent} strokeWidth={3.2}
+      strokeLinecap="round" opacity={.82}/>
+    {status!=null&&<g>
+      <rect x={n.x+n.w/2-134} y={n.y+202} width={268}
+        height={29} rx={12} fill="#392919"
+        stroke={color('AMBER')} strokeOpacity={.65}/>
+      <text x={n.x+n.w/2} y={n.y+223} textAnchor="middle"
+        fontFamily={FONT} fontSize={22} fontWeight={850} fill={AMBER}>
+        {status==='14%'?'14% CAPACITY LOST':status}
+      </text>
+    </g>}
+    {status==null&&<rect x={n.x+n.w/2-51} y={n.y+214}
+      width={102} height={5} rx={2.5} fill={accent} opacity={.48}/>}
   </g>;
 };
 
 const Track:React.FC<{
-  id:TrackId;intensity:number;age:number;
-  tone:string;slow:boolean
-}>=({id,intensity,age,tone,slow})=>{
-  if(intensity<=.01)return null;
+  id:TrackId;intensity:number;frame:number;tone:string;slow:boolean
+}>=({id,intensity,frame,tone,slow})=>{
+  if(intensity<=.025)return null;
   const path=EP004_SHOT05_TRACKS[id].path;
-  const offset=-Math.max(0,age)*(slow?1.1:2.4);
+  const speed=slow ? .25 : .57;
+  const offset=-(frame*speed)%100;
   return <g opacity={intensity}>
+    <path d={path} fill="none" stroke="#1B4057"
+      strokeWidth={7} strokeLinejoin="round" strokeLinecap="round"/>
     <path d={path} fill="none" stroke={tone}
-      strokeWidth={4.8} strokeLinecap="round"
-      strokeLinejoin="round" opacity={.55}/>
-    <path d={path} fill="none" stroke={tone}
-      strokeWidth={7} strokeLinecap="round"
-      strokeLinejoin="round" opacity={.88}
-      strokeDasharray="10 230" strokeDashoffset={offset}/>
+      strokeWidth={3.2} strokeOpacity={.67} strokeLinecap="round"
+      strokeLinejoin="round"/>
+    {Array.from({length:slow?2:3},(_,i)=>
+      <path key={i} d={path} pathLength={100}
+        fill="none" stroke={tone} strokeWidth={10.5}
+        strokeLinecap="round" strokeLinejoin="round"
+        strokeDasharray="3.3 96.7" strokeDashoffset={offset-i*31.3}
+        opacity={slow ? .73 : 1}/>)}
   </g>;
 };
 
@@ -127,77 +158,67 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
   const seen=new Set(scene.visibleHistory);
   const capacity=now.key==='CAPACITY'||now.key==='CAPACITY_14'
     ||now.key==='DEGRADED';
-  const activeColor=color(now.accent);
   const switching=now.key==='SWITCH';
   const oldLanes=prev?.lanes??[];
   const activeLanes=now.lanes;
   const strength=(id:TrackId)=>{
-    const old=oldLanes.includes(id)?0.82:0;
+    const old=oldLanes.includes(id) ? .78 : 0;
     let next=activeLanes.includes(id)?scene.flowActivation:0;
     if(now.key==='SHARED'||now.key==='CONSEQUENCE'){
       if(id==='TEAMS_FAILOVER'||id==='PRIMARY_TEAMS')
         next*=scene.secondLaneActivation;
     }
-    if(switching){
-      next*=id==='TEAMS_ALTERNATIVE'||id==='ALTERNATIVE_TEAMS'
-        ?1-scene.switchActivation:scene.switchActivation;
-    }
-    if(capacity&&oldLanes.includes(id))next=.22;
+    if(switching)next*=id==='TEAMS_ALTERNATIVE'||id==='ALTERNATIVE_TEAMS'
+      ?1-scene.switchActivation:scene.switchActivation;
+    if(capacity)next=activeLanes.includes(id) ? .58 : 0;
     return mix(old,next,changing);
   };
   const opacity=(id:NodeId)=>{
-    const old=prev?.visible.includes(id)?1:(seen.has(id)?0.18:0);
-    const next=now.visible.includes(id)?1:(seen.has(id)?0.19:0);
+    const old=prev?.visible.includes(id)?1:(seen.has(id)?.25:0);
+    const next=now.visible.includes(id)
+      ?(capacity&&id!=='primary' ? .42 : 1)
+      :(seen.has(id)?.25:0);
     return mix(old,next,changing);
   };
-  const laneColor=(key:TrackId)=>key.includes('TEAMS')||key.includes('ALTERNATIVE')
-    ?VIOLET:CYAN;
-  const primaryActive=now.visible.includes('primary');
+  const laneColor=(key:TrackId)=>key.includes('TEAMS')||
+    key.includes('ALTERNATIVE')?VIOLET:CYAN;
+  const traffic=Math.max(strength('OUTLOOK_PRIMARY'),
+    strength('TEAMS_FAILOVER'));
   return <svg width={1920} height={1080} viewBox="0 0 1920 1080">
     <defs>
-      <radialGradient id="shot05V3WorldDepth">
-        <stop offset="0%" stopColor="#12314A" stopOpacity={.45}/>
+      <radialGradient id="shot05V4WorldDepth">
+        <stop offset="0%" stopColor="#12314A" stopOpacity={.42}/>
         <stop offset="100%" stopColor={BG} stopOpacity={0}/>
       </radialGradient>
     </defs>
     <ellipse cx={957} cy={554} rx={810} ry={520}
-      fill="url(#shot05V3WorldDepth)"/>
-    <g stroke="#1F3447" strokeWidth={1} opacity={.28}>
+      fill="url(#shot05V4WorldDepth)"/>
+    <g stroke="#1F3447" strokeWidth={1} opacity={.26}>
       <path d="M 143 249 H 1788 M 143 916 H 1788" fill="none"/>
     </g>
-    <g>
-      {(Object.keys(EP004_SHOT05_TRACKS) as TrackId[]).map(key=>
-        <Track key={key} id={key}
-          intensity={strength(key)} age={scene.age}
-          tone={laneColor(key)} slow={capacity}/>)}
-    </g>
+    {(Object.keys(EP004_SHOT05_TRACKS) as TrackId[]).map(key=>
+      <Track key={key} id={key} intensity={strength(key)}
+        frame={scene.frame} tone={laneColor(key)} slow={capacity}/>)}
     <Node nodeId="outlook" intensity={opacity('outlook')}
       tone={CYAN} status={null} capacity={false}
-      motion={scene.flowActivation}/>
+      motion={scene.flowActivation} frame={scene.frame}/>
     <Node nodeId="teams" intensity={opacity('teams')}
       tone={VIOLET} status={null} capacity={false}
-      motion={scene.flowActivation}/>
+      motion={scene.flowActivation} frame={scene.frame}/>
     <Node nodeId="exchange" intensity={opacity('exchange')}
       tone={CYAN} status={null} capacity={false}
-      motion={scene.flowActivation}/>
+      motion={scene.flowActivation} frame={scene.frame}/>
     <Node nodeId="teamsService" intensity={opacity('teamsService')}
       tone={VIOLET} status={null} capacity={false}
-      motion={scene.flowActivation}/>
+      motion={scene.flowActivation} frame={scene.frame}/>
     <Node nodeId="alternative" intensity={opacity('alternative')}
       tone={VIOLET} status={null} capacity={false}
-      motion={scene.switchActivation}/>
+      motion={scene.switchActivation} frame={scene.frame}/>
     <Node nodeId="primary" intensity={opacity('primary')}
-      tone={primaryActive?activeColor:CYAN} status={now.primaryStatus}
-      capacity={capacity} motion={scene.flowActivation}/>
-    {capacity&&
-      <g opacity={scene.flowActivation*.78}>
-        <rect x={648} y={394} width={15} height={19} rx={5}
-          fill={CYAN}/>
-        <rect x={678} y={394} width={15} height={19} rx={5}
-          fill={CYAN} opacity={.75}/>
-        <rect x={708} y={394} width={15} height={19} rx={5}
-          fill={AMBER} opacity={.55}/>
-      </g>}
+      tone={now.visible.includes('primary')?color(now.accent):CYAN}
+      status={now.primaryStatus} capacity={capacity}
+      motion={Math.max(traffic,scene.flowActivation*.45)}
+      frame={scene.frame}/>
   </svg>;
 };
 

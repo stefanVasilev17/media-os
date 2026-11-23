@@ -21,7 +21,7 @@ export type Ep004Shot05ClarityState={
   readonly visibleHistory:readonly string[];readonly sourcePush:number;
   readonly stageHoldFrames:number;
 };
-export declare const EP004_SHOT05_CLARITY_GRAMMAR:'PROGRESSIVE_SINGLE_FOCUS_V3';
+export declare const EP004_SHOT05_CLARITY_GRAMMAR:'VISIBLE_PACKET_ROUTING_V4';
 export declare const EP004_SHOT05_SAFE_FRAME:Readonly<{left:number;right:number;top:number;bottom:number}>;
 export declare const EP004_SHOT05_NODES:Readonly<Record<
   'outlook'|'teams'|'primary'|'alternative'|'exchange'|'teamsService',Ep004Shot05Node>>;
