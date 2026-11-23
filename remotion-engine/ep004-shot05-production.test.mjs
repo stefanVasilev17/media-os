@@ -191,10 +191,10 @@ test('SHOT05 V3 removes old microcopy, bottom timeline, clipped x-ray and decora
   assert.match(shot,/EP004_SHOT05_TRACKS/);
   assert.doesNotMatch(shot,/INSIDE THE ARCHITECTURE|STORY CHAPTERS|REQUEST.*ROUTE DECISION|EditorialOverlay|XRayGateway|ChapterRail|FocusCallout/);
   assert.doesNotMatch(shot,/Shot03LivingArchitectureWorldView|EP004_SHOT03_ROUTES/);
-  assert.doesNotMatch(shot,/Math\\.sin|Math\\.random|stroke=\\{AMBER\\}|drop-shadow/);
-  assert.doesNotMatch(world,/ep004Shot03StoryboardWorld|previous\\.cameraScale\\s*\\+/);
-  assert.doesNotMatch(clarity,/Math\\.sin|Math\\.random|Date\\.now/);
-  for(const [,font] of shot.matchAll(/fontSize=\\{(\\d+)\\}/g))
+  assert.doesNotMatch(shot,/Math\.sin|Math\.random|stroke=\{AMBER\}|drop-shadow/);
+  assert.doesNotMatch(world,/ep004Shot03StoryboardWorld|previous\.cameraScale\s*\+/);
+  assert.doesNotMatch(clarity,/Math\.sin|Math\.random|Date\.now/);
+  for(const [,font] of shot.matchAll(/fontSize=\{(\d+)\}/g))
     assert.ok(Number(font)>=20,'no microcopy font allowed');
 });
 test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only consent are wired',async()=>{
