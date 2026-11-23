@@ -6,10 +6,11 @@ import {EP004_SHOT01_LOCKED_SOURCE_SHA256}
 import {EP004_SHOT05_COMPOSITION,EP004_SHOT05_BREATH_FRAMES,
   validateEp004Shot05Production,ep004Shot05ProductionWorld,ep004Shot05StoryRoute}
   from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
-import {EP004_SHOT05_CINEMATIC_GRAMMAR,EP004_SHOT05_XRAY_ROUTES,
-  ep004Shot05XrayPosition,ep004Shot05XrayPath,ep004Shot05CinematicStage,
-  ep004Shot05CinematicState,validateEp004Shot05XrayRoutes}
-  from './src/components/architectural-thinking/EP004Shot05CinematicWorld.mjs';
+import {EP004_SHOT05_CLARITY_GRAMMAR,EP004_SHOT05_NODES,
+  EP004_SHOT05_TRACKS,EP004_SHOT05_SAFE_FRAME,
+  ep004Shot05MeasuredTextWidth,ep004Shot05TextBox,
+  ep004Shot05ClarityStage,ep004Shot05ClarityState,validateEp004Shot05SafeLayout}
+  from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 const approvedPrior={
   episodeKey:'EP004',shotKey:'SHOT04',previewOnly:false,
   directorCpuApproved:true,sourceSha256:EP004_SHOT01_LOCKED_SOURCE_SHA256,
@@ -70,122 +71,131 @@ test('SHOT05 keeps actual Director source and original SHOT04 encoded continuity
   ])
     assert.throws(()=>validateEp004Shot05Production({...props,...change}),/EP004_SHOT05/);
 });
-test('SHOT05 actual final SHOT04 frame is preserved before a finite one-way camera entry',()=>{
-  assert.equal(EP004_SHOT05_BREATH_FRAMES,72);
-  const a=ep004Shot05ProductionWorld(0,props);
-  assert.equal(a.worldFrame,props.worldStartFrame);
-  assert.equal(a.sourceWorldFrame,props.previousWorldStartFrame+2790);
-  assert.equal(a.cinematic.sourceOpacity,1);
-  assert.equal(a.cinematic.sourcePush,1);
-  assert.equal(a.cinematic.interiorOpacity,0);
-  assert.equal(a.cinematic.beatIndex,-1);
-  assert.equal(a.spoken,false);
-  let previous=props.worldStartFrame-1;
-  for(let frame=0;frame<200;frame++){
-    const state=ep004Shot05ProductionWorld(frame,props);
-    assert.equal(state.worldFrame,++previous);
-    assert.equal(state.spoken,frame>=72);
-    assert.ok(state.cameraScale>=1&&state.cameraScale<=1.315);
-    assert.ok(Number.isFinite(state.panX));
-    assert.ok(state.cinematic.sourcePush>=1&&state.cinematic.sourcePush<=2.16);
-    if(frame<72)assert.equal(state.cinematic.beatIndex,-1);
+test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',()=>{
+  const initial=ep004Shot05ProductionWorld(0,props);
+  assert.equal(initial.worldFrame,props.worldStartFrame);
+  assert.equal(initial.sourceWorldFrame,props.previousWorldStartFrame+2790);
+  assert.equal(initial.cinematic.sourceOpacity,1);
+  assert.equal(initial.cinematic.sourcePush,1);
+  assert.equal(initial.cinematic.interiorOpacity,0);
+  assert.equal(initial.cinematic.beatIndex,-1);
+  assert.equal(initial.spoken,false);
+  for(let i=0;i<200;i++){
+    const world=ep004Shot05ProductionWorld(i,props);
+    assert.equal(world.worldFrame,props.worldStartFrame+i);
+    assert.equal(world.spoken,i>=EP004_SHOT05_BREATH_FRAMES);
+    assert.ok(world.cameraScale>=1&&world.cameraScale<1.03);
+    assert.ok(world.cinematic.sourceOpacity>=0&&world.cinematic.sourceOpacity<=1);
+    if(i<105)assert.equal(world.beatIndex,-1);
   }
-  const late=ep004Shot05ProductionWorld(340,props);
-  assert.equal(late.cinematic.sourceOpacity,0);
-  assert.equal(late.cinematic.interiorOpacity,1);
-  assert.equal(late.cinematic.sceneFullyRevealed,true);
-  assert.equal(late.cinematic.stage.key,'MAIL');
+  const last=ep004Shot05ProductionWorld(350,props);
+  assert.equal(last.cinematic.sourceOpacity,0);
+  assert.equal(last.cinematic.interiorOpacity,1);
 });
-test('SHOT05 uniquely redraws a physically bounded cutaway without invalid amber splines',()=>{
-  assert.equal(EP004_SHOT05_CINEMATIC_GRAMMAR,'GATEWAY_XRAY_DIRECTOR_V2');
-  assert.equal(validateEp004Shot05XrayRoutes(),true);
-  assert.equal(Object.keys(EP004_SHOT05_XRAY_ROUTES).length,6);
-  for(const [key,points] of Object.entries(EP004_SHOT05_XRAY_ROUTES)){
-    assert.match(ep004Shot05XrayPath(points),/^M /);
-    assert.equal(points.length,4);
-    for(let i=0;i<=100;i++){
-      const p=ep004Shot05XrayPosition(points,i/100);
-      assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y),key);
-      assert.ok(p.x>=115&&p.x<=1800&&p.y>=320&&p.y<=920,key);
-    }
+test('SHOT05 V3 measured typography fits every actual node and varying content-size heading',()=>{
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'PROGRESSIVE_SINGLE_FOCUS_V3');
+  assert.equal(validateEp004Shot05SafeLayout(),true);
+  const nodes=Object.values(EP004_SHOT05_NODES);
+  for(const n of nodes){
+    assert.ok(n.font>=26,'minimum real readable node font');
+    assert.ok(ep004Shot05MeasuredTextWidth(n.title,n.font)+54<=n.w,
+      n.title+' would overflow own card');
+    assert.ok(n.x>=EP004_SHOT05_SAFE_FRAME.left);
+    assert.ok(n.x+n.w<=EP004_SHOT05_SAFE_FRAME.right);
+    assert.ok(n.y+n.h<=EP004_SHOT05_SAFE_FRAME.bottom);
   }
-  assert.equal(ep004Shot05CinematicStage('Teams traffic failover',2).key,'SWITCH');
-  assert.equal(ep004Shot05CinematicStage('Shared primary gateway pressure',1).key,'SHARED');
-  assert.equal(ep004Shot05CinematicStage('Exchange mailbox',0).key,'MAIL');
-  assert.equal(ep004Shot05CinematicStage('Outage unavailable',3).key,'DEGRADED');
-});
-test('SHOT05 cinematic camera never zoom-loops and pauses to explain each cue',()=>{
-  const first=ep004Shot05CinematicState(0,cues,beats,props.durationInFrames);
-  const during=ep004Shot05CinematicState(141,cues,beats,props.durationInFrames);
-  const heldA=ep004Shot05CinematicState(330,cues,beats,props.durationInFrames);
-  const heldB=ep004Shot05CinematicState(405,cues,beats,props.durationInFrames);
-  assert.equal(first.camera.scale,1);
-  assert.ok(during.camera.scale>1);
-  assert.deepEqual(heldA.camera,heldB.camera,'camera must hold, not zoom repeatedly');
-  const pressure=ep004Shot05CinematicState(560,cues,beats,props.durationInFrames);
-  const shifted=ep004Shot05CinematicState(1020,cues,beats,props.durationInFrames);
-  assert.equal(pressure.stage.key,'SHARED');
-  assert.equal(shifted.stage.key,'SWITCH');
-  assert.notDeepEqual(pressure.camera,shifted.camera);
-  for(let i=0;i<props.durationInFrames;i+=13){
-    const c=ep004Shot05CinematicState(i,cues,beats,props.durationInFrames);
-    assert.ok(Number.isFinite(c.camera.x)&&Number.isFinite(c.camera.y));
-    assert.ok(c.camera.scale>=1&&c.camera.scale<1.32);
-    assert.ok(c.sourceOpacity>=0&&c.sourceOpacity<=1);
-    assert.ok(c.interiorOpacity>=0&&c.interiorOpacity<=1);
+  const short=ep004Shot05TextBox('FOLLOW THE REQUEST');
+  const long=ep004Shot05TextBox('TWO ROUTES. ONE GATEWAY.');
+  assert.notEqual(short.width,long.width,'headings must fit content not fixed largest panel');
+  for(const h of [short,long,ep004Shot05TextBox('14% CAPACITY LOST')]){
+    assert.ok(h.font>=40);
+    assert.ok(h.x>=125&&h.x+h.width<=1795);
+    assert.ok(ep004Shot05MeasuredTextWidth(h.text,h.font)+104<=h.width);
+    assert.ok(h.y+h.height<245,'header cannot overlap diagram nodes');
   }
 });
-test('SHOT05 aggressive dolly never jumps at a voice cue boundary or restarts its zoom',()=>{
+test('SHOT05 V3 original geography preserves route-to-node endpoints and no clutter',()=>{
+  assert.equal(Object.keys(EP004_SHOT05_TRACKS).length,6);
+  for(const [key,r] of Object.entries(EP004_SHOT05_TRACKS)){
+    assert.match(r.path,/^M /,key);
+    assert.equal(r.start[0],EP004_SHOT05_NODES[r.from].x+EP004_SHOT05_NODES[r.from].w);
+    assert.equal(r.end[0],EP004_SHOT05_NODES[r.to].x);
+    assert.ok(r.segments.every(([x,y])=>x>=160&&x<=1790&&y>=280&&y<=850),key);
+  }
+  assert.equal(EP004_SHOT05_TRACKS.OUTLOOK_PRIMARY.end[1],404);
+  assert.equal(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.end[1],495);
+  assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],745);
+  assert.ok(EP004_SHOT05_NODES.primary.y+EP004_SHOT05_NODES.primary.h <
+    EP004_SHOT05_NODES.alternative.y);
+});
+test('SHOT05 meaningful story stage is selected only from original cue anchor and direction',()=>{
+  const known14=ep004Shot05ClarityStage('Our capacity was already reduced',4,
+    'Fourteen percent of capacity was already missing');
+  assert.equal(known14.key,'CAPACITY_14');
+  assert.equal(known14.primaryStatus,'14%');
+  assert.equal(ep004Shot05ClarityStage('Gateway capacity decreased',2).key,'CAPACITY');
+  assert.notEqual(ep004Shot05ClarityStage('Primary Gateway',0).primaryStatus,'14%');
+  assert.equal(ep004Shot05ClarityStage('Outlook to Exchange mailbox',0).key,'MAIL');
+  assert.equal(ep004Shot05ClarityStage('Teams alternative',1).key,'ALTERNATIVE');
+  assert.equal(ep004Shot05ClarityStage('Both routes share gateway pressure',2).key,'SHARED');
+  assert.equal(ep004Shot05ClarityStage('Teams failover reroute',3).key,'SWITCH');
+  assert.equal(ep004Shot05ClarityStage('Gateway outage unavailable',3).key,'DEGRADED');
+});
+test('SHOT05 progressive cues reveal meaningful work without all six routes at once',()=>{
+  const first=ep004Shot05ClarityState(141,cues,beats,props.durationInFrames);
+  const sharedStart=ep004Shot05ClarityState(520,cues,beats,props.durationInFrames);
+  const sharedLater=ep004Shot05ClarityState(735,cues,beats,props.durationInFrames);
+  const switched=ep004Shot05ClarityState(1150,cues,beats,props.durationInFrames);
+  assert.equal(first.stage.key,'MAIL');
+  assert.deepEqual(first.stage.lanes,['OUTLOOK_PRIMARY','PRIMARY_MAILBOX']);
+  assert.equal(sharedStart.stage.key,'SHARED');
+  assert.ok(sharedLater.secondLaneActivation>sharedStart.secondLaneActivation);
+  assert.ok(sharedLater.visibleHistory.includes('outlook'));
+  assert.ok(sharedLater.visibleHistory.includes('teams'));
+  assert.equal(switched.stage.key,'SWITCH');
+  assert.ok(switched.switchActivation>.95);
+  assert.ok(switched.stage.lanes.includes('TEAMS_FAILOVER'));
+  assert.ok(!first.stage.visible.includes('teams'));
+});
+test('SHOT05 absolute camera has steady educational holds and no repeated zoom',()=>{
+  const start=ep004Shot05ClarityState(0,cues,beats,props.durationInFrames);
+  assert.deepEqual(start.camera,{x:0,y:0,scale:1});
+  const hold1=ep004Shot05ClarityState(331,cues,beats,props.durationInFrames);
+  const hold2=ep004Shot05ClarityState(405,cues,beats,props.durationInFrames);
+  assert.deepEqual(hold1.camera,hold2.camera);
+  const hold3=ep004Shot05ClarityState(1250,cues,beats,props.durationInFrames);
+  const hold4=ep004Shot05ClarityState(1500,cues,beats,props.durationInFrames);
+  assert.deepEqual(hold3.camera,hold4.camera);
   for(const cue of cues){
-    const before=ep004Shot05CinematicState(cue.startFrame-1,cues,beats,props.durationInFrames);
-    const after=ep004Shot05CinematicState(cue.startFrame,cues,beats,props.durationInFrames);
-    assert.ok(Math.abs(before.camera.x-after.camera.x)<2.5,'camera x discontinuity');
-    assert.ok(Math.abs(before.camera.y-after.camera.y)<2.5,'camera y discontinuity');
-    assert.ok(Math.abs(before.camera.scale-after.camera.scale)<.008,'zoom discontinuity');
+    const before=ep004Shot05ClarityState(cue.startFrame-1,cues,beats,props.durationInFrames);
+    const after=ep004Shot05ClarityState(cue.startFrame,cues,beats,props.durationInFrames);
+    assert.ok(Math.abs(after.camera.scale-before.camera.scale)<.006);
+    assert.ok(Math.abs(after.camera.x-before.camera.x)<2);
   }
-  const once=ep004Shot05CinematicState(105+200,cues,beats,props.durationInFrames);
-  const twice=ep004Shot05CinematicState(105+300,cues,beats,props.durationInFrames);
-  assert.deepEqual(once.camera,twice.camera,'dolly must hold after completed inspected action');
+  for(let i=0;i<props.durationInFrames;i+=11){
+    const v=ep004Shot05ClarityState(i,cues,beats,props.durationInFrames);
+    assert.ok(v.camera.scale>=1&&v.camera.scale<=1.027);
+    assert.ok(Math.abs(v.camera.x)<=12&&Math.abs(v.camera.y)<=18);
+  }
 });
-test('SHOT05 use only real authored routes and voice-cue-directed activity',()=>{
-  assert.deepEqual(ep004Shot05StoryRoute('Outlook Exchange').routes,
-    ['OUTLOOK_PRIMARY','PRIMARY_MAILBOX']);
-  assert.deepEqual(ep004Shot05StoryRoute('Teams alternative').routes,
-    ['TEAMS_ALTERNATIVE','ALTERNATIVE_TEAMS']);
-  assert.equal(ep004Shot05StoryRoute('Shared gateway congestion').routes.length,4);
-  assert.deepEqual(ep004Shot05StoryRoute('Reroute Teams traffic').routes,
-    ['TEAMS_FAILOVER','PRIMARY_TEAMS']);
-  const first=ep004Shot05ProductionWorld(141,props);
-  const shared=ep004Shot05ProductionWorld(560,props);
-  const changed=ep004Shot05ProductionWorld(1000,props);
-  assert.equal(first.beatIndex,0);
-  assert.equal(shared.beatIndex,1);
-  assert.equal(changed.beatIndex,2);
-  assert.equal(shared.route.key,'SHARED');
-  assert.equal(changed.route.key,'REROUTE');
-  assert.notEqual(first.cameraScale,ep004Shot05ProductionWorld(0,props).cameraScale);
-});
-test('SHOT05 director V2 is truly an immersive gateway cutaway, not recycled SHOT03 map',async()=>{
+test('SHOT05 V3 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   const world=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs',import.meta.url),'utf8');
-  const cutaway=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05CinematicWorld.mjs',import.meta.url),'utf8');
-  assert.match(shot,/ActivityWorld/);
-  assert.match(shot,/XRayGateway/);
-  assert.match(shot,/RouteLine/);
-  assert.match(shot,/previousLastFrameDataUri/);
+  const clarity=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs',import.meta.url),'utf8');
+  assert.match(shot,/FlowWorld/);
+  assert.match(shot,/ep004Shot05TextBox/);
+  assert.match(shot,/ep004Shot05MeasuredTextWidth/);
+  assert.match(shot,/SHOT05_LABEL_CLIP/);
   assert.match(shot,/frame===0&&!props.previousLastFrameDataUri/);
   assert.match(shot,/transformOrigin:'69% 49%'/);
-  assert.match(shot,/transform:worldTransform/);
-  assert.match(shot,/EditorialOverlay/);
-  assert.match(shot,/SHOT05_AUTHENTIC_LOCKED_SHOT04_LAST_FRAME_REQUIRED/);
+  assert.match(shot,/EP004_SHOT05_TRACKS/);
+  assert.doesNotMatch(shot,/INSIDE THE ARCHITECTURE|STORY CHAPTERS|REQUEST.*ROUTE DECISION|EditorialOverlay|XRayGateway|ChapterRail|FocusCallout/);
   assert.doesNotMatch(shot,/Shot03LivingArchitectureWorldView|EP004_SHOT03_ROUTES/);
-  assert.doesNotMatch(shot,/stroke=\\{AMBER\\}|Math\\.random|Math\\.sin|drop-shadow|spotlightPulse/);
-  assert.doesNotMatch(world,/previous\\.cameraScale\\s*\\+|ep004Shot03StoryboardWorld/);
-  assert.doesNotMatch(cutaway,/Math\\.random|Math\\.sin|setInterval|Date\\.now/);
-  const wrapper=await readFile(new URL('./src/episodes/ep004/Shot05GeneratedScene.tsx',import.meta.url),'utf8');
-  assert.match(wrapper,/validateEp004Shot05Production/);
-  const factory=await readFile(new URL('./generate-factory-registry.mjs',import.meta.url),'utf8');
-  assert.match(factory,/GeneratedScene/);
+  assert.doesNotMatch(shot,/Math\\.sin|Math\\.random|stroke=\\{AMBER\\}|drop-shadow/);
+  assert.doesNotMatch(world,/ep004Shot03StoryboardWorld|previous\\.cameraScale\\s*\\+/);
+  assert.doesNotMatch(clarity,/Math\\.sin|Math\\.random|Date\\.now/);
+  for(const [,font] of shot.matchAll(/fontSize=\\{(\\d+)\\}/g))
+    assert.ok(Number(font)>=20,'no microcopy font allowed');
 });
 test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only consent are wired',async()=>{
   const worker=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8');
