@@ -2,246 +2,202 @@ import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {AT_FONT} from '../../components/architectural-thinking';
 import {
-  EP004_SHOT05_XRAY_ROUTES,
-  ep004Shot05XrayPath,
-  ep004Shot05XrayPosition
-} from '../../components/architectural-thinking/EP004Shot05CinematicWorld.mjs';
+  EP004_SHOT05_NODES,EP004_SHOT05_TRACKS,
+  ep004Shot05MeasuredTextWidth,ep004Shot05TextBox
+} from '../../components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 import {
   ep004Shot05ProductionWorld,validateEp004Shot05Production
 } from '../../components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
 import type {Ep004Shot05RenderProps}
   from '../../components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
+import type {Ep004Shot05ClarityStage,Ep004Shot05ClarityState}
+  from '../../components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 
-const NAVY='#020811';
-const WHITE='#F2FBFF';
-const INACTIVE='#6C8196';
-const CYAN='#72DFFF';
-const MINT='#6FEBD2';
-const VIOLET='#B9A1FF';
-const AMBER='#E8AD69';
-const PANEL='#071626';
-const BORDER='#25405A';
-const HEAD='#9EC3D9';
-const ease=(n:number)=>{
-  const t=Math.max(0,Math.min(1,n));
-  return t*t*(3-2*t);
-};
-const palette=(name:string)=>name==='AMBER'?AMBER:
-  name==='VIOLET'?VIOLET:name==='CYAN'?CYAN:MINT;
+const BG='#020A14';
+const WHITE='#F1FAFF';
+const CYAN='#6BE5FC';
+const VIOLET='#ACA0FC';
+const MINT='#62E8C9';
+const AMBER='#F0B66C';
+const QUIET='#405B73';
+const PANEL='#071B2D';
+const BOUNDARY='#29455B';
+const FONT=AT_FONT;
+const color=(name:string)=>name==='AMBER'?AMBER:
+  name==='VIOLET'?VIOLET:name==='MINT'?MINT:CYAN;
+const clamp=(n:number)=>Math.min(1,Math.max(0,n));
+const mix=(a:number,b:number,t:number)=>a+(b-a)*clamp(t);
 
-type NodeKey='outlookClient'|'teamsClient'|'primary'|
-  'alternative'|'mailbox'|'teamsService';
+type NodeId=keyof typeof EP004_SHOT05_NODES;
+type TrackId=keyof typeof EP004_SHOT05_TRACKS;
 
-const NodeShell:React.FC<{
-  x:number;y:number;w:number;h:number;label:string;
-  caption:string;tone:string;active:boolean
-}>=({x,y,w,h,label,caption,tone,active})=>{
-  return <g opacity={active?1:.51}>
-    <rect x={x+12} y={y+13} width={w} height={h} rx={19}
-      fill="#000A13" opacity={.7}/>
-    <rect x={x} y={y} width={w} height={h} rx={19}
-      fill={PANEL} stroke={active?tone:BORDER}
-      strokeWidth={active?3:2}/>
-    <rect x={x+18} y={y+19} width={5} height={h-38} rx={2.5}
-      fill={tone} opacity={active?1:.35}/>
-    <text x={x+40} y={y+46} fontSize={25} fontWeight={850}
-      fill={WHITE} fontFamily={AT_FONT}>{label}</text>
-    <text x={x+40} y={y+76} fontSize={17} fontWeight={600}
-      fill={HEAD} fontFamily={AT_FONT}>{caption}</text>
-  </g>;
-};
-
-const XRayGateway:React.FC<{
-  active:boolean;accent:string;routeProgress:number;
-  switchProgress:number;degraded:boolean
-}>=({active,accent,routeProgress,switchProgress,degraded})=>{
-  return <g>
-    <rect x={777} y={340} width={401} height={337} rx={26}
-      fill="#00070F" opacity={.72}/>
-    <rect x={760} y={324} width={401} height={337} rx={26}
-      fill="#071A2B" stroke={active?accent:'#31506B'}
-      strokeWidth={active?3.5:2}/>
-    <rect x={781} y={345} width={8} height={296} rx={4}
-      fill={active?accent:INACTIVE} opacity={active?.9:.4}/>
-    <text x={809} y={374} fill={WHITE} fontFamily={AT_FONT}
-      fontSize={31} fontWeight={900}>PRIMARY GATEWAY</text>
-    <text x={809} y={407} fill={HEAD} fontFamily={AT_FONT}
-      fontSize={17} fontWeight={650}>SHARED ROUTING BOUNDARY</text>
-    <rect x={808} y={430} width={322} height={204} rx={18}
-      fill="#04121F" stroke={BORDER} strokeWidth={1.6}/>
-    <path d="M 808 466 H 869 M 808 571 H 869 M 1069 466 H 1130 M 1069 571 H 1130"
-      fill="none" stroke={active?accent:INACTIVE} strokeWidth={3.5}
-      opacity={active?.75:.35}/>
-    <rect x={871} y={452} width={195} height={132} rx={16}
-      fill="#0A2237" stroke={active?accent:'#33526B'}
-      strokeWidth={active?2.6:1.4}/>
-    <text x={969} y={490} fill={WHITE} fontFamily={AT_FONT}
-      textAnchor="middle" fontSize={23} fontWeight={800}>ROUTE POLICY</text>
-    <text x={969} y={518} fill={HEAD} fontFamily={AT_FONT}
-      textAnchor="middle" fontSize={17} fontWeight={650}>MATCH → FORWARD</text>
-    <path d="M 910 548 H 1028" fill="none"
-      stroke={degraded?AMBER:accent} strokeWidth={5}
-      opacity={active?.27+.7*routeProgress:.22}/>
-    <rect x={915+83*switchProgress} y={544}
-      width={17} height={9} rx={4.5} fill={degraded?AMBER:accent}
-      opacity={active?routeProgress:0}/>
-    <text x={807} y={615} fill={degraded?AMBER:HEAD}
-      fontFamily={AT_FONT} fontSize={16} fontWeight={750}>
-      {degraded?'DEPENDENCY CONSTRAINED':'TRAFFIC ROUTING'}
-    </text>
-  </g>;
-};
-
-const RouteLine:React.FC<{
-  routeKey:keyof typeof EP004_SHOT05_XRAY_ROUTES;
-  age:number;intensity:number;degraded:boolean
-}>=({routeKey,age,intensity,degraded})=>{
-  const points=EP004_SHOT05_XRAY_ROUTES[routeKey];
-  const violet=routeKey.includes('TEAMS')||routeKey.includes('ALTERNATIVE');
-  const tone=violet?VIOLET:CYAN;
-  if(intensity<=0)return null;
-  const path=ep004Shot05XrayPath(points);
-  const packetNodes=Array.from({length:3},(_,i)=>{
-    const local=(Math.max(0,age)-i*49);
-    const phase=((local%240)+240)%240;
-    const t=phase/164;
-    if(local<0||t>1||degraded)return null;
-    const pos=ep004Shot05XrayPosition(points,t);
-    const trail=ep004Shot05XrayPosition(points,Math.max(0,t-.06));
-    const visibility=ease(t*14)*ease((1-t)*14);
-    return <g key={i} opacity={intensity*visibility}>
-      <path d={'M '+trail.x+' '+trail.y+' L '+pos.x+' '+pos.y}
-        stroke={tone} strokeWidth={4} strokeLinecap="round"
-        fill="none"/>
-      <rect x={pos.x-7} y={pos.y-4} width={14} height={8} rx={4}
-        fill={tone} stroke={WHITE} strokeWidth={.75}/>
-    </g>;
-  });
-  return <g>
-    <path d={path} fill="none" stroke={tone} strokeWidth={4}
-      strokeLinecap="round" opacity={.75*intensity}/>
-    {packetNodes}
-  </g>;
-};
-
-const ActivityWorld:React.FC<{
-  stageKey:string;age:number;opacity:number;
-  progress:number;switchProgress:number;routeKeys:readonly string[];
-  activeNodes:readonly string[];accent:string
-}>=({stageKey,age,opacity,progress,switchProgress,routeKeys,activeNodes,accent})=>{
-  const known=Object.keys(EP004_SHOT05_XRAY_ROUTES) as Array<
-    keyof typeof EP004_SHOT05_XRAY_ROUTES>;
-  const impaired=stageKey==='DEGRADED';
-  const switching=stageKey==='SWITCH'||stageKey==='CONFIG';
-  const on=(key:NodeKey)=>activeNodes.includes(key);
-  const strength=(key:string)=>{
-    if(!routeKeys.includes(key))return 0;
-    if(!switching)return progress;
-    return progress*(key==='TEAMS_ALTERNATIVE'||key==='ALTERNATIVE_TEAMS'
-      ?1-switchProgress:switchProgress);
-  };
-  const main=on('primary');
-  const alt=on('alternative');
+const Title:React.FC<{title:string;accent:string;opacity:number}>=
+({title,accent,opacity})=>{
+  if(opacity<=0)return null;
+  const box=ep004Shot05TextBox(title);
   return <g opacity={opacity}>
+    <rect x={box.x} y={box.y} width={box.width} height={box.height}
+      rx={20} fill="#071A2B" stroke={accent} strokeOpacity={.55}
+      strokeWidth={2}/>
+    <text x={960} y={box.y+box.height/2+16}
+      fontFamily={FONT} fontSize={box.font}
+      textAnchor="middle" fill={WHITE} fontWeight={850}
+      letterSpacing="-.02em">{title}</text>
+  </g>;
+};
+
+const Node:React.FC<{
+  nodeId:NodeId;intensity:number;tone:string;
+  status:string|null;capacity:boolean;motion:number;
+}>=({nodeId,intensity,tone,status,capacity,motion})=>{
+  const n=EP004_SHOT05_NODES[nodeId];
+  if(intensity<=0)return null;
+  const active=intensity>.40;
+  const isPrimary=nodeId==='primary';
+  const isCapacity=isPrimary&&status!=null;
+  const iconColor=active?tone:QUIET;
+  const titleY=isPrimary?n.y+65:n.y+n.h/2+n.font*.37;
+  const labelWidth=ep004Shot05MeasuredTextWidth(n.title,n.font);
+  if(labelWidth+54>n.w)throw Error('SHOT05_LABEL_CLIP_'+nodeId);
+  return <g opacity={intensity}>
+    <rect x={n.x+9} y={n.y+11} width={n.w} height={n.h} rx={21}
+      fill="#010814" opacity={.66}/>
+    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={21}
+      fill={active?PANEL:'#071320'}
+      stroke={active?iconColor:BOUNDARY}
+      strokeWidth={active?3.2:1.8}/>
+    <rect x={n.x+19} y={n.y+20} width={5} height={n.h-40}
+      rx={2.5} fill={iconColor} opacity={active?.9:.55}/>
+    <text x={n.x+n.w/2+9} y={titleY}
+      fontFamily={FONT} fontSize={n.font}
+      fontWeight={850} textAnchor="middle" fill={WHITE}
+      letterSpacing="-.018em">{n.title}</text>
+    {isPrimary&&isCapacity&&status==='14%'&&
+      <g>
+        <text x={n.x+112} y={n.y+171} fill={AMBER}
+          fontFamily={FONT} fontSize={65} fontWeight={900}
+          textAnchor="middle">14%</text>
+        <text x={n.x+307} y={n.y+161} fill={WHITE}
+          fontFamily={FONT} fontSize={26} fontWeight={800}
+          textAnchor="middle">CAPACITY LOST</text>
+        <rect x={n.x+36} y={n.y+203} width={n.w-72} height={13}
+          rx={6.5} fill={MINT} opacity={.78}/>
+        <rect x={n.x+n.w-36-(n.w-72)*.14} y={n.y+203}
+          width={(n.w-72)*.14} height={13} rx={6.5}
+          fill={AMBER}/>
+      </g>}
+    {isPrimary&&isCapacity&&status!=='14%'&&
+      <text x={n.x+n.w/2} y={n.y+160}
+        textAnchor="middle" fontFamily={FONT} fontSize={31}
+        fontWeight={850} fill={AMBER}>{status}</text>}
+    {isPrimary&&!isCapacity&&
+      <g opacity={Math.max(.30,motion)}>
+        <path d={'M '+(n.x+60)+' '+(n.y+164)+' H '+(n.x+n.w-59)}
+          fill="none" stroke={iconColor} strokeWidth={4}
+          strokeLinecap="round" opacity={.65}/>
+        <rect x={n.x+65+mix(0,n.w-146,motion)}
+          y={n.y+159} width={17} height={10}
+          rx={5} fill={iconColor}/>
+      </g>}
+  </g>;
+};
+
+const Track:React.FC<{
+  id:TrackId;intensity:number;age:number;
+  tone:string;slow:boolean
+}>=({id,intensity,age,tone,slow})=>{
+  if(intensity<=.01)return null;
+  const path=EP004_SHOT05_TRACKS[id].path;
+  const offset=-Math.max(0,age)*(slow?1.1:2.4);
+  return <g opacity={intensity}>
+    <path d={path} fill="none" stroke={tone}
+      strokeWidth={4.8} strokeLinecap="round"
+      strokeLinejoin="round" opacity={.55}/>
+    <path d={path} fill="none" stroke={tone}
+      strokeWidth={7} strokeLinecap="round"
+      strokeLinejoin="round" opacity={.88}
+      strokeDasharray="10 230" strokeDashoffset={offset}/>
+  </g>;
+};
+
+const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
+  const now=scene.stage;
+  const prev=scene.previousStage;
+  const changing=scene.stageTransition;
+  const seen=new Set(scene.visibleHistory);
+  const capacity=now.key==='CAPACITY'||now.key==='CAPACITY_14'
+    ||now.key==='DEGRADED';
+  const activeColor=color(now.accent);
+  const switching=now.key==='SWITCH';
+  const oldLanes=prev?.lanes??[];
+  const activeLanes=now.lanes;
+  const strength=(id:TrackId)=>{
+    const old=oldLanes.includes(id)?.82:0;
+    let next=activeLanes.includes(id)?scene.flowActivation:0;
+    if(now.key==='SHARED'||now.key==='CONSEQUENCE'){
+      if(id==='TEAMS_FAILOVER'||id==='PRIMARY_TEAMS')
+        next*=scene.secondLaneActivation;
+    }
+    if(switching){
+      next*=id==='TEAMS_ALTERNATIVE'||id==='ALTERNATIVE_TEAMS'
+        ?1-scene.switchActivation:scene.switchActivation;
+    }
+    if(capacity&&oldLanes.includes(id))next=.22;
+    return mix(old,next,changing);
+  };
+  const opacity=(id:NodeId)=>{
+    const old=prev?.visible.includes(id)?1:seen.has(id)?.18:0;
+    const next=now.visible.includes(id)?1:seen.has(id)?.19:0;
+    return mix(old,next,changing);
+  };
+  const laneColor=(key:TrackId)=>key.includes('TEAMS')||key.includes('ALTERNATIVE')
+    ?VIOLET:CYAN;
+  const primaryActive=now.visible.includes('primary');
+  return <svg width={1920} height={1080} viewBox="0 0 1920 1080">
     <defs>
-      <radialGradient id="shot05GatewayDepth">
-        <stop offset="0%" stopColor="#12283A" stopOpacity={.58}/>
-        <stop offset="100%" stopColor={NAVY} stopOpacity={0}/>
+      <radialGradient id="shot05V3WorldDepth">
+        <stop offset="0%" stopColor="#12314A" stopOpacity={.45}/>
+        <stop offset="100%" stopColor={BG} stopOpacity={0}/>
       </radialGradient>
     </defs>
-    <ellipse cx={1000} cy={560} rx={780} ry={520}
-      fill="url(#shot05GatewayDepth)"/>
-    <g stroke="#254056" strokeWidth={1} opacity={.28}>
-      <path d="M 80 265 H 1830 M 80 980 H 1830"/>
-      <path d="M 710 280 V 960 M 1215 280 V 960"/>
+    <ellipse cx={957} cy={554} rx={810} ry={520}
+      fill="url(#shot05V3WorldDepth)"/>
+    <g stroke="#1F3447" strokeWidth={1} opacity={.28}>
+      <path d="M 143 249 H 1788 M 143 916 H 1788" fill="none"/>
     </g>
     <g>
-      {known.map(key=><path key={key}
-        d={ep004Shot05XrayPath(EP004_SHOT05_XRAY_ROUTES[key])}
-        fill="none" stroke={BORDER} strokeWidth={3}
-        strokeLinecap="round" opacity={.7}/>)}
+      {(Object.keys(EP004_SHOT05_TRACKS) as TrackId[]).map(key=>
+        <Track key={key} id={key}
+          intensity={strength(key)} age={scene.age}
+          tone={laneColor(key)} slow={capacity}/>)}
     </g>
-    <NodeShell x={115} y={339} w={270} h={107}
-      label="OUTLOOK" caption="MAIL REQUEST" tone={CYAN} active={on('outlookClient')}/>
-    <NodeShell x={115} y={680} w={270} h={107}
-      label="TEAMS" caption="COLLABORATION REQUEST" tone={VIOLET}
-      active={on('teamsClient')}/>
-    <NodeShell x={1451} y={338} w={342} h={126}
-      label="EXCHANGE ONLINE" caption="MAILBOX DESTINATION" tone={CYAN}
-      active={on('mailbox')}/>
-    <NodeShell x={1451} y={643} w={342} h={126}
-      label="MICROSOFT TEAMS" caption="COLLABORATION SERVICE"
-      tone={VIOLET} active={on('teamsService')}/>
-    <XRayGateway active={main} accent={accent}
-      routeProgress={progress} switchProgress={switchProgress}
-      degraded={impaired}/>
-    <NodeShell x={787} y={784} w={350} h={127}
-      label="ALTERNATIVE GATEWAY" caption="SEPARATE ROUTING BOUNDARY"
-      tone={VIOLET} active={alt}/>
-    <g>
-      {known.map(key=><RouteLine key={key}
-        routeKey={key} age={age}
-        intensity={strength(key)}
-        degraded={impaired}/>)}
-    </g>
-    {impaired&&<g opacity={progress}>
-      <rect x={742} y={519} width={18} height={93} rx={9}
-        fill={AMBER} opacity={.65}/>
-      <text x={653} y={638} fill={AMBER} fontSize={23}
-        fontFamily={AT_FONT} fontWeight={800}>BLOCKED</text>
-    </g>}
-    {switching&&<g opacity={progress}>
-      <path d="M 720 933 H 1210" stroke={VIOLET} strokeWidth={3}
-        opacity={.58} fill="none"/>
-      <text x={963} y={956} textAnchor="middle" fill={VIOLET}
-        fontFamily={AT_FONT} fontSize={23} fontWeight={800}>
-        {switchProgress<.5?'PREVIOUS ROUTE':'ROUTE SHIFTED'}
-      </text>
-    </g>}
-  </g>;
-};
-
-const EditorialOverlay:React.FC<{
-  shotTitle:string;chapter:string;detail:string;
-  opacity:number;accent:string;progress:number;stageKey:string
-}>=({shotTitle,chapter,detail,opacity,accent,progress,stageKey})=>{
-  const displayTitle=shotTitle.length>66?
-    shotTitle.slice(0,63).trimEnd()+'…':shotTitle;
-  return <svg width={1920} height={1080} viewBox="0 0 1920 1080"
-    style={{fontFamily:AT_FONT}} aria-label="Cinematic routing cutaway narration captions">
-    <g opacity={opacity}>
-      <rect x={115} y={55} width={1390} height={155} rx={20}
-        fill="#041321" fillOpacity={.94}/>
-      <path d="M 139 83 H 255" stroke={accent} strokeWidth={4}
-        strokeLinecap="round"/>
-      <text x={143} y={113} fill={HEAD} fontSize={18}
-        fontWeight={750} letterSpacing="0.11em">INSIDE THE ARCHITECTURE</text>
-      <text x={143} y={159} fill={WHITE} fontSize={42}
-        fontWeight={900} letterSpacing="-.025em">{chapter}</text>
-      <text x={764} y={158} fill={HEAD} fontSize={24}
-        fontWeight={650}>{detail}</text>
-      <text x={140} y={191} fill={INACTIVE} fontSize={15}
-        fontWeight={700}>{displayTitle.toUpperCase()}</text>
-    </g>
-    <g opacity={opacity*.88}>
-      <rect x={352} y={978} width={1216} height={69} rx={15}
-        fill="#041321" fillOpacity={.96}/>
-      <text x={394} y={1021} fill={progress<.32?accent:HEAD}
-        fontWeight={800} fontSize={21}>REQUEST</text>
-      <text x={707} y={1021} fill={progress>=.32&&progress<.78?accent:HEAD}
-        fontWeight={800} fontSize={21}>ROUTE DECISION</text>
-      <text x={1195} y={1021} fill={progress>=.78&&stageKey!=='DEGRADED'?accent:HEAD}
-        fontWeight={800} fontSize={21}>
-        {stageKey==='DEGRADED'?'DEPENDENCY IMPACT':'DESTINATION'}
-      </text>
-      <path d="M 526 1015 H 666 M 955 1015 H 1150"
-        fill="none" stroke={accent} strokeWidth={2.5}
-        opacity={.55}/>
-      <circle cx={526+140*ease(progress/.48)} cy={1015} r={4.5}
-        fill={accent} opacity={.8}/>
-      <circle cx={955+195*ease((progress-.45)/.55)} cy={1015} r={4.5}
-        fill={accent} opacity={.8}/>
-    </g>
+    <Node nodeId="outlook" intensity={opacity('outlook')}
+      tone={CYAN} status={null} capacity={false}
+      motion={scene.flowActivation}/>
+    <Node nodeId="teams" intensity={opacity('teams')}
+      tone={VIOLET} status={null} capacity={false}
+      motion={scene.flowActivation}/>
+    <Node nodeId="exchange" intensity={opacity('exchange')}
+      tone={CYAN} status={null} capacity={false}
+      motion={scene.flowActivation}/>
+    <Node nodeId="teamsService" intensity={opacity('teamsService')}
+      tone={VIOLET} status={null} capacity={false}
+      motion={scene.flowActivation}/>
+    <Node nodeId="alternative" intensity={opacity('alternative')}
+      tone={VIOLET} status={null} capacity={false}
+      motion={scene.switchActivation}/>
+    <Node nodeId="primary" intensity={opacity('primary')}
+      tone={primaryActive?activeColor:CYAN} status={now.primaryStatus}
+      capacity={capacity} motion={scene.flowActivation}/>
+    {capacity&&
+      <g opacity={scene.flowActivation*.78}>
+        <rect x={648} y={394} width={15} height={19} rx={5}
+          fill={CYAN}/>
+        <rect x={678} y={394} width={15} height={19} rx={5}
+          fill={CYAN} opacity={.75}/>
+        <rect x={708} y={394} width={15} height={19} rx={5}
+          fill={AMBER} opacity={.55}/>
+      </g>}
   </svg>;
 };
 
@@ -254,38 +210,33 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
   validateEp004Shot05Production(props);
   if(frame===0&&!props.previousLastFrameDataUri)
     throw Error('EP004_SHOT05_AUTHENTIC_LOCKED_SHOT04_LAST_FRAME_REQUIRED');
-  const state=ep004Shot05ProductionWorld(frame,props);
-  const shot=state.cinematic;
-  const stage=shot.stage;
-  const color=palette(stage.accent);
-  const focusRoutes=stage.paths;
-  const cam=shot.camera;
-  const worldTransform='translate3d('+cam.x+'px,'+cam.y+
-    'px,0) scale('+cam.scale+')';
-  return <AbsoluteFill style={{background:NAVY,overflow:'hidden'}}>
-    <AbsoluteFill style={{opacity:shot.interiorOpacity,
-      transform:worldTransform,transformOrigin:'960px 548px',
+  const world=ep004Shot05ProductionWorld(frame,props);
+  const scene=world.cinematic;
+  const pose=scene.camera;
+  const transform='translate3d('+pose.x+'px,'+pose.y+
+    'px,0) scale('+pose.scale+')';
+  return <AbsoluteFill style={{background:BG,overflow:'hidden'}}>
+    <AbsoluteFill style={{opacity:scene.interiorOpacity,
+      transform,transformOrigin:'960px 550px',
       pointerEvents:'none'}}>
+      <FlowWorld scene={scene}/>
+    </AbsoluteFill>
+    <AbsoluteFill style={{pointerEvents:'none',zIndex:42}}>
       <svg width={1920} height={1080} viewBox="0 0 1920 1080">
-        <ActivityWorld
-          stageKey={stage.key} age={shot.beatAge}
-          opacity={1} progress={shot.routeProgress}
-          switchProgress={shot.actionProgress}
-          routeKeys={focusRoutes} activeNodes={stage.nodes}
-          accent={color}/>
+        {scene.previousStage&&
+          <Title title={scene.previousStage.headline}
+            accent={color(scene.previousStage.accent)}
+            opacity={scene.previousHeadlineOpacity}/>}
+        {scene.beatIndex>=0&&
+          <Title title={scene.stage.headline}
+            accent={color(scene.stage.accent)}
+            opacity={scene.headlineOpacity}/>}
       </svg>
     </AbsoluteFill>
-    <AbsoluteFill style={{pointerEvents:'none',zIndex:40}}>
-      <EditorialOverlay
-        shotTitle={props.shotTitle} chapter={stage.title}
-        detail={stage.subtitle} opacity={shot.captionOpacity*shot.interiorOpacity}
-        accent={color} progress={shot.actionProgress}
-        stageKey={stage.key}/>
-    </AbsoluteFill>
-    {frame<112&&props.previousLastFrameDataUri&&
-      <AbsoluteFill style={{pointerEvents:'none',zIndex:85,
-        opacity:shot.sourceOpacity,
-        transform:'scale('+shot.sourcePush+')',
+    {frame<110&&props.previousLastFrameDataUri&&
+      <AbsoluteFill style={{zIndex:90,pointerEvents:'none',
+        opacity:scene.sourceOpacity,
+        transform:'scale('+scene.sourcePush+')',
         transformOrigin:'69% 49%'}}>
         <Img src={props.previousLastFrameDataUri}
           style={{width:1920,height:1080,objectFit:'fill'}}/>
