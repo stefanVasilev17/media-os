@@ -1,8 +1,8 @@
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './EP004Shot01World.mjs';
 import {EP004_SHOT03_PREDECESSOR} from './EP004Shot03LivingWorld.mjs';
 import {validateEp004Shot04Production} from './EP004Shot04ProductionWorld.mjs';
-import {ep004Shot05CinematicState,validateEp004Shot05XrayRoutes}
-  from './EP004Shot05CinematicWorld.mjs';
+import {ep004Shot05ClarityState,validateEp004Shot05SafeLayout}
+  from './EP004Shot05ClarityWorld.mjs';
 
 export const EP004_SHOT05_COMPOSITION='EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL';
 export const EP004_SHOT05_BREATH_FRAMES=72;
@@ -89,10 +89,10 @@ export function validateEp004Shot05Production(props){
 
 export function ep004Shot05ProductionWorld(frame,props){
   validateEp004Shot05Production(props);
-  validateEp004Shot05XrayRoutes();
+  validateEp004Shot05SafeLayout();
   if(!Number.isInteger(frame)||frame<0||frame>=props.durationInFrames)
     throw Error('EP004_SHOT05_FRAME_OUTSIDE_APPROVED_VOICE');
-  const cinematic=ep004Shot05CinematicState(
+  const cinematic=ep004Shot05ClarityState(
     frame,props.verifiedCues,props.visualBeats,props.durationInFrames);
   const beatIndex=cinematic.beatIndex;
   const cue=beatIndex>=0?props.verifiedCues[beatIndex]:null;
@@ -104,12 +104,12 @@ export function ep004Shot05ProductionWorld(frame,props){
     sourceWorldFrame:props.previousWorldStartFrame+props.previousLastEncodedFrame,
     beatIndex,route,cinematic,
     cameraScale:cinematic.camera.scale,panX:cinematic.camera.x,
-    routeOpacity:cinematic.routeProgress,
+    routeOpacity:cinematic.flowActivation,
     oldOpacity:cinematic.sourceOpacity,
     sceneIn:cinematic.interiorOpacity,
-    appear:cinematic.stageAppear,
+    appear:cinematic.stageTransition,
     cueAge:cue?frame-cue.startFrame:0,
-    titleOpacity:cinematic.captionOpacity,
+    titleOpacity:cinematic.headlineOpacity,
     sourceHeadingOpacity:0
   });
 }
