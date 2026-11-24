@@ -49,3 +49,5 @@ V10 polish: external caption fit checked against actual typography; remove per-p
 V10 regression update: title-case reference captions replace legacy uppercase text asserts; semantic identities unchanged.
 
 EP004 SHOT06 guarded server fleet integration candidate: user confirms existing approved Take; new exact readiness, media, claim, completion and composition wiring, no replacement of any locked shot. Real selected media must pass authenticated readiness and per-job SHA/cue/decoded-frame guards before CPU. No new render or TTS.
+
+EP004 SHOT06: explicitly authorized production integration promotion; read-only bounded runtime readiness audit, no media regeneration or paid render.

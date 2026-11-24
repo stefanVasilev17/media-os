@@ -29,6 +29,9 @@ public final class Ep004Shot06DirectorRenderService {
     public static final int PREDECESSOR_FRAMES=2573;
     private static final List<String> BEAT_IDS=List.of("SHOT06_P01_B01","SHOT06_P01_B02","SHOT06_P01_B03","SHOT06_P02_B01","SHOT06_P02_B02","SHOT06_P02_B03","SHOT06_P03_B01","SHOT06_P03_B02","SHOT06_P04_B01","SHOT06_P04_B02");
 
+    private static final org.slf4j.Logger LOG=org.slf4j.LoggerFactory.getLogger(Ep004Shot06DirectorRenderService.class);
+    private static final UUID AUDIT_PACKAGE=UUID.fromString("d11d02a2-b649-44c9-a022-4405149f675e");
+    private final java.util.concurrent.atomic.AtomicBoolean deploymentAuditDone=new java.util.concurrent.atomic.AtomicBoolean();
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
     private final RemotionRenderController renders;
@@ -57,6 +60,10 @@ public final class Ep004Shot06DirectorRenderService {
 
     private Selected selected(UUID packageId) {
         var director=DirectorIdentity.requireDirector();
+        return selectedOwned(packageId,director.issuer(),director.subject());
+    }
+
+    private Selected selectedOwned(UUID packageId,String issuer,String subject) {
         return jdbc.sql("""
               select s.title,s.original_visual_story::text as story,
                      rev.revision,rev.narration,t.id as take_id,
@@ -76,8 +83,8 @@ public final class Ep004Shot06DirectorRenderService {
                  and t.storage_status='OBJECT_VERIFIED'
                  and t.audio_sha256 ~ '^[a-f0-9]{64}$'
                  and t.audio_size_bytes between 512 and 25165824
-              """).param("package",packageId).param("issuer",director.issuer())
-              .param("subject",director.subject())
+              """).param("package",packageId).param("issuer",issuer)
+              .param("subject",subject)
               .query((rs,n)->new Selected(rs.getString("title"),rs.getString("story"),
                   rs.getInt("revision"),rs.getString("narration"),
                   rs.getObject("take_id",UUID.class),rs.getString("audio_object_key"),
@@ -123,7 +130,12 @@ public final class Ep004Shot06DirectorRenderService {
     }
 
     public Readiness readiness(UUID packageId,String sourceCommit) {
-        var overall=voices.report(packageId);
+        var director=DirectorIdentity.requireDirector();
+        return readinessOwned(packageId,sourceCommit,director.issuer(),director.subject());
+    }
+
+    private Readiness readinessOwned(UUID packageId,String sourceCommit,String issuer,String subject) {
+        var overall=voices.reportOwnedPackage(packageId,issuer,subject);
         if(!"EP004".equals(overall.episodeKey()))
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                 "A Director-owned EP004 package is required.");
@@ -137,7 +149,7 @@ public final class Ep004Shot06DirectorRenderService {
                     and bundled_scenes::text like '%EP004-SHOT06%'
                   order by last_heartbeat_at desc limit 1
                  """).query(String.class).optional().orElse("");
-        var current=selected(packageId);
+        var current=selectedOwned(packageId,issuer,subject);
         var previous=lockedShot05(packageId);
         List<String> blockers=new ArrayList<>();
         if(!SOURCE_SHA.equals(overall.sourceSha256()))
@@ -215,6 +227,8 @@ public final class Ep004Shot06DirectorRenderService {
                         blockers.add("SHOT06_ORIGINAL_STORY_CUE_MISMATCH_"+i);
             }catch(Exception invalid){blockers.add("SHOT06_ORIGINAL_STORY_UNREADABLE");}
         }
+        LOG.info("EP004_SHOT06_READINESS source={} ready={} frames={} cues={} blockers={}",
+                sourceCommit,blockers.isEmpty(),frames,verified.size(),blockers);
         return new Readiness(blockers.isEmpty(),"EP004","SHOT06",
                 shot==null?null:shot.selectedTakeId(),
                 current==null?null:EpisodePackageValidator.sha256(current.narration()),
@@ -223,6 +237,42 @@ public final class Ep004Shot06DirectorRenderService {
                 List.copyOf(blockers),blockers.isEmpty()
                     ?"SHOT06 ready for one explicit Director-approved render. Voice starts after 72 frames; SHOT05 seam is verified."
                     :"Verify current approved Take, original cues, locked SHOT05 and compiled worker before any CPU spend.");
+    }
+
+    // Read-only deployment verification; no Director identity is fabricated,
+    // no HTTP route is exposed, and no render or voice generation is authorized.
+    // Execute once on this exact backend/worker source, reporting only status.
+    @org.springframework.scheduling.annotation.Scheduled(initialDelay=15000,fixedDelay=15000)
+    public void verifyDeployedShot06Inputs() {
+        String sha=System.getenv("RAILWAY_GIT_COMMIT_SHA");
+        if(sha==null||!sha.matches("[a-f0-9]{40}")||deploymentAuditDone.get())return;
+        try {
+            boolean worker=jdbc.sql("""
+                select exists(select 1 from episode_factory_worker_capability
+                  where source_commit=:sha and build_checked=true
+                    and last_heartbeat_at>now()-interval '120 seconds'
+                    and bundled_scenes::text like '%EP004-SHOT06%')
+                """).param("sha",sha).query(Boolean.class).single();
+            if(!worker||!deploymentAuditDone.compareAndSet(false,true))return;
+            record Owner(String issuer,String subject) {}
+            Owner owner=jdbc.sql("""
+                select director_issuer,director_subject from episode_package_import
+                where id=:id and episode_key='EP004' and source_sha256=:source
+                """).param("id",AUDIT_PACKAGE).param("source",SOURCE_SHA)
+                .query((rs,n)->new Owner(rs.getString("director_issuer"),rs.getString("director_subject")))
+                .optional().orElseThrow();
+            Readiness checked=readinessOwned(AUDIT_PACKAGE,sha,owner.issuer(),owner.subject());
+            if(!checked.ready()){
+                LOG.warn("EP004_SHOT06_DEPLOYMENT_READINESS_BLOCKED source={} blockers={}",sha,checked.blockers());
+                return;
+            }
+            Previous previous=lockedShot05(AUDIT_PACKAGE);
+            storage.downloadVideoVerified(previous.objectKey(),previous.sha256(),previous.bytes());
+            LOG.info("EP004_SHOT06_DEPLOYMENT_READINESS_PASS source={} frames={} cues={} originalVoiceShaVerified=true lockedShot05VideoShaVerified=true",
+                    sha,checked.durationInFrames(),checked.verifiedCues().size());
+        } catch(Exception failure) {
+            LOG.warn("EP004_SHOT06_DEPLOYMENT_READINESS_ERROR type={}",failure.getClass().getSimpleName());
+        }
     }
 
     public Map<String,Object> queue(UUID packageId,CpuRequest request,UUID auditId) {

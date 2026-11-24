@@ -47,7 +47,12 @@ public class EpisodePackageVoiceReadinessService {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public EpisodeReadiness report(UUID packageId) {
         DirectorIdentity.Actor actor = DirectorIdentity.requireDirector();
+        return reportOwnedPackage(packageId,actor.issuer(),actor.subject());
+    }
 
+    // Package-private read-only verifier for the fixed internal SHOT06 operational
+    // audit. Public Director entrypoints still require a verified identity.
+    EpisodeReadiness reportOwnedPackage(UUID packageId,String issuer,String subject) {
         record PackageInfo(String episodeKey,String sourceSha,int shotCount) {}
         PackageInfo source = jdbc.sql("""
                 select episode_key,source_sha256,shot_count
@@ -55,7 +60,7 @@ public class EpisodePackageVoiceReadinessService {
                  where id=:id and director_issuer=:issuer and director_subject=:subject
                 """)
                 .param("id", packageId)
-                .param("issuer", actor.issuer()).param("subject", actor.subject())
+                .param("issuer", issuer).param("subject", subject)
                 .query((rs,n) -> new PackageInfo(rs.getString("episode_key"),
                         rs.getString("source_sha256"),rs.getInt("shot_count")))
                 .optional().orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
