@@ -1,0 +1,6 @@
+import type {Cue} from './EP004Shot06FleetPreview.mjs';
+export type Ep004Shot06RenderProps={episodeKey:string;shotKey:string;previewOnly:false;directorCpuApproved:true;sourceSha256:string;previousRenderId:string;previousSourceCommit:string;previousFrameCount:number;previousLastEncodedFrame:number;previousWorldStartFrame:number;worldStartFrame:number;previousVideoSha256:string;previousShot05Props:Record<string,unknown>;previousLastFrameDataUri?:string;durationInFrames:number;breathFrames:number;scriptRevision:number;voiceTakeId:string;narrationSha256:string;voiceAudioSha256:string;voiceAudioBytes:number;expectedSourceCommit:string;packageId:string;renderRequestId:string;shotTitle:string;verifiedCues:readonly (Cue&{anchor:string})[];visualBeats:readonly {beatId:string;cueAnchor:string;direction:string}[]};
+export declare const EP004_SHOT06_COMPOSITION:string;
+export declare const EP004_SHOT06_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare function validateEp004Shot06Production(p:Ep004Shot06RenderProps,requireFrame?:boolean):true;
+export declare function verifyEp004Shot06ActualMotion(p:Ep004Shot06RenderProps):Readonly<{status:string;failureFrame:number;comparisonFrame:number;finalFrame:number;offeredInterval:number}>;
