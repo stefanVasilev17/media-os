@@ -1,4 +1,4 @@
-export const EP004_SHOT05_CLARITY_GRAMMAR='VISIBLE_PACKET_ROUTING_V4';
+export const EP004_SHOT05_CLARITY_GRAMMAR='CONTINUOUS_PACKET_MIGRATION_V5';
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
 const interpolate=(a,b,t)=>a+(b-a)*t;
@@ -9,7 +9,7 @@ export const EP004_SHOT05_NODES=Object.freeze({
   outlook:Object.freeze({x:168,y:351,w:300,h:106,title:'OUTLOOK APP',font:27}),
   teams:Object.freeze({x:168,y:692,w:300,h:106,title:'TEAMS APP',font:29}),
   primary:Object.freeze({x:726,y:328,w:468,h:242,title:'PRIMARY GATEWAY',font:35}),
-  alternative:Object.freeze({x:750,y:692,w:420,h:126,title:'ALTERNATIVE GATEWAY',font:26}),
+  alternative:Object.freeze({x:726,y:669,w:468,h:242,title:'ALTERNATIVE GATEWAY',font:29}),
   exchange:Object.freeze({x:1408,y:351,w:368,h:106,title:'EXCHANGE ONLINE',font:27}),
   teamsService:Object.freeze({x:1408,y:692,w:368,h:106,title:'TEAMS SERVICE',font:27}),
 });
@@ -21,17 +21,17 @@ export const EP004_SHOT05_TRACKS=Object.freeze({
     path:'M 1194 404 H 1408',start:Object.freeze([1194,404]),end:Object.freeze([1408,404]),
     segments:Object.freeze([[1194,404],[1408,404]])}),
   TEAMS_ALTERNATIVE:Object.freeze({from:'teams',to:'alternative',
-    path:'M 468 745 H 750',start:Object.freeze([468,745]),end:Object.freeze([750,745]),
-    segments:Object.freeze([[468,745],[750,745]])}),
+    path:'M 468 745 H 726',start:Object.freeze([468,745]),end:Object.freeze([726,745]),
+    segments:Object.freeze([[468,745],[726,745]])}),
   ALTERNATIVE_TEAMS:Object.freeze({from:'alternative',to:'teamsService',
-    path:'M 1170 745 H 1408',start:Object.freeze([1170,745]),end:Object.freeze([1408,745]),
-    segments:Object.freeze([[1170,745],[1408,745]])}),
+    path:'M 1194 745 H 1408',start:Object.freeze([1194,745]),end:Object.freeze([1408,745]),
+    segments:Object.freeze([[1194,745],[1408,745]])}),
   TEAMS_FAILOVER:Object.freeze({from:'teams',to:'primary',
-    path:'M 468 745 H 574 Q 594 745 594 725 V 515 Q 594 495 614 495 H 726',
+    path:'M 468 745 H 574 L 594 725 V 515 L 614 495 H 726',
     start:Object.freeze([468,745]),end:Object.freeze([726,495]),
     segments:Object.freeze([[468,745],[574,745],[594,725],[594,515],[614,495],[726,495]])}),
   PRIMARY_TEAMS:Object.freeze({from:'primary',to:'teamsService',
-    path:'M 1194 495 H 1292 Q 1312 495 1312 515 V 725 Q 1312 745 1332 745 H 1408',
+    path:'M 1194 495 H 1292 L 1312 515 V 725 L 1332 745 H 1408',
     start:Object.freeze([1194,495]),end:Object.freeze([1408,745]),
     segments:Object.freeze([[1194,495],[1292,495],[1312,515],[1312,725],[1332,745],[1408,745]])}),
 });
@@ -83,8 +83,8 @@ export function validateEp004Shot05SafeLayout(){
   }
   for(const title of [
     'FOLLOW THE MAIL REQUEST','FOLLOW THE TEAMS REQUEST',
-    'TWO ROUTES. ONE GATEWAY.','CAPACITY REDUCED','14% CAPACITY LOST',
-    'THE ROUTE CHANGES','THE SHARED DEPENDENCY',
+    'ONE GATEWAY, TWO WORKLOADS','HEADROOM DROPS','14% CAPACITY LOST',
+    'NEW REQUESTS CHANGE PATH','THE SHARED DEPENDENCY',
     'AN INDEPENDENT PATH','THE SYSTEM CONSEQUENCE',
     'FOLLOW THE REQUEST'
   ])ep004Shot05TextBox(title);
@@ -101,17 +101,17 @@ export function ep004Shot05ClarityStage(direction,index=0,anchor=''){
     return stage('CAPACITY_14','14% CAPACITY LOST','AMBER',
       ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], '14%');
   if(/capacity|headroom|remaining|reduced|missing|deplet|constrain|shortage/.test(d))
-    return stage('CAPACITY','CAPACITY REDUCED','AMBER',
-      ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], 'HEADROOM LOW');
+    return stage('CAPACITY','HEADROOM DROPS','AMBER',
+      ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], 'REDUCED');
   if(/failover|rerout|redirect|moves? to (the )?primary|shift|switch|spillover|july|configuration|policy|route table/.test(d))
-    return stage('SWITCH','THE ROUTE CHANGES','VIOLET',
+    return stage('SWITCH','NEW REQUESTS CHANGE PATH','VIOLET',
       ['teams','alternative','primary','teamsService'],
       ['TEAMS_ALTERNATIVE','ALTERNATIVE_TEAMS','TEAMS_FAILOVER','PRIMARY_TEAMS']);
   if(/fail|outage|degrad|down|unavailable|broken|interrupt|error/.test(d))
     return stage('DEGRADED','THE SHARED DEPENDENCY','AMBER',
-      ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], 'HEADROOM LOW');
+      ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], 'REDUCED');
   if(/shared|converge|bottleneck|pressure|both|same gateway|one gateway/.test(d))
-    return stage('SHARED','TWO ROUTES. ONE GATEWAY.','MINT',
+    return stage('SHARED','ONE GATEWAY, TWO WORKLOADS','MINT',
       ['outlook','teams','primary','exchange','teamsService'],
       ['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS']);
   if(/alternative|independent|backup|secondary|standby/.test(d))
@@ -139,6 +139,74 @@ export function ep004Shot05ClarityStage(direction,index=0,anchor=''){
       ['outlook','teams','primary','exchange','teamsService'],
       ['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS']);
 }
+
+export const EP004_SHOT05_MIGRATION_FRAMES=72;
+export const EP004_SHOT05_PACKET_INTERVAL=18;
+const routePoints=(incoming,outgoing)=>Object.freeze([
+  ...EP004_SHOT05_TRACKS[incoming].segments,
+  ...EP004_SHOT05_TRACKS[outgoing].segments
+].map(p=>Object.freeze([...p])));
+export const EP004_SHOT05_PACKET_ROUTES=Object.freeze({
+  MAIL:routePoints('OUTLOOK_PRIMARY','PRIMARY_MAILBOX'),
+  OLD:routePoints('TEAMS_ALTERNATIVE','ALTERNATIVE_TEAMS'),
+  NEW:routePoints('TEAMS_FAILOVER','PRIMARY_TEAMS')
+});
+const distance=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);
+const length=points=>points.slice(1).reduce((sum,p,i)=>sum+distance(points[i],p),0);
+export function ep004Shot05SamplePacket(route,d){
+  const points=EP004_SHOT05_PACKET_ROUTES[route];
+  if(!points||d<0||d>length(points))return null;
+  let remaining=d;
+  for(let i=1;i<points.length;i++){
+    const a=points[i-1],b=points[i],l=distance(a,b);
+    if(remaining<=l||i===points.length-1){
+      const t=l===0?0:clamp(remaining/l);
+      return {x:interpolate(a[0],b[0],t),y:interpolate(a[1],b[1],t),
+        angle:Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI};
+    }
+    remaining-=l;
+  }
+  return null;
+}
+export function ep004Shot05Migration(frame,cues,beats){
+  const stages=cues.map((cue,i)=>ep004Shot05ClarityStage(beats[i].direction,i,cue.anchor));
+  const capacityIndex=stages.findIndex(s=>s.key==='CAPACITY'||s.key==='CAPACITY_14');
+  // A capacity-only cue is not a rerouting command. The selected Take still owns onset.
+  const routeIndex=stages.findIndex(s=>s.key==='SWITCH'||s.key==='SHARED');
+  const capacityFrame=capacityIndex<0?null:cues[capacityIndex].startFrame;
+  const rerouteFrame=routeIndex<0?null:cues[routeIndex].startFrame;
+  const ratioAt=f=>rerouteFrame===null?0:smooth((f-rerouteFrame)/EP004_SHOT05_MIGRATION_FRAMES);
+  const pressure=capacityFrame===null?0:smooth((frame-capacityFrame)/54);
+  const packets=[];
+  const earliest=Math.max(-180,Math.floor((frame-300)/EP004_SHOT05_PACKET_INTERVAL)*EP004_SHOT05_PACKET_INTERVAL);
+  for(let born=earliest;born<=frame;born+=EP004_SHOT05_PACKET_INTERVAL){
+    // Stable per-emission decision; never reassign a packet in flight.
+    const index=Math.round(born/EP004_SHOT05_PACKET_INTERVAL);
+    const threshold=((index*3%7+7)%7+.5)/7;
+    const teamRoute=threshold<ratioAt(born)?'NEW':'OLD';
+    for(const [route,offset] of [['MAIL',0],[teamRoute,8]]){
+      const emission=born+offset;
+      if(emission>frame)continue;
+      // Constant world-space speed guarantees continuity at joins and cue boundaries.
+      const travel=(frame-emission)*8.4;
+      const pos=ep004Shot05SamplePacket(route,travel);
+      if(!pos)continue;
+      const total=length(EP004_SHOT05_PACKET_ROUTES[route]);
+      const opacity=Math.min(1,travel/18,(total-travel)/18);
+      if(opacity>0)packets.push(Object.freeze({id:route+'-'+born,route,born:emission,
+        ...pos,opacity,travel}));
+    }
+  }
+  const primaryWeight=ratioAt(frame);
+  const oldInFlight=packets.some(p=>p.route==='OLD');
+  const newInFlight=packets.some(p=>p.route==='NEW');
+  const oldStrength=Math.max(1-primaryWeight,oldInFlight?.60:0);
+  const newStrength=Math.max(primaryWeight,newInFlight?.60:0);
+  const explicit14=stages.some((s,i)=>s.key==='CAPACITY_14'&&cues[i].startFrame<=frame);
+  return Object.freeze({primaryWeight,legacyWeight:1-primaryWeight,pressure,
+    rerouteFrame,capacityFrame,explicit14,oldStrength,newStrength,packets:Object.freeze(packets)});
+}
+
 export function ep004Shot05ClarityState(frame,cues,beats,duration){
   if(!Number.isInteger(frame)||!Number.isInteger(duration)
     ||frame<0||frame>=duration||!Array.isArray(cues)||!Array.isArray(beats)
@@ -156,23 +224,13 @@ export function ep004Shot05ClarityState(frame,cues,beats,duration){
   const stageTransition=idx>=0?smooth(age/30):0;
   const sourceOpacity=1-smooth((frame-1)/80);
   const interiorOpacity=smooth((frame-23)/85);
-  const headlineOpacity=idx>=0?interiorOpacity*smooth((age-3)/26):0;
-  const previousHeadlineOpacity=idx>0?interiorOpacity*(1-stageTransition):0;
+  const headlineOpacity=idx>=0?interiorOpacity*smooth((age-(idx>0?15:0))/22):0;
+  const previousHeadlineOpacity=idx>0?interiorOpacity*(1-smooth(age/15)):0;
   const flowActivation=idx>=0?smooth((age-14)/58):0;
   const secondLaneActivation=idx>=0?smooth((age-84)/72):0;
   const switchActivation=idx>=0?smooth((age-55)/118):0;
-  const previousCamera=prev?.key==='CAPACITY'||prev?.key==='CAPACITY_14'
-    ?{x:-12,y:18,scale:1.027}:prev?.key==='SWITCH'
-    ?{x:10,y:-10,scale:1.019}:{x:0,y:0,scale:1};
-  const pose=current.key==='CAPACITY'||current.key==='CAPACITY_14'||current.key==='DEGRADED'
-    ?{x:-12,y:18,scale:1.027}:current.key==='SWITCH'
-    ?{x:10,y:-10,scale:1.019}:{x:0,y:0,scale:1};
-  const cameraT=smooth(age/58);
-  const camera=Object.freeze({
-    x:interpolate(previousCamera.x,pose.x,cameraT),
-    y:interpolate(previousCamera.y,pose.y,cameraT),
-    scale:interpolate(previousCamera.scale,pose.scale,cameraT)
-  });
+  const camera=Object.freeze({x:0,y:0,scale:1});
+  const migration=ep004Shot05Migration(frame,cues,beats);
   const seen=new Set();
   for(let i=0;i<=Math.max(0,idx);i++){
     const st=ep004Shot05ClarityStage(beats[i]?.direction??'',i,cues[i]?.anchor??'');
@@ -181,7 +239,7 @@ export function ep004Shot05ClarityState(frame,cues,beats,duration){
   const firstHeader=ep004Shot05TextBox(current.headline);
   return Object.freeze({
     frame,beatIndex:idx,stage:current,previousStage:prev,age,
-    camera,sourceOpacity,interiorOpacity,headlineOpacity,
+    camera,migration,sourceOpacity,interiorOpacity,headlineOpacity,
     previousHeadlineOpacity,stageTransition,flowActivation,
     secondLaneActivation,switchActivation,
     headerBox:firstHeader,visibleHistory:Object.freeze([...seen]),
