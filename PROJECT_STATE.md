@@ -1,5 +1,14 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-24 — EP004 SHOT05 V9 DIRECTOR VISUAL CHECKPOINT AND ACTUAL-JOB ROUTE GATE: LIVE WORKER VERIFIED
+
+Director rejected V8 after viewing actual render b6a98026-8ed2-4e92-aa66-209c81b8f303. Screenshot at 01:03 showed Teams still using Alternative Gateway despite the narration about traffic moving into Primary. V9 retains genuine matched cues when early enough, but for this existing 2573-frame shot bounds the latest migration onset to frame 1740 (58s) so frame 1890 (01:03) has a fully revealed upper route and real packets traversing Primary. This is a Director-screenshot-derived editorial visual checkpoint, not a verified word-level timestamp. The original cue data and approved voice are unchanged. The new actual-job pre-CPU check rejects absent or premature migration, failed physical traversal, missing shared checkpoint and incomplete old-route drain before invoking the expensive MP4 render. Headlines emphasize migration independently of generic cue classification. V8 amber pulse and V7 glass design remain; no previous LOCKED media touched.
+
+Live Worker exact SHA df63d0427ffdc357cb93fd7700b83afc2b8edff4; deployment 074cdcb9-320a-4765-b80d-01a51c9d9ec6 SUCCESS; runtime Factory capability confirmed exact SHA and five scenes; all three existing services SUCCESS, no pending work. SHOT05 24/24 and Worker 173/173 PASS, Factory source validation and both bundles PASS. Zero new TypeScript errors; existing locked EP001 baseline diagnostic and ten dependency audit warnings not remediated. No new infrastructure or paid render/TTS. Authenticated production cue payload and MediaOS readiness response were not available in this session; the actual-job gate executes when the Director requests the next render. V9 MP4 and visual LOCK remain unverified.
+
+---
+
+
 ## 2026-11-24 — EP004 SHOT05 V8 CUE-LOCKED REROUTE AND AMBER CAPACITY PULSE: LIVE WORKER VERIFIED
 
 Director approved the V7 glass reference direction, then requested two corrections after viewing V7 render 00ed0dab-8001-4624-b9ce-afcb839e4e5b: Teams traffic must visibly move to Primary on “teams traffic has moved into it”; the yellow 14% capacity segment must pulse brighter. V8 prioritizes matching verified spoken anchors over generic direction keywords, keeps old requests on their assigned route, accelerates new-route packets to 13.2 illustrative world units/frame, maintains hidden failover until first new emission, and animates only the 14% amber segment with a smooth 48-frame brightness cycle. V7 glass geometry, original voice, 72-frame breath, exact locked SHOT04 predecessor and security/mux contracts remain unchanged. No bouncing internal furniture.
