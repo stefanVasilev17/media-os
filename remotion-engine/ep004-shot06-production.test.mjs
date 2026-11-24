@@ -73,7 +73,7 @@ test('SHOT06 authentic media verification and mux execute in exact order',async(
  const cpu=render.indexOf('await renderMedia(');
  const mux=render.indexOf('await muxEp004Shot06ApprovedVoice(job,outputPath,inputProps)');
  const seam=render.indexOf('await verifyEp004Shot06SeamAndMotion(job,outputPath,');
- const complete=render.indexOf('await complete(job.renderId, outputPath)');
+ const complete=render.indexOf('await complete(job.renderId, outputPath)',seam);
  assert.ok(voice>=0&&pred>voice&&cpu>pred&&mux>cpu&&seam>mux&&complete>seam);
  assert.ok(w.includes('SHOT06_SELECTED_VOICE_SHA256_CHANGED'));
  assert.ok(w.includes('SHOT06_LOCKED_PREDECESSOR_SHA256_CHANGED'));
