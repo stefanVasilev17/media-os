@@ -1,4 +1,4 @@
-export const EP004_SHOT05_CLARITY_GRAMMAR='CUE_LOCKED_REROUTE_AMBER_V8';
+export const EP004_SHOT05_CLARITY_GRAMMAR='DIRECTOR_CHECKPOINT_REROUTE_V9';
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
 const interpolate=(a,b,t)=>a+(b-a)*t;
@@ -200,7 +200,10 @@ export function ep004Shot05PacketTrail(route,travel,tail=64){
   }
   return pieces;
 }
-export function ep004Shot05Migration(frame,cues,beats){
+// The Director rejected the 01:03 frame of the actual 2573-frame V8.
+ // This is an editorial visual checkpoint, NOT a claimed voice timestamp.
+export const EP004_SHOT05_DIRECTOR_REVIEW=Object.freeze({duration:2573,checkpoint:1890,latestOnset:1740});
+export function ep004Shot05Migration(frame,cues,beats,duration){
   const stages=cues.map((cue,i)=>ep004Shot05ClarityStage(beats[i].direction,i,cue.anchor));
   const capacityIndex=stages.findIndex(s=>s.key==='CAPACITY'||s.key==='CAPACITY_14');
   // The Director identified the actual spoken sentence; prioritize verified speech
@@ -225,7 +228,13 @@ export function ep004Shot05Migration(frame,cues,beats){
   const amberPulse=amberAge<0?0:.32+.68*smooth(1-Math.abs(2*amberPhase-1));
   const capacity14Reveal=amberAge<0?0:smooth((amberAge+1)/12);
   const capacityFrame=capacityIndex<0?null:cues[capacityIndex].startFrame;
-  const rerouteFrame=routeIndex<0?null:cues[routeIndex].startFrame;
+  const cueRerouteFrame=routeIndex<0?null:cues[routeIndex].startFrame;
+  const review=duration===EP004_SHOT05_DIRECTOR_REVIEW.duration?EP004_SHOT05_DIRECTOR_REVIEW:null;
+  // Keep genuine speech alignment where possible. A missing/late match must not
+  // leave the Director-rejected frame on the old route. Do not modify cue data.
+  const rerouteFrame=review?(cueRerouteFrame===null?review.latestOnset:Math.min(cueRerouteFrame,review.latestOnset)):cueRerouteFrame;
+  const rerouteReason=review&&cueRerouteFrame!==rerouteFrame?'DIRECTOR_VISUAL_CHECKPOINT':cueRerouteFrame===null?'NO_MATCH':'VERIFIED_CUE';
+  const rerouteBeatId=routeIndex<0?null:(cues[routeIndex].beatId??null);
   const ratioAt=f=>rerouteFrame===null?0:smooth((f-rerouteFrame)/EP004_SHOT05_MIGRATION_FRAMES);
   const pressure=capacityFrame===null?0:smooth((frame-capacityFrame)/54);
   const firstNewEmission=rerouteFrame===null?null:Math.floor((rerouteFrame-8)/EP004_SHOT05_PACKET_INTERVAL)*EP004_SHOT05_PACKET_INTERVAL+8+EP004_SHOT05_PACKET_INTERVAL;
@@ -273,7 +282,7 @@ export function ep004Shot05Migration(frame,cues,beats){
   const newStrength=firstNewEmission===null||frame<firstNewEmission?0:Math.max(primaryWeight,.78*smooth((frame-firstNewEmission)/18));
   const explicit14=amberAge>=0;
   return Object.freeze({primaryWeight,legacyWeight:1-primaryWeight,pressure,
-    rerouteFrame,capacityFrame,capacity14Frame,capacity14Reveal,amberPulse,explicit14,oldStrength,newStrength,firstNewEmission,ingressReveal,coreReveal,egressReveal,packets:Object.freeze(packets)});
+    rerouteFrame,cueRerouteFrame,rerouteReason,rerouteBeatId,capacityFrame,capacity14Frame,capacity14Reveal,amberPulse,explicit14,oldStrength,newStrength,firstNewEmission,ingressReveal,coreReveal,egressReveal,packets:Object.freeze(packets)});
 }
 
 export function ep004Shot05ClarityState(frame,cues,beats,duration){
@@ -299,7 +308,7 @@ export function ep004Shot05ClarityState(frame,cues,beats,duration){
   const secondLaneActivation=idx>=0?smooth((age-84)/72):0;
   const switchActivation=idx>=0?smooth((age-55)/118):0;
   const camera=Object.freeze({x:0,y:0,scale:1});
-  const migration=ep004Shot05Migration(frame,cues,beats);
+  const migration=ep004Shot05Migration(frame,cues,beats,duration);
   const seen=new Set();
   for(let i=0;i<=Math.max(0,idx);i++){
     const st=ep004Shot05ClarityStage(beats[i]?.direction??'',i,cues[i]?.anchor??'');
@@ -315,4 +324,38 @@ export function ep004Shot05ClarityState(frame,cues,beats,duration){
     sourcePush:1+.065*smooth((frame-1)/85),
     stageHoldFrames:Math.max(0,available-95)
   });
+}
+
+
+// Run on actual authenticated job props before invoking Chromium or fetching media.
+export function ep004Shot05VerifyReroute(cues,beats,duration){
+  const first=ep004Shot05Migration(0,cues,beats,duration);
+  if(first.rerouteFrame===null||first.firstNewEmission===null)throw Error('SHOT05_REROUTE_ONSET_UNRESOLVED');
+  const onset=first.firstNewEmission;
+  const before=ep004Shot05Migration(onset-1,cues,beats,duration);
+  if(before.ingressReveal!==0||before.coreReveal!==0||before.egressReveal!==0||before.packets.some(p=>p.route==='NEW'))
+    throw Error('SHOT05_PREMATURE_REROUTE');
+  let turned=false,entered=false,exited=false,mixed=false;
+  const n=EP004_SHOT05_NODES.primary;
+  for(let f=onset;f<Math.min(duration,onset+220);f++){
+    const m=ep004Shot05Migration(f,cues,beats,duration);
+    const old=m.packets.some(p=>p.route==='OLD');
+    for(const p of m.packets.filter(p=>p.route==='NEW')){
+      if(p.x<n.x&&p.y<710&&p.y>430)turned=true;
+      if(p.x>=n.x&&p.x<=n.x+n.w&&Math.abs(p.y-430)<.01){entered=true;if(old)mixed=true;}
+      if(p.x>n.x+n.w&&p.y>430)exited=true;
+    }
+  }
+  if(!turned||!entered||!exited||!mixed)throw Error('SHOT05_REROUTE_PHYSICAL_TRAVERSAL_FAILED');
+  const checkpoint=duration===EP004_SHOT05_DIRECTOR_REVIEW.duration?EP004_SHOT05_DIRECTOR_REVIEW.checkpoint:Math.min(duration-1,onset+150);
+  const at=ep004Shot05Migration(checkpoint,cues,beats,duration);
+  if(at.ingressReveal!==1||at.coreReveal!==1||at.egressReveal!==1||!at.packets.some(p=>p.route==='NEW'&&p.x>=n.x&&p.x<=n.x+n.w))
+    throw Error('SHOT05_DIRECTOR_CHECKPOINT_NOT_SHARED');
+  const settled=ep004Shot05Migration(Math.min(duration-1,onset+350),cues,beats,duration);
+  if(settled.oldStrength!==0||settled.packets.some(p=>p.route==='OLD')||!settled.packets.some(p=>p.route==='NEW')||!settled.packets.some(p=>p.route==='MAIL'))
+    throw Error('SHOT05_OLD_TRAFFIC_DRAIN_FAILED');
+  return Object.freeze({status:'PASS',rerouteFrame:first.rerouteFrame,cueRerouteFrame:first.cueRerouteFrame,
+    reason:first.rerouteReason,beatId:first.rerouteBeatId,firstNewEmission:onset,checkpoint,
+    turned,entered,exited,mixed,checkpointNewPackets:at.packets.filter(p=>p.route==='NEW').length,
+    checkpointOldPackets:at.packets.filter(p=>p.route==='OLD').length,settledOldStrength:settled.oldStrength});
 }

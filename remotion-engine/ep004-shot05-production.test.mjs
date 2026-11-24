@@ -10,7 +10,7 @@ import {EP004_SHOT05_CLARITY_GRAMMAR,EP004_SHOT05_NODES,
   EP004_SHOT05_TRACKS,EP004_SHOT05_SAFE_FRAME,
   ep004Shot05MeasuredTextWidth,ep004Shot05TextBox,
   ep004Shot05ClarityStage,ep004Shot05ClarityState,validateEp004Shot05SafeLayout,
-  ep004Shot05Migration,ep004Shot05SamplePacket,ep004Shot05PacketTrail,EP004_SHOT05_PACKET_ROUTES,EP004_SHOT05_NEW_PACKET_SPEED}
+  ep004Shot05Migration,ep004Shot05SamplePacket,ep004Shot05PacketTrail,EP004_SHOT05_PACKET_ROUTES,EP004_SHOT05_NEW_PACKET_SPEED,ep004Shot05VerifyReroute,EP004_SHOT05_DIRECTOR_REVIEW}
   from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 const approvedPrior={
   episodeKey:'EP004',shotKey:'SHOT04',previewOnly:false,
@@ -94,7 +94,7 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.interiorOpacity,1);
 });
 test('SHOT05 V7 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'CUE_LOCKED_REROUTE_AMBER_V8');
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'DIRECTOR_CHECKPOINT_REROUTE_V9');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
@@ -428,4 +428,47 @@ test('V8 exact 14 percent cue drives only its amber segment with bounded smooth 
   assert.ok(src.includes('amberPulse={m.amberPulse}'));
   assert.ok(src.includes('amberPulse={0}'));
   assert.ok(src.includes('fill="#FFF1A4" opacity={amberPulse*.94}'));
+});
+
+
+test('V9 Director-rejected 01:03 checkpoint is shared even if the exact spoken action is missing or late',()=>{
+  const c=[{beatId:'SHOT05_P01_B01',startFrame:100,endFrame:200,anchor:'Fourteen percent of capacity'},
+    {beatId:'SHOT05_P02_B01',startFrame:900,endFrame:1020,anchor:'The previous arrangement'},
+    {beatId:'SHOT05_P03_B01',startFrame:1745,endFrame:1950,anchor:'Less headroom remains'},
+    {beatId:'SHOT05_P04_B01',startFrame:2200,endFrame:2300,anchor:'Teams traffic has moved into it'}];
+  const b=[{direction:'Capacity reduced'},{direction:'Separate mail and collaboration'},{direction:'Reduced capacity'},{direction:'Show both workloads'}];
+  for(const last of ['Teams traffic has moved into it','The consequence of this change']){
+    const cues=c.map((v,i)=>i===3?{...v,anchor:last}:v);
+    const state=f=>ep004Shot05Migration(f,cues,b,2573);
+    assert.equal(state(0).rerouteFrame,1740);
+    assert.equal(state(0).rerouteReason,'DIRECTOR_VISUAL_CHECKPOINT');
+    assert.equal(state(1739).ingressReveal,0);
+    assert.equal(state(1739).packets.filter(p=>p.route==='NEW').length,0);
+    const audit=ep004Shot05VerifyReroute(cues,b,2573);
+    assert.equal(audit.status,'PASS');assert.equal(audit.checkpoint,1890);
+    assert.ok(audit.entered&&audit.exited&&audit.turned&&audit.mixed);
+    assert.equal(state(1890).egressReveal,1);
+    assert.equal(state(2200).oldStrength,0);
+    assert.ok(!state(2200).packets.some(p=>p.route==='OLD'));
+  }
+});
+test('V9 preserves earlier genuine cues and never changes the original verified timeline',()=>{
+  const c=[{startFrame:100,endFrame:200,anchor:'Fourteen percent capacity'},{startFrame:1200,endFrame:1380,anchor:'Teams traffic has moved into it'}];
+  const b=[{direction:'Capacity reduced'},{direction:'Shared gateway'}];
+  const before=JSON.stringify(c);
+  const audit=ep004Shot05VerifyReroute(c,b,2573);
+  assert.equal(audit.reason,'VERIFIED_CUE');assert.equal(audit.rerouteFrame,1200);
+  assert.equal(JSON.stringify(c),before);
+  assert.equal(ep004Shot05Migration(1199,c,b,2573).ingressReveal,0);
+});
+test('V9 actual job traversal gate runs before expensive CPU render and keeps amber and glass design',async()=>{
+  const worker=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8');
+  const render=worker.slice(worker.indexOf('async function render(job)'));
+  const audit=render.indexOf('ep004Shot05VerifyReroute(inputProps.verifiedCues,inputProps.visualBeats,inputProps.durationInFrames)');
+  assert.ok(audit>=0&&audit<render.indexOf('await renderMedia('));
+  assert.ok(render.includes('EP004_SHOT05_V9_ACTUAL_JOB_ROUTE_PRECPU_PASS'));
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  assert.ok(src.includes('title={migrationTitle}'));
+  assert.ok(src.includes('amberPulse={m.amberPulse}'));
+  assert.equal(EP004_SHOT05_DIRECTOR_REVIEW.checkpoint,63*30);
 });

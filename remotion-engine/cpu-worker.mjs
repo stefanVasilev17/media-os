@@ -16,6 +16,7 @@ import {renderEp002V4CleanCutMaster,EP002_V4_MODE,EP002_V4_TRANSITION,EP002_V4_S
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 import {EP004_SHOT05_COMPOSITION} from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
+import {ep004Shot05VerifyReroute} from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
 const WORKER_KEY = String(process.env.MEDIA_OS_RENDER_WORKER_KEY || '').trim();
@@ -1572,6 +1573,8 @@ async function render(job) {
     }
 
     if(job.compositionId===EP004_SHOT05_REAL){
+      const routeAudit=ep004Shot05VerifyReroute(inputProps.verifiedCues,inputProps.visualBeats,inputProps.durationInFrames);
+      console.log('EP004_SHOT05_V9_ACTUAL_JOB_ROUTE_PRECPU_PASS '+JSON.stringify({renderId:job.renderId,...routeAudit}));
       await fetchEp004Shot05ApprovedVoice(job,inputProps);
       shot05SourceScratch=await fs.mkdtemp(path.join(os.tmpdir(),
           'media-os-shot05-continuity-'+job.renderId+'-'));

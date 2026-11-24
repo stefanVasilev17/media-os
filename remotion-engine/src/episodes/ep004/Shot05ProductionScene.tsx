@@ -154,6 +154,9 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
   };
   const settled=1-clamp(m.oldStrength/.52);
   const sharedTitleOpacity=routeBeat(scene.stage)&&m.egressReveal===1?settled:0;
+  const routeAge=m.firstNewEmission===null?-1:frame-m.firstNewEmission;
+  const routeFocus=routeAge<0?0:clamp(routeAge/18)*(1-clamp((routeAge-365)/24));
+  const migrationTitle=m.egressReveal===1&&m.oldStrength<.04?'SHARED GATEWAY':'TEAMS TRAFFIC REROUTES';
   const transform='translate3d('+pose.x+'px,'+pose.y+
     'px,0) scale('+pose.scale+')';
   return <AbsoluteFill style={{background:BG,overflow:'hidden'}}>
@@ -167,12 +170,13 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
         {scene.previousStage&&
           <Title title={routeHeadline(scene.previousStage)}
             accent={color(scene.previousStage.accent)}
-            opacity={scene.previousHeadlineOpacity*(scene.previousStage&&routeBeat(scene.previousStage)?1-sharedTitleOpacity:1)}/>}
+            opacity={scene.previousHeadlineOpacity*(scene.previousStage&&routeBeat(scene.previousStage)?1-sharedTitleOpacity:1)*(1-routeFocus)}/>}
         {scene.beatIndex>=0&&
           <Title title={routeHeadline(scene.stage)}
             accent={color(scene.stage.accent)}
-            opacity={scene.headlineOpacity*(1-sharedTitleOpacity)}/>}
-        {sharedTitleOpacity>0&&<Title title="SHARED GATEWAY" accent={CYAN} opacity={sharedTitleOpacity*scene.headlineOpacity}/>}
+            opacity={scene.headlineOpacity*(1-sharedTitleOpacity)*(1-routeFocus)}/>}
+        {sharedTitleOpacity>0&&<Title title="SHARED GATEWAY" accent={CYAN} opacity={sharedTitleOpacity*scene.headlineOpacity*(1-routeFocus)}/>}
+        {routeFocus>0&&<Title title={migrationTitle} accent={VIOLET} opacity={routeFocus*scene.interiorOpacity}/>} 
       </svg>
     </AbsoluteFill>
     {frame<110&&props.previousLastFrameDataUri&&
