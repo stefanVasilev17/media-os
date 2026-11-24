@@ -5,6 +5,7 @@ export declare const SHOT06_BEATS:readonly string[];
 export declare const SHOT06_FLEET:readonly {id:string;x:number;y:number;w:number;h:number;portY:number}[];
 export declare const SHOT06_INPUTS:readonly (readonly Point[])[];
 export declare const SHOT06_OUTPUTS:readonly (readonly Point[])[];
+export declare const SHOT06_LOCAL_INPUTS:readonly (readonly Point[])[];
 export declare const SHOT06_EMISSION_INTERVAL:number;
 export declare function shot06Path(points:readonly Point[]):string;
 export declare function shot06Length(points:readonly Point[]):number;

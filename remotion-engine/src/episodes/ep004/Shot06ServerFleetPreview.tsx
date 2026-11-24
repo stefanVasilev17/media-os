@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
-import {SHOT06_FLEET,SHOT06_INPUTS,SHOT06_OUTPUTS,shot06Path,shot06PreviewState} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
+import {SHOT06_FLEET,SHOT06_INPUTS,SHOT06_OUTPUTS,SHOT06_LOCAL_INPUTS,shot06Path,shot06PreviewState} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 import type {Cue} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 
 type Props={previewOnly:true;verifiedCues:readonly Cue[];durationInFrames:number;previousLastFrameDataUri?:string};
@@ -62,7 +62,7 @@ export const Shot06ServerFleetPreview:React.FC<Props>=props=>{
  <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
    <Defs/>
    <rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
-   <g opacity={1-s.interior} transform={'translate('+(-s.close*410)+' '+(s.close*12)+') scale('+(1+s.close*.28)+')'}>
+   <g opacity={1-s.interior} transform={'translate('+(-s.close*1046)+' '+(s.close*139)+') scale('+(1+s.close*.28)+')'}>
      {SHOT06_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}
      {SHOT06_OUTPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={i===2?VIOLET:CYAN} active={i!==0||!s.failed}/>)}
      <Client y={383} mail/><Client y={593} mail={false}/><Router/>
@@ -79,7 +79,7 @@ export const Shot06ServerFleetPreview:React.FC<Props>=props=>{
      <rect x="180" y="348" width="1560" height="414" rx="20" fill="url(#s6Face)" stroke="#526A80" strokeWidth="2"/>
      <rect x="203" y="380" width="92" height="346" rx="8" fill="url(#s6Vent)"/><rect x="1625" y="380" width="92" height="346" rx="8" fill="url(#s6Vent)"/>
      <text x="960" y="408" textAnchor="middle" fontSize="36" fontWeight="700" fill={WHITE}>Connection Handling</text>
-     <Route d="M150 440 H480 Q600 440 700 540 H1070" tone={CYAN}/><Route d="M150 640 H480 Q600 640 700 540" tone={VIOLET}/>
+     {SHOT06_LOCAL_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}<Route d="M700 540H1070" tone={s.pressure>.32?AMBER:CYAN}/>
      <Route d="M1160 540H1760" tone={GREEN} active={!s.failed}/>
      <rect x="1070" y="486" width="90" height="108" rx="13" fill="#192A36" stroke={s.failed?RED:s.pressure>.32?AMBER:'#61798D'} strokeWidth="4"/>
      <path d="M1100 511V569M1130 511V569" stroke="#CAD6DE" strokeWidth="7" strokeLinecap="round"/>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SHOT06_BEATS,SHOT06_FLEET,SHOT06_OUTPUTS,validateShot06PreviewTimeline,shot06PreviewState} from './src/components/architectural-thinking/EP004Shot06FleetPreview.mjs';
+import {SHOT06_BEATS,SHOT06_FLEET,SHOT06_OUTPUTS,SHOT06_LOCAL_INPUTS,shot06Point,shot06Length,validateShot06PreviewTimeline,shot06PreviewState} from './src/components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 
 const duration=2460;
 const starts=[90,270,480,660,870,1190,1450,1690,1950,2180];
@@ -20,4 +20,5 @@ const cases=[
  ['deterministic seek and camera return',()=>{assert(JSON.stringify(state(899))===JSON.stringify(state(899)),'non deterministic');assert(state(800).interior===1,'no closeup');assert(state(2100).interior===0&&state(2100).close===0,'no pullback')}],
  ['final handoff one failed two surviving',()=>{const s=state(duration-1);assert(s.serverStates[0].status==='Unresponsive'&&s.serverStates.slice(1).every(v=>v.status==='Higher load'),'bad handoff')}]
 ];
+cases.push(['closeup packets use exact drawn route',()=>{for(let f=270;f<1190;f+=3)for(const p of state(f).local){if(p.phase!=='IN')continue;const age=f-p.id*20;const path=SHOT06_LOCAL_INPUTS[p.lane];const expected=shot06Point(path,shot06Length(path)*age/42);assert(Math.hypot(p.x-expected.x,p.y-expected.y)<.000001,'local path mismatch')}}]);
 for(const [name,run] of cases)test(name,run);

@@ -19,6 +19,7 @@ const round=(vertices,r=46)=>{
 };
 export const SHOT06_INPUTS=Object.freeze([round([[350,440],[490,440],[555,505],[685,505]]),round([[350,650],[490,650],[555,565],[685,565]])]);
 export const SHOT06_OUTPUTS=Object.freeze(SHOT06_FLEET.map(n=>round([[1015,535],[1135,535],[1135,n.portY],[n.x,n.portY]].filter((p,i,a)=>!i||p[0]!==a[i-1][0]||p[1]!==a[i-1][1]))));
+export const SHOT06_LOCAL_INPUTS=Object.freeze([round([[150,440],[480,440],[700,540]],48),round([[150,640],[480,640],[700,540]],48)]);
 export const shot06Path=points=>points.map((p,i)=>(i?'L ':'M ')+p.join(' ')).join(' ');
 export const shot06Length=points=>points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p[0]-points[i][0],p[1]-points[i][1]),0);
 export function shot06Point(points,distance){
@@ -73,7 +74,7 @@ export function shot06PreviewState(frame,cues,duration){
   const localInterval=20;
   for(let born=Math.floor(frame/localInterval)*localInterval;born>=frame-130;born-=localInterval){
     const id=Math.round(born/localInterval),lane=((id%2)+2)%2,age=frame-born;
-    if(age<42){const u=age/42;local.push({id,lane,phase:'IN',x:lerp(150,700,u),y:lerp(lane?640:440,540,smooth((u-.65)/.35))});}
+    if(age<42){const path=SHOT06_LOCAL_INPUTS[lane];local.push({id,lane,phase:'IN',...shot06Point(path,shot06Length(path)*age/42)});}
     else if(!failed&&age>=42+Math.round(pressure*32)){
       const stride=pressure>.7?4:pressure>.35?2:1;
       if(((id%stride)+stride)%stride===0){const u=(age-42-Math.round(pressure*32))/45;if(u<=1)local.push({id,lane,phase:'OUT',x:lerp(1160,1760,u),y:540});}
