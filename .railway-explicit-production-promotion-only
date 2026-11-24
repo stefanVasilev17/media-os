@@ -46,3 +46,4 @@ EP004 SHOT05 V9 explicit promotion: Director-rejected 01:03 visual checkpoint fo
 
 EP004 SHOT05 V10 approved iconic grid reference: distinct app/server glyphs, external title-case labels, rounded ports, thicker continuous routes, round particles, larger Primary and compact dim Alternative. Preserve V9 cue checkpoint and actual job gate, V8 amber, locked predecessor and audio. No new paid render.
 V10 polish: external caption fit checked against actual typography; remove per-packet full-canvas blur to control rendering cost.
+V10 regression update: title-case reference captions replace legacy uppercase text asserts; semantic identities unchanged.

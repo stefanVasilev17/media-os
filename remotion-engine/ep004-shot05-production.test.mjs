@@ -232,9 +232,9 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
 });
 
 test('SHOT05 V7 distinguishes client apps and downstream services and moves actual request packets',async()=>{
-  assert.equal(EP004_SHOT05_NODES.outlook.title,'OUTLOOK APP');
-  assert.equal(EP004_SHOT05_NODES.teams.title,'TEAMS APP');
-  assert.equal(EP004_SHOT05_NODES.teamsService.title,'TEAMS SERVICE');
+  assert.equal(EP004_SHOT05_NODES.outlook.title,'Outlook App');
+  assert.equal(EP004_SHOT05_NODES.teams.title,'Teams App');
+  assert.equal(EP004_SHOT05_NODES.teamsService.title,'Teams Service');
   const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   assert.match(src,/m\.packets\.map/);
   assert.match(src,/ep004Shot05PacketTrail\(p.route,p.travel/);
