@@ -1,5 +1,12 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-24 — EP004 SHOT06 SERVER FLEET DESIGN SELECTED / PREFLIGHT BLOCKED
+
+Director selected the realistic Concept 1 server-fleet visual direction, explicitly distinct from SHOT05. See `docs/visual/EP004_SHOT06_SERVER_FLEET_PREVIZ_20261124.md`. SHOT06 locked story reviewed; production selected-Take hash/timed cues and exact SHOT05 persisted lock manifest/SHA-256 are still unavailable through current authenticated access. Current branch has no dedicated EP004 SHOT06 production contract. No SHOT06 code promotion, render, TTS or deployment; preserve SHOT05 V10 pin and lock. Conceptual motion preview is not a production render.
+
+---
+
+
 ## 2026-11-24 — EP004 SHOT05 V10 DIRECTOR LOCKED / MEDIAOS FILM LOCK CONFIRMED
 
 Director explicitly approved the rendered V10: “Ето това е . LOCKED!” The actual authenticated MediaOS POST /api/v1/episode-packages/d11d02a2-b649-44c9-a022-4405149f675e/film/locks/SHOT05 returned HTTP 200 at 2026-11-24T21:26:34.780733434Z, following playback of V10 render 38162e2a-3bc2-4c07-80d8-fa445cdc5e8d. The exact pinned source is 1766ff8391b81c928acae0578cfebcae73d7a1b1, deployment 96f26d0a-433a-45b9-a7c4-7105c4836d61. Completed MP4: 2573 frames, 85.766 seconds, 1920x1080@30fps H264/AAC, 8334213 bytes. Actual MP4 technical QA PASS, original approved Take and 72-frame audio delay PASS, locked SHOT04 predecessor SHA/last frame PASS, seam PSNR 44.56. Actual-job route audit PASS: onset 1740, first new emission 1754, checkpoint 1890 (01:03), 4 NEW and 3 OLD packets at checkpoint, upward turn/entry/exit/mixed true, oldStrength 0 after drain. Cue frame 2338 remains distinct from editorial onset; do not claim word-level alignment.
