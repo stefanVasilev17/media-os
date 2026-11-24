@@ -6,12 +6,12 @@ export const EP004_SHOT05_SAFE_FRAME=Object.freeze({
   left:128,right:1792,top:72,bottom:923
 });
 export const EP004_SHOT05_NODES=Object.freeze({
-  outlook:Object.freeze({x:128,y:235,w:232,h:190,title:'Outlook App',font:30,labelWidth:320}),
-  teams:Object.freeze({x:128,y:650,w:232,h:190,title:'Teams App',font:30,labelWidth:320}),
+  outlook:Object.freeze({x:128,y:235,w:232,h:190,title:'Outlook App',font:30,labelWidth:400}),
+  teams:Object.freeze({x:128,y:650,w:232,h:190,title:'Teams App',font:30,labelWidth:400}),
   primary:Object.freeze({x:726,y:205,w:468,h:350,title:'Primary Gateway',font:35,labelWidth:468}),
-  alternative:Object.freeze({x:726,y:650,w:468,h:190,title:'Alternative Gateway',font:30,labelWidth:468}),
-  exchange:Object.freeze({x:1560,y:235,w:232,h:190,title:'Exchange Online',font:27,labelWidth:320}),
-  teamsService:Object.freeze({x:1560,y:650,w:232,h:190,title:'Teams Service',font:29,labelWidth:320}),
+  alternative:Object.freeze({x:726,y:650,w:468,h:190,title:'Alternative Gateway',font:28,labelWidth:468}),
+  exchange:Object.freeze({x:1560,y:235,w:232,h:190,title:'Exchange Online',font:27,labelWidth:400}),
+  teamsService:Object.freeze({x:1560,y:650,w:232,h:190,title:'Teams Service',font:29,labelWidth:400}),
 });
 // Sample each rounded corner once: drawing and motion share identical geometry.
 const roundedTrack=(from,to,vertices)=>{

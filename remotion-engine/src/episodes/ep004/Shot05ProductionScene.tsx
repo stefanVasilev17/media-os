@@ -153,7 +153,7 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
       const tail=ep004Shot05PacketTrail(p.route,p.travel,pilot?92:62);
       return <g key={p.id} opacity={p.opacity}>
         {pilot&&tail.map((s,i)=><line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={12} opacity={s.alpha*.34} strokeLinecap="round"/>)}
-        <circle cx={p.x} cy={p.y} r={pilot?19:13} fill={tone} opacity={pilot?.36:.13} filter="url(#shot05V10RouteGlow)"/>
+        <circle cx={p.x} cy={p.y} r={pilot?19:13} fill={tone} opacity={pilot?.23:.12}/>
         <circle cx={p.x} cy={p.y} r={pilot?14:11} fill={tone}/>
       </g>;
     })}
