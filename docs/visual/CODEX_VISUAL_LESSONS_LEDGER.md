@@ -140,3 +140,17 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - **Verification:** Dedicated SHOT05 V3 **9/9 PASS** (source contracts, exact frame-zero continuity, measured typography, no collision, safe paths, semantic cue-driven 14% display, stage-by-stage progressive reveal, zero zoom loop, zero microcopy, canonical voice/MP4 mux). Shared worker suite **173/173 PASS**. Factory source validation PASS, Remotion TS zero new errors (one documented unrelated protected EP001 baseline), regular and Factory bundles PASS. Railway `media-os-render-worker` status **SUCCESS**, runtime capability heartbeat `source=79ab53b2c1e46b6d72d3c720160d10916976d098 scenes=5`, one CPU render concurrent, explicit promotion-only watchers restored. **Real V3 full-frame rendered preview: NOT VERIFIED; final visual LOCK: NOT APPROVED.**
 - **Promotion:** Episode-local single-focus progressive scene recipe only pending separate Director review; preserve global content-fit/no-microcopy rule already in AGENTS.md.
 - **Supersedes:** AT-VIS-0004's rejected V2 cutaway implementation only; earlier engineering continuity and all locked prior media remain unchanged.
+
+
+## AT-VIS-0006 — EP004 SHOT05 V4 abrupt rerouting / V5 continuous packet migration
+
+- Date / decision: 2026-11-24 / V4 correction requested; V5 direction approved, actual V5 visual review pending.
+- Scope: EP004 SHOT05, episode-local traffic migration recipe.
+- Observed problem: Director screenshots from V4 render 2e995fb0-a080-417e-9718-0f728b0cd018 show abrupt change between Teams alternative path and shared gateway/capacity state. Director requests traffic itself reroute continuously rather than swapping scene state.
+- Implemented correction: same living map and stable camera, matched gateway housings, deterministic full-path packets assigned at emission, old packets finish, new packets change route gradually on verified semantic cues, old lane drains and fades, capacity indicator replaces HEADROOM LOW; no fabricated percentage.
+- Preventive rule: for rerouting stories, separate routing decisions for new arrivals from in-flight packet state. Capacity-only cue cannot independently redirect packets. Keep topology visible and test packet continuity, true port geometry and old-path drain before rendering.
+- Affected files: EP004Shot05ClarityWorld.mjs/.d.mts, Shot05ProductionScene.tsx, ep004-shot05-production.test.mjs. No previous locked shots, audio takes or worker authorization modified.
+- Evidence: source 228620b237ac5002449461c975714aebaf295d17; Railway ec60114b-b067-40ec-a278-7b21ea572281 SUCCESS, exact runtime source confirmed. 15/15 SHOT05 and 173/173 shared tests, both bundles PASS.
+- Verification: code and live deployment verified; V5 actual MP4 NOT_RENDERED, Director visual LOCK NOT_APPROVED. Authenticated UI readiness body not independently checked.
+- Promotion: episode-local only; consider reusable shared component after Director reviews V5.
+- Supersedes: V4 abrupt routing behavior only; earlier content-fit and continuity lessons remain active.

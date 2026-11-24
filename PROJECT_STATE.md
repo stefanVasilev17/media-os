@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-24 — EP004 SHOT05 V5 CONTINUOUS TRAFFIC REROUTING: LIVE WORKER VERIFIED; DIRECTOR RENDER PENDING
+
+Director rejected V4 abrupt route/focus changes after reviewing actual render 2e995fb0-a080-417e-9718-0f728b0cd018. Director approved V5 continuous migration design and authorized push/deployment, not a new paid MP4 render.
+
+V5 uses a persistent six-node world, matched gateway bodies, true per-request route assignment at emission, deterministic world-space packets through gateway interiors, 72-frame progressive route selection, old-route drain, smooth lane emphasis and stable camera. Capacity-only cues do not themselves force rerouting. Qualitative capacity indicator does not encode invented percentages; 14% is only shown when the original approved cue supports it. Existing selected Take, real cue inputs, composition, exact locked SHOT04 predecessor, 72f audio lead-in, Worker mux and security contracts are unchanged. V4 MP4 remains preserved.
+
+Live Worker source: 228620b237ac5002449461c975714aebaf295d17. Railway deployment ec60114b-b067-40ec-a278-7b21ea572281 SUCCESS. Runtime guard EP004_SHOT05_V5_CONTINUOUS_MIGRATION_PIN_PASS; authenticated Factory capability confirmed source=228620b237ac5002449461c975714aebaf295d17 scenes=5. Dedicated SHOT05 tests 15/15 PASS; shared Worker 173/173 PASS; both Remotion bundles and Factory source validation PASS; zero new TS errors (one existing protected EP001 diagnostic). Existing npm audit reported 10 high-severity vulnerabilities; dependency changes outside this visual correction were not attempted. All three existing Railway services SUCCESS, no staged work. Explicit production-promotion-only watch pattern retained.
+
+Director may request a single new render after authenticated MediaOS readiness verifies the new SHA and immutable voice/predecessor inputs. The live authenticated readiness response body and actual V5 MP4 have not been inspected by the executor; no new paid render or TTS was started. Final visual LOCK remains Director-only. AT-VIS-0006 records the observed rejection and V5 source-level correction; visual verification remains pending.
+
+---
+
+
 ## 2026-11-23 — EP004 SHOT05 V4: DIRECTOR CORRECTION DELIVERED, SOURCE VERIFIED, VISUAL REVIEW PENDING
 
 **Director-requested V4 scene correction:** Gateway is rebuilt as a shaped routing core with two visible animated internal paths; separate inbound and outbound animated request tokens follow the physical route geometry; load-reduction stage keeps slower, lower-density traffic visible. Teams input and output roles now read TEAMS APP / TEAMS SERVICE; OUTLOOK APP is distinguished from EXCHANGE ONLINE; CONSTRAINED has been replaced with HEADROOM LOW. The literal 14% capacity-loss label still requires matching original approved narration. V3 was rejected; V4 remains a visual review candidate, not a Director LOCK.
