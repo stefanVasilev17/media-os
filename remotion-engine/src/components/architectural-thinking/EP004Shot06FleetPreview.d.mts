@@ -1,0 +1,13 @@
+export type Cue={beatId:string;startFrame:number;endFrame:number};
+export type Point=readonly [number,number];
+export type Packet={id:number;lane:number;phase:string;x:number;y:number;destination?:number};
+export declare const SHOT06_BEATS:readonly string[];
+export declare const SHOT06_FLEET:readonly {id:string;x:number;y:number;w:number;h:number;portY:number}[];
+export declare const SHOT06_INPUTS:readonly (readonly Point[])[];
+export declare const SHOT06_OUTPUTS:readonly (readonly Point[])[];
+export declare const SHOT06_EMISSION_INTERVAL:number;
+export declare function shot06Path(points:readonly Point[]):string;
+export declare function shot06Length(points:readonly Point[]):number;
+export declare function shot06Point(points:readonly Point[],distance:number):{x:number;y:number};
+export declare function validateShot06PreviewTimeline(cues:readonly Cue[],duration:number):true;
+export declare function shot06PreviewState(frame:number,cues:readonly Cue[],duration:number):Readonly<{frame:number;beat:string;interior:number;close:number;pressure:number;failed:boolean;comparison:boolean;redistributing:number;packets:readonly Packet[];local:readonly Packet[];localWaiting:readonly {id:number;x:number;y:number;lane:number}[];waitingCount:number;offeredInterval:number;serverStates:readonly {id:string;status:string;load:number}[];headline:string}>;
