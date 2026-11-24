@@ -70,7 +70,7 @@ const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;
   const center=n.x+n.w/2;
   const meterX=n.x+43,meterWidth=n.w-86,meterY=n.y+n.h-30;
   // Qualitative indicator except where the original cue explicitly states 14%.
-  const loss=pressure*(exact14?.14:.26);
+  const loss=exact14?pressure*.14:0;
   return <g>
     <path d={shape} transform="translate(0 11)" fill="#01050D" opacity={.85}/>
     <path d={shape} fill="url(#shot05V5Gateway)" stroke={tone} strokeOpacity={.45+.45*activity} strokeWidth={3} strokeLinejoin="round"/>
@@ -89,7 +89,8 @@ const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;
     </g>}
     <rect x={meterX} y={meterY} width={meterWidth} height={10} rx={5} fill="#203247"/>
     <rect x={meterX} y={meterY} width={meterWidth*(1-loss)} height={10} rx={5} fill={MINT} opacity={.28+.45*activity}/>
-    {pressure>.01&&<rect x={meterX+meterWidth*(1-loss)} y={meterY} width={meterWidth*loss} height={10} rx={5} fill={accent} opacity={.9}/>}
+    {exact14&&pressure>.01&&<rect x={meterX+meterWidth*(1-loss)} y={meterY} width={meterWidth*loss} height={10} rx={5} fill={accent} opacity={.9}/>}
+    {!exact14&&pressure>.01&&<rect x={meterX} y={meterY} width={meterWidth} height={10} rx={5} fill={AMBER} opacity={pressure*.72}/> }
   </g>;
 };
 const Track:React.FC<{id:TrackId;tone:string;strength:number}>=({id,tone,strength})=>{
@@ -102,10 +103,11 @@ const Track:React.FC<{id:TrackId;tone:string;strength:number}>=({id,tone,strengt
 const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
   const m=scene.migration;
   const focus=scene.stage.key;
-  const emphasis=(isRelevant:boolean)=>isRelevant?.98:.73;
-  const mailFocus=focus!=='TEAMS'&&focus!=='ALTERNATIVE';
-  const teamsFocus=focus!=='MAIL'&&focus!=='PRIMARY';
-  const mailStrength=mailFocus?1:.72;
+  const previous=scene.previousStage?.key??focus;
+  const mailFocus=(k:string)=>k!=='TEAMS'&&k!=='ALTERNATIVE';
+  const teamsFocus=(k:string)=>k!=='MAIL'&&k!=='PRIMARY';
+  const emphasis=(a:boolean,b:boolean)=>mix(a?.98:.73,b?.98:.73,scene.stageTransition);
+  const mailStrength=mix(mailFocus(previous)?1:.72,mailFocus(focus)?1:.72,scene.stageTransition);
   const weights:Record<TrackId,number>={
     OUTLOOK_PRIMARY:mailStrength,PRIMARY_MAILBOX:mailStrength,
     TEAMS_ALTERNATIVE:m.oldStrength,ALTERNATIVE_TEAMS:m.oldStrength,
@@ -120,10 +122,10 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
     <ellipse cx={960} cy={558} rx={825} ry={520} fill="url(#shot05V5Depth)"/>
     <g stroke="#20374A" strokeWidth={1} opacity={.25}><path d="M 143 249 H 1788 M 143 942 H 1788" fill="none"/></g>
     {(Object.keys(EP004_SHOT05_TRACKS) as TrackId[]).map(id=><Track key={id} id={id} tone={id==='OUTLOOK_PRIMARY'||id==='PRIMARY_MAILBOX'?CYAN:VIOLET} strength={weights[id]}/>)}
-    <Endpoint nodeId="outlook" tone={CYAN} intensity={emphasis(mailFocus)}/>
-    <Endpoint nodeId="exchange" tone={CYAN} intensity={emphasis(mailFocus)}/>
-    <Endpoint nodeId="teams" tone={VIOLET} intensity={emphasis(teamsFocus)}/>
-    <Endpoint nodeId="teamsService" tone={VIOLET} intensity={emphasis(teamsFocus)}/>
+    <Endpoint nodeId="outlook" tone={CYAN} intensity={emphasis(mailFocus(previous),mailFocus(focus))}/>
+    <Endpoint nodeId="exchange" tone={CYAN} intensity={emphasis(mailFocus(previous),mailFocus(focus))}/>
+    <Endpoint nodeId="teams" tone={VIOLET} intensity={emphasis(teamsFocus(previous),teamsFocus(focus))}/>
+    <Endpoint nodeId="teamsService" tone={VIOLET} intensity={emphasis(teamsFocus(previous),teamsFocus(focus))}/>
     <Gateway nodeId="primary" mail={mailStrength} teams={m.newStrength} pressure={m.pressure} exact14={m.explicit14}/>
     <Gateway nodeId="alternative" mail={0} teams={m.oldStrength} pressure={0} exact14={false}/>
     {m.packets.map(p=>{

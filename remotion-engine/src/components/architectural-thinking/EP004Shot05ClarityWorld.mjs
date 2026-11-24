@@ -183,7 +183,7 @@ export function ep004Shot05Migration(frame,cues,beats){
     // Stable per-emission decision; never reassign a packet in flight.
     const index=Math.round(born/EP004_SHOT05_PACKET_INTERVAL);
     const threshold=((index*3%7+7)%7+.5)/7;
-    const teamRoute=threshold<ratioAt(born)?'NEW':'OLD';
+    const teamRoute=threshold<ratioAt(born+8)?'NEW':'OLD';
     for(const [route,offset] of [['MAIL',0],[teamRoute,8]]){
       const emission=born+offset;
       if(emission>frame)continue;
@@ -198,10 +198,14 @@ export function ep004Shot05Migration(frame,cues,beats){
     }
   }
   const primaryWeight=ratioAt(frame);
-  const oldInFlight=packets.some(p=>p.route==='OLD');
-  const newInFlight=packets.some(p=>p.route==='NEW');
-  const oldStrength=Math.max(1-primaryWeight,oldInFlight?.60:0);
-  const newStrength=Math.max(primaryWeight,newInFlight?.60:0);
+  let drain=1;
+  if(rerouteFrame!==null){
+    const lastPossibleOldArrival=rerouteFrame+EP004_SHOT05_MIGRATION_FRAMES+
+      length(EP004_SHOT05_PACKET_ROUTES.OLD)/8.4;
+    drain=1-smooth((frame-lastPossibleOldArrival)/36);
+  }
+  const oldStrength=Math.max(1-primaryWeight,.52*drain);
+  const newStrength=primaryWeight;
   const explicit14=stages.some((s,i)=>s.key==='CAPACITY_14'&&cues[i].startFrame<=frame);
   return Object.freeze({primaryWeight,legacyWeight:1-primaryWeight,pressure,
     rerouteFrame,capacityFrame,explicit14,oldStrength,newStrength,packets:Object.freeze(packets)});

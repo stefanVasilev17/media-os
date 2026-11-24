@@ -304,3 +304,13 @@ test('V5 equal gateway bodies fit frame and remain on exact port positions',()=>
   assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],alternative.y+76);
   assert.equal(validateEp004Shot05SafeLayout(),true);
 });
+
+test('V5 inactive route light drains gradually rather than cutting off',()=>{
+  const c=[{startFrame:100,endFrame:180,anchor:'Teams request'},{startFrame:300,endFrame:400,anchor:'Rerouting'}];
+  const b=[{direction:'Teams alternative'},{direction:'Teams failover reroute'}];
+  for(let f=301;f<650;f++){
+    const a=ep004Shot05Migration(f-1,c,b),v=ep004Shot05Migration(f,c,b);
+    assert.ok(Math.abs(v.oldStrength-a.oldStrength)<.04);
+  }
+  assert.equal(ep004Shot05Migration(650,c,b).oldStrength,0);
+});
