@@ -16,6 +16,7 @@ import {renderEp002V4CleanCutMaster,EP002_V4_MODE,EP002_V4_TRANSITION,EP002_V4_S
 import {validateShot02EditorialPlan,buildShot02EditorialAudioFilter} from './shot02-editorial-audio.mjs';
 import {preflightTierPlusPlusRender,verifyTierPlusPlusMedia,tierPlusPlusReceipt} from './tier-plus-plus-render-quality.mjs';
 import {EP004_SHOT05_COMPOSITION} from './src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs';
+import {EP004_SHOT06_COMPOSITION,validateEp004Shot06Production,verifyEp004Shot06ActualMotion} from './src/components/architectural-thinking/EP004Shot06ProductionWorld.mjs';
 import {ep004Shot05VerifyReroute} from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 
 const BACKEND_URL = (process.env.MEDIA_OS_BACKEND_URL || 'https://media-os-backend-production.up.railway.app').replace(/\/$/, '');
@@ -1141,6 +1142,144 @@ async function verifyEp004Shot05SeamAndMotion(job,outputPath,lastPNG,directory){
       ' animatedFrames='+new Set(hashes).size+' renderId='+job.renderId);
 }
 
+const EP004_SHOT06_REAL=EP004_SHOT06_COMPOSITION;
+
+async function fetchEp004Shot06ApprovedVoice(job,inputProps){
+  if(job.compositionId!==EP004_SHOT06_REAL)
+    throw Error('EP004_SHOT06_UNAUTHORIZED_COMPOSITION');
+  validateEp004Shot06Production(inputProps);
+  if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
+    ||inputProps.expectedSourceCommit!==FACTORY_SOURCE_SHA
+    ||inputProps.episodeKey!=='EP004'||inputProps.shotKey!=='SHOT06'
+    ||inputProps.previewOnly!==false||inputProps.directorCpuApproved!==true
+    ||inputProps.breathFrames!==72
+    ||Number(job.fps)!==30||Number(job.width)!==1920||Number(job.height)!==1080
+    ||!Array.isArray(inputProps.verifiedCues)||inputProps.verifiedCues.length<2
+    ||inputProps.verifiedCues.length>40
+    ||!Number.isInteger(inputProps.previousFrameCount)
+    ||inputProps.previousFrameCount<600||inputProps.previousFrameCount>9000
+    ||inputProps.previousLastEncodedFrame!==inputProps.previousFrameCount-1
+    ||inputProps.worldStartFrame!==inputProps.previousWorldStartFrame+inputProps.previousLastEncodedFrame
+    ||!inputProps.previousShot05Props
+    ||inputProps.previousShot05Props.expectedSourceCommit!==inputProps.previousSourceCommit
+    ||inputProps.previousShot05Props.worldStartFrame!==inputProps.previousWorldStartFrame
+    ||inputProps.previousShot05Props.durationInFrames!==inputProps.previousFrameCount
+    ||!/^[a-f0-9]{64}$/.test(inputProps.previousVideoSha256||''))
+    throw Error('EP004_SHOT06_AUTHENTIC_LOCKED_SOURCE_AND_APPROVED_TAKE_REQUIRED');
+  await leaseClient.refresh();
+  const res=await workloadTokens.request(
+    BACKEND_URL+'/api/v1/remotion/renders/worker/'+job.renderId+
+      '/ep004-shot06-selected-voice',
+    {method:'GET',headers:headers({'X-Media-OS-Worker-Source-Sha':FACTORY_SOURCE_SHA})});
+  if(!res.ok)throw Error('EP004_SHOT06_APPROVED_CURRENT_TAKE_UNAVAILABLE_'+res.status+
+    ' '+(await res.text()).slice(0,180));
+  const bytes=Buffer.from(await res.arrayBuffer());
+  if(bytes.length<512||bytes.length>24*1024*1024)
+    throw Error('EP004_SHOT06_APPROVED_AUDIO_BYTES_OUTSIDE_BOUND');
+  if(bytes.length!==inputProps.voiceAudioBytes||createHash('sha256').update(bytes).digest('hex')!==inputProps.voiceAudioSha256)
+    throw Error('SHOT06_SELECTED_VOICE_SHA256_CHANGED');
+  return bytes;
+}
+
+async function preflightEp004Shot06PreviousVideo(job,inputProps,directory){
+  if(job.compositionId!==EP004_SHOT06_REAL)throw Error('SHOT06_WRONG_COMPOSITION');
+  await leaseClient.refresh();
+  const res=await workloadTokens.request(
+    BACKEND_URL+'/api/v1/remotion/renders/worker/'+job.renderId+
+       '/ep004-shot06-previous-video',
+    {method:'GET',headers:headers({'X-Media-OS-Worker-Source-Sha':FACTORY_SOURCE_SHA})});
+  if(!res.ok)throw Error('SHOT06_LOCKED_SHOT05_MP4_UNAVAILABLE_'+res.status+
+      ' '+(await res.text()).slice(0,210));
+  const length=Number(res.headers.get('content-length')||0);
+  if(length>134217728)throw Error('SHOT06_PREDECESSOR_SIZE_CAP_EXCEEDED');
+  const bytes=Buffer.from(await res.arrayBuffer());
+  if(bytes.length<1024||bytes.length>134217728)
+    throw Error('SHOT06_PREVIOUS_MP4_BYTES_INVALID');
+  const hash=createHash('sha256').update(bytes).digest('hex');
+  if(hash!==inputProps.previousVideoSha256)
+    throw Error('SHOT06_LOCKED_PREDECESSOR_SHA256_CHANGED');
+  const source=path.join(directory,'locked-shot05.mp4');
+  const last=path.join(directory,'locked-shot05-encoded-last.png');
+  await fs.writeFile(source,bytes,{flag:'wx'});
+  const checked=await captureNative('ffprobe',[
+    '-v','error','-select_streams','v:0','-count_frames',
+    '-show_entries','stream=nb_read_frames,width,height,r_frame_rate',
+    '-of','json',source]);
+  const stream=JSON.parse(checked.stdout).streams?.[0];
+  if(!stream||stream.width!==1920||stream.height!==1080
+    ||stream.r_frame_rate!=='30/1'
+    ||Number(stream.nb_read_frames)!==inputProps.previousFrameCount)
+    throw Error('SHOT06_PREDECESSOR_1080P30_AND_EXACT_FRAMES_CHANGED');
+  await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror','-nostdin',
+    '-i',source,'-vf','select=eq(n\\,'+inputProps.previousLastEncodedFrame+')',
+    '-frames:v','1','-vsync','0','-y',last]);
+  const png=await fs.readFile(last);
+  if(png.length<10000||png.length>9000000)
+    throw Error('SHOT06_AUTHENTIC_PREDECESSOR_FRAME_PNG_UNAVAILABLE');
+  inputProps.previousLastFrameDataUri='data:image/png;base64,'+png.toString('base64');
+  console.log('EP004_SHOT06_PREVIOUS_LOCKED_SHOT05_SHA256_LAST_FRAME_QA_PASS renderId='+
+      job.renderId+' previousFrames='+stream.nb_read_frames);
+  return {source,last};
+}
+
+async function muxEp004Shot06ApprovedVoice(job,videoPath,inputProps){
+  if(job.compositionId!==EP004_SHOT06_REAL)return;
+  const bytes=await fetchEp004Shot06ApprovedVoice(job,inputProps);
+  const audio=path.join(os.tmpdir(),'ep004-shot06-'+job.renderId+'-approved-take');
+  const muxed=path.join(os.tmpdir(),'ep004-shot06-'+job.renderId+'-mux.mp4');
+  try{
+    await fs.writeFile(audio,bytes,{flag:'wx'});
+    const duration=Number(job.durationInFrames)/30;
+    await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror',
+      '-nostdin','-i',videoPath,'-i',audio,
+      '-filter_complex',
+      '[1:a]aresample=48000,adelay=2400:all=1,apad=whole_dur='+duration+'[approved]',
+      '-map','0:v:0','-map','[approved]','-c:v','copy',
+      '-c:a','aac','-b:a','192k','-ar','48000',
+      '-t',String(duration),'-movflags','+faststart','-y',muxed]);
+    const qa=await probeFactoryMedia(muxed);
+    if(qa.width!==1920||qa.height!==1080||
+       Math.abs(qa.duration-duration)>.55)
+      throw Error('SHOT06_FINAL_AAC_H264_DIMENSIONS_OR_DURATION_INVALID');
+    const silence=await captureNative('ffmpeg',[
+      '-hide_banner','-nostdin','-i',muxed,'-t','1.8','-vn',
+      '-af','volumedetect','-f','null','-']);
+    const peak=silence.stderr.match(/max_volume:\s*(-?[0-9.]+) dB/);
+    if(peak&&Number(peak[1])>-55)
+      throw Error('SHOT06_FIRST_1_8_SECONDS_MUST_REMAIN_VOICE_SILENT');
+    await fs.rename(muxed,videoPath);
+    console.log('EP004_SHOT06_REAL_APPROVED_TAKE_72F_AUDIO_DELAY_QA_PASS renderId='+
+      job.renderId+' duration='+duration);
+  }finally{
+    await fs.rm(audio,{force:true}).catch(()=>undefined);
+    await fs.rm(muxed,{force:true}).catch(()=>undefined);
+  }
+}
+
+async function verifyEp004Shot06SeamAndMotion(job,outputPath,lastPNG,directory){
+  if(job.compositionId!==EP004_SHOT06_REAL)return;
+  const first=path.join(directory,'shot06-first-real-frame.png');
+  await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror','-nostdin',
+      '-i',outputPath,'-vf','select=eq(n\\,0)',
+      '-frames:v','1','-vsync','0','-y',first]);
+  const compared=await captureNative('ffmpeg',[
+      '-hide_banner','-i',lastPNG,'-i',first,
+      '-filter_complex','[0:v][1:v]psnr','-f','null','-']);
+  const matched=compared.stderr.match(/average:([0-9.]+)/);
+  const psnr=matched?Number(matched[1]):NaN;
+  if(!Number.isFinite(psnr)||psnr<34)
+    throw Error('SHOT06_PREVIOUS_LAST_FRAME_TO_NEW_FIRST_FRAME_SEAM_FAILED');
+  const frames=await captureNative('ffmpeg',[
+      '-hide_banner','-loglevel','error','-i',outputPath,
+      '-map','0:v:0','-an','-frames:v','30','-f','framemd5','-']);
+  const hashes=frames.stdout.split('\n').filter(v=>v&&!v.startsWith('#'))
+      .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
+  if(hashes.length!==30||new Set(hashes).size<5)
+    throw Error('SHOT06_LIVING_ARCHITECTURE_FIRST_30_FRAMES_MUST_MOVE');
+  console.log('EP004_SHOT06_SEAM_PSNR='+psnr.toFixed(2)+
+      ' animatedFrames='+new Set(hashes).size+' renderId='+job.renderId);
+}
+
 async function muxFactorySelectedVoice(job,videoPath,inputProps) {
   if(job.compositionId!=='AT-FACTORY-SHOT')return;
   if(!/^[a-f0-9]{40}$/.test(FACTORY_SOURCE_SHA)
@@ -1496,6 +1635,8 @@ async function render(job) {
   let shot04SourceFrame = null;
   let shot05SourceScratch = null;
   let shot05SourceFrame = null;
+  let shot06SourceScratch = null;
+  let shot06SourceFrame = null;
   const heartbeat = setInterval(() => {
     void progress(job.renderId, heartbeatProgress);
   }, 15_000);
@@ -1582,6 +1723,16 @@ async function render(job) {
         job,inputProps,shot05SourceScratch);
       console.log('EP004_SHOT05_APPROVED_VOICE_AND_VERIFIED_SHOT04_PRECPU_PASS renderId='+
           job.renderId);
+    }
+
+    if(job.compositionId===EP004_SHOT06_REAL){
+      const motionAudit=verifyEp004Shot06ActualMotion(inputProps);
+      console.log('EP004_SHOT06_ACTUAL_JOB_MOTION_PRECPU_PASS '+JSON.stringify({renderId:job.renderId,...motionAudit}));
+      await fetchEp004Shot06ApprovedVoice(job,inputProps);
+      shot06SourceScratch=await fs.mkdtemp(path.join(os.tmpdir(),'media-os-shot06-continuity-'+job.renderId+'-'));
+      shot06SourceFrame=await preflightEp004Shot06PreviousVideo(job,inputProps,shot06SourceScratch);
+      validateEp004Shot06Production(inputProps,true);
+      console.log('EP004_SHOT06_APPROVED_VOICE_AND_VERIFIED_SHOT05_PRECPU_PASS renderId='+job.renderId);
     }
 
     const serveUrl = job.compositionId === 'AT-FACTORY-SHOT'
@@ -1677,6 +1828,11 @@ async function render(job) {
       await verifyEp004Shot05SeamAndMotion(job,outputPath,
         shot05SourceFrame.last,shot05SourceScratch);
     }
+    if(job.compositionId===EP004_SHOT06_REAL){
+      await muxEp004Shot06ApprovedVoice(job,outputPath,inputProps);
+      await verifyEp004Shot06SeamAndMotion(job,outputPath,
+        shot06SourceFrame.last,shot06SourceScratch);
+    }
     if(tierPlusPlusPreflight){
       // ffprobe independently checks H.264/AAC, 30 fps and a real output file.
       const probed=await probeFactoryMedia(outputPath);
@@ -1696,6 +1852,8 @@ async function render(job) {
     if(shot04SourceScratch)await fs.rm(shot04SourceScratch,
       {recursive:true,force:true}).catch(()=>undefined);
     if(shot05SourceScratch)await fs.rm(shot05SourceScratch,
+      {recursive:true,force:true}).catch(()=>undefined);
+    if(shot06SourceScratch)await fs.rm(shot06SourceScratch,
       {recursive:true,force:true}).catch(()=>undefined);
     clearInterval(heartbeat);
     console.log(`REMOTION_RENDER_ELAPSED_SECONDS renderId=${job.renderId} elapsed=${((Date.now() - renderStartedAt) / 1000).toFixed(2)} concurrency=${RENDER_CONCURRENCY}`);

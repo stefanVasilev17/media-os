@@ -7,6 +7,9 @@ import {Shot03GeneratedScene as Ep004Shot03LivingStoryboard} from './episodes/ep
 import {Shot03ProductionScene as Ep004Shot03Production} from './episodes/ep004/Shot03ProductionScene';
 import {Shot04ProductionScene as Ep004Shot04Production} from './episodes/ep004/Shot04ProductionScene';
 import {Shot05ProductionScene as Ep004Shot05Production} from './episodes/ep004/Shot05ProductionScene';
+import {Shot06ProductionScene as Ep004Shot06Production} from './episodes/ep004/Shot06ProductionScene';
+import type {Ep004Shot06RenderProps} from './components/architectural-thinking/EP004Shot06ProductionWorld.mjs';
+import {EP004_SHOT06_COMPOSITION} from './components/architectural-thinking/EP004Shot06ProductionWorld.mjs';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -100,6 +103,9 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition id={EP004_SHOT06_COMPOSITION} component={Ep004Shot06Production}
+        durationInFrames={dynamicDuration??2400} fps={30} width={1920} height={1080}
+        defaultProps={{} as Ep004Shot06RenderProps}/>
       <Composition
         id="EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL"
         component={Ep004Shot05Production}
