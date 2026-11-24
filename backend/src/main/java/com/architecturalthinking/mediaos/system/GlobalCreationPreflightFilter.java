@@ -416,7 +416,7 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                             where previousLock.package_id=(r.input_props->>'packageId')::uuid
                               and previousLock.shot_key='SHOT05'
                               and previousLock.render_id::text=r.input_props->>'previousRenderId'
-                              and previous.composition_id='EP004-SHOT05-CONTINUOUS-GATEWAYS-V1-VISUAL'
+                              and previous.composition_id='EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL'
                               and previous.status='SUCCEEDED'
                               and previous.video_sha256=r.input_props->>'previousVideoSha256'
                               and previous.duration_in_frames::text=

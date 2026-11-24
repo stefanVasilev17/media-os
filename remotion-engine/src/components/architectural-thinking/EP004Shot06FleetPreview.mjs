@@ -60,7 +60,7 @@ export function shot06PreviewState(frame,cues,duration){
     const arrival=born+Math.ceil(inLength/speed)+24;
     if(travel<=inLength){packets.push({id,lane,phase:'INGRESS',...shot06Point(input,travel)});continue;}
     if(frame<arrival)continue; // inside the opaque router
-    const destination=arrival>=t[6]?1+((id%2+2)%2):((id%3+3)%3);
+    const destination=arrival>=t[6]?1+((Math.floor(id/2)%2+2)%2):((id%3+3)%3);
     const path=SHOT06_OUTPUTS[destination],length=shot06Length(path),d=(frame-arrival)*speed;
     // Requests already assigned to A do not jump to B/C. They can reach
     // its input, but no successful response can originate after failure.

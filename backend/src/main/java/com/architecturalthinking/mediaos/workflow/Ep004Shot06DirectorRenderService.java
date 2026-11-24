@@ -108,7 +108,7 @@ public final class Ep004Shot06DirectorRenderService {
                  and r.id=:lockedId and r.duration_in_frames=2573
                  and r.input_props->>'expectedSourceCommit'=:lockedCommit
                  and r.video_sha256 ~ '^[a-f0-9]{64}$'
-                 and r.video_object_bytes between 1024 and 268435456
+                 and r.video_object_bytes between 1024 and 134217728
                  and r.video_object_key is not null
                limit 1
               """).param("package",packageId).param("packageText",packageId.toString())
@@ -144,7 +144,7 @@ public final class Ep004Shot06DirectorRenderService {
             blockers.add("EP004_ORIGINAL_SOURCE_CHANGED");
         if(shot==null||!"VOICE_READY".equals(shot.status()))
             blockers.add("SHOT06_DIRECTOR_APPROVED_ORIGINAL_VOICE_CUES_MISSING");
-        if(current==null)
+        if(current==null||shot==null||!Objects.equals(current.takeId().toString(),shot.selectedTakeId()))
             blockers.add("SHOT06_DIRECTOR_SELECTED_CURRENT_TAKE_MISSING");
         else if(current.audioKey()==null
                 ||!current.audioKey().startsWith(MediaObjectStore.VOICE_PREFIX+"EP004/SHOT06/"))

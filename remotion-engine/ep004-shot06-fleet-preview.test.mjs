@@ -22,3 +22,9 @@ const cases=[
 ];
 cases.push(['closeup packets use exact drawn route',()=>{for(let f=270;f<1190;f+=3)for(const p of state(f).local){if(p.phase!=='IN')continue;const age=f-p.id*20;const path=SHOT06_LOCAL_INPUTS[p.lane];const expected=shot06Point(path,shot06Length(path)*age/42);assert(Math.hypot(p.x-expected.x,p.y-expected.y)<.000001,'local path mismatch')}}]);
 for(const [name,run] of cases)test(name,run);
+
+test('redistributed surviving endpoints each receive both workload types',()=>{
+  const seen=[new Set(),new Set(),new Set()];
+  for(let f=1700;f<duration;f+=3)for(const p of state(f).packets)if(p.destination!==undefined)seen[p.destination].add(p.lane);
+  assert.equal(seen[0].size,0);assert.equal(seen[1].size,2);assert.equal(seen[2].size,2);
+});
