@@ -22,7 +22,7 @@ export type Ep004Shot05ClarityState={
   readonly visibleHistory:readonly string[];readonly sourcePush:number;
   readonly stageHoldFrames:number;
 };
-export declare const EP004_SHOT05_CLARITY_GRAMMAR:'SOFT_ROUTE_REVEAL_V6';
+export declare const EP004_SHOT05_CLARITY_GRAMMAR:'GLASS_FLUID_TRAFFIC_V7';
 export declare const EP004_SHOT05_SAFE_FRAME:Readonly<{left:number;right:number;top:number;bottom:number}>;
 export declare const EP004_SHOT05_NODES:Readonly<Record<
   'outlook'|'teams'|'primary'|'alternative'|'exchange'|'teamsService',Ep004Shot05Node>>;
@@ -46,3 +46,5 @@ export declare const EP004_SHOT05_PACKET_INTERVAL:number;
 export declare const EP004_SHOT05_PACKET_ROUTES:Readonly<Record<Ep004Shot05PacketRoute,readonly (readonly number[])[]>>;
 export declare function ep004Shot05SamplePacket(route:Ep004Shot05PacketRoute,d:number):{x:number;y:number;angle:number}|null;
 export declare function ep004Shot05Migration(frame:number,cues:readonly {startFrame:number;endFrame:number;anchor:string}[],beats:readonly {direction:string}[]):Ep004Shot05Migration;
+
+export declare function ep004Shot05PacketTrail(route:Ep004Shot05PacketRoute,travel:number,tail?:number):{x1:number;y1:number;x2:number;y2:number;alpha:number}[];

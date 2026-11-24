@@ -10,7 +10,7 @@ import {EP004_SHOT05_CLARITY_GRAMMAR,EP004_SHOT05_NODES,
   EP004_SHOT05_TRACKS,EP004_SHOT05_SAFE_FRAME,
   ep004Shot05MeasuredTextWidth,ep004Shot05TextBox,
   ep004Shot05ClarityStage,ep004Shot05ClarityState,validateEp004Shot05SafeLayout,
-  ep004Shot05Migration,ep004Shot05SamplePacket,EP004_SHOT05_PACKET_ROUTES}
+  ep004Shot05Migration,ep004Shot05SamplePacket,ep004Shot05PacketTrail,EP004_SHOT05_PACKET_ROUTES}
   from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 const approvedPrior={
   episodeKey:'EP004',shotKey:'SHOT04',previewOnly:false,
@@ -93,8 +93,8 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.sourceOpacity,0);
   assert.equal(last.cinematic.interiorOpacity,1);
 });
-test('SHOT05 V6 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'SOFT_ROUTE_REVEAL_V6');
+test('SHOT05 V7 measured typography fits every actual node and varying content-size heading',()=>{
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'GLASS_FLUID_TRAFFIC_V7');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
@@ -115,7 +115,7 @@ test('SHOT05 V6 measured typography fits every actual node and varying content-s
     assert.ok(h.y+h.height<245,'header cannot overlap diagram nodes');
   }
 });
-test('SHOT05 V6 original geography preserves route-to-node endpoints and no clutter',()=>{
+test('SHOT05 V7 original geography preserves route-to-node endpoints and no clutter',()=>{
   assert.equal(Object.keys(EP004_SHOT05_TRACKS).length,6);
   for(const [key,r] of Object.entries(EP004_SHOT05_TRACKS)){
     assert.match(r.path,/^M /,key);
@@ -123,8 +123,8 @@ test('SHOT05 V6 original geography preserves route-to-node endpoints and no clut
     assert.equal(r.end[0],EP004_SHOT05_NODES[r.to].x);
     assert.ok(r.segments.every(([x,y])=>x>=160&&x<=1790&&y>=280&&y<=850),key);
   }
-  assert.equal(EP004_SHOT05_TRACKS.OUTLOOK_PRIMARY.end[1],404);
-  assert.equal(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.end[1],495);
+  assert.equal(EP004_SHOT05_TRACKS.OUTLOOK_PRIMARY.end[1],330);
+  assert.equal(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.end[1],430);
   assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],745);
   assert.ok(EP004_SHOT05_NODES.primary.y+EP004_SHOT05_NODES.primary.h <
     EP004_SHOT05_NODES.alternative.y);
@@ -179,7 +179,7 @@ test('SHOT05 absolute camera has steady educational holds and no repeated zoom',
     assert.ok(Math.abs(v.camera.x)<=12&&Math.abs(v.camera.y)<=18);
   }
 });
-test('SHOT05 V6 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
+test('SHOT05 V7 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   const world=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs',import.meta.url),'utf8');
   const clarity=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs',import.meta.url),'utf8');
@@ -231,18 +231,18 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
   assert.match(claims,/EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL/);
 });
 
-test('SHOT05 V6 distinguishes client apps and downstream services and moves actual request packets',async()=>{
+test('SHOT05 V7 distinguishes client apps and downstream services and moves actual request packets',async()=>{
   assert.equal(EP004_SHOT05_NODES.outlook.title,'OUTLOOK APP');
   assert.equal(EP004_SHOT05_NODES.teams.title,'TEAMS APP');
   assert.equal(EP004_SHOT05_NODES.teamsService.title,'TEAMS SERVICE');
   const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   assert.match(src,/m\.packets\.map/);
-  assert.match(src,/p\.angle/);
+  assert.match(src,/ep004Shot05PacketTrail\(p.route,p.travel/);
   assert.match(src,/nodeId="primary"/);
   assert.match(src,/nodeId="alternative"/);
   assert.doesNotMatch(src,/strokeDashoffset|HEADROOM LOW|CONSTRAINED/);
 });
-test('SHOT05 V6 preserves moving inputs and outputs while showing reduced headroom',()=>{
+test('SHOT05 V7 preserves moving inputs and outputs while showing reduced headroom',()=>{
   const states=[
     ep004Shot05ClarityStage('Gateway capacity reduced',4),
     ep004Shot05ClarityStage('14 percent capacity lost',4),
@@ -267,8 +267,8 @@ test('V5 capacity alone does not reroute; only aligned route cue starts migratio
   const state=f=>ep004Shot05Migration(f,c,b);
   assert.equal(state(499).primaryWeight,0);
   assert.equal(state(500).primaryWeight,0);
-  assert.ok(state(536).primaryWeight>.4&&state(536).primaryWeight<.6);
-  assert.equal(state(572).primaryWeight,1);
+  assert.ok(state(563).primaryWeight>.4&&state(563).primaryWeight<.6);
+  assert.equal(state(626).primaryWeight,1);
   assert.equal(state(800).primaryWeight,1);
   assert.ok(state(350).pressure>.9);
   assert.equal(state(350).explicit14,false);
@@ -288,8 +288,8 @@ test('V5 real per-packet route assignment survives cue boundaries and finishes a
     }
   }
   assert.ok(mixed,'old requests drain while new requests enter');
-  assert.ok(!state(600).packets.some(p=>p.route==='OLD'));
-  assert.ok(state(600).packets.some(p=>p.route==='NEW'));
+  assert.ok(!state(700).packets.some(p=>p.route==='OLD'));
+  assert.ok(state(700).packets.some(p=>p.route==='NEW'));
   for(const [key,pts] of Object.entries(EP004_SHOT05_PACKET_ROUTES)){
     const len=pts.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-pts[i][0],p[1]-pts[i][1]),0);
     const start=ep004Shot05SamplePacket(key,0),end=ep004Shot05SamplePacket(key,len);
@@ -301,7 +301,7 @@ test('V5 equal gateway bodies fit frame and remain on exact port positions',()=>
   const {primary,alternative}=EP004_SHOT05_NODES;
   assert.equal(primary.w,alternative.w);assert.equal(primary.h,alternative.h);
   assert.equal(alternative.x,primary.x);
-  assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],alternative.y+76);
+  assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],alternative.y+110);
   assert.equal(validateEp004Shot05SafeLayout(),true);
 });
 
@@ -312,7 +312,7 @@ test('V5 inactive route light drains gradually rather than cutting off',()=>{
     const a=ep004Shot05Migration(f-1,c,b),v=ep004Shot05Migration(f,c,b);
     assert.ok(Math.abs(v.oldStrength-a.oldStrength)<.04);
   }
-  assert.equal(ep004Shot05Migration(650,c,b).oldStrength,0);
+  assert.equal(ep004Shot05Migration(750,c,b).oldStrength,0);
 });
 
 test('V6 the entire upper Teams route is absent before first redirected emission, including capacity-only beats',()=>{
@@ -347,9 +347,39 @@ test('V6 the renderer really omits hidden strokes and both gateway cores follow 
   assert.match(src,/if\(l\.reveal<=0\)return null/);
   assert.match(src,/TEAMS_FAILOVER:m\.ingressReveal,PRIMARY_TEAMS:m\.egressReveal/);
   assert.match(src,/strokeDasharray=\{dash\}/);
-  assert.match(src,/processing=\{processing\('primary'\)\}/);
-  assert.match(src,/processing=\{processing\('alternative'\)\}/);
-  assert.match(src,/rx=\{34\}/);
+  assert.doesNotMatch(src,/processing=|processing\(|shot05V6Core/);
+  assert.match(src,/rx=\{44\}/);
   assert.ok(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.segments.length>30);
   assert.ok(EP004_SHOT05_TRACKS.PRIMARY_TEAMS.segments.length>30);
+});
+
+test('V7 explicit rerouting takes priority over earlier shared pressure, then pilot and mixed arrivals are legible',()=>{
+  const c=[{startFrame:100,endFrame:180,anchor:'Teams request'},{startFrame:250,endFrame:340,anchor:'Shared pressure'},{startFrame:500,endFrame:650,anchor:'Reroute Teams traffic'}];
+  const b=[{direction:'Teams alternative'},{direction:'Teams and Outlook converge on shared gateway pressure'},{direction:'Teams failover reroute'}];
+  const prior=ep004Shot05Migration(499,c,b);
+  assert.equal(prior.rerouteFrame,500);assert.equal(prior.ingressReveal,0);
+  const first=prior.firstNewEmission;
+  assert.ok(first>500&&first<=518);
+  const following=ep004Shot05Migration(first+19,c,b);
+  assert.ok(following.packets.some(p=>p.route==='NEW'&&p.born===first));
+  assert.ok(following.packets.some(p=>p.route==='OLD'&&p.born===first+18));
+  const done=ep004Shot05Migration(first+350,c,b);
+  assert.equal(done.oldStrength,0);assert.equal(done.egressReveal,1);
+  assert.ok(!done.packets.some(p=>p.route==='OLD'));
+});
+test('V7 light trails lie on the actual route, including curved joins, without animated internal furniture',async()=>{
+  const points=EP004_SHOT05_PACKET_ROUTES.NEW;
+  const len=points.slice(1).reduce((a,p,i)=>a+Math.hypot(p[0]-points[i][0],p[1]-points[i][1]),0);
+  for(let d=1;d<len;d+=7){
+    const trail=ep004Shot05PacketTrail('NEW',d,92);
+    const end=ep004Shot05SamplePacket('NEW',d);
+    assert.ok(Math.hypot(trail.at(-1).x2-end.x,trail.at(-1).y2-end.y)<.000001);
+    for(let i=1;i<trail.length;i++)assert.ok(Math.hypot(trail[i].x1-trail[i-1].x2,trail[i].y1-trail[i-1].y2)<.000001);
+  }
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  const gateway=src.slice(src.indexOf('const Gateway:'),src.indexOf('const Track:'));
+  const title=src.slice(src.indexOf('const Title:'),src.indexOf('const Endpoint:'));
+  assert.doesNotMatch(gateway,/processing|<circle|<ellipse|\\.map\\(i=>/);
+  assert.doesNotMatch(title,/<rect/);
+  assert.match(src,/pilot\\?92:62/);
 });

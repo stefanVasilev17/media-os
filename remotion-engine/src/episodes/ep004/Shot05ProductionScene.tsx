@@ -3,7 +3,7 @@ import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {AT_FONT} from '../../components/architectural-thinking';
 import {
   EP004_SHOT05_NODES,EP004_SHOT05_TRACKS,
-  ep004Shot05MeasuredTextWidth,ep004Shot05TextBox
+  ep004Shot05MeasuredTextWidth,ep004Shot05TextBox,ep004Shot05PacketTrail
 } from '../../components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 import {
   ep004Shot05ProductionWorld,validateEp004Shot05Production
@@ -32,128 +32,98 @@ type NodeId=keyof typeof EP004_SHOT05_NODES;
 type TrackId=keyof typeof EP004_SHOT05_TRACKS;
 
 const Title:React.FC<{title:string;accent:string;opacity:number}>=
-({title,accent,opacity})=>{
+({title,opacity})=>{
   if(opacity<=0)return null;
-  const box=ep004Shot05TextBox(title);
-  return <g opacity={opacity}>
-    <rect x={box.x} y={box.y} width={box.width} height={box.height}
-      rx={28} fill="#0A1A29" stroke={accent} strokeOpacity={.27}
-      strokeWidth={1.4}/>
-    <text x={960} y={box.y+box.height/2+16}
-      fontFamily={FONT} fontSize={box.font}
-      textAnchor="middle" fill={WHITE} fontWeight={760}
-      letterSpacing="-.012em">{title}</text>
-  </g>;
+  const box=ep004Shot05TextBox(title,43);
+  return <text x={960} y={112} fontFamily={FONT} fontSize={box.font}
+    textAnchor="middle" fill="#DBE7EF" fontWeight={720} opacity={opacity}
+    letterSpacing=".025em">{title}</text>;
 };
-
 
 const Endpoint:React.FC<{nodeId:NodeId;tone:string;intensity:number}>=({nodeId,tone,intensity})=>{
   const n=EP004_SHOT05_NODES[nodeId];
   if(ep004Shot05MeasuredTextWidth(n.title,n.font)+54>n.w)throw Error('SHOT05_LABEL_CLIP_'+nodeId);
   return <g opacity={intensity}>
-    <rect x={n.x-7} y={n.y+8} width={n.w+14} height={n.h+9} rx={32} fill="#02070F" opacity={.44}/>
-    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={27} fill="url(#shot05V6Panel)" stroke="#7892AB" strokeOpacity={.23} strokeWidth={1.3}/>
-    <rect x={n.x+1.5} y={n.y+1.5} width={n.w-3} height={n.h-3} rx={26} fill="none" stroke={tone} strokeOpacity={.12} strokeWidth={1}/>
-    <rect x={n.x+18} y={n.y+24} width={4} height={n.h-48} rx={2} fill={tone} opacity={.65}/>
-    <text x={n.x+n.w/2+6} y={n.y+n.h/2+n.font*.35} fontFamily={FONT} fontSize={n.font} fontWeight={760} textAnchor="middle" fill={WHITE}>{n.title}</text>
+    <rect x={n.x} y={n.y+11} width={n.w} height={n.h} rx={30} fill="#02070E" opacity={.72}/>
+    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={30} fill="url(#shot05V7Panel)" stroke={tone} strokeOpacity={.26} strokeWidth={2}/>
+    <path d={'M '+(n.x+30)+' '+(n.y+2)+' H '+(n.x+n.w-30)} stroke="#D2E8F4" strokeOpacity={.12} strokeWidth={1.6} strokeLinecap="round"/>
+    <text x={n.x+n.w/2} y={n.y+n.h/2+n.font*.35} fontFamily={FONT} fontSize={n.font} fontWeight={720} textAnchor="middle" fill={WHITE}>{n.title}</text>
   </g>;
 };
-const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;pressure:number;exact14:boolean;coreReveal:number;processing:number}>=({nodeId,mail,teams,pressure,exact14,coreReveal,processing})=>{
+
+const Channel:React.FC<{path:string;tone:string;strength:number;reveal:number}>=({path,tone,strength,reveal})=>{
+  if(reveal<=0)return null;
+  const dash=reveal<1?reveal+' 1':undefined;
+  const opacity=Math.min(1,reveal*15);
+  return <g opacity={opacity}>
+    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={25} strokeLinejoin="round" strokeLinecap="round" opacity={.025+.10*strength}/>
+    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={11} strokeLinejoin="round" strokeLinecap="round" opacity={.035+.15*strength}/>
+    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={5.5} strokeLinejoin="round" strokeLinecap="round" opacity={.13+.72*strength}/>
+  </g>;
+};
+const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;pressure:number;exact14:boolean;coreReveal:number}>=({nodeId,mail,teams,pressure,exact14,coreReveal})=>{
   const n=EP004_SHOT05_NODES[nodeId];
   const main=nodeId==='primary';
   const tone=main?CYAN:VIOLET;
   const activity=Math.max(mail,teams);
   const center=n.x+n.w/2;
-  const meterX=n.x+43,meterWidth=n.w-86,meterY=n.y+n.h-29;
   const loss=exact14?pressure*.14:0;
   if(ep004Shot05MeasuredTextWidth(n.title,n.font)+54>n.w)throw Error('SHOT05_LABEL_CLIP_'+nodeId);
-  const lanes=main?[{y:404,tone:CYAN,weight:mail,reveal:1},{y:495,tone:VIOLET,weight:teams,reveal:coreReveal}]:[{y:745,tone:VIOLET,weight:teams,reveal:1}];
+  const lanes=main?[{y:330,tone:CYAN,weight:mail,reveal:1},{y:430,tone:VIOLET,weight:teams,reveal:coreReveal}]:[{y:745,tone:VIOLET,weight:teams,reveal:1}];
+  const meterX=n.x+48,meterWidth=n.w-96,meterY=n.y+n.h-27;
   return <g>
-    <ellipse cx={center} cy={n.y+n.h/2} rx={n.w*.65} ry={n.h*.70} fill={tone} opacity={.026+.018*activity}/>
-    <rect x={n.x-8} y={n.y+10} width={n.w+16} height={n.h+9} rx={40} fill="#000610" opacity={.53}/>
-    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={34} fill="url(#shot05V6Gateway)" stroke="#7994A9" strokeOpacity={.32} strokeWidth={1.5}/>
-    <rect x={n.x+2} y={n.y+2} width={n.w-4} height={n.h-4} rx={32} fill="none" stroke={tone} strokeOpacity={.14+.18*activity} strokeWidth={1.4}/>
-    <rect x={n.x+2} y={n.y+2} width={n.w-4} height={n.h-4} rx={32} fill="none" stroke={color('AMBER')} strokeOpacity={pressure*.65} strokeWidth={2.1}/>
-    <path d={'M '+(n.x+34)+' '+(n.y+3)+' H '+(n.x+n.w-34)} fill="none" stroke="#D6E8F4" strokeOpacity={.20} strokeWidth={1.5} strokeLinecap="round"/>
-    <text x={center} y={n.y+47} fill={WHITE} fontFamily={FONT} fontSize={n.font} textAnchor="middle" fontWeight={760} letterSpacing="-.012em">{n.title}</text>
-    <rect x={center-79} y={n.y+63} width={158} height={130} rx={27} fill="url(#shot05V6Core)" stroke="#A3BBCD" strokeOpacity={.20+.12*processing} strokeWidth={1.3}/>
-    <ellipse cx={center} cy={n.y+128} rx={77} ry={62} fill={tone} opacity={.035+.12*processing}/>
-    {[0,1,2].map(i=><rect key={i} x={center-32+i*23} y={n.y+120} width={14} height={14} rx={7} fill={tone} opacity={.15+processing*(.42+i*.12)}/>)}
+    <g opacity={main?1:mix(.46,1,activity)}>
+      <rect x={n.x} y={n.y+15} width={n.w} height={n.h} rx={45} fill="#00050B" opacity={.78}/>
+      <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={44} fill="url(#shot05V7Gateway)" stroke={tone} strokeOpacity={.27} strokeWidth={2.5}/>
+      <path d={'M '+(n.x+44)+' '+(n.y+2)+' H '+(n.x+n.w-44)} stroke="#BED8E9" strokeOpacity={.19} strokeWidth={2} strokeLinecap="round"/>
+      <text x={center} y={n.y+60} fill={WHITE} fontFamily={FONT} fontSize={n.font} textAnchor="middle" fontWeight={730}>{n.title}</text>
+      <rect x={n.x+38} y={n.y+79} width={n.w-76} height={n.h-132} rx={31} fill="#071521" fillOpacity={.88} stroke="#526F85" strokeOpacity={.14} strokeWidth={1.8}/>
+      <rect x={meterX} y={meterY} width={meterWidth} height={8} rx={4} fill="#213749"/>
+      <rect x={meterX} y={meterY} width={meterWidth*(1-loss)} height={8} rx={4} fill={tone} opacity={.33+.26*activity}/>
+      {pressure>0&&<rect x={exact14?meterX+meterWidth*(1-loss):meterX} y={meterY} width={exact14?meterWidth*loss:meterWidth} height={8} rx={4} fill={AMBER} opacity={pressure*.68}/>}
+    </g>
     {lanes.map(l=>{
       if(l.reveal<=0)return null;
-      const live=.22+.55*l.weight;
-      const end=n.x+n.w*l.reveal;
-      return <g key={l.y} opacity={Math.min(1,l.reveal*12)}>
-        <path d={'M '+n.x+' '+l.y+' H '+end} stroke={l.tone} strokeWidth={14} opacity={.06+.08*l.weight} strokeLinecap="round"/>
-        <path d={'M '+n.x+' '+l.y+' H '+end} stroke={l.tone} strokeWidth={3.1} opacity={live} strokeLinecap="round"/>
-        <circle cx={n.x} cy={l.y} r={6.5} fill="#132A3C" stroke={l.tone} strokeOpacity={.55} strokeWidth={1.8}/>
-        {l.reveal>=1&&<circle cx={n.x+n.w} cy={l.y} r={6.5} fill="#132A3C" stroke={l.tone} strokeOpacity={.55} strokeWidth={1.8}/>}
-      </g>;
+      return <Channel key={l.y} path={'M '+n.x+' '+l.y+' H '+(n.x+n.w)} tone={l.tone} strength={l.weight} reveal={l.reveal}/>;
     })}
-    <rect x={meterX} y={meterY} width={meterWidth} height={8} rx={4} fill="#24384B" opacity={.72}/>
-    <rect x={meterX} y={meterY} width={meterWidth*(1-loss)} height={8} rx={4} fill={MINT} opacity={.28+.42*activity}/>
-    {exact14&&pressure>.01&&<rect x={meterX+meterWidth*(1-loss)} y={meterY} width={meterWidth*loss} height={8} rx={4} fill={AMBER} opacity={.82}/>}
-    {!exact14&&pressure>.01&&<rect x={meterX} y={meterY} width={meterWidth} height={8} rx={4} fill={AMBER} opacity={pressure*.72}/>}
   </g>;
 };
 const Track:React.FC<{id:TrackId;tone:string;strength:number;reveal:number}>=({id,tone,strength,reveal})=>{
-  // Hidden means not mounted, not an inactive ghost or a faint placeholder.
   if(reveal<=0)return null;
-  const path=EP004_SHOT05_TRACKS[id].path;
-  const dash=reveal<1?reveal+' 1':undefined;
-  const opacity=Math.min(1,reveal*12);
-  return <g opacity={opacity}>
-    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={16} strokeLinejoin="round" strokeLinecap="round" opacity={.025+.07*strength}/>
-    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke="#7893A9" strokeWidth={5.5} strokeLinejoin="round" strokeLinecap="round" opacity={.13+.23*strength}/>
-    <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={2.8} strokeLinejoin="round" strokeLinecap="round" opacity={.14+.60*strength}/>
-  </g>;
+  return <Channel path={EP004_SHOT05_TRACKS[id].path} tone={tone} strength={strength} reveal={reveal}/>;
 };
 const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
   const m=scene.migration;
-  const focus=scene.stage.key;
-  const previous=scene.previousStage?.key??focus;
-  const mailFocus=(k:string)=>k!=='TEAMS'&&k!=='ALTERNATIVE';
-  const teamsFocus=(k:string)=>k!=='MAIL'&&k!=='PRIMARY';
-  const emphasis=(a:boolean,b:boolean)=>mix(a?.98:.73,b?.98:.73,scene.stageTransition);
-  const mailStrength=mix(mailFocus(previous)?1:.72,mailFocus(focus)?1:.72,scene.stageTransition);
   const weights:Record<TrackId,number>={
-    OUTLOOK_PRIMARY:mailStrength,PRIMARY_MAILBOX:mailStrength,
+    OUTLOOK_PRIMARY:1,PRIMARY_MAILBOX:1,
     TEAMS_ALTERNATIVE:m.oldStrength,ALTERNATIVE_TEAMS:m.oldStrength,
     TEAMS_FAILOVER:m.newStrength,PRIMARY_TEAMS:m.newStrength
   };
   const reveals:Record<TrackId,number>={OUTLOOK_PRIMARY:1,PRIMARY_MAILBOX:1,TEAMS_ALTERNATIVE:1,ALTERNATIVE_TEAMS:1,TEAMS_FAILOVER:m.ingressReveal,PRIMARY_TEAMS:m.egressReveal};
-  const processing=(id:'primary'|'alternative')=>{
-    const n=EP004_SHOT05_NODES[id];
-    return m.packets.reduce((v,p)=>{
-      if(p.x<n.x||p.x>n.x+n.w||p.y<n.y||p.y>n.y+n.h)return v;
-      const d=Math.abs(p.x-(n.x+n.w/2))/90;
-      const t=Math.max(0,1-d);
-      return Math.max(v,t*t*(3-2*t)*p.opacity);
-    },0);
-  };
   return <svg width={1920} height={1080} viewBox="0 0 1920 1080">
     <defs>
-      <radialGradient id="shot05V6Depth"><stop offset="0%" stopColor="#18384E" stopOpacity={.50}/><stop offset="100%" stopColor={BG} stopOpacity={0}/></radialGradient>
-      <linearGradient id="shot05V6Gateway" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#1A3449"/><stop offset="45%" stopColor="#102537"/><stop offset="100%" stopColor="#0A1928"/></linearGradient>
-      <radialGradient id="shot05V6Core"><stop offset="0%" stopColor="#28475B"/><stop offset="100%" stopColor="#122637"/></radialGradient>
-      <linearGradient id="shot05V6Panel" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#11283C"/><stop offset="100%" stopColor="#071522"/></linearGradient>
+      <radialGradient id="shot05V7Depth"><stop offset="0%" stopColor="#183044" stopOpacity={.44}/><stop offset="100%" stopColor={BG} stopOpacity={0}/></radialGradient>
+      <linearGradient id="shot05V7Gateway" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#203C4E"/><stop offset="48%" stopColor="#11293B"/><stop offset="100%" stopColor="#0B1927"/></linearGradient>
+      <linearGradient id="shot05V7Panel" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#1B384B"/><stop offset="100%" stopColor="#0C1C2B"/></linearGradient>
     </defs>
-    <ellipse cx={960} cy={558} rx={825} ry={520} fill="url(#shot05V6Depth)"/>
-    <g stroke="#20374A" strokeWidth={1} opacity={.25}><path d="M 143 249 H 1788 M 143 942 H 1788" fill="none"/></g>
+    <ellipse cx={960} cy={575} rx={720} ry={490} fill="url(#shot05V7Depth)"/>
     {(Object.keys(EP004_SHOT05_TRACKS) as TrackId[]).map(id=><Track key={id} id={id} tone={id==='OUTLOOK_PRIMARY'||id==='PRIMARY_MAILBOX'?CYAN:VIOLET} strength={weights[id]} reveal={reveals[id]}/>)}
-    <Endpoint nodeId="outlook" tone={CYAN} intensity={emphasis(mailFocus(previous),mailFocus(focus))}/>
-    <Endpoint nodeId="exchange" tone={CYAN} intensity={emphasis(mailFocus(previous),mailFocus(focus))}/>
-    <Endpoint nodeId="teams" tone={VIOLET} intensity={emphasis(teamsFocus(previous),teamsFocus(focus))}/>
-    <Endpoint nodeId="teamsService" tone={VIOLET} intensity={emphasis(teamsFocus(previous),teamsFocus(focus))}/>
-    <Gateway nodeId="primary" mail={mailStrength} teams={m.newStrength} pressure={m.pressure} exact14={m.explicit14} coreReveal={m.coreReveal} processing={processing('primary')}/>
-    <Gateway nodeId="alternative" mail={0} teams={m.oldStrength} pressure={0} exact14={false} coreReveal={1} processing={processing('alternative')}/>
+    <Endpoint nodeId="outlook" tone={CYAN} intensity={1}/>
+    <Endpoint nodeId="exchange" tone={CYAN} intensity={1}/>
+    <Endpoint nodeId="teams" tone={VIOLET} intensity={1}/>
+    <Endpoint nodeId="teamsService" tone={VIOLET} intensity={1}/>
+    <Gateway nodeId="primary" mail={1} teams={m.newStrength} pressure={m.pressure} exact14={m.explicit14} coreReveal={m.coreReveal}/>
+    <Gateway nodeId="alternative" mail={0} teams={m.oldStrength} pressure={0} exact14={false} coreReveal={1}/>
     {m.packets.map(p=>{
       const tone=p.route==='MAIL'?CYAN:VIOLET;
-      return <g key={p.id} transform={'translate('+p.x+' '+p.y+') rotate('+p.angle+')'} opacity={p.opacity}>
-        <ellipse cx={-4} cy={0} rx={20} ry={8} fill={tone} opacity={.09}/>
-        <ellipse cx={-3} cy={0} rx={14} ry={5.5} fill={tone} opacity={.20}/>
-        <rect x={-9} y={-3.5} width={18} height={7} rx={3.5} fill={tone} opacity={.96}/>
-        <circle cx={5} cy={0} r={2.5} fill={WHITE} opacity={.78}/>
+      const pilot=p.route==='NEW'&&p.born===m.firstNewEmission;
+      const tail=ep004Shot05PacketTrail(p.route,p.travel,pilot?92:62);
+      return <g key={p.id} opacity={p.opacity}>
+        {tail.map((s,i)=><g key={i}>
+          <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={pilot?24:16} opacity={s.alpha*.075} strokeLinecap="round"/>
+          <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={pilot?9:6.5} opacity={s.alpha*.92} strokeLinecap="round"/>
+        </g>)}
+        <circle cx={p.x} cy={p.y} r={pilot?5:3.8} fill={WHITE} opacity={.88}/>
       </g>;
     })}
   </svg>;
@@ -171,6 +141,13 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
   const world=ep004Shot05ProductionWorld(frame,props);
   const scene=world.cinematic;
   const pose=scene.camera;
+  const m=scene.migration;
+  const routeHeadline=(s:Ep004Shot05ClarityStage)=>{
+    if(s.key==='SHARED'&&m.primaryWeight<1)return m.firstNewEmission!==null&&frame>=m.firstNewEmission?'TEAMS TRAFFIC REROUTES':'FOLLOW THE TEAMS REQUEST';
+    return s.headline;
+  };
+  const routeBeat=scene.stage.key==='SWITCH'||scene.stage.key==='SHARED';
+  const sharedTitleOpacity=routeBeat&&m.firstNewEmission!==null?clamp((frame-m.firstNewEmission-290)/24):0;
   const transform='translate3d('+pose.x+'px,'+pose.y+
     'px,0) scale('+pose.scale+')';
   return <AbsoluteFill style={{background:BG,overflow:'hidden'}}>
@@ -182,13 +159,14 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
     <AbsoluteFill style={{pointerEvents:'none',zIndex:42}}>
       <svg width={1920} height={1080} viewBox="0 0 1920 1080">
         {scene.previousStage&&
-          <Title title={scene.previousStage.headline}
+          <Title title={routeHeadline(scene.previousStage)}
             accent={color(scene.previousStage.accent)}
             opacity={scene.previousHeadlineOpacity}/>}
         {scene.beatIndex>=0&&
-          <Title title={scene.stage.headline}
+          <Title title={routeHeadline(scene.stage)}
             accent={color(scene.stage.accent)}
-            opacity={scene.headlineOpacity}/>}
+            opacity={scene.headlineOpacity*(1-sharedTitleOpacity)}/>}
+        {sharedTitleOpacity>0&&<Title title="SHARED GATEWAY" accent={CYAN} opacity={sharedTitleOpacity*scene.headlineOpacity}/>}
       </svg>
     </AbsoluteFill>
     {frame<110&&props.previousLastFrameDataUri&&
