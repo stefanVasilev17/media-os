@@ -142,12 +142,13 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
   const scene=world.cinematic;
   const pose=scene.camera;
   const m=scene.migration;
+  const routeBeat=(s:Ep004Shot05ClarityStage)=>s.key==='SWITCH'||s.key==='SHARED';
   const routeHeadline=(s:Ep004Shot05ClarityStage)=>{
-    if(s.key==='SHARED'&&m.primaryWeight<1)return m.firstNewEmission!==null&&frame>=m.firstNewEmission?'TEAMS TRAFFIC REROUTES':'FOLLOW THE TEAMS REQUEST';
+    if(routeBeat(s))return m.firstNewEmission!==null&&frame>=m.firstNewEmission?'TEAMS TRAFFIC REROUTES':'FOLLOW THE TEAMS REQUEST';
     return s.headline;
   };
-  const routeBeat=scene.stage.key==='SWITCH'||scene.stage.key==='SHARED';
-  const sharedTitleOpacity=routeBeat&&m.firstNewEmission!==null?clamp((frame-m.firstNewEmission-290)/24):0;
+  const settled=1-clamp(m.oldStrength/.52);
+  const sharedTitleOpacity=routeBeat(scene.stage)&&m.egressReveal===1?settled:0;
   const transform='translate3d('+pose.x+'px,'+pose.y+
     'px,0) scale('+pose.scale+')';
   return <AbsoluteFill style={{background:BG,overflow:'hidden'}}>
@@ -161,7 +162,7 @@ export const Shot05ProductionScene:React.FC<Ep004Shot05RenderProps>=props=>{
         {scene.previousStage&&
           <Title title={routeHeadline(scene.previousStage)}
             accent={color(scene.previousStage.accent)}
-            opacity={scene.previousHeadlineOpacity}/>}
+            opacity={scene.previousHeadlineOpacity*(scene.previousStage&&routeBeat(scene.previousStage)?1-sharedTitleOpacity:1)}/>}
         {scene.beatIndex>=0&&
           <Title title={routeHeadline(scene.stage)}
             accent={color(scene.stage.accent)}
