@@ -379,7 +379,8 @@ test('V7 light trails lie on the actual route, including curved joins, without a
   const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   const gateway=src.slice(src.indexOf('const Gateway:'),src.indexOf('const Track:'));
   const title=src.slice(src.indexOf('const Title:'),src.indexOf('const Endpoint:'));
-  assert.doesNotMatch(gateway,/processing|<circle|<ellipse|\\.map\\(i=>/);
+  assert.doesNotMatch(gateway,/processing|<circle|<ellipse/);
+  assert.ok(!gateway.includes('.map(i=>'));
   assert.doesNotMatch(title,/<rect/);
-  assert.match(src,/pilot\\?92:62/);
+  assert.ok(src.includes('pilot?92:62'));
 });
