@@ -10,7 +10,7 @@ import {EP004_SHOT05_CLARITY_GRAMMAR,EP004_SHOT05_NODES,
   EP004_SHOT05_TRACKS,EP004_SHOT05_SAFE_FRAME,
   ep004Shot05MeasuredTextWidth,ep004Shot05TextBox,
   ep004Shot05ClarityStage,ep004Shot05ClarityState,validateEp004Shot05SafeLayout,
-  ep004Shot05Migration,ep004Shot05SamplePacket,ep004Shot05PacketTrail,EP004_SHOT05_PACKET_ROUTES}
+  ep004Shot05Migration,ep004Shot05SamplePacket,ep004Shot05PacketTrail,EP004_SHOT05_PACKET_ROUTES,EP004_SHOT05_NEW_PACKET_SPEED}
   from './src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs';
 const approvedPrior={
   episodeKey:'EP004',shotKey:'SHOT04',previewOnly:false,
@@ -94,7 +94,7 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.interiorOpacity,1);
 });
 test('SHOT05 V7 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'GLASS_FLUID_TRAFFIC_V7');
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'CUE_LOCKED_REROUTE_AMBER_V8');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
@@ -284,7 +284,7 @@ test('V5 real per-packet route assignment survives cue boundaries and finishes a
     if(a.packets.some(p=>p.route==='OLD')&&a.packets.some(p=>p.route==='NEW'))mixed=true;
     for(const p of a.packets){
       const q=next.packets.find(x=>x.id===p.id);
-      if(q){assert.equal(p.route,q.route);assert.ok(Math.hypot(p.x-q.x,p.y-q.y)<=8.40001);}
+      if(q){assert.equal(p.route,q.route);assert.ok(Math.hypot(p.x-q.x,p.y-q.y)<=(p.route==='NEW'?EP004_SHOT05_NEW_PACKET_SPEED:8.4)+.00001);}
     }
   }
   assert.ok(mixed,'old requests drain while new requests enter');
@@ -383,4 +383,49 @@ test('V7 light trails lie on the actual route, including curved joins, without a
   assert.ok(!gateway.includes('.map(i=>'));
   assert.doesNotMatch(title,/<rect/);
   assert.ok(src.includes('pilot?92:62'));
+});
+
+test('V8 exact Director-identified spoken moved-traffic cue overrides unrelated failover directions',()=>{
+  const c=[{startFrame:100,endFrame:180,anchor:'Fourteen percent of capacity was missing'},
+    {startFrame:220,endFrame:320,anchor:'Consider the previous gateway configuration'},
+    {startFrame:500,endFrame:660,anchor:'Teams traffic has moved into it'},
+    {startFrame:850,endFrame:950,anchor:'The consequence of the shared dependency'}];
+  const b=[{direction:'Capacity reduced'},{direction:'Show earlier failover configuration and gateway routes'},
+    {direction:'Show shared pressure in primary'},{direction:'Show downstream consequence'}];
+  const state=f=>ep004Shot05Migration(f,c,b);
+  assert.equal(state(499).rerouteFrame,500);
+  assert.equal(state(499).ingressReveal,0);
+  assert.ok(!state(499).packets.some(p=>p.route==='NEW'));
+  assert.equal(ep004Shot05ClarityStage(b[2].direction,2,c[2].anchor).key,'SWITCH');
+  const first=state(500).firstNewEmission;
+  assert.ok(first>=500&&first<=518);
+  let entered=false,mixed=false;
+  for(let f=first+1;f<=first+100;f++){
+    const m=state(f);
+    if(m.packets.some(p=>p.route==='NEW'&&p.x>=726&&p.x<=1194&&Math.abs(p.y-430)<.001)&&m.packets.some(p=>p.route==='OLD'))entered=true;
+    if(m.packets.some(p=>p.route==='NEW'&&p.y<710)&&m.packets.some(p=>p.route==='OLD'))mixed=true;
+  }
+  assert.ok(entered,'actual Teams packet reaches upper gateway while old traffic still exists');
+  assert.ok(mixed,'upward turn is visible while lower route is still carrying requests');
+  assert.equal(state(first+320).egressReveal,1);
+  assert.ok(!state(first+320).packets.some(p=>p.route==='OLD'));
+  assert.ok(state(first+320).packets.some(p=>p.route==='NEW'));
+});
+test('V8 exact 14 percent cue drives only its amber segment with bounded smooth brightness',async()=>{
+  const c=[{startFrame:100,endFrame:170,anchor:'Reduced headroom'},{startFrame:240,endFrame:330,anchor:'14 percent of capacity'},{startFrame:500,endFrame:620,anchor:'Teams traffic has moved into it'}];
+  const b=[{direction:'Reduced capacity'},{direction:'Show capacity loss'},{direction:'Shared pressure'}];
+  const state=f=>ep004Shot05Migration(f,c,b);
+  assert.equal(state(239).amberPulse,0);
+  assert.equal(state(239).explicit14,false);
+  assert.equal(state(240).capacity14Frame,240);
+  assert.equal(state(240).explicit14,true);
+  assert.ok(state(240).amberPulse>0);
+  assert.ok(state(264).amberPulse>.95);
+  assert.ok(state(288).amberPulse<.4);
+  assert.equal(state(264).capacity14Reveal,1);
+  for(let f=241;f<380;f++)assert.ok(Math.abs(state(f).amberPulse-state(f-1).amberPulse)<.05);
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  assert.ok(src.includes('amberPulse={m.amberPulse}'));
+  assert.ok(src.includes('amberPulse={0}'));
+  assert.ok(src.includes('fill="#FFF1A4" opacity={amberPulse*.94}'));
 });

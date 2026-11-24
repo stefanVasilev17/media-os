@@ -61,13 +61,13 @@ const Channel:React.FC<{path:string;tone:string;strength:number;reveal:number}>=
     <path d={path} pathLength={1} strokeDasharray={dash} fill="none" stroke={tone} strokeWidth={5.5} strokeLinejoin="round" strokeLinecap="round" opacity={.13+.72*strength}/>
   </g>;
 };
-const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;pressure:number;exact14:boolean;coreReveal:number}>=({nodeId,mail,teams,pressure,exact14,coreReveal})=>{
+const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;pressure:number;exact14:boolean;capacity14Reveal:number;amberPulse:number;coreReveal:number}>=({nodeId,mail,teams,pressure,exact14,capacity14Reveal,amberPulse,coreReveal})=>{
   const n=EP004_SHOT05_NODES[nodeId];
   const main=nodeId==='primary';
   const tone=main?CYAN:VIOLET;
   const activity=Math.max(mail,teams);
   const center=n.x+n.w/2;
-  const loss=exact14?pressure*.14:0;
+  const loss=exact14?capacity14Reveal*.14:0;
   if(ep004Shot05MeasuredTextWidth(n.title,n.font)+54>n.w)throw Error('SHOT05_LABEL_CLIP_'+nodeId);
   const lanes=main?[{y:330,tone:CYAN,weight:mail,reveal:1},{y:430,tone:VIOLET,weight:teams,reveal:coreReveal}]:[{y:745,tone:VIOLET,weight:teams,reveal:1}];
   const meterX=n.x+48,meterWidth=n.w-96,meterY=n.y+n.h-27;
@@ -80,7 +80,12 @@ const Gateway:React.FC<{nodeId:'primary'|'alternative';mail:number;teams:number;
       <rect x={n.x+38} y={n.y+79} width={n.w-76} height={n.h-132} rx={31} fill="#071521" fillOpacity={.88} stroke="#526F85" strokeOpacity={.14} strokeWidth={1.8}/>
       <rect x={meterX} y={meterY} width={meterWidth} height={8} rx={4} fill="#213749"/>
       <rect x={meterX} y={meterY} width={meterWidth*(1-loss)} height={8} rx={4} fill={tone} opacity={.33+.26*activity}/>
-      {pressure>0&&<rect x={exact14?meterX+meterWidth*(1-loss):meterX} y={meterY} width={exact14?meterWidth*loss:meterWidth} height={8} rx={4} fill={AMBER} opacity={pressure*.68}/>}
+      {!exact14&&pressure>0&&<rect x={meterX} y={meterY} width={meterWidth} height={8} rx={4} fill={AMBER} opacity={pressure*.68}/>}
+      {exact14&&loss>0&&<g>
+        <rect x={meterX+meterWidth*(1-loss)} y={meterY-5} width={meterWidth*loss} height={18} rx={9} fill="#FFD36A" opacity={amberPulse*.24}/>
+        <rect x={meterX+meterWidth*(1-loss)} y={meterY} width={meterWidth*loss} height={8} rx={4} fill={AMBER} opacity={.9}/>
+        <rect x={meterX+meterWidth*(1-loss)} y={meterY} width={meterWidth*loss} height={8} rx={4} fill="#FFF1A4" opacity={amberPulse*.94}/>
+      </g>}
     </g>
     {lanes.map(l=>{
       if(l.reveal<=0)return null;
@@ -112,16 +117,16 @@ const FlowWorld:React.FC<{scene:Ep004Shot05ClarityState}>=({scene})=>{
     <Endpoint nodeId="exchange" tone={CYAN} intensity={1}/>
     <Endpoint nodeId="teams" tone={VIOLET} intensity={1}/>
     <Endpoint nodeId="teamsService" tone={VIOLET} intensity={1}/>
-    <Gateway nodeId="primary" mail={1} teams={m.newStrength} pressure={m.pressure} exact14={m.explicit14} coreReveal={m.coreReveal}/>
-    <Gateway nodeId="alternative" mail={0} teams={m.oldStrength} pressure={0} exact14={false} coreReveal={1}/>
+    <Gateway nodeId="primary" mail={1} teams={m.newStrength} pressure={m.pressure} exact14={m.explicit14} capacity14Reveal={m.capacity14Reveal} amberPulse={m.amberPulse} coreReveal={m.coreReveal}/>
+    <Gateway nodeId="alternative" mail={0} teams={m.oldStrength} pressure={0} exact14={false} capacity14Reveal={0} amberPulse={0} coreReveal={1}/>
     {m.packets.map(p=>{
-      const tone=p.route==='MAIL'?CYAN:VIOLET;
+      const tone=p.route==='MAIL'?CYAN:p.route==='NEW'?'#D4C3FF':VIOLET;
       const pilot=p.route==='NEW'&&p.born===m.firstNewEmission;
       const tail=ep004Shot05PacketTrail(p.route,p.travel,pilot?92:62);
       return <g key={p.id} opacity={p.opacity}>
         {tail.map((s,i)=><g key={i}>
           <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={pilot?24:16} opacity={s.alpha*.075} strokeLinecap="round"/>
-          <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={pilot?9:6.5} opacity={s.alpha*.92} strokeLinecap="round"/>
+          <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={tone} strokeWidth={pilot?11:6.5} opacity={s.alpha*.92} strokeLinecap="round"/>
         </g>)}
         <circle cx={p.x} cy={p.y} r={pilot?5:3.8} fill={WHITE} opacity={.88}/>
       </g>;

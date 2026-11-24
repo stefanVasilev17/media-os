@@ -1,4 +1,4 @@
-export const EP004_SHOT05_CLARITY_GRAMMAR='GLASS_FLUID_TRAFFIC_V7';
+export const EP004_SHOT05_CLARITY_GRAMMAR='CUE_LOCKED_REROUTE_AMBER_V8';
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
 const interpolate=(a,b,t)=>a+(b-a)*t;
@@ -109,12 +109,18 @@ const stage=(key,headline,accent,visible,lanes,primaryStatus=null)=>Object.freez
   key,headline,accent,visible:Object.freeze(visible),
   lanes:Object.freeze(lanes),primaryStatus
 });
+const movedTeams=text=>/\bteams(?:['’]s?)?\s+(?:traffic|requests?|workload)\s+(?:(?:has|have|had|was|were|is|are|now)\s+)*(?:moved|moving|shifted|redirected|rerouted|diverted|transferred|flowed|flows?|switched)\s+(?:(?:back|now|over)\s+)*(?:into|to|through|via|onto)\b/i.test(text);
+const capacity14=text=>/\bfourteen[\s-]+percent\b|\b14\s*(?:%|percent\b)/i.test(text);
 export function ep004Shot05ClarityStage(direction,index=0,anchor=''){
   const d=String(direction||'').toLowerCase();
   const spoken=(d+' '+String(anchor||'').toLowerCase());
-  if(/fourteen percent|14\s?%|14 percent/.test(spoken))
+  if(capacity14(spoken))
     return stage('CAPACITY_14','14% CAPACITY LOST','AMBER',
       ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], '14%');
+  if(movedTeams(spoken))
+    return stage('SWITCH','TEAMS TRAFFIC REROUTES','VIOLET',
+      ['teams','alternative','primary','teamsService'],
+      ['TEAMS_ALTERNATIVE','ALTERNATIVE_TEAMS','TEAMS_FAILOVER','PRIMARY_TEAMS']);
   if(/capacity|headroom|remaining|reduced|missing|deplet|constrain|shortage/.test(d))
     return stage('CAPACITY','HEADROOM DROPS','AMBER',
       ['primary','outlook','teams','exchange','teamsService'],['OUTLOOK_PRIMARY','PRIMARY_MAILBOX','TEAMS_FAILOVER','PRIMARY_TEAMS'], 'REDUCED');
@@ -157,6 +163,7 @@ export function ep004Shot05ClarityStage(direction,index=0,anchor=''){
 
 export const EP004_SHOT05_MIGRATION_FRAMES=126;
 export const EP004_SHOT05_PACKET_INTERVAL=18;
+export const EP004_SHOT05_NEW_PACKET_SPEED=13.2;
 const routePoints=(incoming,outgoing)=>Object.freeze([
   ...EP004_SHOT05_TRACKS[incoming].segments,
   ...EP004_SHOT05_TRACKS[outgoing].segments
@@ -196,14 +203,27 @@ export function ep004Shot05PacketTrail(route,travel,tail=64){
 export function ep004Shot05Migration(frame,cues,beats){
   const stages=cues.map((cue,i)=>ep004Shot05ClarityStage(beats[i].direction,i,cue.anchor));
   const capacityIndex=stages.findIndex(s=>s.key==='CAPACITY'||s.key==='CAPACITY_14');
-  // Prefer a real action cue, not an earlier mention of shared capacity or a date.
-  const routeText=cues.map((cue,i)=>String(cue.anchor||'')+' '+String(beats[i].direction||''));
+  // The Director identified the actual spoken sentence; prioritize verified speech
+  // over broad visual instructions which may mention failover in a different context.
+  const anchors=cues.map(cue=>String(cue.anchor||''));
+  const directions=beats.map(beat=>String(beat.direction||''));
+  const routeText=anchors.map((s,i)=>s+' '+directions[i]);
   const action=/\b(?:rerout\w*|redirect\w*|failover|fail over|switch\w*|shift\w*|spillover|mov(?:e|es|ed|ing)|divert\w*)\b/i;
   const destination=/\b(?:teams|traffic|requests?|route|routing|gateway|path)\b/i;
-  const explicit=routeText.findIndex((s,i)=>action.test(s)&&destination.test(s)
-    && !/\b(?:no|without|before)\s+(?:rerout\w*|failover|switch\w*)\b/i.test(s));
+  const exactSpeech=anchors.findIndex(movedTeams);
+  const exactDirection=directions.findIndex(movedTeams);
+  const spokenAction=anchors.findIndex(s=>action.test(s)&&destination.test(s)&&!/\b(?:no|without|before)\s+(?:rerout\w*|failover|switch\w*)\b/i.test(s));
+  const explicit=routeText.findIndex(s=>action.test(s)&&destination.test(s)&&!/\b(?:no|without|before)\s+(?:rerout\w*|failover|switch\w*)\b/i.test(s));
   const shared=routeText.findIndex(s=>/\b(?:converg\w*|both.*(?:use|through|via|depend)|(?:same|one|shared)\s+(?:primary\s+)?gateway)\b/i.test(s));
-  const routeIndex=explicit>=0?explicit:shared>=0?shared:stages.findIndex(s=>s.key==='SWITCH');
+  const routeIndex=exactSpeech>=0?exactSpeech:exactDirection>=0?exactDirection:spokenAction>=0?spokenAction:explicit>=0?explicit:shared>=0?shared:stages.findIndex(s=>s.key==='SWITCH');
+  const exactCapacity=anchors.findIndex(capacity14);
+  const fallbackCapacity=stages.findIndex(s=>s.key==='CAPACITY_14');
+  const capacity14Index=exactCapacity>=0?exactCapacity:fallbackCapacity;
+  const capacity14Frame=capacity14Index<0?null:cues[capacity14Index].startFrame;
+  const amberAge=capacity14Frame===null?-1:frame-capacity14Frame;
+  const amberPhase=amberAge<0?0:(amberAge%48)/48;
+  const amberPulse=amberAge<0?0:.32+.68*smooth(1-Math.abs(2*amberPhase-1));
+  const capacity14Reveal=amberAge<0?0:smooth((amberAge+1)/12);
   const capacityFrame=capacityIndex<0?null:cues[capacityIndex].startFrame;
   const rerouteFrame=routeIndex<0?null:cues[routeIndex].startFrame;
   const ratioAt=f=>rerouteFrame===null?0:smooth((f-rerouteFrame)/EP004_SHOT05_MIGRATION_FRAMES);
@@ -220,7 +240,7 @@ export function ep004Shot05Migration(frame,cues,beats){
   const coreLength=EP004_SHOT05_NODES.primary.w;
   const egressLength=length(EP004_SHOT05_TRACKS.PRIMARY_TEAMS.segments);
   const revealAge=firstNewEmission===null?-1:frame-firstNewEmission;
-  const revealFront=revealAge<0?0:revealAge*8.4+Math.min(40,revealAge*5);
+  const revealFront=revealAge<0?0:revealAge*EP004_SHOT05_NEW_PACKET_SPEED+Math.min(58,revealAge*7);
   const ingressReveal=clamp(revealFront/ingressLength);
   const coreReveal=clamp((revealFront-ingressLength)/coreLength);
   const egressReveal=clamp((revealFront-ingressLength-coreLength)/egressLength);
@@ -233,7 +253,7 @@ export function ep004Shot05Migration(frame,cues,beats){
       const emission=born+offset;
       if(emission>frame)continue;
       // Constant world-space speed guarantees continuity at joins and cue boundaries.
-      const travel=(frame-emission)*8.4;
+      const travel=(frame-emission)*(route==='NEW'?EP004_SHOT05_NEW_PACKET_SPEED:8.4);
       const pos=ep004Shot05SamplePacket(route,travel);
       if(!pos)continue;
       const total=length(EP004_SHOT05_PACKET_ROUTES[route]);
@@ -251,9 +271,9 @@ export function ep004Shot05Migration(frame,cues,beats){
   }
   const oldStrength=Math.max(1-primaryWeight,.52*drain);
   const newStrength=firstNewEmission===null||frame<firstNewEmission?0:Math.max(primaryWeight,.78*smooth((frame-firstNewEmission)/18));
-  const explicit14=stages.some((s,i)=>s.key==='CAPACITY_14'&&cues[i].startFrame<=frame);
+  const explicit14=amberAge>=0;
   return Object.freeze({primaryWeight,legacyWeight:1-primaryWeight,pressure,
-    rerouteFrame,capacityFrame,explicit14,oldStrength,newStrength,firstNewEmission,ingressReveal,coreReveal,egressReveal,packets:Object.freeze(packets)});
+    rerouteFrame,capacityFrame,capacity14Frame,capacity14Reveal,amberPulse,explicit14,oldStrength,newStrength,firstNewEmission,ingressReveal,coreReveal,egressReveal,packets:Object.freeze(packets)});
 }
 
 export function ep004Shot05ClarityState(frame,cues,beats,duration){
