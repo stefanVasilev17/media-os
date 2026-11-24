@@ -60,6 +60,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP004_SHOT03_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT05_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
+            Map.entry("EP004-SHOT06-SERVER-FLEET-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT06_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT04_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
@@ -242,6 +244,7 @@ public class RemotionRenderController {
                  || "EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId)
                  || "EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId)
                  || "EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(compositionId)
+                 || "EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId)
                 || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
@@ -339,6 +342,29 @@ public class RemotionRenderController {
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
+    public Map<String,Object> ensureVerifiedEp004Shot06Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!"EP004".equals(verifiedProps.get("episodeKey"))
+                ||!"SHOT06".equals(verifiedProps.get("shotKey"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("voiceAudioSha256")
+                ||!verifiedProps.containsKey("voiceAudioBytes")
+                ||!"38162e2a-3bc2-4c07-80d8-fa445cdc5e8d".equals(verifiedProps.get("previousRenderId"))
+                ||!"1766ff8391b81c928acae0578cfebcae73d7a1b1".equals(verifiedProps.get("previousSourceCommit"))
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!verifiedProps.containsKey("previousVideoSha256")
+                ||!verifiedProps.containsKey("previousShot05Props")
+                ||!verifiedProps.containsKey("previousWorldStartFrame")
+                ||!verifiedProps.containsKey("breathFrames")
+                ||!verifiedProps.containsKey("renderRequestId"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT06 requires exact Director-locked SHOT05 original props, selected current Take and 72-frame authentic voice timing.");
+        return ensureVerifiedRender("EP004-SHOT06-SERVER-FLEET-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
         return ensureVerifiedRender("EP002-SHOT01-DRAFT",
                 new RenderRequest("REVIEW",verifiedProps));
@@ -418,7 +444,8 @@ public class RemotionRenderController {
                 ||"EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL".equals(compositionId)
                  ||"EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId)
                  ||"EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId)
-                 ||"EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(compositionId))
+                 ||"EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(compositionId)
+                 ||"EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
