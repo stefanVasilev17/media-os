@@ -154,3 +154,17 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - Verification: code and live deployment verified; V5 actual MP4 NOT_RENDERED, Director visual LOCK NOT_APPROVED. Authenticated UI readiness body not independently checked.
 - Promotion: episode-local only; consider reusable shared component after Director reviews V5.
 - Supersedes: V4 abrupt routing behavior only; earlier content-fit and continuity lessons remain active.
+
+
+## AT-VIS-0007 — EP004 SHOT05 V5 sharp styling / premature failover path visibility
+
+- Date / decision: 2026-11-24 / V5 correction requested; V6 implementation authorized; actual visual approval pending.
+- Scope: EP004 SHOT05, episode-local route reveal and gateway design.
+- Observed problem: Director says V5 is too sharp and gateways/motion too rigid; upper Teams route is already visible before rerouting. Prior V5 actual render 1cb7a38b-e6b5-4711-9b49-e40c906902c1 passed technical QA, not visual LOCK.
+- Correction: omit the unused upper ingress, internal channel and egress until the first new packet; progressively reveal them in travel order just ahead of that packet. Keep old in-flight packets and route drain. Use rounded shared path geometry, softer palette, layered rounded device bodies and processing glow driven by packets rather than independent timers.
+- Preventive rule: a future route which must not yet exist visually must be unmounted at zero reveal, not rendered as a dim skeleton. Test zero visibility across preceding capacity-only cues, matching rounded path/packet geometry and ordered monotonic reveal.
+- Affected files: EP004Shot05ClarityWorld.mjs/.d.mts, Shot05ProductionScene.tsx, ep004-shot05-production.test.mjs. Immutable prior frame and Take unchanged.
+- Evidence: e58bb694d75374245a9780611c5071006616ef99; deployment 1ec15de2-6cd2-45ec-a47d-528839c2b719 SUCCESS, exact Factory heartbeat; 17/17 SHOT05, 173/173 Worker, both bundles PASS.
+- Verification: source regressions and live Worker verified; actual V6 MP4 NOT_RENDERED; visual LOCK NOT_APPROVED. Authenticated readiness response not independently checked.
+- Promotion: episode-local pending Director visual review.
+- Supersedes: V5 faint failover-route skeleton and sharp visual treatment only; packet migration and predecessor/voice contracts remain.

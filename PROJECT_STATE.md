@@ -1,5 +1,18 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-24 — EP004 SHOT05 V6 SOFT LIVING ARCHITECTURE: LIVE WORKER VERIFIED, DIRECTOR RENDER PENDING
+
+Director correction after V5: soften the sharp visual style; the Teams-to-primary route must not be visible before traffic is redirected; reveal it only when the first redirected request travels; modernize both gateways and motion. Previous V5 render 1cb7a38b-e6b5-4711-9b49-e40c906902c1 completed with MP4 technical QA PASS. No visual LOCK was given.
+
+V6 uses rounded layered gateway shells with subdued gradients, softer colors, round ports, packet-responsive processing core and smooth corner geometry shared by the renderer and packet sampler. Both external failover tracks and internal violet route are omitted at zero reveal; the first NEW packet determines progressive ingress/core/egress visibility using its distance, while V5 immutable route assignment and old-route drain remain. Stable camera, original selected Take, real cue inputs, 72-frame breath, exact locked SHOT04 predecessor (including original frame0), composition and security gates are unchanged. All motion remains illustrative, not claimed production telemetry.
+
+Exact live Worker source e58bb694d75374245a9780611c5071006616ef99, deployment 1ec15de2-6cd2-45ec-a47d-528839c2b719 SUCCESS. Runtime guard EP004_SHOT05_V6_SOFT_ROUTE_REVEAL_PIN_PASS, Factory capability confirmed source=e58bb694d75374245a9780611c5071006616ef99 scenes=5. SHOT05 17/17 PASS; shared Worker 173/173 PASS; zero new TypeScript errors (one protected EP001 baseline diagnostic); both Remotion bundles and Factory safety validation PASS. Backend/Postgres/Worker SUCCESS. The existing audit still reports 10 high-severity dependency vulnerabilities, not remediated by this scoped visual change. No additional infrastructure or paid render/TTS launched by executor.
+
+Authenticated MediaOS readiness body and new V6 MP4 not independently inspected; Director may request one render after UI readiness confirms the new SHA. Actual V6 visual quality and exact selected voice-cue timing await rendered Director review. The frame0 predecessor seam remains immutable. No visual LOCK. AT-VIS-0007 records the correction.
+
+---
+
+
 ## 2026-11-24 — EP004 SHOT05 V5 CONTINUOUS TRAFFIC REROUTING: LIVE WORKER VERIFIED; DIRECTOR RENDER PENDING
 
 Director rejected V4 abrupt route/focus changes after reviewing actual render 2e995fb0-a080-417e-9718-0f728b0cd018. Director approved V5 continuous migration design and authorized push/deployment, not a new paid MP4 render.
