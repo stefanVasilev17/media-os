@@ -32,6 +32,8 @@ class Ep004Shot06RenderSecurityRegressionTest {
         assertTrue(source.contains("and previousLock.shot_key='SHOT05'"));
         assertTrue(source.contains("and previousLock.render_id::text=r.input_props->>'previousRenderId'"));
         assertTrue(source.contains("and previous.status='SUCCEEDED'"));
+        assertTrue(source.contains("and previous.composition_id='EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL'"));
+        assertTrue(source.contains("and t.audio_sha256=r.input_props->>'voiceAudioSha256'"));
         assertTrue(source.contains(
                 "and previous.video_sha256=r.input_props->>'previousVideoSha256'"));
         assertTrue(source.contains("and previous.duration_in_frames::text="));
