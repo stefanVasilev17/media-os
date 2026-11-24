@@ -168,3 +168,10 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - Verification: source regressions and live Worker verified; actual V6 MP4 NOT_RENDERED; visual LOCK NOT_APPROVED. Authenticated readiness response not independently checked.
 - Promotion: episode-local pending Director visual review.
 - Supersedes: V5 faint failover-route skeleton and sharp visual treatment only; packet migration and predecessor/voice contracts remain.
+
+## AT-VIS-0008 — V7 glass reference / V8 cue priority and capacity pulse
+
+- Director rejected decorative gateway motion in V6, approved the V7 static rounded glass reference, then reported that the actual V7 render did not visually communicate the quoted Teams migration sentence. V7 source 655fc4390204ea92cd1c506aece41e7c72476f3f, render 00ed0dab-8001-4624-b9ce-afcb839e4e5b.
+- V8 correction: prefer the exact verified speech anchor for moved Teams traffic over unrelated earlier failover direction keywords; brighter and faster continuous new-route packets, preserve old-route drain; 14% rail only pulses brighter on its cue with no gateway transform. Keep the V7 glass design, hidden future route, fixed shells and approved source/voice.
+- Verification: 405ad2a1abbdded1c06f62f45e3f0a7427d897a7; Railway 85a91202-ae6e-405d-b35c-c3a4c40c8873 SUCCESS; SHOT05 21/21, Worker 173/173, bundle and source validation PASS. Regression uses representative cue fixtures, not authenticated production cue inspection. Actual V8 MP4 not rendered or visually locked; no separate paid render started.
+- Preventive rule: a narrated action needs a specific cue-priority test and a physical path traversal test, not merely a headline test. Warn via local brightness, not bouncing infrastructure. Episode-local until Director review.

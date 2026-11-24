@@ -1,5 +1,14 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-24 — EP004 SHOT05 V8 CUE-LOCKED REROUTE AND AMBER CAPACITY PULSE: LIVE WORKER VERIFIED
+
+Director approved the V7 glass reference direction, then requested two corrections after viewing V7 render 00ed0dab-8001-4624-b9ce-afcb839e4e5b: Teams traffic must visibly move to Primary on “teams traffic has moved into it”; the yellow 14% capacity segment must pulse brighter. V8 prioritizes matching verified spoken anchors over generic direction keywords, keeps old requests on their assigned route, accelerates new-route packets to 13.2 illustrative world units/frame, maintains hidden failover until first new emission, and animates only the 14% amber segment with a smooth 48-frame brightness cycle. V7 glass geometry, original voice, 72-frame breath, exact locked SHOT04 predecessor and security/mux contracts remain unchanged. No bouncing internal furniture.
+
+Live Worker exact SHA 405ad2a1abbdded1c06f62f45e3f0a7427d897a7; deployment 85a91202-ae6e-405d-b35c-c3a4c40c8873 SUCCESS; pin guard EP004_SHOT05_V8_CUE_LOCKED_REROUTE_AMBER_PIN_PASS, Factory capability confirmed exact SHA, five scenes. Dedicated SHOT05 21/21 PASS, shared Worker 173/173 PASS, Factory source validation and both bundles PASS; zero new TS errors, one protected EP001 baseline diagnostic. Existing three services SUCCESS; old deployment removal was still pending at last verification. No new paid MP4, TTS or infrastructure. Tests cover representative cue fixtures including the Director-quoted sentence, not the authenticated selected-Take cue payload itself. Actual V8 MP4, authenticated MediaOS readiness response and final visual LOCK remain unverified; Director must confirm readiness before the next render.
+
+---
+
+
 ## 2026-11-24 — EP004 SHOT05 V6 SOFT LIVING ARCHITECTURE: LIVE WORKER VERIFIED, DIRECTOR RENDER PENDING
 
 Director correction after V5: soften the sharp visual style; the Teams-to-primary route must not be visible before traffic is redirected; reveal it only when the first redirected request travels; modernize both gateways and motion. Previous V5 render 1cb7a38b-e6b5-4711-9b49-e40c906902c1 completed with MP4 technical QA PASS. No visual LOCK was given.
