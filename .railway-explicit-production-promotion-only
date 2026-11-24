@@ -33,3 +33,5 @@ EP004 SHOT05 V4 explicit source-pinned existing-worker build promotion 2026-11-2
 
 EP004 SHOT05 V5 explicit existing-worker promotion 2026-11-24: continuous per-packet route migration, matching gateway bodies, stable camera, qualitative capacity indicator. Exact source guard; no render, TTS, new infrastructure or visual LOCK.
 V5 continuity polish: route fade remains continuous during drain; qualitative capacity does not encode a fabricated percentage; endpoint focus eases across real cues.
+
+EP004 SHOT05 V6 explicit existing-worker promotion 2026-11-24: hidden failover lanes until first rerouted packet, sequential ingress/core/egress reveal, rounded shared motion geometry, soft layered gateway design and packet-driven processing. No paid render, TTS, new infrastructure or visual LOCK.

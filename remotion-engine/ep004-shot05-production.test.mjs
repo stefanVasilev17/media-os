@@ -93,8 +93,8 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.sourceOpacity,0);
   assert.equal(last.cinematic.interiorOpacity,1);
 });
-test('SHOT05 V5 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'CONTINUOUS_PACKET_MIGRATION_V5');
+test('SHOT05 V6 measured typography fits every actual node and varying content-size heading',()=>{
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'SOFT_ROUTE_REVEAL_V6');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
@@ -115,7 +115,7 @@ test('SHOT05 V5 measured typography fits every actual node and varying content-s
     assert.ok(h.y+h.height<245,'header cannot overlap diagram nodes');
   }
 });
-test('SHOT05 V5 original geography preserves route-to-node endpoints and no clutter',()=>{
+test('SHOT05 V6 original geography preserves route-to-node endpoints and no clutter',()=>{
   assert.equal(Object.keys(EP004_SHOT05_TRACKS).length,6);
   for(const [key,r] of Object.entries(EP004_SHOT05_TRACKS)){
     assert.match(r.path,/^M /,key);
@@ -179,7 +179,7 @@ test('SHOT05 absolute camera has steady educational holds and no repeated zoom',
     assert.ok(Math.abs(v.camera.x)<=12&&Math.abs(v.camera.y)<=18);
   }
 });
-test('SHOT05 V5 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
+test('SHOT05 V6 removes old microcopy, bottom timeline, clipped x-ray and decorative flow',async()=>{
   const shot=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
   const world=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ProductionWorld.mjs',import.meta.url),'utf8');
   const clarity=await readFile(new URL('./src/components/architectural-thinking/EP004Shot05ClarityWorld.mjs',import.meta.url),'utf8');
@@ -231,7 +231,7 @@ test('SHOT05 CPU worker selected voice, predecessor, mux, QA and Director-only c
   assert.match(claims,/EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL/);
 });
 
-test('SHOT05 V5 distinguishes client apps and downstream services and moves actual request packets',async()=>{
+test('SHOT05 V6 distinguishes client apps and downstream services and moves actual request packets',async()=>{
   assert.equal(EP004_SHOT05_NODES.outlook.title,'OUTLOOK APP');
   assert.equal(EP004_SHOT05_NODES.teams.title,'TEAMS APP');
   assert.equal(EP004_SHOT05_NODES.teamsService.title,'TEAMS SERVICE');
@@ -242,7 +242,7 @@ test('SHOT05 V5 distinguishes client apps and downstream services and moves actu
   assert.match(src,/nodeId="alternative"/);
   assert.doesNotMatch(src,/strokeDashoffset|HEADROOM LOW|CONSTRAINED/);
 });
-test('SHOT05 V5 preserves moving inputs and outputs while showing reduced headroom',()=>{
+test('SHOT05 V6 preserves moving inputs and outputs while showing reduced headroom',()=>{
   const states=[
     ep004Shot05ClarityStage('Gateway capacity reduced',4),
     ep004Shot05ClarityStage('14 percent capacity lost',4),
@@ -313,4 +313,43 @@ test('V5 inactive route light drains gradually rather than cutting off',()=>{
     assert.ok(Math.abs(v.oldStrength-a.oldStrength)<.04);
   }
   assert.equal(ep004Shot05Migration(650,c,b).oldStrength,0);
+});
+
+test('V6 the entire upper Teams route is absent before first redirected emission, including capacity-only beats',()=>{
+  const c=[{startFrame:100,endFrame:180,anchor:'Teams request'},{startFrame:250,endFrame:340,anchor:'Reduced capacity'},{startFrame:500,endFrame:650,anchor:'Reroute Teams traffic'}];
+  const b=[{direction:'Teams alternative'},{direction:'Gateway capacity reduced'},{direction:'Teams failover reroute'}];
+  for(let f=0;f<=500;f++){
+    const m=ep004Shot05Migration(f,c,b);
+    assert.equal(m.ingressReveal,0);assert.equal(m.coreReveal,0);assert.equal(m.egressReveal,0);
+    assert.ok(!m.packets.some(p=>p.route==='NEW'));
+  }
+  const first=ep004Shot05Migration(500,c,b).firstNewEmission;
+  assert.ok(first>500);
+  assert.equal(ep004Shot05Migration(first,c,b).ingressReveal,0);
+  const during=ep004Shot05Migration(first+10,c,b);
+  assert.ok(during.ingressReveal>0&&during.ingressReveal<1);
+  assert.equal(during.coreReveal,0);assert.equal(during.egressReveal,0);
+  let prev=ep004Shot05Migration(first,c,b);
+  for(let f=first+1;f<first+300;f++){
+    const next=ep004Shot05Migration(f,c,b);
+    for(const k of ['ingressReveal','coreReveal','egressReveal']){
+      assert.ok(next[k]>=prev[k]);assert.ok(next[k]>=0&&next[k]<=1);
+    }
+    if(next.coreReveal>0)assert.equal(next.ingressReveal,1);
+    if(next.egressReveal>0)assert.equal(next.coreReveal,1);
+    prev=next;
+  }
+  assert.equal(prev.egressReveal,1);
+});
+test('V6 the renderer really omits hidden strokes and both gateway cores follow actual packets',async()=>{
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  assert.match(src,/if\(reveal<=0\)return null/);
+  assert.match(src,/if\(l\.reveal<=0\)return null/);
+  assert.match(src,/TEAMS_FAILOVER:m\.ingressReveal,PRIMARY_TEAMS:m\.egressReveal/);
+  assert.match(src,/strokeDasharray=\{dash\}/);
+  assert.match(src,/processing=\{processing\('primary'\)\}/);
+  assert.match(src,/processing=\{processing\('alternative'\)\}/);
+  assert.match(src,/rx=\{34\}/);
+  assert.ok(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.segments.length>30);
+  assert.ok(EP004_SHOT05_TRACKS.PRIMARY_TEAMS.segments.length>30);
 });

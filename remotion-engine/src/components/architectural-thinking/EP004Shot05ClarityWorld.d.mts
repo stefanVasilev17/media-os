@@ -22,7 +22,7 @@ export type Ep004Shot05ClarityState={
   readonly visibleHistory:readonly string[];readonly sourcePush:number;
   readonly stageHoldFrames:number;
 };
-export declare const EP004_SHOT05_CLARITY_GRAMMAR:'CONTINUOUS_PACKET_MIGRATION_V5';
+export declare const EP004_SHOT05_CLARITY_GRAMMAR:'SOFT_ROUTE_REVEAL_V6';
 export declare const EP004_SHOT05_SAFE_FRAME:Readonly<{left:number;right:number;top:number;bottom:number}>;
 export declare const EP004_SHOT05_NODES:Readonly<Record<
   'outlook'|'teams'|'primary'|'alternative'|'exchange'|'teamsService',Ep004Shot05Node>>;
@@ -40,7 +40,7 @@ export declare function ep004Shot05ClarityState(
 
 export type Ep004Shot05PacketRoute='MAIL'|'OLD'|'NEW';
 export type Ep004Shot05Packet={readonly id:string;readonly route:Ep004Shot05PacketRoute;readonly born:number;readonly x:number;readonly y:number;readonly angle:number;readonly opacity:number;readonly travel:number};
-export type Ep004Shot05Migration={readonly primaryWeight:number;readonly legacyWeight:number;readonly pressure:number;readonly rerouteFrame:number|null;readonly capacityFrame:number|null;readonly explicit14:boolean;readonly oldStrength:number;readonly newStrength:number;readonly packets:readonly Ep004Shot05Packet[]};
+export type Ep004Shot05Migration={readonly primaryWeight:number;readonly legacyWeight:number;readonly pressure:number;readonly rerouteFrame:number|null;readonly capacityFrame:number|null;readonly explicit14:boolean;readonly oldStrength:number;readonly newStrength:number;readonly firstNewEmission:number|null;readonly ingressReveal:number;readonly coreReveal:number;readonly egressReveal:number;readonly packets:readonly Ep004Shot05Packet[]};
 export declare const EP004_SHOT05_MIGRATION_FRAMES:number;
 export declare const EP004_SHOT05_PACKET_INTERVAL:number;
 export declare const EP004_SHOT05_PACKET_ROUTES:Readonly<Record<Ep004Shot05PacketRoute,readonly (readonly number[])[]>>;

@@ -1,4 +1,4 @@
-export const EP004_SHOT05_CLARITY_GRAMMAR='CONTINUOUS_PACKET_MIGRATION_V5';
+export const EP004_SHOT05_CLARITY_GRAMMAR='SOFT_ROUTE_REVEAL_V6';
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
 const interpolate=(a,b,t)=>a+(b-a)*t;
@@ -13,6 +13,27 @@ export const EP004_SHOT05_NODES=Object.freeze({
   exchange:Object.freeze({x:1408,y:351,w:368,h:106,title:'EXCHANGE ONLINE',font:27}),
   teamsService:Object.freeze({x:1408,y:692,w:368,h:106,title:'TEAMS SERVICE',font:27}),
 });
+// Sample each rounded corner once: drawing and motion share identical geometry.
+const roundedTrack=(from,to,vertices)=>{
+  const pts=[vertices[0]];
+  for(let i=1;i<vertices.length-1;i++){
+    const a=vertices[i-1],b=vertices[i],c=vertices[i+1];
+    const before=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    const after=Math.hypot(c[0]-b[0],c[1]-b[1]);
+    const radius=Math.min(24,before*.48,after*.48);
+    const p=[b[0]+(a[0]-b[0])*radius/before,b[1]+(a[1]-b[1])*radius/before];
+    const q=[b[0]+(c[0]-b[0])*radius/after,b[1]+(c[1]-b[1])*radius/after];
+    pts.push(p);
+    for(let j=1;j<=12;j++){
+      const t=j/12,u=1-t;
+      pts.push([u*u*p[0]+2*u*t*b[0]+t*t*q[0],u*u*p[1]+2*u*t*b[1]+t*t*q[1]]);
+    }
+  }
+  pts.push(vertices.at(-1));
+  const segments=Object.freeze(pts.map(p=>Object.freeze([...p])));
+  return Object.freeze({from,to,segments,start:segments[0],end:segments.at(-1),
+    path:segments.map((p,i)=>(i?'L ':'M ')+p.join(' ')).join(' ')});
+};
 export const EP004_SHOT05_TRACKS=Object.freeze({
   OUTLOOK_PRIMARY:Object.freeze({from:'outlook',to:'primary',
     path:'M 468 404 H 726',start:Object.freeze([468,404]),end:Object.freeze([726,404]),
@@ -26,14 +47,8 @@ export const EP004_SHOT05_TRACKS=Object.freeze({
   ALTERNATIVE_TEAMS:Object.freeze({from:'alternative',to:'teamsService',
     path:'M 1194 745 H 1408',start:Object.freeze([1194,745]),end:Object.freeze([1408,745]),
     segments:Object.freeze([[1194,745],[1408,745]])}),
-  TEAMS_FAILOVER:Object.freeze({from:'teams',to:'primary',
-    path:'M 468 745 H 574 L 594 725 V 515 L 614 495 H 726',
-    start:Object.freeze([468,745]),end:Object.freeze([726,495]),
-    segments:Object.freeze([[468,745],[574,745],[594,725],[594,515],[614,495],[726,495]])}),
-  PRIMARY_TEAMS:Object.freeze({from:'primary',to:'teamsService',
-    path:'M 1194 495 H 1292 L 1312 515 V 725 L 1332 745 H 1408',
-    start:Object.freeze([1194,495]),end:Object.freeze([1408,745]),
-    segments:Object.freeze([[1194,495],[1292,495],[1312,515],[1312,725],[1332,745],[1408,745]])}),
+  TEAMS_FAILOVER:roundedTrack('teams','primary',[[468,745],[574,745],[594,725],[594,515],[614,495],[726,495]]),
+  PRIMARY_TEAMS:roundedTrack('primary','teamsService',[[1194,495],[1292,495],[1312,515],[1312,725],[1332,745],[1408,745]]),
 });
 const weighted=ch=>{
   if(ch===' ')return .33;
@@ -177,13 +192,27 @@ export function ep004Shot05Migration(frame,cues,beats){
   const rerouteFrame=routeIndex<0?null:cues[routeIndex].startFrame;
   const ratioAt=f=>rerouteFrame===null?0:smooth((f-rerouteFrame)/EP004_SHOT05_MIGRATION_FRAMES);
   const pressure=capacityFrame===null?0:smooth((frame-capacityFrame)/54);
+  const thresholdAt=born=>{const index=Math.round(born/EP004_SHOT05_PACKET_INTERVAL);return ((index*3%7+7)%7+.5)/7;};
+  let firstNewEmission=null;
+  if(rerouteFrame!==null){
+    const first=Math.floor((rerouteFrame-8)/EP004_SHOT05_PACKET_INTERVAL)*EP004_SHOT05_PACKET_INTERVAL;
+    for(let born=first;born<=rerouteFrame+EP004_SHOT05_MIGRATION_FRAMES+EP004_SHOT05_PACKET_INTERVAL;born+=EP004_SHOT05_PACKET_INTERVAL){
+      if(thresholdAt(born)<ratioAt(born+8)){firstNewEmission=born+8;break;}
+    }
+  }
+  const ingressLength=length(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.segments);
+  const coreLength=EP004_SHOT05_NODES.primary.w;
+  const egressLength=length(EP004_SHOT05_TRACKS.PRIMARY_TEAMS.segments);
+  const revealAge=firstNewEmission===null?-1:frame-firstNewEmission;
+  const revealFront=revealAge<0?0:revealAge*8.4+Math.min(40,revealAge*5);
+  const ingressReveal=clamp(revealFront/ingressLength);
+  const coreReveal=clamp((revealFront-ingressLength)/coreLength);
+  const egressReveal=clamp((revealFront-ingressLength-coreLength)/egressLength);
   const packets=[];
   const earliest=Math.max(-180,Math.floor((frame-300)/EP004_SHOT05_PACKET_INTERVAL)*EP004_SHOT05_PACKET_INTERVAL);
   for(let born=earliest;born<=frame;born+=EP004_SHOT05_PACKET_INTERVAL){
     // Stable per-emission decision; never reassign a packet in flight.
-    const index=Math.round(born/EP004_SHOT05_PACKET_INTERVAL);
-    const threshold=((index*3%7+7)%7+.5)/7;
-    const teamRoute=threshold<ratioAt(born+8)?'NEW':'OLD';
+    const teamRoute=thresholdAt(born)<ratioAt(born+8)?'NEW':'OLD';
     for(const [route,offset] of [['MAIL',0],[teamRoute,8]]){
       const emission=born+offset;
       if(emission>frame)continue;
@@ -208,7 +237,7 @@ export function ep004Shot05Migration(frame,cues,beats){
   const newStrength=primaryWeight;
   const explicit14=stages.some((s,i)=>s.key==='CAPACITY_14'&&cues[i].startFrame<=frame);
   return Object.freeze({primaryWeight,legacyWeight:1-primaryWeight,pressure,
-    rerouteFrame,capacityFrame,explicit14,oldStrength,newStrength,packets:Object.freeze(packets)});
+    rerouteFrame,capacityFrame,explicit14,oldStrength,newStrength,firstNewEmission,ingressReveal,coreReveal,egressReveal,packets:Object.freeze(packets)});
 }
 
 export function ep004Shot05ClarityState(frame,cues,beats,duration){
