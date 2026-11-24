@@ -94,12 +94,12 @@ test('SHOT05 frame zero exactly preserves locked SHOT04 media and voice timing',
   assert.equal(last.cinematic.interiorOpacity,1);
 });
 test('SHOT05 V7 measured typography fits every actual node and varying content-size heading',()=>{
-  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'DIRECTOR_CHECKPOINT_REROUTE_V9');
+  assert.equal(EP004_SHOT05_CLARITY_GRAMMAR,'ICONIC_GRID_MOTION_V10');
   assert.equal(validateEp004Shot05SafeLayout(),true);
   const nodes=Object.values(EP004_SHOT05_NODES);
   for(const n of nodes){
     assert.ok(n.font>=26,'minimum real readable node font');
-    assert.ok(ep004Shot05MeasuredTextWidth(n.title,n.font)+54<=n.w,
+    assert.ok(ep004Shot05MeasuredTextWidth(n.title,n.font)+54<=n.labelWidth,
       n.title+' would overflow own card');
     assert.ok(n.x>=EP004_SHOT05_SAFE_FRAME.left);
     assert.ok(n.x+n.w<=EP004_SHOT05_SAFE_FRAME.right);
@@ -299,9 +299,9 @@ test('V5 real per-packet route assignment survives cue boundaries and finishes a
 });
 test('V5 equal gateway bodies fit frame and remain on exact port positions',()=>{
   const {primary,alternative}=EP004_SHOT05_NODES;
-  assert.equal(primary.w,alternative.w);assert.equal(primary.h,alternative.h);
+  assert.equal(primary.w,alternative.w);assert.ok(primary.h>alternative.h);
   assert.equal(alternative.x,primary.x);
-  assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],alternative.y+110);
+  assert.equal(EP004_SHOT05_TRACKS.TEAMS_ALTERNATIVE.end[1],alternative.y+alternative.h/2);
   assert.equal(validateEp004Shot05SafeLayout(),true);
 });
 
@@ -348,7 +348,7 @@ test('V6 the renderer really omits hidden strokes and both gateway cores follow 
   assert.match(src,/TEAMS_FAILOVER:m\.ingressReveal,PRIMARY_TEAMS:m\.egressReveal/);
   assert.match(src,/strokeDasharray=\{dash\}/);
   assert.doesNotMatch(src,/processing=|processing\(|shot05V6Core/);
-  assert.match(src,/rx=\{44\}/);
+  assert.ok(src.includes('rx={main?60:44}'));
   assert.ok(EP004_SHOT05_TRACKS.TEAMS_FAILOVER.segments.length>30);
   assert.ok(EP004_SHOT05_TRACKS.PRIMARY_TEAMS.segments.length>30);
 });
@@ -471,4 +471,35 @@ test('V9 actual job traversal gate runs before expensive CPU render and keeps am
   assert.ok(src.includes('title={migrationTitle}'));
   assert.ok(src.includes('amberPulse={m.amberPulse}'));
   assert.equal(EP004_SHOT05_DIRECTOR_REVIEW.checkpoint,63*30);
+});
+
+
+test('V10 approved iconic layout has external captions, centered ports and distinct endpoint artwork',async()=>{
+  const n=EP004_SHOT05_NODES;
+  assert.equal(n.outlook.w,n.outlook.h+42);
+  assert.equal(n.outlook.w,n.teams.w);
+  assert.equal(n.exchange.w,n.teamsService.w);
+  assert.ok(n.primary.h>n.alternative.h);
+  for(const key of ['outlook','teams','exchange','teamsService']){
+    const v=n[key];assert.ok(v.y+v.h+v.font+10<EP004_SHOT05_SAFE_FRAME.bottom);
+  }
+  const src=await readFile(new URL('./src/episodes/ep004/Shot05ProductionScene.tsx',import.meta.url),'utf8');
+  for(const token of ['shot05V10Grid','shot05V10RouteGlow','fontSize={52}','fontSize={62}','!app&&[0,1,2]','strokeWidth={12}','r={pilot?14:11}','y={y+n.h+n.font+10}','y={n.y+n.h+n.font+10}'])assert.ok(src.includes(token),token);
+  assert.match(src,/filterUnits="userSpaceOnUse"/);
+  assert.ok(validateEp004Shot05SafeLayout());
+});
+test('V10 actual V9 audit timing reproduces full shared routing at 01:03 and old flow drains',()=>{
+  // The prior live audit reported cue frame 2338, onset 1740 and checkpoint 1890.
+  // Other fixture cue text is representative, not the production transcript.
+  const c=[{startFrame:100,endFrame:180,anchor:'Fourteen percent of capacity'},{startFrame:2338,endFrame:2400,beatId:'SHOT05_P04_B02',anchor:'Teams traffic has moved into it'}];
+  const b=[{direction:'Capacity reduced'},{direction:'Shared pressure'}];
+  const audit=ep004Shot05VerifyReroute(c,b,2573);
+  assert.equal(audit.rerouteFrame,1740);assert.equal(audit.cueRerouteFrame,2338);assert.equal(audit.checkpoint,1890);
+  assert.ok(audit.turned&&audit.entered&&audit.exited&&audit.mixed);
+  assert.ok(audit.checkpointNewPackets>0);assert.equal(audit.settledOldStrength,0);
+  const at=ep004Shot05Migration(1890,c,b,2573);
+  assert.equal(at.ingressReveal,1);assert.equal(at.coreReveal,1);assert.equal(at.egressReveal,1);
+  assert.ok(at.packets.some(p=>p.route==='NEW'&&p.x>=726&&p.x<=1194&&p.y===430));
+  const done=ep004Shot05Migration(2200,c,b,2573);
+  assert.ok(!done.packets.some(p=>p.route==='OLD'));
 });

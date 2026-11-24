@@ -1,4 +1,4 @@
-export const EP004_SHOT05_CLARITY_GRAMMAR='DIRECTOR_CHECKPOINT_REROUTE_V9';
+export const EP004_SHOT05_CLARITY_GRAMMAR='ICONIC_GRID_MOTION_V10';
 const clamp=n=>Math.max(0,Math.min(1,n));
 const smooth=n=>{const t=clamp(n);return t*t*(3-2*t);};
 const interpolate=(a,b,t)=>a+(b-a)*t;
@@ -6,12 +6,12 @@ export const EP004_SHOT05_SAFE_FRAME=Object.freeze({
   left:128,right:1792,top:72,bottom:923
 });
 export const EP004_SHOT05_NODES=Object.freeze({
-  outlook:Object.freeze({x:128,y:277,w:340,h:106,title:'OUTLOOK APP',font:27}),
-  teams:Object.freeze({x:128,y:692,w:340,h:106,title:'TEAMS APP',font:29}),
-  primary:Object.freeze({x:726,y:220,w:468,h:288,title:'PRIMARY GATEWAY',font:35}),
-  alternative:Object.freeze({x:726,y:635,w:468,h:288,title:'ALTERNATIVE GATEWAY',font:29}),
-  exchange:Object.freeze({x:1408,y:277,w:368,h:106,title:'EXCHANGE ONLINE',font:27}),
-  teamsService:Object.freeze({x:1408,y:692,w:368,h:106,title:'TEAMS SERVICE',font:27}),
+  outlook:Object.freeze({x:128,y:235,w:232,h:190,title:'Outlook App',font:30,labelWidth:320}),
+  teams:Object.freeze({x:128,y:650,w:232,h:190,title:'Teams App',font:30,labelWidth:320}),
+  primary:Object.freeze({x:726,y:205,w:468,h:350,title:'Primary Gateway',font:35,labelWidth:468}),
+  alternative:Object.freeze({x:726,y:650,w:468,h:190,title:'Alternative Gateway',font:30,labelWidth:468}),
+  exchange:Object.freeze({x:1560,y:235,w:232,h:190,title:'Exchange Online',font:27,labelWidth:320}),
+  teamsService:Object.freeze({x:1560,y:650,w:232,h:190,title:'Teams Service',font:29,labelWidth:320}),
 });
 // Sample each rounded corner once: drawing and motion share identical geometry.
 const roundedTrack=(from,to,vertices)=>{
@@ -20,7 +20,7 @@ const roundedTrack=(from,to,vertices)=>{
     const a=vertices[i-1],b=vertices[i],c=vertices[i+1];
     const before=Math.hypot(b[0]-a[0],b[1]-a[1]);
     const after=Math.hypot(c[0]-b[0],c[1]-b[1]);
-    const radius=Math.min(48,before*.48,after*.48);
+    const radius=Math.min(62,before*.48,after*.48);
     const p=[b[0]+(a[0]-b[0])*radius/before,b[1]+(a[1]-b[1])*radius/before];
     const q=[b[0]+(c[0]-b[0])*radius/after,b[1]+(c[1]-b[1])*radius/after];
     pts.push(p);
@@ -36,19 +36,19 @@ const roundedTrack=(from,to,vertices)=>{
 };
 export const EP004_SHOT05_TRACKS=Object.freeze({
   OUTLOOK_PRIMARY:Object.freeze({from:'outlook',to:'primary',
-    path:'M 468 330 H 726',start:Object.freeze([468,330]),end:Object.freeze([726,330]),
-    segments:Object.freeze([[468,330],[726,330]])}),
+    path:'M 360 330 H 726',start:Object.freeze([360,330]),end:Object.freeze([726,330]),
+    segments:Object.freeze([[360,330],[726,330]])}),
   PRIMARY_MAILBOX:Object.freeze({from:'primary',to:'exchange',
-    path:'M 1194 330 H 1408',start:Object.freeze([1194,330]),end:Object.freeze([1408,330]),
-    segments:Object.freeze([[1194,330],[1408,330]])}),
+    path:'M 1194 330 H 1560',start:Object.freeze([1194,330]),end:Object.freeze([1560,330]),
+    segments:Object.freeze([[1194,330],[1560,330]])}),
   TEAMS_ALTERNATIVE:Object.freeze({from:'teams',to:'alternative',
-    path:'M 468 745 H 726',start:Object.freeze([468,745]),end:Object.freeze([726,745]),
-    segments:Object.freeze([[468,745],[726,745]])}),
+    path:'M 360 745 H 726',start:Object.freeze([360,745]),end:Object.freeze([726,745]),
+    segments:Object.freeze([[360,745],[726,745]])}),
   ALTERNATIVE_TEAMS:Object.freeze({from:'alternative',to:'teamsService',
-    path:'M 1194 745 H 1408',start:Object.freeze([1194,745]),end:Object.freeze([1408,745]),
-    segments:Object.freeze([[1194,745],[1408,745]])}),
-  TEAMS_FAILOVER:roundedTrack('teams','primary',[[468,745],[574,745],[574,430],[726,430]]),
-  PRIMARY_TEAMS:roundedTrack('primary','teamsService',[[1194,430],[1312,430],[1312,745],[1408,745]]),
+    path:'M 1194 745 H 1560',start:Object.freeze([1194,745]),end:Object.freeze([1560,745]),
+    segments:Object.freeze([[1194,745],[1560,745]])}),
+  TEAMS_FAILOVER:roundedTrack('teams','primary',[[360,745],[574,745],[574,430],[726,430]]),
+  PRIMARY_TEAMS:roundedTrack('primary','teamsService',[[1194,430],[1312,430],[1312,745],[1560,745]]),
 });
 const weighted=ch=>{
   if(ch===' ')return .33;
@@ -75,10 +75,10 @@ export function validateEp004Shot05SafeLayout(){
   const seen=Object.values(EP004_SHOT05_NODES);
   for(const [key,node] of Object.entries(EP004_SHOT05_NODES)){
     const width=ep004Shot05MeasuredTextWidth(node.title,node.font)+54;
-    if(width>node.w)throw Error('SHOT05_LABEL_MUST_FIT_'+key+'_'+width);
+    if(width>node.labelWidth)throw Error('SHOT05_LABEL_MUST_FIT_'+key+'_'+width);
     if(node.x<EP004_SHOT05_SAFE_FRAME.left||node.y<205
       ||node.x+node.w>EP004_SHOT05_SAFE_FRAME.right
-      ||node.y+node.h>EP004_SHOT05_SAFE_FRAME.bottom)
+      ||node.y+node.h+node.font+18>EP004_SHOT05_SAFE_FRAME.bottom)
       throw Error('SHOT05_NODE_OUTSIDE_FRAME_'+key);
   }
   for(let i=0;i<seen.length;i++)for(let j=i+1;j<seen.length;j++){

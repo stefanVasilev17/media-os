@@ -1,4 +1,4 @@
-export type Ep004Shot05Node={readonly x:number;readonly y:number;readonly w:number;readonly h:number;readonly title:string;readonly font:number};
+export type Ep004Shot05Node={readonly x:number;readonly y:number;readonly w:number;readonly h:number;readonly title:string;readonly font:number;readonly labelWidth:number};
 export type Ep004Shot05Track={
   readonly from:string;readonly to:string;readonly path:string;
   readonly start:readonly [number,number];readonly end:readonly [number,number];
@@ -22,7 +22,7 @@ export type Ep004Shot05ClarityState={
   readonly visibleHistory:readonly string[];readonly sourcePush:number;
   readonly stageHoldFrames:number;
 };
-export declare const EP004_SHOT05_CLARITY_GRAMMAR:'DIRECTOR_CHECKPOINT_REROUTE_V9';
+export declare const EP004_SHOT05_CLARITY_GRAMMAR:'ICONIC_GRID_MOTION_V10';
 export declare const EP004_SHOT05_SAFE_FRAME:Readonly<{left:number;right:number;top:number;bottom:number}>;
 export declare const EP004_SHOT05_NODES:Readonly<Record<
   'outlook'|'teams'|'primary'|'alternative'|'exchange'|'teamsService',Ep004Shot05Node>>;
