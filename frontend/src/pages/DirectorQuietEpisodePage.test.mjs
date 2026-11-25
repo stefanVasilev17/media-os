@@ -43,7 +43,7 @@ describe('Long episode Full Video remains one player and non-blocking',()=>{
     expect(page).toContain('(film?.locks.length??0)<2');
     expect(page).toContain('window.setInterval');
     expect(page).toContain('window.clearInterval');
-    expect(page).toContain('The combined MP4 will appear above the individual clips automatically.');
+    expect(page).toContain('The combined MP4 will appear automatically in this single player.');
     expect(page).toContain('Full Video is ready.');
     expect(page).toContain('src={fullUrl}');
     expect(page).toContain('key={fullUrl}');
@@ -73,12 +73,12 @@ describe('Director sees only one current SHOT preview and one Full Video tab',()
     expect(page).toContain('> Full Video</button>');
     expect(page).toContain('src={fullUrl}');
     expect(page).toContain('key={fullUrl}');
-    expect(page).toContain('lockedClipsToPreview=(film?.locks??[]).filter');
-    expect(page).toContain('!(film?.renderIds??[]).includes(item.renderId)');
-    expect(page).toContain('lockedClipsToPreview.map(item=>');
-    expect(page).toContain('src={lockedVideoUrl(item.renderId)}');
+    expect(page).not.toContain('lockedClipsToPreview=(film?.locks??[]).filter');
+    expect(page).not.toContain('!(film?.renderIds??[]).includes(item.renderId)');
+    expect(page).not.toContain('lockedClipsToPreview.map(item=>');
+    expect(page).not.toContain('src={lockedVideoUrl(item.renderId)}');
     expect(page).toContain('Locked');
-    expect(page).toContain('Only the currently locked videos are shown.');
+    expect(page).toContain('Only the combined MP4 of the currently locked sequence is shown.');
   });
   it('does not auto lock or start any new paid render from the Full Video tab',()=>{
     expect(page).toContain('lockShot(selectedVideo.renderId)');

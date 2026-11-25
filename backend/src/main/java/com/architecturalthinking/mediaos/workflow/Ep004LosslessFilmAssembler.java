@@ -28,7 +28,7 @@ final class Ep004LosslessFilmAssembler {
 
     static void assemble(Path directory,int shotCount,int expectedFrames)
             throws IOException,InterruptedException {
-        if(directory==null||shotCount<2||shotCount>MAX_SHOTS||expectedFrames<shotCount)
+        if(directory==null||shotCount<2||shotCount>MAX_SHOTS||expectedFrames<shotCount||expectedFrames>180000)
             throw new IllegalArgumentException("Invalid bounded full film assembly request.");
         List<String> files=new ArrayList<>();
         Track referenceVideo=null,referenceAudio=null;
@@ -40,18 +40,18 @@ final class Ep004LosslessFilmAssembler {
             Path input=directory.resolve(file);
             if(!Files.isRegularFile(input)||Files.size(input)<1024)
                 throw new IOException("A Director-locked source MP4 is missing.");
-            Map<String,String> v=probe(input,"v:0",true);
-            Map<String,String> a=probe(input,"a:0",false);
+            Map<String,String> v=probe(input,"v:0");
+            Map<String,String> a=probe(input,"a:0");
             if(!"h264".equals(v.get("codec_name"))||
                     !"1920".equals(v.get("width"))||
                     !"1080".equals(v.get("height"))||
                     !"30/1".equals(v.get("r_frame_rate"))||
                     !"aac".equals(a.get("codec_name")))
                 throw new IOException("All LOCKED SHOTs must contain 1080p/30 H264 video and AAC audio.");
-            int frames;
-            try{frames=Integer.parseInt(v.getOrDefault("nb_read_frames","-1"));}
-            catch(NumberFormatException ex){frames=-1;}
-            if(frames<1)throw new IOException("SHOT MP4 has no verified video frames.");
+            // Count actual decoded frames once, during the mandatory pixel-hash pass.
+            List<String> hashes=decodedVideoHashes(input,directory.resolve("source-"+i+".md5"),false);
+            int frames=hashes.size();
+            verifyMetadataFrameCount(v,frames);
             counted=Math.addExact(counted,frames);
             Track video=new Track(v.get("codec_name"),v.get("width")+"x"+v.get("height")
                     +"@"+v.get("r_frame_rate"));
@@ -68,8 +68,6 @@ final class Ep004LosslessFilmAssembler {
             LOG.info("Full Video input {} frames={} videoTimeBase={} profile={} codecTag={} extradataHash={} audioTimeBase={}",
                 file,frames,v.get("time_base"),v.get("profile"),v.get("codec_tag_string"),
                 v.get("extradata_hash"),a.get("time_base"));
-            List<String> hashes=decodedVideoHashes(input,directory.resolve("source-"+i+".md5"),false);
-            if(hashes.size()!=frames)throw new IOException("Source decoded frame hash count mismatch.");
             sourceHashes.addAll(hashes);
             String normalized=String.format(Locale.ROOT,"normalized%02d.mp4",i);
             run(List.of("ffmpeg","-hide_banner","-nostdin","-loglevel","error",
@@ -105,8 +103,8 @@ final class Ep004LosslessFilmAssembler {
         }
         if(!Files.isRegularFile(output)||Files.size(output)<1024)
             throw new IOException("Full film has no valid MP4 output.");
-        Map<String,String> filmVideo=probe(output,"v:0",true);
-        Map<String,String> filmAudio=probe(output,"a:0",false);
+        Map<String,String> filmVideo=probe(output,"v:0");
+        Map<String,String> filmAudio=probe(output,"a:0");
         if(!"h264".equals(filmVideo.get("codec_name"))
                 ||!"aac".equals(filmAudio.get("codec_name"))
                 ||!"1920".equals(filmVideo.get("width"))
@@ -114,11 +112,11 @@ final class Ep004LosslessFilmAssembler {
                 ||!"30/1".equals(filmVideo.get("r_frame_rate"))
                 ||!referenceAudio.descriptor().equals(
                     filmAudio.get("sample_rate")+"Hz/"+filmAudio.get("channels")+"ch")
-                ||!Integer.toString(expectedFrames).equals(filmVideo.get("nb_read_frames"))
                 ||!(mixedConfig?"avc3":"avc1").equals(filmVideo.get("codec_tag_string"))
                 ||!"1/90000".equals(filmVideo.get("time_base")))
             throw new IOException("Full film readback failed exact frame, resolution or audio verification.");
-        List<String> assembledHashes=decodedVideoHashes(output,directory.resolve("assembled.md5"),true);
+        verifyMetadataFrameCount(filmVideo,expectedFrames);
+        List<String> assembledHashes=decodedVideoHashes(output,directory.resolve("assembled.md5"),true,expectedFrames);
         if(!sourceHashes.equals(assembledHashes))
             throw new IOException("Full Video decoded pixels do not match the complete locked source sequence.");
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
@@ -151,21 +149,21 @@ final class Ep004LosslessFilmAssembler {
             "-profile:v","high","-level:v","4.1","-color_range","tv","-tag:v","avc1",
             "-g","60","-c:a","copy","-video_track_timescale","90000",
             "-movflags","+faststart","-y",output.toString()),directory.resolve("browser-encode.log"),600);
-        Map<String,String> video=probe(output,"v:0",true);
-        Map<String,String> audio=probe(output,"a:0",false);
+        Map<String,String> video=probe(output,"v:0");
+        Map<String,String> audio=probe(output,"a:0");
         LOG.info("FULL_VIDEO_BROWSER_PROBE expectedFrames={} video={} audio={}",expectedFrames,video,audio);
         if(!"h264".equals(video.get("codec_name"))||!"avc1".equals(video.get("codec_tag_string"))
                 ||!"1920".equals(video.get("width"))||!"1080".equals(video.get("height"))
                 ||!"30/1".equals(video.get("r_frame_rate"))||!"1/90000".equals(video.get("time_base"))
                 ||!"yuv420p".equals(video.get("pix_fmt"))
-                ||!Integer.toString(expectedFrames).equals(video.get("nb_read_frames"))
                 ||!"aac".equals(audio.get("codec_name")))
             throw new IOException("Browser-compatible derivative failed AVC1 verification; expectedFrames="+
                 expectedFrames+" video="+video+" audio="+audio);
+        verifyMetadataFrameCount(video,expectedFrames);
         if(!originalAudio.equals(audioPacketHash(output,directory.resolve("output-audio.sha"))))
             throw new IOException("Browser-compatible derivative changed original AAC packets.");
         // Verify the full decoder timeline, including the last frame, not only container metadata.
-        if(decodedVideoHashes(output,directory.resolve("browser-decoded.md5"),true).size()!=expectedFrames)
+        if(decodedVideoHashes(output,directory.resolve("browser-decoded.md5"),true,expectedFrames).size()!=expectedFrames)
             throw new IOException("Browser-compatible derivative lost decoded frames.");
         LOG.info("FULL_VIDEO_BROWSER_COMPATIBLE_QA_PASS frames={} codec=avc1 pixFmt=yuv420p audioPacketsUnchanged=true",
             expectedFrames);
@@ -184,11 +182,32 @@ final class Ep004LosslessFilmAssembler {
 
     static List<String> decodedVideoHashes(Path video,Path hashes,boolean checkClock)
             throws IOException,InterruptedException {
+        return decodedVideoHashes(video,hashes,checkClock,0);
+    }
+
+    static int decodedFrameTimeoutSeconds(int expectedFrames){
+        if(expectedFrames<0||expectedFrames>180000)
+            throw new IllegalArgumentException("Decoded frame count outside bounded film limits.");
+        return Math.max(240,Math.min(600,60+(expectedFrames+39)/40));
+    }
+
+    static void verifyMetadataFrameCount(Map<String,String> stream,int actualFrames) throws IOException {
+        String count=stream.get("nb_frames");
+        if(count!=null&&!count.isBlank()&&!"N/A".equals(count)){
+            try{
+                if(Integer.parseInt(count)!=actualFrames)
+                    throw new IOException("Container frame count differs from verified decoded frames.");
+            }catch(NumberFormatException ex){throw new IOException("Invalid container frame count.",ex);}
+        }
+    }
+
+    private static List<String> decodedVideoHashes(Path video,Path hashes,boolean checkClock,int expectedFrames)
+            throws IOException,InterruptedException {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",video.toString(),"-map","0:v:0","-an",
             "-c:v","rawvideo","-threads:v","1","-fps_mode","passthrough",
             "-f","framemd5","-y",hashes.toString()),
-            hashes.resolveSibling(hashes.getFileName()+".log"),240);
+            hashes.resolveSibling(hashes.getFileName()+".log"),decodedFrameTimeoutSeconds(expectedFrames));
         List<String> pixels=new ArrayList<>();
         long previous=Long.MIN_VALUE; double ticksPerFrame=1;
         for(String line:Files.readAllLines(hashes)){
@@ -228,23 +247,21 @@ final class Ep004LosslessFilmAssembler {
         }
     }
 
-    private static Map<String,String> probe(Path video,String stream,boolean count)
+    private static Map<String,String> probe(Path video,String stream)
             throws IOException,InterruptedException {
         List<String> command=new ArrayList<>(List.of(
                 "ffprobe","-v","error","-select_streams",stream));
-        if(count)command.add("-count_frames");
         command.addAll(List.of("-show_entries",
-                "stream=codec_name,width,height,r_frame_rate,nb_read_frames,sample_rate,channels,time_base,profile,codec_tag_string,extradata_hash,pix_fmt",
+                "stream=codec_name,width,height,r_frame_rate,nb_frames,sample_rate,channels,time_base,profile,codec_tag_string,extradata_hash,pix_fmt",
                 "-show_data_hash","sha256",
                 "-of","default=noprint_wrappers=1",video.toString()));
-        Process process=new ProcessBuilder(command).redirectErrorStream(true).start();
-        if(!process.waitFor(45,TimeUnit.SECONDS)){
-            process.destroyForcibly();
-            throw new IOException("MP4 stream inspection timed out.");
-        }
-        String output=new String(process.getInputStream().readAllBytes(),StandardCharsets.UTF_8);
-        if(process.exitValue()!=0)
-            throw new IOException("MP4 media inspection failed.");
+        // Metadata only. Redirect to disk so a child cannot block on a full stdout pipe.
+        Path receipt=Files.createTempFile(video.getParent(),"probe-",".txt");
+        String output;
+        try{
+            run(command,receipt,90);
+            output=Files.readString(receipt,StandardCharsets.UTF_8);
+        }finally{Files.deleteIfExists(receipt);}
         Map<String,String> values=new HashMap<>();
         for(String line:output.split("\\R")){
             int eq=line.indexOf('=');

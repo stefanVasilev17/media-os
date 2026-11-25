@@ -330,8 +330,6 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     ?savedRenders.find(item=>item.renderId===locked.renderId)
     :(savedRenders.find(item=>item.canLock)??savedRenders[0]);
   const shotVideoUrl=locked?lockedVideoUrl(locked.renderId):selectedVideo?.videoUrl??null;
-  const lockedClipsToPreview=(film?.locks??[]).filter(item=>
-    !fullUrl||!(film?.renderIds??[]).includes(item.renderId));
   return <main className="director-minimal">
     <header className="director-minimal-top">
       <button type="button" className="director-minimal-back"
@@ -386,13 +384,13 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             <p className="director-minimal-muted">
               {episode.episodeKey==='EP003'
                 ?'The finished Director-approved episode.'
-                :(film?.locks.length??0)+' locked SHOTs. Only the currently locked videos are shown.'}
+                :(film?.locks.length??0)+' locked SHOTs. Only the combined MP4 of the currently locked sequence is shown.'}
             </p>
             {!fullUrl&&(film?.locks.length??0)>=2
               &&film?.state!=='ASSEMBLY_FAILED'&&
               <p role="status" className="director-minimal-muted">
                 Preparing one continuous Full Video from the locked SHOTs.
-                The combined MP4 will appear above the individual clips automatically.
+                The combined MP4 will appear automatically in this single player.
               </p>}
             {fullUrl&&<p role="status" className="director-minimal-muted">
               {film?.preferOriginalPlayback?'The combined MP4 is under repair. Review the original locked SHOTs below.':'Full Video is ready. Watch the complete continuous MP4 below.'}
@@ -427,31 +425,10 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               {!film?.preferOriginalPlayback&&<button type="button" className="director-minimal-subtle"
                 onClick={()=>{setFallbackIndex(null);setFullPlaybackError('');}}>Return to Full Video</button>}
             </div>}
-            {lockedClipsToPreview.length>0&&
-              <div className="director-minimal-locked-clips">
-                {fullUrl&&<p className="director-minimal-muted">
-                  Also locked, waiting for the preceding SHOTs:</p>}
-                {lockedClipsToPreview.map(item=><div key={item.shotKey}
-                  className="director-minimal-locked-clip">
-                  <p className="director-minimal-locked-clip-name">
-                    <Check size={15}/> {item.shotKey} · Locked
-                  </p>
-                  <video controls playsInline preload="metadata"
-                    className="director-minimal-video"
-                    src={lockedVideoUrl(item.renderId)}
-                    aria-label={'Locked '+item.shotKey+' MP4'}/>
-                </div>)}
-              </div>}
-            {!fullUrl&&lockedClipsToPreview.length===0&&
-              <p className="director-minimal-empty">
-                No SHOTs are locked yet. The full film appears here when consecutive
-                SHOTs starting with SHOT01 are locked.
-              </p>}
-            {!fullUrl&&lockedClipsToPreview.length>0&&
-              <p className="director-minimal-muted">
-                A single combined Full Video will appear after SHOT01 and the following
-                SHOTs are locked in order. The locked videos above are already available.
-              </p>}
+            {!fullUrl&&(film?.locks.length??0)===0&&
+              <p className="director-minimal-empty">No SHOTs are locked yet. The full film appears here when consecutive SHOTs starting with SHOT01 are locked.</p>}
+            {!fullUrl&&(film?.locks.length??0)>0&&film?.state!=='ASSEMBLY_FAILED'&&
+              <p className="director-minimal-muted">Locked SHOTs are preserved. Only the complete combined MP4 will appear here.</p>}
             {film?.state==='ASSEMBLY_FAILED'&&<>
               <p role="alert" className="director-minimal-error">
                 Assembly needs attention. Locked SHOT MP4s are preserved. {film.error}</p>

@@ -142,4 +142,16 @@ class Ep004LosslessFilmAssemblerTest {
         assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(
             result,folder.resolve("fixed.md5"),true).size());
     }
+    @Test void metadataProbeDoesNotDecodeTheWholeFilmTwice() throws Exception {
+        String source=Files.readString(Path.of("src/main/java/com/architecturalthinking/mediaos/workflow/Ep004LosslessFilmAssembler.java"));
+        assertFalse(source.contains("\"-count_frames\""));
+        assertTrue(source.contains("sourceHashes.equals(assembledHashes)"));
+        assertTrue(source.contains("decodedVideoHashes(output,directory.resolve(\"browser-decoded.md5\"),true,expectedFrames).size()!=expectedFrames"));
+        assertDoesNotThrow(()->Ep004LosslessFilmAssembler.verifyMetadataFrameCount(java.util.Map.of(),23937));
+        assertDoesNotThrow(()->Ep004LosslessFilmAssembler.verifyMetadataFrameCount(java.util.Map.of("nb_frames","23937"),23937));
+        assertThrows(IOException.class,()->Ep004LosslessFilmAssembler.verifyMetadataFrameCount(java.util.Map.of("nb_frames","23936"),23937));
+        assertEquals(240,Ep004LosslessFilmAssembler.decodedFrameTimeoutSeconds(135));
+        assertEquals(600,Ep004LosslessFilmAssembler.decodedFrameTimeoutSeconds(23937));
+        assertThrows(IllegalArgumentException.class,()->Ep004LosslessFilmAssembler.decodedFrameTimeoutSeconds(180001));
+    }
 }
