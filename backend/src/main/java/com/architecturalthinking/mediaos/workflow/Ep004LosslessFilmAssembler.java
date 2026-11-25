@@ -145,10 +145,10 @@ final class Ep004LosslessFilmAssembler {
         String originalAudio=audioPacketHash(input,directory.resolve("input-audio.sha"));
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",input.toString(),"-map","0:v:0","-map","0:a:0",
-            "-vf","settb=1/90000,setpts=N*3000,format=yuv420p",
+            "-vf","settb=1/90000,setpts=N*3000,scale=in_range=auto:out_range=tv,format=yuv420p,setparams=range=limited",
             "-enc_time_base","1:30","-fps_mode","passthrough",
             "-c:v","libx264","-preset","ultrafast","-crf","16","-threads:v","2",
-            "-profile:v","high","-level:v","4.1","-tag:v","avc1",
+            "-profile:v","high","-level:v","4.1","-color_range","tv","-tag:v","avc1",
             "-g","60","-c:a","copy","-video_track_timescale","90000",
             "-movflags","+faststart","-y",output.toString()),directory.resolve("browser-encode.log"),600);
         Map<String,String> video=probe(output,"v:0",true);
