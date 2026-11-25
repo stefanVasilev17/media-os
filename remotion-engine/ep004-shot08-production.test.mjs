@@ -104,7 +104,7 @@ test('SHOT08 verified media gate, composition and seam ordering before complete'
 });
 test('SHOT08 three distinct views, no decorative labels and actual first-frame seam',async()=>{
  const s=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
- for(const x of ['<Regions s={s}/>','<Dependencies s={s}/>','<Outcome s={s} frame={frame}/>','<Reel s={s.inherited} rescue/>','frame===0&&props.previousLastFrameDataUri','Scale constraint','Partial recovery','Inbox unavailable'])assert.ok(s.includes(x),x);
+ for(const x of ['<Regions s={s} frame={frame}/>','<Dependencies s={s}/>','<Outcome s={s} frame={frame}/>','<Reel s={s.inherited} rescue/>','frame===0&&props.previousLastFrameDataUri','Scale constraint','Partial recovery','Inbox unavailable'])assert.ok(s.includes(x),x);
  assert.ok(!/ILLUSTRATIVE REQUEST|Schematic fleet/.test(s));
 });
 
@@ -112,4 +112,29 @@ test('SHOT08 final finite camera push preserves headline and device viewport',as
  const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
  assert.ok(scene.includes('(-s.focus*75)'));
  for(let i=0;i<=100;i++){const focus=i/100,scale=1+focus*.12,x=-focus*75;assert.ok(x+98*scale>=24);assert.ok(x+1545*scale<=1920-24);}
+});
+
+test('SHOT08 V2 exact locked SHOT07 Reel and canonical horizontal Fleet geometry, live transition',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
+ const prior=await readFile(new URL('./src/episodes/ep004/Shot07ProductionScene.tsx',import.meta.url),'utf8');
+ const block=(c,a,b)=>c.slice(c.indexOf(a),c.indexOf(b,c.indexOf(a)));
+ assert.equal(block(scene,'const Fleet:','const ReelServer:'),block(prior,'const Fleet:','const FleetSilhouette:'));
+ assert.equal(block(scene,'const ReelServer:','const Dots:' ).trim(),block(prior,'const ReelServer:','export const Shot07ProductionScene:').trim());
+ const s=f=>shot08State(f,p08);
+ assert.equal(s(0).horizontalMix,0);assert.equal(s(24).horizontalMix,0);assert.equal(s(72).horizontalMix,1);
+ assert.deepEqual(s(0).inherited.packets.map(({x,y,phase})=>({x,y,phase})),shot07State(2605,previous08).packets.map(({x,y,phase})=>({x,y,phase})));
+ assert.deepEqual(s(72).horizontal.states,s(72).inherited.states);
+ assert.ok(s(72).horizontal.packets.every(p=>p.destination===undefined||p.destination===2));
+ assert.ok(new Set(Array.from({length:30},(_,i)=>JSON.stringify(s(42+i).horizontal.packets))).size>=20);
+ assert.ok(s(90).openingMix===0&&s(137).openingMix>.99);
+});
+test('SHOT08 V2 regional modernized materials and horizontal local route ports, no rejected subtitle',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
+ assert.ok(!/Reported regional capacity partitions|conceptual view/.test(scene));
+ assert.ok(scene.includes('<Router showLabels={false}/>'));
+ assert.ok(scene.includes('activity={activity}'));
+ const {REGION_ROUTES,REGION_X}=await import('./src/components/architectural-thinking/EP004Shot08ProductionWorld.mjs');
+ for(let i=0;i<6;i++){const x=REGION_X[Math.floor(i/2)],route=REGION_ROUTES[i];assert.equal(route[0][0],x-99.2);assert.deepEqual(route.at(-1),[x+30,402+(i%2)*214]);assert.ok(route.every(([px])=>px>=x-252&&px<=x+252));}
+ assert.ok(shot08State(600,p08).regions.some(p=>p.tone==='red'));
+ assert.ok(shot08State(600,p08).regions.some(p=>p.tone==='green'));
 });

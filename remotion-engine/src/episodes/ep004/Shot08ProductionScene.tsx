@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
-import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
+import {SHOT06_INPUTS,SHOT06_OUTPUTS,SHOT06_FLEET,shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 import {REEL_INPUT,REEL_OUTPUTS} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import type {CascadeState} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import {REGION_X,REGION_ROUTES,PRODUCT_NAMES,PRODUCT_Y,PRIMARY_ROUTES,ALT_ROUTES,OUTCOME_MAIL,OUTCOME_OTHER,shot08State,validateEp004Shot08Production} from '../../components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
@@ -56,6 +56,13 @@ const Router:React.FC<{showLabels?:boolean}>=({showLabels=true})=> <g transform=
 </g>;
 
 const PacketLayer:React.FC<{s:CascadeState;reel?:boolean}>=({s,reel=false})=><g>{s.packets.map(p=><g key={p.id+'-'+p.phase}><circle cx={p.x} cy={p.y} r={reel?13:17} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.12:.09}/><circle cx={p.x} cy={p.y} r={reel?8:10} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.65:1}/></g>)}</g>;
+const Fleet:React.FC<{s:CascadeState;compact?:boolean}>=({s,compact=false})=><g>
+ {SHOT06_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}
+ {SHOT06_OUTPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={i===2?VIOLET:CYAN} active={s.states[i].status!=='Unresponsive'}/>)}
+ <Client y={383} mail showLabels={!compact}/><Client y={593} mail={false} showLabels={!compact}/><Router showLabels={!compact}/>
+ {SHOT06_FLEET.map((n,i)=><Server key={n.id} x={n.x} y={n.y} id={n.id} status={s.states[i].status} load={s.states[i].load} showLabels={!compact}/>)}
+ <PacketLayer s={s}/>
+ </g>;
 const ReelServer:React.FC<{x:number;id:string;status:string;load:number}>=({x,id,status,load})=>{
  const tint=status==='Unresponsive'?RED:status==='Higher load'?AMBER:GREEN;
  return <g transform={'translate('+x+' 650)'}>
@@ -111,29 +118,34 @@ const Header:React.FC<{title:string;sub?:string}>=({title,sub})=><g>
  {sub&&<text x="102" y="166" fontSize="27" fill="#B4C6D3">{sub}</text>}
  <path d="M101 190H204" stroke={CYAN} strokeWidth="5" strokeLinecap="round"/>
 </g>;
-const Gateway:React.FC<{x:number;y:number;w:number;h:number;failed?:boolean;quiet?:boolean}>=({x,y,w,h,failed=false,quiet=false})=><g transform={'translate('+x+' '+y+')'} opacity={quiet?.48:1}>
+const Gateway:React.FC<{x:number;y:number;w:number;h:number;failed?:boolean;quiet?:boolean;activity?:number}>=({x,y,w,h,failed=false,quiet=false,activity})=><g transform={'translate('+x+' '+y+')'} opacity={quiet?.48:1}>
  <ellipse cx={w/2} cy={h+14} rx={w*.51} ry="12" fill="#000" opacity=".3"/>
  <path d={'M0 0L18 -19H'+(w-18)+'L'+w+' 0Z'} fill="url(#s6Top)" stroke="#8395A6" strokeWidth="1.8"/>
  <rect width={w} height={h} rx="9" fill="url(#s6Metal)" stroke={failed?RED:'#8197A7'} strokeWidth="2"/>
  <rect x="11" y="10" width={w-22} height={h-20} rx="6" fill="url(#s6Face)" stroke="#546B80"/>
  <rect x="23" y="21" width={Math.min(54,w*.26)} height={h-42} rx="3" fill="url(#s6Vent)"/>
- {[0,1].map(i=><g key={i}><path d={'M'+w*.36+' '+(h*.33+i*h*.29)+'H'+w*.75} stroke="#758A9D" strokeWidth="8" strokeLinecap="round"/><circle cx={w*.88} cy={h*.33+i*h*.29} r="5" fill={failed?RED:GREEN}/></g>)}
+ {activity!==undefined&&<g><path d={'M9 3H'+(w-10)} stroke="#B8CAD8" strokeWidth="1.8" opacity=".55"/><path d={'M13 '+(h-8)+'H'+(w-13)} stroke="#060C13" strokeWidth="3"/>{[8,w-8].map(px=><g key={px}><circle cx={px} cy="15" r="2.5" fill="#A3AEB9"/><circle cx={px} cy={h-15} r="2.5" fill="#A3AEB9"/></g>)}<rect x={w*.36} y={h*.77} width={w*.39} height="5" rx="2.5" fill="#101923"/><rect x={w*.36} y={h*.77} width={w*.39*(failed?.18:.48+activity*.32)} height="5" rx="2.5" fill={failed?RED:GREEN} opacity={.72+activity*.22}/></g>}
+ {[0,1].map(i=><g key={i}><path d={'M'+w*.36+' '+(h*.33+i*h*.29)+'H'+w*.75} stroke="#758A9D" strokeWidth="8" strokeLinecap="round"/><circle cx={w*.88} cy={h*.33+i*h*.29} r="5" fill={failed?RED:GREEN} opacity={activity===undefined?1:.64+activity*.36}/>{activity!==undefined&&<circle cx={w*.88} cy={h*.33+i*h*.29} r="10" fill={failed?RED:GREEN} opacity={.08+activity*.13}/>}</g>)}
 </g>;
-const Regions:React.FC<{s:RegionState}>=({s})=><g>
- <Header title={s.incident?'REGIONAL CONTAINMENT FAILED':'ISOLATION LIMITS THE BLAST RADIUS'} sub={s.incident?'Reported regional capacity partitions — conceptual view':'Capacity units organized into regions'}/>
+const Regions:React.FC<{s:RegionState;frame:number}>=({s,frame})=><g>
+ <Header title={s.incident?'REGIONAL CONTAINMENT FAILED':'ISOLATION LIMITS THE BLAST RADIUS'} sub={!s.incident?'Capacity units organized into regions':undefined}/>
  {REGION_X.map((x,i)=>{
    const level=s.levels[i],bad=level>.5,tone=bad?RED:'#789CAF';
    return <g key={x}>
      <path d={'M'+(x-252)+' 280L'+(x-218)+' 244H'+(x+218)+'L'+(x+252)+' 280V780L'+(x+218)+' 813H'+(x-218)+'L'+(x-252)+' 780Z'} fill={bad?'#492B36':'#203849'} fillOpacity={.37+level*.18} stroke={tone} strokeOpacity=".76" strokeWidth="2.4"/>
      <path d={'M'+(x-252)+' 780L'+(x-218)+' 813H'+(x+218)+'L'+(x+252)+' 780V798L'+(x+218)+' 832H'+(x-218)+'L'+(x-252)+' 798Z'} fill="#09131E" stroke={tone} strokeOpacity=".4"/>
      <text x={x} y="225" textAnchor="middle" fontSize="33" fontWeight="700" fill={WHITE}>Region {String.fromCharCode(65+i)}</text>
-     <rect x={x-89} y="280" width="178" height="52" rx="9" fill="url(#s6Metal)" stroke={tone} strokeWidth="2"/>
-     <path d={'M'+(x-36)+' 306H'+(x+36)+'M'+x+' 291V321'} stroke="#BCD0DF" strokeWidth="4" strokeLinecap="round"/>
-     {[0,1].map(j=><g key={j}>
-       <Route d={shot06Path(REGION_ROUTES[i*2+j])} tone={bad?RED:CYAN}/>
-       <Gateway x={x+(j===0?-115:115)-95} y={510} w={190} h={112} failed={bad}/>
-       <text x={x+(j===0?-115:115)} y="661" textAnchor="middle" fontSize="24" fill={WHITE}>Capacity unit</text>
-     </g>)}
+     <g transform={'translate('+(x-218-685*.36)+' '+(470-440*.36)+') scale(.36)'}><Router showLabels={false}/></g>
+     <text x={x-159} y="562" textAnchor="middle" fontSize="22" fontWeight="650" fill={WHITE}>Router</text>
+     <path d={'M'+(x-240)+' 504H'+(x-218)} stroke={CYAN} strokeWidth="5" strokeLinecap="round"/>
+     {[0,1].map(j=>{
+       const y=346+j*214,activity=.5+.5*Math.sin((frame+i*13+j*23)*.087);
+       return <g key={j}>
+         <Route d={shot06Path(REGION_ROUTES[i*2+j])} tone={bad?RED:CYAN}/>
+         <Gateway x={x+30} y={y} w={190} h={112} failed={bad} activity={activity}/>
+         <text x={x+125} y={y+143} textAnchor="middle" fontSize="24" fill={WHITE}>Capacity unit</text>
+       </g>;
+     })}
      <path d={'M'+(x-210)+' 715H'+(x+210)} stroke={tone} strokeOpacity=".45" strokeWidth="1"/>
      <circle cx={x-138} cy="755" r="7" fill={bad?RED:GREEN}/>
      <text x={x-117} y="764" fontSize="28" fill={bad?RED:GREEN}>{bad?'Affected':'Contained / available'}</text>
@@ -205,8 +217,9 @@ export const Shot08ProductionScene:React.FC<Ep004Shot08RenderProps>=props=>{
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}>
   <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
    <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
-   {s.stage==='regions'&&<g opacity={s.openingMix}><Regions s={s}/></g>}
-   {s.inherited&&<g opacity={1-s.openingMix}><Reel s={s.inherited} rescue/></g>}
+   {s.stage==='regions'&&<g opacity={s.openingMix}><Regions s={s} frame={frame}/></g>}
+   {s.horizontal&&<g opacity={(1-s.openingMix)*s.horizontalMix}><Fleet s={s.horizontal}/><text x="100" y="161" fontSize="46" fontWeight="720" fill={WHITE}>LOCAL RESCUE. GLOBAL FAILURE.</text><path d="M100 191H191" stroke={CYAN} strokeWidth="6" strokeLinecap="round"/></g>}
+   {s.inherited&&<g opacity={(1-s.openingMix)*(1-s.horizontalMix)}><Reel s={s.inherited} rescue/></g>}
    {s.stage==='dependencies'&&<Dependencies s={s}/>}
    {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*75)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s} frame={frame}/></g>}
   </svg>

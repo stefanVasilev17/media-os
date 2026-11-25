@@ -1,6 +1,6 @@
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './EP004Shot01World.mjs';
 import {validateEp004Shot07Production,shot07State} from './EP004Shot07ProductionWorld.mjs';
-import {shot06Length,shot06Point} from './EP004Shot06FleetPreview.mjs';
+import {SHOT06_INPUTS,SHOT06_OUTPUTS,shot06Length,shot06Point} from './EP004Shot06FleetPreview.mjs';
 
 export const EP004_SHOT08_COMPOSITION='EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL';
 export const EP004_SHOT08_PREDECESSOR=Object.freeze({renderId:'c51cbbda-f832-4c46-8a37-cc3116f50e1f',sourceCommit:'232fb7ef9dbcfa2e2d8c3d9e326660ea2a17be56',frames:2606});
@@ -50,7 +50,7 @@ export function validateEp004Shot08Production(p,requireFrame=false){
 }
 
 export const REGION_X=Object.freeze([390,960,1530]);
-export const REGION_ROUTES=Object.freeze(REGION_X.flatMap(x=>[-115,115].map(dx=>[[x,332],[x,405],[x+dx,405],[x+dx,510]])));
+export const REGION_ROUTES=Object.freeze(REGION_X.flatMap(x=>[402,616].map(y=>[[x-99.2,504.2],[x-45,504.2],[x-45,y],[x+30,y]])));
 export const PRODUCT_NAMES=Object.freeze(['Exchange Online','Teams','OneDrive','SharePoint','Office']);
 export const PRODUCT_Y=Object.freeze([330,480,600,720,840]);
 export const PRIMARY_ROUTES=Object.freeze(PRODUCT_Y.map(y=>[[430,y],[610,y],[610,390],[875,390]]));
@@ -66,17 +66,39 @@ function moving(path,frame,epoch,period,reverse=false){
  }
  return items;
 }
+// Exact horizontal geometry used by SHOT07. Preserve final server states; route
+// new illustrative requests only to the surviving destination, never to failed nodes.
+function horizontalFleet(frame,inherited){
+ const packets=[];
+ for(let born=Math.floor(frame/18)*18;born>=frame-230;born-=18){
+  const id=Math.round(born/18),lane=mod(id,2),input=SHOT06_INPUTS[lane],len=shot06Length(input),d=(frame-born)*10;
+  if(d<=len){packets.push({id,lane,phase:'INGRESS',...shot06Point(input,d)});continue;}
+  const dispatch=born+Math.ceil(len/10)+24;
+  if(frame<dispatch)continue;
+  const out=SHOT06_OUTPUTS[2],travel=(frame-dispatch)*10;
+  if(travel<=shot06Length(out))packets.push({id,lane,phase:'TO_SERVER',destination:2,...shot06Point(out,travel)});
+ }
+ return {...inherited,stage:'fleet',packets};
+}
 export function shot08State(frame,p){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT08_FRAME_OUTSIDE_PRODUCTION');
  const e=p.eventFrames,t=p.verifiedCues.map(c=>c.startFrame),prev=p.previousShot07Props;
  const opening=frame<t[0]+48;
  const inherited=opening?shot07State(prev.durationInFrames-1-72+mod(frame,72),prev):null;
+ const horizontalMix=smooth((frame-24)/48);
+ const horizontal=opening?horizontalFleet(frame,inherited):null;
  const stage=frame<t[5]?'regions':frame<t[8]?'dependencies':'outcome';
  const incident=frame>=t[3],lost=frame>=e.SEPARATE_ISSUE;
  const levels=[1,lost?smooth((frame-e.SEPARATE_ISSUE)/60):0,frame>=e.WIDER_IMPACT?smooth((frame-e.WIDER_IMPACT)/60):0];
  const regions=REGION_ROUTES.flatMap((path,i)=>{
    const bad=levels[Math.floor(i/2)]>.5;
-   return moving(path,frame,t[0],24+i%2*6).map(pt=>({...pt,tone:bad?'red':'cyan'}));
+   const start=t[0],period=24+i%2*6,len=shot06Length(path),out=[];
+   for(let born=start+Math.floor((frame-start)/period)*period;born>=Math.max(start,frame-150);born-=period){
+     const d=(frame-born)*10;
+     if(d<=len)out.push({...shot06Point(path,d),tone:'cyan'});
+     else if(d<=2*len+80)out.push({...shot06Point(path,Math.min(len,2*len+80-d)),tone:bad?'red':'green'});
+   }
+   return out;
  });
  const moved=frame>=e.ALTERNATE_RECOVERY,primary=[],alternate=[];
  PRODUCT_Y.forEach((y,i)=>{
@@ -103,7 +125,7 @@ export function shot08State(frame,p){
  });
  const user=frame>=e.USER_CONTRAST;
  const outcome=[...moving(OUTCOME_MAIL,frame,t[8],28).map(pt=>({...pt,tone:'cyan'})),...moving(OUTCOME_MAIL,frame,t[8]+60,28,true).map(pt=>({...pt,tone:'red'})),...(user?moving(OUTCOME_OTHER,frame,e.USER_CONTRAST,28).map(pt=>({...pt,tone:'green'})):[])];
- return {stage,inherited,openingMix:smooth((frame-t[0])/48),incident,lost,levels,bulkhead:frame>=e.BULKHEAD&&frame<t[3],regions,primary,alternate,moved,serviceNames:frame>=e.SERVICE_NAMES,exchange:frame>=e.EXCHANGE_CONSTRAINT,user,outcome,focus:stage==='outcome'?smooth((frame-Math.max(e.USER_CONTRAST,p.durationInFrames-100))/100):0};
+ return {stage,inherited,horizontal,horizontalMix,openingMix:smooth((frame-t[0])/48),incident,lost,levels,bulkhead:frame>=e.BULKHEAD&&frame<t[3],regions,primary,alternate,moved,serviceNames:frame>=e.SERVICE_NAMES,exchange:frame>=e.EXCHANGE_CONSTRAINT,user,outcome,focus:stage==='outcome'?smooth((frame-Math.max(e.USER_CONTRAST,p.durationInFrames-100))/100):0};
 }
 export function verifyEp004Shot08ActualMotion(p){
  validateEp004Shot08Production(p);const e=p.eventFrames,s=f=>shot08State(f,p);

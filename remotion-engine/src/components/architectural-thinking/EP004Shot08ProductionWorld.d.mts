@@ -3,7 +3,7 @@ import type {Point} from './EP004Shot06FleetPreview.mjs';
 export type EventKey='BULKHEAD'|'SEPARATE_ISSUE'|'WIDER_IMPACT'|'SERVICE_NAMES'|'ALTERNATE_RECOVERY'|'EXCHANGE_CONSTRAINT'|'USER_CONTRAST';
 export type Ep004Shot08RenderProps=Omit<Ep004Shot07RenderProps,'previousShot06Props'|'eventFrames'>&{previousShot07Props:Ep004Shot07RenderProps;eventFrames:Record<EventKey,number>};
 export type Dot={x:number;y:number;tone:string};
-export type RegionState={stage:'regions'|'dependencies'|'outcome';inherited:CascadeState|null;openingMix:number;incident:boolean;lost:boolean;levels:number[];bulkhead:boolean;regions:Dot[];primary:Dot[];alternate:Dot[];moved:boolean;serviceNames:boolean;exchange:boolean;user:boolean;outcome:Dot[];focus:number};
+export type RegionState={stage:'regions'|'dependencies'|'outcome';inherited:CascadeState|null;horizontal:CascadeState|null;horizontalMix:number;openingMix:number;incident:boolean;lost:boolean;levels:number[];bulkhead:boolean;regions:Dot[];primary:Dot[];alternate:Dot[];moved:boolean;serviceNames:boolean;exchange:boolean;user:boolean;outcome:Dot[];focus:number};
 export declare const EP004_SHOT08_COMPOSITION:string;
 export declare const EP004_SHOT08_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
 export declare const SHOT08_BEATS:readonly string[];
