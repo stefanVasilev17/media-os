@@ -147,6 +147,8 @@ public final class Ep004DirectorSimpleFilmController {
             ?"Full Video joining needs a retry. All locked SHOT files are preserved.":null);
         response.put("filmId",ready?film.id().toString():null);
         response.put("videoUrl",ready?versionedFilmUrl(packageId,film.id()):null);
+        response.put("preferOriginalPlayback",ready&&
+            UUID.fromString("c3ea6bc0-f7cc-3919-9314-ced3deced186").equals(film.id()));
         return response;
     }
 
@@ -505,7 +507,7 @@ public final class Ep004DirectorSimpleFilmController {
             if(prefix.size()!=6||!exactShot06.equals(prefix.get(5).renderId())
                     ||!current(previous,prefix)||!exactLossless.equals(previous.id())
                     ||previous.frames()!=14096)return;
-            UUID repairId=UUID.nameUUIDFromBytes(("ep004-browser-avc1-v3:"+packageId+":"+
+            UUID repairId=UUID.nameUUIDFromBytes(("ep004-browser-avc1-v4:"+packageId+":"+
                 identity(prefix)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
             String sequence=identity(prefix);
             LOG.info("FULL_VIDEO_AVC1_REPAIR_START packageId={} losslessFilmId={} newFilmId={}",
