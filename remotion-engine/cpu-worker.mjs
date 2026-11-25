@@ -1219,7 +1219,62 @@ async function preflightEp004Shot06PreviousVideo(job,inputProps,directory){
   inputProps.previousLastFrameDataUri='data:image/png;base64,'+png.toString('base64');
   console.log('EP004_SHOT06_PREVIOUS_LOCKED_SHOT05_SHA256_LAST_FRAME_QA_PASS renderId='+
       job.renderId+' previousFrames='+stream.nb_read_frames);
-  return {source,last};
+  const bridge=await prepareEp004Shot06MovingBridge(source,last,directory,inputProps.previousLastEncodedFrame);
+  return {source,last,bridge};
+}
+
+// The locked SHOT05 V10 final packet cycle is 18f and its capacity pulse
+// is 48f. Their shared 144f period permits an actual, forward-moving
+// decoded tail to continue at the same phase without touching SHOT05.
+async function prepareEp004Shot06MovingBridge(source,last,directory,lastFrame){
+  if(lastFrame!==2572)throw Error('SHOT06_MOVING_BRIDGE_EXACT_V10_REQUIRED');
+  const phaseFrame=lastFrame-144;
+  const phasePNG=path.join(directory,'locked-shot05-phase-equivalent.png');
+  const bridge=path.join(directory,'locked-shot05-moving-bridge.mkv');
+  await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror','-nostdin',
+    '-i',source,'-vf','select=eq(n\\,'+phaseFrame+')','-frames:v','1','-vsync','0','-y',phasePNG]);
+  const comparison=await captureNative('ffmpeg',['-hide_banner','-i',last,'-i',phasePNG,
+    '-filter_complex','[0:v][1:v]psnr','-f','null','-']);
+  const match=comparison.stderr.match(/average:(inf|[0-9.]+)/i);
+  const psnr=match?(match[1].toLowerCase()==='inf'?Infinity:Number(match[1])):NaN;
+  if(!(psnr>=30))throw Error('SHOT06_MOVING_BRIDGE_PHASE_NOT_CONTINUOUS');
+  const graph='[0:v]split=2[a][b];[a]trim=start_frame='+lastFrame+':end_frame='+(lastFrame+1)+
+    ',setpts=PTS-STARTPTS[first];[b]trim=start_frame='+(phaseFrame+1)+':end_frame='+(phaseFrame+72)+
+    ',setpts=PTS-STARTPTS[tail];[first][tail]concat=n=2:v=1:a=0,setpts=N/(30*TB)[v]';
+  await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror','-nostdin','-i',source,
+    '-filter_complex_threads','1','-filter_complex',graph,'-map','[v]','-an',
+    '-r','30','-frames:v','72','-c:v','ffv1','-pix_fmt','yuv420p','-y',bridge]);
+  const actual=await captureNative('ffmpeg',['-hide_banner','-loglevel','error',
+    '-i',bridge,'-map','0:v:0','-an','-f','framemd5','-']);
+  const hashes=actual.stdout.split('\n').filter(v=>v&&!v.startsWith('#'))
+    .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
+  if(hashes.length!==72||new Set(hashes.slice(0,30)).size<20)
+    throw Error('SHOT06_REAL_PREDECESSOR_TAIL_MUST_MOVE');
+  console.log('EP004_SHOT06_MOVING_PREDECESSOR_PRECPU_PASS phasePSNR='+psnr+
+    ' first='+lastFrame+' tail='+(phaseFrame+1)+'..'+(phaseFrame+71)+' movingFrames='+new Set(hashes).size);
+  return bridge;
+}
+
+async function compositeEp004Shot06MovingBridge(job,outputPath,bridge,directory){
+  if(job.compositionId!==EP004_SHOT06_REAL)throw Error('SHOT06_WRONG_COMPOSITION');
+  const merged=path.join(directory,'shot06-moving-seam.mp4');
+  // Real previous traffic moves immediately. Reveal the new, already moving
+  // fleet between frames 12 and 60, entirely inside the existing 72f breath.
+  const graph='[1:v]format=yuva420p,fade=t=out:s=12:n=48:alpha=1[old];'+
+    '[0:v][old]overlay=eof_action=pass:repeatlast=0:format=yuv420[v]';
+  await runProcess('ffmpeg',['-hide_banner','-loglevel','error','-xerror','-nostdin',
+    '-i',outputPath,'-i',bridge,'-filter_complex_threads','1','-filter_complex',graph,
+    '-map','[v]','-an','-frames:v',String(job.durationInFrames),
+    '-c:v','libx264','-crf','16','-preset','veryfast','-threads','2',
+    '-movflags','+faststart','-y',merged]);
+  const checked=await captureNative('ffprobe',['-v','error','-select_streams','v:0','-count_frames',
+    '-show_entries','stream=nb_read_frames,width,height,r_frame_rate','-of','json',merged]);
+  const stream=JSON.parse(checked.stdout).streams?.[0];
+  if(!stream||stream.width!==1920||stream.height!==1080||stream.r_frame_rate!=='30/1'||
+    Number(stream.nb_read_frames)!==Number(job.durationInFrames))
+    throw Error('SHOT06_MOVING_BRIDGE_CHANGED_VIDEO_CONTRACT');
+  await fs.rename(merged,outputPath);
+  console.log('EP004_SHOT06_MOVING_PREDECESSOR_COMPOSITE_PASS renderId='+job.renderId);
 }
 
 async function muxEp004Shot06ApprovedVoice(job,videoPath,inputProps){
@@ -1829,6 +1884,7 @@ async function render(job) {
         shot05SourceFrame.last,shot05SourceScratch);
     }
     if(job.compositionId===EP004_SHOT06_REAL){
+      await compositeEp004Shot06MovingBridge(job,outputPath,shot06SourceFrame.bridge,shot06SourceScratch);
       await muxEp004Shot06ApprovedVoice(job,outputPath,inputProps);
       await verifyEp004Shot06SeamAndMotion(job,outputPath,
         shot06SourceFrame.last,shot06SourceScratch);
