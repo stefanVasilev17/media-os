@@ -68,6 +68,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP004_SHOT08_APPROVED_VOICE_REVIEW",null,1920,1080,30,3000,true)),
             Map.entry("EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT09_APPROVED_VOICE_REVIEW",null,1920,1080,30,3000,true)),
+            Map.entry("EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT10_APPROVED_VOICE_REVIEW",null,1920,1080,30,3000,true)),
             Map.entry("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT04_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
@@ -254,6 +256,7 @@ public class RemotionRenderController {
                  || "EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL".equals(compositionId)
                   || "EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL".equals(compositionId)
                   || "EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL".equals(compositionId)
+                  || "EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL".equals(compositionId)
                 || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
@@ -446,6 +449,30 @@ public class RemotionRenderController {
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
+    public Map<String,Object> ensureVerifiedEp004Shot10Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!"EP004".equals(verifiedProps.get("episodeKey"))
+                ||!"SHOT10".equals(verifiedProps.get("shotKey"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("voiceAudioSha256")
+                ||!verifiedProps.containsKey("voiceAudioBytes")
+                ||!"e9a8aa58-61e3-4739-a4c1-32efd13d5426".equals(verifiedProps.get("previousRenderId"))
+                ||!"85efc3127dc9e40accbee0bea44e9309395e64bb".equals(verifiedProps.get("previousSourceCommit"))
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("eventFrames")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!verifiedProps.containsKey("previousVideoSha256")
+                ||!verifiedProps.containsKey("previousShot09Props")
+                ||!verifiedProps.containsKey("previousWorldStartFrame")
+                ||!verifiedProps.containsKey("breathFrames")
+                ||!verifiedProps.containsKey("renderRequestId"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT10 requires exact Director-locked SHOT09 original props, selected current Take and 72-frame authentic voice timing.");
+        return ensureVerifiedRender("EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
         return ensureVerifiedRender("EP002-SHOT01-DRAFT",
                 new RenderRequest("REVIEW",verifiedProps));
@@ -529,7 +556,8 @@ public class RemotionRenderController {
                  ||"EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId)
                  ||"EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL".equals(compositionId)
                   ||"EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL".equals(compositionId)
-                  ||"EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL".equals(compositionId))
+                  ||"EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL".equals(compositionId)
+                  ||"EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)

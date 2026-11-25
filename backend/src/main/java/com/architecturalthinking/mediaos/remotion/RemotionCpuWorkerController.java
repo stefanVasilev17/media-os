@@ -87,6 +87,9 @@ public class RemotionCpuWorkerController {
     static boolean isEp004Shot09Target(String scope) {
         return "EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL".equals(scope);
     }
+    static boolean isEp004Shot10Target(String scope) {
+        return "EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL".equals(scope);
+    }
     public record ProgressRequest(int progress) {}
     public record FailureRequest(String error) {}
 
@@ -110,6 +113,7 @@ public class RemotionCpuWorkerController {
                 && !isEp004Shot07Target(scope)
                  && !isEp004Shot08Target(scope)
                  && !isEp004Shot09Target(scope)
+                 && !isEp004Shot10Target(scope)
                 && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
@@ -433,6 +437,35 @@ public class RemotionCpuWorkerController {
                         where cap.worker_id=:workerId and cap.source_commit=:sourceSha
                           and cap.build_checked=true
                           and cap.bundled_scenes::text like '%EP004-SHOT09%'
+                          and cap.last_heartbeat_at>now()-interval '120 seconds')))
+                  and (composition_id<>'EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL'
+                    or (input_props->>'expectedSourceCommit'=:sourceSha
+                      and :targetComposition='EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL'
+                      and input_props->>'directorCpuApproved'='true'
+                      and input_props->>'previewOnly'='false'
+                      and input_props->>'episodeKey'='EP004'
+                      and input_props->>'shotKey'='SHOT10'
+                      and input_props->>'breathFrames'='72'
+                      and input_props->>'sourceSha256'
+                          ='a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365'
+                      and input_props->>'previousRenderId'='e9a8aa58-61e3-4739-a4c1-32efd13d5426'
+                      and input_props->>'previousSourceCommit'='85efc3127dc9e40accbee0bea44e9309395e64bb'
+                      and input_props->>'previousFrameCount'='2457'
+                      and input_props->>'previousLastEncodedFrame'='2456'
+                      and length(input_props->>'voiceAudioSha256')=64
+                      and length(input_props->>'previousVideoSha256')=64
+                      and exists(select 1 from episode_director_shot_lock l join remotion_render prev on prev.id=l.render_id
+                        where l.package_id=(remotion_render.input_props->>'packageId')::uuid and l.shot_key='SHOT09'
+                          and prev.id::text=remotion_render.input_props->>'previousRenderId' and prev.video_sha256=remotion_render.input_props->>'previousVideoSha256'
+                          and prev.status='SUCCEEDED' and prev.composition_id='EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL')
+                      and jsonb_typeof(input_props->'previousShot09Props')='object'
+                      and jsonb_typeof(input_props->'verifiedCues')='array'
+                      and jsonb_array_length(input_props->'verifiedCues')=6
+                      and jsonb_typeof(input_props->'eventFrames')='object'
+                      and exists(select 1 from episode_factory_worker_capability cap
+                        where cap.worker_id=:workerId and cap.source_commit=:sourceSha
+                          and cap.build_checked=true
+                          and cap.bundled_scenes::text like '%EP004-SHOT10%'
                           and cap.last_heartbeat_at>now()-interval '120 seconds')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha
