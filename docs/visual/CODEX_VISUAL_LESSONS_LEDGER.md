@@ -239,3 +239,11 @@ Director explicitly said SHOT07 is LOCKED, praised the several diagrams again an
 - Preventive rule: same mechanism retains canonical orientation; diversity means changing narrative viewpoint, not inconsistent object identity. Actual final frame must survive intentional vertical-to-horizontal transition. Subtle motion is top-priority alongside AT-VIS-0014; no arbitrary camera/particles or invented telemetry.
 - Verification: source committed; build/runtime checks pending. No automatic paid render.
 - Promotion: AGENTS.md and Visual Constitution, above normal visual rules.
+
+## AT-VIS-0016 — contained status labels and minimal workload captions
+
+- Date / decision: 2026-11-25, Director requested EP004 SHOT09 V2 correction; MP4 acceptance pending.
+- Evidence: actual V1 render 05ae1751-e54c-428b-8fd0-a05811bc9377 at 94a2d05e398ff2eef9e4c0dcbebaeca27d503f8c, Director screenshots: redundant “Illustrative workload pressure” caption; “Responding” exceeds its status-pill boundary. Technical MP4 QA passed, but this is a visual defect.
+- Correction: remove only that caption, retain the live workload bar; extend the Simple check pill from 190 to 250 px while keeping its input port, status dot, type and baseline unchanged. Keep conceptual attribution and all timing, routes, voice and predecessor intact.
+- Preventive rule: measure every status label against its own container, reserving left/right padding and dot spacing, rather than fitting text to the frame alone. Check all animated states and use conservative layout regression guards plus actual rendered visual review. No clipping, squeezing or unjustified smaller text as a substitute for sufficient space.
+- Verification: SHOT09 V2 source regression added; production build/readiness and Director MP4 review pending. No automatic paid render or TTS.

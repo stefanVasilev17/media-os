@@ -112,3 +112,19 @@ test('SHOT09 correct worker preflight, mux, seam order and three distinct views'
  const scene=await readFile(new URL('./src/episodes/ep004/Shot09ProductionScene.tsx',import.meta.url),'utf8');
  for(const x of ['frame===0&&props.previousLastFrameDataUri','GATEWAY RECOVERY','HEALTH CHECK VS. PRODUCTION WORKLOAD','Illustrative contention','ALIVE DOES NOT MEAN READY','<ContentionView s={s}/>'])assert.ok(scene.includes(x),x);
 });
+
+test('SHOT09 V2 removes redundant pressure caption and gives Responding pill safe internal padding',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot09ProductionScene.tsx',import.meta.url),'utf8');
+ assert.ok(!scene.includes('Illustrative workload pressure'));
+ assert.ok(scene.includes('width={Math.max(0,385*s.load)}'));
+ const pill=scene.match(/<rect x="1140" y="352" width="(\d+)" height="76" rx="12" fill="url\(#s6Face\)" stroke=\{GREEN\} strokeWidth="2.5"\/>/);
+ const text=scene.match(/<text x="(\d+)" y="398" fontSize="(\d+)" fontWeight="650" fill=\{GREEN\}>(Responding)<\/text>/);
+ assert.ok(pill&&text);
+ const width=Number(pill[1]), textX=Number(text[1]), font=Number(text[2]);
+ // Conservative advance budget for this fixed Arial label, not a browser glyph measurement.
+ const labelBudget=text[3].length*font*.75;
+ assert.ok(1140+width-textX-labelBudget>=24,'Reserve 24px right padding after conservative label width');
+ assert.ok(textX-(1170+9)>=10,'Keep LED clear of text');
+ assert.ok(1140+width<=1712-24,'Pill stays inside the cutaway');
+ assert.ok(scene.includes('Conceptual gateway cutaway'));
+});
