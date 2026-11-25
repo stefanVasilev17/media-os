@@ -261,9 +261,12 @@ public final class Ep004Shot07DirectorRenderService {
                     }
                     if(eventFrames.size()==EVENTS.size()&&verified.size()==BEAT_IDS.size()){
                         if(eventFrames.get("FLEET_B_FAIL")<(int)verified.get(2).get("startFrame")
+                                ||eventFrames.get("FLEET_B_FAIL")>=(int)verified.get(3).get("startFrame")
                                 ||eventFrames.get("AFFECTED_PERCENT")<(int)verified.get(3).get("startFrame")
                                 ||eventFrames.get("REEL_START")!=(int)verified.get(5).get("startFrame")
-                                ||eventFrames.get("REEL_PRESSURE")!=(int)verified.get(6).get("startFrame"))
+                                ||eventFrames.get("REEL_PRESSURE")!=(int)verified.get(6).get("startFrame")
+                                ||eventFrames.get("REEL_REDIRECT")>=(int)verified.get(7).get("startFrame")
+                                ||eventFrames.get("LOCAL_VS_GLOBAL")<(int)verified.get(7).get("startFrame"))
                             blockers.add("SHOT07_CASCADE_EVENTS_DO_NOT_MATCH_ORIGINAL_BEATS");
                     }
                 }
