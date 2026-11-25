@@ -32,7 +32,8 @@ const compositions:Record<string,string>={
   SHOT04:'EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL',
   SHOT05:'EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL',
   SHOT06:'EP004-SHOT06-SERVER-FLEET-V1-VISUAL',
-  SHOT07:'EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL'
+  SHOT07:'EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL',
+  SHOT08:'EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL'
 };
 async function result<T>(response:Response):Promise<T>{
   if(!response.ok)throw Error('HTTP '+response.status+': '+(await response.text()).slice(0,270));

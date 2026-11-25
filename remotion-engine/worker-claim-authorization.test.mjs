@@ -29,3 +29,8 @@ test('EP004 SHOT07 claims only its exact registered target',()=>{
   assert.equal(requireSupportedTargetComposition('EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL'),'EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL');
   assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT08-CASCADING-FAILURE-V1-VISUAL'));
 });
+
+test('EP004 SHOT08 exact target only',()=>{
+ assert.equal(requireSupportedTargetComposition('EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL'),'EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL');
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT09-REGIONAL-CONTAINMENT-V1-VISUAL'));
+});
