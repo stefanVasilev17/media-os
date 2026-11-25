@@ -56,6 +56,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
                          || operation.equals("/ep004-shot05-previous-video")
                          || operation.equals("/ep004-shot06-selected-voice")
                          || operation.equals("/ep004-shot06-previous-video")
+                         || operation.equals("/ep004-shot07-selected-voice")
+                         || operation.equals("/ep004-shot07-previous-video")
                         || factorySourceOperation(operation)
                         || ep002MasterSourceOperation(operation)));
             return allowed ? new WorkloadRoute("REMOTION_CPU", null) : null;
@@ -112,7 +114,8 @@ public record WorkloadRoute(String scope, UUID jobId) {
                  "/ep004-shot03-previous-video",
                  "/ep004-shot04-selected-voice", "/ep004-shot04-previous-video",
                  "/ep004-shot05-selected-voice", "/ep004-shot05-previous-video",
-                 "/ep004-shot06-selected-voice", "/ep004-shot06-previous-video").contains(operation) && !factorySourceOperation(operation)
+                 "/ep004-shot06-selected-voice", "/ep004-shot06-previous-video",
+                 "/ep004-shot07-selected-voice", "/ep004-shot07-previous-video").contains(operation) && !factorySourceOperation(operation)
                 && !ep002MasterSourceOperation(operation))
             return null;
         return new WorkloadRoute("REMOTION_CPU", null);
