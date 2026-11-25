@@ -97,7 +97,7 @@ test('SHOT09 exact living predecessor phase and cue-driven restart',()=>{
 test('SHOT09 probe response is not proof of workload readiness',()=>{
  const s=f=>shot09State(f,p09);
  assert.equal(s(726).stage,'comparison');
- assert.ok(s(700).probes.some(p=>p.direction==='response'&&p.tone==='green'));
+ assert.ok(s(720).probes.some(p=>p.direction==='response'&&p.tone==='green'));
  assert.equal(s(1218).work.length,0);assert.ok(s(1250).work.length>0);
  assert.equal(s(1589).stage,'comparison');assert.equal(s(1590).stage,'contention');assert.equal(s(1706).contention,false);assert.equal(s(1706).cutWork.length,0);assert.equal(s(1707).stage,'contention');assert.ok(s(1740).cutWork.length>0);
  assert.equal(s(1836).stage,'proof');assert.equal(s(2456).process,'running');
