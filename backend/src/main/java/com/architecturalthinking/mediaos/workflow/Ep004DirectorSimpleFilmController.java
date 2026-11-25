@@ -490,28 +490,59 @@ public final class Ep004DirectorSimpleFilmController {
             .param("frames",frames).update();
     }
 
-    // Director reported the existing six-shot film freezes near its end.
-    // Repair only this exact locked sequence, without modifying a SHOT or replacing the
-    // current film until the new lossless assembly passes full decoded-media QA.
+    // The exact verified lossless AVC3 master is preserved. Create a browser-compatible
+    // AVC1 review derivative only for the Director-reported failed six-shot film.
     @Scheduled(initialDelay=30000,fixedDelay=86400000)
     public void repairReportedSixShotPlayback(){
         if(!playbackRepairAttempted.compareAndSet(false,true))return;
         UUID packageId=UUID.fromString("d11d02a2-b649-44c9-a022-4405149f675e");
         UUID exactShot06=UUID.fromString("2b68bda7-8f0d-471f-a2d5-78e5765ac63e");
+        UUID exactLossless=UUID.fromString("c3ea6bc0-f7cc-3919-9314-ced3deced186");
+        Path folder=null;
         try{
             List<ShotLock> prefix=consecutive(locks(packageId));
             Film previous=currentFilm(packageId);
             if(prefix.size()!=6||!exactShot06.equals(prefix.get(5).renderId())
-                    ||!current(previous,prefix))return;
-            UUID repairId=UUID.nameUUIDFromBytes(("ep004-lossless-playback-v2:"+packageId+":"+
+                    ||!current(previous,prefix)||!exactLossless.equals(previous.id())
+                    ||previous.frames()!=14096)return;
+            UUID repairId=UUID.nameUUIDFromBytes(("ep004-browser-avc1-v3:"+packageId+":"+
                 identity(prefix)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            if(repairId.equals(previous.id()))return;
-            LOG.info("FULL_VIDEO_PLAYBACK_REPAIR_START packageId={} oldFilmId={} newFilmId={} shots=6",
+            String sequence=identity(prefix);
+            LOG.info("FULL_VIDEO_AVC1_REPAIR_START packageId={} losslessFilmId={} newFilmId={}",
                 packageId,previous.id(),repairId);
-            assemble(packageId,identity(prefix),previous.id(),repairId);
-            LOG.info("FULL_VIDEO_PLAYBACK_REPAIR_READY packageId={} filmId={}",packageId,repairId);
+            folder=Files.createTempDirectory("mediaos-film-browser-repair-");
+            Path source=folder.resolve("verified-lossless.mp4");
+            try(var output=Files.newOutputStream(source)){
+                store.streamVideoRange(previous.objectKey(),previous.sha256(),previous.bytes(),
+                    0,previous.bytes()-1,output);
+            }
+            if(Files.size(source)!=previous.bytes()||
+                    !previous.sha256().equals(MediaObjectStore.sha256(source)))
+                throw new IOException("Existing verified lossless film SHA-256 mismatch.");
+            Path output=folder.resolve("browser-compatible.mp4");
+            Ep004LosslessFilmAssembler.browserCompatible(source,output,previous.frames());
+            if(Files.size(output)>MediaObjectStore.MAX_FILM_BYTES)
+                throw new IOException("Browser derivative exceeded the film limit.");
+            MediaObjectStore.Stored saved=store.uploadFilmVerified(repairId,output);
+            Film stillCurrent=currentFilm(packageId);
+            if(!current(stillCurrent,consecutive(locks(packageId)))||
+                    !exactLossless.equals(stillCurrent.id())||
+                    !sequence.equals(stillCurrent.renderIds()))
+                throw new IllegalStateException("Film pointer or Director locks changed during repair.");
+            saveFilm(packageId,repairId,saved.key(),saved.sha256(),saved.byteCount(),
+                previous.count(),sequence,previous.frames());
+            LOG.info("FULL_VIDEO_AVC1_REPAIR_READY packageId={} filmId={} bytes={} frames={}",
+                packageId,repairId,saved.byteCount(),previous.frames());
         }catch(Exception failure){
-            LOG.error("FULL_VIDEO_PLAYBACK_REPAIR_FAILED original film and all locked SHOTs retained",failure);
+            if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
+            LOG.error("FULL_VIDEO_AVC1_REPAIR_FAILED previous lossless film and locked SHOTs retained",failure);
+        }finally{
+            if(folder!=null){
+                try(var files=Files.list(folder)){
+                    files.forEach(path->{try{Files.deleteIfExists(path);}catch(IOException ignored){}});
+                }catch(IOException ignored){}
+                try{Files.deleteIfExists(folder);}catch(IOException ignored){}
+            }
         }
     }
 
