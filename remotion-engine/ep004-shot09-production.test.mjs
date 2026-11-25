@@ -91,7 +91,7 @@ test('SHOT09 exact living predecessor phase and cue-driven restart',()=>{
  assert.equal(s(0).inherited.focus,shot08State(2718,lock08).focus);
  assert.ok(new Set(Array.from({length:30},(_,i)=>JSON.stringify(s(i).inherited.outcome))).size>=20);
  assert.equal(s(73).openingMix,0);assert.equal(s(146).openingMix,1);assert.equal(s(146).inherited,null);
- assert.equal(s(276).process,'failed');assert.equal(s(277).process,'booting');assert.equal(s(326).process,'running');
+ assert.equal(s(276).processState,'failed');assert.equal(s(277).processState,'booting');assert.equal(s(326).processState,'running');
  assert.equal(s(424).probeStarted,false);assert.equal(s(425).probeStarted,true);assert.equal(s(503).health,false);assert.equal(s(504).health,true);assert.equal(s(562).queued.length,0);
 });
 test('SHOT09 probe response is not proof of workload readiness',()=>{
@@ -100,7 +100,7 @@ test('SHOT09 probe response is not proof of workload readiness',()=>{
  assert.ok(s(720).probes.some(p=>p.direction==='response'&&p.tone==='green'));
  assert.equal(s(1218).work.length,0);assert.ok(s(1250).work.length>0);
  assert.equal(s(1589).stage,'comparison');assert.equal(s(1590).stage,'contention');assert.equal(s(1706).contention,false);assert.equal(s(1706).cutWork.length,0);assert.equal(s(1707).stage,'contention');assert.ok(s(1740).cutWork.length>0);
- assert.equal(s(1836).stage,'proof');assert.equal(s(2456).process,'running');
+ assert.equal(s(1836).stage,'proof');assert.equal(s(2456).processState,'running');
  assert.equal(s(2456).health,true);assert.ok(s(2456).load>.5);
  for(const path of [PROBE_ROUTE,WORK_ROUTE])assert.ok(path.every(([x,y])=>x>=0&&x<=1920&&y>=0&&y<=1080));
 });

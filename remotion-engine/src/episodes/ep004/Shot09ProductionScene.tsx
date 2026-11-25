@@ -82,7 +82,7 @@ const Status:React.FC<{x:number;y:number;label:string;value:string;tone:string}>
  <text y="0" fontSize="25" fill="#9FB4C4">{label}</text><circle cy="36" r="8" fill={tone}/><text x="24" y="45" fontSize="33" fontWeight="700" fill={tone}>{value}</text>
 </g>;
 const Recovery:React.FC<{s:RecoveryState;frame:number}>=({s,frame})=>{
- const running=s.process==='running',tone=s.process==='failed'?RED:running?GREEN:AMBER;
+ const running=s.processState==='running',tone=s.processState==='failed'?RED:running?GREEN:AMBER;
  const showProbe=s.probeStarted||s.stage!=='recovery',showWork=s.waiting||s.stage!=='recovery';
  const inside=s.stage==='contention';
  return <g>
@@ -99,9 +99,9 @@ const Recovery:React.FC<{s:RecoveryState;frame:number}>=({s,frame})=>{
    <Router/><Traffic items={s.queued}/><Traffic items={s.work.filter(p=>p.x<=685||p.x>=1015)}/>
   </g>}
   <Gateway x={1160} y={308} w={385} h={144} failed={!running} activity={s.activity}/>
-  {s.process==='booting'&&<g><rect x="1160" y="308" width="385" height="144" rx="9" fill="#14202B" stroke={AMBER} strokeWidth="3" opacity=".7"/><rect x="1181" y="425" height="8" rx="4" width={80+260*s.activity} fill={AMBER}/></g>}
+  {s.processState==='booting'&&<g><rect x="1160" y="308" width="385" height="144" rx="9" fill="#14202B" stroke={AMBER} strokeWidth="3" opacity=".7"/><rect x="1181" y="425" height="8" rx="4" width={80+260*s.activity} fill={AMBER}/></g>}
   <text x="1352" y="263" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>Primary gateway</text>
-  <Status x={1160} y={515} label="Process" value={running?'RUNNING':s.process==='booting'?'STARTING':'UNRESPONSIVE'} tone={tone}/>
+  <Status x={1160} y={515} label="Process" value={running?'RUNNING':s.processState==='booting'?'STARTING':'UNRESPONSIVE'} tone={tone}/>
   {s.health&&<Status x={1160} y={633} label="Basic health" value="RESPONDING" tone={GREEN}/>}
   {s.stage!=='recovery'&&<g>
    <Status x={1160} y={751} label="Readiness under load" value="NOT YET PROVEN" tone={AMBER}/>

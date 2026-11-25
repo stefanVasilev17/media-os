@@ -73,7 +73,7 @@ export function shot09State(frame,p){
  const prior=openingMix<1?shot08State(prev.durationInFrames-1+frame,{...prev,durationInFrames:prev.durationInFrames+frame}):null;
  const inherited=prior?{...prior,focus:shot08State(prev.durationInFrames-1,prev).focus}:null;
  const stage=frame<e.COMPARE?'recovery':frame<e.GREEN_NOT_ENOUGH?'comparison':frame<e.RUNNING_QUESTION?'contention':'proof';
- const process=frame<e.RESTART?'failed':frame<e.RUNNING?'booting':'running';
+ const processState=frame<e.RESTART?'failed':frame<e.RUNNING?'booting':'running';
  const health=frame>=e.PROBE,probeStart=p.verifiedCues[1].startFrame,probeStarted=frame>=probeStart;
  const waiting=frame>=e.WAITING_TRAFFIC;
  const speed=14,arrive=e.READINESS+Math.ceil(shot06Length(WORK_ROUTE)/speed);
@@ -87,12 +87,12 @@ export function shot09State(frame,p){
  const waitCount=Math.min(7,2+Math.floor((frame-e.WAITING_TRAFFIC)/33));
  const admitted=frame>=e.USEFUL_WORK?Math.floor((frame-e.USEFUL_WORK)/55):frame>=e.READINESS?2:0;
  const queued=waiting?Array.from({length:Math.max(2,waitCount-admitted)},(_,i)=>({x:654-i*38,y:545,tone:'amber',direction:'waiting'})):[];
- return {stage,inherited,openingMix,process,health,probeStarted,waiting,load,probes,work,cutProbes,cutWork,queued,contention:frame>=e.CONTENTION,incident:frame>=e.INCIDENT&&frame<e.RUNNING_QUESTION,question:frame>=e.RUNNING_QUESTION,capacity:frame>=e.CAPACITY,activity:.5+.5*Math.sin(frame*.071)};
+ return {stage,inherited,openingMix,processState,health,probeStarted,waiting,load,probes,work,cutProbes,cutWork,queued,contention:frame>=e.CONTENTION,incident:frame>=e.INCIDENT&&frame<e.RUNNING_QUESTION,question:frame>=e.RUNNING_QUESTION,capacity:frame>=e.CAPACITY,activity:.5+.5*Math.sin(frame*.071)};
 }
 export function verifyEp004Shot09ActualMotion(p){
  validateEp004Shot09Production(p);const e=p.eventFrames,s=f=>shot09State(f,p);
  if(!s(0).inherited||new Set(Array.from({length:30},(_,i)=>JSON.stringify(s(i).inherited?.outcome))).size<20)throw Error('SHOT09_OPENING_LIVING_OUTCOME_REQUIRED');
- if(s(e.RESTART-1).process!=='failed'||s(e.RESTART).process!=='booting'||s(e.RUNNING).process!=='running'||s(e.PROBE-1).health||!s(e.PROBE).health||s(e.READINESS-1).work.length||s(e.CONTENTION-1).contention||!s(e.CONTENTION).contention)throw Error('SHOT09_RECOVERY_CAUSALITY');
- if(s(p.durationInFrames-1).process!=='running'||!s(p.durationInFrames-1).health||!s(p.durationInFrames-1).capacity||s(p.durationInFrames-1).load<.5)throw Error('SHOT09_GREEN_IS_NOT_CAPACITY');
+ if(s(e.RESTART-1).processState!=='failed'||s(e.RESTART).processState!=='booting'||s(e.RUNNING).processState!=='running'||s(e.PROBE-1).health||!s(e.PROBE).health||s(e.READINESS-1).work.length||s(e.CONTENTION-1).contention||!s(e.CONTENTION).contention)throw Error('SHOT09_RECOVERY_CAUSALITY');
+ if(s(p.durationInFrames-1).processState!=='running'||!s(p.durationInFrames-1).health||!s(p.durationInFrames-1).capacity||s(p.durationInFrames-1).load<.5)throw Error('SHOT09_GREEN_IS_NOT_CAPACITY');
  return {status:'PASS',restart:e.RESTART,running:e.RUNNING,probe:e.PROBE,readiness:e.READINESS,contention:e.CONTENTION,capacity:e.CAPACITY};
 }

@@ -3,7 +3,7 @@ import type {Point} from './EP004Shot06FleetPreview.mjs';
 export type EventKey='UNRESPONSIVE'|'RESTART'|'RUNNING'|'PROBE'|'WAITING_TRAFFIC'|'COMPARE'|'HEALTH_CHECK'|'PRODUCTION_LOAD'|'READINESS'|'INCIDENT'|'GREEN_NOT_ENOUGH'|'CONTENTION'|'RUNNING_QUESTION'|'USEFUL_WORK'|'GREEN_ENDPOINT'|'CAPACITY';
 export type Ep004Shot09RenderProps=Omit<Ep004Shot08RenderProps,'previousShot07Props'|'eventFrames'>&{previousShot08Props:Ep004Shot08RenderProps;eventFrames:Record<EventKey,number>};
 export type Dot={x:number;y:number;tone:string;direction:string};
-export type RecoveryState={stage:'recovery'|'comparison'|'contention'|'proof';inherited:RegionState|null;openingMix:number;process:'failed'|'booting'|'running';health:boolean;probeStarted:boolean;waiting:boolean;load:number;probes:Dot[];work:Dot[];cutProbes:Dot[];cutWork:Dot[];queued:Dot[];contention:boolean;incident:boolean;question:boolean;capacity:boolean;activity:number};
+export type RecoveryState={stage:'recovery'|'comparison'|'contention'|'proof';inherited:RegionState|null;openingMix:number;processState:'failed'|'booting'|'running';health:boolean;probeStarted:boolean;waiting:boolean;load:number;probes:Dot[];work:Dot[];cutProbes:Dot[];cutWork:Dot[];queued:Dot[];contention:boolean;incident:boolean;question:boolean;capacity:boolean;activity:number};
 export declare const EP004_SHOT09_COMPOSITION:string;
 export declare const EP004_SHOT09_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
 export declare const SHOT09_BEATS:readonly string[];
