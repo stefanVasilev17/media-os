@@ -92,14 +92,14 @@ test('SHOT09 exact living predecessor phase and cue-driven restart',()=>{
  assert.ok(new Set(Array.from({length:30},(_,i)=>JSON.stringify(s(i).inherited.outcome))).size>=20);
  assert.equal(s(73).openingMix,0);assert.equal(s(146).openingMix,1);assert.equal(s(146).inherited,null);
  assert.equal(s(276).process,'failed');assert.equal(s(277).process,'booting');assert.equal(s(326).process,'running');
- assert.equal(s(503).health,false);assert.equal(s(504).health,true);assert.equal(s(562).queued.length,0);
+ assert.equal(s(424).probeStarted,false);assert.equal(s(425).probeStarted,true);assert.equal(s(503).health,false);assert.equal(s(504).health,true);assert.equal(s(562).queued.length,0);
 });
 test('SHOT09 probe response is not proof of workload readiness',()=>{
  const s=f=>shot09State(f,p09);
  assert.equal(s(726).stage,'comparison');
  assert.ok(s(700).probes.some(p=>p.direction==='response'&&p.tone==='green'));
  assert.equal(s(1218).work.length,0);assert.ok(s(1250).work.length>0);
- assert.equal(s(1706).contention,false);assert.equal(s(1707).stage,'contention');
+ assert.equal(s(1589).stage,'comparison');assert.equal(s(1590).stage,'contention');assert.equal(s(1706).contention,false);assert.equal(s(1706).cutWork.length,0);assert.equal(s(1707).stage,'contention');assert.ok(s(1740).cutWork.length>0);
  assert.equal(s(1836).stage,'proof');assert.equal(s(2456).process,'running');
  assert.equal(s(2456).health,true);assert.ok(s(2456).load>.5);
  for(const path of [PROBE_ROUTE,WORK_ROUTE])assert.ok(path.every(([x,y])=>x>=0&&x<=1920&&y>=0&&y<=1080));
@@ -110,5 +110,5 @@ test('SHOT09 correct worker preflight, mux, seam order and three distinct views'
  const v=run.indexOf('await fetchEp004Shot09ApprovedVoice(job,inputProps)'),p=run.indexOf('await preflightEp004Shot09PreviousVideo(job,inputProps,shot09SourceScratch)'),cpu=run.indexOf('await renderMedia('),mux=run.indexOf('await muxEp004Shot09ApprovedVoice(job,outputPath,inputProps)'),seam=run.indexOf('await verifyEp004Shot09SeamAndMotion(job,outputPath,');
  assert.ok(v>=0&&p>v&&cpu>p&&mux>cpu&&seam>mux&&run.indexOf('await complete(job.renderId, outputPath)',seam)>seam);
  const scene=await readFile(new URL('./src/episodes/ep004/Shot09ProductionScene.tsx',import.meta.url),'utf8');
- for(const x of ['frame===0&&props.previousLastFrameDataUri','GATEWAY RECOVERY','HEALTH CHECK VS. PRODUCTION WORKLOAD','Illustrative contention','ALIVE DOES NOT MEAN READY'])assert.ok(scene.includes(x),x);
+ for(const x of ['frame===0&&props.previousLastFrameDataUri','GATEWAY RECOVERY','HEALTH CHECK VS. PRODUCTION WORKLOAD','Illustrative contention','ALIVE DOES NOT MEAN READY','<ContentionView s={s}/>'])assert.ok(scene.includes(x),x);
 });

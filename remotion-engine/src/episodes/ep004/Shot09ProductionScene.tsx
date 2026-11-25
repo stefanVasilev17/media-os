@@ -4,7 +4,7 @@ import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOut
 import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 import {OUTCOME_MAIL,OUTCOME_OTHER} from '../../components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
 import type {RegionState,Dot} from '../../components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
-import {PROBE_ROUTE,WORK_ROUTE,WORK_QUEUE,shot09State,validateEp004Shot09Production} from '../../components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
+import {PROBE_ROUTE,WORK_ROUTE,WORK_QUEUE,CUT_PROBE_ROUTE,CUT_WORK_ROUTE,shot09State,validateEp004Shot09Production} from '../../components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 import type {Ep004Shot09RenderProps,RecoveryState,Dot as RecoveryDot} from '../../components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 const CYAN='#81D6E8',VIOLET='#BAA2F3',AMBER='#EDB65C',GREEN='#85D4A7',RED='#E87378',WHITE='#E4EBF2';
 const FONT='Arial, sans-serif';
@@ -83,14 +83,14 @@ const Status:React.FC<{x:number;y:number;label:string;value:string;tone:string}>
 </g>;
 const Recovery:React.FC<{s:RecoveryState;frame:number}>=({s,frame})=>{
  const running=s.process==='running',tone=s.process==='failed'?RED:running?GREEN:AMBER;
- const showProbe=s.health||s.stage!=='recovery',showWork=s.waiting||s.stage!=='recovery';
+ const showProbe=s.probeStarted||s.stage!=='recovery',showWork=s.waiting||s.stage!=='recovery';
  const inside=s.stage==='contention';
  return <g>
   <Header title={s.stage==='recovery'?'GATEWAY RECOVERY':inside?'THE PROBLEM CAN RETURN':s.stage==='proof'?'ALIVE DOES NOT MEAN READY':'HEALTH CHECK VS. PRODUCTION WORKLOAD'}/>
   {showProbe&&<g opacity={s.incident?.52:1}>
     <g transform="translate(100 226)"><rect width="240" height="116" rx="14" fill="url(#s6Metal)" stroke="#6C889D" strokeWidth="2"/><rect x="13" y="13" width="214" height="90" rx="9" fill="url(#s6Face)"/><path d="M29 65H65L77 36L94 81L106 55H144" stroke={s.health?GREEN:CYAN} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="199" cy="35" r="7" fill={s.health?GREEN:'#526575'}/></g>
     <text x="220" y="382" textAnchor="middle" fontSize="27" fill={WHITE}>Health check</text>
-    <Route d={shot06Path(PROBE_ROUTE)} tone={CYAN} active={s.health}/><Traffic items={s.probes}/>
+    <Route d={shot06Path(PROBE_ROUTE)} tone={CYAN} active={s.probeStarted}/><Traffic items={s.probes}/>
    </g>}
   {showWork&&<g>
    <g transform="translate(100 488)"><rect width="250" height="114" rx="18" fill="url(#s6Metal)" stroke="#8197A7" strokeWidth="2"/><rect x="13" y="13" width="224" height="88" rx="9" fill="url(#s6Face)"/><g transform="translate(24 20)"><AppMark name="Outlook" index={2}/></g><path d="M28 86H207" stroke={CYAN} strokeWidth="3" opacity=".5"/></g>
@@ -117,9 +117,35 @@ const Recovery:React.FC<{s:RecoveryState;frame:number}>=({s,frame})=>{
    {Array.from({length:8},(_,i)=><g key={i}><rect x={150+i*102} y="829" width="78" height="72" rx="10" fill="url(#s6Face)" stroke={i<Math.floor(s.load*8)?AMBER:'#516578'} strokeWidth="2"/><rect x={164+i*102} y="846" width="50" height="37" rx="5" fill={i<Math.floor(s.load*8)?AMBER:'#253847'} opacity=".65"/></g>)}
    <text x="136" y="945" fontSize="23" fill="#AFC3D1">Useful work can slow as contention returns.</text>
   </g>}
-  {!inside&&s.stage!=='recovery'&&<text x="960" y="985" textAnchor="middle" fontSize="35" fontWeight="700" fill={WHITE}>{s.stage==='proof'?'A green endpoint is not proof of spare capacity.':'One small check. A very different workload.'}</text>}
+  {!inside&&s.stage!=='recovery'&&<text x="960" y="985" textAnchor="middle" fontSize="35" fontWeight="700" fill={WHITE}>{s.stage==='proof'?(s.capacity?'A green endpoint is not proof of spare capacity.':'Can it keep doing useful work?'):'One small check. A very different workload.'}</text>}
  </g>;
 };
+const ContentionView:React.FC<{s:RecoveryState}>=({s})=><g>
+ <Header title="A GREEN CHECK CAN MISS CONTENTION" sub="Conceptual gateway cutaway"/>
+ <g transform="translate(100 226)">
+  <rect width="240" height="116" rx="14" fill="url(#s6Metal)" stroke="#6C889D" strokeWidth="2"/><rect x="13" y="13" width="214" height="90" rx="9" fill="url(#s6Face)"/>
+  <path d="M29 65H65L77 36L94 81L106 55H144" stroke={GREEN} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round"/><circle cx="199" cy="35" r="7" fill={GREEN}/>
+ </g>
+ <text x="220" y="382" textAnchor="middle" fontSize="27" fill={WHITE}>Basic probe</text>
+ <g transform="translate(100 488)"><rect width="250" height="114" rx="18" fill="url(#s6Metal)" stroke="#8197A7" strokeWidth="2"/><rect x="13" y="13" width="224" height="88" rx="9" fill="url(#s6Face)"/><g transform="translate(24 20)"><AppMark name="Outlook" index={2}/></g></g>
+ <text x="225" y="650" textAnchor="middle" fontSize="27" fill={WHITE}>Real workload</text>
+ <Gateway x={680} y={310} w={1060} h={420} activity={s.activity}/>
+ <rect x="704" y="334" width="1008" height="373" rx="16" fill="#111C27" stroke="#718899" strokeWidth="2"/>
+ <path d="M704 472H1712" stroke="#536B7D" strokeWidth="1.7"/>
+ <text x="742" y="369" fontSize="25" fontWeight="650" fill="#B6C8D5">Simple check</text>
+ <text x="742" y="522" fontSize="25" fontWeight="650" fill="#B6C8D5">Production work</text>
+ <Route d={shot06Path(CUT_PROBE_ROUTE)} tone={GREEN}/><Route d={shot06Path(CUT_WORK_ROUTE)} tone={s.contention?AMBER:CYAN} active={s.contention}/>
+ <rect x="1140" y="352" width="190" height="76" rx="12" fill="url(#s6Face)" stroke={GREEN} strokeWidth="2.5"/>
+ <circle cx="1170" cy="390" r="9" fill={GREEN}/><text x="1190" y="398" fontSize="24" fontWeight="650" fill={GREEN}>Responding</text>
+ <g>
+  {Array.from({length:5},(_,i)=><g key={i}><rect x={1120+i*109} y="540" width="94" height="100" rx="10" fill="url(#s6Face)" stroke={s.contention&&i<Math.ceil(s.load*5)?AMBER:'#586E80'} strokeWidth="2"/><path d={'M'+(1135+i*109)+' 558h64m-64 14h64m-64 14h64'} stroke="#506575" strokeWidth="4" strokeLinecap="round"/><rect x={1135+i*109} y="615" width={s.contention&&i<Math.ceil(s.load*5)?64:25} height="6" rx="3" fill={s.contention?AMBER:CYAN} opacity=".75"/></g>)}
+ </g>
+ <Traffic items={s.cutProbes}/><Traffic items={s.cutWork}/>
+ <text x="1210" y="265" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>Primary gateway</text>
+ <Status x={740} y={818} label="Basic health" value="RESPONDING" tone={GREEN}/>
+ <Status x={1220} y={818} label="Workload readiness" value={s.contention?'NOT YET PROVEN':'UNPROVEN'} tone={AMBER}/>
+ {s.contention&&<text x="960" y="975" textAnchor="middle" fontSize="34" fontWeight="650" fill={AMBER}>Illustrative contention can return under load.</text>}
+ </g>;
 export const Shot09ProductionScene:React.FC<Ep004Shot09RenderProps>=props=>{
  validateEp004Shot09Production(props,true);
  const frame=useCurrentFrame(),cfg=useVideoConfig();
@@ -128,7 +154,7 @@ export const Shot09ProductionScene:React.FC<Ep004Shot09RenderProps>=props=>{
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}>
   <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
    <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
-   {s.openingMix>0&&<g opacity={s.openingMix}><Recovery s={s} frame={frame}/></g>}
+   {s.openingMix>0&&<g opacity={s.openingMix}>{s.stage==='contention'?<ContentionView s={s}/>:<Recovery s={s} frame={frame}/>}</g>}
    {s.inherited&&<g opacity={1-s.openingMix} transform={'translate('+(-s.inherited.focus*75)+' '+(-s.inherited.focus*18)+') scale('+(1+s.inherited.focus*.12)+')'}><Outcome s={s.inherited} frame={props.previousShot08Props.durationInFrames-1+frame}/></g>}
   </svg>
   {frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}

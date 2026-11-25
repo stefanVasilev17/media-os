@@ -51,8 +51,10 @@ export function validateEp004Shot09Production(p,requireFrame=false){
 export const PROBE_ROUTE=Object.freeze([[340,284],[1045,284],[1045,354],[1160,354]]);
 export const WORK_ROUTE=Object.freeze([[350,545],[685,545],[1015,545],[1090,545],[1090,418],[1160,418]]);
 export const WORK_QUEUE=Object.freeze([[350,545],[685,545]]);
-function trips(path,frame,epoch,period,delay,tone,stop=Infinity){
- const len=shot06Length(path),speed=9,out=[];
+export const CUT_PROBE_ROUTE=Object.freeze([[340,284],[520,284],[520,390],[680,390],[1140,390]]);
+export const CUT_WORK_ROUTE=Object.freeze([[350,545],[520,545],[520,566],[680,566],[1120,566]]);
+function trips(path,frame,epoch,period,delay,tone,stop=Infinity,speed=9){
+ const len=shot06Length(path),out=[];
  if(frame<epoch)return out;
  for(let born=epoch+Math.floor((frame-epoch)/period)*period;born>=Math.max(epoch,frame-420);born-=period){
   if(born>=stop)continue;
@@ -70,17 +72,22 @@ export function shot09State(frame,p){
  // Continue the predecessor's real request phase and keep its exact last camera pose.
  const prior=openingMix<1?shot08State(prev.durationInFrames-1+frame,{...prev,durationInFrames:prev.durationInFrames+frame}):null;
  const inherited=prior?{...prior,focus:shot08State(prev.durationInFrames-1,prev).focus}:null;
- const stage=frame<e.COMPARE?'recovery':frame<e.CONTENTION?'comparison':frame<e.RUNNING_QUESTION?'contention':'proof';
+ const stage=frame<e.COMPARE?'recovery':frame<e.GREEN_NOT_ENOUGH?'comparison':frame<e.RUNNING_QUESTION?'contention':'proof';
  const process=frame<e.RESTART?'failed':frame<e.RUNNING?'booting':'running';
- const health=frame>=e.PROBE;
+ const health=frame>=e.PROBE,probeStart=p.verifiedCues[1].startFrame,probeStarted=frame>=probeStart;
  const waiting=frame>=e.WAITING_TRAFFIC;
- const load=frame>=e.READINESS?.20+.37*smooth((frame-e.READINESS)/135)+.15*smooth((frame-e.CONTENTION)/85)+.10*smooth((frame-e.USEFUL_WORK)/140):0;
- const probes=health?trips(PROBE_ROUTE,frame,e.PROBE,78,8,'green'): [];
- const work=frame>=e.READINESS?trips(WORK_ROUTE,frame,e.READINESS,34,42,'amber',e.INCIDENT):[];
- if(frame>=e.CONTENTION)work.push(...trips(WORK_ROUTE,frame,e.CONTENTION,42,56,'amber',e.RUNNING_QUESTION));
- if(frame>=e.USEFUL_WORK)work.push(...trips(WORK_ROUTE,frame,e.USEFUL_WORK,24,52,'amber'));
- const queued=waiting?Array.from({length:Math.min(7,2+Math.floor((frame-e.WAITING_TRAFFIC)/33))},(_,i)=>({x:654-i*38,y:545,tone:'amber',direction:'waiting'})):[];
- return {stage,inherited,openingMix,process,health,waiting,load,probes,work,queued,contention:frame>=e.CONTENTION,incident:frame>=e.INCIDENT&&frame<e.RUNNING_QUESTION,question:frame>=e.RUNNING_QUESTION,capacity:frame>=e.CAPACITY,activity:.5+.5*Math.sin(frame*.071)};
+ const speed=14,arrive=e.READINESS+Math.ceil(shot06Length(WORK_ROUTE)/speed);
+ const load=frame>=arrive?.20+.37*smooth((frame-arrive)/120)+.15*smooth((frame-e.CONTENTION-Math.ceil(shot06Length(CUT_WORK_ROUTE)/speed))/85)+.10*smooth((frame-e.USEFUL_WORK-Math.ceil(shot06Length(WORK_ROUTE)/speed))/100):0;
+ const probeSpeed=2*shot06Length(PROBE_ROUTE)/Math.max(1,e.PROBE-probeStart-8);
+ const probes=probeStarted?trips(PROBE_ROUTE,frame,probeStart,78,8,'green',Infinity,probeSpeed):[];
+ const work=frame>=e.READINESS?trips(WORK_ROUTE,frame,e.READINESS,34,42,'amber',e.INCIDENT,speed):[];
+ if(frame>=e.USEFUL_WORK)work.push(...trips(WORK_ROUTE,frame,e.USEFUL_WORK,24,52,'amber',Infinity,speed));
+ const cutProbes=stage==='contention'?trips(CUT_PROBE_ROUTE,frame,e.GREEN_NOT_ENOUGH-80,70,8,'green',Infinity,18):[];
+ const cutWork=stage==='contention'&&frame>=e.CONTENTION?trips(CUT_WORK_ROUTE,frame,e.CONTENTION,23,56,'amber',Infinity,speed):[];
+ const waitCount=Math.min(7,2+Math.floor((frame-e.WAITING_TRAFFIC)/33));
+ const admitted=frame>=e.USEFUL_WORK?Math.floor((frame-e.USEFUL_WORK)/55):frame>=e.READINESS?2:0;
+ const queued=waiting?Array.from({length:Math.max(2,waitCount-admitted)},(_,i)=>({x:654-i*38,y:545,tone:'amber',direction:'waiting'})):[];
+ return {stage,inherited,openingMix,process,health,probeStarted,waiting,load,probes,work,cutProbes,cutWork,queued,contention:frame>=e.CONTENTION,incident:frame>=e.INCIDENT&&frame<e.RUNNING_QUESTION,question:frame>=e.RUNNING_QUESTION,capacity:frame>=e.CAPACITY,activity:.5+.5*Math.sin(frame*.071)};
 }
 export function verifyEp004Shot09ActualMotion(p){
  validateEp004Shot09Production(p);const e=p.eventFrames,s=f=>shot09State(f,p);
