@@ -114,19 +114,27 @@ test('SHOT08 final finite camera push preserves headline and device viewport',as
  for(let i=0;i<=100;i++){const focus=i/100,scale=1+focus*.12,x=-focus*75;assert.ok(x+98*scale>=24);assert.ok(x+1545*scale<=1920-24);}
 });
 
-test('SHOT08 V2 exact locked SHOT07 Reel and canonical horizontal Fleet geometry, live transition',async()=>{
+test('SHOT08 V3 direct living locked Reel to regional view, no intermediate Fleet flash',async()=>{
  const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
  const prior=await readFile(new URL('./src/episodes/ep004/Shot07ProductionScene.tsx',import.meta.url),'utf8');
  const block=(c,a,b)=>c.slice(c.indexOf(a),c.indexOf(b,c.indexOf(a)));
- assert.equal(block(scene,'const Fleet:','const ReelServer:'),block(prior,'const Fleet:','const FleetSilhouette:'));
- assert.equal(block(scene,'const ReelServer:','const Dots:' ).trim(),block(prior,'const ReelServer:','export const Shot07ProductionScene:').trim());
- const s=f=>shot08State(f,p08);
- assert.equal(s(0).horizontalMix,0);assert.equal(s(24).horizontalMix,0);assert.equal(s(72).horizontalMix,1);
- assert.deepEqual(s(0).inherited.packets.map(({x,y,phase})=>({x,y,phase})),shot07State(2605,previous08).packets.map(({x,y,phase})=>({x,y,phase})));
- assert.deepEqual(s(72).horizontal.states,s(72).inherited.states);
- assert.ok(s(72).horizontal.packets.every(p=>p.destination===undefined||p.destination===2));
- assert.ok(new Set(Array.from({length:30},(_,i)=>JSON.stringify(s(42+i).horizontal.packets))).size>=20);
- assert.ok(s(90).openingMix===0&&s(137).openingMix>.99);
+ assert.equal(block(scene,'const ReelServer:','const Dots:').trim(),block(prior,'const ReelServer:','export const Shot07ProductionScene:').trim());
+ assert.ok(!/const Fleet:|<Fleet |horizontalMix|s\.horizontal/.test(scene));
+ assert.ok(scene.includes('opacity={1-s.openingMix}><Reel s={s.inherited} rescue/>'));
+ const state=f=>shot08State(f,p08);
+ assert.deepEqual(state(0).inherited.packets.map(({x,y,phase})=>({x,y,phase})),shot07State(2605,previous08).packets.map(({x,y,phase})=>({x,y,phase})));
+ for(let f=0;f<138;f++){
+  const v=state(f);
+  assert.ok(!('horizontal' in v)&&!('horizontalMix' in v));
+  assert.equal(v.inherited.stage,'reel');
+  if(f<90)assert.equal(v.openingMix,0);
+  if(f>0)assert.ok(v.openingMix>=state(f-1).openingMix);
+ }
+ assert.ok(new Set(Array.from({length:30},(_,i)=>JSON.stringify(state(i).inherited.packets))).size>=20);
+ assert.ok(state(114).openingMix>.49&&state(114).openingMix<.51);
+ assert.ok(state(137).openingMix>.99);
+ assert.equal(state(138).inherited,null);
+ assert.equal(state(138).openingMix,1);
 });
 test('SHOT08 V2 regional modernized materials and horizontal local route ports, no rejected subtitle',async()=>{
  const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
