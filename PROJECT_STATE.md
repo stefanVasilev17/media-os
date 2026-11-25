@@ -1,5 +1,12 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-25 — EP004 SHOT06 V2 PRODUCTION VERIFIED / FULL VIDEO SIX SHOTS READY
+
+Production Backend and Worker exact source cf0945e58f4e420c744d0006b665d9bc7edff97d are SUCCESS (backend 2acff397-8239-4b91-a4e6-ff91176ccea4; worker 907da8ed-8984-4156-99fc-f1842f495bde). Actual Director-initiated V2 render 2b68bda7-8f0d-471f-a2d5-78e5765ac63e completed at 08:22 UTC: 2373 frames, 79.1s, 1920x1080@30 H264/AAC, 7231688 bytes, moving predecessor phase PSNR 51.61088, 72 moving frames, output seam PSNR 49.11 with 30 animated opening frames; original approved Take 72-frame delay verified. Actual authenticated SHOT06 lock POST returned HTTP 200 at 08:23:40.754 UTC; assembly of 6 shots queued, started, MP4 VERIFIED and READY at 08:24:28 UTC. Runtime confirms filmShots=6, matchingSequence=true, issue=null, and authenticated full-film video range requests returned HTTP 206 at 08:32 UTC. Exact lock request body and stored film SHA not exposed by logs; do not claim independent visual playback or direct lock-render-ID verification. Existing assembly already includes SHOT06; no source/config changes, rerender, new assembly or redeployment needed for this request. Preserve production pins and existing locked footage. Next sequential target SHOT07.
+
+---
+
+
 ## 2026-11-25 — EP004 SHOT06 V2 DIRECTOR CORRECTION / PRODUCTION PROMOTION PENDING
 V1 deployed Backend and Worker source 671746ca2e90908aaeafbda68e3e9e636543132c, actual read-only readiness PASS 2373 frames/10 cues/voice and predecessor SHA verified. Completed V1 render b1618ea8-aa98-4b6e-8362-f904c2470a29 (7193728 bytes, 79.1s, H264/AAC, seam PSNR 45.15). Director likes fleet but wants moving outgoing diagram and removal of four low-value labels and demand rail. V2 source implements exact predecessor frame zero followed by real phase-aligned moving excerpt, preCPU phase/motion check and dissolve into fleet inside existing 72 frames. See AT-VIS-0012 and candidate status. V2 build/deployment/readiness not yet verified; no new paid render or voice, no changes to SHOT01–05 or SHOT07.
 
