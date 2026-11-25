@@ -208,7 +208,7 @@ export const Shot08ProductionScene:React.FC<Ep004Shot08RenderProps>=props=>{
    {s.stage==='regions'&&<g opacity={s.openingMix}><Regions s={s}/></g>}
    {s.inherited&&<g opacity={1-s.openingMix}><Reel s={s.inherited} rescue/></g>}
    {s.stage==='dependencies'&&<Dependencies s={s}/>}
-   {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*140)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s} frame={frame}/></g>}
+   {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*75)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s} frame={frame}/></g>}
   </svg>
   {frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}
  </AbsoluteFill>;
