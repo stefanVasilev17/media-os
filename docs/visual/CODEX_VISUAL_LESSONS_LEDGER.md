@@ -202,3 +202,17 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 
 - Director liked rendered server fleet but rejected frozen outgoing map and decorative microcopy. V1 render b1618ea8-aa98-4b6e-8362-f904c2470a29 technically passed; 30 unique frames from opacity changes alone did not prove motion of the outgoing map.
 - V2 source removes four specified labels and demand rail. Preserve exact decoded frame zero, then phase-match real forward-moving SHOT05 tail (18f packets / 48f pulse = 144f period). Validate real phase and motion before CPU; dissolve inside existing 72f silence and verify unchanged frame count. No blanket use of a periodic replay for nonperiodic footage; fail closed if phase does not match. No assertion of actual Microsoft telemetry. No protected SHOT05 source/media edit. New visual LOCK pending Director review.
+
+## AT-VIS-0013 — Director-approved global minimum visual quality floor
+
+- Date / decision: 2026-11-25 / APPROVED.
+- Scope: GLOBAL — all future Architectural Thinking videos.
+- Context: Director reviewed real EP004 Full Video SHOT01–06 and liked it.
+- Problem observed: No new visual defect reported; Director explicitly prohibits any lower visual level in future videos.
+- Approved correction: Treat the reviewed video as minimum visual baseline, equal or improved Tier++ scene quality. Premium physical architecture, readable hierarchy, meaningful traffic, realistic component depth and cue-driven camera.
+- Preventive rule: Compare future SHOT design and actual preview against the approved baseline; preserve story-distinct visuals and exact locked predecessor, not just decorative animation.
+- Affected assets: EP004 SHOT01–06 existing locked source assets remain immutable; SHOT06 V2 render 2b68bda7-8f0d-471f-a2d5-78e5765ac63e; Full Video 7783e0ec-d8c5-3aa2-9621-694c66ea12e0.
+- Evidence: Director's explicit approval in conversation, after verified AVC1 Full Video publication.
+- Verification: Director visual approval of reference confirmed. Future SHOT08 not verified or approved.
+- Promotion: Core visual constitution amended.
+- Supersedes: none; strengthens existing quality rules.
