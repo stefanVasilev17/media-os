@@ -507,7 +507,7 @@ public final class Ep004DirectorSimpleFilmController {
             if(prefix.size()!=6||!exactShot06.equals(prefix.get(5).renderId())
                     ||!current(previous,prefix)||!exactLossless.equals(previous.id())
                     ||previous.frames()!=14096)return;
-            UUID repairId=UUID.nameUUIDFromBytes(("ep004-browser-avc1-v4:"+packageId+":"+
+            UUID repairId=UUID.nameUUIDFromBytes(("ep004-browser-avc1-v5:"+packageId+":"+
                 identity(prefix)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
             String sequence=identity(prefix);
             LOG.info("FULL_VIDEO_AVC1_REPAIR_START packageId={} losslessFilmId={} newFilmId={}",
