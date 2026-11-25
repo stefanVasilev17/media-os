@@ -122,13 +122,13 @@ class Ep004LosslessFilmAssemblerTest {
         Path source=folder.resolve("gapped.mp4");
         Path result=folder.resolve("fixed.mp4");
         command(List.of("ffmpeg","-hide_banner","-nostdin","-loglevel","error",
-            "-f","lavfi","-i","testsrc2=s=1920x1080:r=30",
-            "-f","lavfi","-i","sine=frequency=440:sample_rate=48000",
+            "-f","lavfi","-i","testsrc2=s=1920x1080:r=30:d=4.5",
+            "-f","lavfi","-i","sine=frequency=440:sample_rate=48000:duration=5",
             "-vf","settb=1/90000,setpts=N*3000+floor(N/30)*3000",
-            "-frames:v","135","-r","30","-enc_time_base","1:90000","-fps_mode","passthrough",
+            "-enc_time_base","1:90000","-fps_mode","passthrough",
             "-c:v","libx264","-preset","ultrafast","-threads:v","2",
             "-pix_fmt","yuv420p","-video_track_timescale","90000",
-            "-c:a","aac","-ac","2","-shortest","-y",source.toString()));
+            "-c:a","aac","-ac","2","-use_editlist","0","-y",source.toString()));
         assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(
             source,folder.resolve("gapped.md5"),false).size());
         Ep004LosslessFilmAssembler.browserCompatible(source,result,135);
