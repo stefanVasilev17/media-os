@@ -1,0 +1,16 @@
+import type {Ep004Shot08RenderProps,RegionState} from './EP004Shot08ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='UNRESPONSIVE'|'RESTART'|'RUNNING'|'PROBE'|'WAITING_TRAFFIC'|'COMPARE'|'HEALTH_CHECK'|'PRODUCTION_LOAD'|'READINESS'|'INCIDENT'|'GREEN_NOT_ENOUGH'|'CONTENTION'|'RUNNING_QUESTION'|'USEFUL_WORK'|'GREEN_ENDPOINT'|'CAPACITY';
+export type Ep004Shot09RenderProps=Omit<Ep004Shot08RenderProps,'previousShot07Props'|'eventFrames'>&{previousShot08Props:Ep004Shot08RenderProps;eventFrames:Record<EventKey,number>};
+export type Dot={x:number;y:number;tone:string;direction:string};
+export type RecoveryState={stage:'recovery'|'comparison'|'contention'|'proof';inherited:RegionState|null;openingMix:number;process:'failed'|'booting'|'running';health:boolean;waiting:boolean;load:number;probes:Dot[];work:Dot[];queued:Dot[];contention:boolean;incident:boolean;question:boolean;capacity:boolean;activity:number};
+export declare const EP004_SHOT09_COMPOSITION:string;
+export declare const EP004_SHOT09_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT09_BEATS:readonly string[];
+export declare const SHOT09_EVENTS:readonly EventKey[];
+export declare const PROBE_ROUTE:readonly Point[];
+export declare const WORK_ROUTE:readonly Point[];
+export declare const WORK_QUEUE:readonly Point[];
+export declare function validateEp004Shot09Production(p:Ep004Shot09RenderProps,requireFrame?:boolean):true;
+export declare function shot09State(frame:number,p:Ep004Shot09RenderProps):RecoveryState;
+export declare function verifyEp004Shot09ActualMotion(p:Ep004Shot09RenderProps):Record<string,string|number>;
