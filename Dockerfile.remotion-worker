@@ -47,7 +47,7 @@ RUN node --test ep004-shot03-living-world.test.mjs
 RUN node --test ep004-shot03-production.test.mjs
 RUN node --test ep004-shot04-production.test.mjs
 RUN node --test ep004-shot05-production.test.mjs
-RUN node --test ep004-shot06-fleet-preview.test.mjs ep004-shot06-production.test.mjs
+RUN node --test ep004-shot06-fleet-preview.test.mjs ep004-shot06-production.test.mjs ep004-shot07-production.test.mjs
 RUN node --check ep002-locked-master-assembly.mjs
 RUN node --test ep002-locked-master-assembly.test.mjs
 RUN node --test ep002-director-breathing-master.test.mjs
