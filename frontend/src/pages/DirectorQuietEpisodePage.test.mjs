@@ -90,3 +90,16 @@ describe('Director sees only one current SHOT preview and one Full Video tab',()
     expect(page).toContain('This video cannot be locked because its original voice approval');
   });
 });
+
+describe('Full Video browser compatibility fallback',()=>{
+  it('exposes playback errors and plays exact ordered Director-locked renders',()=>{
+    expect(page).toContain('film?.renderIds??[]');
+    expect(page).toContain('lock.renderId===id');
+    expect(page).toContain('fallbackClips.every(Boolean)');
+    expect(page).toContain('src={lockedVideoUrl(fallbackClip.renderId)}');
+    expect(page).toContain('onEnded={()=>setFallbackIndex');
+    expect(page).toContain('Play original SHOTs in sequence');
+    expect(page).toContain('event.currentTarget.error?.code');
+    expect(page).toContain('Return to Full Video');
+  });
+});
