@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
-import {SHOT06_INPUTS,SHOT06_OUTPUTS,SHOT06_FLEET,shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
+import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 import {REEL_INPUT,REEL_OUTPUTS} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import type {CascadeState} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import {REGION_X,REGION_ROUTES,PRODUCT_NAMES,PRODUCT_Y,PRIMARY_ROUTES,ALT_ROUTES,OUTCOME_MAIL,OUTCOME_OTHER,shot08State,validateEp004Shot08Production} from '../../components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
@@ -40,11 +40,6 @@ const Server:React.FC<{x:number;y:number;id:string;status:string;load:number;sho
    <text x="385" y="-53" textAnchor="end" fontFamily={FONT} fontSize="24" fill={tint}>{status}</text></>}
  </g>;
 };
-const Client:React.FC<{y:number;mail:boolean;showLabels?:boolean}>=({y,mail,showLabels=true})=><g transform={'translate(100 '+y+')'}>
-  <rect width="250" height="114" rx="24" fill={mail?'#1A344D':'#2A2845'} stroke={mail?CYAN:VIOLET} strokeOpacity=".45" strokeWidth="2"/>
-  {mail?<g><rect x="24" y="29" width="77" height="55" rx="5" fill="#BCE0F3"/><path d="M24 30L62 57 101 30" stroke="#477C9B" strokeWidth="5" fill="none"/><rect x="12" y="41" width="43" height="43" rx="6" fill="#247DB9"/><text x="33" y="72" fontSize="29" fontWeight="700" textAnchor="middle" fill="white">O</text></g>:<g><circle cx="79" cy="32" r="15" fill="#B3A8EE"/><rect x="61" y="50" width="38" height="40" rx="11" fill="#8376C7"/><rect x="13" y="39" width="54" height="54" rx="8" fill="#6B5FBA"/><text x="40" y="77" fontSize="37" fontWeight="700" textAnchor="middle" fill="white">T</text></g>}
-  {showLabels&&<text x="117" y="65" fontFamily={FONT} fontSize="27" fontWeight="650" fill={WHITE}>{mail?'Outlook':'Teams'}</text>}
-</g>;
 const Router:React.FC<{showLabels?:boolean}>=({showLabels=true})=> <g transform="translate(685 440)">
   <ellipse cx="165" cy="204" rx="173" ry="18" fill="#000" opacity=".32"/>
   <path d="M0 0L24 -26H307L330 0Z" fill="url(#s6Top)" stroke="#788B9C" strokeWidth="2"/>
@@ -56,13 +51,6 @@ const Router:React.FC<{showLabels?:boolean}>=({showLabels=true})=> <g transform=
 </g>;
 
 const PacketLayer:React.FC<{s:CascadeState;reel?:boolean}>=({s,reel=false})=><g>{s.packets.map(p=><g key={p.id+'-'+p.phase}><circle cx={p.x} cy={p.y} r={reel?13:17} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.12:.09}/><circle cx={p.x} cy={p.y} r={reel?8:10} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.65:1}/></g>)}</g>;
-const Fleet:React.FC<{s:CascadeState;compact?:boolean}>=({s,compact=false})=><g>
- {SHOT06_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}
- {SHOT06_OUTPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={i===2?VIOLET:CYAN} active={s.states[i].status!=='Unresponsive'}/>)}
- <Client y={383} mail showLabels={!compact}/><Client y={593} mail={false} showLabels={!compact}/><Router showLabels={!compact}/>
- {SHOT06_FLEET.map((n,i)=><Server key={n.id} x={n.x} y={n.y} id={n.id} status={s.states[i].status} load={s.states[i].load} showLabels={!compact}/>)}
- <PacketLayer s={s}/>
- </g>;
 const ReelServer:React.FC<{x:number;id:string;status:string;load:number}>=({x,id,status,load})=>{
  const tint=status==='Unresponsive'?RED:status==='Higher load'?AMBER:GREEN;
  return <g transform={'translate('+x+' 650)'}>
@@ -218,8 +206,7 @@ export const Shot08ProductionScene:React.FC<Ep004Shot08RenderProps>=props=>{
   <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
    <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
    {s.stage==='regions'&&<g opacity={s.openingMix}><Regions s={s} frame={frame}/></g>}
-   {s.horizontal&&<g opacity={(1-s.openingMix)*s.horizontalMix}><Fleet s={s.horizontal}/><text x="100" y="161" fontSize="46" fontWeight="720" fill={WHITE}>LOCAL RESCUE. GLOBAL FAILURE.</text><path d="M100 191H191" stroke={CYAN} strokeWidth="6" strokeLinecap="round"/></g>}
-   {s.inherited&&<g opacity={(1-s.openingMix)*(1-s.horizontalMix)}><Reel s={s.inherited} rescue/></g>}
+   {s.inherited&&<g opacity={1-s.openingMix}><Reel s={s.inherited} rescue/></g>}
    {s.stage==='dependencies'&&<Dependencies s={s}/>}
    {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*75)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s} frame={frame}/></g>}
   </svg>
