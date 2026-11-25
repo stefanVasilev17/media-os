@@ -150,7 +150,7 @@ const ReturnView:React.FC<{s:State}>=({s})=><g>
  <text x="960" y="985" textAnchor="middle" fontSize="35" fontWeight="700" fill={WHITE}>Waiting connections have not disappeared.</text>
 </g>;
 const FleetView:React.FC<{s:State}>=({s})=><g>
- <Header title="FLEET-SCALE RECOVERY" sub="Conceptual fleet view"/>
+ <Header title="FLEET-SCALE RECOVERY"/>
  <Client x={100} y={488} w={250}/>{FLEET_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={RED}/>)}
  <Router/><Traffic items={s.fleet.filter(p=>p.x<=685||p.x>=1015)}/>
  {[0,1,2].map(i=><g key={i}><Gateway x={1240} y={285+i*195} w={340} h={130} failed activity={s.activity}/><text x="1410" y={270+i*195} textAnchor="middle" fontSize="26" fill={WHITE}>{'Gateway '+String.fromCharCode(65+i)}</text></g>)}
@@ -159,7 +159,7 @@ const FleetView:React.FC<{s:State}>=({s})=><g>
 const ReplayView:React.FC<{s:State}>=({s})=>{
  const control=s.stage==='controlled',tone=s.phase==='failed'?RED:s.phase==='booting'?AMBER:s.load>.65?AMBER:GREEN;
  return <g>
- <Header title={control?'CONTROLLED TRAFFIC ADMISSION':'RESTARTING IS NOT RECOVERING'} sub={control?'Design principle · illustrative alternative': 'Illustrative recovery mechanism'}/>
+ <Header title={control?'CONTROLLED TRAFFIC ADMISSION':'RESTARTING IS NOT RECOVERING'}/>
  <Client x={440} y={479} w={200}/><Route d={shot06Path(REPLAY_ROUTE)} tone={control?GREEN:s.phase==='failed'?RED:AMBER}/>
  <g transform="translate(800 469) scale(.64) translate(-685 -440)"><Router showLabels={false}/></g>
  <text x="906" y="630" textAnchor="middle" fontSize="27" fill={WHITE}>Router</text>

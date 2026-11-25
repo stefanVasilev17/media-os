@@ -249,3 +249,9 @@ Director explicitly said SHOT07 is LOCKED, praised the several diagrams again an
 - Verification: SHOT09 V2 source regression added; production build/readiness and Director MP4 review pending. No automatic paid render or TTS.
 
 - V2 build guard detected that 250 px left only 20 px against the conservative width budget; corrected to 260 px, giving 30 px reserve without altering font or route. Keep the regression threshold unchanged.
+
+## AT-VIS-0017 — remove redundant explanatory subtitles (SHOT10 V2)
+
+- Director feedback: remove “Design principle · illustrative alternative”, “Conceptual fleet view” and “Illustrative recovery mechanism” from SHOT10. Do not replace them with other explanatory subtitles. Prefer architecture, motion, concise headings and narration to redundant metadata.
+- Preserve original LOCKED narration, real cue/event clocks, exact SHOT09 V2 predecessor, all object geometry, request/response motion and controlled-admission behavior. Controlled admission remains an engineering design principle, not a claim about actual Microsoft remediation. Fleet scale remains schematic; no actual server count or topology claimed. The Director explicitly supersedes the earlier visual subtitle instruction for this shot only; factual accuracy remains mandatory.
+- Regression: verify all three unwanted captions are absent and both original teaching headings remain. No paid render or voice generation started. Director MP4 acceptance pending.

@@ -108,7 +108,7 @@ test('SHOT10 contained visual labels and complete exact predecessor drawing',asy
  assert.equal(block(scene,'const Recovery:','const Client:'),block(prior,'const Recovery:','const ContentionView:'));
  assert.ok(scene.includes('frame===0&&props.previousLastFrameDataUri'));
  assert.ok(!scene.includes('Illustrative workload pressure'));
- for(const s of ['<ReturnView s={s}/>','<FleetView s={s}/>','<ReplayView s={s}/>','Design principle · illustrative alternative'])assert.ok(scene.includes(s));
+ for(const s of ['<ReturnView s={s}/>','<FleetView s={s}/>','<ReplayView s={s}/>'])assert.ok(scene.includes(s));
  for(const text of ['UNRESPONSIVE','STARTING','UNDER LOAD','RUNNING'])assert.ok(31+text.length*26*.85+24<=330);
  for(const text of ['Primary gateway','Pending demand','Held demand'])assert.ok(text.length*29*.85<=410);
  assert.ok(44+27*.85+20<=200);
@@ -117,4 +117,11 @@ test('SHOT10 private predecessor/voice and seam verified before completion',asyn
  const w=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8'),run=w.slice(w.indexOf('async function render(job)'));
  const v=run.indexOf('await fetchEp004Shot10ApprovedVoice(job,inputProps)'),p=run.indexOf('await preflightEp004Shot10PreviousVideo(job,inputProps,shot10SourceScratch)'),cpu=run.indexOf('await renderMedia('),mux=run.indexOf('await muxEp004Shot10ApprovedVoice(job,outputPath,inputProps)'),seam=run.indexOf('await verifyEp004Shot10SeamAndMotion(job,outputPath,');
  assert.ok(v>=0&&p>v&&cpu>p&&mux>cpu&&seam>mux&&run.indexOf('await complete(job.renderId, outputPath)',seam)>seam);
+});
+
+test('SHOT10 V2 omits all three Director-rejected explanatory subtitles without replacing them',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot10ProductionScene.tsx',import.meta.url),'utf8');
+ for(const caption of ['Design principle','illustrative alternative','Conceptual fleet view','Illustrative recovery mechanism'])assert.ok(!scene.toLowerCase().includes(caption.toLowerCase()),caption);
+ assert.ok(scene.includes('<Header title="FLEET-SCALE RECOVERY"/>'));
+ assert.ok(scene.includes("<Header title={control?'CONTROLLED TRAFFIC ADMISSION':'RESTARTING IS NOT RECOVERING'}/>"));
 });
