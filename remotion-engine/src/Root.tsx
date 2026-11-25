@@ -10,6 +10,9 @@ import {Shot05ProductionScene as Ep004Shot05Production} from './episodes/ep004/S
 import {Shot06ProductionScene as Ep004Shot06Production} from './episodes/ep004/Shot06ProductionScene';
 import type {Ep004Shot06RenderProps} from './components/architectural-thinking/EP004Shot06ProductionWorld.mjs';
 import {EP004_SHOT06_COMPOSITION} from './components/architectural-thinking/EP004Shot06ProductionWorld.mjs';
+import {Shot07ProductionScene as Ep004Shot07Production} from './episodes/ep004/Shot07ProductionScene';
+import type {Ep004Shot07RenderProps} from './components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
+import {EP004_SHOT07_COMPOSITION} from './components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -103,6 +106,9 @@ export const Root: React.FC = () => {
 
   return (
     <>
+      <Composition id={EP004_SHOT07_COMPOSITION} component={Ep004Shot07Production}
+        durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
+        defaultProps={{} as Ep004Shot07RenderProps}/>
       <Composition id={EP004_SHOT06_COMPOSITION} component={Ep004Shot06Production}
         durationInFrames={dynamicDuration??2400} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot06RenderProps}/>
