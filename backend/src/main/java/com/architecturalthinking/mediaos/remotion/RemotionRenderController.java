@@ -62,6 +62,8 @@ public class RemotionRenderController {
                 new CompositionProfile("EP004_SHOT05_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP004-SHOT06-SERVER-FLEET-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT06_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
+            Map.entry("EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL",
+                new CompositionProfile("EP004_SHOT07_APPROVED_VOICE_REVIEW",null,1920,1080,30,3000,true)),
             Map.entry("EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL",
                 new CompositionProfile("EP004_SHOT04_APPROVED_VOICE_REVIEW",null,1920,1080,30,2400,true)),
             Map.entry("EP002-DIRECTOR-MASTER",
@@ -245,6 +247,7 @@ public class RemotionRenderController {
                  || "EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId)
                  || "EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(compositionId)
                  || "EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId)
+                 || "EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL".equals(compositionId)
                 || "EP002-DIRECTOR-MASTER".equals(compositionId)
                 || "EP002-SHOT01-DRAFT".equals(compositionId)
                 || "EP002-SHOT02-CANDIDATE".equals(compositionId)
@@ -365,6 +368,30 @@ public class RemotionRenderController {
                 new RenderRequest("REVIEW",verifiedProps));
     }
 
+    public Map<String,Object> ensureVerifiedEp004Shot07Preview(Map<String,Object> verifiedProps) {
+        if(!Boolean.TRUE.equals(verifiedProps.get("directorCpuApproved"))
+                ||!Boolean.FALSE.equals(verifiedProps.get("previewOnly"))
+                ||!"EP004".equals(verifiedProps.get("episodeKey"))
+                ||!"SHOT07".equals(verifiedProps.get("shotKey"))
+                ||!verifiedProps.containsKey("voiceTakeId")
+                ||!verifiedProps.containsKey("voiceAudioSha256")
+                ||!verifiedProps.containsKey("voiceAudioBytes")
+                ||!"2b68bda7-8f0d-471f-a2d5-78e5765ac63e".equals(verifiedProps.get("previousRenderId"))
+                ||!"cf0945e58f4e420c744d0006b665d9bc7edff97d".equals(verifiedProps.get("previousSourceCommit"))
+                ||!verifiedProps.containsKey("verifiedCues")
+                ||!verifiedProps.containsKey("eventFrames")
+                ||!verifiedProps.containsKey("visualBeats")
+                ||!verifiedProps.containsKey("previousVideoSha256")
+                ||!verifiedProps.containsKey("previousShot06Props")
+                ||!verifiedProps.containsKey("previousWorldStartFrame")
+                ||!verifiedProps.containsKey("breathFrames")
+                ||!verifiedProps.containsKey("renderRequestId"))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "SHOT07 requires exact Director-locked SHOT06 original props, selected current Take and 72-frame authentic voice timing.");
+        return ensureVerifiedRender("EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL",
+                new RenderRequest("REVIEW",verifiedProps));
+    }
+
     public Map<String,Object> ensureVerifiedEp002Preview(Map<String,Object> verifiedProps) {
         return ensureVerifiedRender("EP002-SHOT01-DRAFT",
                 new RenderRequest("REVIEW",verifiedProps));
@@ -445,7 +472,8 @@ public class RemotionRenderController {
                  ||"EP004-SHOT03-LIVING-GATEWAYS-V1-VISUAL".equals(compositionId)
                  ||"EP004-SHOT04-CONTINUOUS-GATEWAYS-V1-VISUAL".equals(compositionId)
                  ||"EP004-SHOT05-LIVING-ROUTE-CAUSALITY-V1-VISUAL".equals(compositionId)
-                 ||"EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId))
+                 ||"EP004-SHOT06-SERVER-FLEET-V1-VISUAL".equals(compositionId)
+                 ||"EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL".equals(compositionId))
             semanticRenderProps.remove("renderRequestId");
         if("EP002-SHOT02-CANDIDATE".equals(compositionId)
                 ||"EP002-SHOT03-CANDIDATE".equals(compositionId)
