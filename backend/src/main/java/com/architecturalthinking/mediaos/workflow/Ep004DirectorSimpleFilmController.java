@@ -34,6 +34,7 @@ public final class Ep004DirectorSimpleFilmController {
     private static final Logger LOG=LoggerFactory.getLogger(Ep004DirectorSimpleFilmController.class);
     private final JdbcClient jdbc;
     private final MediaObjectStore store;
+    private final java.util.concurrent.atomic.AtomicBoolean playbackRepairAttempted=new java.util.concurrent.atomic.AtomicBoolean();
 
     public Ep004DirectorSimpleFilmController(JdbcClient jdbc,MediaObjectStore store) {
         this.jdbc=jdbc;this.store=store;
@@ -489,11 +490,44 @@ public final class Ep004DirectorSimpleFilmController {
             .param("frames",frames).update();
     }
 
+    // Director reported the existing six-shot film freezes near its end.
+    // Repair only this exact locked sequence, without modifying a SHOT or replacing the
+    // current film until the new lossless assembly passes full decoded-media QA.
+    @Scheduled(initialDelay=30000,fixedDelay=86400000)
+    public void repairReportedSixShotPlayback(){
+        if(!playbackRepairAttempted.compareAndSet(false,true))return;
+        UUID packageId=UUID.fromString("d11d02a2-b649-44c9-a022-4405149f675e");
+        UUID exactShot06=UUID.fromString("2b68bda7-8f0d-471f-a2d5-78e5765ac63e");
+        try{
+            List<ShotLock> prefix=consecutive(locks(packageId));
+            Film previous=currentFilm(packageId);
+            if(prefix.size()!=6||!exactShot06.equals(prefix.get(5).renderId())
+                    ||!current(previous,prefix))return;
+            UUID repairId=UUID.nameUUIDFromBytes(("ep004-lossless-playback-v2:"+packageId+":"+
+                identity(prefix)).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            if(repairId.equals(previous.id()))return;
+            LOG.info("FULL_VIDEO_PLAYBACK_REPAIR_START packageId={} oldFilmId={} newFilmId={} shots=6",
+                packageId,previous.id(),repairId);
+            assemble(packageId,identity(prefix),previous.id(),repairId);
+            LOG.info("FULL_VIDEO_PLAYBACK_REPAIR_READY packageId={} filmId={}",packageId,repairId);
+        }catch(Exception failure){
+            LOG.error("FULL_VIDEO_PLAYBACK_REPAIR_FAILED original film and all locked SHOTs retained",failure);
+        }
+    }
+
     private synchronized void assemble(UUID packageId,String expectedSequence){
+        assemble(packageId,expectedSequence,null,null);
+    }
+
+    private synchronized void assemble(UUID packageId,String expectedSequence,
+            UUID replaceFilmId,UUID repairedFilmId){
         List<ShotLock> prefix=consecutive(locks(packageId));
         if(prefix.size()<2||!expectedSequence.equals(identity(prefix)))
             throw new IllegalStateException("Locked SHOT sequence changed before assembly.");
-        if(current(currentFilm(packageId),prefix))return;
+        Film existing=currentFilm(packageId);
+        if(replaceFilmId==null&&current(existing,prefix))return;
+        if(replaceFilmId!=null&&(!current(existing,prefix)||!replaceFilmId.equals(existing.id())))
+            throw new IllegalStateException("Full Video changed before the targeted repair.");
         List<VideoSource> sources=new ArrayList<>();
         long inputSize=0;int frames=0;
         for(ShotLock item:prefix){
@@ -527,10 +561,15 @@ public final class Ep004DirectorSimpleFilmController {
             Path output=folder.resolve("full-video.mp4");
             if(Files.size(output)>MediaObjectStore.MAX_FILM_BYTES)
                 throw new IllegalStateException("Continuous film exceeds the 4 GiB master limit.");
-            UUID id=UUID.randomUUID();
+            UUID id=repairedFilmId==null?UUID.randomUUID():repairedFilmId;
             MediaObjectStore.Stored saved=store.uploadFilmVerified(id,output);
             if(!sequence.equals(identity(consecutive(locks(packageId)))))
                 throw new IllegalStateException("Director changed locked SHOTs during film assembly.");
+            if(replaceFilmId!=null){
+                Film stillCurrent=currentFilm(packageId);
+                if(stillCurrent==null||!replaceFilmId.equals(stillCurrent.id()))
+                    throw new IllegalStateException("Full Video pointer changed during targeted repair.");
+            }
             saveFilm(packageId,id,saved.key(),saved.sha256(),saved.byteCount(),
                 prefix.size(),sequence,frames);
         }catch(InterruptedException interrupted){
@@ -577,7 +616,7 @@ public final class Ep004DirectorSimpleFilmController {
                     start=Math.max(0,film.bytes()-suffix);
                 }else{
                     start=Long.parseLong(parts[0]);
-                    if(!parts[1].isBlank())end=Long.parseLong(parts[1]);
+                    if(!parts[1].isBlank())end=Math.min(film.bytes()-1,Long.parseLong(parts[1]));
                 }
                 if(start<0||start>=film.bytes()||end<start||end>=film.bytes())
                     throw new NumberFormatException();
