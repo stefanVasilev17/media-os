@@ -52,7 +52,7 @@ const Router:React.FC<{showLabels?:boolean}>=({showLabels=true})=> <g transform=
   {showLabels&&<text x="165" y="242" fontFamily={FONT} fontSize="32" textAnchor="middle" fill={WHITE} fontWeight="650">Router</text>}
 </g>;
 
-const PacketLayer:React.FC<{s:CascadeState;reel?:boolean}>=({s,reel=false})=><g>{s.packets.map(p=><g key={p.id+'-'+p.phase}><circle cx={p.x} cy={p.y} r={reel?13:17} fill={p.phase==='RESPONSE'?GREEN:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.12:.09}/><circle cx={p.x} cy={p.y} r={reel?8:10} fill={p.phase==='RESPONSE'?GREEN:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.65:1}/></g>)}</g>;
+const PacketLayer:React.FC<{s:CascadeState;reel?:boolean}>=({s,reel=false})=><g>{s.packets.map(p=><g key={p.id+'-'+p.phase}><circle cx={p.x} cy={p.y} r={reel?13:17} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.12:.09}/><circle cx={p.x} cy={p.y} r={reel?8:10} fill={p.phase==='RESPONSE'?RED:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.65:1}/></g>)}</g>;
 const Fleet:React.FC<{s:CascadeState;compact?:boolean}>=({s,compact=false})=><g>
  {SHOT06_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}
  {SHOT06_OUTPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={i===2?VIOLET:CYAN} active={s.states[i].status!=='Unresponsive'}/>)}
@@ -82,7 +82,6 @@ const FleetOverview:React.FC<{s:CascadeState}>=({s})=><g>
     <path d="M38 20V38L53 45" stroke={AMBER} strokeWidth="4" fill="none" strokeLinecap="round"/>
     <text x="90" y="47" fontSize="32" fontWeight="650" fill={AMBER}>Less than two hours</text>
   </g>}
-  <text x="100" y="894" fontSize="24" fill="#A9B9C7">Schematic fleet · not an actual server count</text>
  </g>;
 const ReelServer:React.FC<{x:number;id:string;status:string;load:number}>=({x,id,status,load})=>{
  const tint=status==='Unresponsive'?RED:status==='Higher load'?AMBER:GREEN;
@@ -94,7 +93,6 @@ const ReelServer:React.FC<{x:number;id:string;status:string;load:number}>=({x,id
  </g>;
 };
 const Reel:React.FC<{s:CascadeState;rescue:boolean}>=({s,rescue})=><g>
-  <text x="960" y="74" textAnchor="middle" fontSize="25" fontWeight="680" letterSpacing="2" fill="#ADC5D7">ILLUSTRATIVE REQUEST</text>
   {s.headline==='A BACKUP IS NOT AUTOMATICALLY A RESCUE'?<>
      <text x="960" y="120" fontSize="31" textAnchor="middle" fontWeight="700" fill={WHITE}>A backup server is not</text>
      <text x="960" y="157" fontSize="31" textAnchor="middle" fontWeight="700" fill={WHITE}>automatically a rescue.</text>
