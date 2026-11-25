@@ -1,5 +1,12 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-25 — EP004 FULL VIDEO AVC1 V5 PUBLISHED / ACTUAL PRODUCTION QA PASS
+
+Director required one complete Full Video before ending the turn. V4 actual probe on deployment 92eb455f-6bce-4316-a22f-55ff5a7ee1b5 confirmed all 14096 frames, AVC1 and 30fps but failed solely because pix_fmt=yuvj420p (full-range source), not yuv420p. V5 fixes explicit range conversion (scale=in_range=auto:out_range=tv, format=yuv420p, setparams=range=limited, -color_range tv). Full-range mono AAC plus gapped-clock regression passed locally and in Railway, five assembly tests PASS; full PostgreSQL test run 580/0 failures/0 errors/1 skipped. Backend exact source a513dae8c01850f97bb0329b8c71b9c70431b696 deployment 50694cd8-53f1-471b-b611-28fdc479e776 SUCCESS. Actual 14096-frame AVC1/yuv420p/1080p30 probe PASS at 09:07:52 UTC. FULL_VIDEO_BROWSER_COMPATIBLE_QA_PASS at 09:09:22 UTC confirms full decoded frame count/clock and unchanged AAC packet hash. FULL_VIDEO_AVC1_REPAIR_READY at 09:09:30.857 UTC confirms verified uploaded derivative and saved active film pointer 7783e0ec-d8c5-3aa2-9621-694c66ea12e0, bytes=187601162, frames=14096; six shots READY, matchingSequence=true, issue=null. New versioned Full Video URL now selects this single AVC1 review MP4 by default. Original lossless master and six locked source SHOTs preserved; no Remotion render or TTS. Review derivative is CRF16 and color-range normalized, not pixel-identical master. Actual Director browser playback still requires user acceptance; do not claim independent authenticated playback. Future mixed-config join regression must include full-range sources, mono AAC, integer frame clock and browser-compatible codec. No further deployment required for this documentation update.
+
+---
+
+
 ## 2026-11-25 — EP004 AVC1 DERIVATIVE QA REJECTED / EXACT FRAME CLOCK REPAIR
 
 Director reported playback error again. Railway deployment 6b32fdee-3663-4dc1-bc6e-aa24a5142b7b successfully started the one-time AVC1 repair but at 08:55:45.707 UTC failed "Browser-compatible derivative failed AVC1/1080p/30fps/frame verification." The failed derivative was never published; exact lossless film c3ea6bc0-f7cc-3919-9314-ced3deced186 and six Director-locked SHOTs remain preserved. HTTP 206 requests to film and original SHOT01 do not prove playback. The generic old QA exception did not identify which field differed.
