@@ -1,5 +1,12 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-25 — EP004 FULL VIDEO REPAIR READY / REAL PRODUCTION DECODE VERIFIED
+
+Backend 87bd7f75ccc89f79fc5bdc021fb9884662963f11 deployment a13f6a39-3cc1-45cd-8745-72f4287d78a1 SUCCESS; existing Worker remains at cf0945e58f4e420c744d0006b665d9bc7edff97d. Targeted repair START 08:43:52 UTC confirmed actual six-lock sequence ends with SHOT06 V2. Root mismatch verified against real private source MP4s: SHOT01–05 1/90000 and identical H264 extradata SHA256 4b38837b27f57d1e1e301686cf64fdf0a43924aa52219cecfb6f8ad0dcb25f3d; SHOT06 1/15360 and different extradata SHA256 c0a321d3b57007c6ab4f216b1839a611f16a267d9d8310b391018bcbd97e40f0. Actual FULL_VIDEO_PLAYBACK_QA_PASS at 08:46:30.434 UTC: 14096 decoded frames exactly match original source pixel hashes, continuous decoded clock, full audio decoded, avc3, normalized 1/90000; source frames 2001+2124+2234+2791+2573+2373. Verified uploaded/readback new master and published pointer at 08:46:34.634 UTC, FULL_VIDEO_PLAYBACK_REPAIR_READY filmId c3ea6bc0-f7cc-3919-9314-ced3deced186 (old fc833584-5cb6-4c45-9f68-afb09756e481 retained). Runtime six shots READY, matchingSequence=true, issue=null. No source shot rerender, TTS or lock change, no new infrastructure. Actual Director browser playback of repaired file remains the final acceptance check; refresh Full Video to receive new versioned URL. Future assemblies must normalize timebase and support in-band H264 configuration and fail closed on decoded frame/clock/audio mismatch, not merely count frames. Do not claim browser proof from HTTP 206 or ffprobe counts.
+
+---
+
+
 ## 2026-11-25 — EP004 SIX-SHOT FULL VIDEO PLAYBACK INCIDENT / LOSSLESS REPAIR
 
 Director reported Full Video freezing toward the end despite previous assembly READY and HTTP 206. Do NOT treat a container/frame count or successful range request as proof of browser playback. Original source review: the assembler checked H264/1080p30/AAC and total frame count but did not normalize per-input video timescales or signal changing H264 parameter sets, or verify decoded content continuity. Synthetic mixed-timebase/encoder files reproduce incompatible concatenation timestamps; actual production cause remains subject to the new runtime input audit.
