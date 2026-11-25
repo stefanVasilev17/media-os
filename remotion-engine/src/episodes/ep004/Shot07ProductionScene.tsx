@@ -20,7 +20,7 @@ const Route:React.FC<{d:string;tone:string;active?:boolean}>=({d,tone,active=tru
   {active&&<path d={d} stroke={tone} strokeWidth={27} opacity=".22" filter="url(#s6Glow)"/>}
   <path d={d} stroke={active?tone:'#617080'} strokeWidth={8} opacity={active?.9:.42}/>
 </g>;
-const Server:React.FC<{x:number;y:number;id:string;status:string;load:number}>=({x,y,id,status,load})=>{
+const Server:React.FC<{x:number;y:number;id:string;status:string;load:number;showLabels?:boolean}>=({x,y,id,status,load,showLabels=true})=>{
  const tint=status==='Unresponsive'?RED:status==='Waiting'||status==='Higher load'?AMBER:GREEN;
  return <g transform={'translate('+x+' '+y+')'}>
    <ellipse cx="190" cy="158" rx="188" ry="16" fill="#000" opacity=".30"/>
@@ -33,31 +33,31 @@ const Server:React.FC<{x:number;y:number;id:string;status:string;load:number}>=(
    <rect x="171" y="87" width={133*load} height="10" rx="5" fill={tint}/>
    <rect x="0" y="0" width="385" height="140" rx="6" fill="none" stroke={tint} strokeWidth="2" strokeOpacity={status==='Unresponsive'?.8:.19}/>
    {[9,376].map(px=><g key={px}><circle cx={px} cy="17" r="4" fill="#A3AEB9"/><circle cx={px} cy="121" r="4" fill="#A3AEB9"/></g>)}
-   <text x="0" y="-53" fontFamily={FONT} fontSize="29" fontWeight="700" fill={WHITE}>Server {id}</text>
-   <text x="385" y="-53" textAnchor="end" fontFamily={FONT} fontSize="24" fill={tint}>{status}</text>
+   {showLabels&&<><text x="0" y="-53" fontFamily={FONT} fontSize="29" fontWeight="700" fill={WHITE}>Server {id}</text>
+   <text x="385" y="-53" textAnchor="end" fontFamily={FONT} fontSize="24" fill={tint}>{status}</text></>}
  </g>;
 };
-const Client:React.FC<{y:number;mail:boolean}>=({y,mail})=><g transform={'translate(100 '+y+')'}>
+const Client:React.FC<{y:number;mail:boolean;showLabels?:boolean}>=({y,mail,showLabels=true})=><g transform={'translate(100 '+y+')'}>
   <rect width="250" height="114" rx="24" fill={mail?'#1A344D':'#2A2845'} stroke={mail?CYAN:VIOLET} strokeOpacity=".45" strokeWidth="2"/>
   {mail?<g><rect x="24" y="29" width="77" height="55" rx="5" fill="#BCE0F3"/><path d="M24 30L62 57 101 30" stroke="#477C9B" strokeWidth="5" fill="none"/><rect x="12" y="41" width="43" height="43" rx="6" fill="#247DB9"/><text x="33" y="72" fontSize="29" fontWeight="700" textAnchor="middle" fill="white">O</text></g>:<g><circle cx="79" cy="32" r="15" fill="#B3A8EE"/><rect x="61" y="50" width="38" height="40" rx="11" fill="#8376C7"/><rect x="13" y="39" width="54" height="54" rx="8" fill="#6B5FBA"/><text x="40" y="77" fontSize="37" fontWeight="700" textAnchor="middle" fill="white">T</text></g>}
-  <text x="117" y="65" fontFamily={FONT} fontSize="27" fontWeight="650" fill={WHITE}>{mail?'Outlook':'Teams'}</text>
+  {showLabels&&<text x="117" y="65" fontFamily={FONT} fontSize="27" fontWeight="650" fill={WHITE}>{mail?'Outlook':'Teams'}</text>}
 </g>;
-const Router=()=> <g transform="translate(685 440)">
+const Router:React.FC<{showLabels?:boolean}>=({showLabels=true})=> <g transform="translate(685 440)">
   <ellipse cx="165" cy="204" rx="173" ry="18" fill="#000" opacity=".32"/>
   <path d="M0 0L24 -26H307L330 0Z" fill="url(#s6Top)" stroke="#788B9C" strokeWidth="2"/>
   <rect width="330" height="190" rx="15" fill="url(#s6Metal)" stroke="#7D8E9E" strokeWidth="2"/>
   <rect x="17" y="16" width="296" height="155" rx="13" fill="url(#s6Face)" stroke="#667B8D"/>
   <g transform="translate(165 92)" stroke="#BBCDD8" strokeWidth="7" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M0 -48V48M-48 0H48M0 -48L-11 -35M0 -48L11 -35M0 48L-11 35M0 48L11 35M-48 0L-35 -11M-48 0L-35 11M48 0L35 -11M48 0L35 11"/></g>
   <circle cx="286" cy="134" r="7" fill={GREEN}/>
-  <text x="165" y="242" fontFamily={FONT} fontSize="32" textAnchor="middle" fill={WHITE} fontWeight="650">Router</text>
+  {showLabels&&<text x="165" y="242" fontFamily={FONT} fontSize="32" textAnchor="middle" fill={WHITE} fontWeight="650">Router</text>}
 </g>;
 
 const PacketLayer:React.FC<{s:CascadeState;reel?:boolean}>=({s,reel=false})=><g>{s.packets.map(p=><g key={p.id+'-'+p.phase}><circle cx={p.x} cy={p.y} r={reel?13:17} fill={p.phase==='RESPONSE'?GREEN:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.12:.09}/><circle cx={p.x} cy={p.y} r={reel?8:10} fill={p.phase==='RESPONSE'?GREEN:p.phase==='STOPPED'?AMBER:color(p.lane)} opacity={p.phase==='STOPPED'?.65:1}/></g>)}</g>;
-const Fleet:React.FC<{s:CascadeState}>=({s})=><g>
+const Fleet:React.FC<{s:CascadeState;compact?:boolean}>=({s,compact=false})=><g>
  {SHOT06_INPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={color(i)}/>)}
  {SHOT06_OUTPUTS.map((p,i)=><Route key={i} d={shot06Path(p)} tone={i===2?VIOLET:CYAN} active={s.states[i].status!=='Unresponsive'}/>)}
- <Client y={383} mail/><Client y={593} mail={false}/><Router/>
- {SHOT06_FLEET.map((n,i)=><Server key={n.id} x={n.x} y={n.y} id={n.id} status={s.states[i].status} load={s.states[i].load}/>)}
+ <Client y={383} mail showLabels={!compact}/><Client y={593} mail={false} showLabels={!compact}/><Router showLabels={!compact}/>
+ {SHOT06_FLEET.map((n,i)=><Server key={n.id} x={n.x} y={n.y} id={n.id} status={s.states[i].status} load={s.states[i].load} showLabels={!compact}/>)}
  <PacketLayer s={s}/>
  </g>;
 const FleetSilhouette:React.FC<{x:number;y:number;tone:string}>=({x,y,tone})=><g transform={'translate('+x+' '+y+')'} opacity=".32">
@@ -70,7 +70,7 @@ const FleetSilhouette:React.FC<{x:number;y:number;tone:string}>=({x,y,tone})=><g
 const FleetOverview:React.FC<{s:CascadeState}>=({s})=><g>
   {Array.from({length:24},(_,i)=><FleetSilhouette key={i} x={170+(i%8)*218} y={257+Math.floor(i/8)*205} tone={s.percentage?(i%7===0?'#67798A':RED):'#7D8790'}/>)}
   <rect x="0" y="0" width="1920" height="1080" fill="url(#s6Bg)" opacity=".32"/>
-  <g transform="translate(100 414) scale(.48)"><Fleet s={s}/></g>
+  <g transform="translate(100 414) scale(.48)"><Fleet s={s} compact/></g>
   {s.percentage&&<g>
     <text x="1360" y="400" fontSize="148" fontWeight="760" letterSpacing="-5" fill={RED} textAnchor="middle">&gt;80%</text>
     <text x="1360" y="462" textAnchor="middle" fontSize="31" fontWeight="650" fill={WHITE}>Affected gateway servers</text>
@@ -87,11 +87,10 @@ const FleetOverview:React.FC<{s:CascadeState}>=({s})=><g>
 const ReelServer:React.FC<{x:number;id:string;status:string;load:number}>=({x,id,status,load})=>{
  const tint=status==='Unresponsive'?RED:status==='Higher load'?AMBER:GREEN;
  return <g transform={'translate('+x+' 650)'}>
-  <g transform="scale(.46)"><Server x={0} y={0} id={id} status={status} load={load}/></g>
-  <rect x="-5" y="-48" width="187" height="32" fill="#182431"/>
-  <text x="88" y="-24" fontSize="22" fontWeight="700" fill={WHITE} textAnchor="middle">Server {id}</text>
+  <g transform="scale(.46)"><Server x={0} y={0} id={id} status={status} load={load} showLabels={false}/></g>
+  <text x="88" y="91" fontSize="22" fontWeight="700" fill={WHITE} textAnchor="middle">Server {id}</text>
   <circle cx="88" cy="-8" r="5.5" fill={tint} stroke="#0A1019" strokeWidth="1.5"/>
-  <text x="88" y="99" fontSize="19" fill={tint} textAnchor="middle">{status==='Unresponsive'?'No response':status==='Higher load'?'High load':'Responsive'}</text>
+  <text x="88" y="121" fontSize="19" fill={tint} textAnchor="middle">{status==='Unresponsive'?'No response':status==='Higher load'?'High load':'Responsive'}</text>
  </g>;
 };
 const Reel:React.FC<{s:CascadeState;rescue:boolean}>=({s,rescue})=><g>
@@ -99,7 +98,7 @@ const Reel:React.FC<{s:CascadeState;rescue:boolean}>=({s,rescue})=><g>
   {s.headline==='A BACKUP IS NOT AUTOMATICALLY A RESCUE'?<>
      <text x="960" y="120" fontSize="31" textAnchor="middle" fontWeight="700" fill={WHITE}>A backup server is not</text>
      <text x="960" y="157" fontSize="31" textAnchor="middle" fontWeight="700" fill={WHITE}>automatically a rescue.</text>
-   </>:<text x="960" y="132" fontSize="25" textAnchor="middle" fontWeight="700" fill={WHITE}>{s.headline}</text>}
+   </>:<text x="960" y="132" fontSize="23" textAnchor="middle" fontWeight="700" fill={WHITE}>{s.headline}</text>}
   <g transform="translate(845 181)">
    <rect width="230" height="65" rx="17" fill="#203D53" stroke={CYAN} strokeWidth="2"/>
    <rect x="19" y="19" width="47" height="29" rx="4" fill="#BCE0F3"/><path d="M19 19L42.5 35 66 19" fill="none" stroke="#477C9B" strokeWidth="3"/>
@@ -147,7 +146,7 @@ export const Shot07ProductionScene:React.FC<Ep004Shot07RenderProps>=props=>{
    <Defs/>
    <rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
    {!reel&&<>
-     <g opacity={1-blend} transform={'translate('+(-s.focus*365)+' '+(-s.focus*20)+') scale('+(1+s.focus*.20)+')'}><Fleet s={s}/></g>
+     <g opacity={1-blend} transform={'translate('+(-s.focus*90)+' '+(-s.focus*20)+') scale('+(1+s.focus*.06)+')'}><Fleet s={s}/></g>
      {s.stage==='overview'&&<g opacity={blend}><FleetOverview s={s}/></g>}
      <text x="100" y="161" fontSize="46" fontWeight="720" fill={WHITE}>{s.stage==='overview'?'CASCADE AT FLEET SCALE':s.headline}</text>
      <path d="M100 191H191" stroke={CYAN} strokeWidth="6" strokeLinecap="round"/>
