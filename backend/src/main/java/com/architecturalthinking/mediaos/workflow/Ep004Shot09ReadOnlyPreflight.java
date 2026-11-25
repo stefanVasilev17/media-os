@@ -13,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Component
 public final class Ep004Shot09ReadOnlyPreflight {
     private static final Logger LOG=LoggerFactory.getLogger(Ep004Shot09ReadOnlyPreflight.class);
     private static final UUID PACKAGE=UUID.fromString("d11d02a2-b649-44c9-a022-4405149f675e");
