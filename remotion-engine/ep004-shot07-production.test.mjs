@@ -116,7 +116,20 @@ test('SHOT07 one-frame actual seam and protected original scene',async()=>{
  assert.ok(scene.includes('frame===0&&props.previousLastFrameDataUri'));
  assert.ok(scene.includes('Microsoft preliminary report'));
  assert.ok(scene.includes('s.elapsed&&'));
- assert.ok(scene.includes('Schematic fleet'));
+ assert.ok(!scene.includes('Schematic fleet'));
+ assert.ok(!scene.includes('ILLUSTRATIVE REQUEST'));
  assert.ok(scene.includes('Routing decision'));
  assert.ok(scene.includes('Shared availability'));
+});
+
+test('SHOT07 V2 Director feedback: return packets red in all diagram views; preserve other directions and remove only rejected copy',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot07ProductionScene.tsx',import.meta.url),'utf8');
+ const layer=scene.slice(scene.indexOf('const PacketLayer:'),scene.indexOf('const Fleet:'));
+ assert.equal((layer.match(/p\.phase==='RESPONSE'\?RED:p\.phase==='STOPPED'\?AMBER:color\(p\.lane\)/g)||[]).length,2);
+ assert.ok(!layer.includes("RESPONSE'?GREEN"));
+ assert.ok(scene.includes('<PacketLayer s={s}/>'));
+ assert.ok(scene.includes('<PacketLayer s={s} reel/>'));
+ assert.ok(!/Schematic fleet|ILLUSTRATIVE REQUEST/i.test(scene));
+ for(const text of ['Microsoft preliminary report','Affected gateway servers','Less than two hours','Routing decision','Shared availability','frame===0&&props.previousLastFrameDataUri'])
+   assert.ok(scene.includes(text),text);
 });
