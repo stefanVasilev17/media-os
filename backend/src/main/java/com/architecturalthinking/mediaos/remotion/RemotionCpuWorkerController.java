@@ -100,6 +100,7 @@ public class RemotionCpuWorkerController {
                 && !isEp004Shot04Target(scope)
                 && !isEp004Shot05Target(scope)
                 && !isEp004Shot06Target(scope)
+                && !isEp004Shot07Target(scope)
                 && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
