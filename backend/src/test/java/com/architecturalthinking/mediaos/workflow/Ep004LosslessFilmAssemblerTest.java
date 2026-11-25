@@ -55,7 +55,7 @@ class Ep004LosslessFilmAssemblerTest {
         return HexFormat.of().formatHex(md.digest());
     }
 
-    @Test void threeReal1080pH264AacShotsBecomeOneLossless135FrameFilm() throws Exception {
+    @Test void threeMixedH264ShotsBecomeOneBrowserCompatible135FrameFilm() throws Exception {
         shot(1,30,48000,true);
         shot(2,45,48000,true);
         shot(3,60,48000,true);
@@ -75,6 +75,17 @@ class Ep004LosslessFilmAssemblerTest {
         assertEquals(third,sha(folder.resolve("shot03.mp4")));
         assertEquals(3,Files.readAllLines(folder.resolve("sequence.txt")).size());
         assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(film,folder.resolve("test-film.md5"),true).size());
+        assertTrue(Files.isRegularFile(folder.resolve("verified-lossless.mp4")));
+        assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(
+            folder.resolve("verified-lossless.mp4"),folder.resolve("lossless-test.md5"),true).size());
+        Process probe=new ProcessBuilder("ffprobe","-v","error","-select_streams","v:0",
+            "-show_entries","stream=codec_tag_string,pix_fmt","-of","default=noprint_wrappers=1",
+            film.toString()).redirectErrorStream(true).start();
+        assertTrue(probe.waitFor(30,TimeUnit.SECONDS));
+        String info=new String(probe.getInputStream().readAllBytes());
+        assertEquals(0,probe.exitValue(),info);
+        assertTrue(info.contains("codec_tag_string=avc1"),info);
+        assertTrue(info.contains("pix_fmt=yuv420p"),info);
         assertEquals(List.of("file 'normalized01.mp4'","file 'normalized02.mp4'",
                 "file 'normalized03.mp4'"),
             Files.readAllLines(folder.resolve("sequence.txt")));
