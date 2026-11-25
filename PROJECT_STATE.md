@@ -1,6 +1,9 @@
 # MediaOS — CURRENT PROJECT STATE
 
-## 2026-11-24 — EP004 SHOT06 SERVER FLEET DESIGN SELECTED / PREFLIGHT BLOCKED
+## 2026-11-25 — EP004 SHOT06 V2 DIRECTOR CORRECTION / PRODUCTION PROMOTION PENDING
+V1 deployed Backend and Worker source 671746ca2e90908aaeafbda68e3e9e636543132c, actual read-only readiness PASS 2373 frames/10 cues/voice and predecessor SHA verified. Completed V1 render b1618ea8-aa98-4b6e-8362-f904c2470a29 (7193728 bytes, 79.1s, H264/AAC, seam PSNR 45.15). Director likes fleet but wants moving outgoing diagram and removal of four low-value labels and demand rail. V2 source implements exact predecessor frame zero followed by real phase-aligned moving excerpt, preCPU phase/motion check and dissolve into fleet inside existing 72 frames. See AT-VIS-0012 and candidate status. V2 build/deployment/readiness not yet verified; no new paid render or voice, no changes to SHOT01–05 or SHOT07.
+
+## 2026-11-24 — EP004 SHOT06 SERVER FLEET DESIGN SELECTED / HISTORICAL PREFLIGHT BLOCKED
 
 Director selected the realistic Concept 1 server-fleet visual direction, explicitly distinct from SHOT05. See `docs/visual/EP004_SHOT06_SERVER_FLEET_PREVIZ_20261124.md`. SHOT06 locked story reviewed; production selected-Take hash/timed cues and exact SHOT05 persisted lock manifest/SHA-256 are still unavailable through current authenticated access. Current branch has no dedicated EP004 SHOT06 production contract. No SHOT06 code promotion, render, TTS or deployment; preserve SHOT05 V10 pin and lock. Conceptual motion preview is not a production render.
 
