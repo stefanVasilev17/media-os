@@ -1,0 +1,15 @@
+import type {Ep004Shot09RenderProps,RecoveryState,Dot} from './EP004Shot09ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='RESTART'|'RESPONDING'|'WAITING'|'RETURNED'|'FLEET'|'REPLAY'|'BACKLOG'|'ONLINE'|'RUSH'|'CONTENTION'|'RELAPSE'|'TWICE'|'CONTROL'|'GOAL';
+export type Ep004Shot10RenderProps=Omit<Ep004Shot09RenderProps,'previousShot08Props'|'eventFrames'>&{previousShot09Props:Ep004Shot09RenderProps;eventFrames:Record<EventKey,number>};
+export type State={stage:'return'|'fleet'|'replay'|'controlled';prior:RecoveryState|null;openingMix:number;phase:'failed'|'booting'|'running';load:number;queue:Dot[];traffic:Dot[];fleet:Dot[];contention:boolean;activity:number;goal:boolean;secondFailure:boolean;gateOpen:boolean};
+export declare const EP004_SHOT10_COMPOSITION:string;
+export declare const EP004_SHOT10_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT10_BEATS:readonly string[];
+export declare const SHOT10_EVENTS:readonly EventKey[];
+export declare const WIDE_ROUTE:readonly Point[];
+export declare const REPLAY_ROUTE:readonly Point[];
+export declare const FLEET_ROUTES:readonly (readonly Point[])[];
+export declare function validateEp004Shot10Production(p:Ep004Shot10RenderProps,requireFrame?:boolean):true;
+export declare function shot10State(frame:number,p:Ep004Shot10RenderProps):State;
+export declare function verifyEp004Shot10ActualMotion(p:Ep004Shot10RenderProps):Record<string,string|number>;
