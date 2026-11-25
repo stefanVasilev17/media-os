@@ -20,8 +20,11 @@ import {Shot09ProductionScene as Ep004Shot09Production} from './episodes/ep004/S
 import type {Ep004Shot09RenderProps} from './components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 import {EP004_SHOT09_COMPOSITION} from './components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 import {Shot10ProductionScene as Ep004Shot10Production} from './episodes/ep004/Shot10ProductionScene';
+import {Shot11ProductionScene as Ep004Shot11Production} from './episodes/ep004/Shot11ProductionScene';
 import type {Ep004Shot10RenderProps} from './components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
+import type {Ep004Shot11RenderProps} from './components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import {EP004_SHOT10_COMPOSITION} from './components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
+import {EP004_SHOT11_COMPOSITION} from './components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -127,6 +130,9 @@ export const Root: React.FC = () => {
       <Composition id={EP004_SHOT10_COMPOSITION} component={Ep004Shot10Production}
         durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot10RenderProps}/>
+      <Composition id={EP004_SHOT11_COMPOSITION} component={Ep004Shot11Production}
+        durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
+        defaultProps={{} as Ep004Shot11RenderProps}/>
       <Composition id={EP004_SHOT06_COMPOSITION} component={Ep004Shot06Production}
         durationInFrames={dynamicDuration??2400} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot06RenderProps}/>

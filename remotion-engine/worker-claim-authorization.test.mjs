@@ -46,3 +46,9 @@ test('EP004 SHOT10 exact target only',()=>{
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL/extra'));
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT11-CONTROLLED-RECOVERY-V1-VISUAL'));
 });
+
+test('EP004 SHOT11 exact target only',()=>{
+ assert.equal(requireSupportedTargetComposition('EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL'),'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL');
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL/extra'));
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT12-INCIDENT-CLOCK-V1-VISUAL'));
+});
