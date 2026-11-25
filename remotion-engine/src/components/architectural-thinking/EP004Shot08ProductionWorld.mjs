@@ -81,15 +81,15 @@ export function shot08State(frame,p){
  const moved=frame>=e.ALTERNATE_RECOVERY,primary=[],alternate=[];
  PRODUCT_Y.forEach((y,i)=>{
    const migration=e.ALTERNATE_RECOVERY+i*8;
-   if(i===0||!moved||frame<migration+90){
+   {
       // Requests already on the primary route finish their trip before the new branch takes over.
       const path=PRIMARY_ROUTES[i],limit=i===0?Infinity:migration;
       const begin=t[5];
-      for(let born=begin+Math.floor((frame-begin)/28)*28;born>=Math.max(begin,frame-180);born-=28){
+      for(let born=begin+Math.floor((frame-begin)/28)*28;born>=Math.max(begin,frame-320);born-=28){
        if(born>=limit)continue;
        const d=(frame-born)*10,len=shot06Length(path);
        if(d<=len)primary.push({...shot06Point(path,d),tone:'cyan'});
-       else if(d<=len*2+120)primary.push({...shot06Point(path,Math.max(0,len-(d-len-120))),tone:'red'});
+       else if(d<=len*2+120)primary.push({...shot06Point(path,Math.min(len,Math.max(0,len-(d-len-120)))),tone:'red'});
       }
    }
    if(i>0&&frame>=migration){
