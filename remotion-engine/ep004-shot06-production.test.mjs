@@ -79,3 +79,21 @@ test('SHOT06 authentic media verification and mux execute in exact order',async(
  assert.ok(w.includes('SHOT06_LOCKED_PREDECESSOR_SHA256_CHANGED'));
  assert.ok(w.includes('EP004_SHOT06_REAL_APPROVED_TAKE_72F_AUDIO_DELAY_QA_PASS'));
 });
+
+test('SHOT06 V2 uses real moving phase-matched predecessor, not a frozen dissolve',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot06ServerFleetPreview.tsx',import.meta.url),'utf8');
+ for(const text of ['Combined incoming demand','>Steady<','M102 909H390','ARCHITECTURAL THINKING · SHOT06','CONCEPTUAL MODEL · NOT MEASURED TELEMETRY'])assert.ok(!scene.includes(text),text);
+ assert.ok(scene.includes('props.previousLastFrameDataUri&&frame===0?1:0'));
+ const w=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8');
+ const prep=w.slice(w.indexOf('async function prepareEp004Shot06MovingBridge'),w.indexOf('async function compositeEp004Shot06MovingBridge'));
+ assert.ok(prep.includes('lastFrame-144'));
+ assert.ok(prep.includes('psnr>=30'));
+ assert.ok(prep.includes('phaseFrame+1'));
+ assert.ok(prep.includes('phaseFrame+72'));
+ assert.ok(prep.includes("new Set(hashes.slice(0,30)).size<20"));
+ const run=w.slice(w.indexOf('async function render(job)'));
+ assert.ok(run.indexOf('await compositeEp004Shot06MovingBridge(job,outputPath')>run.indexOf('await renderMedia('));
+ assert.ok(run.indexOf('await compositeEp004Shot06MovingBridge(job,outputPath')<run.indexOf('await muxEp004Shot06ApprovedVoice(job,outputPath,inputProps)'));
+ assert.ok(w.includes('fade=t=out:s=12:n=48:alpha=1'));
+ assert.ok(w.includes('SHOT06_MOVING_BRIDGE_CHANGED_VIDEO_CONTRACT'));
+});
