@@ -54,6 +54,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const [savedRenders,setSavedRenders]=useState<SavedRender[]>([]);
   const [checkingSaved,setCheckingSaved]=useState(false);
   const [film,setFilm]=useState<FilmState|null>(null);
+  const [fullPlaybackError,setFullPlaybackError]=useState('');
+  const [fallbackIndex,setFallbackIndex]=useState<number|null>(null);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState('');
   const [error,setError]=useState('');
@@ -313,6 +315,13 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const active=episode?.shots.find(s=>s.shotKey===activeShot);
   const locked=film?.locks.find(s=>s.shotKey===activeShot);
   const fullUrl=film?.videoUrl??null;
+  const fallbackClips=(film?.renderIds??[]).map(id=>film?.locks.find(lock=>lock.renderId===id));
+  const canPlayOriginals=episode?.episodeKey==='EP004'&&fallbackClips.length>0&&
+    fallbackClips.every(Boolean);
+  const fallbackClip=fallbackIndex===null?undefined:fallbackClips[fallbackIndex];
+  useEffect(()=>{
+    setFallbackIndex(null);setFullPlaybackError('');
+  },[fullUrl]);
   const selectedVideo=locked
     ?savedRenders.find(item=>item.renderId===locked.renderId)
     :(savedRenders.find(item=>item.canLock)??savedRenders[0]);
@@ -384,9 +393,36 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             {fullUrl&&<p role="status" className="director-minimal-muted">
               Full Video is ready. Watch the complete continuous MP4 below.
             </p>}
-            {fullUrl&&<video key={fullUrl} controls playsInline preload="metadata"
+            {fullUrl&&!fallbackClip&&<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
+              onError={event=>setFullPlaybackError('Playback error '+(event.currentTarget.error?.code??'unknown')+
+                ': '+(event.currentTarget.error?.message||'Browser could not load the combined video.'))}
+              onPlaying={()=>setFullPlaybackError('')}
               aria-label="Full Video assembled from consecutive locked SHOTs"/>}
+            {fullPlaybackError&&<p className="director-minimal-error" role="alert">{fullPlaybackError}</p>}
+            {canPlayOriginals&&!fallbackClip&&<button type="button" className="director-minimal-subtle"
+                onClick={()=>{setFullPlaybackError('');setFallbackIndex(0);}}>
+                <Play size={15}/> Play original SHOTs in sequence
+              </button>}
+            {fallbackClip&&<div className="director-minimal-render">
+              <p className="director-minimal-muted">Original locked videos · {fallbackClip.shotKey} ·
+                {' '+((fallbackIndex??0)+1)+' / '+fallbackClips.length}</p>
+              <video controls playsInline autoPlay preload="auto" className="director-minimal-video"
+                src={lockedVideoUrl(fallbackClip.renderId)}
+                aria-label="Sequential original SHOT playback"
+                onEnded={()=>setFallbackIndex(index=>index!==null&&index+1<fallbackClips.length?index+1:index)}
+                onError={event=>setFullPlaybackError('Original '+fallbackClip.shotKey+' playback error '+
+                  (event.currentTarget.error?.code??'unknown'))}
+                onPlaying={()=>setFullPlaybackError('')}/>
+              <button type="button" className="director-minimal-subtle"
+                disabled={(fallbackIndex??0)===0}
+                onClick={()=>setFallbackIndex(index=>Math.max(0,(index??0)-1))}>Previous SHOT</button>
+              <button type="button" className="director-minimal-subtle"
+                disabled={(fallbackIndex??0)+1>=fallbackClips.length}
+                onClick={()=>setFallbackIndex(index=>Math.min(fallbackClips.length-1,(index??0)+1))}>Next SHOT</button>
+              <button type="button" className="director-minimal-subtle"
+                onClick={()=>{setFallbackIndex(null);setFullPlaybackError('');}}>Return to Full Video</button>
+            </div>}
             {lockedClipsToPreview.length>0&&
               <div className="director-minimal-locked-clips">
                 {fullUrl&&<p className="director-minimal-muted">
