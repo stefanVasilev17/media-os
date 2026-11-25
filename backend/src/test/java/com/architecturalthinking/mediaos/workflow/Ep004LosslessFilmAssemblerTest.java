@@ -118,17 +118,24 @@ class Ep004LosslessFilmAssemblerTest {
         assertFalse(Files.exists(folder.resolve("full-video.mp4")));
     }
 
-    @Test void browserDerivativeUsesExactFrameClockDespiteSourceTimestampGaps() throws Exception {
+    @Test void browserDerivativeHandlesFullRangeMonoSourceWithTimestampGaps() throws Exception {
         Path source=folder.resolve("gapped.mp4");
         Path result=folder.resolve("fixed.mp4");
         command(List.of("ffmpeg","-hide_banner","-nostdin","-loglevel","error",
             "-f","lavfi","-i","testsrc2=s=1920x1080:r=30:d=4.5",
             "-f","lavfi","-i","sine=frequency=440:sample_rate=48000:duration=5",
-            "-vf","settb=1/90000,setpts=N*3000+floor(N/30)*3000",
+            "-vf","settb=1/90000,setpts=N*3000+floor(N/30)*3000,scale=in_range=tv:out_range=pc,format=yuv420p,setparams=range=full",
             "-enc_time_base","1:90000","-fps_mode","passthrough",
             "-c:v","libx264","-preset","ultrafast","-threads:v","2",
-            "-pix_fmt","yuv420p","-video_track_timescale","90000",
-            "-c:a","aac","-ac","2","-use_editlist","0","-y",source.toString()));
+            "-pix_fmt","yuv420p","-color_range","pc","-video_track_timescale","90000",
+            "-c:a","aac","-ac","1","-use_editlist","0","-y",source.toString()));
+        Process inputProbe=new ProcessBuilder("ffprobe","-v","error","-select_streams","v:0",
+            "-show_entries","stream=pix_fmt,color_range","-of","default=noprint_wrappers=1",
+            source.toString()).redirectErrorStream(true).start();
+        assertTrue(inputProbe.waitFor(30,TimeUnit.SECONDS));
+        String sourceInfo=new String(inputProbe.getInputStream().readAllBytes());
+        assertEquals(0,inputProbe.exitValue(),sourceInfo);
+        assertTrue(sourceInfo.contains("pix_fmt=yuvj420p"),sourceInfo);
         assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(
             source,folder.resolve("gapped.md5"),false).size());
         Ep004LosslessFilmAssembler.browserCompatible(source,result,135);
