@@ -208,11 +208,11 @@ const FleetClockView:React.FC<{s:ClockState}>=({s})=><g>
  {FLEET_CLOCK_OUTPUTS.map((r,i)=><Route key={i} d={shot06Path(r)} tone={s.fleetPhase[i]==='failed'?RED:s.fleetPhase[i]==='booting'?AMBER:CYAN}/>)}
  <Router/><ClockPackets s={s}/>
  <text x="1510" y="212" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Gateway fleet</text>
- {[0,1,2,3].map(i=>{const y=250+i*147,phase=s.fleetPhase[i],tone=phase==='failed'?RED:phase==='booting'?AMBER:GREEN;return <g key={i}>
-  <Gateway x={1310} y={y} w={400} h={100} failed={phase==='failed'} activity={s.activity}/>
-  <rect x="1324" y={y+78} width="372" height="6" rx="3" fill="#0B1420"/>
-  <rect x="1324" y={y+78} width={372*(phase==='failed'?.08:phase==='booting'?.2:s.pressure)} height="6" rx="3" fill={phase==='running'&&s.pressure>.65?AMBER:tone}/>
-  <circle cx="1325" cy={y+121} r="6" fill={tone}/><text x="1342" y={y+129} fontSize="22" fontWeight="650" fill={tone}>{phase==='failed'?'UNRESPONSIVE':phase==='booting'?'STARTING':s.pressure>.65?'UNDER LOAD':'RUNNING'}</text>
+ {[0,1,2,3].map(i=>{const y=254+i*147,phase=s.fleetPhase[i],tone=phase==='failed'?RED:phase==='booting'?AMBER:GREEN;return <g key={i}>
+  <Gateway x={1310} y={y} w={400} h={92} failed={phase==='failed'} activity={s.activity}/>
+  <rect x="1324" y={y+70} width="372" height="6" rx="3" fill="#0B1420"/>
+  <rect x="1324" y={y+70} width={372*(phase==='failed'?.08:phase==='booting'?.2:s.pressure)} height="6" rx="3" fill={phase==='running'&&s.pressure>.65?AMBER:tone}/>
+  <circle cx="1325" cy={y+104} r="6" fill={tone}/><text x="1342" y={y+112} fontSize="22" fontWeight="650" fill={tone}>{phase==='failed'?'UNRESPONSIVE':phase==='booting'?'STARTING':s.pressure>.65?'UNDER LOAD':'RUNNING'}</text>
  </g>})}
  <g transform="translate(100 740)"><text fontSize="28" fontWeight="650" fill={WHITE}>{s.relapse?'Recovered nodes fail again':s.activeMark>=4?'More load per available server':s.probe?'Investigate connection handling':'Redistribution and restarts'}</text><path d="M0 23H410" stroke={s.relapse?RED:AMBER} strokeWidth="3"/></g>
  <Clock s={s}/>
@@ -224,7 +224,7 @@ const ConnectionView:React.FC<{s:ClockState;frame:number}>=({s,frame})=>{const t
  <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
  <circle cx="1200" cy="652" r="7" fill={tone}/><text x="1222" y="662" fontSize="28" fill={tone} fontWeight="700">{s.phase==='failed'?'UNRESPONSIVE':s.phase==='booting'?'STARTING':'RUNNING'}</text>
  <ClockPackets s={s}/>
- <g opacity={s.defect?1:.45}><rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={s.defect?RED:'#587286'} strokeWidth="2"/><path d="M1168 778H1260L1300 751L1340 804L1380 778H1690" stroke={s.defect?RED:AMBER} strokeWidth="4" fill="none"/><text x="1160" y="750" fontSize="27" fontWeight="650" fill={WHITE}>Connection handling</text></g>
+ <g opacity={s.defect?1:.45}><path d="M1645 585H1688V715" fill="none" stroke={s.defect?RED:AMBER} strokeWidth="3" strokeDasharray="7 6"/><rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={s.defect?RED:'#587286'} strokeWidth="2"/><path d="M1168 798H1260L1300 774L1340 818L1380 798H1690" stroke={s.defect?RED:AMBER} strokeWidth="4" fill="none"/><text x="1160" y="750" fontSize="27" fontWeight="650" fill={WHITE}>Connection handling</text></g>
  <text x="960" y="965" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>{s.end?'Break the conditions that expose the defect.':'Restoring a process is not restoring a service.'}</text>
 </g>};
 export const Shot11ProductionScene:React.FC<Ep004Shot11RenderProps>=props=>{

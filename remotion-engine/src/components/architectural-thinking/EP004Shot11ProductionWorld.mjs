@@ -67,10 +67,10 @@ function stream(route,frame,start,period,tone,healthy,stop=Infinity){
   const born=start+i*period;if(born>=stop)continue;
   const age=frame-born;
   if(age<travel)out.push({...shot06Point(route,age*speed),tone,direction:'request'});
-  else if(age>=travel+delay&&age<travel*2+delay)
-   out.push({...shot06Point(route,len-(age-travel-delay)*speed),tone:healthy?'green':'red',direction:'response'});
-  else if(!healthy&&age>=travel&&age<travel+delay)
-   out.push({...shot06Point(route,len),tone:'amber',direction:'waiting'});
+  else if(healthy&&age>=travel+delay&&age<travel*2+delay)
+   out.push({...shot06Point(route,len-(age-travel-delay)*speed),tone:'green',direction:'response'});
+  else if(!healthy&&age>=travel&&age<travel+delay+16)
+   out.push({...shot06Point(route,len),tone:age<travel+delay?'amber':'red',direction:'waiting'});
  }
  return out.filter(visible);
 }
@@ -91,12 +91,12 @@ export function shot11State(frame,p){
   traffic=[...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[2]),frame,e.SHIFT,38,'cyan',frame<e.ALERT),
    ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[2]),frame,e.SHIFT,frame<e.LOAD?62:30,'violet',frame<e.ALERT,e.REDIRECT),
    ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[3]),frame,e.REDIRECT,32,'violet',true),
-   ...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[4]),frame,e.REDIRECT+15,52,'cyan',frame<e.ALERT)];
+   ...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[4]),frame,e.REDIRECT+15,52,'cyan',false)];
  }else if(stage==='fleet'){
   traffic=FLEET_CLOCK_OUTPUTS.flatMap((r,i)=>fleetPhase[i]==='booting'?[]:stream(join(FLEET_CLOCK_INPUT,r),frame,e.EVENING+i*8,i===3?28:62,'cyan',fleetPhase[i]==='running'));
   if(frame>=e.PROBE)traffic.push(...stream(join(FLEET_CLOCK_PROBE,FLEET_CLOCK_OUTPUTS[1]),frame,e.PROBE,90,'cyan',fleetPhase[1]==='running'));
  }else{
-  traffic=phase==='booting'?[]:stream(CONNECTION_ROUTE,frame,e.LOOP,24,'cyan',phase==='running');
+  traffic=phase==='booting'?[]:stream(CONNECTION_ROUTE,frame,frame<e.LOOP?e.PATTERN:e.LOOP+Math.min(36,Math.max(8,Math.floor((e.DEFECT-e.LOOP)/3))),24,'cyan',phase==='running');
  }
  return {prior,openingMix,stage,activeMark,pressure,failures,phase,fleetPhase,traffic,activity:.5+.5*Math.sin(frame*.071),redirect:frame>=e.REDIRECT,alert:frame>=e.ALERT,probe:frame>=e.PROBE,relapse:frame>=e.RELAPSE,defect:frame>=e.DEFECT,end:frame>=e.END};
 }
