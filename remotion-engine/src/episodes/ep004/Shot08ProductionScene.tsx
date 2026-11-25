@@ -1,5 +1,6 @@
 import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
+import {ATOutlookMailClient} from '../../components/architectural-thinking/ATOutlookMailClient';
 import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
 import {REEL_INPUT,REEL_OUTPUTS} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
 import type {CascadeState} from '../../components/architectural-thinking/EP004Shot07ProductionWorld.mjs';
@@ -119,7 +120,7 @@ const Gateway:React.FC<{x:number;y:number;w:number;h:number;failed?:boolean;quie
  {[0,1].map(i=><g key={i}><path d={'M'+w*.36+' '+(h*.33+i*h*.29)+'H'+w*.75} stroke="#758A9D" strokeWidth="8" strokeLinecap="round"/><circle cx={w*.88} cy={h*.33+i*h*.29} r="5" fill={failed?RED:GREEN}/></g>)}
 </g>;
 const Regions:React.FC<{s:RegionState}>=({s})=><g>
- <Header title={s.incident?'REGIONAL CONTAINMENT FAILED':'ISOLATION LIMITS THE BLAST RADIUS'} sub={s.incident?'Microsoft gateway capacity units':'Capacity units organized into regions'}/>
+ <Header title={s.incident?'REGIONAL CONTAINMENT FAILED':'ISOLATION LIMITS THE BLAST RADIUS'} sub={s.incident?'Reported regional capacity partitions — conceptual view':'Capacity units organized into regions'}/>
  {REGION_X.map((x,i)=>{
    const level=s.levels[i],bad=level>.5,tone=bad?RED:'#789CAF';
    return <g key={x}>
@@ -177,23 +178,17 @@ const Dependencies:React.FC<{s:RegionState}>=({s})=><g>
  </g>}
  <text x="960" y="974" textAnchor="middle" fontSize="30" fontWeight="650" fill={WHITE}>{s.exchange?'Same platform. Different paths.':'A shared gateway does not mean identical impact.'}</text>
  </g>;
-const Outcome:React.FC<{s:RegionState}>=({s})=><g>
+const Outcome:React.FC<{s:RegionState;frame:number}>=({s,frame})=><g>
  <Header title="WHAT THE USER ACTUALLY EXPERIENCES"/>
  <Route d={shot06Path(OUTCOME_MAIL)} tone={RED}/>
  <Route d={shot06Path(OUTCOME_OTHER)} tone={GREEN} active={s.user}/>
- <g transform="translate(144 282)">
-  <path d="M0 0H431V545H0Z" fill="url(#s6Metal)" stroke="#778D9E" strokeWidth="3"/>
-  <rect x="12" y="12" width="407" height="521" rx="19" fill="#111E2D" stroke="#4C6173" strokeWidth="2"/>
-  <rect x="32" y="47" width="367" height="48" rx="8" fill="#203C54"/>
-  <text x="52" y="79" fontSize="28" fontWeight="700" fill={WHITE}>Microsoft 365</text>
-  <g transform="translate(36 132)"><rect width="355" height="153" rx="12" fill="#203445" stroke={RED} strokeOpacity=".72"/>
-   <AppMark name="Outlook" index={0}/>
-   <path d="M23 83H330" stroke="#4A596A"/><circle cx="29" cy="118" r="7" fill={RED}/><text x="52" y="127" fontSize="26" fill={RED}>Inbox unavailable</text>
-  </g>
-  {s.user&&<g transform="translate(36 320)"><rect width="355" height="153" rx="12" fill="#203445" stroke={GREEN} strokeOpacity=".65"/>
-   <AppMark name="Teams" index={1}/><path d="M23 83H330" stroke="#4A596A"/><circle cx="29" cy="118" r="7" fill={GREEN}/><text x="52" y="127" fontSize="26" fill={GREEN}>Feature responding</text>
-  </g>}
- </g>
+ <g transform="translate(89 75)"><ATOutlookMailClient openProgress={1} actionProgress={1} blocked={1} frame={frame}/></g>
+ <text x="360" y="214" textAnchor="middle" fontSize="29" fontWeight="700" fill={RED}>Inbox unavailable</text>
+ {s.user&&<g transform="translate(600 650)">
+  <rect width="230" height="108" rx="14" fill="url(#s6Metal)" stroke={GREEN} strokeWidth="2"/>
+  <g transform="translate(15 13)"><AppMark name="Teams" index={1}/></g>
+  <circle cx="23" cy="83" r="6" fill={GREEN}/><text x="40" y="90" fontSize="21" fill={GREEN}>Feature responding</text>
+ </g>}
  <Gateway x={1160} y={308} w={385} h={144} failed/>
  <text x="1352" y="263" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>Primary gateway</text>
  <text x="1352" y="506" textAnchor="middle" fontSize="29" fill={RED}>Exchange Online</text>
@@ -213,7 +208,7 @@ export const Shot08ProductionScene:React.FC<Ep004Shot08RenderProps>=props=>{
    {s.stage==='regions'&&<g opacity={s.openingMix}><Regions s={s}/></g>}
    {s.inherited&&<g opacity={1-s.openingMix}><Reel s={s.inherited} rescue/></g>}
    {s.stage==='dependencies'&&<Dependencies s={s}/>}
-   {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*140)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s}/></g>}
+   {s.stage==='outcome'&&<g transform={'translate('+(-s.focus*140)+' '+(-s.focus*18)+') scale('+(1+s.focus*.12)+')'}><Outcome s={s} frame={frame}/></g>}
   </svg>
   {frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}
  </AbsoluteFill>;

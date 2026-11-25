@@ -104,6 +104,6 @@ test('SHOT08 verified media gate, composition and seam ordering before complete'
 });
 test('SHOT08 three distinct views, no decorative labels and actual first-frame seam',async()=>{
  const s=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
- for(const x of ['<Regions s={s}/>','<Dependencies s={s}/>','<Outcome s={s}/>','<Reel s={s.inherited} rescue/>','frame===0&&props.previousLastFrameDataUri','Scale constraint','Partial recovery','Inbox unavailable'])assert.ok(s.includes(x),x);
+ for(const x of ['<Regions s={s}/>','<Dependencies s={s}/>','<Outcome s={s} frame={frame}/>','<Reel s={s.inherited} rescue/>','frame===0&&props.previousLastFrameDataUri','Scale constraint','Partial recovery','Inbox unavailable'])assert.ok(s.includes(x),x);
  assert.ok(!/ILLUSTRATIVE REQUEST|Schematic fleet/.test(s));
 });

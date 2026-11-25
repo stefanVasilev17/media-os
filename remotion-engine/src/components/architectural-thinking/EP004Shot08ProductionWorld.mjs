@@ -56,7 +56,7 @@ export const PRODUCT_Y=Object.freeze([330,480,600,720,840]);
 export const PRIMARY_ROUTES=Object.freeze(PRODUCT_Y.map(y=>[[430,y],[610,y],[610,390],[875,390]]));
 export const ALT_ROUTES=Object.freeze(PRODUCT_Y.map(y=>[[430,y],[705,y],[705,735],[875,735]]));
 export const OUTCOME_MAIL=[[575,470],[805,470],[805,380],[1160,380]];
-export const OUTCOME_OTHER=[[575,635],[870,635],[870,730],[1160,730]];
+export const OUTCOME_OTHER=[[830,704],[900,704],[900,730],[1160,730]];
 function moving(path,frame,epoch,period,reverse=false){
  if(frame<epoch)return [];
  const len=shot06Length(path),speed=10,items=[];
