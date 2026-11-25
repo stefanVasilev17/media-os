@@ -1,0 +1,14 @@
+import type {Ep004Shot06RenderProps} from './EP004Shot06ProductionWorld.mjs';
+import type {Point,Packet} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='FLEET_B_FAIL'|'AFFECTED_PERCENT'|'ELAPSED_PERIOD'|'REEL_START'|'REEL_RESCUE'|'REEL_PRESSURE'|'REEL_B_FAIL'|'REEL_REDIRECT'|'LOCAL_VS_GLOBAL'|'PAYOFF';
+export type Ep004Shot07RenderProps=Omit<Ep004Shot06RenderProps,'previousShot05Props'>&{previousShot06Props:Ep004Shot06RenderProps;eventFrames:Record<EventKey,number>};
+export type CascadeState={stage:'fleet'|'overview'|'reel';headline:string;states:readonly {id:string;status:string;load:number}[];packets:readonly Packet[];focus:number;percentage:boolean;elapsed:boolean;routerGood:boolean;globalBad:boolean;payoff?:boolean;redirect?:boolean};
+export declare const EP004_SHOT07_COMPOSITION:string;
+export declare const EP004_SHOT07_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT07_BEATS:readonly string[];
+export declare const SHOT07_EVENTS:readonly EventKey[];
+export declare const REEL_INPUT:readonly Point[];
+export declare const REEL_OUTPUTS:readonly (readonly Point[])[];
+export declare function validateEp004Shot07Production(p:Ep004Shot07RenderProps,requireFrame?:boolean):true;
+export declare function shot07State(frame:number,p:Ep004Shot07RenderProps):CascadeState;
+export declare function verifyEp004Shot07ActualMotion(p:Ep004Shot07RenderProps):Readonly<{status:string;fleetFailure:number;affectedPercent:number;reelStart:number;reelFailure:number;payoff:number}>;
