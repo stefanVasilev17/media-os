@@ -216,3 +216,12 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - Verification: Director visual approval of reference confirmed. Future SHOT08 not verified or approved.
 - Promotion: Core visual constitution amended.
 - Supersedes: none; strengthens existing quality rules.
+
+## AT-VIS-0014 — TOP PRIORITY: multi-diagram visual storytelling and SHOT07 V2 polish
+
+- Decision: 2026-11-25, Director explicitly approves multi-diagram direction as a permanent high-priority rule for every future video.
+- Reference: EP004 SHOT07 V1, render eaa9262d-aec1-40d3-b784-6b1ceecfafd3, source c0fab93b7a7f766d80fa0d31724b09d57056338d. Actual technical QA PASS, 2606 frames, seam PSNR 44.60. Director praises the distinct fleet, fleet-scale and Reel diagrams; requests two corrections. This is approval of visual direction, not final SHOT07 LOCK.
+- Prevention: plan multiple complementary diagrams across the episode and within a SHOT whenever narration changes concept/scale/perspective; consistent world and service identities, distinct teaching purpose, motivated cue-bound transition, sufficient reading time. Never default to one repeated map; no arbitrary quota. Preserve AT-VIS-0013 quality floor and all protected inputs.
+- V2 scene correction: returning packets (RESPONSE phase) have red core and halo in all three diagram views; forward traffic, stopped traffic, router health indication, camera, timing, geometry and voice remain unchanged. Red is the Director's requested SHOT07 visual convention for return traffic in this incident, not a blanket assertion that all network responses are errors. Remove only the displayed "Schematic fleet · not an actual server count" and "ILLUSTRATIVE REQUEST" text. Keep Microsoft attribution, reported metric, elapsed period and causal contrast; fleet icons are schematic and never asserted as actual server counts.
+- Code: d913df6382d711aed2bf636f698d882aa77fd113; test/promotion pin 232fb7ef9dbcfa2e2d8c3d9e326660ea2a17be56. V2 actual MP4 review pending Director render. No new voice or automatic render.
+- Promotion: top of Visual Constitution and AGENTS.md startup rules; global priority.
