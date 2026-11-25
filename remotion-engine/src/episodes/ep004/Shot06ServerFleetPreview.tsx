@@ -7,8 +7,6 @@ type Props={previewOnly:true;verifiedCues:readonly Cue[];durationInFrames:number
 const CYAN='#81D6E8',VIOLET='#BAA2F3',AMBER='#EDB65C',GREEN='#85D4A7',RED='#E87378',WHITE='#E4EBF2';
 const FONT='Arial, sans-serif';
 const color=(lane:number)=>lane===0?CYAN:VIOLET;
-const clamp=(v:number)=>Math.max(0,Math.min(1,v));
-const eased=(v:number)=>{const x=clamp(v);return x*x*(3-2*x)};
 const Defs=()=> <defs>
   <radialGradient id="s6Bg"><stop stopColor="#294052"/><stop offset="1" stopColor="#090F18"/></radialGradient>
   <linearGradient id="s6Floor" x1="0%" y1="0%" x2="0%" y2="100%"><stop stopColor="#172633"/><stop offset="1" stopColor="#0B131D"/></linearGradient>
@@ -57,7 +55,7 @@ export const Shot06ServerFleetPreview:React.FC<Props>=props=>{
  const frame=useCurrentFrame(),cfg=useVideoConfig();
  if(props.previewOnly!==true||cfg.width!==1920||cfg.height!==1080||cfg.fps!==30||cfg.durationInFrames!==props.durationInFrames)throw Error('SHOT06_NOT_REGISTERED_PRODUCTION_PREVIEW_ONLY');
  const s=shot06PreviewState(frame,props.verifiedCues,props.durationInFrames);
- const seam=props.previousLastFrameDataUri?1-eased(frame/72):0;
+ const seam=props.previousLastFrameDataUri&&frame===0?1:0;
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}>
  <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
    <Defs/>
@@ -68,9 +66,6 @@ export const Shot06ServerFleetPreview:React.FC<Props>=props=>{
      <Client y={383} mail/><Client y={593} mail={false}/><Router/>
      {SHOT06_FLEET.map((n,i)=><Server key={n.id} x={n.x} y={n.y} id={n.id} status={s.serverStates[i].status} load={s.serverStates[i].load}/>)}
      {s.packets.map(p=><circle key={p.id} cx={p.x} cy={p.y} r={10} fill={color(p.lane)} opacity={p.phase==='STOPPED'?.55:1}/>)}
-     <text x="102" y="877" fontSize="25" fill="#9DAFBD">Combined incoming demand</text>
-     <path d="M102 909H390" stroke="#536C80" strokeWidth="5"/><path d="M102 909H340" stroke={CYAN} strokeWidth="5"/>
-     <text x="102" y="953" fontSize="28" fontWeight="650" fill={WHITE}>Steady</text>
    </g>
    <g opacity={s.interior}>
      <ellipse cx="960" cy="819" rx="780" ry="37" fill="#000" opacity=".32"/>
@@ -88,10 +83,8 @@ export const Shot06ServerFleetPreview:React.FC<Props>=props=>{
      <text x="850" y="684" textAnchor="middle" fontSize="29" fill={AMBER}>Waiting work</text>
      <text x="1430" y="684" textAnchor="middle" fontSize="29" fill={s.failed?RED:GREEN}>{s.failed?'No response':'Connections completing'}</text>
    </g>
-   <text x="100" y="98" fontSize="21" letterSpacing="3" fill="#8DA4B7">ARCHITECTURAL THINKING · SHOT06</text>
    <text x="100" y="161" fontSize="46" fontWeight="720" fill={WHITE}>{s.headline}</text>
    <path d="M100 191H191" stroke={CYAN} strokeWidth="6" strokeLinecap="round"/>
-   <text x="1820" y="1030" textAnchor="end" fontSize="20" fill="#92A3B3">CONCEPTUAL MODEL · NOT MEASURED TELEMETRY</text>
  </svg>
  {seam>0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{opacity:seam,pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}
  </AbsoluteFill>;
