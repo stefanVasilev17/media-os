@@ -90,6 +90,7 @@ function reelPackets(frame,p){
    if(age*speed<=inputLen){packets.push({id,lane,phase:'INGRESS',...shot06Point(REEL_INPUT,age*speed)});continue;}
    const dispatch=born+Math.ceil(inputLen/speed)+26;
    if(frame<dispatch||dispatch<e.REEL_RESCUE)continue;
+   if(dispatch>=e.REEL_B_FAIL&&dispatch<e.REEL_REDIRECT)continue;
    const dest=dispatch>=e.REEL_REDIRECT?2:1,path=REEL_OUTPUTS[dest],length=shot06Length(path),travel=(frame-dispatch)*speed;
    if(travel<=length){packets.push({id,lane,destination:dest,phase:'TO_SERVER',...shot06Point(path,travel)});continue;}
    if(dest===1&&frame>=e.REEL_B_FAIL){
