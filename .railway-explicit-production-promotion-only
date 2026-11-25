@@ -51,3 +51,5 @@ V10 regression update: title-case reference captions replace legacy uppercase te
 EP004 SHOT06 guarded server fleet integration candidate: user confirms existing approved Take; new exact readiness, media, claim, completion and composition wiring, no replacement of any locked shot. Real selected media must pass authenticated readiness and per-job SHA/cue/decoded-frame guards before CPU. No new render or TTS.
 
 EP004 SHOT06: explicitly authorized production integration promotion; read-only bounded runtime readiness audit, no media regeneration or paid render.
+
+EP004 SHOT06 V2 explicit production promotion 2026-11-25: Director-approved cleanup and moving predecessor footage during existing breath. Exact SHA guard, original audio and locked MP4 unchanged; no render/TTS/new resources. Build and actual readiness required.
