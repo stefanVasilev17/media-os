@@ -22,7 +22,7 @@ type SavedRender={renderId:string;shotKey:string;status:'READY';videoUrl:string;
   finishedAt:string;canLock:boolean;locked:boolean};
 type ShotLock={shotKey:string;renderId:string;lockedAt:string};
 type FilmState={locks:ShotLock[];shotCount:number;videoUrl:string|null;
-  state:string;renderIds:string[];durationInFrames:number;error?:string};
+  state:string;renderIds:string[];durationInFrames:number;error?:string;preferOriginalPlayback?:boolean};
 
 const base='/api/v1/episode-packages';
 const compositions:Record<string,string>={
@@ -320,8 +320,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
     fallbackClips.every(Boolean);
   const fallbackClip=fallbackIndex===null?undefined:fallbackClips[fallbackIndex];
   useEffect(()=>{
-    setFallbackIndex(null);setFullPlaybackError('');
-  },[fullUrl]);
+    setFallbackIndex(film?.preferOriginalPlayback&&canPlayOriginals?0:null);setFullPlaybackError('');
+  },[fullUrl,film?.preferOriginalPlayback,canPlayOriginals]);
   const selectedVideo=locked
     ?savedRenders.find(item=>item.renderId===locked.renderId)
     :(savedRenders.find(item=>item.canLock)??savedRenders[0]);
@@ -391,7 +391,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
                 The combined MP4 will appear above the individual clips automatically.
               </p>}
             {fullUrl&&<p role="status" className="director-minimal-muted">
-              Full Video is ready. Watch the complete continuous MP4 below.
+              {film?.preferOriginalPlayback?'The combined MP4 is under repair. Review the original locked SHOTs below.':'Full Video is ready. Watch the complete continuous MP4 below.'}
             </p>}
             {fullUrl&&!fallbackClip&&<video key={fullUrl} controls playsInline preload="metadata"
               className="director-minimal-video" src={fullUrl}
@@ -407,7 +407,7 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             {fallbackClip&&<div className="director-minimal-render">
               <p className="director-minimal-muted">Original locked videos · {fallbackClip.shotKey} ·
                 {' '+((fallbackIndex??0)+1)+' / '+fallbackClips.length}</p>
-              <video controls playsInline autoPlay preload="auto" className="director-minimal-video"
+              <video key={fallbackClip.renderId} controls playsInline autoPlay preload="auto" className="director-minimal-video"
                 src={lockedVideoUrl(fallbackClip.renderId)}
                 aria-label="Sequential original SHOT playback"
                 onEnded={()=>setFallbackIndex(index=>index!==null&&index+1<fallbackClips.length?index+1:index)}
@@ -420,8 +420,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
               <button type="button" className="director-minimal-subtle"
                 disabled={(fallbackIndex??0)+1>=fallbackClips.length}
                 onClick={()=>setFallbackIndex(index=>Math.min(fallbackClips.length-1,(index??0)+1))}>Next SHOT</button>
-              <button type="button" className="director-minimal-subtle"
-                onClick={()=>{setFallbackIndex(null);setFullPlaybackError('');}}>Return to Full Video</button>
+              {!film?.preferOriginalPlayback&&<button type="button" className="director-minimal-subtle"
+                onClick={()=>{setFallbackIndex(null);setFullPlaybackError('');}}>Return to Full Video</button>}
             </div>}
             {lockedClipsToPreview.length>0&&
               <div className="director-minimal-locked-clips">
