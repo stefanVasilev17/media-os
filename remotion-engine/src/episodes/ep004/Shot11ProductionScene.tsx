@@ -8,7 +8,7 @@ import {PROBE_ROUTE,WORK_ROUTE,WORK_QUEUE,CUT_PROBE_ROUTE,CUT_WORK_ROUTE,shot09S
 import type {Ep004Shot09RenderProps,RecoveryState,Dot as RecoveryDot} from '../../components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 import {WIDE_ROUTE,REPLAY_ROUTE,FLEET_ROUTES,shot10State,validateEp004Shot10Production} from '../../components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
 import type {Ep004Shot10RenderProps,State} from '../../components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
-import {CLOCK_MARKS,INCIDENT_ROUTES,shot11State,validateEp004Shot11Production} from '../../components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
+import {CLOCK_MARKS,INCIDENT_ROUTES,FLEET_CLOCK_INPUT,FLEET_CLOCK_PROBE,FLEET_CLOCK_OUTPUTS,CONNECTION_ROUTE,shot11State,validateEp004Shot11Production} from '../../components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import type {ClockState,Ep004Shot11RenderProps} from '../../components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 const CYAN='#81D6E8',VIOLET='#BAA2F3',AMBER='#EDB65C',GREEN='#85D4A7',RED='#E87378',WHITE='#E4EBF2';
 const FONT='Arial, sans-serif';
@@ -175,30 +175,55 @@ const ReplayView:React.FC<{s:State}>=({s})=>{
  </g>;
 };
 
-const ClockPackets:React.FC<{s:ClockState}>=({s})=><g>{s.traffic.map((p,i)=>{const c=p.tone==='violet'?VIOLET:p.tone==='green'?GREEN:p.tone==='amber'?AMBER:CYAN;return <g key={i}><circle cx={p.x} cy={p.y} r="13" fill={c} opacity=".14"/><circle cx={p.x} cy={p.y} r="6" fill={c}/></g>})}</g>;
+const ClockPackets:React.FC<{s:ClockState}>=({s})=><g>{s.traffic.map((p,i)=>{const c=p.tone==='violet'?VIOLET:p.tone==='green'?GREEN:p.tone==='amber'?AMBER:p.tone==='red'?RED:CYAN;return <g key={i}><circle cx={p.x} cy={p.y} r="13" fill={c} opacity=".14"/><circle cx={p.x} cy={p.y} r="6" fill={c}/></g>})}</g>;
 const CAPTIONS=['Teams route shift','Connectivity anomalies','Automated redirection','Exchange impact alert','Too few servers','Recovery relapse'];
 const Clock:React.FC<{s:ClockState}>=({s})=><g>
  <path d="M150 905H1770" stroke="#40586B" strokeWidth="3"/>
  {CLOCK_MARKS.map((v,i)=>{const x=150+i*324,active=i===s.activeMark,tone=active?CYAN:i<s.activeMark?'#71899B':'#435565';return <g key={v}><circle cx={x} cy="905" r={active?10:5} fill={tone}/><text x={x} y="878" textAnchor={i===0?'start':i===5?'end':'middle'} fontSize="26" fontWeight={active?700:400} fill={tone}>{v}</text>{active&&<text x={x} y="951" textAnchor={i===0?'start':i===5?'end':'middle'} fontSize="27" fontWeight="700" fill={WHITE}>{CAPTIONS[i]}</text>}</g>})}
  <text x="1770" y="1012" textAnchor="end" fontSize="21" fill="#9FB4C4">UTC</text>
 </g>;
-const SourceNode:React.FC<{y:number;teams?:boolean}>=({y,teams=false})=><g transform={'translate(100 '+y+')'}><rect width="240" height="104" rx="16" fill="url(#s6Metal)" stroke={teams?VIOLET:CYAN} strokeWidth="2"/><rect x="11" y="11" width="218" height="82" rx="11" fill="url(#s6Face)"/><g transform="translate(24 24)"><AppMark name={teams?'Teams':'Outlook'} index={teams?1:2}/></g></g>;
+
+const SourceNode:React.FC<{y:number;teams?:boolean;health?:boolean}>=({y,teams=false,health=false})=><g transform={'translate(100 '+y+')'}>
+ <rect width="250" height="104" rx="16" fill="url(#s6Metal)" stroke={teams?VIOLET:CYAN} strokeWidth="2"/>
+ <rect x="11" y="11" width="228" height="82" rx="11" fill="url(#s6Face)"/>
+ <rect x="23" y="24" width="48" height="48" rx="10" fill={teams?'#6B5FBA':health?'#326D75':'#287DB0'}/>
+ {health?<path d="M30 48H39L45 35L52 59L58 48H65" fill="none" stroke={GREEN} strokeWidth="3"/>:<text x="47" y="57" textAnchor="middle" fontSize="27" fontWeight="700" fill={WHITE}>{teams?'T':'O'}</text>}
+ <text x="83" y="56" fontSize={health?20:24} fontWeight="650" fill={WHITE}>{health?'Health check':teams?'Teams':'Outlook'}</text>
+</g>;
 const IncidentMap:React.FC<{s:ClockState}>=({s})=><g>
- <Header title={s.stage==='fleet'?'RECOVERY UNDER PRESSURE':'THE INCIDENT CLOCK'}/>
+ <Header title="THE INCIDENT CLOCK"/>
  <SourceNode y={314}/><g opacity={s.activeMark<0?.45:1}><SourceNode y={552} teams/></g>
  {INCIDENT_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={i===1?VIOLET:i>=2&&s.alert?AMBER:CYAN} active={i<2||i===2||s.redirect}/>)}
  <Router/><ClockPackets s={s}/>
- {[0,1,2].map(i=>{const y=296+i*189,failed=i<s.failures&&i!==1||i===1&&s.relapse;return <g key={i}><Gateway x={1240} y={y} w={340} h={120} failed={failed} activity={s.activity}/><text x="1410" y={y-30} textAnchor="middle" fontSize="27" fontWeight="700" fill={WHITE}>{i===0?'Primary gateway':i===1?'Alternative gateway':'Gateway fleet'}</text><rect x="1254" y={y+103} width="312" height="5" rx="2.5" fill="#0B1420"/><rect x="1254" y={y+103} width={312*(i===1&&!s.redirect?.18:s.pressure)} height="5" rx="2.5" fill={failed?RED:s.pressure>.65?AMBER:GREEN}/></g>})}
- {s.stage==='fleet'&&<g transform="translate(100 730)"><text fontSize="28" fontWeight="650" fill={WHITE}>{s.relapse?'Recovered nodes fail again':s.probe?'Health checks and connections':'Redistribution and restarts'}</text><path d="M0 23H390" stroke={s.relapse?RED:AMBER} strokeWidth="3"/></g>}
+ {[0,1,2].map(i=>{const y=296+i*189,failed=i===0?s.alert:i===1?false:s.failures>0;return <g key={i}><Gateway x={1240} y={y} w={340} h={120} failed={failed} activity={s.activity}/><text x="1410" y={y-30} textAnchor="middle" fontSize="27" fontWeight="700" fill={WHITE}>{i===0?'Primary gateway':i===1?'Alternative gateway':'Additional gateways'}</text><rect x="1254" y={y+103} width="312" height="5" rx="2.5" fill="#0B1420"/><rect x="1254" y={y+103} width={312*(i===1&&!s.redirect?.18:s.pressure)} height="5" rx="2.5" fill={failed?RED:s.pressure>.65?AMBER:GREEN}/></g>})}
+
  <Clock s={s}/>
 </g>;
-const ConnectionView:React.FC<{s:ClockState;frame:number}>=({s,frame})=>{const tone=s.phase==='failed'?RED:s.phase==='booting'?AMBER:GREEN;const route=[[340,535],[685,535],[1015,535],[1190,535]] as const;return <g>
+
+const FleetClockView:React.FC<{s:ClockState}>=({s})=><g>
+ <Header title="RECOVERY UNDER PRESSURE"/>
+ <SourceNode y={493}/>
+ {s.probe&&<><SourceNode y={244} health/><Route d={shot06Path(FLEET_CLOCK_PROBE)} tone={CYAN}/></>}
+ <Route d={shot06Path(FLEET_CLOCK_INPUT)} tone={AMBER}/>
+ {FLEET_CLOCK_OUTPUTS.map((r,i)=><Route key={i} d={shot06Path(r)} tone={s.fleetPhase[i]==='failed'?RED:s.fleetPhase[i]==='booting'?AMBER:CYAN}/>)}
+ <Router/><ClockPackets s={s}/>
+ <text x="1510" y="212" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Gateway fleet</text>
+ {[0,1,2,3].map(i=>{const y=250+i*147,phase=s.fleetPhase[i],tone=phase==='failed'?RED:phase==='booting'?AMBER:GREEN;return <g key={i}>
+  <Gateway x={1310} y={y} w={400} h={100} failed={phase==='failed'} activity={s.activity}/>
+  <rect x="1324" y={y+78} width="372" height="6" rx="3" fill="#0B1420"/>
+  <rect x="1324" y={y+78} width={372*(phase==='failed'?.08:phase==='booting'?.2:s.pressure)} height="6" rx="3" fill={phase==='running'&&s.pressure>.65?AMBER:tone}/>
+  <circle cx="1325" cy={y+121} r="6" fill={tone}/><text x="1342" y={y+129} fontSize="22" fontWeight="650" fill={tone}>{phase==='failed'?'UNRESPONSIVE':phase==='booting'?'STARTING':s.pressure>.65?'UNDER LOAD':'RUNNING'}</text>
+ </g>})}
+ <g transform="translate(100 740)"><text fontSize="28" fontWeight="650" fill={WHITE}>{s.relapse?'Recovered nodes fail again':s.activeMark>=4?'More load per available server':s.probe?'Investigate connection handling':'Redistribution and restarts'}</text><path d="M0 23H410" stroke={s.relapse?RED:AMBER} strokeWidth="3"/></g>
+ <Clock s={s}/>
+</g>;
+const ConnectionView:React.FC<{s:ClockState;frame:number}>=({s,frame})=>{const tone=s.phase==='failed'?RED:s.phase==='booting'?AMBER:GREEN;const route=CONNECTION_ROUTE;return <g>
  <Header title="RECOVERY RECREATES THE FAILURE"/>
- <SourceNode y={483}/><Route d={shot06Path(route)} tone={tone}/><Router/>
- <Gateway x={1190} y={464} w={455} h={142} failed={s.phase==='failed'} activity={s.activity}/>
+ <SourceNode y={493}/><Route d={shot06Path(route)} tone={tone}/><Router/>
+ <Gateway x={1190} y={474} w={455} h={142} failed={s.phase==='failed'} activity={s.activity}/>
  <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
  <circle cx="1200" cy="652" r="7" fill={tone}/><text x="1222" y="662" fontSize="28" fill={tone} fontWeight="700">{s.phase==='failed'?'UNRESPONSIVE':s.phase==='booting'?'STARTING':'RUNNING'}</text>
- {[0,1,2,3].map(i=>{const x=350+((frame*13+i*173)%830);return <g key={i}><circle cx={x} cy="535" r="13" fill={AMBER} opacity=".14"/><circle cx={x} cy="535" r="6" fill={AMBER}/></g>})}
+ <ClockPackets s={s}/>
  <g opacity={s.defect?1:.45}><rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={s.defect?RED:'#587286'} strokeWidth="2"/><path d="M1168 778H1260L1300 751L1340 804L1380 778H1690" stroke={s.defect?RED:AMBER} strokeWidth="4" fill="none"/><text x="1160" y="750" fontSize="27" fontWeight="650" fill={WHITE}>Connection handling</text></g>
  <text x="960" y="965" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>{s.end?'Break the conditions that expose the defect.':'Restoring a process is not restoring a service.'}</text>
 </g>};
@@ -210,8 +235,8 @@ export const Shot11ProductionScene:React.FC<Ep004Shot11RenderProps>=props=>{
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}>
  <svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
  <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
- {s.openingMix>0&&<g opacity={s.openingMix}>{s.stage==='connection'?<ConnectionView s={s} frame={frame}/>:<IncidentMap s={s}/>}</g>}
- {s.prior&&<g opacity={1-s.openingMix}><ReplayView s={s.prior}/></g>}
+ {s.openingMix>0&&<g opacity={s.openingMix}>{s.stage==='connection'?<ConnectionView s={s} frame={frame}/>:s.stage==='fleet'?<FleetClockView s={s}/>:<IncidentMap s={s}/>}</g>}
+ {s.prior&&<g opacity={1-s.openingMix}><ReplayView s={s.prior}/>{frame>=props.verifiedCues[0].startFrame&&<g opacity={Math.min(1,(frame-props.verifiedCues[0].startFrame)/30)}><path d="M590 830H1330" stroke={CYAN} strokeWidth="2"/>{[590,713,836,959,1082,1205,1330].map(x=><path key={x} d={'M'+x+' 823V837'} stroke={CYAN} strokeWidth="2"/>)}</g>}</g>}
  </svg>
  {frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}
  </AbsoluteFill>;

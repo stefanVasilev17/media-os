@@ -50,9 +50,30 @@ export function validateEp004Shot11Production(p,requireFrame=false){
 
 
 
-export const INCIDENT_ROUTES=Object.freeze([[[340,366],[570,366],[570,545],[685,545]],[[340,604],[570,604],[570,545],[685,545]],[[1015,545],[1100,545],[1100,356],[1240,356]],[[1015,545],[1240,545]],[[1015,545],[1100,545],[1100,734],[1240,734]]]);
+
+export const INCIDENT_ROUTES=Object.freeze([[[350,366],[570,366],[570,545],[685,545]],[[350,604],[570,604],[570,545],[685,545]],[[1015,545],[1100,545],[1100,356],[1240,356]],[[1015,545],[1240,545]],[[1015,545],[1100,545],[1100,734],[1240,734]]]);
+export const FLEET_CLOCK_INPUT=Object.freeze([[350,545],[685,545]]);
+export const FLEET_CLOCK_PROBE=Object.freeze([[350,296],[570,296],[570,545],[685,545]]);
+export const FLEET_CLOCK_OUTPUTS=Object.freeze([300,447,594,741].map(y=>[[1015,545],[1135,545],[1135,y],[1310,y]]));
+export const CONNECTION_ROUTE=Object.freeze([[350,545],[685,545],[1015,545],[1190,545]]);
 export const CLOCK_MARKS=Object.freeze(['01:07','16:03','16:17','16:20','19:20','Near midnight']);
-const pathFlow=(route,f,period,tone,reply=false)=>{const len=shot06Length(route),out=[];for(let i=0;i<3;i++){const d=((f*12+i*len/3)%len+len)%len;out.push({...shot06Point(route,reply?len-d:d),tone,direction:reply?'response':'request'});}return out};
+const join=(a,b)=>[...a,...b];
+const visible=dot=>dot.x<=685||dot.x>=1015;
+function stream(route,frame,start,period,tone,healthy,stop=Infinity){
+ if(frame<start)return [];
+ const len=shot06Length(route),speed=15,travel=len/speed,delay=14,out=[];
+ const last=Math.floor((frame-start)/period);
+ for(let i=Math.max(0,last-8);i<=last;i++){
+  const born=start+i*period;if(born>=stop)continue;
+  const age=frame-born;
+  if(age<travel)out.push({...shot06Point(route,age*speed),tone,direction:'request'});
+  else if(age>=travel+delay&&age<travel*2+delay)
+   out.push({...shot06Point(route,len-(age-travel-delay)*speed),tone:healthy?'green':'red',direction:'response'});
+  else if(!healthy&&age>=travel&&age<travel+delay)
+   out.push({...shot06Point(route,len),tone:'amber',direction:'waiting'});
+ }
+ return out.filter(visible);
+}
 export function shot11State(frame,p){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT11_FRAME_OUTSIDE_PRODUCTION');
  const e=p.eventFrames,prev=p.previousShot10Props;
@@ -62,10 +83,22 @@ export function shot11State(frame,p){
  const marks=[e.SHIFT,e.DETECT,e.REDIRECT,e.ALERT,e.CAPACITY,e.RELAPSE];
  const activeMark=marks.reduce((n,k,i)=>frame>=k?i:n,-1);
  const pressure=frame<e.LOAD?.22:frame<e.DETECT?.22+.66*smooth((frame-e.LOAD)/Math.max(1,e.DETECT-e.LOAD)):frame<e.CAPACITY?.78:.94;
- const failures=frame<e.LOAD?0:frame<e.DETECT?1:frame<e.CAPACITY?2:3;
- const phase=frame<e.LOOP?'failed':frame<e.LOOP+36?'booting':frame<e.LOOP+90?'running':'failed';
- const traffic=INCIDENT_ROUTES.flatMap((r,i)=>{if(i===1&&frame<e.SHIFT)return [];if(i===3&&frame<e.REDIRECT)return [];if(i===4&&frame<e.REDIRECT)return [];const tone=i===1?'violet':i>=2&&frame>=e.ALERT?'amber':'cyan';return [...pathFlow(r,frame,60,tone),...(i<2||frame<e.DETECT||i===3&&frame<e.CAPACITY?pathFlow(r,frame+19,60,'green',true):[])];});
- return {prior,openingMix,stage,activeMark,pressure,failures,phase,traffic,activity:.5+.5*Math.sin(frame*.071),redirect:frame>=e.REDIRECT,alert:frame>=e.ALERT,probe:frame>=e.PROBE,relapse:frame>=e.RELAPSE,defect:frame>=e.DEFECT,end:frame>=e.END};
+ const failures=frame<e.LOAD?0:frame<e.DETECT?1:frame<e.ALERT?2:3;
+ const phase=frame<e.LOOP?'failed':frame<e.LOOP+Math.min(36,Math.max(8,Math.floor((e.DEFECT-e.LOOP)/3)))?'booting':frame<e.DEFECT?'running':'failed';
+ const fleetPhase=['failed',frame<e.RESTART?'failed':frame<e.RESTART+36?'booting':frame<e.RELAPSE?'running':'failed',frame<e.CAPACITY?'running':'failed','running'];
+ let traffic=[];
+ if(stage==='clock'){
+  traffic=[...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[2]),frame,e.SHIFT,38,'cyan',frame<e.ALERT),
+   ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[2]),frame,e.SHIFT,frame<e.LOAD?62:30,'violet',frame<e.ALERT,e.REDIRECT),
+   ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[3]),frame,e.REDIRECT,32,'violet',true),
+   ...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[4]),frame,e.REDIRECT+15,52,'cyan',frame<e.ALERT)];
+ }else if(stage==='fleet'){
+  traffic=FLEET_CLOCK_OUTPUTS.flatMap((r,i)=>fleetPhase[i]==='booting'?[]:stream(join(FLEET_CLOCK_INPUT,r),frame,e.EVENING+i*8,i===3?28:62,'cyan',fleetPhase[i]==='running'));
+  if(frame>=e.PROBE)traffic.push(...stream(join(FLEET_CLOCK_PROBE,FLEET_CLOCK_OUTPUTS[1]),frame,e.PROBE,90,'cyan',fleetPhase[1]==='running'));
+ }else{
+  traffic=phase==='booting'?[]:stream(CONNECTION_ROUTE,frame,e.LOOP,24,'cyan',phase==='running');
+ }
+ return {prior,openingMix,stage,activeMark,pressure,failures,phase,fleetPhase,traffic,activity:.5+.5*Math.sin(frame*.071),redirect:frame>=e.REDIRECT,alert:frame>=e.ALERT,probe:frame>=e.PROBE,relapse:frame>=e.RELAPSE,defect:frame>=e.DEFECT,end:frame>=e.END};
 }
 export function verifyEp004Shot11ActualMotion(p){
  validateEp004Shot11Production(p);const e=p.eventFrames,s=f=>shot11State(f,p);

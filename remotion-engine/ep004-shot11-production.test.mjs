@@ -103,5 +103,9 @@ test('SHOT11 exact inherited ReplayView and clock captions',async()=>{
  assert.equal(block(s,'const ReplayView:','const ClockPackets:'),block(prior,'const ReplayView:','export const Shot10ProductionScene'));
  for(const label of ['UNRESPONSIVE','Connection handling','Alternative gateway','Recovery relapse'])assert.ok(label.length*30*.85+50<600);
  assert.ok(s.includes('frame===0&&props.previousLastFrameDataUri'));
- assert.ok(s.includes('<IncidentMap s={s}/>')&&s.includes('<ConnectionView s={s} frame={frame}/>'));
+ assert.ok(s.includes('<IncidentMap s={s}/>')&&s.includes('<FleetClockView s={s}/>')&&s.includes('<ConnectionView s={s} frame={frame}/>'));
+ for(const label of ['Outlook','Teams'])assert.ok(83+label.length*24*.85+20<=250);
+ assert.ok(83+'Health check'.length*20*.60+20<=250);
 });
+
+test('SHOT11 pre-CPU selected voice and decoded seam precede render; AAC and seam precede completion',async()=>{const w=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8'),run=w.slice(w.indexOf('async function render(job)'));const v=run.indexOf('await fetchEp004Shot11ApprovedVoice(job,inputProps)'),p=run.indexOf('await preflightEp004Shot11PreviousVideo(job,inputProps,shot11SourceScratch)'),cpu=run.indexOf('await renderMedia('),mux=run.indexOf('await muxEp004Shot11ApprovedVoice(job,outputPath,inputProps)'),seam=run.indexOf('await verifyEp004Shot11SeamAndMotion(job,outputPath,');assert.ok(v>=0&&p>v&&cpu>p&&mux>cpu&&seam>mux&&run.indexOf('await complete(job.renderId, outputPath)',seam)>seam);assert.ok(w.includes('const capabilityTimer=setInterval'));});
