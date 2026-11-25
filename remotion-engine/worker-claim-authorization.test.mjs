@@ -24,3 +24,8 @@ test('EP004 SHOT01 is a valid single-composition scoped release target',()=>{
   ])assert.throws(()=>requireSupportedTargetComposition(invalid),
     /REMOTION_WORKER_TARGET_COMPOSITION_INVALID/);
 });
+
+test('EP004 SHOT07 claims only its exact registered target',()=>{
+  assert.equal(requireSupportedTargetComposition('EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL'),'EP004-SHOT07-CASCADING-FAILURE-V1-VISUAL');
+  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT08-CASCADING-FAILURE-V1-VISUAL'));
+});
