@@ -196,3 +196,9 @@ Director feedback → scoped code correction → QA and screenshot/preview compa
 - Immutable reference: actual render 38162e2a-3bc2-4c07-80d8-fa445cdc5e8d, source 1766ff8391b81c928acae0578cfebcae73d7a1b1, 2573 frames, last encoded index 2572, 85.766 seconds, 8334213 bytes, 1080p30 H264/AAC. Technical MP4, original Take/72f delay, predecessor QA PASS, seam PSNR 44.56; actual route audit PASS. Persisted lock manifest body/SHA-256 must be obtained through authorized preflight, not invented.
 - Promote V10 visual language as Director-approved reference for prospective reuse: iconic endpoints, external labels, static rounded gateway shells, visible ports, thick smooth luminous routes, round packets, subtle grid, local meaningful warning pulse. No decorative bouncing, no visible future paths before activation, no abrupt rerouting. Preserve genuine cue evidence separately from editorial timing.
 - SHOT05 is locked; never retroactively refactor its media/source. Future shared-library extraction must preserve locked outputs and pass new tests. No render or deployment performed for this lock documentation.
+
+
+## AT-VIS-0012 — SHOT06 V1 frozen predecessor despite technical motion QA (2026-11-25)
+
+- Director liked rendered server fleet but rejected frozen outgoing map and decorative microcopy. V1 render b1618ea8-aa98-4b6e-8362-f904c2470a29 technically passed; 30 unique frames from opacity changes alone did not prove motion of the outgoing map.
+- V2 source removes four specified labels and demand rail. Preserve exact decoded frame zero, then phase-match real forward-moving SHOT05 tail (18f packets / 48f pulse = 144f period). Validate real phase and motion before CPU; dissolve inside existing 72f silence and verify unchanged frame count. No blanket use of a periodic replay for nonperiodic footage; fail closed if phase does not match. No assertion of actual Microsoft telemetry. No protected SHOT05 source/media edit. New visual LOCK pending Director review.
