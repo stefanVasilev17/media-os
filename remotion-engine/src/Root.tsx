@@ -16,6 +16,9 @@ import {EP004_SHOT07_COMPOSITION} from './components/architectural-thinking/EP00
 import {Shot08ProductionScene as Ep004Shot08Production} from './episodes/ep004/Shot08ProductionScene';
 import type {Ep004Shot08RenderProps} from './components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
 import {EP004_SHOT08_COMPOSITION} from './components/architectural-thinking/EP004Shot08ProductionWorld.mjs';
+import {Shot09ProductionScene as Ep004Shot09Production} from './episodes/ep004/Shot09ProductionScene';
+import type {Ep004Shot09RenderProps} from './components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
+import {EP004_SHOT09_COMPOSITION} from './components/architectural-thinking/EP004Shot09ProductionWorld.mjs';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -115,6 +118,9 @@ export const Root: React.FC = () => {
       <Composition id={EP004_SHOT08_COMPOSITION} component={Ep004Shot08Production}
         durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot08RenderProps}/>
+      <Composition id={EP004_SHOT09_COMPOSITION} component={Ep004Shot09Production}
+        durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
+        defaultProps={{} as Ep004Shot09RenderProps}/>
       <Composition id={EP004_SHOT06_COMPOSITION} component={Ep004Shot06Production}
         durationInFrames={dynamicDuration??2400} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot06RenderProps}/>

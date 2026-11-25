@@ -34,3 +34,9 @@ test('EP004 SHOT08 exact target only',()=>{
  assert.equal(requireSupportedTargetComposition('EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL'),'EP004-SHOT08-REGIONAL-CONTAINMENT-V1-VISUAL');
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT09-REGIONAL-CONTAINMENT-V1-VISUAL'));
 });
+
+test('EP004 SHOT09 exact scoped target, reject arbitrary and future compositions',()=>{
+ assert.equal(requireSupportedTargetComposition('EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL'),'EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL');
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT10-HEALTH-VS-READINESS-V1-VISUAL'));
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL/extra'));
+});
