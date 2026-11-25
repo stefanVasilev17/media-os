@@ -107,3 +107,9 @@ test('SHOT08 three distinct views, no decorative labels and actual first-frame s
  for(const x of ['<Regions s={s}/>','<Dependencies s={s}/>','<Outcome s={s} frame={frame}/>','<Reel s={s.inherited} rescue/>','frame===0&&props.previousLastFrameDataUri','Scale constraint','Partial recovery','Inbox unavailable'])assert.ok(s.includes(x),x);
  assert.ok(!/ILLUSTRATIVE REQUEST|Schematic fleet/.test(s));
 });
+
+test('SHOT08 final finite camera push preserves headline and device viewport',async()=>{
+ const scene=await readFile(new URL('./src/episodes/ep004/Shot08ProductionScene.tsx',import.meta.url),'utf8');
+ assert.ok(scene.includes('(-s.focus*75)'));
+ for(let i=0;i<=100;i++){const focus=i/100,scale=1+focus*.12,x=-focus*75;assert.ok(x+98*scale>=24);assert.ok(x+1545*scale<=1920-24);}
+});
