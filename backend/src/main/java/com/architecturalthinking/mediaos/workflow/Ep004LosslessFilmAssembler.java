@@ -34,6 +34,7 @@ final class Ep004LosslessFilmAssembler {
         Track referenceVideo=null,referenceAudio=null;
         int counted=0;
         List<String> sourceHashes=new ArrayList<>();
+        String firstConfig=null;boolean mixedConfig=false;
         for(int i=1;i<=shotCount;i++) {
             String file=String.format(java.util.Locale.ROOT,"shot%02d.mp4",i);
             Path input=directory.resolve(file);
@@ -60,6 +61,10 @@ final class Ep004LosslessFilmAssembler {
                     !referenceAudio.equals(audio)))
                 throw new IOException("Locked SHOT codec or audio format mismatch. Lossless join refused.");
             referenceVideo=video;referenceAudio=audio;
+            String config=v.get("extradata_hash");
+            if(config==null||config.isBlank())throw new IOException("Missing H264 codec configuration.");
+            if(firstConfig==null)firstConfig=config;
+            else if(!firstConfig.equals(config))mixedConfig=true;
             LOG.info("Full Video input {} frames={} videoTimeBase={} profile={} codecTag={} extradataHash={} audioTimeBase={}",
                 file,frames,v.get("time_base"),v.get("profile"),v.get("codec_tag_string"),
                 v.get("extradata_hash"),a.get("time_base"));
@@ -85,7 +90,7 @@ final class Ep004LosslessFilmAssembler {
                 "-f","concat","-safe","1","-auto_convert","1",
                 "-i",directory.resolve("sequence.txt").toString(),
                 "-map","0:v:0","-map","0:a:0","-c","copy",
-                "-tag:v","avc3","-video_track_timescale","90000",
+                "-tag:v",mixedConfig?"avc3":"avc1","-video_track_timescale","90000",
                 "-movflags","+faststart","-y",output.toString());
         Process process=new ProcessBuilder(argv).directory(directory.toFile())
                 .redirectErrorStream(true).redirectOutput(log.toFile()).start();
@@ -110,7 +115,7 @@ final class Ep004LosslessFilmAssembler {
                 ||!referenceAudio.descriptor().equals(
                     filmAudio.get("sample_rate")+"Hz/"+filmAudio.get("channels")+"ch")
                 ||!Integer.toString(expectedFrames).equals(filmVideo.get("nb_read_frames"))
-                ||!"avc3".equals(filmVideo.get("codec_tag_string"))
+                ||!(mixedConfig?"avc3":"avc1").equals(filmVideo.get("codec_tag_string"))
                 ||!"1/90000".equals(filmVideo.get("time_base")))
             throw new IOException("Full film readback failed exact frame, resolution or audio verification.");
         List<String> assembledHashes=decodedVideoHashes(output,directory.resolve("assembled.md5"),true);
@@ -119,8 +124,59 @@ final class Ep004LosslessFilmAssembler {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",output.toString(),"-map","0:a:0","-vn","-f","null","-"),
             directory.resolve("audio-decode.log"),120);
-        LOG.info("FULL_VIDEO_PLAYBACK_QA_PASS frames={} pixelHashesMatch=true audioDecoded=true codec=avc3 timeBase=1/90000",
+        LOG.info("FULL_VIDEO_SOURCE_SEQUENCE_QA_PASS frames={} pixelHashesMatch=true audioDecoded=true timeBase=1/90000",
             expectedFrames);
+        if(mixedConfig){
+            Path intermediate=directory.resolve("verified-lossless.mp4");
+            Files.move(output,intermediate);
+            browserCompatible(intermediate,output,expectedFrames);
+        }
+    }
+
+    /** A review derivative, not a new Remotion render or modification of locked SHOTs.
+     * A single AVC1 configuration avoids browser-specific AVC3 decoding failures.
+     * AAC packets are copied unchanged; the verified lossless input remains untouched.
+     */
+    static void browserCompatible(Path input,Path output,int expectedFrames)
+            throws IOException,InterruptedException {
+        Path directory=output.getParent();
+        if(expectedFrames<1||expectedFrames>180000||Files.size(input)>MediaObjectStore.MAX_FILM_BYTES)
+            throw new IOException("Browser-compatible derivative exceeds bounded assembly limits.");
+        String originalAudio=audioPacketHash(input,directory.resolve("input-audio.sha"));
+        run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
+            "-threads","2","-i",input.toString(),"-map","0:v:0","-map","0:a:0",
+            "-vf","setpts=N/(30*TB),format=yuv420p","-r","30","-fps_mode","cfr",
+            "-c:v","libx264","-preset","ultrafast","-crf","16","-threads:v","2",
+            "-profile:v","high","-level:v","4.1","-tag:v","avc1",
+            "-g","60","-c:a","copy","-video_track_timescale","90000",
+            "-movflags","+faststart","-y",output.toString()),directory.resolve("browser-encode.log"),600);
+        Map<String,String> video=probe(output,"v:0",true);
+        Map<String,String> audio=probe(output,"a:0",false);
+        if(!"h264".equals(video.get("codec_name"))||!"avc1".equals(video.get("codec_tag_string"))
+                ||!"1920".equals(video.get("width"))||!"1080".equals(video.get("height"))
+                ||!"30/1".equals(video.get("r_frame_rate"))||!"1/90000".equals(video.get("time_base"))
+                ||!"yuv420p".equals(video.get("pix_fmt"))
+                ||!Integer.toString(expectedFrames).equals(video.get("nb_read_frames"))
+                ||!"aac".equals(audio.get("codec_name")))
+            throw new IOException("Browser-compatible derivative failed AVC1/1080p/30fps/frame verification.");
+        if(!originalAudio.equals(audioPacketHash(output,directory.resolve("output-audio.sha"))))
+            throw new IOException("Browser-compatible derivative changed original AAC packets.");
+        // Verify the full decoder timeline, including the last frame, not only container metadata.
+        if(decodedVideoHashes(output,directory.resolve("browser-decoded.md5"),true).size()!=expectedFrames)
+            throw new IOException("Browser-compatible derivative lost decoded frames.");
+        LOG.info("FULL_VIDEO_BROWSER_COMPATIBLE_QA_PASS frames={} codec=avc1 pixFmt=yuv420p audioPacketsUnchanged=true",
+            expectedFrames);
+    }
+
+    private static String audioPacketHash(Path input,Path output)
+            throws IOException,InterruptedException {
+        run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
+            "-i",input.toString(),"-map","0:a:0","-c","copy","-f","streamhash",
+            "-hash","sha256","-y",output.toString()),output.resolveSibling(output.getFileName()+".log"),60);
+        String hash=Files.readString(output).trim();
+        if(!hash.matches("0,a,SHA256=[a-f0-9]{64}"))
+            throw new IOException("Could not verify original AAC packet hash.");
+        return hash;
     }
 
     static List<String> decodedVideoHashes(Path video,Path hashes,boolean checkClock)
@@ -175,7 +231,7 @@ final class Ep004LosslessFilmAssembler {
                 "ffprobe","-v","error","-select_streams",stream));
         if(count)command.add("-count_frames");
         command.addAll(List.of("-show_entries",
-                "stream=codec_name,width,height,r_frame_rate,nb_read_frames,sample_rate,channels,time_base,profile,codec_tag_string,extradata_hash",
+                "stream=codec_name,width,height,r_frame_rate,nb_read_frames,sample_rate,channels,time_base,profile,codec_tag_string,extradata_hash,pix_fmt",
                 "-show_data_hash","sha256",
                 "-of","default=noprint_wrappers=1",video.toString()));
         Process process=new ProcessBuilder(command).redirectErrorStream(true).start();
