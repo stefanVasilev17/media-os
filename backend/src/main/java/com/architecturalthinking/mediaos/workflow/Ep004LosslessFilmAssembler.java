@@ -146,7 +146,7 @@ final class Ep004LosslessFilmAssembler {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",input.toString(),"-map","0:v:0","-map","0:a:0",
             "-vf","settb=1/90000,setpts=N*3000,format=yuv420p",
-            "-r","30","-enc_time_base","1:30","-fps_mode","passthrough",
+            "-enc_time_base","1:30","-fps_mode","passthrough",
             "-c:v","libx264","-preset","ultrafast","-crf","16","-threads:v","2",
             "-profile:v","high","-level:v","4.1","-tag:v","avc1",
             "-g","60","-c:a","copy","-video_track_timescale","90000",
