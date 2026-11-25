@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-25 — EP004 SHOT08 V1 PRODUCTION RENDER READY VERIFIED
+
+Director re-confirmed TOP PRIORITY AT-VIS-0014 multi-diagram visual storytelling. Existing AGENTS.md and Visual Constitution already enforce it globally; actual Director-LOCKED SHOT07 V2 remains the approved reference. SHOT08 uses three distinct narrative views, not a repeated map. Final production pin 54d1da62f89eb931546fa498f8c6d696cba28e16, Backend deployment 19b3c18b-0e6b-4646-943b-fa301687b30b SUCCESS, Worker deployment 644d65a7-43cb-4749-85a6-f7d2ec3717fa SUCCESS, all three existing services online. SHOT08 6/6, combined SHOT06–08 28/28, shared Worker 175/175 PASS; Java 586 tests, 0 failures/errors, 1 skipped; Remotion/Factory bundles built, no new TS errors. Earlier transient HTTP 401 resolved; exact-source authenticated heartbeat at 12:09:04 UTC, eight registered scenes. Real deployment audit 11:09:04.483 UTC PASS: 2719 frames, ten original cues, originalVoiceShaVerified=true, lockedShot07VideoShaVerified=true. Exact spoken event frames BULKHEAD=624, SEPARATE_ISSUE=1097, WIDER_IMPACT=1289, SERVICE_NAMES=1764, ALTERNATE_RECOVERY=1776, EXCHANGE_CONSTRAINT=1985, USER_CONTRAST=2558. Fresh readiness checks 12:09:12 and 12:09:13 UTC ready=true blockers=[]. Seven-shot Full Video last reported READY matchingSequence=true. No new paid render or TTS authorized or initiated by Executor; actual SHOT08 MP4 and visual acceptance pending. Director can use audited Render SHOT08 action. No source or lock changes.
+
+---
+
 ## 2026-11-25 — SHOT07 V2 DIRECTOR LOCK / SHOT08 REGIONAL CONTAINMENT CANDIDATE
 
 Director explicitly LOCKED SHOT07 V2 and repeated praise of multi-diagram storytelling; AT-VIS-0014 remains TOP PRIORITY in AGENTS.md and the Visual Constitution. Actual SHOT07 V2 render c51cbbda-f832-4c46-8a37-cc3116f50e1f at 232fb7ef9dbcfa2e2d8c3d9e326660ea2a17be56 completed 5,392,351 bytes, 2606 frames/86.8667s, 1080p30 H264/AAC, genuine Take 72-frame delay QA, exact locked predecessor SHA and seam PSNR 44.60, 30 moving opening frames, actual technical QA PASS. Authenticated POST /film/locks/SHOT07 HTTP 200 at 10:54:23 UTC. Preserve this exact MP4, original props, voice and source. Persisted lock/MP4 SHA to be verified by SHOT08 readiness audit, not guessed.
