@@ -5,6 +5,10 @@
 **Scope:** All future Architectural Thinking Remotion SHOT code, scene proposals, shared asset reuse, review, revisions and Shorts adaptation.
 **Principle:** ONE WORLD. ONE LIVING MAP. MANY ENGINEERING STORIES. Repeat the world, not the lesson.
 
+## 2026-11-25 — Director LOCK: minimum visual quality floor (EP004 Full Video SHOT01–06)
+
+The Director reviewed the actual published EP004 Full Video and explicitly approved its visual quality as the minimum mandatory floor for all future Architectural Thinking videos. Reference: Full Video 7783e0ec-d8c5-3aa2-9621-694c66ea12e0, six locked source SHOTs, ending SHOT06 V2 render 2b68bda7-8f0d-471f-a2d5-78e5765ac63e. Never regress below this reference: realistic dimensional architecture, premium material/lighting and readable labels, physically coherent moving traffic, motivated finite camera focus, calm holds, causal visual storytelling and seamless locked-predecessor continuity. Modernize when it improves understanding, not with decorative noise. Compare target scene against this reference during code and actual rendered review; Director owns visual acceptance. This approval of a quality floor does not approve unrendered future scenes or waive the exact locked predecessor gate. Ledger AT-VIS-0013.
+
 ## Director LOCK — comprehension-first visual pacing (2026-11-07)
 
 **Accepted by the Director for EP002 SHOT02 V2 and every future Architectural Thinking SHOT.** These are permanent five-part art direction rules. They supersede older suggestions to use tiny secondary explanation labels or top-right decorative term HUDs. Do not modify the Script v4.0 archive, approved Visual Pass or previously accepted SHOTs by back-propagation.
