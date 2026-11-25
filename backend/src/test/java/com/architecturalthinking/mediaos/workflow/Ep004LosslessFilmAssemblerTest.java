@@ -37,7 +37,8 @@ class Ep004LosslessFilmAssemblerTest {
             "-f","lavfi","-i","sine=frequency="+(350+ordinal*110)
                 +":sample_rate="+sampleRate));
         argv.addAll(List.of("-frames:v",Integer.toString(frames),
-            "-c:v","libx264","-preset","ultrafast","-crf","38",
+            "-c:v","libx264","-preset","veryfast","-crf",ordinal==2?"16":"28",
+            "-threads","2","-video_track_timescale",ordinal==2?"15360":"90000",
             "-pix_fmt","yuv420p"));
         if(audio)argv.addAll(List.of("-c:a","aac","-b:a","96k",
             "-ar",Integer.toString(sampleRate),"-ac","2"));
@@ -73,8 +74,9 @@ class Ep004LosslessFilmAssemblerTest {
         assertEquals(second,sha(folder.resolve("shot02.mp4")));
         assertEquals(third,sha(folder.resolve("shot03.mp4")));
         assertEquals(3,Files.readAllLines(folder.resolve("sequence.txt")).size());
-        assertEquals(List.of("file 'shot01.mp4'","file 'shot02.mp4'",
-                "file 'shot03.mp4'"),
+        assertEquals(135,Ep004LosslessFilmAssembler.decodedVideoHashes(film,folder.resolve("test-film.md5"),true).size());
+        assertEquals(List.of("file 'normalized01.mp4'","file 'normalized02.mp4'",
+                "file 'normalized03.mp4'"),
             Files.readAllLines(folder.resolve("sequence.txt")));
     }
 
