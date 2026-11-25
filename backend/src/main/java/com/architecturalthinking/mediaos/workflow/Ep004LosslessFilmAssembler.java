@@ -145,20 +145,23 @@ final class Ep004LosslessFilmAssembler {
         String originalAudio=audioPacketHash(input,directory.resolve("input-audio.sha"));
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",input.toString(),"-map","0:v:0","-map","0:a:0",
-            "-vf","setpts=N/(30*TB),format=yuv420p","-r","30","-fps_mode","cfr",
+            "-vf","settb=1/90000,setpts=N*3000,format=yuv420p",
+            "-r","30","-enc_time_base","1:30","-fps_mode","passthrough",
             "-c:v","libx264","-preset","ultrafast","-crf","16","-threads:v","2",
             "-profile:v","high","-level:v","4.1","-tag:v","avc1",
             "-g","60","-c:a","copy","-video_track_timescale","90000",
             "-movflags","+faststart","-y",output.toString()),directory.resolve("browser-encode.log"),600);
         Map<String,String> video=probe(output,"v:0",true);
         Map<String,String> audio=probe(output,"a:0",false);
+        LOG.info("FULL_VIDEO_BROWSER_PROBE expectedFrames={} video={} audio={}",expectedFrames,video,audio);
         if(!"h264".equals(video.get("codec_name"))||!"avc1".equals(video.get("codec_tag_string"))
                 ||!"1920".equals(video.get("width"))||!"1080".equals(video.get("height"))
                 ||!"30/1".equals(video.get("r_frame_rate"))||!"1/90000".equals(video.get("time_base"))
                 ||!"yuv420p".equals(video.get("pix_fmt"))
                 ||!Integer.toString(expectedFrames).equals(video.get("nb_read_frames"))
                 ||!"aac".equals(audio.get("codec_name")))
-            throw new IOException("Browser-compatible derivative failed AVC1/1080p/30fps/frame verification.");
+            throw new IOException("Browser-compatible derivative failed AVC1 verification; expectedFrames="+
+                expectedFrames+" video="+video+" audio="+audio);
         if(!originalAudio.equals(audioPacketHash(output,directory.resolve("output-audio.sha"))))
             throw new IOException("Browser-compatible derivative changed original AAC packets.");
         // Verify the full decoder timeline, including the last frame, not only container metadata.
