@@ -134,7 +134,7 @@ const ContentionView:React.FC<{s:RecoveryState}>=({s})=><g>
  <text x="742" y="369" fontSize="25" fontWeight="650" fill="#B6C8D5">Simple check</text>
  <text x="742" y="522" fontSize="25" fontWeight="650" fill="#B6C8D5">Production work</text>
  <Route d={shot06Path(CUT_PROBE_ROUTE)} tone={GREEN}/><Route d={shot06Path(CUT_WORK_ROUTE)} tone={s.contention?AMBER:CYAN} active={s.contention}/>
- <rect x="1140" y="352" width="250" height="76" rx="12" fill="url(#s6Face)" stroke={GREEN} strokeWidth="2.5"/>
+ <rect x="1140" y="352" width="260" height="76" rx="12" fill="url(#s6Face)" stroke={GREEN} strokeWidth="2.5"/>
  <circle cx="1170" cy="390" r="9" fill={GREEN}/><text x="1190" y="398" fontSize="24" fontWeight="650" fill={GREEN}>Responding</text>
  <g>
   {Array.from({length:5},(_,i)=><g key={i}><rect x={1120+i*109} y="540" width="94" height="100" rx="10" fill="url(#s6Face)" stroke={s.contention&&i<Math.ceil(s.load*5)?AMBER:'#586E80'} strokeWidth="2"/><path d={'M'+(1135+i*109)+' 558h64m-64 14h64m-64 14h64'} stroke="#506575" strokeWidth="4" strokeLinecap="round"/><rect x={1135+i*109} y="615" width={s.contention&&i<Math.ceil(s.load*5)?64:25} height="6" rx="3" fill={s.contention?AMBER:CYAN} opacity=".75"/></g>)}

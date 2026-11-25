@@ -247,3 +247,5 @@ Director explicitly said SHOT07 is LOCKED, praised the several diagrams again an
 - Correction: remove only that caption, retain the live workload bar; extend the Simple check pill from 190 to 250 px while keeping its input port, status dot, type and baseline unchanged. Keep conceptual attribution and all timing, routes, voice and predecessor intact.
 - Preventive rule: measure every status label against its own container, reserving left/right padding and dot spacing, rather than fitting text to the frame alone. Check all animated states and use conservative layout regression guards plus actual rendered visual review. No clipping, squeezing or unjustified smaller text as a substitute for sufficient space.
 - Verification: SHOT09 V2 source regression added; production build/readiness and Director MP4 review pending. No automatic paid render or TTS.
+
+- V2 build guard detected that 250 px left only 20 px against the conservative width budget; corrected to 260 px, giving 30 px reserve without altering font or route. Keep the regression threshold unchanged.
