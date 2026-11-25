@@ -1,0 +1,15 @@
+import type {Ep004Shot10RenderProps,State as PriorState} from './EP004Shot10ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='SHIFT'|'LOAD'|'DETECT'|'REDIRECT'|'ALERT'|'EVENING'|'RESTART'|'PROBE'|'CAPACITY'|'RELAPSE'|'PATTERN'|'LOOP'|'DEFECT'|'END';
+export type Ep004Shot11RenderProps=Omit<Ep004Shot10RenderProps,'previousShot09Props'|'eventFrames'>&{previousShot10Props:Ep004Shot10RenderProps;eventFrames:Record<EventKey,number>};
+export type ClockDot={x:number;y:number;tone:string;direction:string};
+export type ClockState={prior:PriorState|null;openingMix:number;stage:'clock'|'fleet'|'connection';activeMark:number;pressure:number;failures:number;phase:'failed'|'booting'|'running';traffic:ClockDot[];activity:number;redirect:boolean;alert:boolean;probe:boolean;relapse:boolean;defect:boolean;end:boolean};
+export declare const EP004_SHOT11_COMPOSITION:string;
+export declare const EP004_SHOT11_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT11_BEATS:readonly string[];
+export declare const SHOT11_EVENTS:readonly EventKey[];
+export declare const INCIDENT_ROUTES:readonly (readonly Point[])[];
+export declare const CLOCK_MARKS:readonly string[];
+export declare function validateEp004Shot11Production(p:Ep004Shot11RenderProps,requireFrame?:boolean):true;
+export declare function shot11State(frame:number,p:Ep004Shot11RenderProps):ClockState;
+export declare function verifyEp004Shot11ActualMotion(p:Ep004Shot11RenderProps):Record<string,string|number>;
