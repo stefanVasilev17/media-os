@@ -40,3 +40,9 @@ test('EP004 SHOT09 exact scoped target, reject arbitrary and future compositions
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT10-HEALTH-VS-READINESS-V1-VISUAL'));
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL/extra'));
 });
+
+test('EP004 SHOT10 exact target only',()=>{
+ assert.equal(requireSupportedTargetComposition('EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL'),'EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL');
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL/extra'));
+ assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT11-CONTROLLED-RECOVERY-V1-VISUAL'));
+});
