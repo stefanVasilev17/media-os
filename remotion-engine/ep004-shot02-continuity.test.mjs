@@ -116,7 +116,7 @@ test('SHOT01 TSX and factory production entrypoints stay untouched by SHOT02 pre
   const factory=await readFile(new URL('./src/factory/generated-scene-registry.ts',import.meta.url),'utf8');
   assert.match(root,/EP004-SHOT02-CONTINUITY-V1-STORYBOARD/);
   assert.match(shot02,/ep004Shot02World\(frame,props\)/);
-  assert.match(shot02,/CONTINUITY MOCK · NOT DIRECTOR LOCKED/);
+  assert.doesNotMatch(shot02,/CONTINUITY MOCK|NOT DIRECTOR LOCKED|DIRECTOR REVIEW CANDIDATE/);
   assert.equal(shot01.includes('ep004Shot02World'),false);
   assert.equal(factory.includes('EP004-SHOT02'),false,
     'No production scene until authentic SHOT02 script/voice/timestamps are verified');

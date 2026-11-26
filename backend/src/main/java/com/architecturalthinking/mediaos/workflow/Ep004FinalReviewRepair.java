@@ -166,12 +166,16 @@ final class Ep004FinalReviewRepair {
         }
         return n;
     }
-    private static Font font(double size){
-        String[] available=GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-        for(String family:List.of("Arial","Liberation Sans","FreeSans","DejaVu Sans"))
-            if(Arrays.asList(available).contains(family))return new Font(family,Font.BOLD,1).deriveFont((float)size);
-        return new Font(Font.SANS_SERIF,Font.BOLD,1).deriveFont((float)size);
+    private static class LabelFont {
+        static final Font BASE=choose();
+        private static Font choose(){
+            String[] available=GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+            for(String family:List.of("Arial","Liberation Sans","FreeSans","DejaVu Sans"))
+                if(Arrays.asList(available).contains(family))return new Font(family,Font.BOLD,1);
+            return new Font(Font.SANS_SERIF,Font.BOLD,1);
+        }
     }
+    private static Font font(double size){return LabelFont.BASE.deriveFont((float)size);}
     static Rectangle drawLabel(BufferedImage out,Pose p){
         Graphics2D g=out.createGraphics();
         try{

@@ -124,7 +124,7 @@ test('preview original remains isolated and SHOT01 V8 files are never modified',
   const preview=await readFile(new URL('./src/episodes/ep004/Shot02ContinuityV1.tsx',import.meta.url),'utf8');
   const generated=await readFile(new URL('./src/episodes/ep004/Shot02GeneratedScene.tsx',import.meta.url),'utf8');
   const root=await readFile(new URL('./src/Root.tsx',import.meta.url),'utf8');
-  assert.match(preview,/CONTINUITY MOCK · NOT DIRECTOR LOCKED/);
+  assert.doesNotMatch(preview,/CONTINUITY MOCK|NOT DIRECTOR LOCKED|DIRECTOR REVIEW CANDIDATE/);
   assert.match(production,/ep004Shot02ProductionWorld\(frame,props\)/);
   assert.match(generated,/validateEp004Shot02Render\(props\)/);
   assert.match(root,/EP004-SHOT02-TWO-GATEWAYS-V1-VISUAL/);
