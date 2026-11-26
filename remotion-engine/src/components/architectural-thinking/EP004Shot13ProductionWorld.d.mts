@@ -1,0 +1,16 @@
+import type {Ep004Shot12RenderProps,RestoreState} from './EP004Shot12ProductionWorld.mjs';
+import type {ClockDot} from './EP004Shot11ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='QUESTION'|'NO'|'SYSTEM'|'SHARED'|'SPARE'|'GENERAL'|'GUARANTEE'|'HOOK'|'HEALTHY'|'FAILOVER'|'REGIONS'|'WEAKNESS'|'SPREAD'|'RESTART'|'REPEAT'|'PROTECT'|'CAPACITY'|'ISOLATE'|'STAGED'|'OUTPUT';
+export type Ep004Shot13RenderProps=Omit<Ep004Shot12RenderProps,'previousShot11Props'|'eventFrames'>&{previousShot12Props:Ep004Shot12RenderProps;eventFrames:Record<EventKey,number>};
+export type DesignState={prior:RestoreState;openingMix:number;fleet:number;compact:number;phases:string[];weak:boolean;safe:boolean;isolated:boolean;staged:boolean;aperture:number;traffic:ClockDot[];general:boolean;output:boolean;activity:number;pressure:number;hook:boolean};
+export declare const EP004_SHOT13_COMPOSITION:string;
+export declare const EP004_SHOT13_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT13_BEATS:readonly string[];
+export declare const SHOT13_EVENTS:readonly EventKey[];
+export declare const DESIGN_INPUT:readonly Point[];
+export declare const DESIGN_ROUTES:readonly (readonly Point[])[];
+export declare const ISOLATED_ROUTE:readonly Point[];
+export declare function validateEp004Shot13Production(p:Ep004Shot13RenderProps,requireFrame?:boolean):true;
+export declare function shot13State(frame:number,p:Ep004Shot13RenderProps):DesignState;
+export declare function verifyEp004Shot13ActualMotion(p:Ep004Shot13RenderProps):Record<string,string|number>;
