@@ -93,13 +93,13 @@ export function shot15State(frame,p){
  const packet=hero(frame,e,zoom);
  const capacity=frame>=e.CAPACITY,question=frame>=e.FAILS&&frame<e.FAILOVER;
  const focus=inherited?'inherited':frame<e.NEEDED?'person':frame<e.BEYOND?'behind':frame<e.FAILS?'beyond':frame<e.FAILOVER?'question':frame<e.DESIGN?'resolution':'final';
- const ambient=prior.traffic.filter((x,i)=>frame<e.PERSON+12||i%3===0);
+ const ambient=prior.traffic.filter((x,i)=>frame<e.PERSON+12||i%3===0).map(x=>frame<e.PERSON?x:x.x>=350&&x.x<=685&&Math.abs(x.y-545)<1?{...x,x:inboxPort(zoom)[0]+(x.x-350)*(685-inboxPort(zoom)[0])/335}:x);
  const traffic=[...ambient,...finalTraffic(frame,e,zoom)];
  return {prior,person,pullback,quiet,zoom,camera:finalCamera(frame,e),focus,capacity,question,delivered:frame>=e.NEEDED,packet,traffic,activity:prior.activity,headroom:question?.38+.15*ramp(frame,e.PROTECT):.53,alternative:frame>=e.BEYOND&&frame<e.DESIGN};
 }
 export function verifyEp004Shot15ActualMotion(p){
  validateEp004Shot15Production(p);const e=p.eventFrames,s=f=>shot15State(f,p);
- if(s(0).person!==0||s(e.PERSON+12).person!==1||s(e.NEEDED-1).delivered||!s(e.NEEDED).delivered||!s(e.FAILS).question||s(e.FAILOVER).question||s(p.durationInFrames-1).focus!=='final')throw Error('SHOT15_CAUSAL_HUMAN_FINALE_REQUIRED');
+ if(e.NEEDED<=e.PERSON+24||s(0).person!==0||s(e.PERSON+12).person!==1||s(e.NEEDED-1).delivered||!s(e.NEEDED).delivered||!s(e.FAILS).question||s(e.FAILOVER).question||s(p.durationInFrames-1).focus!=='final')throw Error('SHOT15_CAUSAL_HUMAN_FINALE_REQUIRED');
  const req=s(e.PERSON+12).packet,resp=s(e.NEEDED-1).packet;
  if(!req||req.direction!=='request'||!resp||resp.direction!=='response')throw Error('SHOT15_REAL_REQUEST_RESPONSE_REQUIRED');
  const last=p.durationInFrames-1;

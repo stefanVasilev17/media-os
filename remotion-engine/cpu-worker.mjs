@@ -2578,6 +2578,14 @@ async function verifyEp004Shot15SeamAndMotion(job,outputPath,lastPNG,directory){
       .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
   if(hashes.length!==30||new Set(hashes).size<5)
     throw Error('SHOT15_LIVING_ARCHITECTURE_FIRST_30_FRAMES_MUST_MOVE');
+  const tail=await captureNative('ffmpeg',[
+      '-hide_banner','-loglevel','error','-i',outputPath,
+      '-map','0:v:0','-an','-vf','select=gte(n\\,'+(Number(job.durationInFrames)-60)+')','-vsync','0','-f','framemd5','-']);
+  const tailHashes=tail.stdout.split('\n').filter(v=>v&&!v.startsWith('#'))
+      .map(v=>v.split(',').at(-1)?.trim()).filter(Boolean);
+  if(tailHashes.length!==60||new Set(tailHashes).size<10)
+    throw Error('SHOT15_LAST_60_FRAMES_MUST_REMAIN_LIVING');
+  console.log('EP004_SHOT15_LIVING_FINAL_TAIL_QA_PASS renderId='+job.renderId+' distinctFrames='+new Set(tailHashes).size);
   console.log('EP004_SHOT15_SEAM_PSNR='+psnr.toFixed(2)+
       ' animatedFrames='+new Set(hashes).size+' renderId='+job.renderId);
 }
