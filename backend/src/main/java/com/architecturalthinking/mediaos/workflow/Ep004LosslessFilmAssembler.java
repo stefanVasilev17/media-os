@@ -169,7 +169,7 @@ final class Ep004LosslessFilmAssembler {
             expectedFrames);
     }
 
-    private static String audioPacketHash(Path input,Path output)
+    static String audioPacketHash(Path input,Path output)
             throws IOException,InterruptedException {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-i",input.toString(),"-map","0:a:0","-c","copy","-f","streamhash",
@@ -201,7 +201,7 @@ final class Ep004LosslessFilmAssembler {
         }
     }
 
-    private static List<String> decodedVideoHashes(Path video,Path hashes,boolean checkClock,int expectedFrames)
+    static List<String> decodedVideoHashes(Path video,Path hashes,boolean checkClock,int expectedFrames)
             throws IOException,InterruptedException {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
             "-threads","2","-i",video.toString(),"-map","0:v:0","-an",
@@ -230,7 +230,7 @@ final class Ep004LosslessFilmAssembler {
         return pixels;
     }
 
-    private static void run(List<String> args,Path log,int seconds)
+    static void run(List<String> args,Path log,int seconds)
             throws IOException,InterruptedException {
         Process process=new ProcessBuilder(args).redirectErrorStream(true)
             .redirectOutput(log.toFile()).start();
@@ -247,7 +247,7 @@ final class Ep004LosslessFilmAssembler {
         }
     }
 
-    private static Map<String,String> probe(Path video,String stream)
+    static Map<String,String> probe(Path video,String stream)
             throws IOException,InterruptedException {
         List<String> command=new ArrayList<>(List.of(
                 "ffprobe","-v","error","-select_streams",stream));

@@ -35,6 +35,7 @@ public final class Ep004DirectorSimpleFilmController {
     private final JdbcClient jdbc;
     private final MediaObjectStore store;
     private final java.util.concurrent.atomic.AtomicBoolean playbackRepairAttempted=new java.util.concurrent.atomic.AtomicBoolean();
+    private final java.util.concurrent.atomic.AtomicBoolean finalReviewAttempted=new java.util.concurrent.atomic.AtomicBoolean();
 
     public Ep004DirectorSimpleFilmController(JdbcClient jdbc,MediaObjectStore store) {
         this.jdbc=jdbc;this.store=store;
@@ -547,6 +548,72 @@ public final class Ep004DirectorSimpleFilmController {
         }catch(Exception failure){
             if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
             LOG.error("FULL_VIDEO_AVC1_REPAIR_FAILED previous lossless film and locked SHOTs retained",failure);
+        }finally{
+            if(folder!=null){
+                try(var files=Files.list(folder)){
+                    files.forEach(path->{try{Files.deleteIfExists(path);}catch(IOException ignored){}});
+                }catch(IOException ignored){}
+                try{Files.deleteIfExists(folder);}catch(IOException ignored){}
+            }
+        }
+    }
+
+
+    // Explicit Director final-review correction; bounded postproduction, not a
+    // new Remotion job, voice request, lock change, or generic render bypass.
+    @Scheduled(initialDelay=45000,fixedDelay=86400000)
+    public synchronized void repairReportedFinalReview(){
+        if(!finalReviewAttempted.compareAndSet(false,true))return;
+        UUID packageId=UUID.fromString("d11d02a2-b649-44c9-a022-4405149f675e");
+        Path folder=null;
+        try{
+            List<ShotLock> prefix=consecutive(locks(packageId));
+            Film previous=currentFilm(packageId);
+            if(prefix.size()!=15||!current(previous,prefix)||previous.frames()!=Ep004FinalReviewRepair.TOTAL)return;
+            String sequence=identity(prefix);
+            UUID repairId=UUID.nameUUIDFromBytes((Ep004FinalReviewRepair.VERSION+":"+packageId+":"+sequence)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            if(repairId.equals(previous.id()))return;
+            Map<Integer,String> exactIds=Map.of(1,"20758da0-46f9-4973-9ef8-ec93eb437a5a",
+                12,"c9eb0abc-ef56-42c7-8733-b47be4122384",13,"404832c1-0b7d-4de7-a95b-1971445d9a4d",
+                14,"719e3b23-0c74-47b5-920f-40db518382a4");
+            Map<Integer,String> exactSources=Map.of(1,"714d7c31affb84793780eee42bc5062387b069a7",
+                12,"c97825b00ccdfec07a41737999def2e4c87feb24",13,"e1158d874c63205bffb55e4ea6e0e011e667ea75",
+                14,"b9d6d4be8092f0cf66fb352b2c08b36d28479e64");
+            for(int i=0;i<15;i++){
+                ShotLock lock=prefix.get(i);
+                if(exactIds.containsKey(i)&&!exactIds.get(i).equals(lock.renderId().toString()))
+                    throw new IllegalStateException("Final review source lock changed.");
+                VideoSource source=verifiedRender(packageId,lock.shotKey(),lock.renderId());
+                if(source.frames()!=Ep004FinalReviewRepair.FRAMES[i]||
+                    (exactSources.containsKey(i)&&!exactSources.get(i).equals(source.sourceCommit())))
+                    throw new IllegalStateException("Final review exact source timeline changed.");
+            }
+            if(!store.writable())throw new IOException("Private media store unavailable.");
+            store.verifyVideoManifest(previous.objectKey(),previous.sha256(),previous.bytes());
+            folder=Files.createTempDirectory("mediaos-ep004-final-review-");
+            Path input=folder.resolve("director-original-master.mp4");
+            try(var out=Files.newOutputStream(input)){
+                store.streamVideoRange(previous.objectKey(),previous.sha256(),previous.bytes(),0,previous.bytes()-1,out);
+            }
+            if(Files.size(input)!=previous.bytes()||!previous.sha256().equals(MediaObjectStore.sha256(input)))
+                throw new IOException("Original full master SHA-256 verification failed.");
+            LOG.info("EP004_FINAL_REVIEW_REPAIR_START packageId={} parentFilmId={} parentSha={} correctedFilmId={} frames={}",
+                packageId,previous.id(),previous.sha256(),repairId,previous.frames());
+            Path output=folder.resolve("director-corrected-master.mp4");
+            Ep004FinalReviewRepair.repair(input,output,previous.frames());
+            MediaObjectStore.Stored saved=store.uploadFilmVerified(repairId,output);
+            Film stillCurrent=currentFilm(packageId);
+            if(!current(stillCurrent,consecutive(locks(packageId)))||
+                !previous.id().equals(stillCurrent.id())||!previous.sha256().equals(stillCurrent.sha256())||
+                !sequence.equals(stillCurrent.renderIds()))
+                throw new IllegalStateException("Director source sequence or master changed during final review repair.");
+            saveFilm(packageId,repairId,saved.key(),saved.sha256(),saved.byteCount(),15,sequence,previous.frames());
+            LOG.info("EP004_FINAL_REVIEW_REPAIR_READY packageId={} parentFilmId={} filmId={} sha={} bytes={} frames={} shots=15 originalAudio=true originalLocks=true",
+                packageId,previous.id(),repairId,saved.sha256(),saved.byteCount(),previous.frames());
+        }catch(Exception failure){
+            if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
+            LOG.error("EP004_FINAL_REVIEW_REPAIR_FAILED original master and original locks retained",failure);
         }finally{
             if(folder!=null){
                 try(var files=Files.list(folder)){
