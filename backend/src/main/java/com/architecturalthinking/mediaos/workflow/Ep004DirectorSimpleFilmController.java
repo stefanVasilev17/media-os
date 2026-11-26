@@ -75,6 +75,7 @@ public final class Ep004DirectorSimpleFilmController {
             case "SHOT09" -> "EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL";
             case "SHOT10" -> "EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL";
              case "SHOT11" -> "EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL";
+             case "SHOT12" -> "EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL";
             default -> throw new ResponseStatusException(HttpStatus.CONFLICT,
               "This SHOT has no verified production render composition yet.");
         };

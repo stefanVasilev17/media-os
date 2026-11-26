@@ -15,7 +15,8 @@ class Ep004Shot11RenderSecurityRegressionTest {
         List<String> allowed=Arrays.asList(EpisodeFactoryDirectorRoutes.POST_PATHS);
         assertTrue(allowed.contains(SHOT11));
         assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/{shotKey}/render"));
-        assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT12/render"));
+        assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT12/render"));
+        assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT13/render"));
         assertEquals(1,allowed.stream().filter(SHOT11::equals).count());
     }
 
@@ -23,7 +24,7 @@ class Ep004Shot11RenderSecurityRegressionTest {
     void finalCpuCallbackRequiresSameSourceAndDirectorLockedShot10WithVerifiedSha() throws Exception {
         String source=Files.readString(Path.of(
                 "src/main/java/com/architecturalthinking/mediaos/system/GlobalCreationPreflightFilter.java"));
-        assertTrue(source.contains("'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL')"));
+        assertTrue(source.contains("'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL',"));
         assertTrue(source.contains(
                 "and (r.composition_id<>'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL'"));
         assertTrue(source.contains("and r.input_props->>'expectedSourceCommit'=:sourceSha"));
