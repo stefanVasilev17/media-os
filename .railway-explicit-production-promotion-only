@@ -56,3 +56,4 @@ EP004 SHOT06 V2 explicit production promotion 2026-11-25: Director-approved clea
 
 EP004 SHOT11 explicit existing backend and worker promotion 2026-11-26: Director requested render-ready SHOT11, preserve exact SHOT10 seam and approved original voice; chronological causal packet routing, fleet redistribution, staged composition transitions and connection-handling focus. Run existing native build and tests only; no paid render, TTS, new services, buckets or visual LOCK. Keep exact-SHA source gating.
 2026-11-26 EP004 SHOT12 explicit build-only promotion; no render or voice request.
+2026-11-26 EP004 SHOT12 route regression alignment and explicit build-only promotion.
