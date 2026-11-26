@@ -155,10 +155,5 @@ export const Ep004Shot02ContinuityV1:React.FC<Ep004Shot02PreviewProps>=props=>{
           strokeWidth={2} opacity={.55}/>
       </svg>
     </div>
-    {props.previewOnly&&<div style={{position:'absolute',right:50,
-      bottom:39,zIndex:90,color:'#ACC7D9',fontSize:18,
-      fontFamily:AT_FONT,fontWeight:740}}>
-      EP004 / SHOT02 · CONTINUITY MOCK · NOT DIRECTOR LOCKED
-    </div>}
   </ATBackground>;
 };

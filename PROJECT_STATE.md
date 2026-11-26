@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — EP004 final review corrections, source revision
+
+Director accepted all 15 SHOTs and reviewed the actual Full Video. Actual original master assembly QA PASS 34651 frames / 1155.033s / 19:15.033, H264 AVC1 1080p30 AAC unchanged; all 15 original locked source MP4s retained. Director requires removal of internal SHOT02 footer and Primary gateway label occlusion around minute 17. AT-VIS-0021 top-priority rule. Source corrections target SHOT02 and SHOT03 inherited tail plus SHOT13/14/15 common label slot (safe baseline 447 instead of 422 once alternative fleet emerges). All original locked commits and media remain immutable. No new paid Remotion render/TTS. Corrected Full Video derivative still needs production verification.
+
+---
+
 ## 2026-11-26 — EP004 15/15 SHOTs Director LOCKED
 
 EP004 SHOT15 V2 actual Director-LOCKED render `719e3b23-0c74-47b5-920f-40db518382a4`, source `b9d6d4be8092f0cf66fb352b2c08b36d28479e64`, 1368 frames / 45.6 s / 1920x1080@30, 2,895,715 bytes. Authenticated POST film/locks/SHOT15 HTTP 200 on 2026-11-26. Real approved Take mux PASS, exact locked SHOT14 SHA and last frame PASS, seam PSNR 44.57 dB, all 30 opening frames and all 60 tail frames distinct. Real readiness PASS, six original beats and fourteen verified event anchors. FAILS frame 897 (29.90s), FAILOVER frame 1121. Director explicitly accepted the corrected MP4.

@@ -65,6 +65,7 @@ const Inbox:React.FC<{message:boolean;reply:boolean}>=({message,reply})=><g>
  </g>;
 const DesignWorld:React.FC<{s:DesignState;frame:number;e:Ep004Shot13RenderProps['eventFrames']}>=({s,frame,e})=>{
  const inherited=!s.general,initial=s.fleet===0;
+ const labelMove=ease((frame-(e.NO-12))/12);
  const scale=.92+.08*s.openingMix-.04*s.compact,tx=75*(1-s.openingMix)+32*s.compact,ty=20*(1-s.openingMix)+22*s.compact;
  const gate={...s.prior,controlled:initial?s.prior.controlled:s.safe,admission:initial?s.prior.admission:s.aperture};
  const heading=inherited?'USEFUL WORK RETURNS':frame<e.HOOK?'FAILOVER IS STILL USEFUL':frame<e.CAPACITY?'AVAILABILITY ON PAPER':frame<e.ISOLATE?'SAFE CAPACITY':frame<e.STAGED?'FAILURE ISOLATION':frame<e.OUTPUT?'CONTROLLED RETURN':'USEFUL WORK COMPLETED';
@@ -74,7 +75,7 @@ const DesignWorld:React.FC<{s:DesignState;frame:number;e:Ep004Shot13RenderProps[
  {initial?<Route d={shot06Path(MAIL_ROUTE)} tone={CYAN}/>:<><Route d={shot06Path(DESIGN_INPUT)} tone={CYAN}/>{DESIGN_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={s.phases[i]==='failed'?RED:s.weak?AMBER:CYAN} active={s.phases[i]!=='failed'&&!(s.isolated&&i===2)}/>)}{s.isolated&&<Route d={shot06Path(ISOLATED_ROUTE)} tone={GREEN}/>}</>}
  <Router/><Gate s={gate}/>
  <Gateway x={1190} y={474} w={455} h={142} failed={!initial&&s.phases[1]==='failed'} activity={s.activity}/>
- <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
+ <text x="1417" y={422+25*labelMove} textAnchor="middle" fontSize={30-3*labelMove} fontWeight="700" fill={WHITE}>Primary gateway</text>
  <Inbox message={true} reply={true}/>
  {initial?<g transform="translate(1210 700)"><text fontSize="25" fill={GREEN} fontWeight="650">Service available</text><text y="43" fontSize="23" fill={AMBER}>Residual mail processing</text></g>:<>
  {[0,2].map(i=>{const y=i===0?286:672,t=s.phases[i]==='failed'?RED:s.phases[i]==='booting'?AMBER:GREEN;return <g key={i} transform={'translate(1417 '+(y+66)+') scale('+s.fleet+') translate(-1417 -'+(y+66)+')'}><Gateway x={1190} y={y} w={455} h={132} failed={s.phases[i]==='failed'} activity={s.activity}/><text x="1417" y={y-29} fontSize="27" textAnchor="middle" fill={WHITE} fontWeight="650">{i===0?'Alternative gateway':'Isolated gateway'}</text><circle cx="1205" cy={y+105} r="6" fill={t}/></g>})}
