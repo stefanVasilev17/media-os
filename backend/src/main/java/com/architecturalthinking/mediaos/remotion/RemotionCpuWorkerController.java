@@ -96,6 +96,9 @@ public class RemotionCpuWorkerController {
     static boolean isEp004Shot12Target(String scope) {
         return "EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL".equals(scope);
     }
+    static boolean isEp004Shot13Target(String scope) {
+        return "EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL".equals(scope);
+    }
     public record ProgressRequest(int progress) {}
     public record FailureRequest(String error) {}
 
@@ -122,6 +125,7 @@ public class RemotionCpuWorkerController {
                  && !isEp004Shot10Target(scope)
                  && !isEp004Shot11Target(scope)
                  && !isEp004Shot12Target(scope)
+                 && !isEp004Shot13Target(scope)
                 && !"EP002-DIRECTOR-V2-PIPELINE".equals(scope)
                 && !"EP002-DIRECTOR-MASTER".equals(scope)
                 && !"EP002-SHOT01-DRAFT".equals(scope)
@@ -532,6 +536,35 @@ public class RemotionCpuWorkerController {
                         where cap.worker_id=:workerId and cap.source_commit=:sourceSha
                           and cap.build_checked=true
                           and cap.bundled_scenes::text like '%EP004-SHOT12%'
+                          and cap.last_heartbeat_at>now()-interval '120 seconds')))
+                  and (composition_id<>'EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL'
+                    or (input_props->>'expectedSourceCommit'=:sourceSha
+                      and :targetComposition='EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL'
+                      and input_props->>'directorCpuApproved'='true'
+                      and input_props->>'previewOnly'='false'
+                      and input_props->>'episodeKey'='EP004'
+                      and input_props->>'shotKey'='SHOT13'
+                      and input_props->>'breathFrames'='72'
+                      and input_props->>'sourceSha256'
+                          ='a47b5d2af200014828089bcfb0812017970a8ecfe623cefc67456359af4fe365'
+                      and input_props->>'previousRenderId'='9728581f-632b-421f-b004-f96281b00569'
+                      and input_props->>'previousSourceCommit'='00d06593da7c6d8893618f2d90daaba0a3de725f'
+                      and input_props->>'previousFrameCount'='2613'
+                      and input_props->>'previousLastEncodedFrame'='2612'
+                      and length(input_props->>'voiceAudioSha256')=64
+                      and length(input_props->>'previousVideoSha256')=64
+                      and exists(select 1 from episode_director_shot_lock l join remotion_render prev on prev.id=l.render_id
+                        where l.package_id=(remotion_render.input_props->>'packageId')::uuid and l.shot_key='SHOT12'
+                          and prev.id::text=remotion_render.input_props->>'previousRenderId' and prev.video_sha256=remotion_render.input_props->>'previousVideoSha256'
+                          and prev.status='SUCCEEDED' and prev.composition_id='EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL')
+                      and jsonb_typeof(input_props->'previousShot12Props')='object'
+                      and jsonb_typeof(input_props->'verifiedCues')='array'
+                      and jsonb_array_length(input_props->'verifiedCues')=5
+                      and jsonb_typeof(input_props->'eventFrames')='object'
+                      and exists(select 1 from episode_factory_worker_capability cap
+                        where cap.worker_id=:workerId and cap.source_commit=:sourceSha
+                          and cap.build_checked=true
+                          and cap.bundled_scenes::text like '%EP004-SHOT13%'
                           and cap.last_heartbeat_at>now()-interval '120 seconds')))
                   and (composition_id not like 'AT-FACTORY-%'
                     or (input_props->>'expectedSourceCommit' = :sourceSha

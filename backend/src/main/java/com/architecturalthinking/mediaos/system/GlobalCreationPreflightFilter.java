@@ -329,7 +329,8 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                                                'EP004-SHOT09-HEALTH-VS-READINESS-V1-VISUAL',
                                                 'EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL',
                                                  'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL',
-                                                 'EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL')
+                                                 'EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL',
+                                                 'EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL')
                       and r.profile='REVIEW' and r.width=1920 and r.height=1080
                       and r.fps=30 and r.duration_in_frames between 600 and 9000
                       and r.status='RUNNING' and r.worker_id=:worker
@@ -663,6 +664,46 @@ public class GlobalCreationPreflightFilter extends OncePerRequestFilter {
                               and previousLock.shot_key='SHOT11'
                               and previousLock.render_id::text=r.input_props->>'previousRenderId'
                               and previous.composition_id='EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL'
+                              and previous.status='SUCCEEDED'
+                              and previous.video_sha256=r.input_props->>'previousVideoSha256'
+                              and previous.duration_in_frames::text=
+                                  r.input_props->>'previousFrameCount'
+                              and previous.input_props->>'worldStartFrame'=
+                                  r.input_props->>'previousWorldStartFrame')))
+                       and (r.composition_id<>'EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL'
+                        or (r.input_props->>'episodeKey'='EP004'
+                          and r.input_props->>'shotKey'='SHOT13'
+                          and r.input_props->>'breathFrames'='72'
+                          and r.input_props->>'previousRenderId'='9728581f-632b-421f-b004-f96281b00569'
+                          and r.input_props->>'previousSourceCommit'='00d06593da7c6d8893618f2d90daaba0a3de725f'
+                          and r.input_props->>'previousFrameCount'='2613'
+                          and r.input_props->>'previousLastEncodedFrame'='2612'
+                          and length(r.input_props->>'previousVideoSha256')=64
+                          and length(r.input_props->>'voiceAudioSha256')=64
+                          and exists(select 1 from episode_package_shot s
+                            join episode_package_voice_take t on t.shot_id=s.id
+                            join episode_package_voice_choice ch on ch.shot_id=s.id and ch.take_id=t.id and ch.revision=t.revision
+                            where s.package_id=(r.input_props->>'packageId')::uuid and s.shot_key='SHOT13'
+                              and t.id::text=r.input_props->>'voiceTakeId' and t.revision::text=r.input_props->>'scriptRevision'
+                              and t.audio_sha256=r.input_props->>'voiceAudioSha256'
+                              and t.storage_status='OBJECT_VERIFIED'
+                              and t.generated_alignment->>'mediaos_spoken_script_sha256'=r.input_props->>'narrationSha256'
+                              and t.revision=(select max(revision) from episode_package_shot_revision where shot_id=s.id)
+                              and ch.id=(select newest.id from episode_package_voice_choice newest where newest.shot_id=s.id and newest.revision=t.revision order by newest.selected_at desc,newest.id desc limit 1))
+                          and jsonb_typeof(r.input_props->'verifiedCues')='array'
+                          and jsonb_array_length(r.input_props->'verifiedCues')=5
+                          and jsonb_typeof(r.input_props->'eventFrames')='object'
+                          and jsonb_typeof(r.input_props->'previousShot12Props')='object'
+                          and r.input_props->'previousShot12Props'->>'shotKey'='SHOT12'
+                          and r.input_props->'previousShot12Props'->>'expectedSourceCommit'=
+                              r.input_props->>'previousSourceCommit'
+                          and exists(
+                            select 1 from episode_director_shot_lock previousLock
+                            join remotion_render previous on previous.id=previousLock.render_id
+                            where previousLock.package_id=(r.input_props->>'packageId')::uuid
+                              and previousLock.shot_key='SHOT12'
+                              and previousLock.render_id::text=r.input_props->>'previousRenderId'
+                              and previous.composition_id='EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL'
                               and previous.status='SUCCEEDED'
                               and previous.video_sha256=r.input_props->>'previousVideoSha256'
                               and previous.duration_in_frames::text=
