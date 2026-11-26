@@ -1,0 +1,16 @@
+import type {Ep004Shot14RenderProps,ParadoxState} from './EP004Shot14ProductionWorld.mjs';
+import type {ClockDot} from './EP004Shot11ProductionWorld.mjs';
+export type EventKey="PERSON"|"MATTERED"|"NEEDED"|"GATEWAYS"|"CAPACITY"|"HIDDEN"|"BEYOND"|"QUESTION"|"FAILS"|"PROTECT"|"NEXT"|"FAILOVER"|"DESIGN"|"UNCERTAINTY";
+export type Ep004Shot15RenderProps=Omit<Ep004Shot14RenderProps,'previousShot13Props'|'eventFrames'>&{previousShot14Props:Ep004Shot14RenderProps;eventFrames:Record<EventKey,number>};
+export type FinaleState={prior:ParadoxState;person:number;pullback:number;quiet:number;zoom:number;camera:{scale:number;tx:number;ty:number};focus:string;capacity:boolean;question:boolean;delivered:boolean;packet:(ClockDot&{hero:boolean})|null;traffic:ClockDot[];activity:number;headroom:number;alternative:boolean};
+export declare const EP004_SHOT15_COMPOSITION:string;
+export declare const EP004_SHOT15_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT15_BEATS:readonly string[];
+export declare const SHOT15_EVENTS:readonly EventKey[];
+export declare const SHOT15_TAIL_FRAMES:number;
+export declare const FINAL_MAP:Readonly<{scale:number;tx:number;ty:number}>;
+export declare function inboxPort(zoom:number):[number,number];
+export declare function finalCamera(frame:number,e:Record<EventKey,number>):{scale:number;tx:number;ty:number};
+export declare function validateEp004Shot15Production(p:Ep004Shot15RenderProps,requireFrame?:boolean):true;
+export declare function shot15State(frame:number,p:Ep004Shot15RenderProps):FinaleState;
+export declare function verifyEp004Shot15ActualMotion(p:Ep004Shot15RenderProps):Record<string,string|number>;
