@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — EP004 SHOT15 finale candidate
+
+SHOT15 The Human Consequence And The Next Question is a code candidate. Exact predecessor SHOT14 render 404832c1-0b7d-4de7-a95b-1971445d9a4d, production source e1158d874c63205bffb55e4ea6e0e011e667ea75, 2018 frames, last frame 2017, Director lock HTTP 200. Actual original SHOT15 voice approval HTTP 200 observed. Six original visual beats, fourteen real anchor phrases, 72-frame breath and 60-frame moving tail, causal mailbox round trip and final uncertainty question. AT-VIS-0018/0019, no CTA covering map, no new paid calls. Source needs build, promotion, exact readiness and Director render. See docs/visual/EP004_SHOT15_HUMAN_CONSEQUENCE_20261126.md.
+
+---
+
 ## 2026-11-26 — EP004 SHOT14 Director LOCK / AT-VIS-0019 global motion standard
 
 **Immutable approved reference:** EP004 SHOT14 — The Architecture Paradox, production commit `e1158d874c63205bffb55e4ea6e0e011e667ea75`, render `404832c1-0b7d-4de7-a95b-1971445d9a4d`, 2018 frames / 67.2667 s / 1920×1080 at 30 FPS, 3,842,133 bytes. Authenticated POST `/film/locks/SHOT14` returned HTTP 200; worker reported real selected Take mux PASS, exact locked SHOT13 SHA/decoded-frame preflight PASS, seam PSNR 44.41 dB and 30 distinct opening frames. Original 9 beats and 20 real event anchors verified; `ready=true`, `blockers=[]`. Backend and Worker SUCCESS at the exact source SHA. Canonical code: `remotion-engine/src/episodes/ep004/Shot14ProductionScene.tsx` (ParadoxWorld), `remotion-engine/src/components/architectural-thinking/EP004Shot14ProductionWorld.mjs` (shot14State, flow, phase, routeFor), `remotion-engine/ep004-shot14-production.test.mjs`. See `docs/visual/EP004_SHOT14_ARCHITECTURE_PARADOX_20261126.md` for the reusable recipe and real cue clock.
