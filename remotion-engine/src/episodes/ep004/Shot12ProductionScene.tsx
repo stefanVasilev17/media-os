@@ -1,7 +1,6 @@
 import React from 'react';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
-import {CONNECTION_ROUTE} from '../../components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import type {ClockState} from '../../components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import {ADMISSION_ROUTE,GROUP_ROUTES,DELAYED_ROUTE,MAIL_ROUTE,shot12State,validateEp004Shot12Production} from '../../components/architectural-thinking/EP004Shot12ProductionWorld.mjs';
 import type {Ep004Shot12RenderProps,RestoreState} from '../../components/architectural-thinking/EP004Shot12ProductionWorld.mjs';
@@ -52,19 +51,6 @@ const SourceNode:React.FC<{y:number;teams?:boolean;health?:boolean}>=({y,teams=f
  {health?<path d="M30 48H39L45 35L52 59L58 48H65" fill="none" stroke={GREEN} strokeWidth="3"/>:<text x="47" y="57" textAnchor="middle" fontSize="27" fontWeight="700" fill={WHITE}>{teams?'T':'O'}</text>}
  <text x="83" y="56" fontSize={health?20:24} fontWeight="650" fill={WHITE}>{health?'Health check':teams?'Teams':'Outlook'}</text>
 </g>;
-const ConnectionView:React.FC<{s:ClockState;frame:number;focus?:number}>=({s,frame,focus=0})=>{const tone=s.phase==='failed'?RED:s.phase==='booting'?AMBER:GREEN;const route=CONNECTION_ROUTE;return <g>
- <Header title="RECOVERY RECREATES THE FAILURE"/>
- <g transform={'translate(960 640) scale('+(1+.06*focus)+') translate(-960 -640)'}>
- <SourceNode y={493}/><Route d={shot06Path(route)} tone={tone}/><Router/>
- <Gateway x={1190} y={474} w={455} h={142} failed={s.phase==='failed'} activity={s.activity}/>
- <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
- <circle cx="1200" cy="652" r="7" fill={tone}/><text x="1222" y="662" fontSize="28" fill={tone} fontWeight="700">{s.phase==='failed'?'UNRESPONSIVE':s.phase==='booting'?'STARTING':'RUNNING'}</text>
- <ClockPackets s={s}/>
- <g opacity={s.defect?1:.45}><path d="M1645 585H1688V715" fill="none" stroke={s.defect?RED:AMBER} strokeWidth="3" strokeDasharray="7 6"/><rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={s.defect?RED:'#587286'} strokeWidth="2"/><path d="M1168 798H1260L1300 774L1340 818L1380 798H1690" stroke={s.defect?RED:AMBER} strokeWidth="4" fill="none"/>{s.defect&&<circle cx="1340" cy="818" r={7+2*Math.sin(frame*.1)} stroke={RED} strokeWidth="2" fill="#101E2B"/>}<text x="1160" y="750" fontSize="27" fontWeight="650" fill={WHITE}>Connection handling</text></g>
- </g>
- <text x="960" y="965" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>{s.end?'Break the conditions that expose the defect.':'Restoring a process is not restoring a service.'}</text>
-</g>};
-
 const ease=(x:number)=>{const t=Math.max(0,Math.min(1,x));return t*t*(3-2*t);};
 const PacketLayer:React.FC<{s:RestoreState}>=({s})=><g>{s.traffic.map((p,i)=>{const c=p.tone==='green'?GREEN:p.tone==='amber'?AMBER:CYAN;return <g key={i}><circle cx={p.x} cy={p.y} r="13" fill={c} opacity=".14"/><rect x={p.x-9} y={p.y-4} width="18" height="8" rx="3" fill={c}/></g>})}</g>;
 const Gate:React.FC<{s:RestoreState;x?:number;y?:number}>=({s,x=1090,y=545})=><g transform={'translate('+x+' '+y+')'}>
@@ -74,25 +60,40 @@ const Gate:React.FC<{s:RestoreState;x?:number;y?:number}>=({s,x=1090,y=545})=><g
  <rect x="-17" y={31-29*(1-s.admission)} width="34" height={29*(1-s.admission)} rx="3" fill={s.controlled?CYAN:AMBER}/>
  <text x="0" y="-68" fill={WHITE} textAnchor="middle" fontSize="22" fontWeight="700">Traffic admission</text>
  </g>;
-const RepairView:React.FC<{s:RestoreState;frame:number}>=({s,frame})=><g>
- <Header title={s.stage==='controls'?'RECOVERY HAS TWO JOBS':'REPAIR THE CONNECTION PATH'}/>
- <SourceNode y={493}/><Route d={shot06Path(ADMISSION_ROUTE)} tone={s.controlled?CYAN:AMBER}/><Router/><Gate s={s}/>
- <Gateway x={1190} y={474} w={455} h={142} failed={!s.codeFixed} activity={s.activity}/>
+const RepairView:React.FC<{s:RestoreState;frame:number;e:Ep004Shot12RenderProps['eventFrames'];previousFrame:number}>=({s,frame,e,previousFrame})=>{
+ const intro=s.stage==='repair';
+ const inherited=intro&&frame<e.IDENTIFY;
+ const reframe=intro?s.openingMix:1;
+ const cameraScale=1+.06*(1-reframe)+(inherited?Math.min(frame,48)*.00006:0);
+ const reveal=intro?reframe:1;
+ const repair=intro?ease((frame-e.FIX)/10):Number(s.codeFixed);
+ const pathTone=inherited?RED:repair>=1?CYAN:AMBER;
+ const demandTone=s.controlled?CYAN:AMBER;
+ const wave='M1168 798H1260L1300 '+(798-24*(1-repair))+'L1340 '+(798+20*(1-repair))+'L1380 798H1690';
+ const codeMarker=repair===1?1168+((frame*7)%522):1340;
+ return <g>
+ <Header title={inherited?'RECOVERY RECREATES THE FAILURE':s.stage==='controls'?'RECOVERY HAS TWO JOBS':'REPAIR THE CONNECTION PATH'}/>
+ <g data-shot12-world="persistent" transform={'translate(960 640) scale('+cameraScale+') translate(-960 -640)'}>
+ <SourceNode y={493}/><Route d={shot06Path(ADMISSION_ROUTE)} tone={inherited?RED:demandTone}/><Router/>
+ <Gateway x={1190} y={474} w={455} h={142} failed={!s.codeFixed} activity={inherited?s.prior.activity:s.activity}/>
  <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
+ {inherited||reveal<1?<g><circle cx="1200" cy="652" r="7" fill={inherited?RED:AMBER}/><text x="1222" y="662" fontSize="28" fill={inherited?RED:AMBER} fontWeight="700">UNRESPONSIVE</text></g>:<g>
  <rect x="1200" y="646" width="430" height="9" rx="4" fill="#0B1420"/>
  <rect x="1200" y="646" width={430*s.pressure} height="9" rx="4" fill={s.pressure>.65?AMBER:GREEN}/>
- <text x="1200" y="690" fill={s.pressure>.65?AMBER:GREEN} fontSize="24" fontWeight="650">{s.pressure>.65?'Crowded recovery':'Controlled workload'}</text>
- <path d="M1645 585H1688V715" fill="none" stroke={s.codeFixed?CYAN:RED} strokeWidth="3" strokeDasharray="7 6"/>
- <rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={s.codeFixed?CYAN:RED} strokeWidth="2"/>
+ <text x="1200" y="690" fill={s.pressure>.65?AMBER:GREEN} fontSize="24" fontWeight="650">{s.pressure>.65?'Crowded recovery':'Controlled workload'}</text></g>}
+ <path d="M1645 585H1688V715" fill="none" stroke={pathTone} strokeWidth="3" strokeDasharray="7 6"/>
+ <rect x="1130" y="715" width="600" height="122" rx="16" fill="#101E2B" stroke={pathTone} strokeWidth="2"/>
  <text x="1160" y="750" fontSize="27" fontWeight="650" fill={WHITE}>{s.codeFixed?'Known-good code path':'Connection handling'}</text>
- <path d={s.codeFixed?'M1168 798H1690':'M1168 798H1260L1300 774L1340 818L1380 798H1690'} stroke={s.codeFixed?CYAN:RED} strokeWidth="4" fill="none"/>
- <circle cx={s.codeFixed?1168+((frame*7)%522):1340} cy={s.codeFixed?798:818} r="7" fill={s.codeFixed?CYAN:RED}/>
- <PacketLayer s={s}/>
- <g transform="translate(106 760)"><text fill={s.codeFixed?GREEN:AMBER} fontSize="28" fontWeight="700">{s.codeFixed?'01  Fixed connection handling':'01  Defective connection handling'}</text><text y="57" fill={s.controlled?GREEN:AMBER} fontSize="28" fontWeight="700">{s.controlled?'02  Controlled traffic return':'02  Workload still needs control'}</text></g>
- {s.illustrative&&<text x="960" y="961" textAnchor="middle" fill="#9FB4C4" fontSize="23">Illustrative comparison · one control alone is not enough</text>}
+ <path d={wave} stroke={pathTone} strokeWidth="4" fill="none"/>
+ <circle cx={codeMarker} cy={798+20*(1-repair)} r={inherited?7+2*Math.sin(previousFrame*.1):7} fill={inherited?'#101E2B':pathTone} stroke={pathTone} strokeWidth="2"/>
+ {intro&&frame<e.FIX?<ClockPackets s={s.prior}/>:<PacketLayer s={s}/>}
+ {reveal>0&&<g transform={'translate(1090 545) scale('+reveal+') translate(-1090 -545)'}><Gate s={s}/></g>}
+ </g>
+ {inherited?<text x="960" y="965" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>Break the conditions that expose the defect.</text>:reveal===1&&<g transform="translate(106 760)"><text fill={s.codeFixed?GREEN:AMBER} fontSize="28" fontWeight="700">{s.codeFixed?'01  Fixed connection handling':'01  Defective connection handling'}</text><text y="57" fill={s.controlled?GREEN:AMBER} fontSize="28" fontWeight="700">{s.controlled?'02  Controlled traffic return':'02  Workload still needs control'}</text></g>}
  </g>;
+};
 const FleetView:React.FC<{s:RestoreState;frame:number}>=({s,frame})=><g>
- <Header title={s.stage==='regions'?'RECOVERY, REGION BY REGION':'RESTORE CAPACITY IN GROUPS'} sub={s.stage==='regions'?'Conceptual region recovery':'Known-good update · staged restart · controlled return'}/>
+ <Header title={s.stage==='regions'?'RECOVERY, REGION BY REGION':'RESTORE CAPACITY IN GROUPS'}/>
  <SourceNode y={493}/><Route d="M350 545H685" tone={CYAN}/><Router/>
  {GROUP_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={s.groups[i]==='running'?CYAN:AMBER} active={s.groups[i]!=='failed'}/>)}
  <Gate s={s} x={1100} y={545}/>
@@ -132,10 +133,9 @@ export const Shot12ProductionScene:React.FC<Ep004Shot12RenderProps>=props=>{
  const stageStart=s.stage==='rollout'?e.ROLLOUT:s.stage==='controls'?e.TWO_JOBS:s.stage==='regions'?e.MORNING:s.stage==='user'?e.USER:e.IDENTIFY;
  const stageMix=s.stage==='repair'?1:ease((frame-stageStart)/24);
  const prev=stageMix<1?shot12State(Math.max(0,stageStart-1),props):null;
- const view=(v:RestoreState)=>(v.stage==='rollout'||v.stage==='regions')?<FleetView s={v} frame={frame}/>:v.stage==='user'?<UserView s={v} frame={frame} e={e}/>:<RepairView s={v} frame={frame}/>;
+ const view=(v:RestoreState)=>(v.stage==='rollout'||v.stage==='regions')?<FleetView s={v} frame={frame}/>:v.stage==='user'?<UserView s={v} frame={frame} e={e}/>:<RepairView s={v} frame={frame} e={e} previousFrame={props.previousFrameCount-1+frame}/>;
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}><svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
  <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
- {s.openingMix<1&&<g opacity={1-s.openingMix}><ConnectionView s={s.prior} frame={props.previousFrameCount-1+frame} focus={1+Math.min(frame,48)*.001}/></g>}
- {s.openingMix>0&&<g opacity={s.openingMix}>{prev&&<g opacity={1-stageMix}>{view(prev)}</g>}<g opacity={stageMix}>{view(s)}</g></g>}
+ {s.stage==='repair'?view(s):<g>{prev&&<g opacity={1-stageMix}>{view(prev)}</g>}<g opacity={stageMix}>{view(s)}</g></g>}
  </svg>{frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}</AbsoluteFill>;
 };

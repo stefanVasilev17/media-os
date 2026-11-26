@@ -82,7 +82,7 @@ export function shot12State(frame,p){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT12_FRAME_OUTSIDE_PRODUCTION');
  const e=p.eventFrames,prev=p.previousShot11Props;
  const prior=shot11State(prev.durationInFrames-1+frame,{...prev,durationInFrames:prev.durationInFrames+frame},'connection');
- const openingMix=mix(frame,e.IDENTIFY,e.FIX);
+ const openingMix=mix(frame,e.IDENTIFY,Math.min(e.FIX,e.IDENTIFY+12));
  const stage=frame<e.ROLLOUT?'repair':frame<e.TWO_JOBS?'rollout':frame<e.MORNING?'controls':frame<e.USER?'regions':'user';
  const regional=stage==='regions'||stage==='user';
  const groups=rollout(frame,e,regional);
