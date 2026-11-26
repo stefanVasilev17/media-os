@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — EP004 SHOT12 V2 DIRECTOR LOCK / TOP PRIORITY TRANSITION RULE
+
+EP004 SHOT12 V2 How Recovery Became Possible is Director-LOCKED, render 9728581f-632b-421f-b004-f96281b00569, exact production source 00d06593da7c6d8893618f2d90daaba0a3de725f, 2613 frames / 87.1 s, 1080p30, 5,354,850 bytes, approved voice mux PASS, seam PSNR 44.69, 30 distinct opening frames. Authenticated POST /film/locks/SHOT12 HTTP 200 confirmed. Backend deployment 7fa748e5-522c-4635-a5fa-9761c106e0f4 and Worker 4c370bea-6b87-48b2-b9c8-fd1fa7b98402 SUCCESS, PostgreSQL online; 49/49 EP004 regression tests and 179/179 shared Worker tests; readiness true, 10 original cues, 20 verified events, blockers=[]. Original Take and locked SHOT11 preserved. Director expressly praised the quick persistent-world transition and requested global reuse. AT-VIS-0018 is promoted to TOP PRIORITY in AGENTS.md, Visual Constitution, lessons ledger and sequential protocol; reference the approved recipe. Docs-only update: production pin stays at the immutable V2 source; no deploy, TTS or CPU spend. EP004 is planned for 15 SHOTs; 12 Director-approved, next SHOT13 must use exact locked SHOT12 V2 as predecessor and apply AT-VIS-0018. SHOT13–15 not implemented by this milestone.
+
+---
+
 ## 2026-11-25 — EP004 SHOT09 candidate and exact input verification
 
 Director instructed Executor to prepare SHOT09 Why Healthy Is Not The Same As Safe, preserving Tier++ SHOT07/08 quality. Actual Director-LOCKED SHOT08 V3 render a6625262-8567-4d14-993e-6d83816b2272, source 702da20aeaac0b60b12048395d61287d57796bda, 2719 frames, 90.633s, H264/AAC, 30 animated opening frames, actual MP4 QA PASS, seam PSNR 45.59. Director POST /film/locks/SHOT08 HTTP 200; eight-shot Full Video assembly READY at 21:00:19 UTC. Preserve all locked code/media.

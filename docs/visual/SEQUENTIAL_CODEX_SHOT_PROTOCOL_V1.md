@@ -10,6 +10,8 @@ Episode Package is produced once after Director locks Script + HEAR→SEE. Media
 
 Then visual code proceeds **one SHOT at a time, in narrative order**. For EP002, preserve Director-LOCKED SHOT01. Start with SHOT02 and progress to SHOT11. Never ask Codex to write all ten new scenes in a single speculative generation step. The model receives only one target SHOT, small adjacent continuity context, approved source references and exact inherited visual rules. Focus Codex usage on a constrained task that can be carefully checked.
 
+**Mandatory transition recipe before visual planning (AT-VIS-0018):** inspect the pinned SHOT12 V2 reference and choose a persistent-world reframe for shared-architecture diagram changes. Plan the spoken focus cue separately from the later engineering action; default to a fast 12-frame local focus transition, with readable holds, no full-diagram crossfade. Test the exact predecessor seam, camera bounds, stable object identities, and absence of overlapping full-diagram fades. For genuinely distinct views, motivate the spatial transition or clean cut by narration. See [approved recipe](EP004_SHOT12_V2_DIRECTOR_FEEDBACK_20261126.md) and the Constitution.
+
 Each shot uses this loop:
 
 1. **Preflight before coding.** Read current AGENTS.md, AT_REMOTION_VISUAL_CONSTITUTION_V1.md, CODEX_VISUAL_LESSONS_LEDGER.md and this file; read exact Script + visual beats + *selected* voice/cues for the target SHOT; inspect Git-pinned shared components, last approved adjacent SHOT, known asset gaps and established geography. Compare base Git SHA and the Director-approved hashes. If any required evidence is missing, stop with a blocker. Never invent voice timing or materialize protected EP001/EP002 assets for editing.
