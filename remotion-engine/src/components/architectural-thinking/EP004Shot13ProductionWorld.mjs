@@ -58,7 +58,7 @@ export const DESIGN_ROUTES=Object.freeze([352,545,738].map(y=>[[1015,545],[1100,
 export const ISOLATED_ROUTE=Object.freeze([[350,545],[480,545],[480,850],[1110,850],[1110,738],[1190,738]]);
 const phase=(at,e,i)=>{
  if(at<e.NO)return 'running';
- if(at<e.HOOK)return i===0&&at>=e.NO+24&&at<e.SYSTEM?'failed':'running';
+ if(at<e.HOOK)return i===1&&at>=e.NO+24&&at<Math.min(e.HOOK,e.SYSTEM+65)?'failed':'running';
  if(at<e.WEAKNESS)return 'running';
  if(at<e.RESTART)return i===0?'failed':'running';
  if(at<e.REPEAT)return i===0&&at<e.RESTART+36?'booting':'running';
@@ -72,7 +72,7 @@ function decision(born,n,e){
  if(at>=e.ISOLATE&&n%3===2)return 2;
  const eligible=[0,1,2].filter(i=>phase(at,e,i)==='running'&&(at<e.ISOLATE||i!==2));
  if(!eligible.length)return -1;
- if(at<e.HOOK)return eligible[0];
+ if(at<e.HOOK)return eligible.includes(1)?1:eligible[0];
  return eligible[n%eligible.length];
 }
 function traffic(frame,e){

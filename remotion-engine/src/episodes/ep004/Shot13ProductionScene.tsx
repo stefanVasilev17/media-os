@@ -74,12 +74,12 @@ const DesignWorld:React.FC<{s:DesignState;frame:number;e:Ep004Shot13RenderProps[
  {initial?<Route d={shot06Path(MAIL_ROUTE)} tone={CYAN}/>:<><Route d={shot06Path(DESIGN_INPUT)} tone={CYAN}/>{DESIGN_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={s.phases[i]==='failed'?RED:s.weak?AMBER:CYAN} active={s.phases[i]!=='failed'&&!(s.isolated&&i===2)}/>)}{s.isolated&&<Route d={shot06Path(ISOLATED_ROUTE)} tone={GREEN}/>}</>}
  <Router/><Gate s={gate}/>
  <Gateway x={1190} y={474} w={455} h={142} failed={!initial&&s.phases[1]==='failed'} activity={s.activity}/>
- <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>{initial?'Primary gateway':'Gateway B'}</text>
+ <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
  <Inbox message={true} reply={true}/>
  {initial?<g transform="translate(1210 700)"><text fontSize="25" fill={GREEN} fontWeight="650">Service available</text><text y="43" fontSize="23" fill={AMBER}>Residual mail processing</text></g>:<>
- {[0,2].map(i=>{const y=i===0?286:672,t=s.phases[i]==='failed'?RED:s.phases[i]==='booting'?AMBER:GREEN;return <g key={i} transform={'translate(1417 '+(y+66)+') scale('+s.fleet+') translate(-1417 -'+(y+66)+')'}><Gateway x={1190} y={y} w={455} h={132} failed={s.phases[i]==='failed'} activity={s.activity}/><text x="1417" y={y-29} fontSize="27" textAnchor="middle" fill={WHITE} fontWeight="650">Gateway {i===0?'A':'C'}</text><circle cx="1205" cy={y+105} r="6" fill={t}/></g>})}
+ {[0,2].map(i=>{const y=i===0?286:672,t=s.phases[i]==='failed'?RED:s.phases[i]==='booting'?AMBER:GREEN;return <g key={i} transform={'translate(1417 '+(y+66)+') scale('+s.fleet+') translate(-1417 -'+(y+66)+')'}><Gateway x={1190} y={y} w={455} h={132} failed={s.phases[i]==='failed'} activity={s.activity}/><text x="1417" y={y-29} fontSize="27" textAnchor="middle" fill={WHITE} fontWeight="650">{i===0?'Alternative gateway':'Isolated gateway'}</text><circle cx="1205" cy={y+105} r="6" fill={t}/></g>})}
  {s.weak&&[0,1,2].map(i=><g key={i} transform={'translate(1670 '+[352,545,738][i]+')'}><circle r="15" fill="#13202A" stroke={AMBER} strokeWidth="3"/><path d="M-6 0H6M0 -6V6" stroke={AMBER} strokeWidth="3"/></g>)}
- {s.isolated&&<g><rect x="1170" y="630" width="505" height="199" rx="15" fill="none" stroke={GREEN} strokeWidth="2" strokeDasharray="9 6"/><text x="1685" y="815" fontSize="20" fill={GREEN}>Isolated</text></g>}
+ {s.isolated&&<g><rect x="1170" y="630" width="505" height="199" rx="15" fill="none" stroke={GREEN} strokeWidth="2" strokeDasharray="9 6"/><text x="1650" y="815" textAnchor="end" fontSize="20" fill={GREEN}>Isolated</text></g>}
  {s.safe&&<g transform="translate(125 750)"><text fontSize="25" fill={WHITE} fontWeight="650">Available headroom</text><rect y="20" width="375" height="12" rx="6" fill="#142331"/><rect y="20" width={375*(1-s.pressure)} height="12" rx="6" fill={GREEN}/></g>}
  </>}
  <DesignPackets s={s}/>
