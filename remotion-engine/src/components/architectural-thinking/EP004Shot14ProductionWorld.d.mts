@@ -1,0 +1,16 @@
+import type {Ep004Shot13RenderProps,DesignState} from './EP004Shot13ProductionWorld.mjs';
+import type {ClockDot} from './EP004Shot11ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey="LOOK"|"LATENT"|"TEAMS"|"REDUCED"|"PEAK"|"DEFECT"|"UNRESPONSIVE"|"REDIRECT"|"DESTINATIONS"|"SHARED"|"PRESSURE"|"RESTART"|"RELAPSE"|"RECOVERY"|"PARADOX"|"LOCAL"|"GLOBAL"|"SUCCESS"|"NEXT"|"RELATIONSHIPS";
+export type Ep004Shot14RenderProps=Omit<Ep004Shot13RenderProps,'previousShot12Props'|'eventFrames'>&{previousShot13Props:Ep004Shot13RenderProps;eventFrames:Record<EventKey,number>};
+export type ParadoxState={prior:DesignState;openingMix:number;wide:number;teams:number;home:number;phases:string[];focus:string;latent:boolean;constrained:boolean;contention:boolean;controlled:boolean;local:boolean;global:boolean;traffic:ClockDot[];activity:number};
+export declare const EP004_SHOT14_COMPOSITION:string;
+export declare const EP004_SHOT14_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT14_BEATS:readonly string[];
+export declare const SHOT14_EVENTS:readonly EventKey[];
+export declare const CLIENT_ROUTE:readonly Point[];
+export declare const TEAMS_ROUTE:readonly Point[];
+export declare const FLEET_ROUTES:readonly (readonly Point[])[];
+export declare function validateEp004Shot14Production(p:Ep004Shot14RenderProps,requireFrame?:boolean):true;
+export declare function shot14State(frame:number,p:Ep004Shot14RenderProps):ParadoxState;
+export declare function verifyEp004Shot14ActualMotion(p:Ep004Shot14RenderProps):Record<string,string|number>;
