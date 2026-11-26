@@ -1,5 +1,13 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — EP004 SHOT14 Director LOCK / AT-VIS-0019 global motion standard
+
+**Immutable approved reference:** EP004 SHOT14 — The Architecture Paradox, production commit `e1158d874c63205bffb55e4ea6e0e011e667ea75`, render `404832c1-0b7d-4de7-a95b-1971445d9a4d`, 2018 frames / 67.2667 s / 1920×1080 at 30 FPS, 3,842,133 bytes. Authenticated POST `/film/locks/SHOT14` returned HTTP 200; worker reported real selected Take mux PASS, exact locked SHOT13 SHA/decoded-frame preflight PASS, seam PSNR 44.41 dB and 30 distinct opening frames. Original 9 beats and 20 real event anchors verified; `ready=true`, `blockers=[]`. Backend and Worker SUCCESS at the exact source SHA. Canonical code: `remotion-engine/src/episodes/ep004/Shot14ProductionScene.tsx` (ParadoxWorld), `remotion-engine/src/components/architectural-thinking/EP004Shot14ProductionWorld.mjs` (shot14State, flow, phase, routeFor), `remotion-engine/ep004-shot14-production.test.mjs`. See `docs/visual/EP004_SHOT14_ARCHITECTURE_PARADOX_20261126.md` for the reusable recipe and real cue clock.
+
+Director explicitly accepted the actual MP4 and requested permanent reuse of its dynamic architecture. AT-VIS-0019 promoted to top priority in AGENTS.md, Visual Constitution, lessons ledger and sequential protocol. 14/15 EP004 SHOTs Director-LOCKED. SHOT15 must begin with the exact decoded frame 2017 of this SHOT14 render, continue its final camera, traffic and object state, and follow the locked final narration; SHOT15 approved voice POST HTTP 200 previously observed, but its production source and exact readiness must be separately verified. Documentation-only change; production remains pinned to immutable SHOT14 source, no new deployment, render or voice generation. No shared runtime refactor. Historical candidate entries below are superseded by this verified lock.
+
+---
+
 ## 2026-11-26 — EP004 SHOT13 Director LOCK / SHOT14 candidate
 
 SHOT13 actual Director-LOCKED render c9eb0abc-ef56-42c7-8733-b47be4122384, source c97825b00ccdfec07a41737999def2e4c87feb24, 2078 frames, 69.2667s, 3,295,937 bytes; real approved Take mux PASS, PSNR 44.77, 30 animated opening frames and authenticated POST film/locks/SHOT13 HTTP 200. SHOT14 The Architecture Paradox candidate uses exact decoded frame 2077 and genuine live continuation, original nine beats and 20 anchors, AT-VIS-0014/15/17/18 persistent-world local morph and earned full-map reframe. See docs/visual/EP004_SHOT14_ARCHITECTURE_PARADOX_20261126.md. No paid render or voice generation by Executor. New source needs build, promotion and real input audit; SHOT14 voice approval not yet independently verified. SHOT15 remains pending.
