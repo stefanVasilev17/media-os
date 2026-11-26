@@ -1,0 +1,16 @@
+import type {Ep004Shot11RenderProps,ClockState,ClockDot} from './EP004Shot11ProductionWorld.mjs';
+import type {Point} from './EP004Shot06FleetPreview.mjs';
+export type EventKey='IDENTIFY'|'FIX'|'ROLLOUT'|'RESTART'|'ADMISSION'|'CAPACITY'|'TWO_JOBS'|'CODE'|'DEMAND'|'CODE_ONLY'|'TRAFFIC_ONLY'|'MORNING'|'REGIONS'|'IMPACT_END'|'DELAYED'|'USER'|'INBOX'|'MESSAGE'|'REPLY'|'LESSON';
+export type Ep004Shot12RenderProps=Omit<Ep004Shot11RenderProps,'previousShot10Props'|'eventFrames'>&{previousShot11Props:Ep004Shot11RenderProps;eventFrames:Record<EventKey,number>};
+export type RestoreState={prior:ClockState;openingMix:number;stage:'repair'|'rollout'|'controls'|'regions'|'user';groups:string[];available:number;codeFixed:boolean;controlled:boolean;illustrative:boolean;admission:number;pressure:number;traffic:ClockDot[];delayed:boolean;backlog:number;impactEnded:boolean;message:boolean;reply:boolean;lesson:boolean;activity:number;tone:string};
+export declare const EP004_SHOT12_COMPOSITION:string;
+export declare const EP004_SHOT12_PREDECESSOR:Readonly<{renderId:string;sourceCommit:string;frames:number}>;
+export declare const SHOT12_BEATS:readonly string[];
+export declare const SHOT12_EVENTS:readonly EventKey[];
+export declare const ADMISSION_ROUTE:readonly Point[];
+export declare const GROUP_ROUTES:readonly (readonly Point[])[];
+export declare const MAIL_ROUTE:readonly Point[];
+export declare const DELAYED_ROUTE:readonly Point[];
+export declare function validateEp004Shot12Production(p:Ep004Shot12RenderProps,requireFrame?:boolean):true;
+export declare function shot12State(frame:number,p:Ep004Shot12RenderProps):RestoreState;
+export declare function verifyEp004Shot12ActualMotion(p:Ep004Shot12RenderProps):Record<string,string|number>;
