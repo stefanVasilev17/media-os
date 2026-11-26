@@ -82,7 +82,7 @@ const FinaleWorld:React.FC<{s:FinaleState;frame:number;e:Ep004Shot15RenderProps[
  return <g data-shot15-world="persistent"><Header title={heading}/>
  <g transform={'translate('+tx+' '+ty+') scale('+scale+')'}>
  <Route d={shot06Path([inherited?[350,545]:inboxPort(zoom),[685,545]])} tone={primary?accent:CYAN} active={true}/>
- {FLEET_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={i===1&&primary?accent:i===0&&question?AMBER:CYAN} active={inherited||i===1||question&&i===0}/>)}
+ {FLEET_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={i===1&&primary?accent:i===0&&question?RED:CYAN} active={inherited||i===1||question&&i===0}/>)}
  <g opacity={inherited?1:1-.49*s.person+.16*s.pullback}>
  <rect x="100" y="270" width="250" height="110" rx="14" fill="url(#s6Metal)" stroke={VIOLET} strokeWidth="2"/>
  <rect x="112" y="282" width="226" height="86" rx="10" fill="url(#s6Face)"/><rect x="126" y="300" width="48" height="48" rx="9" fill="#6854B5"/><text x="150" y="333" fontSize="28" textAnchor="middle" fill={WHITE} fontWeight="700">T</text><text x="191" y="333" fontSize="28" fill={WHITE} fontWeight="650">Teams</text>
@@ -103,7 +103,7 @@ const FinaleWorld:React.FC<{s:FinaleState;frame:number;e:Ep004Shot15RenderProps[
  </g>
  {[0,1,2].map(i=>{const y=[286,474,672][i],quiet=!inherited&&i!==1&&!question;return <g key={i}><Gateway x={1190} y={y} w={455} h={i===1?142:132} activity={s.activity} quiet={quiet}/><text x="1417" y={i===1?422:y-29} fontSize={i===1?30:27} textAnchor="middle" fill={WHITE} opacity={quiet?.75:1} fontWeight="650">{i===0?'Alternative gateway':i===1?'Primary gateway':'Remaining gateway'}</text>{i!==1&&<circle cx="1205" cy={y+105} r="6" fill={GREEN} opacity={quiet?.65:1}/>}</g>})}
  {s.capacity&&<g transform="translate(1210 840)"><text fontSize="24" fill={question?AMBER:WHITE} fontWeight="650">Available capacity</text><rect y="18" width="410" height="12" rx="6" fill="#263645"/><rect y="18" width={410*s.headroom} height="12" rx="6" fill={question?AMBER:CYAN}/></g>}
- {question&&<g><path d="M1100 545V352H1190" stroke={AMBER} strokeWidth="5" fill="none" strokeDasharray="12 10" opacity=".8"/><circle cx="1100" cy="545" r={12+3*Math.sin(frame*.08)} fill="#152331" stroke={AMBER} strokeWidth="3"/><rect x="1190" y="214" width="455" height="16" rx="8" fill="#172533" stroke="#607583"/><rect x="1190" y="214" width={455*s.headroom} height="16" rx="8" fill={AMBER} opacity=".85"/></g>}
+ {question&&<g><path d="M1100 545V352H1190" stroke={RED} strokeWidth="5" fill="none" strokeDasharray="12 10" opacity=".8"/><circle cx="1100" cy="545" r={12+3*Math.sin(frame*.08)} fill="#152331" stroke={RED} strokeWidth="3"/><rect x="1190" y="214" width="455" height="16" rx="8" fill="#172533" stroke="#607583"/><rect x="1190" y="214" width={455*s.headroom} height="16" rx="8" fill={AMBER} opacity=".85"/></g>}
  {s.traffic.map((p,i)=>packet(p,'ambient'+i))}
  {s.packet&&packet(s.packet,'hero',true)}
  </g>

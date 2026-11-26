@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — SHOT15 V2 Director color correction
+
+At the exact original FAILS cue, use RED instead of AMBER for the highlighted alternative route, matching dashed overlay and junction. Capacity remains amber; all other scene geometry, voice, cue clock, continuity and living tail unchanged. V2 candidate requires exact source deployment and readiness. No new paid render or voice initiated by Executor.
+
+---
+
 ## 2026-11-26 — EP004 SHOT15 finale candidate
 
 SHOT15 The Human Consequence And The Next Question is a code candidate. Exact predecessor SHOT14 render 404832c1-0b7d-4de7-a95b-1971445d9a4d, production source e1158d874c63205bffb55e4ea6e0e011e667ea75, 2018 frames, last frame 2017, Director lock HTTP 200. Actual original SHOT15 voice approval HTTP 200 observed. Six original visual beats, fourteen real anchor phrases, 72-frame breath and 60-frame moving tail, causal mailbox round trip and final uncertainty question. AT-VIS-0018/0019, no CTA covering map, no new paid calls. Source needs build, promotion, exact readiness and Director render. See docs/visual/EP004_SHOT15_HUMAN_CONSEQUENCE_20261126.md.
