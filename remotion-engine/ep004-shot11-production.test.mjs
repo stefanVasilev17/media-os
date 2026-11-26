@@ -103,7 +103,7 @@ test('SHOT11 exact inherited ReplayView and clock captions',async()=>{
  assert.equal(block(s,'const ReplayView:','const ClockPackets:'),block(prior,'const ReplayView:','export const Shot10ProductionScene'));
  for(const label of ['UNRESPONSIVE','Connection handling','Alternative gateway','Recovery relapse'])assert.ok(label.length*30*.85+50<600);
  assert.ok(s.includes('frame===0&&props.previousLastFrameDataUri'));
- assert.ok(s.includes('<IncidentMap s={s}/>')&&s.includes('<FleetClockView s={s}/>')&&s.includes('<ConnectionView s={s} frame={frame}/>'));
+ assert.ok(s.includes('<IncidentMap s={s}/>')&&s.includes('<FleetClockView s={s}/>')&&s.includes('<ConnectionView s={s} frame={frame} focus={focus}/>'));
  for(const label of ['Outlook','Teams'])assert.ok(83+label.length*24*.85+20<=250);
  assert.ok(83+'Health check'.length*20*.60+20<=250);
 });
@@ -111,3 +111,19 @@ test('SHOT11 exact inherited ReplayView and clock captions',async()=>{
 test('SHOT11 pre-CPU selected voice and decoded seam precede render; AAC and seam precede completion',async()=>{const w=await readFile(new URL('./cpu-worker.mjs',import.meta.url),'utf8'),run=w.slice(w.indexOf('async function render(job)'));const v=run.indexOf('await fetchEp004Shot11ApprovedVoice(job,inputProps)'),p=run.indexOf('await preflightEp004Shot11PreviousVideo(job,inputProps,shot11SourceScratch)'),cpu=run.indexOf('await renderMedia('),mux=run.indexOf('await muxEp004Shot11ApprovedVoice(job,outputPath,inputProps)'),seam=run.indexOf('await verifyEp004Shot11SeamAndMotion(job,outputPath,');assert.ok(v>=0&&p>v&&cpu>p&&mux>cpu&&seam>mux&&run.indexOf('await complete(job.renderId, outputPath)',seam)>seam);assert.ok(w.includes('const capabilityTimer=setInterval'));});
 
 test('SHOT11 clock ports and fleet status padding are consistent',async()=>{const {INCIDENT_ROUTES,FLEET_CLOCK_OUTPUTS,CONNECTION_ROUTE}=await import('./src/components/architectural-thinking/EP004Shot11ProductionWorld.mjs');assert.deepEqual(INCIDENT_ROUTES[0].at(0),[350,366]);assert.deepEqual(CONNECTION_ROUTE.at(-1),[1190,545]);FLEET_CLOCK_OUTPUTS.forEach((p,i)=>assert.deepEqual(p.at(-1),[1310,254+i*147+46]));assert.ok(147-19-112>=16);assert.ok(1342+'UNRESPONSIVE'.length*22*.85+24<1710);const e=p11.eventFrames;assert.equal(shot11State(e.EVENING,p11).stage,'fleet');assert.equal(shot11State(e.RELAPSE,p11).fleetPhase[1],'failed');assert.equal(shot11State(e.DEFECT,p11).phase,'failed');});
+
+
+test('SHOT11 reroutes only new traffic, keeps failure outcomes historical and concentrates fleet pressure',()=>{
+ const e=p11.eventFrames;
+ const before=shot11State(e.CAPACITY-1,p11),after=shot11State(e.CAPACITY,p11),relapse=shot11State(e.RELAPSE,p11);
+ assert.ok(before.pressure<after.pressure&&after.pressure<relapse.pressure);
+ // Requests on the original lane must remain in flight after the router changes destination.
+ const original=Array.from({length:40},(_,i)=>shot11State(e.REDIRECT+i,p11).traffic).flat();
+ assert.ok(original.some(p=>p.tone==='violet'&&p.x>1015&&p.y<545));
+ assert.ok(original.some(p=>p.tone==='violet'&&p.x>1015&&p.y===545));
+ // No green response from the permanently failed lower gateway or a failed fleet target.
+ for(let f=e.LOAD;f<e.EVENING;f++)assert.ok(!shot11State(f,p11).traffic.some(p=>p.tone==='green'&&p.y>545&&p.x>=1100));
+ for(let f=e.EVENING+150;f<e.PATTERN;f++)assert.ok(!shot11State(f,p11).traffic.some(p=>p.tone==='green'&&p.y===300&&p.x>=1135));
+ assert.equal(shot11State(e.EVENING,p11,'clock').stage,'clock');
+ assert.equal(shot11State(e.PATTERN,p11,'fleet').stage,'fleet');
+});

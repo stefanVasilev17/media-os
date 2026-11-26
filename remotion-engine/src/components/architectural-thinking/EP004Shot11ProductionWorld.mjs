@@ -59,46 +59,71 @@ export const CONNECTION_ROUTE=Object.freeze([[350,545],[685,545],[1015,545],[119
 export const CLOCK_MARKS=Object.freeze(['01:07','16:03','16:17','16:20','19:20','Near midnight']);
 const join=(a,b)=>[...a,...b];
 const visible=dot=>dot.x<=685||dot.x>=1015;
-function stream(route,frame,start,period,tone,healthy,stop=Infinity){
+// Stable births and historical endpoint state: a later recovery cannot resurrect a timed-out request.
+function stream(route,frame,start,period,tone,healthyAt,accept=()=>true){
  if(frame<start)return [];
  const len=shot06Length(route),speed=15,travel=len/speed,delay=14,out=[];
  const last=Math.floor((frame-start)/period);
- for(let i=Math.max(0,last-8);i<=last;i++){
-  const born=start+i*period;if(born>=stop)continue;
-  const age=frame-born;
+ const history=Math.ceil((travel*2+delay+16)/period)+1;
+ for(let i=Math.max(0,last-history);i<=last;i++){
+  const born=start+i*period;
+  if(!accept(born,i))continue;
+  const age=frame-born,arrived=born+Math.ceil(travel),completed=arrived+delay;
   if(age<travel)out.push({...shot06Point(route,age*speed),tone,direction:'request'});
-  else if(healthy&&age>=travel+delay&&age<travel*2+delay)
-   out.push({...shot06Point(route,len-(age-travel-delay)*speed),tone:'green',direction:'response'});
-  else if(!healthy&&age>=travel&&age<travel+delay+16)
-   out.push({...shot06Point(route,len),tone:age<travel+delay?'amber':'red',direction:'waiting'});
+  else{
+   const success=healthyAt(arrived)&&healthyAt(completed);
+   if(age<travel+delay){
+    if(!healthyAt(arrived)||!healthyAt(Math.min(frame,completed)))out.push({...shot06Point(route,len),tone:'amber',direction:'waiting'});
+   }else if(success&&age<travel*2+delay){
+    out.push({...shot06Point(route,len-(age-travel-delay)*speed),tone:'green',direction:'response'});
+   }else if(!success&&age<travel+delay+16){
+    out.push({...shot06Point(route,len),tone:'red',direction:'waiting'});
+   }
+  }
  }
  return out.filter(visible);
 }
-export function shot11State(frame,p){
+const restartEnd=e=>e.LOOP+Math.min(36,Math.max(8,Math.floor((e.DEFECT-e.LOOP)/3)));
+const phaseAt=(f,e)=>f<e.LOOP?'failed':f<restartEnd(e)?'booting':f<e.DEFECT?'running':'failed';
+const fleetAt=(f,e)=>['failed',f<e.RESTART?'failed':f<e.RESTART+36?'booting':f<e.RELAPSE?'running':'failed',f<e.CAPACITY?'running':'failed','running'];
+const routerDecision=(route,born)=>born+Math.ceil(shot06Length(route)/15);
+function fleetChoice(born,index,e){
+ const eligible=fleetAt(routerDecision(FLEET_CLOCK_INPUT,born),e).flatMap((phase,i)=>phase==='running'?[i]:[]);
+ return eligible[index%eligible.length]??-1;
+}
+export function shot11State(frame,p,stageOverride){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT11_FRAME_OUTSIDE_PRODUCTION');
  const e=p.eventFrames,prev=p.previousShot10Props;
  const openingMix=smooth((frame-e.SHIFT)/36);
  const prior=openingMix<1?shot10State(prev.durationInFrames-1+frame,{...prev,durationInFrames:prev.durationInFrames+frame}):null;
- const stage=frame<e.EVENING?'clock':frame<e.PATTERN?'fleet':'connection';
+ const stage=stageOverride??(frame<e.EVENING?'clock':frame<e.PATTERN?'fleet':'connection');
  const marks=[e.SHIFT,e.DETECT,e.REDIRECT,e.ALERT,e.CAPACITY,e.RELAPSE];
  const activeMark=marks.reduce((n,k,i)=>frame>=k?i:n,-1);
  const pressure=frame<e.LOAD?.22:frame<e.DETECT?.22+.66*smooth((frame-e.LOAD)/Math.max(1,e.DETECT-e.LOAD)):frame<e.CAPACITY?.78:.94;
  const failures=frame<e.LOAD?0:frame<e.DETECT?1:frame<e.ALERT?2:3;
- const phase=frame<e.LOOP?'failed':frame<e.LOOP+Math.min(36,Math.max(8,Math.floor((e.DEFECT-e.LOOP)/3)))?'booting':frame<e.DEFECT?'running':'failed';
- const fleetPhase=['failed',frame<e.RESTART?'failed':frame<e.RESTART+36?'booting':frame<e.RELAPSE?'running':'failed',frame<e.CAPACITY?'running':'failed','running'];
+ const phase=phaseAt(frame,e);
+ const fleetPhase=fleetAt(frame,e);
+ const available=fleetPhase.filter(x=>x==='running').length;
+ const fleetPressure=clamp(.82*2/Math.max(1,available));
  let traffic=[];
  if(stage==='clock'){
-  traffic=[...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[2]),frame,e.SHIFT,38,'cyan',frame<e.ALERT),
-   ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[2]),frame,e.SHIFT,frame<e.LOAD?62:30,'violet',frame<e.ALERT,e.REDIRECT),
-   ...stream(join(INCIDENT_ROUTES[1],INCIDENT_ROUTES[3]),frame,e.REDIRECT,32,'violet',true),
-   ...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[4]),frame,e.REDIRECT+15,52,'cyan',false)];
+  const primary=at=>at<e.ALERT,alternative=()=>true;
+  const teamInput=INCIDENT_ROUTES[1];
+  const goesPrimary=born=>routerDecision(teamInput,born)<e.REDIRECT;
+  const teamStreams=(start,period)=>[
+   ...stream(join(teamInput,INCIDENT_ROUTES[2]),frame,start,period,'violet',primary,goesPrimary),
+   ...stream(join(teamInput,INCIDENT_ROUTES[3]),frame,start,period,'violet',alternative,born=>!goesPrimary(born))
+  ];
+  traffic=[...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[2]),frame,e.SHIFT,38,'cyan',primary),
+   ...teamStreams(e.SHIFT,62),...teamStreams(e.LOAD+31,62),
+   ...stream(join(INCIDENT_ROUTES[0],INCIDENT_ROUTES[4]),frame,e.LOAD,52,'cyan',()=>false)];
  }else if(stage==='fleet'){
-  traffic=FLEET_CLOCK_OUTPUTS.flatMap((r,i)=>fleetPhase[i]==='booting'?[]:stream(join(FLEET_CLOCK_INPUT,r),frame,e.EVENING+i*8,i===3?28:62,'cyan',fleetPhase[i]==='running'));
-  if(frame>=e.PROBE)traffic.push(...stream(join(FLEET_CLOCK_PROBE,FLEET_CLOCK_OUTPUTS[1]),frame,e.PROBE,90,'cyan',fleetPhase[1]==='running'));
+  traffic=FLEET_CLOCK_OUTPUTS.flatMap((r,i)=>stream(join(FLEET_CLOCK_INPUT,r),frame,e.EVENING,22,'cyan',at=>fleetAt(at,e)[i]==='running',(born,index)=>fleetChoice(born,index,e)===i));
+  if(frame>=e.PROBE)traffic.push(...stream(join(FLEET_CLOCK_PROBE,FLEET_CLOCK_OUTPUTS[1]),frame,e.PROBE,90,'cyan',at=>fleetAt(at,e)[1]==='running'));
  }else{
-  traffic=phase==='booting'?[]:stream(CONNECTION_ROUTE,frame,frame<e.LOOP?e.PATTERN:e.LOOP+Math.min(36,Math.max(8,Math.floor((e.DEFECT-e.LOOP)/3))),24,'cyan',phase==='running');
+  traffic=stream(CONNECTION_ROUTE,frame,e.PATTERN,24,'cyan',at=>phaseAt(at,e)==='running',born=>phaseAt(born,e)!=='booting');
  }
- return {prior,openingMix,stage,activeMark,pressure,failures,phase,fleetPhase,traffic,activity:.5+.5*Math.sin(frame*.071),redirect:frame>=e.REDIRECT,alert:frame>=e.ALERT,probe:frame>=e.PROBE,relapse:frame>=e.RELAPSE,defect:frame>=e.DEFECT,end:frame>=e.END};
+ return {prior,openingMix,stage,activeMark,pressure:stage==='fleet'?fleetPressure:pressure,failures,phase,fleetPhase,traffic,activity:.5+.5*Math.sin(frame*.071),redirect:frame>=e.REDIRECT,alert:frame>=e.ALERT,probe:frame>=e.PROBE,relapse:frame>=e.RELAPSE,defect:frame>=e.DEFECT,end:frame>=e.END};
 }
 export function verifyEp004Shot11ActualMotion(p){
  validateEp004Shot11Production(p);const e=p.eventFrames,s=f=>shot11State(f,p);

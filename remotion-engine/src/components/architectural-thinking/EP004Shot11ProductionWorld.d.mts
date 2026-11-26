@@ -15,5 +15,5 @@ export declare const FLEET_CLOCK_OUTPUTS:readonly (readonly Point[])[];
 export declare const CONNECTION_ROUTE:readonly Point[];
 export declare const CLOCK_MARKS:readonly string[];
 export declare function validateEp004Shot11Production(p:Ep004Shot11RenderProps,requireFrame?:boolean):true;
-export declare function shot11State(frame:number,p:Ep004Shot11RenderProps):ClockState;
+export declare function shot11State(frame:number,p:Ep004Shot11RenderProps,stageOverride?:ClockState['stage']):ClockState;
 export declare function verifyEp004Shot11ActualMotion(p:Ep004Shot11RenderProps):Record<string,string|number>;
