@@ -18,7 +18,8 @@ class Ep004Shot10RenderSecurityRegressionTest {
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT11/render"));
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT12/render"));
         assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT13/render"));
-        assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT14/render"));
+        assertTrue(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT14/render"));
+        assertFalse(allowed.contains("/api/v1/episode-packages/{packageId}/shots/SHOT15/render"));
         assertEquals(1,allowed.stream().filter(SHOT10::equals).count());
     }
 
