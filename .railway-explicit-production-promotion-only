@@ -60,3 +60,4 @@ EP004 SHOT11 explicit existing backend and worker promotion 2026-11-26: Director
 2026-11-26 EP004 SHOT12 V2 Director feedback: fast persistent repair world; remove three redundant subtitles; build only.
 2026-11-26 EP004 SHOT13 explicit build-only promotion. No CPU render or TTS.
 2026-11-26 EP004 SHOT14 explicit build-only promotion. No render or TTS request.
+2026-11-26 EP004 SHOT15 finale explicit build-only promotion. No render or TTS request.

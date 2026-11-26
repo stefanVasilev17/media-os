@@ -24,16 +24,19 @@ import {Shot11ProductionScene as Ep004Shot11Production} from './episodes/ep004/S
 import {Shot12ProductionScene as Ep004Shot12Production} from './episodes/ep004/Shot12ProductionScene';
 import {Shot13ProductionScene as Ep004Shot13Production} from './episodes/ep004/Shot13ProductionScene';
 import {Shot14ProductionScene as Ep004Shot14Production} from './episodes/ep004/Shot14ProductionScene';
+import {Shot15ProductionScene as Ep004Shot15Production} from './episodes/ep004/Shot15ProductionScene';
 import type {Ep004Shot10RenderProps} from './components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
 import type {Ep004Shot11RenderProps} from './components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import type {Ep004Shot12RenderProps} from './components/architectural-thinking/EP004Shot12ProductionWorld.mjs';
 import type {Ep004Shot13RenderProps} from './components/architectural-thinking/EP004Shot13ProductionWorld.mjs';
 import type {Ep004Shot14RenderProps} from './components/architectural-thinking/EP004Shot14ProductionWorld.mjs';
+import type {Ep004Shot15RenderProps} from './components/architectural-thinking/EP004Shot15ProductionWorld.mjs';
 import {EP004_SHOT10_COMPOSITION} from './components/architectural-thinking/EP004Shot10ProductionWorld.mjs';
 import {EP004_SHOT11_COMPOSITION} from './components/architectural-thinking/EP004Shot11ProductionWorld.mjs';
 import {EP004_SHOT12_COMPOSITION} from './components/architectural-thinking/EP004Shot12ProductionWorld.mjs';
 import {EP004_SHOT13_COMPOSITION} from './components/architectural-thinking/EP004Shot13ProductionWorld.mjs';
 import {EP004_SHOT14_COMPOSITION} from './components/architectural-thinking/EP004Shot14ProductionWorld.mjs';
+import {EP004_SHOT15_COMPOSITION} from './components/architectural-thinking/EP004Shot15ProductionWorld.mjs';
 import {EP004_SHOT01_LOCKED_SOURCE_SHA256} from './components/architectural-thinking/EP004Shot01World.mjs';
 import {EP004_SHOT01_V8_LOCKED_RENDER_ID,EP004_SHOT01_V8_SOURCE_COMMIT,EP004_SHOT01_V8_LAST_FRAME} from './components/architectural-thinking/EP004Shot02ContinuityWorld.mjs';
 import {Shot01UnifiedVisualV2} from './episodes/ep002/Shot01UnifiedVisualV2';
@@ -151,6 +154,9 @@ export const Root: React.FC = () => {
       <Composition id={EP004_SHOT14_COMPOSITION} component={Ep004Shot14Production}
         durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot14RenderProps}/>
+      <Composition id={EP004_SHOT15_COMPOSITION} component={Ep004Shot15Production}
+        durationInFrames={dynamicDuration??3000} fps={30} width={1920} height={1080}
+        defaultProps={{} as Ep004Shot15RenderProps}/>
       <Composition id={EP004_SHOT06_COMPOSITION} component={Ep004Shot06Production}
         durationInFrames={dynamicDuration??2400} fps={30} width={1920} height={1080}
         defaultProps={{} as Ep004Shot06RenderProps}/>
