@@ -120,7 +120,7 @@ test('SHOT01 TSX and factory production entrypoints stay untouched by SHOT02 pre
   assert.equal(shot01.includes('ep004Shot02World'),false);
   assert.equal(factory.includes('EP004-SHOT02'),false,
     'No production scene until authentic SHOT02 script/voice/timestamps are verified');
-  const body=(text)=>text.slice(text.indexOf('  const camera='),text.indexOf('    {props.previewOnly&&'));
+  const body=(text)=>{const footer=text.indexOf('    {props.previewOnly&&');return text.slice(text.indexOf('  const camera='),footer>=0?footer:text.lastIndexOf('  </ATBackground>'));};
   assert.equal(body(shot02),body(shot01),
     'SHOT02 must duplicate the identical V8 approved Living Architecture JSX baseline');
 });
