@@ -54,18 +54,18 @@ export function validateEp004Shot12Production(p,requireFrame=false){
 
 export const ADMISSION_ROUTE=Object.freeze([[350,545],[685,545],[1015,545],[1190,545]]);
 export const GROUP_ROUTES=Object.freeze([330,485,640,795].map(y=>[[1015,545],[1100,545],[1100,y],[1260,y]]));
-export const MAIL_ROUTE=Object.freeze([[350,545],[685,545],[1015,545],[1190,545]]);
-export const DELAYED_ROUTE=Object.freeze([[1190,730],[1050,730],[1050,840],[350,840],[350,600]]);
+export const MAIL_ROUTE=Object.freeze([[570,545],[685,545],[1015,545],[1190,545]]);
+export const DELAYED_ROUTE=Object.freeze([[1260,795],[1140,795],[1140,860],[370,860],[370,585],[350,585]]);
 const join=(a,b)=>[...a,...b];
 const phase=(f,start,span)=>f<start?'failed':f<start+span?'booting':'running';
 const mix=(f,a,b)=>smooth((f-a)/Math.max(1,b-a));
 const toneAt=(f,e)=>f<e.FIX?'red':f<e.DEMAND?'amber':'green';
 function rollout(f,e,regional=false){
- const a=regional?e.MORNING:e.ROLLOUT,b=regional?e.IMPACT_END:e.TWO_JOBS;
+ const a=regional?e.MORNING:e.RESTART,b=regional?e.IMPACT_END:e.TWO_JOBS;
  const gap=Math.max(15,Math.floor((b-a)/5)),span=Math.max(12,Math.min(46,Math.floor(gap*.65)));
  return Array.from({length:4},(_,i)=>phase(f,a+i*gap,span));
 }
-function packets(route,frame,start,period,eligible,tone='cyan',stop=Infinity,reverse=false){
+function packets(route,frame,start,period,eligible,tone='cyan',stop=Infinity,reverse=false,success=()=>true){
  if(frame<start)return [];
  const len=shot06Length(route),speed=14,travel=Math.ceil(len/speed),delay=12,out=[];
  const latest=Math.floor((frame-start)/period),lookback=Math.ceil((2*travel+delay+15)/period);
@@ -74,9 +74,9 @@ function packets(route,frame,start,period,eligible,tone='cyan',stop=Infinity,rev
   const age=frame-born;
   if(reverse){if(age<travel)out.push({...shot06Point(route,Math.min(len,age*speed)),tone,direction:'request'});continue;}
   if(age<travel)out.push({...shot06Point(route,Math.min(len,age*speed)),tone,direction:'request'});
-  else if(age>=travel+delay&&age<2*travel+delay)out.push({...shot06Point(route,Math.max(0,len-(age-travel-delay)*speed)),tone:'green',direction:'response'});
+  else if(age>=travel+delay&&age<2*travel+delay&&success(born,born+travel+delay))out.push({...shot06Point(route,Math.max(0,len-(age-travel-delay)*speed)),tone:'green',direction:'response'});
  }
- return out.filter(p=>p.x<=685||p.x>=1015);
+ return out.filter(p=>p.x<=685||p.x>=1015||p.y<414||p.y>630);
 }
 export function shot12State(frame,p){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT12_FRAME_OUTSIDE_PRODUCTION');
@@ -103,15 +103,25 @@ export function shot12State(frame,p){
    }));
   }
  }else if(stage==='controls'){
-  traffic=packets(ADMISSION_ROUTE,frame,e.TWO_JOBS,18,(born)=>born<e.DEMAND||born>=e.CODE_ONLY&&born<e.TRAFFIC_ONLY||Math.floor((born-e.TWO_JOBS)/18)%3===0&&born<e.TRAFFIC_ONLY,'cyan',e.MORNING);
-  if(!codeFixed)traffic=traffic.filter(p=>p.direction!=='response');
+  traffic=packets(ADMISSION_ROUTE,frame,e.TWO_JOBS,18,(born)=>born<e.DEMAND||born>=e.CODE_ONLY&&born<e.TRAFFIC_ONLY||Math.floor((born-e.TWO_JOBS)/18)%3===0,'cyan',e.MORNING,false,(born,completed)=>completed<e.TRAFFIC_ONLY&&!(born>=e.CODE_ONLY&&Math.floor((born-e.TWO_JOBS)/18)%3!==0));
  }else if(stage==='user'){
-  traffic=packets(MAIL_ROUTE,frame,e.INBOX,58,()=>true);
+  const length=shot06Length(MAIL_ROUTE);
+  const send=(a,b,reverse,tone)=>{
+    if(frame<a||frame>=b)return;
+    const x=clamp((frame-a)/Math.max(1,b-a));
+    const p=shot06Point(MAIL_ROUTE,length*(reverse?1-x:x));
+    if(p.x<=685||p.x>=1015)traffic.push({...p,tone,direction:reverse?'response':'request'});
+  };
+  send(e.USER,e.INBOX,false,'cyan');
+  send(e.INBOX,e.MESSAGE,true,'green');
+  send(e.REPLY,Math.min(e.LESSON,e.REPLY+28),false,'cyan');
+  send(Math.min(e.LESSON,e.REPLY+28),Math.min(p.durationInFrames-1,e.REPLY+56),true,'green');
+  if(frame>=e.LESSON)traffic.push(...packets(MAIL_ROUTE,frame,e.LESSON,78,()=>true));
  }
  const delayed=frame>=e.DELAYED;
  const backlog=delayed?1-.65*mix(frame,e.DELAYED,p.durationInFrames-1):1;
  if(delayed&&stage==='regions')traffic.push(...packets(DELAYED_ROUTE,frame,e.DELAYED,78,()=>true,'amber',e.USER,true));
- return {prior,openingMix,stage,groups,available,codeFixed,controlled,illustrative,admission,pressure,traffic,delayed,backlog,impactEnded:frame>=e.IMPACT_END,message:frame>=e.MESSAGE,reply:frame>=e.REPLY,lesson:frame>=e.LESSON,activity:.5+.5*Math.sin(frame*.071),tone:toneAt(frame,e)};
+ return {prior,openingMix,stage,groups,available,codeFixed,controlled,illustrative,admission,pressure,traffic,delayed,backlog,impactEnded:frame>=e.IMPACT_END,message:frame>=e.MESSAGE,reply:frame>=Math.min(p.durationInFrames-1,e.REPLY+56),lesson:frame>=e.LESSON,activity:.5+.5*Math.sin(frame*.071),tone:toneAt(frame,e)};
 }
 export function verifyEp004Shot12ActualMotion(p){
  validateEp004Shot12Production(p);const e=p.eventFrames,s=f=>shot12State(f,p);

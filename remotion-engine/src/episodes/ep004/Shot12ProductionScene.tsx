@@ -104,7 +104,7 @@ const FleetView:React.FC<{s:RestoreState;frame:number}>=({s,frame})=><g>
  </g>})}
  <PacketLayer s={s}/>
  <g transform="translate(100 735)"><text fontSize="27" fill={WHITE} fontWeight="650">Available capacity</text>{s.groups.map((g,i)=><rect key={i} x={i*75} y="23" width="64" height="14" rx="5" fill={g==='running'?GREEN:g==='booting'?AMBER:'#344451'}/>)}</g>
- {s.delayed&&<g><Route d={shot06Path(DELAYED_ROUTE)} tone={AMBER}/><text x="101" y="895" fontSize="23" fill={AMBER}>Delayed-message processing continues</text></g>}
+ {s.delayed&&<g><Route d={shot06Path(DELAYED_ROUTE)} tone={AMBER}/><text x="101" y="899" fontSize="23" fill={AMBER}>Delayed-message processing continues</text></g>}
  {s.impactEnded&&<g><text x="960" y="955" textAnchor="middle" fontSize="34" fontWeight="700" fill={WHITE}>13 Nov — 16:10 UTC</text><text x="960" y="1002" textAnchor="middle" fontSize="27" fill={GREEN}>Active customer impact ended</text></g>}
  </g>;
 const UserView:React.FC<{s:RestoreState;frame:number;e:Ep004Shot12RenderProps['eventFrames']}>=({s,frame,e})=>{
@@ -119,7 +119,7 @@ const UserView:React.FC<{s:RestoreState;frame:number;e:Ep004Shot12RenderProps['e
  <rect x="112" y="325" width="446" height="61" rx="12" fill="#1E4564"/>
  <text x="136" y="365" fontSize="28" fontWeight="700" fill={WHITE}>Outlook · Inbox</text>
  {[0,1,2].map(i=><g key={i}><rect x="130" y={407+i*63} width="410" height="53" rx="7" fill={i===0&&s.message?'#234638':'#1C2D3B'}/><circle cx="151" cy={433+i*63} r="5" fill={i===0&&s.message?GREEN:'#566D7D'}/><path d={'M170 '+(425+i*63)+'H'+(i===0?397:343)} stroke="#A1B7C6" strokeWidth="5" strokeLinecap="round"/><path d={'M170 '+(441+i*63)+'H300'} stroke="#526B7C" strokeWidth="4" strokeLinecap="round"/></g>)}
- <text x="143" y="637" fill={s.reply?GREEN:s.message?CYAN:'#9FB4C4'} fontSize="24" fontWeight="650">{s.reply?'Reply sent':s.message?'Delayed message received':'Opening inbox…'}</text>
+ <text x="143" y="637" fill={s.reply?GREEN:s.message?CYAN:'#9FB4C4'} fontSize="24" fontWeight="650">{s.reply?'Reply sent':frame>=e.REPLY?'Sending reply…':s.message?'Delayed message received':'Opening inbox…'}</text>
  <PacketLayer s={s}/>
  <g transform="translate(1210 700)"><text fontSize="25" fill={GREEN} fontWeight="650">Service available</text><text y="43" fontSize="23" fill={AMBER}>Residual mail processing</text></g></g>
  {s.lesson&&<text x="960" y="965" fontSize="34" fontWeight="700" fill={WHITE} textAnchor="middle">Recovery is more than a green status.</text>}
@@ -135,7 +135,7 @@ export const Shot12ProductionScene:React.FC<Ep004Shot12RenderProps>=props=>{
  const view=(v:RestoreState)=>(v.stage==='rollout'||v.stage==='regions')?<FleetView s={v} frame={frame}/>:v.stage==='user'?<UserView s={v} frame={frame} e={e}/>:<RepairView s={v} frame={frame}/>;
  return <AbsoluteFill style={{background:'#0A1019',overflow:'hidden'}}><svg width="1920" height="1080" viewBox="0 0 1920 1080" fontFamily={FONT}>
  <Defs/><rect width="1920" height="1080" fill="url(#s6Bg)"/><rect y="905" width="1920" height="175" fill="url(#s6Floor)"/>
- {s.openingMix<1&&<g opacity={1-s.openingMix}><ConnectionView s={s.prior} frame={props.previousFrameCount-1+frame} focus={1}/></g>}
+ {s.openingMix<1&&<g opacity={1-s.openingMix}><ConnectionView s={s.prior} frame={props.previousFrameCount-1+frame} focus={1+Math.min(frame,48)*.001}/></g>}
  {s.openingMix>0&&<g opacity={s.openingMix}>{prev&&<g opacity={1-stageMix}>{view(prev)}</g>}<g opacity={stageMix}>{view(s)}</g></g>}
  </svg>{frame===0&&props.previousLastFrameDataUri&&<AbsoluteFill style={{pointerEvents:'none'}}><Img src={props.previousLastFrameDataUri} style={{width:1920,height:1080}}/></AbsoluteFill>}</AbsoluteFill>;
 };
