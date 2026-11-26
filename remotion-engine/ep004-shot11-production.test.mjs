@@ -118,7 +118,7 @@ test('SHOT11 reroutes only new traffic, keeps failure outcomes historical and co
  const before=shot11State(e.CAPACITY-1,p11),after=shot11State(e.CAPACITY,p11),relapse=shot11State(e.RELAPSE,p11);
  assert.ok(before.pressure<after.pressure&&after.pressure<relapse.pressure);
  // Requests on the original lane must remain in flight after the router changes destination.
- const original=Array.from({length:40},(_,i)=>shot11State(e.REDIRECT+i,p11).traffic).flat();
+ const original=Array.from({length:120},(_,i)=>shot11State(e.REDIRECT+i,p11).traffic).flat();
  assert.ok(original.some(p=>p.tone==='violet'&&p.x>1015&&p.y<545));
  assert.ok(original.some(p=>p.tone==='violet'&&p.x>1015&&p.y===545));
  // No green response from the permanently failed lower gateway or a failed fleet target.

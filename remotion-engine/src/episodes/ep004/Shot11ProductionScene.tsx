@@ -219,7 +219,7 @@ const FleetClockView:React.FC<{s:ClockState}>=({s})=><g>
 </g>;
 const ConnectionView:React.FC<{s:ClockState;frame:number;focus?:number}>=({s,frame,focus=0})=>{const tone=s.phase==='failed'?RED:s.phase==='booting'?AMBER:GREEN;const route=CONNECTION_ROUTE;return <g>
  <Header title="RECOVERY RECREATES THE FAILURE"/>
- <g transform={'translate(1400 640) scale('+(1+.10*focus)+') translate(-1400 -640)'}>
+ <g transform={'translate(960 640) scale('+(1+.06*focus)+') translate(-960 -640)'}>
  <SourceNode y={493}/><Route d={shot06Path(route)} tone={tone}/><Router/>
  <Gateway x={1190} y={474} w={455} h={142} failed={s.phase==='failed'} activity={s.activity}/>
  <text x="1417" y="422" textAnchor="middle" fontSize="30" fontWeight="700" fill={WHITE}>Primary gateway</text>
