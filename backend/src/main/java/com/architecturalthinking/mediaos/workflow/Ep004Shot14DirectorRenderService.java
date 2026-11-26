@@ -323,6 +323,7 @@ public final class Ep004Shot14DirectorRenderService {
                 .optional().orElseThrow();
             Readiness checked=readinessOwned(AUDIT_PACKAGE,sha,owner.issuer(),owner.subject());
             if(!checked.ready()){
+                deploymentAuditDone.set(false);
                 LOG.warn("EP004_SHOT14_DEPLOYMENT_READINESS_BLOCKED source={} blockers={}",sha,checked.blockers());
                 return;
             }

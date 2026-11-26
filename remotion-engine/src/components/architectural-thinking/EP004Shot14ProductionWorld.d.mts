@@ -11,6 +11,7 @@ export declare const SHOT14_EVENTS:readonly EventKey[];
 export declare const CLIENT_ROUTE:readonly Point[];
 export declare const TEAMS_ROUTE:readonly Point[];
 export declare const FLEET_ROUTES:readonly (readonly Point[])[];
+export declare const EXCHANGE_ROUTES:readonly (readonly Point[])[];
 export declare function validateEp004Shot14Production(p:Ep004Shot14RenderProps,requireFrame?:boolean):true;
 export declare function shot14State(frame:number,p:Ep004Shot14RenderProps):ParadoxState;
 export declare function verifyEp004Shot14ActualMotion(p:Ep004Shot14RenderProps):Record<string,string|number>;

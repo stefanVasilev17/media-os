@@ -57,6 +57,7 @@ export function validateEp004Shot14Production(p,requireFrame=false){
 export const CLIENT_ROUTE=Object.freeze([[350,545],[685,545]]);
 export const TEAMS_ROUTE=Object.freeze([[350,325],[430,325],[650,325],[650,545],[685,545]]);
 export const FLEET_ROUTES=Object.freeze([352,545,738].map(y=>[[1015,545],[1100,545],[1100,y],[1190,y]]));
+export const EXCHANGE_ROUTES=Object.freeze([352,545,738].map(y=>[[1645,y],[1780,y],[1780,545],[1850,545]]));
 const mix=(f,a,n=12)=>smooth((f-a)/Math.max(1,n));
 const phase=(f,e,i)=>{
  if(f<e.UNRESPONSIVE)return 'running';
@@ -85,13 +86,15 @@ function flow(frame,e){
   const born=start+n*13,age=frame-born;
   if(born<e.PEAK&&n%2===1||born>=e.RECOVERY&&n%3!==0)continue;
   const teams=born>=e.TEAMS+12&&n%2===0,selected=routeFor(born,n,e);
-  const route=[...(teams?TEAMS_ROUTE:CLIENT_ROUTE),...FLEET_ROUTES[selected]],len=shot06Length(route),travel=Math.ceil(len/14),completion=born+travel+12;
-  const success=phase(born+travel,e,selected)==='running'&&phase(completion,e,selected)==='running'&&!(completion>=e.DEFECT&&completion<e.RECOVERY&&n%3!==0);
+  const ingress=[...(teams?TEAMS_ROUTE:CLIENT_ROUTE),...FLEET_ROUTES[selected]],gatewayArrival=born+Math.ceil(shot06Length(ingress)/14);
+  const success=phase(gatewayArrival,e,selected)==='running'&&!(gatewayArrival>=e.DEFECT&&gatewayArrival<e.RECOVERY&&n%3!==0);
+  const route=success?[...ingress,...EXCHANGE_ROUTES[selected]]:ingress,len=shot06Length(route),travel=Math.ceil(len/14),completion=born+travel+12;
+  const completed=success&&phase(completion,e,selected)==='running';
   if(age<travel)dots.push({...shot06Point(route,age*14),tone:teams?'violet':'cyan',direction:'request'});
-  else if(success&&age>=travel+12&&age<2*travel+12)dots.push({...shot06Point(route,Math.max(0,len-(age-travel-12)*14)),tone:'green',direction:'response'});
-  else if(!success&&age<travel+28)dots.push({...shot06Point(route,len),tone:'amber',direction:'waiting'});
+  else if(completed&&age>=travel+12&&age<2*travel+12)dots.push({...shot06Point(route,Math.max(0,len-(age-travel-12)*14)),tone:'green',direction:'response'});
+  else if(!completed&&age<travel+28)dots.push({...shot06Point(route,len),tone:'amber',direction:'waiting'});
  }
- return dots.filter(p=>(p.x<=685||p.x>=1015)&&!(p.x>430&&p.x<650&&p.y>280&&p.y<370));
+ return dots.filter(p=>(p.x<=685||p.x>=1015)&&!(p.x>430&&p.x<650&&p.y>280&&p.y<370)&&!(p.x>1190&&p.x<1645&&p.y>=286&&p.y<=804));
 }
 export function shot14State(frame,p){
  if(!Number.isInteger(frame)||frame<0||frame>=p.durationInFrames)throw Error('SHOT14_FRAME_OUTSIDE_PRODUCTION');

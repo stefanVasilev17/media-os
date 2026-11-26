@@ -1,5 +1,5 @@
 import React from 'react';
-import {CLIENT_ROUTE,TEAMS_ROUTE,FLEET_ROUTES,shot14State,validateEp004Shot14Production} from '../../components/architectural-thinking/EP004Shot14ProductionWorld.mjs';
+import {CLIENT_ROUTE,TEAMS_ROUTE,FLEET_ROUTES,EXCHANGE_ROUTES,shot14State,validateEp004Shot14Production} from '../../components/architectural-thinking/EP004Shot14ProductionWorld.mjs';
 import type {Ep004Shot14RenderProps,ParadoxState} from '../../components/architectural-thinking/EP004Shot14ProductionWorld.mjs';
 import {AbsoluteFill,Img,useCurrentFrame,useVideoConfig} from 'remotion';
 import {shot06Path} from '../../components/architectural-thinking/EP004Shot06FleetPreview.mjs';
@@ -85,11 +85,18 @@ const ParadoxWorld:React.FC<{s:ParadoxState;frame:number;e:Ep004Shot14RenderProp
  <Gateway x={430} y={282} w={220} h={86} activity={s.activity}/>
  <text x="540" y="252" fontSize="23" textAnchor="middle" fill={WHITE} fontWeight="650">Teams gateway</text>
  </g>}
+ {s.wide>.55&&<g transform={'translate(1850 545) scale('+ease((s.wide-.55)/.45)+') translate(-1850 -545)'}>
+ {EXCHANGE_ROUTES.map((r,i)=><Route key={i} d={shot06Path(r)} tone={CYAN} active={phases[i]==='running'}/>)}
+ <rect x="1850" y="487" width="238" height="116" rx="14" fill="url(#s6Metal)" stroke={CYAN} strokeWidth="2"/>
+ <rect x="1862" y="499" width="214" height="92" rx="10" fill="url(#s6Face)"/>
+ <rect x="1880" y="519" width="47" height="47" rx="8" fill="#287DB0"/><path d="M1887 532H1920V555H1887Z M1887 532L1903.5 544L1920 532" stroke={WHITE} strokeWidth="2" fill="none"/>
+ <text x="1940" y="551" fontSize="24" fontWeight="650" fill={WHITE}>Exchange</text>
+ <text x="1969" y="471" textAnchor="middle" fontSize="25" fill={WHITE} fontWeight="650">Mailbox service</text></g>}
  <Router/><Gate s={gate}/>
  <g transform={'translate('+ix+' '+iy+') scale('+zoom+')'}><Inbox message={inherited||s.controlled||s.focus==='relationships'} reply={inherited||s.controlled||s.focus==='relationships'}/></g>
  {[0,1,2].map(i=>{const y=[286,474,672][i],t=phases[i]==='failed'?RED:phases[i]==='booting'?AMBER:GREEN;return <g key={i}><Gateway x={1190} y={y} w={455} h={i===1?142:132} failed={phases[i]==='failed'} activity={s.activity}/><text x="1417" y={i===1?422:y-29} fontSize={i===1?30:27} textAnchor="middle" fill={WHITE} fontWeight="650">{i===0?'Alternative gateway':i===1?'Primary gateway':inherited?'Isolated gateway':'Remaining gateway'}</text>{i!==1&&<circle cx="1205" cy={y+105} r="6" fill={t}/>}</g>})}
  {inherited&&<g transform="translate(125 750)"><text fontSize="25" fill={WHITE} fontWeight="650">Available headroom</text><rect y="20" width="375" height="12" rx="6" fill="#142331"/><rect y="20" width={375*(1-s.prior.pressure)} height="12" rx="6" fill={GREEN}/></g>}
- {(s.latent||s.controlled)&&<g><path d="M1645 545H1745V454" fill="none" stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="3"/><rect x="1660" y="365" width="240" height="89" rx="12" fill="#101E2B" stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="2"/><text x="1780" y="396" textAnchor="middle" fill={WHITE} fontSize="23" fontWeight="650">{s.controlled?'Code repaired':s.contention?'Lock contention':'July change'}</text><path d={s.contention?'M1680 425H1740L1770 410L1800 440L1830 425H1880':'M1680 425H1880'} stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="4" fill="none"/></g>}
+ {(s.latent||s.controlled)&&<g><path d="M1645 286H1745V260" fill="none" stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="3"/><rect x="1660" y="171" width="240" height="89" rx="12" fill="#101E2B" stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="2"/><text x="1780" y="202" textAnchor="middle" fill={WHITE} fontSize="23" fontWeight="650">{s.controlled?'Code repaired':s.contention?'Lock contention':'July change'}</text><path d={s.contention?'M1680 231H1740L1770 216L1800 246L1830 231H1880':'M1680 231H1880'} stroke={s.controlled?GREEN:s.contention?RED:AMBER} strokeWidth="4" fill="none"/></g>}
  {s.constrained&&<g transform="translate(1210 840)"><text fontSize="24" fill={AMBER} fontWeight="650">Reduced capacity</text><rect y="18" width="410" height="10" rx="5" fill="#263645"/><rect y="18" width="350" height="10" rx="5" fill={AMBER}/></g>}
  {s.controlled&&<g transform="translate(1210 840)"><text fontSize="24" fill={GREEN} fontWeight="650">Controlled restoration</text><rect y="18" width="410" height="10" rx="5" fill="#263645"/><rect y="18" width={410*ease((frame-e.RECOVERY)/90)} height="10" rx="5" fill={GREEN}/></g>}
  {s.local&&<g><rect x="690" y="710" width="320" height="51" rx="10" fill="#152B27" stroke={GREEN}/><text x="850" y="743" textAnchor="middle" fontSize="25" fontWeight="700" fill={GREEN}>VALID LOCAL ACTION</text></g>}
