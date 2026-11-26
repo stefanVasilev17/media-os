@@ -19,6 +19,7 @@ final class EpisodeFactoryDirectorRoutes {
              "/api/v1/episode-packages/{packageId}/shots/SHOT11/render",
              "/api/v1/episode-packages/{packageId}/shots/SHOT12/render",
              "/api/v1/episode-packages/{packageId}/shots/SHOT13/render",
+             "/api/v1/episode-packages/{packageId}/shots/SHOT14/render",
             "/api/v1/episode-packages/{packageId}/film/locks/{shotKey}",
             "/api/v1/episode-packages/{packageId}/film/retry",
             "/api/v1/creative/episodes/EP002/master/render",

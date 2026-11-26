@@ -38,7 +38,8 @@ const compositions:Record<string,string>={
   SHOT10:'EP004-SHOT10-CONTROLLED-RECOVERY-V1-VISUAL',
   SHOT11:'EP004-SHOT11-INCIDENT-CLOCK-V1-VISUAL',
   SHOT12:'EP004-SHOT12-CONTROLLED-RESTORATION-V1-VISUAL',
-  SHOT13:'EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL'
+  SHOT13:'EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL',
+  SHOT14:'EP004-SHOT14-ARCHITECTURE-PARADOX-V1-VISUAL'
 };
 async function result<T>(response:Response):Promise<T>{
   if(!response.ok)throw Error('HTTP '+response.status+': '+(await response.text()).slice(0,270));

@@ -64,3 +64,5 @@ test('EP004 SHOT13 exact target only',()=>{
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT13-RESILIENT-DESIGN-V1-VISUAL/extra'));
  assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT14-NOT-AUTHORIZED-V1-VISUAL'));
 });
+
+test('EP004 SHOT14 exact target only',()=>{assert.equal(requireSupportedTargetComposition('EP004-SHOT14-ARCHITECTURE-PARADOX-V1-VISUAL'),'EP004-SHOT14-ARCHITECTURE-PARADOX-V1-VISUAL');assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT14-ARCHITECTURE-PARADOX-V1-VISUAL/extra'));assert.throws(()=>requireSupportedTargetComposition('EP004-SHOT15-ARCHITECTURE-PARADOX-V1-VISUAL'));});
