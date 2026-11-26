@@ -1,5 +1,13 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-26 — EP004 15/15 SHOTs Director LOCKED
+
+EP004 SHOT15 V2 actual Director-LOCKED render `719e3b23-0c74-47b5-920f-40db518382a4`, source `b9d6d4be8092f0cf66fb352b2c08b36d28479e64`, 1368 frames / 45.6 s / 1920x1080@30, 2,895,715 bytes. Authenticated POST film/locks/SHOT15 HTTP 200 on 2026-11-26. Real approved Take mux PASS, exact locked SHOT14 SHA and last frame PASS, seam PSNR 44.57 dB, all 30 opening frames and all 60 tail frames distinct. Real readiness PASS, six original beats and fourteen verified event anchors. FAILS frame 897 (29.90s), FAILOVER frame 1121. Director explicitly accepted the corrected MP4.
+
+All 15 consecutive SHOTs now Director-approved. Automatic Full Video assembly queued and started with shotCount=15, final assembled master not yet verified at time of this entry. No new paid rendering or voice generation initiated by Executor. Preserve all locked media, exact source pins and approved Takes. The V2 red failure route is the accepted SHOT15 reference: failure branch and junction RED, capacity AMBER, no camera or voice change. See docs/visual/EP004_SHOT15_HUMAN_CONSEQUENCE_20261126.md. Final master decode, sequence, frame count, audio and playback verification remain separate from Director SHOT lock completion.
+
+---
+
 ## 2026-11-26 — SHOT15 V2 Director color correction
 
 At the exact original FAILS cue, use RED instead of AMBER for the highlighted alternative route, matching dashed overlay and junction. Capacity remains amber; all other scene geometry, voice, cue clock, continuity and living tail unchanged. V2 candidate requires exact source deployment and readiness. No new paid render or voice initiated by Executor.
