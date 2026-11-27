@@ -1,8 +1,12 @@
 # MediaOS — CURRENT PROJECT STATE
 
-## 2026-11-27 — Phase 4 Review & Learning implementation candidate
+## 2026-11-27 — Phase 4 Review & Learning V1 deployed; Director review pending
 
-Director requested implementation of Phase 4. Native Review workspace, V135 append-only-by-service structured review records, explicit Director approval, evidence-backed manual analytics, previous approved conclusions, live upstream QA and conclusion snapshot. See `docs/publishing/AT_REVIEW_LEARNING_SYSTEM_V1_IMPLEMENTATION.md`. Candidate only: build, deployment, actual authenticated UI and Director approval not yet verified. No changes to locked assets, external publication, existing worker or infrastructure. EP004 actual release tasks remain separate.
+Director requested implementation of Phase 4. Native Review workspace, V135 append-only-by-service structured review records, explicit Director approval, evidence-backed manual analytics, previous approved conclusions, live upstream QA and conclusion snapshot. See `docs/publishing/AT_REVIEW_LEARNING_SYSTEM_V1_IMPLEMENTATION.md`. 
+
+Production backend exact pin `b5be68df33caf1fdbfe13f6a7cf010d836475e18`, Railway deployment `2d5c177a-6047-456b-b065-9732414a93ed` SUCCESS at 15:55:31 UTC on 2026-11-27. Frontend 127/127 PASS, production build PASS, Maven isolated PostgreSQL suite 630 tests: 629 passed, 1 skipped, zero failures/errors; EpisodeReviewPostgresTest PASS. Source pin check PASS, Flyway validated 135 migrations and applied V134 -> V135 in production, Spring Boot started, configured `/actuator/health` rollout gate passed, all three services online with one running replica each and no pending Railway work. Worker source remains `ddfffb21e0e008a3bbffc010ed582d31d30a1797`. No changes to locked assets, additional services, render, TTS, provider calls or external publication. Authenticated browser/API review and Director approval remain pending; not LOCKED.
+
+EP004 review draft in `docs/publishing/EP004_POST_PRODUCTION_REVIEW_DRAFT_20261127.md`; not inserted or approved in live database. V1 manual recommendations, category-filtered carry-forward (up to 50 records per query), manual evidence-backed analytics and copy for agent use; no autonomous ingestion, rule promotion or analytics provider integration. Pre-release conclusion and post-release learning separate. EP004 actual release tasks remain separate.
 
 ## 2026-11-27 — Phase 3 Director acceptance and new-chat handoff
 

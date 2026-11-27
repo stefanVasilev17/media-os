@@ -1,6 +1,6 @@
 # Review & Learning System V1 — Phase 4
 
-2026-11-27. Director requested real Phase 4 development; code candidate, build/runtime verification and Director acceptance pending. Existing AT-PUB-0001/0002, AT-DIST-0001/0002 and visual/storage contracts remain unchanged.
+2026-11-27. Director requested real Phase 4 development; implemented and deployed; Director acceptance pending. Existing AT-PUB-0001/0002, AT-DIST-0001/0002 and visual/storage contracts remain unchanged.
 
 ## Native workflow
 
@@ -12,6 +12,8 @@ Reusable channel-scope lessons/rules/recommendations and prior conclusions from 
 
 Additive V135 append-only-by-service revision table; existing JdbcClient and Director identity; owner-scoped reads including cross-episode query, package row lock and optimistic expected revision, stable client UUID, exact audited POST path, audit UUID and actor. Bounded textual payload, 100 revisions per item, 200 current item IDs, 4 MiB textual revision budget per episode. No media or external calls. Manual analytics require recorded actual public URL/date, completed nonfuture observation period, source evidence, known metric, numeric value where applicable, RPM currency. Detail metrics use human-entered breakdown text; no automated ingestion or external verification. Suggested periods 24–48h, 7d, 30d and later are guidance, not scheduled tasks. No assumption of monetization, causality or zero analytics before release.
 
-## Pending verification
+## Production verification
 
-Run frontend Vitest and TypeScript build, Java unit/route tests and isolated PostgreSQL integration via existing Dockerfile.backend, verify exact backend source pin, Flyway V135 and health before claiming deployed. Review actual authenticated Director screen and record Director approval separately. EP004 remaining publishing/reels/distribution/rights/audio/captions/private upload/public release/analytics tasks remain open. No worker changes, additional infrastructure, render, TTS or paid provider.
+Production backend exact pin `b5be68df33caf1fdbfe13f6a7cf010d836475e18`, Railway deployment `2d5c177a-6047-456b-b065-9732414a93ed` SUCCESS at 15:55:31 UTC on 2026-11-27. Frontend 127/127 PASS, production build PASS, Maven isolated PostgreSQL suite 630 tests: 629 passed, 1 skipped, zero failures/errors; EpisodeReviewPostgresTest PASS. Source pin check PASS, Flyway validated 135 migrations and applied V134 -> V135 in production, Spring Boot started, configured `/actuator/health` rollout gate passed, all three services online with one running replica each and no pending Railway work. Worker source remains `ddfffb21e0e008a3bbffc010ed582d31d30a1797`. No changes to locked assets, additional services, render, TTS, provider calls or external publication. Authenticated browser/API review and Director approval remain pending; not LOCKED.
+
+## Remaining verification and scope Review actual authenticated Director screen and record Director approval separately. EP004 remaining publishing/reels/distribution/rights/audio/captions/private upload/public release/analytics tasks remain open. No worker changes, additional infrastructure, render, TTS or paid provider.
