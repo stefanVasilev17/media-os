@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {Check,Copy,Download,History,RefreshCw,Save,Upload,X,Pencil,Image,Film,ChevronDown} from 'lucide-react';
+import {Check,Copy,Download,History,RefreshCw,Save,Upload,X,Pencil,Image} from 'lucide-react';
 import '../styles/episodePublishingStudio.css';
 
 type Item={fieldKey:string;revision:number;value:string;state:string;origin:string;
@@ -12,7 +12,7 @@ const sections=[
   {label:'Identity',fields:[['TITLE','YouTube title'],['THUMBNAIL_DESIGN','Thumbnail design'],['THUMBNAIL_ASSET','Thumbnail image']]},
   {label:'Publishing package',fields:[['DESCRIPTION','Description'],['CHAPTERS','Chapters'],['TAGS','SEO tags'],['HASHTAGS','Hashtags'],['SOURCES','Technical sources'],['DISCLAIMER','Editorial disclaimer'],['PINNED_COMMENT','Pinned comment'],['UPLOAD_SETTINGS','Upload settings']]},
   {label:'Narration & captions',fields:[['AUDIO_DIRECTION','Audio direction'],['TRANSCRIPT','English transcript'],['SUBTITLES_SRT','English SRT']]},
-  {label:'Final QA',fields:[['QA_MASTER','Master QA'],['QA_AUDIO','Audio QA'],['QA_EDITORIAL','Editorial accuracy'],['QA_RIGHTS','Rights & trademark'],['QA_CAPTIONS','Caption QA'],['QA_UPLOAD','Private upload QA'],['QA_RELEASE','Director release approval']]}
+  {label:'Final QA',fields:[['QA_MASTER','Full Video playback'],['QA_AUDIO','Audio quality'],['QA_EDITORIAL','Editorial accuracy'],['QA_RIGHTS','Rights & trademark'],['QA_CAPTIONS','Caption synchronization'],['QA_UPLOAD','Private YouTube upload'],['QA_RELEASE','Director release approval']]}
 ];
 const labels:Record<string,string>=Object.fromEntries(sections.flatMap(s=>s.fields));
 const errorText=(e:unknown)=>e instanceof Error?e.message:String(e);
@@ -134,7 +134,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
   const blocked=(key:string)=>!!data?.blockers.some(b=>b.startsWith(key+':'));
   function friendlyState(x:Item|undefined){
     if(!x||!x.revision)return 'Not added';
-    if(displayState(x,master)==='STALE'||(x.state==='PASS'&&blocked(x.fieldKey)))return 'Review again';
+    if(displayState(x,master)==='STALE'||(x.state==='PASS'&&(blocked(x.fieldKey)||(x.fieldKey==='QA_RELEASE'&&!data?.releaseRecorded))))return 'Review again';
     switch(x.state){case 'APPROVED':return 'Approved';case 'PASS':return 'Checked';case 'FAIL':return 'Needs attention';case 'PENDING':return 'To review';default:return 'Draft';}
   }
   function status(key:string){
@@ -148,7 +148,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
     return <button type="button" className="publishing-copy" disabled={!value||busy} onClick={()=>void copy(value)}><Copy size={15}/>{label}</button>;
   }
   function row(key:string){
-    const x=get(key);return <div className="publishing-detail-row" key={key}><span>{labels[key]}</span>{status(key)}{edit(key,key.startsWith('QA_')?'Review':'Open')}</div>;
+    return <div className="publishing-detail-row" key={key}><span>{labels[key]}</span>{status(key)}{edit(key,key.startsWith('QA_')?'Review':'Open')}</div>;
   }
   const title=get('TITLE'),thumbnail=get('THUMBNAIL_ASSET'),tags=get('TAGS'),comment=get('PINNED_COMMENT'),srt=get('SUBTITLES_SRT');
   const description=data?.assembledDescription??'';
@@ -185,7 +185,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
         <h3><span>02</span> Description</h3>
         <div className="publishing-field">
           <div className="publishing-field-head"><strong>Complete YouTube description</strong>{copyButton(description,'Copy complete description')}</div>
-          <p className="publishing-help">Includes the description, chapters, technical sources, disclaimer and hashtags.</p>
+          <p className="publishing-help">Includes the description, chapters, technical sources, disclaimer and hashtags. {['DESCRIPTION','CHAPTERS','SOURCES','DISCLAIMER','HASHTAGS'].every(k=>friendlyState(get(k))==='Approved')?'All sections approved.':'Some sections still need review.'}</p>
           <pre className="publishing-description">{description||'No description added yet.'}</pre>
           <div className="publishing-field-head"><small className="publishing-help">{description.length} / 5000 characters</small><button type="button" className="publishing-text-button" disabled={!description} onClick={()=>downloadText(data.episodeKey+'-youtube-description.txt',description)}><Download size={14}/> Download text</button></div>
           <details className="publishing-more"><summary>Edit description sections</summary>{['DESCRIPTION','CHAPTERS','SOURCES','DISCLAIMER','HASHTAGS'].map(row)}</details>
@@ -193,10 +193,10 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
       </section>
       <section className="publishing-step" aria-label="Tags and pinned comment">
         <h3><span>03</span> Tags & pinned comment</h3>
-        <div className="publishing-field"><div className="publishing-field-head"><strong>SEO tags</strong><div className="publishing-actions">{copyButton(tags?.value??'')}{edit('TAGS')}</div></div>
+        <div className="publishing-field"><div className="publishing-field-head"><div><strong>SEO tags</strong> {status('TAGS')}</div><div className="publishing-actions">{copyButton(tags?.value??'')}{edit('TAGS')}</div></div>
           <p className="publishing-value">{tags?.value||'No tags added yet.'}</p>
         </div>
-        <div className="publishing-field"><div className="publishing-field-head"><strong>Pinned comment</strong><div className="publishing-actions">{copyButton(comment?.value??'')}{edit('PINNED_COMMENT')}</div></div>
+        <div className="publishing-field"><div className="publishing-field-head"><div><strong>Pinned comment</strong> {status('PINNED_COMMENT')}</div><div className="publishing-actions">{copyButton(comment?.value??'')}{edit('PINNED_COMMENT')}</div></div>
           <pre className="publishing-comment">{comment?.value||'No pinned comment added yet.'}</pre>
         </div>
       </section>
@@ -223,7 +223,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
       {master&&<details className="publishing-lineage"><summary>Technical details & master version</summary><p>{master.shotCount} SHOTs · {master.durationInFrames} frames</p><p>Film ID: {master.filmId}</p><p>SHA-256: {master.sha256}</p></details>}
     </>}
     <dialog ref={dialog} className="publishing-dialog" aria-label={labels[selected]??'Publishing editor'} onCancel={event=>{event.preventDefault();closeEditor();}}>
-        {item&&<div className="publishing-editor">
+        {data&&item&&<div className="publishing-editor">
           <div className="publishing-editor-heading"><div><h3>{labels[selected]}</h3>
             <p className="director-minimal-muted">{friendlyState(item)} · Revision {item.revision||'—'}</p></div>
             <button type="button" className="publishing-icon-button" disabled={busy} onClick={closeEditor} aria-label="Close editor"><X size={21}/></button></div>
@@ -232,7 +232,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
           {asset?<div className="publishing-asset">
             {item.thumbnailUrl?<><img src={item.thumbnailUrl} alt="Archived publishing thumbnail"/><p className="publishing-lineage">SHA-256: {item.objectSha256}</p>
               <a className="director-minimal-subtle" href={item.thumbnailUrl} download={data.episodeKey+'-thumbnail.'+(item.objectType==='image/jpeg'?'jpg':'png')}><Download size={15}/> Download image</a></>
-              :<p className="director-minimal-muted">No thumbnail binary archived yet. Upload the approved original PNG/JPEG. The thumbnail design approval is separate from rights clearance.</p>}
+              :<p className="director-minimal-muted">No thumbnail image uploaded yet. Upload the approved original PNG/JPEG. Image approval does not grant logo rights.</p>}
             <label>Archive exact image <input type="file" accept="image/png,image/jpeg" disabled={busy} onChange={e=>setFile(e.currentTarget.files?.[0]??null)}/></label>
             <button type="button" className="director-minimal-subtle" disabled={!file||busy} onClick={()=>void upload()}><Upload size={15}/> Upload image</button>
           </div>:<>
