@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Phase 2 Reel Extraction Engine V1 Director LOCKED
+
+2026-11-27 — Director explicitly approved and LOCKED Phase 2 Reel Extraction Engine V1 in conversation: “да, Локваме!”. Accepted deployed UI and module scope, including simple content-first workflow, direct original Full Video extraction and minimum three qualifying reels with more encouraged. This is a module approval, not an actual EP004 clip lock, verified live extraction or publishing authorization. Actual extracted MP4s, storage roundtrip, individual editorial review and platform-format approval remain separate. No runtime change or deployment. Next phase: Distribution & Editorial Studio, governed by AT-DIST-0001/0002 and accepted minimal UI principles.
+
+---
+
 ## 2026-11-27 — Phase 2 Direct Reel Extraction Engine V1 deployed; Director review pending
 
 Director requested implementation with simplified design. New native Reels tab, content-first full width, Preview / Extract / Lock / Download, optional Custom Cut, other candidates collapsed. Exact whole-SHOT boundaries from current complete master and locked render frame counts. EP004 nine recommended SHOTs (02,04,05,06,07,09,10,13,14), remaining six reviewable; not verified standalone exports. No guessed word timings. Original 16:9 preserved; square/vertical packaging requires separate approval. Minimum three qualifying clips, more encouraged, no creative cap (AT-PUB-0002). Existing backend assembly scheduler processes explicitly audited Director extraction requests one at a time; FFmpeg only, verified source SHA, exact decoded frames/audio, keyframe-gated stream copy or verified technical encode, private object storage, no new Remotion/TTS. Resource limits and remaining retention/legacy/semantic-alignment limitations documented in `docs/publishing/AT_REEL_EXTRACTION_ENGINE_V1_IMPLEMENTATION.md`.
