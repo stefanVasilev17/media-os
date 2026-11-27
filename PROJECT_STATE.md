@@ -1,5 +1,13 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Phase 2 Direct Reel Extraction Engine V1 deployed; Director review pending
+
+Director requested implementation with simplified design. New native Reels tab, content-first full width, Preview / Extract / Lock / Download, optional Custom Cut, other candidates collapsed. Exact whole-SHOT boundaries from current complete master and locked render frame counts. EP004 nine recommended SHOTs (02,04,05,06,07,09,10,13,14), remaining six reviewable; not verified standalone exports. No guessed word timings. Original 16:9 preserved; square/vertical packaging requires separate approval. Minimum three qualifying clips, more encouraged, no creative cap (AT-PUB-0002). Existing backend assembly scheduler processes explicitly audited Director extraction requests one at a time; FFmpeg only, verified source SHA, exact decoded frames/audio, keyframe-gated stream copy or verified technical encode, private object storage, no new Remotion/TTS. Resource limits and remaining retention/legacy/semantic-alignment limitations documented in `docs/publishing/AT_REEL_EXTRACTION_ENGINE_V1_IMPLEMENTATION.md`.
+
+Production backend exact pin `79219f44f2aa274f17aa78e88eaa5f6cce9bc722`, deployment `57b2bdf3-6ae6-45ac-a335-3ad6774ae3f5` SUCCESS 15:31:29 UTC. Frontend 122/122 PASS; Maven 623 tests, 622 passed, one skipped, zero failures/errors; real FFmpeg regression 3/3 PASS, isolated PostgreSQL ownership/idempotency test PASS, production Flyway V132 -> V133 applied, health check PASS, all three services online. First build failed non-keyframe stream-copy assumption; corrected with real starting keyframe requirement before promoting. Locked master/SHOTs and worker unchanged. No real EP004 extraction, live object upload, authenticated UI inspection or Director lock performed; real clip acceptance and publishing QA remain pending. Phase 2 deployed, not Director-LOCKED; Phase 3 remains next after review.
+
+---
+
 ## 2026-11-27 — Phase 1 Publishing Studio V2 Director accepted
 
 2026-11-27 — Director accepted Publishing Studio V2 in conversation: “Towa weche e OK” (This is OK now). Phase 1 UI acceptance recorded; the deployed content-first layout is the accepted reference for later post-production tabs. Prefer simple task-ordered pages, ready content first, on-demand editing, and collapsed technical details. This is UI approval only, not confirmation of thumbnail archival, synchronized SRT, final audio/editorial/rights QA, private upload, or public release. No new runtime changes or deployment. Next implementation phase: Reel Extraction Engine, subject to AT-PUB-0002 (minimum three, more encouraged, direct Full Video extracts, zero additional creative development).
