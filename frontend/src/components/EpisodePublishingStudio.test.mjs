@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {readFileSync} from 'node:fs';
 const studio=readFileSync(new URL('./EpisodePublishingStudio.tsx',import.meta.url),'utf8');
+const css=readFileSync(new URL('../styles/episodePublishingStudio.css',import.meta.url),'utf8');
 const page=readFileSync(new URL('../pages/DirectorQuietEpisodePage.tsx',import.meta.url),'utf8');
 describe('Publishing Studio integrated into the actual Director workspace',()=>{
   it('uses the existing package and separate Publishing tab without replacing Full Video or SHOT',()=>{
@@ -21,10 +22,43 @@ describe('Publishing Studio integrated into the actual Director workspace',()=>{
   it('keeps SRT draft and thumbnail archival separate from release approval',()=>{
     expect(studio).toContain("selected==='SUBTITLES_SRT'");
     expect(studio).toContain('Import synchronized SRT');
-    expect(studio).toContain('No thumbnail binary archived yet');
+    expect(studio).toContain('No thumbnail image uploaded yet');
     expect(studio).toContain('readyForDirectorRelease');
     expect(studio).toContain('data.blockers.map');
     expect(studio).toContain('No action here publishes externally');
     expect(studio).toContain('Copy complete description');
+  });
+});
+
+describe('Director feedback: quiet content-first publishing',()=>{
+  it('shows the five practical steps in order, without a nested field menu',()=>{
+    const order=['Title & thumbnail','02</span> Description','Tags & pinned comment','Captions & upload settings','Final review</h3>'];
+    const positions=order.map(x=>studio.indexOf(x));
+    expect(positions.every(x=>x>=0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a,b)=>a-b));
+    expect(studio).not.toContain('className="publishing-nav"');
+    expect(studio).toContain("useState('')");
+    expect(studio).toContain('title?.value');
+    expect(studio).toContain('thumbnail.thumbnailUrl');
+    expect(studio).toContain('publishing-description');
+    expect(studio).toContain('Copy complete description');
+  });
+  it('opens editing only on demand and retains all protected fields, checks and history',()=>{
+    expect(studio).toContain('modal.showModal()');
+    expect(studio).toContain('Discard unsaved publishing edits?');
+    expect(studio).toContain('Version history');
+    expect(studio).toContain('<summary>Review checklist</summary>');
+    expect(studio).toContain('<summary>Technical details & master version</summary>');
+    expect(studio).toContain("['DESCRIPTION','CHAPTERS','SOURCES','DISCLAIMER','HASHTAGS'].map(row)");
+    expect(studio).toContain("['TRANSCRIPT','AUDIO_DIRECTION','UPLOAD_SETTINGS'].map(row)");
+    expect(studio).toContain('data.readyForDirectorRelease');
+  });
+  it('removes the SHOT sidebar only from Publishing and keeps the existing video navigation',()=>{
+    expect(page).toContain('director-publishing-body');
+    expect(page).toContain('aria-label="Episode workspace"');
+    expect(css).toContain('.director-publishing-body>.director-minimal-sidebar{display:none}');
+    expect(css).toContain('@media(max-width:700px)');
+    expect(page).toContain('src={fullUrl}');
+    expect(page).toContain('src={shotVideoUrl}');
   });
 });
