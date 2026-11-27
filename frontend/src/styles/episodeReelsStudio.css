@@ -1,0 +1,26 @@
+.reels-studio{display:flex;flex-direction:column;gap:20px;min-width:0}
+.reels-studio .director-minimal-section-head h2{font-size:30px;letter-spacing:-.025em}
+.reels-intro{display:flex;justify-content:space-between;align-items:center;gap:15px;border:1px solid #294354;background:#101f2e;border-radius:14px;padding:20px}
+.reels-intro strong{font-size:19px;color:#e8f1f9}
+.reels-intro p,.reels-format{color:#a6bacd;font-size:13px;line-height:1.55;margin:5px 0 0}
+.reels-format{margin:0}
+.reels-section{display:flex;flex-direction:column;gap:10px}
+.reels-section>h3{margin:0;font-size:19px;letter-spacing:-.015em}
+.reels-section>h3 small{font-size:13px;color:#a6bacd;margin-left:6px}
+.reels-card{display:flex;flex-direction:column;gap:12px;background:#101d2d;border:1px solid #293d51;border-radius:13px;padding:18px;min-width:0}
+.reels-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.reels-info{flex:1;min-width:160px}
+.reels-card h3{margin:0;font-size:16px;line-height:1.4;color:#e8f1f9;font-weight:650}
+.reels-info p,.reels-preview p{color:#a1b5c8;font-size:13px;margin:6px 0 0;line-height:1.45}
+.reels-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.reels-actions button,.reels-actions a{font-size:13px;padding:9px 13px}
+.reels-download{display:inline-flex;align-items:center;gap:8px;background:#173e37;border:1px solid #408d72;border-radius:10px;color:#aff5d5;text-decoration:none}
+.reels-preview{border-top:1px solid #293d51;padding-top:12px}
+.reels-preview video{width:100%;max-width:760px;display:block;aspect-ratio:16/9;background:#020712;border-radius:9px}
+.reels-other{border:1px solid #293d51;border-radius:13px;background:#101d2d;padding:15px}
+.reels-other summary,.reels-studio summary{cursor:pointer;color:#aec4d3;font-size:14px;font-weight:650}
+.reels-other[open]>.reels-section{margin-top:14px}
+.reels-custom label{display:flex;flex-direction:column;gap:5px;color:#a6bacd;font-size:13px}
+.reels-custom input{width:100%;background:#0b1929;border:1px solid #29415a;border-radius:8px;padding:11px;color:#e8f1f9;font:inherit}
+.reels-cut-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:700px){.reels-intro{align-items:flex-start;flex-direction:column}.reels-card{padding:14px}.reels-row{gap:10px}.reels-actions{justify-content:flex-start}}
