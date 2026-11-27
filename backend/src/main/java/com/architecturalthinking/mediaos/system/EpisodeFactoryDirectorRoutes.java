@@ -8,6 +8,7 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/episode-packages/{packageId}/publishing/thumbnail",
             "/api/v1/episode-packages/{packageId}/distribution/items",
             "/api/v1/episode-packages/{packageId}/distribution/launch",
+            "/api/v1/episode-packages/{packageId}/review/items",
             "/api/v1/episode-packages/{packageId}/reels/extract",
             "/api/v1/episode-packages/{packageId}/reels/{reelId}/lock",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/generate",
