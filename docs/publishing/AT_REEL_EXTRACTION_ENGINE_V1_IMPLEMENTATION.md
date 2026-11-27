@@ -12,3 +12,6 @@ Additive V133 episode_reel table: exact package, film ID, master SHA, frame inte
 
 ## Verification and remaining gates
 Synthetic 1080p30 non-keyframe FFmpeg extraction local check: 45 decoded frames, 1.5 s audio, equal PCM sample count, source/encoded PSNR ~59 dB and normalized PCM error ~0.007. Production build includes actual FFmpeg Java regression, isolated PostgreSQL ownership/idempotency test, frontend regressions. Real EP004 extraction, authenticated UI review, real private storage write/readback and standalone editorial review remain pending until Director initiates. No actual output or lock claimed. No automatic semantic alignment for partial clips, no inferred actual voice timestamps. Final EP004 release QA remains separate.
+
+## Production result
+Deployment `57b2bdf3-6ae6-45ac-a335-3ad6774ae3f5` SUCCESS 2026-11-27 15:31:29 UTC at exact configured source `79219f44f2aa274f17aa78e88eaa5f6cce9bc722`. Frontend 122/122 PASS; Maven 622 passed, one skipped, zero failures/errors. DirectReelExtractorTest 3/3 and isolated EpisodeReelPostgresTest 1/1 PASS. Flyway V133 applied in production and health check passed; backend, worker, Postgres online. Director UI review and real EP004 extraction/storage acceptance pending. No new services or creative generation.
