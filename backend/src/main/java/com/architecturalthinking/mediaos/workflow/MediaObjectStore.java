@@ -291,6 +291,14 @@ public final class MediaObjectStore implements AutoCloseable {
 
     /** Large continuous films use verified multipart S3 upload with bounded 16 MiB memory. */
     public Stored uploadFilmVerified(UUID filmId,Path file) {
+        return uploadBoundedMovie(filmId,file,"director-locked-film",MAX_FILM_BYTES);
+    }
+
+    public Stored uploadReelVerified(UUID reelId,Path file) {
+        return uploadBoundedMovie(reelId,file,"director-reel-review",DirectReelExtractor.MAX_BYTES);
+    }
+
+    private Stored uploadBoundedMovie(UUID filmId,Path file,String retention,long maxBytes) {
         requireWritable();
         String key=videoKey(filmId);
         requireSafeVideoKey(key);
@@ -299,9 +307,9 @@ public final class MediaObjectStore implements AutoCloseable {
         String uploadId=null;boolean uploaded=false;
         try{
             long length=Files.size(file);
-            if(length<1024||length>MAX_FILM_BYTES)
+            if(length<1024||length>maxBytes)
                 throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Full film exceeds the 4 GiB bounded MP4 artifact limit.");
+                    "MP4 exceeds its bounded artifact limit.");
             try(InputStream in=Files.newInputStream(file)){
                 byte[] header=in.readNBytes(12);
                 if(header.length!=12||header[4]!='f'||header[5]!='t'
@@ -310,7 +318,7 @@ public final class MediaObjectStore implements AutoCloseable {
             }
             String hash=sha256(file);
             Map<String,String> metadata=Map.of("sha256",hash,"owner","mediaos-video",
-                    "retention","director-locked-film");
+                    "retention",retention);
             uploadId=client.createMultipartUpload(CreateMultipartUploadRequest.builder()
                 .bucket(bucket).key(key).contentType("video/mp4")
                 .metadata(metadata).build()).uploadId();
