@@ -131,16 +131,27 @@ public class EpisodePublishingStudioService {
         if(!nonemptyAsset(map.get("THUMBNAIL_ASSET")))blockers.add("Actual thumbnail image is missing.");
         String description=assembled(map);
         if(description.length()>5000)blockers.add("Combined YouTube description exceeds 5000 characters.");
+        staleQa(map,blockers,"QA_AUDIO",List.of("AUDIO_DIRECTION"));
+        staleQa(map,blockers,"QA_EDITORIAL",List.of("TITLE","DESCRIPTION","SOURCES","CHAPTERS","DISCLAIMER"));
+        staleQa(map,blockers,"QA_RIGHTS",List.of("THUMBNAIL_ASSET","THUMBNAIL_DESIGN","SOURCES","DISCLAIMER"));
+        staleQa(map,blockers,"QA_CAPTIONS",List.of("TRANSCRIPT","SUBTITLES_SRT"));
         Item upload=map.get("QA_UPLOAD");
         if(upload!=null&&"PASS".equals(upload.state())&&
-            map.values().stream().anyMatch(x->METADATA.contains(x.fieldKey())&&later(x,upload)))
-            blockers.add("Private upload QA predates a metadata change.");
+            map.values().stream().anyMatch(x->(METADATA.contains(x.fieldKey())||
+                TECHNICAL_QA.contains(x.fieldKey())&&!x.fieldKey().equals("QA_UPLOAD"))&&later(x,upload)))
+            blockers.add("QA_UPLOAD: private upload QA predates a metadata or QA change.");
         boolean ready=blockers.isEmpty();
         Item release=map.get("QA_RELEASE");
         boolean releaseRecorded=ready&&release!=null&&"PASS".equals(release.state())
             &&master.sha256().equals(release.masterSha256())
             &&map.values().stream().noneMatch(x->!x.fieldKey().equals("QA_RELEASE")&&later(x,release));
         return new Studio(packageId,episode.key(),master,items,List.copyOf(blockers),ready,releaseRecorded,description);
+    }
+    private static void staleQa(Map<String,Item> map,List<String> blockers,String key,List<String> dependencies){
+        Item qa=map.get(key);
+        if(qa!=null&&"PASS".equals(qa.state())&&dependencies.stream()
+            .map(map::get).anyMatch(x->x!=null&&later(x,qa)))
+            blockers.add(key+": evidence predates a relevant metadata change");
     }
     private static boolean later(Item a,Item b){
         return a.recordedAt()!=null&&b.recordedAt()!=null&&a.recordedAt().isAfter(b.recordedAt());
@@ -188,8 +199,15 @@ public class EpisodePublishingStudioService {
         if(expected==null||expected!=old.revision())throw conflict("Publishing revision changed; refresh before saving.");
         if(old.revision()>=50)throw conflict("Publishing revision limit reached; preserve existing history.");
     }
+    private void requireMetadataCapacity(UUID id,String value){
+        long used=jdbc.sql("select coalesce(sum(octet_length(field_value)),0) from episode_publishing_revision where package_id=:id")
+            .param("id",id).query(Long.class).single();
+        if(used+value.getBytes(StandardCharsets.UTF_8).length>4L*1024*1024)
+            throw conflict("Episode publishing metadata retention limit reached.");
+    }
     private void insert(UUID id,String key,int revision,String value,String state,String origin,
                         Master master,Thumbnail thumb){
+        requireMetadataCapacity(id,value);
         jdbc.sql("""
             insert into episode_publishing_revision(package_id,field_key,revision,field_value,state,
                 origin,master_sha256,object_key,object_sha256,object_bytes,object_type)
@@ -222,7 +240,7 @@ public class EpisodePublishingStudioService {
                     throw conflict("Approve a synchronized SRT for this master first.");
                 if("QA_UPLOAD".equals(key)){
                     var s=snapshot(id,episode);
-                    if(s.blockers().stream().anyMatch(b->!b.startsWith("QA_UPLOAD:")&&!b.equals("Private upload QA predates a metadata change.")))
+                    if(s.blockers().stream().anyMatch(b->!b.startsWith("QA_UPLOAD:")))
                         throw conflict("Resolve all other metadata and QA blockers before recording private upload QA.");
                 }
                 if("QA_RELEASE".equals(key)&&!snapshot(id,episode).readyForDirectorRelease())
@@ -242,17 +260,25 @@ public class EpisodePublishingStudioService {
             if(master==null||!master.complete())throw conflict("Complete current master required for approval.");
             if("THUMBNAIL_ASSET".equals(key)){
                 thumb=thumbnail(id,old.revision());
+                Item design=latest(id,"THUMBNAIL_DESIGN");
+                if(!approvedCurrent(design,master))throw conflict("Approve the current thumbnail design first.");
+                requireMatchingDesign(design,thumb.sha256());
                 store.downloadPublishingThumbnail(id,thumb.key(),thumb.sha256(),thumb.bytes(),thumb.type());
             }
             state="APPROVED";
         }else throw bad("Invalid publishing action.");
-        if(old.state().equals(state)&&old.value().equals(value)&&
+        if(!key.startsWith("QA_")&&old.state().equals(state)&&old.value().equals(value)&&
             java.util.Objects.equals(old.masterSha256(),master==null?null:master.sha256()))
             return snapshot(id,episode);
         insert(id,key,old.revision()+1,value,state,episode.actor().auditName(),master,thumb);
         return snapshot(id,episode);
     }
 
+    private static void requireMatchingDesign(Item design,String hash){
+        var expected=Pattern.compile("SHA-256 ([a-f0-9]{64})").matcher(design.value());
+        if(expected.find()&&!expected.group(1).equals(hash))
+            throw conflict("Image differs from the exact approved thumbnail design hash. Review and approve a new design revision first.");
+    }
     private static boolean approvedCurrent(Item x,Master m){
         return "APPROVED".equals(x.state())&&m.sha256().equals(x.masterSha256());
     }
@@ -265,6 +291,8 @@ public class EpisodePublishingStudioService {
         if(!confirm)throw conflict("Explicit Director thumbnail upload confirmation required.");
         String type=MediaObjectStore.publishingImageType(bytes);
         String hash=MediaObjectStore.sha256(bytes);
+        requireMatchingDesign(latest(id,"THUMBNAIL_DESIGN"),hash);
+        requireMetadataCapacity(id,"Verified image: "+hash);
         if(nonemptyAsset(old)&&hash.equals(old.objectSha256()))return snapshot(id,episode);
         // 10 distinct bounded image uploads per episode; approval revisions reuse the same object.
         long count=jdbc.sql("""
