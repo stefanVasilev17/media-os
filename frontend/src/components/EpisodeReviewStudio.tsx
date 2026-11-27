@@ -3,7 +3,7 @@ import {Check,Copy,FileText,Plus,RefreshCw,X} from 'lucide-react';
 import '../styles/episodeDistributionStudio.css';
 
 type Gate={name:string;status:string;detail:string};
-type Item={id:string;revision:number;kind:string;category:string;scope:string;classification:string;title:string;body:string;applicability:string;evidence:string;metric:string|null;value:number|null;currency:string|null;periodStart:string|null;periodEnd:string|null;state:string;masterSha256:string;contextSha256:string;actor:string;auditId:string;recordedAt:string};
+type Item={id:string;revision:number;kind:string;category:string;scope:string;classification:string;title:string;body:string;applicability:string;evidence:string;metric:string|null;value:number|null;currency:string|null;periodStart:string|null;periodEnd:string|null;state:string;masterSha256:string;contextSha256:string;contextSummary:string;actor:string;auditId:string;recordedAt:string};
 type Previous={episodeKey:string;packageId:string;item:Item};
 type View={episodeKey:string;masterSha256:string|null;contextSha256:string;gates:Gate[];blockers:string[];launchRecorded:boolean;launchDate:string|null;items:Item[];previous:Previous[]};
 type Draft={kind:string;category:string;scope:string;classification:string;title:string;body:string;applicability:string;evidence:string;metric:string;value:string;currency:string;periodStart:string;periodEnd:string};
@@ -12,7 +12,7 @@ const metrics=['VIEWS','IMPRESSIONS','CTR_PERCENT','AVD_SECONDS','AVERAGE_PERCEN
 const label=(s:string)=>s.toLowerCase().replaceAll('_',' ').replace(/^./,x=>x.toUpperCase());
 const sections=[{name:'What worked well',kind:'STRENGTH'},{name:'Problems & improvements',kind:'PROBLEM'},{name:'Lessons learned',kind:'LESSON'},{name:'Permanent production rules',kind:'RULE'},{name:'Next episode recommendations',kind:'RECOMMENDATION'},{name:'Post-release analytics',kind:'ANALYTICS'},{name:'Final review & Director approval',kind:'CONCLUSION'}];
 function blank(kind:string):Draft{return {kind,category:kind==='ANALYTICS'?'AUDIENCE':'PRODUCTION',scope:kind==='RULE'?'CHANNEL':'EPISODE',classification:kind==='RULE'?'PERMANENT_RULE':'OBSERVATION',title:'',body:'',applicability:'',evidence:'',metric:'VIEWS',value:'',currency:'',periodStart:'',periodEnd:''};}
-function fromItem(i:Item):Draft{return {...i,metric:i.metric??'VIEWS',value:i.value==null?'':String(i.value),currency:i.currency??'',periodStart:i.periodStart??'',periodEnd:i.periodEnd??''};}
+function fromItem(i:Item):Draft{return {kind:i.kind,category:i.category,scope:i.scope,classification:i.classification,title:i.title,body:i.body,applicability:i.applicability,evidence:i.evidence,metric:i.metric??'VIEWS',value:i.value==null?'':String(i.value),currency:i.currency??'',periodStart:i.periodStart??'',periodEnd:i.periodEnd??''};}
 async function read<T>(r:Response):Promise<T>{if(!r.ok)throw Error('Request failed ('+r.status+'). '+(await r.text()).slice(0,350));if(!(r.headers.get('content-type')||'').includes('application/json'))throw Error('Sign in again to continue.');return r.json() as Promise<T>;}
 const message=(e:unknown)=>e instanceof Error?e.message:String(e);
 export function EpisodeReviewStudio({packageId}:{packageId:string}){
@@ -20,11 +20,11 @@ export function EpisodeReviewStudio({packageId}:{packageId:string}){
  const [data,setData]=useState<View|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [selected,setSelected]=useState<Item|null>(null),[draft,setDraft]=useState<Draft>(blank('LESSON')),[opened,setOpened]=useState(false),[editing,setEditing]=useState(false);
  const [history,setHistory]=useState<Item[]|null>(null),[category,setCategory]=useState(''),[previous,setPrevious]=useState<Previous[]>([]);
- const dialog=useRef<HTMLDialogElement>(null),seq=useRef(0),previousSeq=useRef(0),pending=useRef(false);
+ const dialog=useRef<HTMLDialogElement>(null),seq=useRef(0),previousSeq=useRef(0),pending=useRef(false),newId=useRef<string|null>(null);
  async function refresh(){const n=++seq.current;setBusy(true);setError('');try{const x=await read<View>(await fetch(root,{cache:'no-store'}));if(n===seq.current){setData(x);setPrevious(x.previous);setCategory('');}}catch(e){if(n===seq.current)setError(message(e));}finally{if(n===seq.current)setBusy(false);}}
  useEffect(()=>{void refresh();return()=>{seq.current++;previousSeq.current++;};},[root]);
  useEffect(()=>{if(opened&&!dialog.current?.open)dialog.current?.showModal();if(!opened&&dialog.current?.open)dialog.current.close();},[opened]);
- function open(i:Item|null,kind:string){setSelected(i);setDraft(i?fromItem(i):blank(kind));setHistory(null);setEditing(!i);setOpened(true);setError('');setNotice('');}
+ function open(i:Item|null,kind:string){newId.current=i?null:window.crypto.randomUUID();setSelected(i);setDraft(i?fromItem(i):blank(kind));setHistory(null);setEditing(!i);setOpened(true);setError('');setNotice('');}
  function close(){if(busy)return;if(editing&&!window.confirm('Discard unsaved review edits?'))return;setOpened(false);setEditing(false);setHistory(null);setError('');}
  function field<K extends keyof Draft>(key:K,value:Draft[K]){setDraft(d=>({...d,[key]:value}));}
  function stale(i:Item){return i.masterSha256!==data?.masterSha256||(i.kind==='CONCLUSION'&&i.contextSha256!==data?.contextSha256);}
@@ -37,24 +37,25 @@ export function EpisodeReviewStudio({packageId}:{packageId:string}){
   const body=action==='SAVE'?{...draft,metric:analytics?draft.metric:null,value:analytics&&draft.value.trim()!==''?Number(draft.value):null,currency:analytics&&draft.metric==='RPM'?draft.currency:null,periodStart:analytics?draft.periodStart||null:null,periodEnd:analytics?draft.periodEnd||null:null}:{};
   pending.current=true;setBusy(true);setError('');setNotice('');
   try{
-   const x=await read<View>(await fetch(root+'/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,id:selected?.id??null,expectedRevision:selected?.revision??0,action,confirm:true})}));
-   const next=selected?x.items.find(i=>i.id===selected.id):x.items.find(i=>!data.items.some(j=>j.id===i.id));
+   const x=await read<View>(await fetch(root+'/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,id:selected?.id??newId.current,expectedRevision:selected?.revision??0,action,confirm:true})}));
+   const next=selected?x.items.find(i=>i.id===selected.id):x.items.find(i=>i.id===newId.current);
    setData(x);setPrevious(x.previous);setCategory('');previousSeq.current++;
-   if(next){setSelected(next);setDraft(fromItem(next));setEditing(false);setHistory(null);}
+   if(next){newId.current=null;setSelected(next);setDraft(fromItem(next));setEditing(false);setHistory(null);}
    setNotice(action==='SAVE'?'Draft saved.':action==='APPROVE'?'Director approval recorded.':'Record retired.'); 
   }catch(e){setError(message(e));}finally{pending.current=false;setBusy(false);}
  }
  async function filter(next:string){setCategory(next);const n=++previousSeq.current;setPrevious([]);try{const x=await read<Previous[]>(await fetch(root+'/previous'+(next?'?category='+encodeURIComponent(next):''),{cache:'no-store'}));if(n===previousSeq.current)setPrevious(x);}catch(e){if(n===previousSeq.current)setError(message(e));}}
  async function versions(){if(!selected)return;setBusy(true);try{setHistory(await read<Item[]>(await fetch(root+'/items/'+selected.id+'/history',{cache:'no-store'})));}catch(e){setError(message(e));}finally{setBusy(false);}}
  async function copyPrevious(){try{await navigator.clipboard.writeText(previous.map(p=>'## '+p.episodeKey+' — '+p.item.title+'\n'+p.item.kind+' / '+p.item.classification+' / revision '+p.item.revision+'\n'+p.item.body+'\nApplicability: '+p.item.applicability+'\nEvidence: '+p.item.evidence+'\nMaster SHA-256: '+p.item.masterSha256).join('\n\n'));setNotice('Approved records copied. Existing canonical production rules remain binding.');}catch{setError('Clipboard unavailable.');}}
- function display(i:Item){return <><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{i.body}</p>{i.metric&&<p>{label(i.metric)}: {i.value??'See recorded breakdown'} {i.currency??''} · {i.periodStart} – {i.periodEnd}</p>}{i.applicability&&<p><strong>Applicability:</strong> {i.applicability}</p>}<details className="distribution-details"><summary>Evidence & source</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{i.evidence}</p><p>Revision {i.revision} · {i.recordedAt}</p><p style={{overflowWrap:'anywhere'}}>Master SHA-256: {i.masterSha256}</p><p style={{overflowWrap:'anywhere'}}>Audit: {i.auditId}</p></details></>;}
+ function display(i:Item){return <><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{i.body}</p>{i.metric&&<p>{label(i.metric)}: {i.value??'See recorded breakdown'} {i.currency??''} · {i.periodStart} – {i.periodEnd}</p>}{i.applicability&&<p><strong>Applicability:</strong> {i.applicability}</p>}<details className="distribution-details"><summary>Evidence & source</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{i.evidence}</p><p>Revision {i.revision} · {i.recordedAt}</p><p style={{overflowWrap:'anywhere'}}>Master SHA-256: {i.masterSha256}</p><p style={{overflowWrap:'anywhere'}}>Audit: {i.auditId}</p>{i.contextSummary&&<><strong>Recorded review context</strong><p style={{whiteSpace:'pre-wrap'}}>{i.contextSummary}</p></>}</details></>;}
  const currentConclusion=data?.items.find(i=>i.kind==='CONCLUSION'&&i.state==='APPROVED'&&!stale(i));
  return <section className="distribution-studio" aria-label="Review & Learning">
   <div className="director-minimal-section-head"><div><p className="director-minimal-eyebrow">Post-production · {data?.episodeKey??'Episode'}</p><h2>Review & Learning</h2></div><button type="button" className="publishing-text-button" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
   {error&&!opened&&<p role="alert" className="director-minimal-error">{error}</p>}{notice&&!opened&&<p role="status">{notice}</p>}
   {!data&&<p>{busy?'Opening review…':'Review not available.'}</p>}
   {data&&<>
-   <section className="distribution-section"><h3>Episode review</h3><div className="distribution-card">{data.gates.map(g=><div className="distribution-row" key={g.name} style={{padding:'10px 0'}}><div className="distribution-info"><strong>{g.name}</strong><p className="distribution-meta">{g.detail}</p></div><span className="distribution-state" data-state={g.status==='PASS'?'Approved':g.status==='FAIL'?'Blocked':'Pending'}>{g.status}</span></div>)}
+   <section className="distribution-section"><h3>Episode review</h3><div className="distribution-card">{data.gates.filter(g=>!g.name.startsWith('QA:')).map(g=><div className="distribution-row" key={g.name} style={{padding:'10px 0'}}><div className="distribution-info"><strong>{g.name}</strong><p className="distribution-meta">{g.detail}</p></div><span className="distribution-state" data-state={g.status==='PASS'?'Approved':g.status==='FAIL'?'Blocked':'Pending'}>{g.status}</span></div>)}
+    <details className="distribution-details"><summary>Publishing QA details</summary>{data.gates.filter(g=>g.name.startsWith('QA:')).map(g=><p key={g.name}><strong>{g.name}: {g.status}</strong> — {g.detail}</p>)}</details>
     <details className="distribution-details"><summary>Open checks & release blockers ({data.blockers.length})</summary>{data.blockers.length?data.blockers.map((b,i)=><p key={i}>{b}</p>):<p>No open checks reported by the connected modules.</p>}</details></div>
     {!data.masterSha256&&<p className="distribution-meta">Complete current Full Video before saving new review records. Previous approved conclusions remain available.</p>}
    </section>

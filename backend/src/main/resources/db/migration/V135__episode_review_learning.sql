@@ -18,6 +18,7 @@ create table episode_review_revision (
     state varchar(12) not null check(state in ('DRAFT','APPROVED','RETIRED')),
     master_sha256 varchar(64) not null check(master_sha256 ~ '^[a-f0-9]{64}$'),
     context_sha256 varchar(64) not null check(context_sha256 ~ '^[a-f0-9]{64}$'),
+    context_summary text not null check(octet_length(context_summary)<=32768),
     actor varchar(256) not null,
     audit_id uuid not null,
     recorded_at timestamptz not null default now(),

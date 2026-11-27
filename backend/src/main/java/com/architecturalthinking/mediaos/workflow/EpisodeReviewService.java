@@ -24,9 +24,9 @@ public class EpisodeReviewService {
     public record Gate(String name,String status,String detail){}
     public record Item(UUID id,int revision,String kind,String category,String scope,String classification,String title,String body,
         String applicability,String evidence,String metric,BigDecimal value,String currency,LocalDate periodStart,LocalDate periodEnd,
-        String state,String masterSha256,String contextSha256,String actor,UUID auditId,OffsetDateTime recordedAt){}
+        String state,String masterSha256,String contextSha256,String contextSummary,String actor,UUID auditId,OffsetDateTime recordedAt){}
     public record Previous(String episodeKey,UUID packageId,Item item){}
-    public record View(String episodeKey,String masterSha256,String contextSha256,List<Gate> gates,
+    public record View(String episodeKey,String masterSha256,String contextSha256,String contextSummary,List<Gate> gates,
         List<String> blockers,boolean launchRecorded,LocalDate launchDate,List<Item> items,List<Previous> previous){}
     public record Change(UUID id,Integer expectedRevision,String action,String kind,String category,String scope,String classification,
         String title,String body,String applicability,String evidence,String metric,BigDecimal value,String currency,
@@ -51,7 +51,7 @@ public class EpisodeReviewService {
             r.getString("scope"),r.getString("classification"),r.getString("title"),r.getString("body"),r.getString("applicability"),
             r.getString("evidence"),r.getString("metric"),r.getBigDecimal("value"),r.getString("currency"),
             r.getObject("period_start",LocalDate.class),r.getObject("period_end",LocalDate.class),r.getString("state"),
-            r.getString("master_sha256"),r.getString("context_sha256"),r.getString("actor"),r.getObject("audit_id",UUID.class),
+            r.getString("master_sha256"),r.getString("context_sha256"),r.getString("context_summary"),r.getString("actor"),r.getObject("audit_id",UUID.class),
             r.getObject("recorded_at",OffsetDateTime.class));
     }
     private List<Item> items(UUID id){
@@ -97,18 +97,30 @@ public class EpisodeReviewService {
         long published=d.items().stream().filter(x->"PUBLISHED".equals(x.state())).count();
         boolean launched=d.launch().videoUrl()!=null&&d.launch().launchDate()!=null;
         var gates=new ArrayList<Gate>();
-        gates.add(new Gate("Full Video",sha==null?"PENDING":"PASS",sha==null?"Current exact locked sequence is not available.":"Current master lineage matches locked SHOTs; playback QA is separate."));
+        gates.add(new Gate("Full Video lineage",sha==null?"PENDING":"PASS",sha==null?"Current exact locked sequence is not available.":"Current master lineage matches locked SHOTs; playback QA is separate."));
         gates.add(new Gate("Publishing",p.readyForDirectorRelease()?"PASS":"PENDING",p.readyForDirectorRelease()?"Publishing checks recorded for current master.":p.blockers().size()+" open publishing checks"));
         gates.add(new Gate("Reels",locked>=3?"PASS":"PENDING",locked+" current-master locked extracts; platform eligibility is separate. More qualifying extracts encouraged."));
         gates.add(new Gate("Distribution",mediumReady>0?"PASS":"PENDING",articles+" article drafts/records; "+published+" recorded publications; "+mediumReady+" cleared Medium articles."));
-        gates.add(new Gate("Public release",launched?"PASS":"PENDING",launched?"Director-recorded public URL; external availability not independently verified.":"No actual public URL recorded."));
+        gates.add(new Gate("Public launch record",launched?"PASS":"PENDING",launched?"Director-recorded public URL; external availability not independently verified.":"No actual public URL recorded."));
         List<String> blockers=new ArrayList<>(p.blockers());blockers.addAll(d.blockers());
         if(locked<3)blockers.add("At least three current-master locked direct Reel extracts are required.");
         if(!p.releaseRecorded())blockers.add("Director release authorization not recorded.");
-        String context=digest(Objects.toString(sha,"")+"|"+p.items().stream().map(x->x.fieldKey()+":"+x.revision()+":"+x.state()).toList()
+        for(var q:p.items()){
+            if(!q.fieldKey().startsWith("QA_"))continue;
+            boolean current=sha!=null&&sha.equals(q.masterSha256())&&
+                p.blockers().stream().noneMatch(b->b.startsWith(q.fieldKey()+":"));
+            String state="PASS".equals(q.state())&&current&&(!"QA_RELEASE".equals(q.fieldKey())||p.releaseRecorded())?"PASS":
+                "FAIL".equals(q.state())&&sha!=null&&sha.equals(q.masterSha256())?"FAIL":"PENDING";
+            gates.add(new Gate(q.fieldKey().replace("QA_","QA: "),state,
+                q.revision()==0?"Not recorded.":q.state()+" recorded in Publishing revision "+q.revision()+
+                    ("PASS".equals(q.state())&&!"PASS".equals(state)?" — requires current review.":"")));
+        }
+        String contextSummary=String.join("\n",gates.stream().map(g->g.name()+": "+g.status()+" — "+g.detail()).toList())
+            +"\nOpen checks:\n"+String.join("\n",blockers);
+        String context=digest(contextSummary+"|"+Objects.toString(sha,"")+"|"+p.items().stream().map(x->x.fieldKey()+":"+x.revision()+":"+x.state()).toList()
             +"|"+r.reels().stream().map(x->x.id()+":"+x.state()).sorted().toList()
             +"|"+d.items().stream().map(x->x.id()+":"+x.revision()+":"+x.state()).sorted().toList()+"|"+d.launch().revision());
-        return new View(o.episodeKey(),sha,context,List.copyOf(gates),List.copyOf(blockers),launched,d.launch().launchDate(),items(id),previous(id,o,null));
+        return new View(o.episodeKey(),sha,context,contextSummary,List.copyOf(gates),List.copyOf(blockers),launched,d.launch().launchDate(),items(id),previous(id,o,null));
     }
     @Transactional(readOnly=true) public View get(UUID id){return snapshot(id,owner(id,false));}
     static void validateAnalytics(Change c,LocalDate launch){
@@ -148,14 +160,18 @@ public class EpisodeReviewService {
         Owner o=owner(id,true);View view=snapshot(id,o);
         if(c==null||audit==null||!Boolean.TRUE.equals(c.confirm())||c.expectedRevision()==null)throw conflict("Audited Director confirmation and expected revision are required.");
         if(view.masterSha256()==null)throw conflict("Complete the current Full Video before recording episode conclusions.");
-        Item old=c.id()==null?null:view.items().stream().filter(x->x.id().equals(c.id())).findFirst().orElseThrow(()->bad("Unknown review record."));
+        Item old=c.id()==null?null:view.items().stream().filter(x->x.id().equals(c.id())).findFirst().orElse(null);
+        if(old==null&&(!"SAVE".equals(c.action())||c.expectedRevision()!=0||c.id()==null))throw bad("New review records require a stable client UUID and revision zero.");
         int rev=old==null?0:old.revision();
         if(c.expectedRevision()!=rev||rev>=100)throw conflict("Review revision changed or history limit reached. Refresh.");
         if(old==null&&view.items().size()>=200)throw conflict("Episode review record capacity reached.");
         String action=Objects.toString(c.action(),"");
         String state;
         Change draft=c;
-        if("SAVE".equals(action)){validateDraft(c,view);state="DRAFT";}
+        if("SAVE".equals(action)){
+            if(old!=null&&!old.kind().equals(c.kind()))throw bad("Review record kind cannot change.");
+            validateDraft(c,view);state="DRAFT";
+        }
         else if(Set.of("APPROVE","RETIRE").contains(action)){
             if(old==null||("APPROVE".equals(action)&&!"DRAFT".equals(old.state()))||("RETIRE".equals(action)&&"RETIRED".equals(old.state())))
                 throw conflict("Select a current draft to approve or an active record to retire.");
@@ -167,14 +183,14 @@ public class EpisodeReviewService {
             if("APPROVE".equals(action))validateDraft(draft,view);
             state="APPROVE".equals(action)?"APPROVED":"RETIRED";
         }else throw bad("Unknown review action.");
-        if(jdbc.sql("select coalesce(sum(octet_length(body)+octet_length(evidence)+octet_length(applicability)+octet_length(title)),0) from episode_review_revision where package_id=:id")
-            .param("id",id).query(Long.class).single()+32000L>4L*1024*1024)throw conflict("Episode review history byte budget reached.");
+        if(jdbc.sql("select coalesce(sum(octet_length(body)+octet_length(evidence)+octet_length(applicability)+octet_length(title)+octet_length(context_summary)),0) from episode_review_revision where package_id=:id")
+            .param("id",id).query(Long.class).single()+64000L>4L*1024*1024)throw conflict("Episode review history byte budget reached.");
         jdbc.sql("""
           insert into episode_review_revision(package_id,item_id,revision,kind,category,scope,classification,title,body,applicability,evidence,
-             metric,value,currency,period_start,period_end,state,master_sha256,context_sha256,actor,audit_id)
+             metric,value,currency,period_start,period_end,state,master_sha256,context_sha256,context_summary,actor,audit_id)
           values(:package,:item,:rev,:kind,:category,:scope,:class,:title,:body,:applicability,:evidence,
-             :metric,:value,:currency,:start,:end,:state,:sha,:context,:actor,:audit)
-          """).param("package",id).param("item",old==null?UUID.randomUUID():old.id()).param("rev",rev+1)
+             :metric,:value,:currency,:start,:end,:state,:sha,:context,:summary,:actor,:audit)
+          """).param("package",id).param("item",old==null?c.id():old.id()).param("rev",rev+1)
             .param("kind",draft.kind()).param("category",draft.category()).param("scope",draft.scope()).param("class",draft.classification())
             .param("title",field(draft.title(),200,800,true)).param("body",field(draft.body(),8000,16384,true))
             .param("applicability",field(draft.applicability(),2000,4096,false)).param("evidence",field(draft.evidence(),4000,8192,true))
@@ -182,6 +198,7 @@ public class EpisodeReviewService {
             .param("start",draft.periodStart()).param("end",draft.periodEnd()).param("state",state)
             .param("sha","RETIRE".equals(action)?old.masterSha256():view.masterSha256())
             .param("context","RETIRE".equals(action)?old.contextSha256():view.contextSha256())
+            .param("summary","RETIRE".equals(action)?old.contextSummary():("CONCLUSION".equals(draft.kind())?field(view.contextSummary(),16000,32768,true):""))
             .param("actor",o.actor().auditName()).param("audit",audit).update();
         return snapshot(id,o);
     }
