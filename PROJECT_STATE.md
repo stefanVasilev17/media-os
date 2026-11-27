@@ -1,5 +1,13 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Director feedback: Publishing Studio V2 UX correction deployed
+
+Director rejected the first Publishing tab as chaotic and difficult to understand. Replaced the nested 21-field menu with a full-width, content-first five-step page: title and thumbnail; assembled description; tags and pinned comment; captions and upload settings; final review. Ready content first, direct Copy/Download, modal edit only on request, expandable checklist and technical details. Hide SHOT sidebar only in Publishing; simple Shots / Full Video / Publishing navigation. Preserve revision history, authenticated actions, evidence and release blockers; no backend/data or media changes. Exact grouping/modal interaction is Executor design pending Director review.
+
+Production backend exact pin `ea9227be314b92c289b8126cbaf75ace22c44c84`, deployment `74b005d2-0b9f-4796-b8c0-255b805b927a` SUCCESS at 14:54:28 UTC. Frontend 120/120 tests PASS, production build PASS; Maven 619 tests, zero failures/errors, one skipped, isolated PostgreSQL verification PASS; source pin and health check PASS, schema V132 unchanged, all three Railway services online. No new render, TTS, storage/infrastructure, or public publication. Authenticated browser visual review remains pending; not Director-LOCKED. See `docs/publishing/AT_PUBLISHING_STUDIO_V1_IMPLEMENTATION.md`.
+
+---
+
 ## 2026-11-27 — Phase 1 Publishing Studio V1 deployed to production
 
 Director requested working Phase 1 (Publishing Studio), not a design-only plan. Implemented in existing episode detail workspace, using existing Spring Boot, React, PostgreSQL and object storage. Exact production backend source `148f31ce6f697e5fe7de8a25d7be9e63b9527d8a`, Railway deployment `7c4ba11e-7c25-4ee8-9f55-c221673e4f94` SUCCESS at 14:35:09 UTC, source pin PASS, health check passed, Flyway production V131 -> V132 successfully applied and 132 migrations validated. Frontend 117/117 tests and production build PASS; publishing Java unit tests (6), route test (1) and isolated PostgreSQL integration test (1) PASS. Backend/worker/Postgres online, no issues reported; existing worker unchanged. No new services, paid renders, TTS, external posts or public video release.
