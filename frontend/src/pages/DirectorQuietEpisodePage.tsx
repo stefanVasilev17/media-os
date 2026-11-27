@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Check,ChevronRight,Film,Headphones,Play,RefreshCw,Save,Volume2} from 'lucide-react';
 import '../styles/directorQuietEpisode.css';
 import {EpisodePublishingStudio} from '../components/EpisodePublishingStudio';
+import {EpisodeReelsStudio} from '../components/EpisodeReelsStudio';
 
 type Shot={shotKey:string;title:string};
 type Episode={packageId:string;episodeKey:string;title:string;shots:Shot[]};
@@ -54,7 +55,7 @@ const lockedVideoUrl=(renderId:string)=>
 export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
   const [episode,setEpisode]=useState<Episode|null>(null);
   const [activeShot,setActiveShot]=useState('SHOT01');
-  const [tab,setTab]=useState<'SHOT'|'FULL'|'PUBLISHING'>('SHOT');
+  const [tab,setTab]=useState<'SHOT'|'FULL'|'PUBLISHING'|'REELS'>('SHOT');
   const [voice,setVoice]=useState<Voice|null>(null);
   const [script,setScript]=useState('');
   const [direction,setDirection]=useState('');
@@ -351,11 +352,12 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
           {archived?'Finished episode':(film?.locks.length??0)+' / '+episode.shots.length+' locked'}
         </span>
       </header>
-      <div className={'director-minimal-body'+(tab==='PUBLISHING'?' director-publishing-body':'')}>
-        {tab==='PUBLISHING'&&<nav className="publishing-episode-nav" aria-label="Episode workspace">
+      <div className={'director-minimal-body'+((tab==='PUBLISHING'||tab==='REELS')?' director-publishing-body':'')}>
+        {(tab==='PUBLISHING'||tab==='REELS')&&<nav className="publishing-episode-nav" aria-label="Episode workspace">
           <button type="button" className="director-minimal-subtle" onClick={()=>setTab('SHOT')}>Shots</button>
           <button type="button" className="director-minimal-subtle" onClick={()=>{setTab('FULL');void refreshFilm().catch(e=>setError(errorText(e)));}}><Film size={16}/> Full Video</button>
-          <span aria-current="page">Publishing</span>
+          {tab==='PUBLISHING'?<span aria-current="page">Publishing</span>:<button type="button" className="director-minimal-subtle" onClick={()=>setTab('PUBLISHING')}>Publishing</button>}
+          {tab==='REELS'?<span aria-current="page">Reels</span>:<button type="button" className="director-minimal-subtle" onClick={()=>setTab('REELS')}>Reels</button>}
         </nav>}
         <aside className="director-minimal-sidebar" aria-label="Choose SHOT">
           <p className="director-minimal-eyebrow">Shots</p>
@@ -383,11 +385,13 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
           <button type="button" className={'director-minimal-full'+(tab==='PUBLISHING'?' selected':'')}
             aria-current={tab==='PUBLISHING'?'page':undefined}
             onClick={()=>{if(editing&&!window.confirm('Discard unsaved script edits?'))return;setTab('PUBLISHING');}}>Publishing</button>
+          <button type="button" className={'director-minimal-full'+(tab==='REELS'?' selected':'')} aria-current={tab==='REELS'?'page':undefined}
+            onClick={()=>{if(editing&&!window.confirm('Discard unsaved script edits?'))return;setTab('REELS');}}>Reels</button>
         </aside>
         <div className="director-minimal-main">
-          {tab!=='PUBLISHING'&&error&&<p className="director-minimal-error" role="alert">{error}</p>}
-          {tab!=='PUBLISHING'&&notice&&<p className="director-minimal-success" role="status">{notice}</p>}
-          {tab==='PUBLISHING'?<EpisodePublishingStudio key={packageId} packageId={packageId}/>:tab==='FULL'?<section className="director-minimal-panel">
+          {tab!=='PUBLISHING'&&tab!=='REELS'&&error&&<p className="director-minimal-error" role="alert">{error}</p>}
+          {tab!=='PUBLISHING'&&tab!=='REELS'&&notice&&<p className="director-minimal-success" role="status">{notice}</p>}
+          {tab==='REELS'?<EpisodeReelsStudio key={packageId} packageId={packageId}/>:tab==='PUBLISHING'?<EpisodePublishingStudio key={packageId} packageId={packageId}/>:tab==='FULL'?<section className="director-minimal-panel">
             <div className="director-minimal-section-head">
               <div><p className="director-minimal-eyebrow">Your finished shots</p>
                 <h2>Full Video</h2></div>
