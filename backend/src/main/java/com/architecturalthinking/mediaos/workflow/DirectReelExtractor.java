@@ -28,7 +28,8 @@ final class DirectReelExtractor {
             ||!Integer.toString(total).equals(input.get("nb_frames")))
             throw new IOException("Master does not match the verified 1080p30 frame clock.");
         Map<String,String> audio=probe(source,"a:0",dir.resolve("input-audio.txt"),false);
-        if(!"aac".equals(audio.get("codec_name"))||!"48000".equals(audio.get("sample_rate")))
+        if(!"aac".equals(audio.get("codec_name"))||!"48000".equals(audio.get("sample_rate"))
+            ||!List.of("1","2").contains(audio.get("channels")))
             throw new IOException("Unsupported master audio clock.");
         int frames=end-first;
         // A copy is safe only when the boundary is both a video keyframe and an AAC packet boundary.
@@ -72,6 +73,7 @@ final class DirectReelExtractor {
         var match=java.util.regex.Pattern.compile("average:([0-9.]+|inf)").matcher(Files.readString(quality));
         if(!match.find()||(!"inf".equals(match.group(1))&&Double.parseDouble(match.group(1))<35))
             throw new IOException("Technical encoding visual comparison failed.");
+        verifyAudioContent(source,output,first,frames,dir);
         return "TECHNICAL_ENCODE";
     }
     static void verify(Path output,int frames,Map<String,String> originalAudio) throws IOException,InterruptedException{
@@ -117,6 +119,29 @@ final class DirectReelExtractor {
     private static void audioHash(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-ss",seconds(first),"-i",source.toString(),
             "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","hash","-hash","sha256","-y",target.toString()),
+            target.resolveSibling(target.getFileName()+".log"),90);
+    }
+    private static void verifyAudioContent(Path source,Path output,int first,int frames,Path dir) throws IOException,InterruptedException{
+        Path before=dir.resolve("source.pcm"),after=dir.resolve("output.pcm");
+        pcm(source,before,first,frames);pcm(output,after,0,frames);
+        long size=Files.size(before);
+        if(size<2||size>35L*1024*1024||Files.size(after)!=size||size%2!=0)
+            throw new IOException("Technical encoding changed the selected narration sample count.");
+        double reference=0,error=0;
+        try(var a=new java.io.BufferedInputStream(Files.newInputStream(before));
+            var b=new java.io.BufferedInputStream(Files.newInputStream(after))){
+            for(long i=0;i<size/2;i++){
+                int x=(short)(a.read()|(a.read()<<8)),y=(short)(b.read()|(b.read()<<8));
+                reference+=(double)x*x;double delta=x-y;error+=delta*delta;
+            }
+        }
+        // PCM waveform similarity: allow AAC quantization, reject displaced or substituted narration.
+        if(error>Math.max(reference*0.04,(size/2)*64.0))
+            throw new IOException("Technical encoding changed the original narration waveform.");
+    }
+    private static void pcm(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
+        run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-ss",seconds(first),"-i",source.toString(),
+            "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","s16le","-y",target.toString()),
             target.resolveSibling(target.getFileName()+".log"),90);
     }
     private static void run(List<String> args,Path log,int timeout) throws IOException,InterruptedException{
