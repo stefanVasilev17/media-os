@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Director launch-first editorial requirement AT-DIST-0001
+
+Director wants as many qualifying articles as possible from the outset to increase potential reach immediately upon YouTube launch. Mandatory one Medium article per episode is a floor; no arbitrary upper limit for additional substantive, distinct, platform-eligible articles. Prepare complete drafts alongside production, finish pre-launch editorial review and coordinate initial distribution at/near launch; stagger remaining material. Proposed planning target 3–5 distinct articles or more if justified, not a mandatory quota. EP004 five proposed distinct angles recorded in the Distribution Studio scope. No guaranteed reach or editorial placement; no duplicate spam, invented URLs or autonomous posting. Actual article drafts, author review, final factual checks, UI/backend implementation and external publication remain pending. No new deployment or paid work. Canonical: `docs/publishing/AT_DISTRIBUTION_EDITORIAL_STUDIO_V1_SCOPE.md`; AT-DIST-0001 added to AGENTS.md.
+
+---
+
 ## 2026-11-27 — Director requested Distribution & Editorial Studio V1 before development
 
 Director adds a separate episode tab for fully developed technical articles/posts/storytelling, community discussion and channel/video distribution. One complete Medium article for EVERY video is mandatory. Proposed scope and platform policy references: `docs/publishing/AT_DISTRIBUTION_EDITORIAL_STUDIO_V1_SCOPE.md`. Add to planned Reel Extraction Engine V1 scope, preserve AT-PUB-0001/0002, use existing stack, no automatic publication or fabricated engagement. Medium human review and disclosure, community-specific rules, human-only HN text and no generated DEV comments. Proposed optional platform mix, quantities, UI and schema not yet Director-LOCKED or implemented. No actual article/posts created by this documentation change, no runtime changes, paid calls, deployments or publications.
