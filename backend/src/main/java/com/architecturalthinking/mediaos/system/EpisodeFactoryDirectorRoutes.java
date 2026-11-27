@@ -4,6 +4,8 @@ final class EpisodeFactoryDirectorRoutes {
     static final String[] POST_PATHS = {
             "/api/v1/episode-packages/prepare-ep003",
             "/api/v1/episode-packages/import",
+            "/api/v1/episode-packages/{packageId}/publishing/items/{fieldKey}",
+            "/api/v1/episode-packages/{packageId}/publishing/thumbnail",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/generate",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/approve",
             "/api/v1/episode-packages/{packageId}/shots/SHOT01/render",
