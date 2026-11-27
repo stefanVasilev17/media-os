@@ -15,3 +15,7 @@ Synthetic 1080p30 non-keyframe FFmpeg extraction local check: 45 decoded frames,
 
 ## Production result
 Deployment `57b2bdf3-6ae6-45ac-a335-3ad6774ae3f5` SUCCESS 2026-11-27 15:31:29 UTC at exact configured source `79219f44f2aa274f17aa78e88eaa5f6cce9bc722`. Frontend 122/122 PASS; Maven 622 passed, one skipped, zero failures/errors. DirectReelExtractorTest 3/3 and isolated EpisodeReelPostgresTest 1/1 PASS. Flyway V133 applied in production and health check passed; backend, worker, Postgres online. Director UI review and real EP004 extraction/storage acceptance pending. No new services or creative generation.
+
+## Director acceptance — LOCKED
+
+2026-11-27 — Director explicitly approved and LOCKED Phase 2 Reel Extraction Engine V1 in conversation: “да, Локваме!”. Accepted deployed UI and module scope, including simple content-first workflow, direct original Full Video extraction and minimum three qualifying reels with more encouraged. This is a module approval, not an actual EP004 clip lock, verified live extraction or publishing authorization. Actual extracted MP4s, storage roundtrip, individual editorial review and platform-format approval remain separate. No runtime change or deployment. Next phase: Distribution & Editorial Studio, governed by AT-DIST-0001/0002 and accepted minimal UI principles.
