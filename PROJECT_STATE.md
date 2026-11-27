@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Director correction: AT-PUB-0002 zero-development Shorts/Reels
+
+The Director expressly rejected separate Reel development: "За reels сме се разбрали БЕЗ допълнителна разработка! Директно се 'Откъсват' shots от full video." Permanent TOP PRIORITY AT-PUB-0002 in AGENTS.md and canonical TIER++ publishing standard supersedes older vertical recomposition and separate visual production requirements. Plan at least three standalone extractable moments in the original episode; directly trim complete SHOTs or continuous standalone portions from the approved Full Video, preserving actual visual composition and original voice/audio. No new Remotion compositions, 9:16 redesign, camera/object changes, new voice, music/SFX, separate visual render or AI generation. Only deterministic extraction/export; platform-format issues must be flagged, and simple non-creative packaging requires Director approval if needed. No silent cropping. EP004 targets remain SHOT07, SHOT10, SHOT13; actual extract ranges, files and platform eligibility not yet verified. No changes to locked media, code, runtime or deployment; documentation only.
+
+---
+
 ## 2026-11-27 — EP004 Director-approved publishing package / AT-PUB-0001 mandatory conclusions review
 
 Director approved EP004 TIER++ Publishing Package V1 and explicitly requires its conclusions to be written into permanent rules and reviewed after every completed video. Canonical standard and complete approved editorial package: `docs/publishing/AT_TIER_PLUS_PLUS_PUBLISHING_AND_POST_PRODUCTION_REVIEW_V1.md`; mandatory top-priority startup reference AT-PUB-0001 in AGENTS.md. Title LOCKED: Why Microsoft 365 Went Down — And Why Failover Made It Worse. Thumbnail design LOCKED: THE FAILOVER TRAP, approved wordmark and composition; image binary not archived by this documentation change, Microsoft logo usage requires separate rights review. Voice-only narration approved: no music/SFX, audio mastering only if necessary. Description, SEO, chapters derived from exact frame counts, technical references, editorial disclaimer, pinned comment, caption standard and upload configuration approved as editorial package.
