@@ -57,15 +57,15 @@ export function EpisodeReelsStudio({packageId}:{packageId:string}){
   async function post(url:string,body:unknown,success:string){
     setBusy(true);setError('');setNotice('');requestId.current++;
     try{const view=await json<View>(await fetch(root+url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}));
-      setData(view);setNotice(success);}
-    catch(e){setError(e instanceof Error?e.message:String(e));}
+      setData(view);setNotice(success);return true;}
+    catch(e){setError(e instanceof Error?e.message:String(e));return false;}
     finally{setBusy(false);}
   }
   async function extract(s:Segment){
     if(!data?.master||busy)return;
     if(!window.confirm('Extract this exact interval from the original Full Video? This uses bounded FFmpeg CPU and private storage. No new animation, voice, or aspect-ratio change.'))return;
-    await post('/extract',{masterSha256:data.master.sha256,startFrame:s.startFrame,endFrame:s.endFrame,title:s.title,confirm:true},'Extraction requested. The ready clip will appear here.');
-    setCustom(false);
+    const accepted=await post('/extract',{masterSha256:data.master.sha256,startFrame:s.startFrame,endFrame:s.endFrame,title:s.title,confirm:true},'Extraction requested. The ready clip will appear here.');
+    if(accepted)setCustom(false);
   }
   async function lock(r:Reel){
     if(busy||!r.sha256)return;
@@ -83,7 +83,7 @@ export function EpisodeReelsStudio({packageId}:{packageId:string}){
   const current=data?.reels.filter(r=>r.filmId===master?.filmId)??[];
   const previous=data?.reels.filter(r=>r.filmId!==master?.filmId)??[];
   const locked=current.filter(r=>r.state==='LOCKED').length;
-  const available=data?.candidates.filter(c=>!current.some(r=>same(r,c)&&r.state!=='FAILED'))??[];
+  const available=data?.candidates.filter(c=>!current.some(r=>same(r,c)))??[];
   const recommended=available.filter(c=>c.recommended);
   const others=available.filter(c=>!c.recommended);
   const segment:Segment={title:title.trim(),startFrame:Math.round(Number(start)*30),endFrame:Math.round(Number(end)*30)};
@@ -96,7 +96,7 @@ export function EpisodeReelsStudio({packageId}:{packageId:string}){
         <div className="reels-actions"><button type="button" className="director-minimal-subtle" disabled={busy} onClick={()=>showSource(c)}><Play size={15}/> Preview</button>
           <button type="button" className="director-minimal-primary" disabled={busy} onClick={()=>void extract(c)}><Scissors size={15}/> Extract</button></div>
       </div>
-      {preview&&same(preview,c)&&master&&<><IntervalPlayer key={master.filmId+'-'+c.startFrame} master={master} segment={c}/>
+      {!custom&&preview&&same(preview,c)&&master&&<><IntervalPlayer key={master.filmId+'-'+c.startFrame} master={master} segment={c}/>
         <button type="button" className="publishing-text-button" onClick={()=>editRange(c)}>Adjust cut</button></>}
     </article>;
   }
@@ -106,7 +106,7 @@ export function EpisodeReelsStudio({packageId}:{packageId:string}){
         <div className="reels-actions">
           {r.videoUrl&&<button type="button" className="director-minimal-subtle" onClick={()=>showClip(r)}><Play size={15}/> Preview</button>}
           {r.state==='READY'&&!old&&<button type="button" className="director-minimal-primary" disabled={busy||playing!==r.id} onClick={()=>void lock(r)}><Check size={15}/> Lock</button>}
-          {r.state==='LOCKED'&&<a className="reels-download" href={r.videoUrl+'?download=true'}><Download size={15}/> Download</a>}
+          {r.state==='LOCKED'&&r.videoUrl&&<a className="reels-download" href={r.videoUrl+'?download=true'}><Download size={15}/> Download</a>}
           {r.state==='FAILED'&&!old&&<button type="button" className="director-minimal-subtle" disabled={busy} onClick={()=>void extract(r)}>Retry</button>}
         </div>
       </div>
