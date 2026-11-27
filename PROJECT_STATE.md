@@ -1,5 +1,11 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-27 — Director zero-follower distribution requirement AT-DIST-0002
+
+Director wants platforms that do not require personal followers. Prioritize existing technical audiences, tags/feeds/search/recommendations and editorial/community discovery; personal-network amplification secondary, not launch dependency. Medium/Hashnode/DEV and eligible Shorts first, Reddit conditional, selective DZone/InfoQ/newsletters and human-only HN. Current policy checks recorded in Distribution Studio scope, including Medium wider-distribution AI/traffic-first exclusions, DZone/InfoQ authorship requirements, InfoQ submission limits/exclusivity and paused The New Stack guest program. No guarantee of acceptance or reach; no autonomous posting. Mandatory Medium article and maximum qualifying pre-launch articles, direct-extract Reels, factual/rights QA unchanged. Proposed registry discovery fields, ranking and UI not implemented. Documentation only, no article submission, code changes, new service, paid work or deployment.
+
+---
+
 ## 2026-11-27 — Director launch-first editorial requirement AT-DIST-0001
 
 Director wants as many qualifying articles as possible from the outset to increase potential reach immediately upon YouTube launch. Mandatory one Medium article per episode is a floor; no arbitrary upper limit for additional substantive, distinct, platform-eligible articles. Prepare complete drafts alongside production, finish pre-launch editorial review and coordinate initial distribution at/near launch; stagger remaining material. Proposed planning target 3–5 distinct articles or more if justified, not a mandatory quota. EP004 five proposed distinct angles recorded in the Distribution Studio scope. No guaranteed reach or editorial placement; no duplicate spam, invented URLs or autonomous posting. Actual article drafts, author review, final factual checks, UI/backend implementation and external publication remain pending. No new deployment or paid work. Canonical: `docs/publishing/AT_DISTRIBUTION_EDITORIAL_STUDIO_V1_SCOPE.md`; AT-DIST-0001 added to AGENTS.md.
