@@ -132,7 +132,7 @@ public class EpisodeDistributionService {
         return snapshot(id,o);
     }
     static void validateKind(Platform p,String kind){
-        if(!Set.of("ARTICLE","POST","RESEARCH","DISCUSSION").contains(kind))throw bad("Unknown content type.");
+        if(kind==null||!Set.of("ARTICLE","POST","RESEARCH","DISCUSSION").contains(kind))throw bad("Unknown content type.");
         if(Set.of("HN","INFOQ","DZONE","NEWSLETTER","REDDIT").contains(p.key())&&!kind.equals("RESEARCH"))
             throw bad("This destination is research / human author support only in V1.");
         if(p.key().equals("DEV")&&!kind.equals("ARTICLE"))throw bad("DEV supports educational articles only here.");
@@ -146,9 +146,17 @@ public class EpisodeDistributionService {
         if(!qa||sha==null||!Objects.equals(old.masterSha256(),sha))throw conflict("Current master and Publishing editorial/rights QA must be complete.");
         if(old.kind().equals("ARTICLE")&&old.body().length()<1500)throw conflict("Complete article text is required.");
         if(old.body().isBlank()||old.sources().isBlank()||old.destination().isBlank())throw conflict("Complete text, sources and destination are required.");
-        if(old.body().contains("{{")||old.body().contains("[VIDEO_URL]"))throw conflict("Remove unresolved placeholders before approval.");
+        if(old.body().contains("{{")||old.body().contains("[VIDEO_URL]")||old.body().contains("author review pending")||old.body().contains("requires the author's own technical review")||old.body().contains("The author must independently understand, verify and revise"))throw conflict("Remove unresolved placeholders before approval.");
         if(p.key().equals("DEV")&&(old.body().toLowerCase(Locale.ROOT).contains("youtube.com")||old.body().toLowerCase(Locale.ROOT).contains("youtu.be")))throw conflict("Keep DEV educational and free of promotional video links.");
         if(bounded(c.evidence(),8000,16384,true).length()<20)throw conflict("Record meaningful factual, policy, rights and authorship evidence.");
+    }
+    private void requireHumanRevision(UUID id,Item old){
+        if(!platform(old.platform()).humanOnly())return;
+        boolean generated=jdbc.sql("""
+          select exists(select 1 from episode_distribution_revision where package_id=:id and item_id=:item
+            and actor='EXECUTOR_DRAFT_2026_11_27' and body=:body)
+          """).param("id",id).param("item",old.id()).param("body",old.body()).query(Boolean.class).single();
+        if(generated)throw conflict("Original generated draft cannot be approved for a human-authored route; save your own substantive text.");
     }
     @Transactional public View change(UUID id,Change c){
         Owner o=owner(id,true);
@@ -172,12 +180,12 @@ public class EpisodeDistributionService {
             platform=old.platform();kind=old.kind();title=old.title();body=old.body();sources=old.sources();assets=old.assets();dest=old.destination();day=old.launchDay();
             evidence=bounded(c.evidence(),8000,16384,true);
             switch(c.action()){
-                case "APPROVE" -> {requireReview(c,platform(platform),old,editorialQa(id,sha),sha);state="APPROVED";}
-                case "READY" -> {if(!"APPROVED".equals(old.state()))throw conflict("Approve the saved article or post first.");requireReview(c,platform(platform),old,editorialQa(id,sha),sha);state="READY_TO_PUBLISH";}
+                case "APPROVE" -> {requireReview(c,platform(platform),old,editorialQa(id,sha),sha);requireHumanRevision(id,old);state="APPROVED";}
+                case "READY" -> {if(!"APPROVED".equals(old.state()))throw conflict("Approve the saved article or post first.");requireReview(c,platform(platform),old,editorialQa(id,sha),sha);requireHumanRevision(id,old);state="READY_TO_PUBLISH";}
                 case "PUBLISH" -> {
                     if(!"READY_TO_PUBLISH".equals(old.state()))throw conflict("Record readiness before publication.");
                     requireReview(c,platform(platform),old,editorialQa(id,sha),sha);
-                    url=https(c.publishedUrl(),false);date=c.publishedOn();
+                    requireHumanRevision(id,old);url=https(c.publishedUrl(),false);date=c.publishedOn();
                     if(date==null||date.isAfter(LocalDate.now()))throw bad("Actual publication date required.");
                     state="PUBLISHED";
                 }
