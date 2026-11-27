@@ -455,6 +455,91 @@ public final class MediaObjectStore implements AutoCloseable {
         }
     }
 
+
+    public static final int MAX_THUMBNAIL_BYTES=2*1024*1024;
+    private static final String THUMBNAIL_PREFIX="mediaos/media/publishing/thumbnail/v1/";
+
+    static String publishingImageType(byte[] bytes){
+        if(bytes==null||bytes.length<12||bytes.length>MAX_THUMBNAIL_BYTES)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail must be a PNG/JPEG of at most 2 MiB.");
+        boolean png=bytes[0]==(byte)0x89&&bytes[1]=='P'&&bytes[2]=='N'&&bytes[3]=='G'
+            &&bytes[4]==13&&bytes[5]==10&&bytes[6]==26&&bytes[7]==10;
+        boolean jpeg=bytes[0]==(byte)0xff&&bytes[1]==(byte)0xd8&&bytes[2]==(byte)0xff;
+        if(!png&&!jpeg)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Only PNG and JPEG thumbnails are allowed.");
+        try(var stream=new javax.imageio.stream.MemoryCacheImageInputStream(new java.io.ByteArrayInputStream(bytes))){
+            var readers=javax.imageio.ImageIO.getImageReaders(stream);
+            if(!readers.hasNext())throw new IOException("No image reader.");
+            var reader=readers.next();
+            try{
+                reader.setInput(stream,true,true);
+                int width=reader.getWidth(0),height=reader.getHeight(0);
+                if(width<640||height<360||width>4096||height>4096||(long)width*height>12000000)
+                    throw new IOException("Thumbnail dimensions outside bounded limits.");
+                if(reader.read(0)==null)throw new IOException("Cannot decode thumbnail.");
+            }finally{reader.dispose();}
+        }catch(IOException|RuntimeException ex){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail cannot be decoded safely.",ex);
+        }
+        return png?"image/png":"image/jpeg";
+    }
+
+    static String publishingThumbnailKey(UUID packageId,String hash,String type){
+        if(packageId==null||hash==null||!hash.matches("[a-f0-9]{64}"))
+            throw new IllegalArgumentException("Invalid thumbnail identity.");
+        String suffix=switch(type){
+            case "image/png" -> ".png";
+            case "image/jpeg" -> ".jpg";
+            default -> throw new IllegalArgumentException("Invalid thumbnail type.");
+        };
+        return THUMBNAIL_PREFIX+packageId+"/"+hash+suffix;
+    }
+
+    public Stored uploadPublishingThumbnail(UUID packageId,byte[] bytes,String type){
+        requireWritable();
+        if(!publishingImageType(bytes).equals(type))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail image type mismatch.");
+        String hash=sha256(bytes),key=publishingThumbnailKey(packageId,hash,type);
+        try{
+            try{
+                downloadPublishingThumbnail(packageId,key,hash,bytes.length,type);
+                return new Stored(key,hash,bytes.length);
+            }catch(ResponseStatusException absent){
+                if(absent.getStatusCode()!=HttpStatus.NOT_FOUND)throw absent;
+            }
+            client.putObject(PutObjectRequest.builder().bucket(bucket).key(key).contentType(type)
+                .metadata(Map.of("sha256",hash,"owner","mediaos-publishing-thumbnail"))
+                .build(),RequestBody.fromBytes(bytes));
+            downloadPublishingThumbnail(packageId,key,hash,bytes.length,type);
+            return new Stored(key,hash,bytes.length);
+        }catch(S3Exception ex){
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Private thumbnail storage unavailable.",ex);
+        }
+    }
+
+    public byte[] downloadPublishingThumbnail(UUID packageId,String key,String hash,long bytes,String type){
+        if(!readable())throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Private thumbnail storage unavailable.");
+        if(!publishingThumbnailKey(packageId,hash,type).equals(key)||bytes<1||bytes>MAX_THUMBNAIL_BYTES)
+            throw new IllegalArgumentException("Invalid trusted thumbnail manifest.");
+        try{
+            var head=client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+            if(head.contentLength()!=bytes||!hash.equals(head.metadata().get("sha256"))
+                ||!"mediaos-publishing-thumbnail".equals(head.metadata().get("owner"))
+                ||!type.equals(head.contentType()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT,"Thumbnail manifest mismatch.");
+            try(InputStream input=client.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build())){
+                byte[] result=input.readNBytes((int)bytes+1);
+                if(result.length!=bytes||!hash.equals(sha256(result)))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,"Thumbnail SHA-256 mismatch.");
+                return result;
+            }
+        }catch(S3Exception ex){
+            if(ex.statusCode()==404)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Thumbnail object not found.",ex);
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Private thumbnail storage unavailable.",ex);
+        }catch(IOException ex){
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"Private thumbnail could not be read.",ex);
+        }
+    }
+
     @Override
     public void close() {
         if (client != null) client.close();
