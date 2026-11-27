@@ -41,6 +41,8 @@ final class DirectReelExtractor {
         Path sourceAudio=dir.resolve("source-audio.sha");
         audioHash(source,sourceAudio,first,frames);
         try{
+            if(!keyframeAt(source,first,dir.resolve("keyframes.txt")))
+                throw new IOException("Non-keyframe interval requires an independent technical encode.");
             run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror",
                 "-ss",seconds(first),"-i",source.toString(),"-t",seconds(frames),
                 "-map","0:v:0","-map","0:a:0","-c","copy","-movflags","+faststart",
@@ -120,6 +122,19 @@ final class DirectReelExtractor {
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-ss",seconds(first),"-i",source.toString(),
             "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","hash","-hash","sha256","-y",target.toString()),
             target.resolveSibling(target.getFileName()+".log"),90);
+    }
+    private static boolean keyframeAt(Path source,int first,Path log) throws IOException,InterruptedException{
+        // ffprobe seeks to an earlier keyframe. Require a keyframe on the requested frame,
+        // not an MP4 edit list that hides decoder preroll outside the requested interval.
+        run(List.of("ffprobe","-v","error","-select_streams","v:0","-skip_frame","nokey",
+            "-read_intervals",seconds(first)+"%+3","-show_frames","-show_entries","frame=best_effort_timestamp_time",
+            "-of","csv=p=0",source.toString()),log,30);
+        for(String line:Files.readAllLines(log)){
+            String time=line.split(",",2)[0].strip();
+            try{if(Math.abs(Double.parseDouble(time)-first/30.0)<0.00001)return true;}
+            catch(NumberFormatException ignored){}
+        }
+        return false;
     }
     private static void verifyAudioContent(Path source,Path output,int first,int frames,Path dir) throws IOException,InterruptedException{
         Path before=dir.resolve("source.pcm"),after=dir.resolve("output.pcm");
