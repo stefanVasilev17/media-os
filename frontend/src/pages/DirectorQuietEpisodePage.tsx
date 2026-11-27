@@ -351,7 +351,12 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
           {archived?'Finished episode':(film?.locks.length??0)+' / '+episode.shots.length+' locked'}
         </span>
       </header>
-      <div className="director-minimal-body">
+      <div className={'director-minimal-body'+(tab==='PUBLISHING'?' director-publishing-body':'')}>
+        {tab==='PUBLISHING'&&<nav className="publishing-episode-nav" aria-label="Episode workspace">
+          <button type="button" className="director-minimal-subtle" onClick={()=>setTab('SHOT')}>Shots</button>
+          <button type="button" className="director-minimal-subtle" onClick={()=>{setTab('FULL');void refreshFilm().catch(e=>setError(errorText(e)));}}><Film size={16}/> Full Video</button>
+          <span aria-current="page">Publishing</span>
+        </nav>}
         <aside className="director-minimal-sidebar" aria-label="Choose SHOT">
           <p className="director-minimal-eyebrow">Shots</p>
           {episode.shots.map((shot,index)=>{
@@ -380,8 +385,8 @@ export function DirectorQuietEpisodePage({packageId}:{packageId:string}){
             onClick={()=>{if(editing&&!window.confirm('Discard unsaved script edits?'))return;setTab('PUBLISHING');}}>Publishing</button>
         </aside>
         <div className="director-minimal-main">
-          {error&&<p className="director-minimal-error" role="alert">{error}</p>}
-          {notice&&<p className="director-minimal-success" role="status">{notice}</p>}
+          {tab!=='PUBLISHING'&&error&&<p className="director-minimal-error" role="alert">{error}</p>}
+          {tab!=='PUBLISHING'&&notice&&<p className="director-minimal-success" role="status">{notice}</p>}
           {tab==='PUBLISHING'?<EpisodePublishingStudio key={packageId} packageId={packageId}/>:tab==='FULL'?<section className="director-minimal-panel">
             <div className="director-minimal-section-head">
               <div><p className="director-minimal-eyebrow">Your finished shots</p>
