@@ -121,7 +121,7 @@ final class DirectReelExtractor {
         return Files.readAllLines(file).stream().filter(x->!x.startsWith("#")&&!x.isBlank())
             .map(x->x.substring(x.lastIndexOf(',')+1).strip()).toList();
     }
-    static void audioHash(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
+    private static void audioHash(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-ss",seconds(first),"-i",source.toString(),
             "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","hash","-hash","sha256","-y",target.toString()),
             target.resolveSibling(target.getFileName()+".log"),90);

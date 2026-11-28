@@ -11,6 +11,8 @@ final class EpisodeFactoryDirectorRoutes {
             "/api/v1/episode-packages/{packageId}/review/items",
             "/api/v1/episode-packages/{packageId}/reels/extract",
             "/api/v1/episode-packages/{packageId}/reels/{reelId}/lock",
+            "/api/v1/episode-packages/{packageId}/reels/{reelId}/vertical/package",
+            "/api/v1/episode-packages/{packageId}/reels/{reelId}/vertical/lock",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/generate",
             "/api/v1/episode-packages/{packageId}/shots/{shotKey}/voice/approve",
             "/api/v1/episode-packages/{packageId}/shots/SHOT01/render",

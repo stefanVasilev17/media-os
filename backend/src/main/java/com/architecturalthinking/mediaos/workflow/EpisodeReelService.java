@@ -128,7 +128,7 @@ public class EpisodeReelService {
         long reserved=jdbc.sql("""
           select coalesce(sum(case when state in ('QUEUED','RUNNING') then 134217728 else coalesce(byte_count,0) end),0)
           from episode_reel where package_id=:id
-          """).param("id",id).query(Long.class).single();
+          """).param("id",id).query(Long.class).single()+verticalReserved(id);
         var existing=jdbc.sql("""
             select state from episode_reel where package_id=:id and film_id=:film and start_frame=:first and end_frame=:end
             """).param("id",id).param("film",s.filmId()).param("first",request.startFrame())
@@ -262,6 +262,12 @@ public class EpisodeReelService {
              rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),rs.getString(5),rs.getString(6),rs.getLong(7)))
              .optional().orElseThrow(()->conflict("A locked reel from the current master is required."));
     }
+    private long verticalReserved(UUID id){
+        return jdbc.sql("""
+          select coalesce(sum(case when v.state in ('QUEUED','RUNNING') then 134217728 else coalesce(v.byte_count,0) end),0)
+          from episode_reel_vertical v join episode_reel r on r.id=v.reel_id where r.package_id=:id
+          """).param("id",id).query(Long.class).single();
+    }
     private List<Vertical> verticals(UUID id){
         return jdbc.sql("""
           select v.*,r.title from episode_reel_vertical v join episode_reel r on r.id=v.reel_id
@@ -283,9 +289,9 @@ public class EpisodeReelService {
         var existing=verticals(id).stream().filter(v->v.reelId().equals(reel)).findFirst();
         if(existing.isPresent()&&!"FAILED".equals(existing.get().state()))return verticals(id);
         long reserved=jdbc.sql("""
-          select coalesce(sum(case when v.state in ('QUEUED','RUNNING') then 134217728 else coalesce(v.byte_count,0) end),0)
-          from episode_reel_vertical v join episode_reel r on r.id=v.reel_id where r.package_id=:id
-          """).param("id",id).query(Long.class).single();
+          select coalesce(sum(case when state in ('QUEUED','RUNNING') then 134217728 else coalesce(byte_count,0) end),0)
+          from episode_reel where package_id=:id
+          """).param("id",id).query(Long.class).single()+verticalReserved(id);
         if(reserved+DirectReelExtractor.MAX_BYTES>MAX_RETAINED)throw conflict("Vertical reel storage budget reached.");
         jdbc.sql("""
           insert into episode_reel_vertical(reel_id,source_sha256,template_version,state,audit_id,actor)
