@@ -52,6 +52,13 @@ public class EpisodePublishingStudioController {
             .contentType(MediaType.parseMediaType(image.type()))
             .eTag("\""+image.sha256()+"\"").body(image.bytes());
     }
+    // Return the real scoped publishing error instead of dispatching to a separately protected /error route.
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String,String>> publishingError(ResponseStatusException ex){
+        String detail=ex.getReason()==null?"Publishing request rejected.":ex.getReason();
+        return ResponseEntity.status(ex.getStatusCode()).cacheControl(CacheControl.noStore())
+            .body(Map.of("error","PUBLISHING_REQUEST_REJECTED","message",detail));
+    }
     static void requirePreflight(HttpServletRequest request){
         Object attr=request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
         if(!(attr instanceof Map<?,?> data)||!(data.get("auditId") instanceof UUID))

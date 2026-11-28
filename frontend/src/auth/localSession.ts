@@ -90,3 +90,16 @@ export async function logoutLocal() {
   const response = await fetch('/api/v1/auth/logout', { method: 'POST' });
   if (!response.ok) throw new Error('Could not sign out securely.');
 }
+
+/** Fetch fresh same-origin CSRF before each confirmed mutation; never retry a write automatically. */
+export async function directorMutation(path:string,init:RequestInit):Promise<Response>{
+  if(!path.startsWith('/api/v1/')||path.includes('\\')||!['POST','PUT','PATCH','DELETE'].includes((init.method??'GET').toUpperCase()))
+    throw new Error('Invalid Director mutation.');
+  const url=new URL(path,window.location.origin);
+  if(url.origin!==window.location.origin||!url.pathname.startsWith('/api/v1/'))
+    throw new Error('Invalid Director mutation destination.');
+  const csrf=await ensureLocalCsrf();
+  const headers=new Headers(init.headers);
+  headers.set(csrf.header,csrf.token);
+  return fetch(path,{...init,headers,credentials:'same-origin'});
+}

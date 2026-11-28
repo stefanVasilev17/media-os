@@ -62,3 +62,10 @@ describe('Director feedback: quiet content-first publishing',()=>{
     expect(page).toContain('src={shotVideoUrl}');
   });
 });
+
+it('uses fresh audited-session CSRF for each publishing write including multipart thumbnail',()=>{
+  expect(studio).toContain("directorMutation(root+'/thumbnail',{method:'POST',body:form})");
+  expect(studio).toContain("directorMutation(root+'/items/'+encodeURIComponent(selected)");
+  expect(studio).toContain("form.append('expectedRevision',String(item.revision))");
+  expect(studio).toContain("form.append('confirm','true')");
+});

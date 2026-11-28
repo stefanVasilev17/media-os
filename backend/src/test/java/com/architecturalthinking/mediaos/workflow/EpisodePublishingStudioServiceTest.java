@@ -16,6 +16,12 @@ class EpisodePublishingStudioServiceTest {
     private static final EpisodePublishingStudioService.Master MASTER=
         new EpisodePublishingStudioService.Master(UUID.randomUUID(),"a".repeat(64),34651,15,true);
 
+    @Test void publishingErrorsPreserveRealStatusAndSafeReason(){
+        var controller=new EpisodePublishingStudioController(null);
+        var response=controller.publishingError(new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Thumbnail manifest mismatch."));
+        assertEquals(409,response.getStatusCode().value());
+        assertEquals("Thumbnail manifest mismatch.",response.getBody().get("message"));
+    }
     @Test void actualChapterClockAndMinimumSpacing(){
         assertDoesNotThrow(()->EpisodePublishingStudioService.validateChapters(
             "00:00 Intro\n01:07 Failover\n18:30 Conclusion",MASTER));

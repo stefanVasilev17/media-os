@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,Copy,Download,History,RefreshCw,Save,Upload,X,Pencil,Image} from 'lucide-react';
 import '../styles/episodePublishingStudio.css';
+import {directorMutation} from '../auth/localSession';
 
 type Item={fieldKey:string;revision:number;value:string;state:string;origin:string;
   masterSha256:string|null;recordedAt:string|null;objectSha256:string|null;
@@ -17,7 +18,12 @@ const sections=[
 const labels:Record<string,string>=Object.fromEntries(sections.flatMap(s=>s.fields));
 const errorText=(e:unknown)=>e instanceof Error?e.message:String(e);
 async function result<T>(r:Response):Promise<T>{
-  if(!r.ok)throw Error('HTTP '+r.status+': '+(await r.text()).slice(0,350));
+  if(!r.ok){
+    const raw=await r.text();let detail='';
+    try{const parsed=JSON.parse(raw) as {message?:unknown;error?:unknown};if(typeof parsed.message==='string')detail=parsed.message;else if(typeof parsed.error==='string')detail=parsed.error;}catch{if(raw&&!raw.startsWith('<'))detail=raw.slice(0,350);}
+    if(!detail)detail=r.status===403?'Director access denied. Reload the workspace and sign in again if needed.':r.status===401?'Director session expired. Sign in again.':'Publishing request failed.';
+    throw Error('HTTP '+r.status+': '+detail);
+  }
   if(!(r.headers.get('content-type')||'').includes('application/json'))
     throw Error('Your Director session may have expired. Reload the workspace and sign in.');
   return r.json() as Promise<T>;
@@ -96,7 +102,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
       :'Record this QA status?'))return;
     setBusy(true);setError('');setNotice('');
     try{
-      const next=await result<Studio>(await fetch(root+'/items/'+encodeURIComponent(selected),{
+      const next=await result<Studio>(await directorMutation(root+'/items/'+encodeURIComponent(selected),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({expectedRevision:item.revision,action,value:action==='APPROVE'?item.value:draft,confirm:needsConfirmation})
       }));
@@ -110,7 +116,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
     const form=new FormData();form.append('file',file);form.append('expectedRevision',String(item.revision));form.append('confirm','true');
     setBusy(true);setError('');setNotice('');
     try{
-      accept(await result<Studio>(await fetch(root+'/thumbnail',{method:'POST',body:form})),selected);
+      accept(await result<Studio>(await directorMutation(root+'/thumbnail',{method:'POST',body:form})),selected);
       setNotice('Thumbnail archived. Preview and approve the saved image revision.');
     }catch(e){setError(errorText(e));}finally{setBusy(false);}
   }

@@ -74,6 +74,11 @@ class LocalDirectorHttpLifecycleTest {
 
     @RestController
     public static class ProbeController {
+        @PostMapping(value="/api/v1/episode-packages/{packageId}/publishing/thumbnail",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+        public String thumbnailSecurityProbe(@org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file){
+            return "thumbnail-security-allowed:"+file.getSize();
+        }
+
         @PostMapping("/api/v1/episodes")
         public String permittedMutation() {
             return "allowed";
@@ -171,6 +176,29 @@ class LocalDirectorHttpLifecycleTest {
                 | (hash[offset + 3] & 255);
         Arrays.fill(secret, (byte) 0);
         return "%06d".formatted(value % 1_000_000);
+    }
+
+    @Test
+    void publishingMultipartRequiresDirectorSessionAndFreshCsrf() throws Exception {
+        Csrf token=csrf();
+        String path="/api/v1/episode-packages/"+UUID.randomUUID()+"/publishing/thumbnail";
+        var file=new org.springframework.mock.web.MockMultipartFile("file","thumb.png","image/png",new byte[]{1,2,3});
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(path).file(file)
+                .cookie(token.cookie()).header("X-XSRF-TOKEN",token.token()))
+                .andExpect(status().isUnauthorized());
+        MvcResult loggedIn=login(token,PASSWORD,currentCode());
+        assertEquals(200,loggedIn.getResponse().getStatus());
+        Cookie session=loggedIn.getResponse().getCookie("MEDIAOS_SESSION");
+        assertNotNull(session);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(path).file(file)
+                .cookie(session,token.cookie()))
+                .andExpect(status().isForbidden())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                    .string("X-MediaOS-Denial-Reason","CSRF_COOKIE_HEADER_MISMATCH"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(path).file(file)
+                .cookie(session,token.cookie()).header("X-XSRF-TOKEN",token.token()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("thumbnail-security-allowed:3"));
     }
 
     @Test

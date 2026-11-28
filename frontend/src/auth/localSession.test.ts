@@ -68,3 +68,35 @@ describe('MediaOS Director CSRF protection',()=>{
     expect(request.headers.get('X-XSRF-TOKEN')).toBe('existing-cookie-token');
   });
 });
+
+describe('Publishing authenticated mutations',()=>{
+  it('fetches a fresh token before multipart upload and preserves the exact file and browser boundary',async()=>{
+    vi.stubGlobal('window',{location:{origin:'https://mediaos.example'}});
+    const native=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({token:'fresh',header:'X-XSRF-TOKEN'})})
+      .mockResolvedValueOnce(new Response('{}',{status:200}));
+    vi.stubGlobal('fetch',native);
+    const {directorMutation}=await import('./localSession');
+    const form=new FormData();form.append('file',new Blob(['original-bytes'],{type:'image/png'}),'thumbnail.png');form.append('expectedRevision','0');form.append('confirm','true');
+    await directorMutation('/api/v1/episode-packages/test/publishing/thumbnail',{method:'POST',body:form});
+    expect(native).toHaveBeenCalledTimes(2);
+    expect(native.mock.calls[0][0]).toBe('/api/v1/auth/csrf');
+    const init=native.mock.calls[1][1] as RequestInit;
+    expect(new Headers(init.headers).get('X-XSRF-TOKEN')).toBe('fresh');
+    expect(new Headers(init.headers).has('Content-Type')).toBe(false);
+    expect(init.body).toBe(form);
+    expect(init.credentials).toBe('same-origin');
+  });
+  it('does not send a mutation when token retrieval fails or repeat a rejected write',async()=>{
+    vi.stubGlobal('window',{location:{origin:'https://mediaos.example'}});
+    const native=vi.fn().mockResolvedValueOnce({ok:false,status:403});
+    vi.stubGlobal('fetch',native);
+    const {directorMutation}=await import('./localSession');
+    const path='/api/v1/episode-packages/test/publishing/thumbnail';
+    await expect(directorMutation(path,{method:'POST',body:new FormData()})).rejects.toThrow('403');
+    expect(native).toHaveBeenCalledTimes(1);
+    native.mockResolvedValueOnce({ok:true,json:async()=>({token:'fresh',header:'X-XSRF-TOKEN'})})
+      .mockResolvedValueOnce(new Response('',{status:403}));
+    expect((await directorMutation(path,{method:'POST',body:new FormData()})).status).toBe(403);
+    expect(native).toHaveBeenCalledTimes(3);
+  });
+});

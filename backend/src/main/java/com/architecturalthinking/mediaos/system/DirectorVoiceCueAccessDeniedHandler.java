@@ -25,9 +25,10 @@ public final class DirectorVoiceCueAccessDeniedHandler implements AccessDeniedHa
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException denied) throws IOException, ServletException {
-        if (!"POST".equals(request.getMethod()) ||
-                !request.getRequestURI().matches(
-                    "^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$")) {
+        String path=request.getRequestURI();
+        boolean voice=path.matches("^/api/v1/creative/episodes/EP002/voice-cue-review/SHOT(0[1-9]|1[01])$");
+        boolean publishing=path.matches("^/api/v1/episode-packages/[0-9a-fA-F-]{36}/publishing/(thumbnail|items/[A-Z_]+)$");
+        if (!"POST".equals(request.getMethod()) || (!voice && !publishing)) {
             fallback.handle(request, response, denied);
             return;
         }
@@ -38,12 +39,15 @@ public final class DirectorVoiceCueAccessDeniedHandler implements AccessDeniedHa
                     : denied instanceof CsrfException
                         ? "CSRF_VALIDATION_REJECTED"
                         : "DIRECTOR_ACCESS_DENIED";
-        LOG.warn("EP002_DIRECTOR_VOICE_CUE_DENIED reason={} route={}", reason, request.getRequestURI());
+        LOG.warn("{} reason={} route={}", voice?"EP002_DIRECTOR_VOICE_CUE_DENIED":"PUBLISHING_DIRECTOR_DENIED", reason, path);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-MediaOS-Denial-Reason", reason);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        response.getWriter().write("{\"error\":\""+reason+"\",\"message\":\"Voice cue review denied by the security layer; no verification or render was performed.\"}");
+        String message=voice?"Voice cue review denied by the security layer; no verification or render was performed."
+                :reason.startsWith("CSRF")?"Secure request validation failed. Reload the workspace and try again. No publishing change was made."
+                :"Director access denied. No publishing change was made.";
+        response.getWriter().write("{\"error\":\""+reason+"\",\"message\":\""+message+"\"}");
     }
 }
