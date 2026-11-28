@@ -16,6 +16,7 @@ const sections=[
   {label:'Final QA',fields:[['QA_MASTER','Full Video playback'],['QA_AUDIO','Audio quality'],['QA_EDITORIAL','Editorial accuracy'],['QA_RIGHTS','Rights & trademark'],['QA_CAPTIONS','Caption synchronization'],['QA_UPLOAD','Private YouTube upload'],['QA_RELEASE','Director release approval']]}
 ];
 const labels:Record<string,string>=Object.fromEntries(sections.flatMap(s=>s.fields));
+const thumbnailExtension=(type:string|null)=>type==='image/webp'?'webp':type==='image/jpeg'?'jpg':'png';
 const errorText=(e:unknown)=>e instanceof Error?e.message:String(e);
 async function result<T>(r:Response):Promise<T>{
   if(!r.ok){
@@ -112,7 +113,7 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
   async function upload(){
     if(!item||!file||busy)return;
     if(file.size>2*1024*1024){setError('Thumbnail must be no larger than 2 MiB.');return;}
-    if(!window.confirm('Archive this exact PNG/JPEG in existing private storage? No image generation or video rendering.'))return;
+    if(!window.confirm('Archive this exact PNG/JPEG/WebP in existing private storage? No image generation or video rendering.'))return;
     const form=new FormData();form.append('file',file);form.append('expectedRevision',String(item.revision));form.append('confirm','true');
     setBusy(true);setError('');setNotice('');
     try{
@@ -182,8 +183,8 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
           </div>
           <div className="publishing-field"><div className="publishing-field-head"><strong>Thumbnail</strong>{status('THUMBNAIL_ASSET')}</div>
             {thumbnail?.thumbnailUrl?<img className="publishing-preview" src={thumbnail.thumbnailUrl} alt="Archived publishing thumbnail"/>:
-              <div className="publishing-image-placeholder"><Image size={28}/><strong>No image uploaded</strong><small>Use the approved PNG or JPEG</small></div>}
-            <div className="publishing-actions">{thumbnail?.thumbnailUrl&&<a className="publishing-copy" href={thumbnail.thumbnailUrl} download={data.episodeKey+'-thumbnail.'+(thumbnail.objectType==='image/jpeg'?'jpg':'png')}><Download size={15}/> Download</a>}{edit('THUMBNAIL_ASSET',thumbnail?.thumbnailUrl?'Manage image':'Upload image')}{edit('THUMBNAIL_DESIGN','Design')}</div>
+              <div className="publishing-image-placeholder"><Image size={28}/><strong>No image uploaded</strong><small>Use the approved PNG, JPEG or WebP</small></div>}
+            <div className="publishing-actions">{thumbnail?.thumbnailUrl&&<a className="publishing-copy" href={thumbnail.thumbnailUrl} download={data.episodeKey+'-thumbnail.'+thumbnailExtension(thumbnail.objectType)}><Download size={15}/> Download</a>}{edit('THUMBNAIL_ASSET',thumbnail?.thumbnailUrl?'Manage image':'Upload image')}{edit('THUMBNAIL_DESIGN','Design')}</div>
           </div>
         </div>
       </section>
@@ -237,9 +238,9 @@ export function EpisodePublishingStudio({packageId}:{packageId:string}){
           {notice&&<p role="status" className="director-minimal-success">{notice}</p>}
           {asset?<div className="publishing-asset">
             {item.thumbnailUrl?<><img src={item.thumbnailUrl} alt="Archived publishing thumbnail"/><p className="publishing-lineage">SHA-256: {item.objectSha256}</p>
-              <a className="director-minimal-subtle" href={item.thumbnailUrl} download={data.episodeKey+'-thumbnail.'+(item.objectType==='image/jpeg'?'jpg':'png')}><Download size={15}/> Download image</a></>
-              :<p className="director-minimal-muted">No thumbnail image uploaded yet. Upload the approved original PNG/JPEG. Image approval does not grant logo rights.</p>}
-            <label>Archive exact image <input type="file" accept="image/png,image/jpeg" disabled={busy} onChange={e=>setFile(e.currentTarget.files?.[0]??null)}/></label>
+              <a className="director-minimal-subtle" href={item.thumbnailUrl} download={data.episodeKey+'-thumbnail.'+thumbnailExtension(item.objectType)}><Download size={15}/> Download image</a></>
+              :<p className="director-minimal-muted">No thumbnail image uploaded yet. Upload the approved original PNG/JPEG/WebP. Image approval does not grant logo rights.</p>}
+            <label>Archive exact image <input type="file" accept="image/png,image/jpeg,image/webp,.webp" disabled={busy} onChange={e=>setFile(e.currentTarget.files?.[0]??null)}/></label>
             <button type="button" className="director-minimal-subtle" disabled={!file||busy} onClick={()=>void upload()}><Upload size={15}/> Upload image</button>
           </div>:<>
             {qa&&<p className="director-minimal-muted">Record the actual evidence, review method and conclusion. PASS is a Director attestation, not an automated technical test.</p>}

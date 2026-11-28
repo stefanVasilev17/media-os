@@ -1,5 +1,9 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-28 — EP004 exact WebP archival correction
+
+2026-11-28 EP004 thumbnail 409 exact cause verified: original Director-provided WebP is 929304 bytes, 1672x941, SHA-256 28654ed2519d21311f060c38d4b355fd3cbd73ee6b0aa317c5325e845964de15, exactly matching V132 approved design hash despite the mistaken PNG filename in seed prose. Converted PNG SHA-256 658e520d4e4fadcb9530aad4bede2dc448209cfcb6a07774fb43f2bc69087fc3, identical decoded RGBA pixels but different bytes. Preserve original WebP hash and every design revision. Support static original WebP using TwelveMonkeys ImageIO 3.15.3, RIFF and still-image checks, existing decoded dimensions/2 MiB limits, content-addressed private storage, correct MIME and download extension, V136 additive allowlist migration; no re-encoding, no hash bypass or rights approval. Original upload remains authenticated Director action. Previous 403 remediation deployment 38a35176-4697-4c8d-8599-144fcab24923 SUCCESS 13:20:41 UTC (133 frontend, 631 backend passed/1 skipped). New build/deployment and actual upload pending.
+
 ## 2026-11-28 — EP004 thumbnail upload correction candidate
 
 2026-11-28 EP004 thumbnail upload HTTP 403 (Railway proxy confirmed POST /publishing/thumbnail at 13:15:28 UTC). The empty response did not establish exact denial reason. Current correction uses fresh server-issued CSRF for Publishing mutations including native multipart file, preserves session/role/owner/revision/preflight checks and no auto retry; scoped publishing 403 diagnostics distinguish CSRF from Director access, controller returns actual status/reason for known publishing errors rather than protected error dispatch. PNG/JPEG and private object storage checks unchanged. Require real authenticated upload + readback + Director approval before asset LOCK. No public asset exposure, new service, storage or paid render. Build and deployment pending.

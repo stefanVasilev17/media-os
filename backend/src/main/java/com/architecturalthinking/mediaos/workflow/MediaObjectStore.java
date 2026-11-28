@@ -469,11 +469,14 @@ public final class MediaObjectStore implements AutoCloseable {
 
     static String publishingImageType(byte[] bytes){
         if(bytes==null||bytes.length<12||bytes.length>MAX_THUMBNAIL_BYTES)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail must be a PNG/JPEG of at most 2 MiB.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail must be a PNG/JPEG/WebP of at most 2 MiB.");
         boolean png=bytes[0]==(byte)0x89&&bytes[1]=='P'&&bytes[2]=='N'&&bytes[3]=='G'
             &&bytes[4]==13&&bytes[5]==10&&bytes[6]==26&&bytes[7]==10;
         boolean jpeg=bytes[0]==(byte)0xff&&bytes[1]==(byte)0xd8&&bytes[2]==(byte)0xff;
-        if(!png&&!jpeg)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Only PNG and JPEG thumbnails are allowed.");
+        boolean webp=bytes[0]=='R'&&bytes[1]=='I'&&bytes[2]=='F'&&bytes[3]=='F'
+            &&bytes[8]=='W'&&bytes[9]=='E'&&bytes[10]=='B'&&bytes[11]=='P';
+        if(!png&&!jpeg&&!webp)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Only PNG, JPEG and static WebP thumbnails are allowed.");
+        if(webp)validateStaticWebp(bytes);
         try(var stream=new javax.imageio.stream.MemoryCacheImageInputStream(new java.io.ByteArrayInputStream(bytes))){
             var readers=javax.imageio.ImageIO.getImageReaders(stream);
             if(!readers.hasNext())throw new IOException("No image reader.");
@@ -488,7 +491,34 @@ public final class MediaObjectStore implements AutoCloseable {
         }catch(IOException|RuntimeException ex){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Thumbnail cannot be decoded safely.",ex);
         }
-        return png?"image/png":"image/jpeg";
+        return png?"image/png":jpeg?"image/jpeg":"image/webp";
+    }
+
+    private static long littleEndian32(byte[] bytes,int offset){
+        return Integer.toUnsignedLong(java.nio.ByteBuffer.wrap(bytes,offset,4)
+            .order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt());
+    }
+
+    // Reject animation, malformed RIFF boundaries and multiple image payloads before decoding.
+    private static void validateStaticWebp(byte[] bytes){
+        if(littleEndian32(bytes,4)!=bytes.length-8L)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Malformed WebP container.");
+        int images=0,offset=12;
+        while(offset<bytes.length){
+            if(bytes.length-offset<8)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Malformed WebP chunk.");
+            String tag=new String(bytes,offset,4,java.nio.charset.StandardCharsets.US_ASCII);
+            long size=littleEndian32(bytes,offset+4),end=offset+8L+size+(size&1L);
+            if(end>bytes.length)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Malformed WebP chunk size.");
+            if(tag.equals("ANIM")||tag.equals("ANMF")||
+                (tag.equals("VP8X")&&(size!=10||(bytes[offset+8]&2)!=0)))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Animated or malformed WebP is not a thumbnail.");
+            if(tag.equals("VP8 ")||tag.equals("VP8L"))images++;
+            offset=(int)end;
+        }
+        if(images!=1)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"WebP must contain exactly one still image.");
     }
 
     static String publishingThumbnailKey(UUID packageId,String hash,String type){
@@ -497,6 +527,7 @@ public final class MediaObjectStore implements AutoCloseable {
         String suffix=switch(type){
             case "image/png" -> ".png";
             case "image/jpeg" -> ".jpg";
+            case "image/webp" -> ".webp";
             default -> throw new IllegalArgumentException("Invalid thumbnail type.");
         };
         return THUMBNAIL_PREFIX+packageId+"/"+hash+suffix;

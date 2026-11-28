@@ -72,6 +72,19 @@ class EpisodePublishingStudioServiceTest {
         assertThrows(IllegalArgumentException.class,()->MediaObjectStore.publishingThumbnailKey(id,"../../backup","image/png"));
         assertThrows(IllegalArgumentException.class,()->MediaObjectStore.publishingThumbnailKey(id,"a".repeat(64),"image/svg+xml"));
     }
+    @Test void staticWebpDecodesAndKeepsOriginalBytes(){
+        byte[] webp=java.util.Base64.getDecoder().decode("UklGRi4AAABXRUJQVlA4TCEAAAAvf8JZAAfQpWKUq/8BIUHi//FWIvqf8Z///Oc///nP/wsA");
+        byte[] original=webp.clone();
+        assertEquals("image/webp",MediaObjectStore.publishingImageType(webp));
+        assertArrayEquals(original,webp);
+        UUID id=UUID.randomUUID();
+        assertEquals("mediaos/media/publishing/thumbnail/v1/"+id+"/"+MediaObjectStore.sha256(webp)+".webp",
+            MediaObjectStore.publishingThumbnailKey(id,MediaObjectStore.sha256(webp),"image/webp"));
+        byte[] animated=webp.clone();
+        System.arraycopy(new byte[]{'A','N','I','M'},0,animated,12,4);
+        assertThrows(ResponseStatusException.class,()->MediaObjectStore.publishingImageType(animated));
+        assertThrows(ResponseStatusException.class,()->MediaObjectStore.publishingImageType(java.util.Arrays.copyOf(webp,webp.length-2)));
+    }
     @Test void combinedDescriptionUsesOnlySavedMetadata(){
         var item=new EpisodePublishingStudioService.Item("DESCRIPTION",1,"Opening","APPROVED","test",MASTER.sha256(),null,null,null,null,null);
         var chapter=new EpisodePublishingStudioService.Item("CHAPTERS",1,"00:00 Intro","APPROVED","test",MASTER.sha256(),null,null,null,null,null);

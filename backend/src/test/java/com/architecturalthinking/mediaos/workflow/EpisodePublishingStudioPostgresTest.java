@@ -59,6 +59,7 @@ class EpisodePublishingStudioPostgresTest {
             }
             sql.update("insert into episode_director_film values(?,?,?,?,?,?)",EP004,FILM,SHA,34651,15,String.join(",",renderIds));
             new ResourceDatabasePopulator(new ClassPathResource("db/migration/V132__episode_publishing_studio.sql")).execute(ds);
+            new ResourceDatabasePopulator(new ClassPathResource("db/migration/V136__publishing_thumbnail_webp.sql")).execute(ds);
             assertEquals(20,sql.queryForObject("select count(*) from episode_publishing_revision where package_id=?",Integer.class,EP004));
             assertEquals(0,sql.queryForObject("select count(*) from episode_publishing_revision where package_id=?",Integer.class,other));
             var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
@@ -101,6 +102,19 @@ class EpisodePublishingStudioPostgresTest {
                 assertFalse(masterQa.readyForDirectorRelease());
                 sql.update("update episode_director_film set sha256=? where package_id=?","b".repeat(64),EP004);
                 assertTrue(studio.get(EP004).blockers().contains("TITLE: master version changed"));
+                // The exact approved design hash still rejects a different file.
+                byte[] webp=java.util.Base64.getDecoder().decode("UklGRi4AAABXRUJQVlA4TCEAAAAvf8JZAAfQpWKUq/8BIUHi//FWIvqf8Z///Oc///nP/wsA");
+                var mismatch=assertThrows(ResponseStatusException.class,()->tx.execute(t->studio.uploadThumbnail(EP004,0,true,webp)));
+                assertTrue(mismatch.getReason().contains("exact approved thumbnail design hash"));
+                assertEquals(0,item(studio.get(EP004),"THUMBNAIL_ASSET").revision());
+                // Exercise the new DB constraint without altering the approved seed or production data.
+                String hash=MediaObjectStore.sha256(webp);
+                String key=MediaObjectStore.publishingThumbnailKey(other,hash,"image/webp");
+                sql.update("insert into episode_publishing_revision(package_id,field_key,revision,field_value,state,origin,object_key,object_sha256,object_bytes,object_type) values(?,?,?,?,?,?,?,?,?,?)",
+                    other,"THUMBNAIL_ASSET",1,"synthetic fixture","DRAFT","CI_ONLY",key,hash,webp.length,"image/webp");
+                assertEquals("image/webp",sql.queryForObject("select object_type from episode_publishing_revision where package_id=?",String.class,other));
+                assertThrows(org.springframework.dao.DataIntegrityViolationException.class,()->sql.update("update episode_publishing_revision set object_type='image/svg+xml' where package_id=?",other));
+                sql.update("delete from episode_publishing_revision where package_id=?",other);
                 authenticate("other");
                 assertThrows(ResponseStatusException.class,()->studio.get(EP004));
                 assertTrue(studio.get(other).items().stream().allMatch(x->x.revision()==0));

@@ -69,3 +69,11 @@ it('uses fresh audited-session CSRF for each publishing write including multipar
   expect(studio).toContain("form.append('expectedRevision',String(item.revision))");
   expect(studio).toContain("form.append('confirm','true')");
 });
+
+it('archives original WebP without converting or renaming its extension',()=>{
+  expect(studio).toContain('accept="image/png,image/jpeg,image/webp,.webp"');
+  expect(studio).toContain("type==='image/webp'?'webp'");
+  expect(studio).toContain("form.append('file',file)");
+  expect(studio).toContain('thumbnailExtension(thumbnail.objectType)');
+  expect(studio).toContain('thumbnailExtension(item.objectType)');
+});
