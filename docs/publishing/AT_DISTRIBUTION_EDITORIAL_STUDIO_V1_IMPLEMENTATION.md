@@ -28,3 +28,9 @@ Deployment `938ee23c-c8a6-413e-a5e2-e5c0667a31d3` SUCCESS 2026-11-27 15:43:10 UT
 2026-11-28 Director correction: Distribution primary view must show only each actual publication's platform, title, description and full text directly. No Open click, campaign dashboard, research or review clutter in the primary reader. Keep all existing editorial checks, launch records, history and research under one collapsed Manage publications control. One compact Copy text action and a draft caution are retained as Executor UX choices; no publication is approved by displaying it. Description uses existing explicit Subtitle/Description when present, otherwise the existing opening paragraph (excluding known draft preambles); display-only, not a separately saved metadata field. Full body and sources are unmodified. No backend/schema/worker change.
 
 Candidate; build/deployment and Director review pending.
+
+## 2026-11-28 — Latest Director correction: compact catalog
+
+2026-11-28 latest Director correction (supersedes earlier inline full-text view): Distribution is a compact e-commerce-style catalog. Separate equal-height publication cards, responsive 1–4 columns and at most two rows per page; page navigation above the grid exposes every item without scrolling through full articles. Cards show platform, title and short existing description preview; select a card to open one focused reader with full platform/title/description/body and copy, independently scrollable and closable. All body text, sources, revision history and editorial checks remain intact. Research and management remain behind one collapsed control. Executor chooses 4x2 on wide desktop (8 EP004 publications), responsive pagination on smaller widths, and native dialog. No backend/schema/worker change.
+
+Candidate; tests/deployment and Director review pending.

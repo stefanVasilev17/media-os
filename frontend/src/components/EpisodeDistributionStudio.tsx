@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,Copy,Download,FileText,Plus,RefreshCw,X,ExternalLink} from 'lucide-react';
 import '../styles/episodeDistributionStudio.css';
-import {publicationDescription} from '../lib/distributionPublication';
+import {publicationDescription,publicationColumns,publicationPage} from '../lib/distributionPublication';
 
 type Platform={key:string;name:string;discovery:string;dependency:string;policy:string;guidance:string;humanOnly:boolean;editorial:boolean};
 type Item={id:string;revision:number;platform:string;kind:string;title:string;body:string;sources:string;assets:string;destination:string;launchDay:number;state:string;evidence:string;publishedUrl:string|null;publishedOn:string|null;masterSha256:string|null;actor:string;recordedAt:string};
@@ -36,6 +36,21 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
   const [publishedUrl,setPublishedUrl]=useState(''),[publishedOn,setPublishedOn]=useState('');
   const [launchEdit,setLaunchEdit]=useState(false),[videoUrl,setVideoUrl]=useState(''),[launchDate,setLaunchDate]=useState('');
   const dialog=useRef<HTMLDialogElement>(null),request=useRef(0);
+  const catalog=useRef<HTMLElement>(null),readerDialog=useRef<HTMLDialogElement>(null);
+  const [columns,setColumns]=useState(4),[page,setPage]=useState(0),[readerId,setReaderId]=useState<string|null>(null);
+  useEffect(()=>{
+    const node=catalog.current;if(!node)return;
+    const measure=()=>setColumns(publicationColumns(node.clientWidth));
+    measure();
+    const observer=new ResizeObserver(measure);observer.observe(node);
+    return()=>observer.disconnect();
+  },[]);
+  useEffect(()=>{
+    if(readerId&&!readerDialog.current?.open)readerDialog.current?.showModal();
+    if(!readerId&&readerDialog.current?.open)readerDialog.current.close();
+  },[readerId]);
+  function readPublication(id:string){setError('');setNotice('');setReaderId(id);}
+  function closeReader(){setReaderId(null);setError('');setNotice('');}
   async function refresh(){
     const seq=++request.current;setBusy(true);setError('');
     try{const x=await read<View>(await fetch(root,{cache:'no-store'}));if(seq===request.current){setData(x);setVideoUrl(x.launch.videoUrl??'');setLaunchDate(x.launch.launchDate??'');}}
@@ -90,6 +105,11 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
   const p=platform(draft.platform);
   const articles=data?.items.filter(i=>i.kind==='ARTICLE')??[];
   const posts=data?.items.filter(i=>i.kind==='POST'||i.kind==='DISCUSSION')??[];
+  const publications=[...articles,...posts];
+  const visible=publicationPage(publications,page,columns);
+  const reader=publications.find(i=>i.id===readerId);
+  useEffect(()=>{if(page!==visible.index)setPage(visible.index);},[page,visible.index]);
+  useEffect(()=>{if(readerId&&!reader)closeReader();},[readerId,reader]);
   const research=data?.items.filter(i=>i.kind==='RESEARCH')??[];
   const validReview=!!selected&&!!data?.editorialQa&&!!data.masterSha256&&selected.masterSha256===data.masterSha256&&author&&policy&&rights&&(!p?.humanOnly||human)&&evidence.trim().length>=20;
   function label(i:Item){
@@ -107,11 +127,11 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
       {i.publishedUrl&&<a href={i.publishedUrl} target="_blank" rel="noreferrer">Recorded publication <ExternalLink size={13}/></a>}
     </article>;
   }
-  return <section className="distribution-studio" aria-label="Distribution Studio">
+  return <section ref={catalog} className="distribution-studio" aria-label="Distribution Studio">
     <div className="director-minimal-section-head"><div><p className="director-minimal-eyebrow">Post-production · {data?.episodeKey??'Episode'}</p><h2>Publications</h2></div>
       <button type="button" className="publishing-text-button" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
-    {!opened&&error&&<p role="alert" className="director-minimal-error">{error}</p>}
-    {!opened&&notice&&<p role="status" className="director-minimal-success">{notice}</p>}
+    {!opened&&!readerId&&error&&<p role="alert" className="director-minimal-error">{error}</p>}
+    {!opened&&!readerId&&notice&&<p role="status" className="director-minimal-success">{notice}</p>}
     {!data&&!error&&<p className="director-minimal-muted">Loading campaign…</p>}
     {data&&<>
       {data.items.some(i=>i.kind!=='RESEARCH'&&i.state!=='PUBLISHED')&&<p className="distribution-meta">Includes drafts. Review before publishing.</p>}
@@ -134,19 +154,37 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
       <details className="distribution-details"><summary>Where to publish · Zero-Follower strategy</summary>{data.platforms.map(p=><div key={p.key} className="distribution-calendar"><strong>{p.name}</strong><span>{p.discovery} · {p.dependency==='NONE'?'Independent discovery':'Secondary amplification'}{p.editorial?' · Editorial acceptance':''}</span>{p.policy&&<a href={p.policy} target="_blank" rel="noreferrer">Rules</a>}</div>)}</details>
         </div>
       </details>
-      <div className="distribution-publications" aria-label="Publications">
-        {[...articles,...posts].map(i=><article className="distribution-publication" key={i.id}>
-          <div className="distribution-publication-platform">{platform(i.platform)?.name??i.platform}</div>
-          <div className="distribution-publication-field"><span className="distribution-publication-label">Title</span><h3>{i.title}</h3></div>
-          <div className="distribution-publication-field"><span className="distribution-publication-label">Description</span><p>{publicationDescription(i.body)||'No description recorded.'}</p></div>
-          <div className="distribution-publication-field">
-            <div className="distribution-publication-texthead"><span className="distribution-publication-label">Text</span><button type="button" className="publishing-text-button" disabled={busy} onClick={()=>void copy(exportText(i))}><Copy size={14}/> Copy text</button></div>
-            <div className="distribution-publication-text">{i.body}</div>
-          </div>
-        </article>)}
-        {!articles.length&&!posts.length&&<p className="director-minimal-muted">No publications yet.</p>}
+      {visible.count>1&&<nav className="distribution-pagination" aria-label="Publication pages">
+        <button type="button" className="director-minimal-subtle" disabled={visible.index===0} onClick={()=>setPage(visible.index-1)}>Previous</button>
+        <span aria-live="polite">{visible.index+1} / {visible.count}</span>
+        <button type="button" className="director-minimal-subtle" disabled={visible.index+1>=visible.count} onClick={()=>setPage(visible.index+1)}>Next</button>
+      </nav>}
+      <div className="distribution-publications" aria-label="Publications" style={{gridTemplateColumns:'repeat('+columns+',minmax(0,1fr))'}}>
+        {visible.items.map(i=><button type="button" className="distribution-publication" key={i.id} onClick={()=>readPublication(i.id)} aria-label={'Read '+(platform(i.platform)?.name??i.platform)+': '+i.title}>
+          <span className="distribution-publication-platform">{platform(i.platform)?.name??i.platform}</span>
+          <span className="distribution-catalog-title" title={i.title}>{i.title}</span>
+          <span className="distribution-catalog-description">{publicationDescription(i.body)||'No description recorded.'}</span>
+          <span className="distribution-catalog-link">Read text <span aria-hidden="true">→</span></span>
+        </button>)}
+        {!publications.length&&<p className="director-minimal-muted">No publications yet.</p>}
       </div>
     </>}
+    <dialog ref={readerDialog} className="publishing-dialog distribution-dialog distribution-reader" aria-label="Read publication" onCancel={e=>{e.preventDefault();closeReader();}}>
+      {reader&&<>
+        <div className="distribution-reader-toolbar">
+          <span className="distribution-publication-platform">{platform(reader.platform)?.name??reader.platform}</span>
+          <div className="distribution-actions">
+            <button type="button" className="publishing-text-button" onClick={()=>void copy(exportText(reader))}><Copy size={15}/> Copy text</button>
+            <button type="button" className="publishing-icon-button" onClick={closeReader} aria-label="Close publication"><X size={21}/></button>
+          </div>
+        </div>
+        {error&&<p role="alert" className="director-minimal-error">{error}</p>}
+        {notice&&<p role="status" className="director-minimal-success">{notice}</p>}
+        <div className="distribution-publication-field"><span className="distribution-publication-label">Title</span><h3>{reader.title}</h3></div>
+        <div className="distribution-publication-field"><span className="distribution-publication-label">Description</span><p>{publicationDescription(reader.body)||'No description recorded.'}</p></div>
+        <div className="distribution-publication-field"><span className="distribution-publication-label">Text</span><div className="distribution-publication-text">{reader.body}</div></div>
+      </>}
+    </dialog>
     <dialog ref={dialog} className="publishing-dialog distribution-dialog" aria-label="Editorial content" onCancel={e=>{e.preventDefault();close();}}>
       {opened&&<div className="distribution-form">
         <div className="distribution-row"><div><p className="distribution-meta">{p?.name} · {selected?label(selected):'New draft'}</p><h3>{editing?'Edit content':selected?.title}</h3></div><button type="button" className="publishing-icon-button" disabled={busy} onClick={close} aria-label="Close content"><X size={21}/></button></div>

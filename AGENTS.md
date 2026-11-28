@@ -8,9 +8,9 @@
 
 **Cost/approval boundary stays in force:** Do not initiate a paid CPU video render, paid voice generation, a new service/bucket/volume, or override security, source locks or Director-only gates without separate explicit consent. Preparing, building, verifying and deploying an already authorized code correction to the existing worker is the Executor's responsibility. A render is Director-approved through the authenticated MediaOS consent workflow, and final visual LOCK belongs exclusively to the Director.
 
-### Director correction — quiet publication reader (2026-11-28)
+### Director correction — compact publication catalog (2026-11-28)
 
-2026-11-28 Director correction: Distribution primary view must show only each actual publication's platform, title, description and full text directly. No Open click, campaign dashboard, research or review clutter in the primary reader. Keep all existing editorial checks, launch records, history and research under one collapsed Manage publications control. One compact Copy text action and a draft caution are retained as Executor UX choices; no publication is approved by displaying it. Description uses existing explicit Subtitle/Description when present, otherwise the existing opening paragraph (excluding known draft preambles); display-only, not a separately saved metadata field. Full body and sources are unmodified. No backend/schema/worker change.
+2026-11-28 latest Director correction (supersedes earlier inline full-text view): Distribution is a compact e-commerce-style catalog. Separate equal-height publication cards, responsive 1–4 columns and at most two rows per page; page navigation above the grid exposes every item without scrolling through full articles. Cards show platform, title and short existing description preview; select a card to open one focused reader with full platform/title/description/body and copy, independently scrollable and closable. All body text, sources, revision history and editorial checks remain intact. Research and management remain behind one collapsed control. Executor chooses 4x2 on wide desktop (8 EP004 publications), responsive pagination on smaller widths, and native dialog. No backend/schema/worker change.
 
 ### TOP PRIORITY — Director requirement: Zero-Follower Distribution (AT-DIST-0002, 2026-11-27)
 

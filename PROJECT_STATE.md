@@ -1,8 +1,8 @@
 # MediaOS — CURRENT PROJECT STATE
 
-## 2026-11-28 — Distribution publication-only UI correction candidate
+## 2026-11-28 — Distribution compact publication catalog candidate
 
-2026-11-28 Director correction: Distribution primary view must show only each actual publication's platform, title, description and full text directly. No Open click, campaign dashboard, research or review clutter in the primary reader. Keep all existing editorial checks, launch records, history and research under one collapsed Manage publications control. One compact Copy text action and a draft caution are retained as Executor UX choices; no publication is approved by displaying it. Description uses existing explicit Subtitle/Description when present, otherwise the existing opening paragraph (excluding known draft preambles); display-only, not a separately saved metadata field. Full body and sources are unmodified. No backend/schema/worker change. Build, deployment and Director visual acceptance pending.
+2026-11-28 latest Director correction (supersedes earlier inline full-text view): Distribution is a compact e-commerce-style catalog. Separate equal-height publication cards, responsive 1–4 columns and at most two rows per page; page navigation above the grid exposes every item without scrolling through full articles. Cards show platform, title and short existing description preview; select a card to open one focused reader with full platform/title/description/body and copy, independently scrollable and closable. All body text, sources, revision history and editorial checks remain intact. Research and management remain behind one collapsed control. Executor chooses 4x2 on wide desktop (8 EP004 publications), responsive pagination on smaller widths, and native dialog. No backend/schema/worker change. Prior inline deployment be6d770a-0d78-486c-8a90-3a64a8389eb5 SUCCESS at 09:32:02 UTC. New catalog build, deployment and Director visual acceptance pending.
 
 ## 2026-11-27 — Phase 4 Review & Learning V1 deployed; Director review pending
 
