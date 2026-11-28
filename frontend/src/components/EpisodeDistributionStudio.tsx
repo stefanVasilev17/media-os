@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,Copy,Download,FileText,Plus,RefreshCw,X,ExternalLink} from 'lucide-react';
 import '../styles/episodeDistributionStudio.css';
+import {publicationDescription} from '../lib/distributionPublication';
 
 type Platform={key:string;name:string;discovery:string;dependency:string;policy:string;guidance:string;humanOnly:boolean;editorial:boolean};
 type Item={id:string;revision:number;platform:string;kind:string;title:string;body:string;sources:string;assets:string;destination:string;launchDay:number;state:string;evidence:string;publishedUrl:string|null;publishedOn:string|null;masterSha256:string|null;actor:string;recordedAt:string};
@@ -107,14 +108,18 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
     </article>;
   }
   return <section className="distribution-studio" aria-label="Distribution Studio">
-    <div className="director-minimal-section-head"><div><p className="director-minimal-eyebrow">Post-production · {data?.episodeKey??'Episode'}</p><h2>Distribution</h2></div>
+    <div className="director-minimal-section-head"><div><p className="director-minimal-eyebrow">Post-production · {data?.episodeKey??'Episode'}</p><h2>Publications</h2></div>
       <button type="button" className="publishing-text-button" disabled={busy} onClick={()=>void refresh()}><RefreshCw size={15}/> Refresh</button></div>
     {!opened&&error&&<p role="alert" className="director-minimal-error">{error}</p>}
     {!opened&&notice&&<p role="status" className="director-minimal-success">{notice}</p>}
     {!data&&!error&&<p className="director-minimal-muted">Loading campaign…</p>}
     {data&&<>
-      <div className="distribution-intro"><div><strong>{articles.length} articles · {posts.length} posts</strong><p>Prepare before launch. Prioritize independent technical audiences; review before publishing.</p></div>
-        <button type="button" className="director-minimal-primary" disabled={busy} onClick={()=>open(null)}><Plus size={16}/> Add content</button></div>
+      {data.items.some(i=>i.kind!=='RESEARCH'&&i.state!=='PUBLISHED')&&<p className="distribution-meta">Includes drafts. Review before publishing.</p>}
+      <details className="distribution-management">
+        <summary>Manage publications</summary>
+        <div className="distribution-section">
+          <div className="distribution-row"><p className="director-minimal-muted">Draft editing, editorial checks and manual publication records.</p><button type="button" className="director-minimal-subtle" disabled={busy} onClick={()=>open(null)}><Plus size={16}/> Add content</button></div>
+          {[...articles,...posts].map(card)}
       <div className="distribution-card">
         <div className="distribution-row"><div><h3>YouTube launch</h3><p className="distribution-meta">{data.launch.launchDate??'Date not set'} · {data.launch.videoUrl?'Public URL recorded':'Public URL pending'}</p></div>
           <button type="button" className="director-minimal-subtle" onClick={()=>setLaunchEdit(!launchEdit)}>{launchEdit?'Close':'Edit launch'}</button></div>
@@ -123,13 +128,24 @@ export function EpisodeDistributionStudio({packageId}:{packageId:string}){
           <label>Actual public YouTube URL (leave blank before launch)<input value={videoUrl} disabled={!!data.launch.videoUrl} onChange={e=>setVideoUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=…"/></label>
           <button type="button" className="director-minimal-primary" disabled={busy} onClick={()=>void saveLaunch()}>Save launch</button></div>}
       </div>
-      <section className="distribution-section"><h3>Technical articles</h3><p className="director-minimal-muted">At least one Medium article. Human author review required; no automatic publication.</p>
-        {articles.length?articles.map(card):<p className="director-minimal-muted">Add the first complete article.</p>}</section>
-      {posts.length>0&&<section className="distribution-section"><h3>Posts & storytelling</h3>{posts.map(card)}</section>}
       {research.length>0&&<details className="distribution-details"><summary>Editorial & community research ({research.length})</summary><p className="director-minimal-muted">Research notes, not submitted articles or verified live discussions.</p><div className="distribution-section">{research.map(card)}</div></details>}
       <details className="distribution-details"><summary>Launch calendar</summary>{data.items.filter(i=>!['BLOCKED','SKIPPED'].includes(i.state)).slice().sort((a,b)=>a.launchDay-b.launchDay).map(i=><div className="distribution-calendar" key={i.id}><strong>{day(i.launchDay)}</strong><span>{platform(i.platform)?.name} · {i.title}</span><small>{label(i)}</small></div>)}</details>
       <details className="distribution-details"><summary>Review before launch ({data.blockers.length})</summary>{data.blockers.length?<ul>{data.blockers.map(b=><li key={b}>{b}</li>)}</ul>:<p>Required campaign evidence recorded. Publication is manual.</p>}</details>
       <details className="distribution-details"><summary>Where to publish · Zero-Follower strategy</summary>{data.platforms.map(p=><div key={p.key} className="distribution-calendar"><strong>{p.name}</strong><span>{p.discovery} · {p.dependency==='NONE'?'Independent discovery':'Secondary amplification'}{p.editorial?' · Editorial acceptance':''}</span>{p.policy&&<a href={p.policy} target="_blank" rel="noreferrer">Rules</a>}</div>)}</details>
+        </div>
+      </details>
+      <div className="distribution-publications" aria-label="Publications">
+        {[...articles,...posts].map(i=><article className="distribution-publication" key={i.id}>
+          <div className="distribution-publication-platform">{platform(i.platform)?.name??i.platform}</div>
+          <div className="distribution-publication-field"><span className="distribution-publication-label">Title</span><h3>{i.title}</h3></div>
+          <div className="distribution-publication-field"><span className="distribution-publication-label">Description</span><p>{publicationDescription(i.body)||'No description recorded.'}</p></div>
+          <div className="distribution-publication-field">
+            <div className="distribution-publication-texthead"><span className="distribution-publication-label">Text</span><button type="button" className="publishing-text-button" disabled={busy} onClick={()=>void copy(exportText(i))}><Copy size={14}/> Copy text</button></div>
+            <div className="distribution-publication-text">{i.body}</div>
+          </div>
+        </article>)}
+        {!articles.length&&!posts.length&&<p className="director-minimal-muted">No publications yet.</p>}
+      </div>
     </>}
     <dialog ref={dialog} className="publishing-dialog distribution-dialog" aria-label="Editorial content" onCancel={e=>{e.preventDefault();close();}}>
       {opened&&<div className="distribution-form">

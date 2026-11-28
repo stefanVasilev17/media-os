@@ -1,5 +1,9 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-28 — Distribution publication-only UI correction candidate
+
+2026-11-28 Director correction: Distribution primary view must show only each actual publication's platform, title, description and full text directly. No Open click, campaign dashboard, research or review clutter in the primary reader. Keep all existing editorial checks, launch records, history and research under one collapsed Manage publications control. One compact Copy text action and a draft caution are retained as Executor UX choices; no publication is approved by displaying it. Description uses existing explicit Subtitle/Description when present, otherwise the existing opening paragraph (excluding known draft preambles); display-only, not a separately saved metadata field. Full body and sources are unmodified. No backend/schema/worker change. Build, deployment and Director visual acceptance pending.
+
 ## 2026-11-27 — Phase 4 Review & Learning V1 deployed; Director review pending
 
 Director requested implementation of Phase 4. Native Review workspace, V135 append-only-by-service structured review records, explicit Director approval, evidence-backed manual analytics, previous approved conclusions, live upstream QA and conclusion snapshot. See `docs/publishing/AT_REVIEW_LEARNING_SYSTEM_V1_IMPLEMENTATION.md`. 

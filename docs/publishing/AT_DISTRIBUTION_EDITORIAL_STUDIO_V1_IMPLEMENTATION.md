@@ -22,3 +22,9 @@ Deployment `938ee23c-c8a6-413e-a5e2-e5c0667a31d3` SUCCESS 2026-11-27 15:43:10 UT
 ## Director acceptance and handoff
 
 2026-11-27 — Director accepted the progress through Phase 3 in conversation: “До тук всичко ми харесва!” and requested a handoff prompt for a new chat. Record module/UI acceptance of Distribution Studio V1; this is not approval of individual article drafts, human-authorship attestation, publication readiness, external posting or a new explicit media LOCK. Phase 1 and 2 previously accepted/locked. Next proposed implementation is Phase 4 Review & Learning System, using the accepted minimal content-first UI, mandatory AT-PUB-0001 episode conclusions and evidence-based QA; preserve all prior locks. No runtime change or deployment. Actual EP004 release tasks and authenticated production acceptance evidence remain separate.
+
+## 2026-11-28 — Director publication-only UX correction
+
+2026-11-28 Director correction: Distribution primary view must show only each actual publication's platform, title, description and full text directly. No Open click, campaign dashboard, research or review clutter in the primary reader. Keep all existing editorial checks, launch records, history and research under one collapsed Manage publications control. One compact Copy text action and a draft caution are retained as Executor UX choices; no publication is approved by displaying it. Description uses existing explicit Subtitle/Description when present, otherwise the existing opening paragraph (excluding known draft preambles); display-only, not a separately saved metadata field. Full body and sources are unmodified. No backend/schema/worker change.
+
+Candidate; build/deployment and Director review pending.
