@@ -36,7 +36,7 @@ class EpisodePublishingStudioPostgresTest {
     private static EpisodePublishingStudioService.Item item(EpisodePublishingStudioService.Studio s,String key){
         return s.items().stream().filter(x->x.fieldKey().equals(key)).findFirst().orElseThrow();
     }
-    @Test void exactSeedAndImmutableDirectorRevisionsWithRealPostgres(){
+    @Test void exactSeedAndImmutableDirectorRevisionsWithRealPostgres() throws Exception{
         String url=System.getenv("CI_POSTGRES_URL"),schema="publishing_"+UUID.randomUUID().toString().replace("-","");
         var base=new DriverManagerDataSource(url,"media_os","media_os");
         var root=new JdbcTemplate(base);
@@ -59,7 +59,7 @@ class EpisodePublishingStudioPostgresTest {
             }
             sql.update("insert into episode_director_film values(?,?,?,?,?,?)",EP004,FILM,SHA,34651,15,String.join(",",renderIds));
             new ResourceDatabasePopulator(new ClassPathResource("db/migration/V132__episode_publishing_studio.sql")).execute(ds);
-            new ResourceDatabasePopulator(new ClassPathResource("db/migration/V136__publishing_thumbnail_webp.sql")).execute(ds);
+            sql.execute(new ClassPathResource("db/migration/V136__publishing_thumbnail_webp.sql").getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
             assertEquals(20,sql.queryForObject("select count(*) from episode_publishing_revision where package_id=?",Integer.class,EP004));
             assertEquals(0,sql.queryForObject("select count(*) from episode_publishing_revision where package_id=?",Integer.class,other));
             var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
