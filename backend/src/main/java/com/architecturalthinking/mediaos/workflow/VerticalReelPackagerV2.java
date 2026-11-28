@@ -78,7 +78,7 @@ final class VerticalReelPackagerV2 {
         DirectReelExtractor.run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-threads","2",
             "-i",input.toString(),"-i",png.toString(),"-filter_complex_threads","1","-filter_complex",filter,
             "-map","0:a:0","-c:v","libx264","-preset","veryfast","-crf","18","-maxrate","4500k","-bufsize","9000k",
-            "-threads:v","2","-pix_fmt","yuv420p","-tag:v","avc1","-fps_mode","passthrough",
+            "-threads:v","2","-pix_fmt","yuv420p","-tag:v","avc1","-r","30","-fps_mode","cfr",
             "-c:a","copy","-movflags","+faststart","-fs",Long.toString(DirectReelExtractor.MAX_BYTES),"-y",output.toString()),
             dir.resolve("vertical-encode.log"),600);
         DirectReelExtractor.verifyDimensions(output,frames,audio,WIDTH,HEIGHT);
@@ -106,10 +106,10 @@ final class VerticalReelPackagerV2 {
     static String apertureFilter(int frames,Integer focus){
         if(frames<1||frames>5400||focus!=null&&(focus<0||focus>=frames))throw new IllegalArgumentException("Invalid verified framing interval.");
         if(focus==null||focus==0)
-            return "[0:v]"+(focus==null?WIDE:FOCUS)+",settb=1/30,setpts=N[aperture]";
+            return "[0:v]"+(focus==null?WIDE:FOCUS)+",settb=1/30,setpts=N,fps=30[aperture]";
         return "[0:v]split=2[w][f];[w]trim=end_frame="+focus+",setpts=PTS-STARTPTS,"+WIDE+"[wide];"+
             "[f]trim=start_frame="+focus+",setpts=PTS-STARTPTS,"+FOCUS+"[focus];"+
-            "[wide][focus]concat=n=2:v=1:a=0,settb=1/30,setpts=N[aperture]";
+            "[wide][focus]concat=n=2:v=1:a=0,settb=1/30,setpts=N,fps=30[aperture]";
     }
     private static void audioDigest(Path input,Path output,boolean packets,int frames) throws IOException,InterruptedException{
         // Never seek: seeking even at zero may discard AAC decoder priming differently across MP4 edit lists.

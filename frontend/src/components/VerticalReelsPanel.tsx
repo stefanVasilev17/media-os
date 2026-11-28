@@ -49,7 +49,7 @@ export function VerticalReelsPanel({root,sources}:{root:string;sources:Source[]}
         {r?.focusStartFrame!=null&&<p className="director-minimal-muted">Verified focus begins at {(r.focusStartFrame/30).toFixed(2)}s.</p>}
         {r?.issue&&<p className="director-minimal-muted">{r.issue}</p>}
         {playing===s.id&&r?.videoUrl&&<div className="reels-vertical-preview"><video src={r.videoUrl} controls playsInline preload="metadata"/><p>Actual AT Vertical V2 MP4 · Review all framing changes on a phone-sized screen.</p></div>}
-        {earlier.length>0&&<details className="reels-other"><summary>Earlier packaging ({earlier.length})</summary>{earlier.map(v=><div key={v.templateVersion}><p>{v.templateVersion} · {v.state}</p>{v.videoUrl&&<div className="reels-vertical-preview"><video src={v.videoUrl} controls playsInline preload="none"/></div>}</div>)}</details>}
+        {earlier.length>0&&<details className="reels-other"><summary>Earlier packaging ({earlier.length})</summary>{earlier.map(v=><div key={v.templateVersion}><p>{v.templateVersion} · {v.state}</p>{v.state==='LOCKED'&&v.videoUrl&&<a className="reels-download" href={v.videoUrl+'&download=true'}><Download size={15}/> Download earlier locked version</a>}{v.videoUrl&&<div className="reels-vertical-preview"><video src={v.videoUrl} controls playsInline preload="none"/></div>}</div>)}</details>}
       </article>;
     })}
     {eligible.length===0&&<p className="director-minimal-muted">Lock an original extract first.</p>}
