@@ -246,12 +246,13 @@ public class EpisodeReelService {
     }
 
     public record Vertical(UUID reelId,String title,String state,String templateVersion,String sourceSha256,
-                           String sha256,Long byteCount,String issue,String videoUrl){}
+                           String sha256,Long byteCount,String issue,String videoUrl,Integer focusStartFrame){}
     public record PackageVertical(String sourceSha256,Boolean confirm){}
-    record VerticalSource(UUID reelId,UUID packageId,String title,int frames,String key,String sha,long bytes){}
+    record VerticalSource(UUID reelId,UUID packageId,String title,int frames,String key,String sha,long bytes,int first,int end){}
+    record VerticalJob(UUID reelId,String version,Integer focus){}
     private VerticalSource verticalSource(UUID id,UUID reel){
         return jdbc.sql("""
-          select r.id,r.package_id,r.title,r.end_frame-r.start_frame,r.object_key,r.sha256,r.byte_count
+          select r.id,r.package_id,r.title,r.end_frame-r.start_frame,r.object_key,r.sha256,r.byte_count,r.start_frame,r.end_frame
           from episode_reel r join episode_director_film f on f.package_id=r.package_id
           join episode_package_import p on p.id=r.package_id
           where r.package_id=:id and r.id=:reel and r.state='LOCKED' and r.film_id=f.film_id
@@ -259,8 +260,32 @@ public class EpisodeReelService {
             and f.render_ids=(select string_agg(l.render_id::text,',' order by l.shot_key)
                 from episode_director_shot_lock l where l.package_id=f.package_id)
           """).param("id",id).param("reel",reel).query((rs,i)->new VerticalSource(rs.getObject(1,UUID.class),
-             rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),rs.getString(5),rs.getString(6),rs.getLong(7)))
+             rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),rs.getString(5),rs.getString(6),rs.getLong(7),rs.getInt(8),rs.getInt(9)))
              .optional().orElseThrow(()->conflict("A locked reel from the current master is required."));
+    }
+    // Exact scene-specific recipe: audited source commit and locked render ID, verified frame
+    // lineage and actual REEL_START. Other scenes always keep the complete frame.
+    Integer verifiedFocusStart(VerticalSource clip){
+        return jdbc.sql("""
+          with ordered as (
+            select l.shot_key,l.render_id,r.duration_in_frames,r.input_props,
+              coalesce(sum(r.duration_in_frames) over(order by l.shot_key rows between unbounded preceding and 1 preceding),0)::integer as first_frame,
+              sum(r.duration_in_frames) over() as total_frames
+            from episode_director_shot_lock l join remotion_render r on r.id=l.render_id
+            where l.package_id=:id and r.status='SUCCEEDED' and r.fps=30
+          )
+          select greatest(0,o.first_frame+1368-:first) as focus
+          from ordered o join episode_director_film f on f.package_id=:id
+          join episode_package_import p on p.id=f.package_id
+          where p.episode_key='EP004' and o.shot_key='SHOT07'
+            and o.render_id=cast('c51cbbda-f832-4c46-8a37-cc3116f50e1f' as uuid)
+            and o.duration_in_frames=2606 and o.total_frames=f.duration_in_frames
+            and o.input_props->>'expectedSourceCommit'='232fb7ef9dbcfa2e2d8c3d9e326660ea2a17be56'
+            and o.input_props->'eventFrames'->>'REEL_START'='1368'
+            and :first>=o.first_frame and :end<=o.first_frame+o.duration_in_frames
+            and :end>o.first_frame+1368
+          """).param("id",clip.packageId()).param("first",clip.first()).param("end",clip.end())
+            .query(Integer.class).optional().orElse(null);
     }
     private long verticalReserved(UUID id){
         return jdbc.sql("""
@@ -271,11 +296,11 @@ public class EpisodeReelService {
     private List<Vertical> verticals(UUID id){
         return jdbc.sql("""
           select v.*,r.title from episode_reel_vertical v join episode_reel r on r.id=v.reel_id
-          where r.package_id=:id order by r.start_frame,r.created_at
+          where r.package_id=:id order by r.start_frame,r.created_at,v.template_version
           """).param("id",id).query((rs,i)->new Vertical(rs.getObject("reel_id",UUID.class),
             rs.getString("title"),rs.getString("state"),rs.getString("template_version"),rs.getString("source_sha256"),
             rs.getString("sha256"),(Long)rs.getObject("byte_count"),rs.getString("issue"),
-            rs.getString("object_key")==null?null:"/api/v1/episode-packages/"+id+"/reels/"+rs.getObject("reel_id",UUID.class)+"/vertical/video")).list();
+            rs.getString("object_key")==null?null:"/api/v1/episode-packages/"+id+"/reels/"+rs.getObject("reel_id",UUID.class)+"/vertical/video?version="+rs.getString("template_version"),(Integer)rs.getObject("focus_start_frame"))).list();
     }
     @Transactional(readOnly=true)
     public List<Vertical> vertical(UUID id){owner(id,false);return verticals(id);}
@@ -286,7 +311,7 @@ public class EpisodeReelService {
         VerticalSource s=verticalSource(id,reel);
         if(!s.sha().equals(request.sourceSha256()))throw conflict("Locked source identity changed.");
         store.requireWritable();store.verifyVideoManifest(s.key(),s.sha(),s.bytes());
-        var existing=verticals(id).stream().filter(v->v.reelId().equals(reel)).findFirst();
+        var existing=verticals(id).stream().filter(v->v.reelId().equals(reel)&&VerticalReelPackagerV2.VERSION.equals(v.templateVersion())).findFirst();
         if(existing.isPresent()&&!"FAILED".equals(existing.get().state()))return verticals(id);
         long reserved=jdbc.sql("""
           select coalesce(sum(case when state in ('QUEUED','RUNNING') then 134217728 else coalesce(byte_count,0) end),0)
@@ -294,11 +319,11 @@ public class EpisodeReelService {
           """).param("id",id).query(Long.class).single()+verticalReserved(id);
         if(reserved+DirectReelExtractor.MAX_BYTES>MAX_RETAINED)throw conflict("Vertical reel storage budget reached.");
         jdbc.sql("""
-          insert into episode_reel_vertical(reel_id,source_sha256,template_version,state,audit_id,actor)
-          values(:reel,:sha,:template,'QUEUED',:audit,:actor)
-          on conflict(reel_id) do update set state='QUEUED',issue=null,audit_id=excluded.audit_id,actor=excluded.actor,updated_at=now()
+          insert into episode_reel_vertical(reel_id,source_sha256,template_version,state,audit_id,actor,focus_start_frame)
+          values(:reel,:sha,:template,'QUEUED',:audit,:actor,:focus)
+          on conflict(reel_id,template_version) do update set state='QUEUED',issue=null,audit_id=excluded.audit_id,actor=excluded.actor,focus_start_frame=excluded.focus_start_frame,updated_at=now()
           where episode_reel_vertical.state='FAILED' and episode_reel_vertical.source_sha256=excluded.source_sha256
-          """).param("reel",reel).param("sha",s.sha()).param("template",VerticalReelPackager.VERSION)
+          """).param("reel",reel).param("sha",s.sha()).param("template",VerticalReelPackagerV2.VERSION).param("focus",verifiedFocusStart(s),java.sql.Types.INTEGER)
             .param("audit",audit).param("actor",owner.actor().auditName()).update();
         return verticals(id);
     }
@@ -306,51 +331,54 @@ public class EpisodeReelService {
     public List<Vertical> lockVertical(UUID id,UUID reel,Lock request){
         owner(id,true);VerticalSource s=verticalSource(id,reel);
         if(request==null||!Boolean.TRUE.equals(request.confirm()))throw conflict("Review actual vertical video before LOCK.");
-        Media m=verticalMedia(id,reel);
+        Media m=verticalMedia(id,reel,VerticalReelPackagerV2.VERSION);
         if(!m.sha().equals(request.sha256()))throw conflict("Vertical artifact identity changed.");
         store.verifyVideoManifest(m.key(),m.sha(),m.bytes());
         int n=jdbc.sql("""
           update episode_reel_vertical set state='LOCKED',locked_at=now(),updated_at=now()
-          where reel_id=:reel and source_sha256=:source and sha256=:sha and state='READY'
+          where reel_id=:reel and template_version='AT_VERTICAL_V2' and source_sha256=:source and sha256=:sha and state='READY'
           """).param("reel",reel).param("source",s.sha()).param("sha",m.sha()).update();
         if(n!=1)throw conflict("Only the reviewed current vertical artifact can be locked.");
         return verticals(id);
     }
-    private Media verticalMedia(UUID id,UUID reel){
+    private Media verticalMedia(UUID id,UUID reel,String version){
+        if(!List.of(VerticalReelPackager.VERSION,VerticalReelPackagerV2.VERSION).contains(version))throw bad("Unknown packaging version.");
         return jdbc.sql("""
           select v.object_key,v.sha256,v.byte_count from episode_reel_vertical v join episode_reel r on r.id=v.reel_id
-          where r.package_id=:id and v.reel_id=:reel and v.state in ('READY','LOCKED') and r.state='LOCKED'
+          where r.package_id=:id and v.reel_id=:reel and v.template_version=:version and v.state in ('READY','LOCKED') and r.state='LOCKED'
             and v.source_sha256=r.sha256
-          """).param("id",id).param("reel",reel).query((rs,i)->new Media(rs.getString(1),rs.getString(2),rs.getLong(3)))
+          """).param("id",id).param("reel",reel).param("version",version).query((rs,i)->new Media(rs.getString(1),rs.getString(2),rs.getLong(3)))
             .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Vertical export not ready."));
     }
     @Transactional(readOnly=true)
-    public Media authorizedVerticalMedia(UUID id,UUID reel){owner(id,false);return verticalMedia(id,reel);}
+    public Media authorizedVerticalMedia(UUID id,UUID reel,String version){owner(id,false);return verticalMedia(id,reel,version);}
 
     // Called only by the existing direct reel scheduler when no direct extraction is available.
     private void processVertical(){
-        UUID reel=null;Path dir=null;MediaObjectStore.Stored saved=null;boolean committed=false;
+        VerticalJob job=null;Path dir=null;MediaObjectStore.Stored saved=null;boolean committed=false;
         try{
             jdbc.sql("""
               update episode_reel_vertical set state='FAILED',lease_until=null,issue='Packaging interrupted. Retry explicitly.',updated_at=now()
               where state='RUNNING' and lease_until<now()
               """).update();
-            reel=jdbc.sql("""
+            job=jdbc.sql("""
               with next_job as (
-                select reel_id from episode_reel_vertical where state='QUEUED'
+                select reel_id,template_version from episode_reel_vertical where state='QUEUED'
                   and not exists(select 1 from episode_reel_vertical where state='RUNNING')
                   and not exists(select 1 from episode_reel where state in ('QUEUED','RUNNING'))
                   and not exists(select 1 from episode_director_film_job where status in ('QUEUED','RUNNING'))
                 order by created_at limit 1 for update skip locked
               )
               update episode_reel_vertical v set state='RUNNING',lease_until=now()+interval '30 minutes',updated_at=now()
-              from next_job where v.reel_id=next_job.reel_id returning v.reel_id
-              """).query(UUID.class).optional().orElse(null);
-            if(reel==null)return;
+              from next_job where v.reel_id=next_job.reel_id and v.template_version=next_job.template_version
+                returning v.reel_id,v.template_version,v.focus_start_frame
+              """).query((rs,i)->new VerticalJob(rs.getObject(1,UUID.class),rs.getString(2),(Integer)rs.getObject(3))).optional().orElse(null);
+            if(job==null)return;
+            UUID reel=job.reelId();String version=job.version();
             UUID id=jdbc.sql("select package_id from episode_reel where id=:reel").param("reel",reel).query(UUID.class).single();
             VerticalSource s=verticalSource(id,reel);
-            String expected=jdbc.sql("select source_sha256 from episode_reel_vertical where reel_id=:reel")
-                .param("reel",reel).query(String.class).single();
+            String expected=jdbc.sql("select source_sha256 from episode_reel_vertical where reel_id=:reel and template_version=:version")
+                .param("reel",reel).param("version",version).query(String.class).single();
             if(!s.sha().equals(expected)||s.bytes()>DirectReelExtractor.MAX_BYTES)throw conflict("Original clip identity or size invalid.");
             store.requireWritable();
             dir=Files.createTempDirectory("mediaos-vertical-reel-");
@@ -359,25 +387,29 @@ public class EpisodeReelService {
             Path input=dir.resolve("source.mp4"),output=dir.resolve("vertical.mp4");
             try(var out=Files.newOutputStream(input)){store.streamVideoRange(s.key(),s.sha(),s.bytes(),0,s.bytes()-1,out);}
             if(Files.size(input)!=s.bytes()||!MediaObjectStore.sha256(input).equals(s.sha()))throw conflict("Locked reel checksum mismatch.");
-            VerticalReelPackager.packageClip(input,output,s.frames(),s.title());
+            if(VerticalReelPackagerV2.VERSION.equals(version)){
+                if(!java.util.Objects.equals(job.focus(),verifiedFocusStart(s)))throw conflict("Verified framing source changed.");
+                VerticalReelPackagerV2.packageClip(input,output,s.frames(),s.title(),job.focus());
+            }else if(VerticalReelPackager.VERSION.equals(version))VerticalReelPackager.packageClip(input,output,s.frames(),s.title());
+            else throw conflict("Unknown packaging version.");
             if(!verticalSource(id,reel).sha().equals(expected))throw conflict("Locked source changed during packaging.");
             saved=store.uploadReelVerified(UUID.randomUUID(),output);
             int n=jdbc.sql("""
               update episode_reel_vertical v set state='READY',object_key=:key,sha256=:sha,byte_count=:bytes,
                 lease_until=null,issue=null,updated_at=now()
-              where reel_id=:reel and state='RUNNING' and source_sha256=:source
+              where reel_id=:reel and template_version=:version and state='RUNNING' and source_sha256=:source
                 and exists(select 1 from episode_reel r join episode_director_film f on f.package_id=r.package_id
                   where r.id=v.reel_id and r.state='LOCKED' and r.sha256=:source and r.film_id=f.film_id and r.master_sha256=f.sha256)
               """).param("key",saved.key()).param("sha",saved.sha256()).param("bytes",saved.byteCount())
-                .param("reel",reel).param("source",expected).update();
+                .param("reel",reel).param("version",version).param("source",expected).update();
             if(n!=1)throw conflict("Vertical source no longer current.");
-            committed=true;LOG.info("VERTICAL_REEL_READY source={} frames={} bytes={}",reel,s.frames(),saved.byteCount());
+            committed=true;LOG.info("VERTICAL_REEL_READY source={} version={} focus={} frames={} bytes={}",reel,version,job.focus(),s.frames(),saved.byteCount());
         }catch(Exception failure){
             if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
             LOG.warn("Vertical reel packaging failed; locked originals preserved",failure);
-            if(reel!=null)try{
-                jdbc.sql("update episode_reel_vertical set state='FAILED',lease_until=null,issue='Packaging failed. Locked original is safe; retry explicitly.',updated_at=now() where reel_id=:reel and state='RUNNING'")
-                    .param("reel",reel).update();
+            if(job!=null)try{
+                jdbc.sql("update episode_reel_vertical set state='FAILED',lease_until=null,issue='Packaging failed. Locked original is safe; retry explicitly.',updated_at=now() where reel_id=:reel and template_version=:version and state='RUNNING'")
+                    .param("reel",job.reelId()).param("version",job.version()).update();
             }catch(Exception db){LOG.error("Vertical reel state update failed",db);}
         }finally{
             if(saved!=null&&!committed)try{

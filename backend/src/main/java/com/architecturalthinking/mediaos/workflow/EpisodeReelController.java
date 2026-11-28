@@ -41,8 +41,9 @@ public class EpisodeReelController {
     }
     @GetMapping("/{reelId}/vertical/video")
     public ResponseEntity<StreamingResponseBody> verticalVideo(@PathVariable UUID packageId,@PathVariable UUID reelId,
-        @RequestHeader(value=HttpHeaders.RANGE,required=false) String range,@RequestParam(defaultValue="false") boolean download){
-        return stream(service.authorizedVerticalMedia(packageId,reelId),range,download,"vertical-"+reelId);
+        @RequestHeader(value=HttpHeaders.RANGE,required=false) String range,@RequestParam(defaultValue="false") boolean download,
+        @RequestParam(defaultValue="AT_VERTICAL_V1") String version){
+        return stream(service.authorizedVerticalMedia(packageId,reelId,version),range,download,"vertical-"+version+"-"+reelId);
     }
     static UUID audit(HttpServletRequest request){
         Object attr=request.getAttribute("MEDIA_OS_CREATION_PREFLIGHT");
