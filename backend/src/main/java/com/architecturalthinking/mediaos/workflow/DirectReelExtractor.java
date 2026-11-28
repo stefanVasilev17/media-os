@@ -79,12 +79,15 @@ final class DirectReelExtractor {
         return "TECHNICAL_ENCODE";
     }
     static void verify(Path output,int frames,Map<String,String> originalAudio) throws IOException,InterruptedException{
+        verifyDimensions(output,frames,originalAudio,1920,1080);
+    }
+    static void verifyDimensions(Path output,int frames,Map<String,String> originalAudio,int width,int height) throws IOException,InterruptedException{
         if(!Files.isRegularFile(output)||Files.size(output)<1024||Files.size(output)>MAX_BYTES)
             throw new IOException("Extract exceeds bounded MP4 size or is missing.");
         Path dir=output.getParent();
         Map<String,String> v=probe(output,"v:0",dir.resolve("out-video.txt"),true);
         Map<String,String> a=probe(output,"a:0",dir.resolve("out-audio.txt"),true);
-        if(!"h264".equals(v.get("codec_name"))||!"1920".equals(v.get("width"))||!"1080".equals(v.get("height"))
+        if(!"h264".equals(v.get("codec_name"))||!Integer.toString(width).equals(v.get("width"))||!Integer.toString(height).equals(v.get("height"))
             ||!"30/1".equals(v.get("r_frame_rate"))||!Integer.toString(frames).equals(v.get("nb_read_frames"))
             ||!"aac".equals(a.get("codec_name"))||!originalAudio.get("channels").equals(a.get("channels"))
             ||!originalAudio.get("sample_rate").equals(a.get("sample_rate")))
@@ -98,7 +101,7 @@ final class DirectReelExtractor {
                 throw new IOException("Extract failed video/audio clock verification.");
         }catch(NumberFormatException|NullPointerException invalid){throw new IOException("Missing extract clock.",invalid);}
     }
-    private static Map<String,String> probe(Path source,String stream,Path log,boolean count) throws IOException,InterruptedException{
+    static Map<String,String> probe(Path source,String stream,Path log,boolean count) throws IOException,InterruptedException{
         List<String> args=new ArrayList<>(List.of("ffprobe","-v","error","-select_streams",stream));
         if(count)args.add("-count_frames");
         args.addAll(List.of("-show_entries","stream=codec_name,width,height,r_frame_rate,nb_frames,nb_read_frames,sample_rate,channels,start_time,duration",
@@ -118,7 +121,7 @@ final class DirectReelExtractor {
         return Files.readAllLines(file).stream().filter(x->!x.startsWith("#")&&!x.isBlank())
             .map(x->x.substring(x.lastIndexOf(',')+1).strip()).toList();
     }
-    private static void audioHash(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
+    static void audioHash(Path source,Path target,int first,int frames) throws IOException,InterruptedException{
         run(List.of("ffmpeg","-hide_banner","-nostdin","-v","error","-xerror","-ss",seconds(first),"-i",source.toString(),
             "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","hash","-hash","sha256","-y",target.toString()),
             target.resolveSibling(target.getFileName()+".log"),90);
@@ -159,7 +162,7 @@ final class DirectReelExtractor {
             "-t",seconds(frames),"-map","0:a:0","-vn","-c:a","pcm_s16le","-f","s16le","-y",target.toString()),
             target.resolveSibling(target.getFileName()+".log"),90);
     }
-    private static void run(List<String> args,Path log,int timeout) throws IOException,InterruptedException{
+    static void run(List<String> args,Path log,int timeout) throws IOException,InterruptedException{
         Process p=new ProcessBuilder(args).redirectErrorStream(true).redirectOutput(log.toFile()).start();
         try{
             if(!p.waitFor(timeout,TimeUnit.SECONDS))throw new IOException("Bounded FFmpeg operation timed out.");

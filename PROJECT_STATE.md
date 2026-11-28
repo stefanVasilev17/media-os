@@ -1,5 +1,10 @@
 # MediaOS — CURRENT PROJECT STATE
 
+## 2026-11-28 — AT Vertical V1 technical packaging candidate
+
+Director approved the proposed 9:16 template and requested implementation; eight EP004 original extracts were confirmed LOCKED by Director in chat (live manifest verification separate). AT-PUB-0002 remains binding: this is explicitly approved deterministic padding/branding of an immutable original, no new scene, no crop, no new narration. V137 separate metadata, current locked source hash, owner/audited request, bounded single existing reel scheduler, private verified MP4 storage, original untouched, actual vertical preview and separate Director LOCK. 1080x1920, 960x540 complete aperture, existing original audio stream copied and decoded SHA verified, exact frame clock and full aperture PSNR >=35. Static title, neutral category, AT branding. First actual vertical export and mobile review pending; no batch request or production generation until individual explicit consent. Candidate source not yet validated/deployed at time of this note. No new Railway service or provider.
+
+
 ## 2026-11-28 — EP004 exact WebP archival correction
 
 2026-11-28 EP004 thumbnail 409 exact cause verified: original Director-provided WebP is 929304 bytes, 1672x941, SHA-256 28654ed2519d21311f060c38d4b355fd3cbd73ee6b0aa317c5325e845964de15, exactly matching V132 approved design hash despite the mistaken PNG filename in seed prose. Converted PNG SHA-256 658e520d4e4fadcb9530aad4bede2dc448209cfcb6a07774fb43f2bc69087fc3, identical decoded RGBA pixels but different bytes. Preserve original WebP hash and every design revision. Support static original WebP using TwelveMonkeys ImageIO 3.15.3, RIFF and still-image checks, existing decoded dimensions/2 MiB limits, content-addressed private storage, correct MIME and download extension, V136 additive allowlist migration; no re-encoding, no hash bypass or rights approval. Original upload remains authenticated Director action. Previous 403 remediation deployment 38a35176-4697-4c8d-8599-144fcab24923 SUCCESS 13:20:41 UTC (133 frontend, 631 backend passed/1 skipped). New build/deployment and actual upload pending.

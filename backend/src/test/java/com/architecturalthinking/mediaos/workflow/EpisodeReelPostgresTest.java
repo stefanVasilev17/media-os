@@ -45,7 +45,7 @@ class EpisodeReelPostgresTest {
             sql.update("insert into episode_director_shot_lock values(?,?,?),(?,?,?)",id,"SHOT01",a,id,"SHOT02",b);
             sql.update("insert into episode_package_shot values(?,?,?),(?,?,?)",id,"SHOT01","First",id,"SHOT02","Second");
             sql.update("insert into remotion_render values(?,?,?,?),(?,?,?,?)",a,90,"SUCCEEDED",30,b,120,"SUCCEEDED",30);
-            new ResourceDatabasePopulator(new ClassPathResource("db/migration/V133__direct_episode_reels.sql")).execute(ds);
+            new ResourceDatabasePopulator(new ClassPathResource("db/migration/V133__direct_episode_reels.sql"),new ClassPathResource("db/migration/V137__vertical_reel_packaging.sql")).execute(ds);
             MediaObjectStore store=mock(MediaObjectStore.class);
             var service=new EpisodeReelService(JdbcClient.create(ds),store);
             var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
@@ -63,7 +63,18 @@ class EpisodeReelPostgresTest {
             assertEquals(1,tx.execute(s->service.extract(id,request,UUID.randomUUID())).reels().size());
             assertThrows(ResponseStatusException.class,()->service.authorizedMedia(id,queued.reels().getFirst().id()));
             assertThrows(ResponseStatusException.class,()->tx.execute(s->service.lock(id,queued.reels().getFirst().id(),new EpisodeReelService.Lock(sha,true))));
+            UUID reel=queued.reels().getFirst().id();
+            assertThrows(ResponseStatusException.class,()->tx.execute(s->service.packageVertical(id,reel,new EpisodeReelService.PackageVertical(sha,true),UUID.randomUUID())));
+            sql.update("update episode_reel set state='LOCKED',locked_at=now(),object_key=?,sha256=?,byte_count=5000,method='TECHNICAL_ENCODE' where id=?",key,sha,reel);
+            assertThrows(ResponseStatusException.class,()->tx.execute(s->service.packageVertical(id,reel,new EpisodeReelService.PackageVertical(sha,true),null)));
+            var packed=tx.execute(s->service.packageVertical(id,reel,new EpisodeReelService.PackageVertical(sha,true),UUID.randomUUID()));
+            assertEquals("QUEUED",packed.getFirst().state());assertNull(packed.getFirst().videoUrl());
+            assertEquals(1,tx.execute(s->service.packageVertical(id,reel,new EpisodeReelService.PackageVertical(sha,true),UUID.randomUUID())).size());
+            assertEquals("LOCKED",service.get(id).reels().getFirst().state());
+            assertThrows(ResponseStatusException.class,()->service.authorizedVerticalMedia(id,reel));
+            assertThrows(ResponseStatusException.class,()->tx.execute(s->service.lockVertical(id,reel,new EpisodeReelService.Lock(sha,true))));
             auth("other");
+            assertThrows(ResponseStatusException.class,()->service.vertical(id));
             assertThrows(ResponseStatusException.class,()->service.get(id));
             SecurityContextHolder.clearContext();assertThrows(ResponseStatusException.class,()->service.get(id));
         }finally{SecurityContextHolder.clearContext();root.execute("drop schema "+schema+" cascade");}

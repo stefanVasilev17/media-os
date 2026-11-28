@@ -24,3 +24,5 @@
 .reels-custom input{width:100%;background:#0b1929;border:1px solid #29415a;border-radius:8px;padding:11px;color:#e8f1f9;font:inherit}
 .reels-cut-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media(max-width:700px){.reels-intro{align-items:flex-start;flex-direction:column}.reels-card{padding:14px}.reels-row{gap:10px}.reels-actions{justify-content:flex-start}}
+
+.reels-vertical-preview{margin:16px auto;text-align:center;max-width:360px}.reels-vertical-preview video{display:block;width:100%;aspect-ratio:9/16;background:#081421;border-radius:8px}.reels-vertical-preview p{font-size:.85rem;color:#9eb6cc;margin-top:8px}.reels-studio button[aria-pressed=true]{border-color:#56d2cf;color:#8eece8}

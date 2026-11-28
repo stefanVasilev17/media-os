@@ -187,6 +187,7 @@ public class EpisodeReelService {
               with next_job as (
                 select id from episode_reel where state='QUEUED'
                   and not exists(select 1 from episode_reel where state='RUNNING')
+                  and not exists(select 1 from episode_reel_vertical where state='RUNNING')
                   and not exists(select 1 from episode_director_film_job where status in ('QUEUED','RUNNING'))
                 order by created_at limit 1 for update skip locked
               )
@@ -195,7 +196,7 @@ public class EpisodeReelService {
               returning r.id,r.package_id,r.film_id,r.master_sha256,r.start_frame,r.end_frame
               """).query((rs,i)->new Job(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),
                 rs.getObject(3,UUID.class),rs.getString(4),rs.getInt(5),rs.getInt(6))).optional().orElse(null);
-            if(job==null)return;
+            if(job==null){processVertical();return;}
             int count=jdbc.sql("select shot_count from episode_package_import where id=:id").param("id",job.packageId()).query(Integer.class).single();
             Source s=source(job.packageId(),count);
             if(s==null||!s.filmId().equals(job.filmId())||!s.sha().equals(job.sha())||s.bytes()>MAX_MASTER)
@@ -241,6 +242,146 @@ public class EpisodeReelService {
             if(dir!=null)try(var files=Files.walk(dir)){
                 for(Path f:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(f);
             }catch(Exception cleanup){LOG.warn("Reel scratch cleanup failed",cleanup);}
+        }
+    }
+
+    public record Vertical(UUID reelId,String title,String state,String templateVersion,String sourceSha256,
+                           String sha256,Long byteCount,String issue,String videoUrl){}
+    public record PackageVertical(String sourceSha256,Boolean confirm){}
+    record VerticalSource(UUID reelId,UUID packageId,String title,int frames,String key,String sha,long bytes){}
+    private VerticalSource verticalSource(UUID id,UUID reel){
+        return jdbc.sql("""
+          select r.id,r.package_id,r.title,r.end_frame-r.start_frame,r.object_key,r.sha256,r.byte_count
+          from episode_reel r join episode_director_film f on f.package_id=r.package_id
+          join episode_package_import p on p.id=r.package_id
+          where r.package_id=:id and r.id=:reel and r.state='LOCKED' and r.film_id=f.film_id
+            and r.master_sha256=f.sha256 and f.shot_count=p.shot_count
+            and f.render_ids=(select string_agg(l.render_id::text,',' order by l.shot_key)
+                from episode_director_shot_lock l where l.package_id=f.package_id)
+          """).param("id",id).param("reel",reel).query((rs,i)->new VerticalSource(rs.getObject(1,UUID.class),
+             rs.getObject(2,UUID.class),rs.getString(3),rs.getInt(4),rs.getString(5),rs.getString(6),rs.getLong(7)))
+             .optional().orElseThrow(()->conflict("A locked reel from the current master is required."));
+    }
+    private List<Vertical> verticals(UUID id){
+        return jdbc.sql("""
+          select v.*,r.title from episode_reel_vertical v join episode_reel r on r.id=v.reel_id
+          where r.package_id=:id order by r.start_frame,r.created_at
+          """).param("id",id).query((rs,i)->new Vertical(rs.getObject("reel_id",UUID.class),
+            rs.getString("title"),rs.getString("state"),rs.getString("template_version"),rs.getString("source_sha256"),
+            rs.getString("sha256"),(Long)rs.getObject("byte_count"),rs.getString("issue"),
+            rs.getString("object_key")==null?null:"/api/v1/episode-packages/"+id+"/reels/"+rs.getObject("reel_id",UUID.class)+"/vertical/video")).list();
+    }
+    @Transactional(readOnly=true)
+    public List<Vertical> vertical(UUID id){owner(id,false);return verticals(id);}
+    @Transactional
+    public List<Vertical> packageVertical(UUID id,UUID reel,PackageVertical request,UUID audit){
+        Owner owner=owner(id,true);
+        if(request==null||!Boolean.TRUE.equals(request.confirm())||audit==null)throw conflict("Explicit technical packaging consent required.");
+        VerticalSource s=verticalSource(id,reel);
+        if(!s.sha().equals(request.sourceSha256()))throw conflict("Locked source identity changed.");
+        store.requireWritable();store.verifyVideoManifest(s.key(),s.sha(),s.bytes());
+        var existing=verticals(id).stream().filter(v->v.reelId().equals(reel)).findFirst();
+        if(existing.isPresent()&&!"FAILED".equals(existing.get().state()))return verticals(id);
+        long reserved=jdbc.sql("""
+          select coalesce(sum(case when v.state in ('QUEUED','RUNNING') then 134217728 else coalesce(v.byte_count,0) end),0)
+          from episode_reel_vertical v join episode_reel r on r.id=v.reel_id where r.package_id=:id
+          """).param("id",id).query(Long.class).single();
+        if(reserved+DirectReelExtractor.MAX_BYTES>MAX_RETAINED)throw conflict("Vertical reel storage budget reached.");
+        jdbc.sql("""
+          insert into episode_reel_vertical(reel_id,source_sha256,template_version,state,audit_id,actor)
+          values(:reel,:sha,:template,'QUEUED',:audit,:actor)
+          on conflict(reel_id) do update set state='QUEUED',issue=null,audit_id=excluded.audit_id,actor=excluded.actor,updated_at=now()
+          where episode_reel_vertical.state='FAILED' and episode_reel_vertical.source_sha256=excluded.source_sha256
+          """).param("reel",reel).param("sha",s.sha()).param("template",VerticalReelPackager.VERSION)
+            .param("audit",audit).param("actor",owner.actor().auditName()).update();
+        return verticals(id);
+    }
+    @Transactional
+    public List<Vertical> lockVertical(UUID id,UUID reel,Lock request){
+        owner(id,true);VerticalSource s=verticalSource(id,reel);
+        if(request==null||!Boolean.TRUE.equals(request.confirm()))throw conflict("Review actual vertical video before LOCK.");
+        Media m=verticalMedia(id,reel);
+        if(!m.sha().equals(request.sha256()))throw conflict("Vertical artifact identity changed.");
+        store.verifyVideoManifest(m.key(),m.sha(),m.bytes());
+        int n=jdbc.sql("""
+          update episode_reel_vertical set state='LOCKED',locked_at=now(),updated_at=now()
+          where reel_id=:reel and source_sha256=:source and sha256=:sha and state='READY'
+          """).param("reel",reel).param("source",s.sha()).param("sha",m.sha()).update();
+        if(n!=1)throw conflict("Only the reviewed current vertical artifact can be locked.");
+        return verticals(id);
+    }
+    private Media verticalMedia(UUID id,UUID reel){
+        return jdbc.sql("""
+          select v.object_key,v.sha256,v.byte_count from episode_reel_vertical v join episode_reel r on r.id=v.reel_id
+          where r.package_id=:id and v.reel_id=:reel and v.state in ('READY','LOCKED') and r.state='LOCKED'
+            and v.source_sha256=r.sha256
+          """).param("id",id).param("reel",reel).query((rs,i)->new Media(rs.getString(1),rs.getString(2),rs.getLong(3)))
+            .optional().orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Vertical export not ready."));
+    }
+    @Transactional(readOnly=true)
+    public Media authorizedVerticalMedia(UUID id,UUID reel){owner(id,false);return verticalMedia(id,reel);}
+
+    // Called only by the existing direct reel scheduler when no direct extraction is available.
+    private void processVertical(){
+        UUID reel=null;Path dir=null;MediaObjectStore.Stored saved=null;boolean committed=false;
+        try{
+            jdbc.sql("""
+              update episode_reel_vertical set state='FAILED',lease_until=null,issue='Packaging interrupted. Retry explicitly.',updated_at=now()
+              where state='RUNNING' and lease_until<now()
+              """).update();
+            reel=jdbc.sql("""
+              with next_job as (
+                select reel_id from episode_reel_vertical where state='QUEUED'
+                  and not exists(select 1 from episode_reel_vertical where state='RUNNING')
+                  and not exists(select 1 from episode_reel where state in ('QUEUED','RUNNING'))
+                  and not exists(select 1 from episode_director_film_job where status in ('QUEUED','RUNNING'))
+                order by created_at limit 1 for update skip locked
+              )
+              update episode_reel_vertical v set state='RUNNING',lease_until=now()+interval '30 minutes',updated_at=now()
+              from next_job where v.reel_id=next_job.reel_id returning v.reel_id
+              """).query(UUID.class).optional().orElse(null);
+            if(reel==null)return;
+            UUID id=jdbc.sql("select package_id from episode_reel where id=:reel").param("reel",reel).query(UUID.class).single();
+            VerticalSource s=verticalSource(id,reel);
+            String expected=jdbc.sql("select source_sha256 from episode_reel_vertical where reel_id=:reel")
+                .param("reel",reel).query(String.class).single();
+            if(!s.sha().equals(expected)||s.bytes()>DirectReelExtractor.MAX_BYTES)throw conflict("Original clip identity or size invalid.");
+            store.requireWritable();
+            dir=Files.createTempDirectory("mediaos-vertical-reel-");
+            if(Files.getFileStore(dir).getUsableSpace()<s.bytes()+DirectReelExtractor.MAX_BYTES+256L*1024*1024)
+                throw conflict("Not enough bounded scratch space.");
+            Path input=dir.resolve("source.mp4"),output=dir.resolve("vertical.mp4");
+            try(var out=Files.newOutputStream(input)){store.streamVideoRange(s.key(),s.sha(),s.bytes(),0,s.bytes()-1,out);}
+            if(Files.size(input)!=s.bytes()||!MediaObjectStore.sha256(input).equals(s.sha()))throw conflict("Locked reel checksum mismatch.");
+            VerticalReelPackager.packageClip(input,output,s.frames(),s.title());
+            if(!verticalSource(id,reel).sha().equals(expected))throw conflict("Locked source changed during packaging.");
+            saved=store.uploadReelVerified(UUID.randomUUID(),output);
+            int n=jdbc.sql("""
+              update episode_reel_vertical v set state='READY',object_key=:key,sha256=:sha,byte_count=:bytes,
+                lease_until=null,issue=null,updated_at=now()
+              where reel_id=:reel and state='RUNNING' and source_sha256=:source
+                and exists(select 1 from episode_reel r join episode_director_film f on f.package_id=r.package_id
+                  where r.id=v.reel_id and r.state='LOCKED' and r.sha256=:source and r.film_id=f.film_id and r.master_sha256=f.sha256)
+              """).param("key",saved.key()).param("sha",saved.sha256()).param("bytes",saved.byteCount())
+                .param("reel",reel).param("source",expected).update();
+            if(n!=1)throw conflict("Vertical source no longer current.");
+            committed=true;LOG.info("VERTICAL_REEL_READY source={} frames={} bytes={}",reel,s.frames(),saved.byteCount());
+        }catch(Exception failure){
+            if(failure instanceof InterruptedException)Thread.currentThread().interrupt();
+            LOG.warn("Vertical reel packaging failed; locked originals preserved",failure);
+            if(reel!=null)try{
+                jdbc.sql("update episode_reel_vertical set state='FAILED',lease_until=null,issue='Packaging failed. Locked original is safe; retry explicitly.',updated_at=now() where reel_id=:reel and state='RUNNING'")
+                    .param("reel",reel).update();
+            }catch(Exception db){LOG.error("Vertical reel state update failed",db);}
+        }finally{
+            if(saved!=null&&!committed)try{
+                boolean referenced=jdbc.sql("select exists(select 1 from episode_reel_vertical where object_key=:key)")
+                    .param("key",saved.key()).query(Boolean.class).single();
+                if(!referenced)store.discardUncommittedVideo(saved.key(),saved.sha256(),saved.byteCount());
+            }catch(Exception cleanup){LOG.error("Uncommitted vertical reel object requires audit",cleanup);}
+            if(dir!=null)try(var files=Files.walk(dir)){
+                for(Path f:files.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(f);
+            }catch(Exception cleanup){LOG.warn("Vertical scratch cleanup failed",cleanup);}
         }
     }
 }

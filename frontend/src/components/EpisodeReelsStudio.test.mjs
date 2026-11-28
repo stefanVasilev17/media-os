@@ -22,3 +22,5 @@ describe('Direct Reels Studio',()=>{
     expect(studio).toContain('No new animation, voice, or aspect-ratio change');
   });
 });
+const vertical=readFileSync(new URL('./VerticalReelsPanel.tsx',import.meta.url),'utf8');
+describe('AT Vertical V1',()=>{it('keeps original and technical packaging separate with explicit consent and actual review',()=>{expect(studio).toContain('<VerticalReelsPanel root={root} sources={current}/>');expect(vertical).toContain("s.state==='LOCKED'");expect(vertical).toContain('directorMutation');expect(vertical).toContain('window.confirm');expect(vertical).toContain("r?.state==='READY'");expect(vertical).toContain("r?.state==='LOCKED'");expect(vertical).toContain('1080 × 1920');});});

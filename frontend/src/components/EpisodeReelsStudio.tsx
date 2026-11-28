@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,Download,Film,Play,Plus,RefreshCw,Scissors,X} from 'lucide-react';
 import '../styles/episodeReelsStudio.css';
+import {VerticalReelsPanel} from './VerticalReelsPanel';
 
 type Master={filmId:string;sha256:string;frames:number;videoUrl:string};
 type Candidate={shotKey:string;title:string;startFrame:number;endFrame:number;recommended:boolean};
@@ -31,6 +32,7 @@ function IntervalPlayer({master,segment}:{master:Master;segment:Segment}){
 }
 export function EpisodeReelsStudio({packageId}:{packageId:string}){
   const root='/api/v1/episode-packages/'+encodeURIComponent(packageId)+'/reels';
+  const [mode,setMode]=useState<'original'|'vertical'>('original');
   const [data,setData]=useState<View|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
@@ -120,7 +122,9 @@ export function EpisodeReelsStudio({packageId}:{packageId:string}){
     {error&&<p role="alert" className="director-minimal-error">{error}</p>}
     {notice&&<p role="status" className="director-minimal-success">{notice}</p>}
     {!data&&!error&&<p className="director-minimal-muted">Loading Full Video and candidates…</p>}
-    {data&&<>
+    {data&&<div className="reels-actions"><button type="button" aria-pressed={mode==='original'} className="director-minimal-subtle" onClick={()=>{setMode('original');void refresh();}}>Original clips</button><button type="button" aria-pressed={mode==='vertical'} className="director-minimal-subtle" onClick={()=>{setMode('vertical');setPlaying(null);setPreview(null);void refresh();}}>Vertical packaging</button></div>}
+    {data&&mode==='vertical'&&<VerticalReelsPanel root={root} sources={current}/>}
+    {data&&mode==='original'&&<>
       <div className="reels-intro"><div><strong>{locked} locked clips</strong><p>Minimum 3. More are encouraged whenever they stand alone. Cut directly from Full Video, without new creative work.</p></div>
         <button type="button" className="director-minimal-subtle" disabled={!master||busy} onClick={()=>editRange()}><Plus size={16}/> Custom cut</button></div>
       <p className="reels-format">Original 16:9 extracts. Vertical or square packaging requires separate approval; these are not automatically eligible YouTube Shorts.</p>

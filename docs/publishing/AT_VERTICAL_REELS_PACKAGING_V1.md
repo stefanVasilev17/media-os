@@ -1,0 +1,5 @@
+# AT Vertical V1 — technical packaging
+
+## 2026-11-28 — AT Vertical V1 technical packaging candidate
+
+Director approved the proposed 9:16 template and requested implementation; eight EP004 original extracts were confirmed LOCKED by Director in chat (live manifest verification separate). AT-PUB-0002 remains binding: this is explicitly approved deterministic padding/branding of an immutable original, no new scene, no crop, no new narration. V137 separate metadata, current locked source hash, owner/audited request, bounded single existing reel scheduler, private verified MP4 storage, original untouched, actual vertical preview and separate Director LOCK. 1080x1920, 960x540 complete aperture, existing original audio stream copied and decoded SHA verified, exact frame clock and full aperture PSNR >=35. Static title, neutral category, AT branding. First actual vertical export and mobile review pending; no batch request or production generation until individual explicit consent. Candidate source not yet validated/deployed at time of this note. No new Railway service or provider.
